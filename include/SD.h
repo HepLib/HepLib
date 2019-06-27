@@ -1,0 +1,269 @@
+#pragma once
+
+#include "ExGiNaC.h"
+
+#include <dlfcn.h>
+
+#include <string>
+#include <fcntl.h>
+#include <signal.h>
+#include <sys/syscall.h>
+#include <sys/wait.h>
+#include <sstream>
+#include <ios>
+#include <regex>
+
+extern "C" {
+    #include <quadmath.h>
+}
+
+namespace HepLib {
+
+/*********************************************************/
+// SD Input
+/*********************************************************/
+struct FeynmanParameter {
+    lst LoopMomenta;
+    lst tLoopMomenta;
+    lst Propagators;
+    lst Exponents;
+    exmap lReplacements;
+    exmap tReplacements;
+    exmap nReplacements;
+    ex Prefactor = 1;
+};
+
+struct XIntegrand {
+    lst Functions;
+    lst Exponents;
+    exmap nReplacements;
+    vector<lst> Deltas;
+    ex Prefactor = 1;
+};
+
+/*********************************************************/
+// Global Functions
+/*********************************************************/
+vector<ex> get_xy_from(ex pol);
+vector<ex> get_x_from(ex pol);
+vector<ex> get_y_from(ex pol);
+vector<ex> get_pl_from(ex pol);
+vector<pair<lst, lst>> diff_wrt(const pair<lst, lst> &input, ex xi);
+
+/*********************************************************/
+// SecDec Classes
+/*********************************************************/
+class SecDecBase {
+public:
+    virtual vector<exmap> x2y(const ex &xpol) =0;
+    vector<exmap> x2y(const lst &xpols);
+};
+
+class SecDecG : public SecDecBase {
+public:
+    vector<exmap> x2y(const ex &xpol) override;
+private:
+    vector<vector<int>> RunQHull(const matrix &pts);
+    vector<matrix> ZeroFaces(const matrix &pts);
+    matrix NormalVectors(const vector<matrix> &zfs);
+    matrix DualCone(const matrix &pts);
+    vector<vector<int>> QHull(const matrix &dc, int dim);
+    vector<matrix> SimplexifyR(const matrix &dc, int dim);
+    vector<matrix> Simplexify(const matrix &dc, int dim);
+    vector<matrix> SimplexCones(matrix pts);
+};
+
+class SecDecX : public SecDecBase {
+public:
+    vector<exmap> x2y(const ex &xpol) override;
+private:
+    bool PointOver(ex xx, ex yy);
+    ex OnlyLowPoints(ex xx);
+    ex NormShift(ex xx);
+    ex MakeOneStep(ex xx);
+    ex MakeOneStep(ex xx, ex facet);
+    ex MakeOneStep(ex xx, ex facet, ex graphas);
+    ex FindSD(ex xxx);
+    ex FindSD(ex xxx, bool extra);
+};
+
+/*********************************************************/
+// Integrator Classes
+/*********************************************************/
+typedef __float128 qREAL;
+typedef __complex128 qCOMPLEX;
+
+class IntegratorBase {
+public:
+    typedef int (*SD_Type) (const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL la[]);
+    virtual ex Integrate(unsigned int xn, SD_Type fp, SD_Type fpQ, const qREAL pl[], const qREAL la[]) =0;
+    
+    long long RunMAX = 100;
+    long long RunPTS = 100000;
+    qREAL EpsAbs = 1E-5;
+    qREAL EpsRel = 0;
+};
+
+class HCubature : public IntegratorBase {
+public:
+    static bool useQ(unsigned xdim, qREAL const *x);
+    static int Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y);
+    
+    typedef void (*PrintHookerType) (qREAL*, qREAL*, long long int*, void *);
+    
+    virtual ex Integrate(unsigned int, SD_Type, SD_Type, const qREAL[], const qREAL[]) override;
+    static void DefaultPrintHooker(qREAL*, qREAL*, long long int*, void*);
+    PrintHookerType PrintHooker = DefaultPrintHooker;
+private:
+    SD_Type Integrand;
+    SD_Type IntegrandQ;
+    const qREAL* Lambda;
+    const qREAL* Parameter;
+    qREAL LastResult[2];
+    qREAL LastAbsErr[2];
+    int LastState = 0;
+};
+
+/*********************************************************/
+// Minimize Classes
+/*********************************************************/
+typedef long double dREAL;
+class MinimizeBase {
+public:
+    typedef dREAL (*FunctionType)(int nvars, dREAL* x);
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *UB = NULL, dREAL *LB = NULL) =0;
+};
+
+class HookeJeeves : public MinimizeBase {
+public:
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *UB = NULL, dREAL *LB = NULL) override;
+
+private:
+    dREAL best_nearby(dREAL* delta, dREAL* point, dREAL prevbest, int nvars);
+    int hooke(int nvars, dREAL* startpt, dREAL* endpt, dREAL rho, dREAL epsilon, int itermax);
+    dREAL ObjectWrapper(int nvars, dREAL* x);
+    FunctionType ObjectFunction;
+    dREAL UpperBound[50];
+    dREAL LowerBound[50];
+};
+
+class MinUit : public MinimizeBase {
+public:    
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *UB = NULL, dREAL *LB = NULL) override;
+};
+
+/*********************************************************/
+// CppFormat Class
+/*********************************************************/
+class CppFormat : public print_csrc_cl_N {
+    GINAC_DECLARE_PRINT_CONTEXT(CppFormat, print_csrc_cl_N)
+public:
+    CppFormat(ostream &os, const char* s = "L", unsigned opt = 0);
+    static ex q2ex(qREAL);
+    static qREAL ex2q(ex);
+    const char* suffix;
+    static void QPrint(qREAL qr);
+private:
+    static void print_integer(const CppFormat & c, const cln::cl_I & x);
+    static void print_real(const CppFormat & c, const cln::cl_R & x);
+    static void print_numeric(const numeric & p, const CppFormat & c, unsigned level);
+};
+
+/*********************************************************/
+// VE
+/*********************************************************/
+ex VESimplify(ex expr, int epN, int epsN = 0);
+ex VEResult(ex expr);
+
+/*********************************************************/
+// SD Class
+/*********************************************************/
+class SD {
+
+public:
+    static const symbol iEpsilon;
+    static const symbol ep;
+    static const symbol eps;
+    static const realsymbol NaN;
+    static bool use_dlclose;
+    
+    int ParallelProcess = -1;
+    lst ParallelSymbols = lst{ ep, eps, iEpsilon };
+    
+    int epN = 0;
+    int epsN = 0;
+    int Verbose = 1;
+    int PoleRequested = -100;
+    exmap nReplacements;
+    vector<pair<lst, lst>> FunExp;
+    vector<lst> Deltas;
+    vector<ex> Integrands;
+    vector<pair<ex, ex>> epIntegrands;
+    SecDecBase *SecDec = NULL;
+    IntegratorBase *Integrator = NULL;
+    MinimizeBase *Minimizer = NULL;
+    ex ResultError;
+    const char * CFLAGS = "";
+    bool IsZero = false;
+    bool CheckF1 = false;
+    lst BisectionPoints = lst { ex(1)/5, ex(1)/7, ex(1)/11, ex(1)/13, ex(1)/17, ex(1)/19, ex(1)/23  };
+    
+    map<int, numeric> Parameter;
+    map<int, numeric> ParameterUB;
+    map<int, numeric> ParameterLB;
+    
+    long long TryPTS = 10000;
+    long long LambdaSplit = 10;
+    qREAL LambdaMax = 100;
+    
+    long long RunMAX = 500;
+    long long RunPTS = 10000;
+    qREAL EpsAbs = 1E-5;
+    
+    void Initialize(FeynmanParameter fpi);
+    void Initialize(XIntegrand xint);
+    void Normalizes();
+    void Scalelesses();
+    void SDPrepares();
+    void EpsEpExpands();
+    void RemoveDeltas();
+    void XReOrders();
+    bool IsBadF1(ex f, vector<exmap> vmap);
+    vector<pair<lst, lst>> AutoF1(pair<lst, lst> po_ex);
+    void IntPrepares(const char* key = NULL);
+    void ContourPrepares(const char* key = NULL);
+    void Integrates(const char* key = NULL);
+    void Evaluate(FeynmanParameter fpi);
+    void Evaluate(XIntegrand xint);
+    
+    static ex PrefactorFIESTA(int nLoop);
+    ex VEResult();
+    double FindMinimum(ex expr);
+        
+private:
+    vector<pair<exmap, ex>> SDPrepare(const pair<lst, lst> po_ex);
+    pair<lst, lst> Normalize(const pair<lst, lst> &input);
+    static int epRank(ex);
+    static int epsRank(ex);
+
+    void CompileMatDet();
+    vector<lst> soIntegrands;
+    exmap LambdaFT;
+};
+
+/*********************************************************/
+// Customized GiNaC Function
+/*********************************************************/
+DECLARE_FUNCTION_1P(fabs)
+DECLARE_FUNCTION_1P(x)
+DECLARE_FUNCTION_1P(y)
+DECLARE_FUNCTION_1P(z)
+DECLARE_FUNCTION_1P(t)
+DECLARE_FUNCTION_1P(PL)
+DECLARE_FUNCTION_1P(FT)
+DECLARE_FUNCTION_1P(CT)
+DECLARE_FUNCTION_2P(VE)
+DECLARE_FUNCTION_2P(VEO)
+
+}
+
