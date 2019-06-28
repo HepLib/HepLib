@@ -304,7 +304,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     lst lxs;
     for(auto item : xs) lxs.append(item);
     pol = pol.expand().collect(lxs, true);
-    int np = is_exactly_a<add>(pol) ? pol.nops() : 1;
+    int np = is_a<add>(pol) ? pol.nops() : 1;
     matrix deg_mat(np, nx);
     
     if(nx<2) {
@@ -316,7 +316,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
         return vmap;
     }
     
-    if(is_exactly_a<add>(pol)) {
+    if(is_a<add>(pol)) {
         for(int n=0; n<np; n++) {
             ex tmp = pol.op(n);
             for(int ix=0; ix<nx; ix++) {

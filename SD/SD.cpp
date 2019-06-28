@@ -143,12 +143,11 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
         if( (!tmp.has(x(wild())) && !tmp.has(y(wild()))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
         sdList.append(tmp);
     }
-    
+        
     vector<exmap> vmap = SecDec->x2y(sdList);
 
     vector<pair<exmap, ex>> sd;
     for(auto &vi : vmap) {
-    
         auto ypolist = polist.subs(vi);
         auto xs_tmp = get_x_from(ypolist);
         auto ys_tmp = get_y_from(ypolist);
@@ -157,7 +156,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             vi[xs_tmp[i]] = y(ysn+i);
         }
         if(xs_tmp.size()>0) ypolist = polist.subs(vi);
-        
+
         // need collect_common_factors
         auto ft = collect_common_factors(ypolist.op(1).expand());
 
@@ -229,16 +228,19 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             }
         }
 
-        ex polexp = FT(ft)*CT(ct);
         exmap ymol;
         
         // need collect_common_factors
         auto det = collect_common_factors(vi[x(-1)]);
         assert(!is_exactly_a<add>(det));
         auto ys = get_xy_from(det);
+        ex det1 = 1;
         for(int i=0; i<ys.size(); i++) {
             ymol[ys[i]] = ymol[ys[i]] + det.degree(ys[i]);
+            det1 *= pow(ys[i], det.degree(ys[i]));
         }
+        assert(is_a<numeric>(det/det1) && ex_to<numeric>(det/det1).is_integer());
+        ex polexp = FT(ft)*CT(ct*det/det1);
 
         for(int i=0; i<ypolist.nops(); i++) {
             // need collect_common_factors
@@ -256,58 +258,49 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             
             if(tmp.has(y(wild()))) tmp = collect_common_factors(tmp.expand());
 
+            lst tmps;
             if(is_exactly_a<mul>(tmp)) {
-                ex rem = 1;
-                ex ct = 1;
-                for (auto item : tmp) {
-                    if( item.match(y(wild())) || item.match(pow(y(wild()), wild(1))) ) {
-                        auto yi = get_xy_from(item)[0];
-                        ymol[yi] = ymol[yi] + (item.nops()<2 ? 1 : item.op(1)) * exlist.op(i);
-                    } else if(!item.has(y(wild())) && !item.has(x(wild()))) {
-                        if(is_a<numeric>(exlist.op(i)) && ex_to<numeric>(exlist.op(i)).is_integer()) {
-                            ct *= item;
-                        } else if(!item.has(PL(wild()))) {
-                            auto tr = item.subs(nReplacements);
-                            if(!is_a<numeric>(tr.evalf())) {
-                                cout << "not numeric - item: " << tr << " ; " << item << endl;
-                                assert(false);
-                            }
-                            auto nitem = ex_to<numeric>(tr.evalf());
-                            if( nitem.is_real() && nitem<0 ) {
-                                ct *= -ex(1)*item;
-                                rem *= -ex(1);
-                            } else {
-                                ct *= item;
-                            }
-                        } else {
-                            rem *= item;
-                        }
-                    } else {
-                        if(nchk && item.subs(y(wild())==0).subs(iEpsilon==0).is_zero()) {
-                            cout << "zero - item: " << item << endl;
-                            cout << "exlist.op(i) = " << exlist.op(i) << endl;
-                            assert(false);
-                        }
-                        rem *= item;
-                    }
-                }
-                polexp *= pow(rem-(i==1 && ft!=1 ? iEpsilon : ex(0)), exlist.op(i));
-                polexp = polexp.subs(CT(wild()) == CT(wild()*pow(ct, exlist.op(i))));
+                for (auto item : tmp) tmps.append(item);
             } else {
-                auto item = tmp;
+                tmps.append(tmp);
+            }
+            
+            ex rem = 1;
+            ex ct = 1;
+            for (auto item : tmps) {
                 if( item.match(y(wild())) || item.match(pow(y(wild()), wild(1))) ) {
                     auto yi = get_xy_from(item)[0];
                     ymol[yi] = ymol[yi] + (item.nops()<2 ? 1 : item.op(1)) * exlist.op(i);
-                } else if(!tmp.has(x(wild())) && !tmp.has(y(wild()))) {
-                    polexp = polexp.subs(CT(wild()) == CT(wild()*pow(tmp, exlist.op(i))));
+                } else if(!item.has(y(wild())) && !item.has(x(wild()))) {
+                    if(is_a<numeric>(exlist.op(i)) && ex_to<numeric>(exlist.op(i)).is_integer()) {
+                        ct *= item;
+                    } else if(!item.has(PL(wild()))) {
+                        auto tr = item.subs(nReplacements);
+                        if(!is_a<numeric>(tr.evalf())) {
+                            cout << "not numeric - item: " << tr << " ; " << item << endl;
+                            assert(false);
+                        }
+                        auto nitem = ex_to<numeric>(tr.evalf());
+                        if( nitem.is_real() && nitem<0 ) {
+                            ct *= -ex(1)*item;
+                            rem *= -ex(1);
+                        } else {
+                            ct *= item;
+                        }
+                    } else {
+                        rem *= item;
+                    }
                 } else {
-                    if(nchk && tmp.subs(y(wild())==0).is_zero()) {
-                        cout << "zero - tmp: " << tmp << endl;
+                    if(nchk && item.subs(y(wild())==0).subs(iEpsilon==0).normal().is_zero()) {
+                        cout << "zero - item: " << item << endl;
+                        cout << "exlist.op(i) = " << exlist.op(i) << endl;
                         assert(false);
                     }
-                    polexp *= pow(tmp-(i==1 && ft!=1 ? iEpsilon : ex(0)), exlist.op(i));
+                    rem *= item;
                 }
             }
+            polexp *= pow(rem-(i==1 && ft!=1 ? iEpsilon : ex(0)), exlist.op(i));
+            polexp = polexp.subs(CT(wild()) == CT(wild()*pow(ct, exlist.op(i))));
         }
 
         exmap xmol;
@@ -1055,7 +1048,7 @@ void SD::SDPrepares() {
                         }
 
                         lst exprs2;
-                        for(auto &it : exprs) {
+                        for(auto it : exprs) {
                             ex rem = pow(xen.first, xen.second) * it;
                             if(ex_to<numeric>(expn)<=-1) {
                                 ex dit = it;
@@ -1084,17 +1077,8 @@ void SD::SDPrepares() {
             xmol_exps = todo_list;
         }
         
-        for(int i=0; i< para_res_lst.nops(); i++) {
-            exset xset;
-            para_res_lst.op(i).find(x(wild()), xset);
-            map<ex, int, ex_is_less> xmap;
-            for(auto it=xset.begin(); it!=xset.end(); it++) xmap[*it]++;
-            
-            vector<ex> xs;
-            for(auto kv : xmap) xs.push_back(kv.first);
-            sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
-                return ex_to<numeric>(normal((b-a)).subs(lst{x(wild())==wild()})).is_positive();
-            });
+        for(int i=0; i<para_res_lst.nops(); i++) {
+            auto xs = get_x_from(para_res_lst.op(i));
             
             lst x2y;
             for(int i=0; i<xs.size(); i++) {
@@ -1169,7 +1153,7 @@ void SD::EpsEpExpands() {
                 }
             }
         }
-        
+
         if(para_res_lst.nops()<1) para_res_lst.append(lst{0,0});
         return para_res_lst;
 

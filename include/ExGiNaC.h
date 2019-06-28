@@ -24,6 +24,11 @@ using namespace std;
 const symbol & get_symbol(const string & s);
 
 /*********************************************************/
+// split
+/*********************************************************/
+vector<std::string> split(const string& s, char delimiter);
+
+/*********************************************************/
 // Helper Classes
 /*********************************************************/
 class MatHelper {

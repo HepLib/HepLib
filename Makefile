@@ -10,15 +10,20 @@ dep:
 libHepLib.so: ExGiNaC/*.o SD/*.o SD/Lib3/*.o IBP/*.o
 	g++ $(opt) -shared -lgomp -lquadmath -ldl -lqhullstatic -lMinuit2 -lginac -lcln -o $@ $^
 
-install: libHepLib.so
+bin: libHepLib.so
+	make -C bin
+
+install: libHepLib.so bin
 	cp -r include/* $(prefix)/include/
 	cp libHepLib.so $(prefix)/lib/
+	cp bin/garview $(prefix)/bin/
 
 clean:
 	make -C ExGiNaC clean
 	make -C SD clean
 	make -C IBP clean
 	rm -f libHepLib.so
+	make -C bin clean
 
 
 
