@@ -50,7 +50,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
          return;
     }
     
-    if((self->LastState == 0) || (epsabs[0]<=10*self->LastAbsErr[0] && epsabs[1]<=10*self->LastAbsErr[1])) {
+    if((self->LastState == 0) || (epsabs[0]<=10*self->LastAbsErr[0] && epsabs[1]<=10*self->LastAbsErr[1]) ) {
         self->LastResult[0] = result[0];
         self->LastResult[1] = result[1];
         self->LastAbsErr[0] = epsabs[0];
@@ -81,7 +81,7 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
 
     hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, xdim<2 ? 1000 : RunPTS, RunPTS * RunMAX, EpsAbs, EpsRel, ERROR_PAIRED, result, estabs, PrintHooker);
     
-    if(LastState<0) {
+    if(LastState<0 && xdim < 3) {
         result[0] = LastResult[0];
         result[1] = LastResult[1];
         estabs[0] = LastAbsErr[0];
