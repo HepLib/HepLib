@@ -102,6 +102,8 @@ public:
     long long RunPTS = 100000;
     qREAL EpsAbs = 1E-5;
     qREAL EpsRel = 0;
+    int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
+    int Verbose = 0;
 };
 
 class HCubature : public IntegratorBase {
@@ -114,6 +116,9 @@ public:
     virtual ex Integrate(unsigned int, SD_Type, SD_Type, const qREAL[], const qREAL[]) override;
     static void DefaultPrintHooker(qREAL*, qREAL*, long long int*, void*);
     PrintHookerType PrintHooker = DefaultPrintHooker;
+    long long MaxPTS;
+    bool use_last = false;
+    
 private:
     SD_Type Integrand;
     SD_Type IntegrandQ;
@@ -172,7 +177,7 @@ private:
 /*********************************************************/
 // VE
 /*********************************************************/
-ex VESimplify(ex expr, int epN, int epsN = 0);
+ex VESimplify(ex expr, int epN = 0, int epsN = 0);
 ex VEResult(ex expr);
 
 /*********************************************************/
@@ -186,6 +191,7 @@ public:
     static const symbol eps;
     static const realsymbol NaN;
     static bool use_dlclose;
+    static bool debug;
     
     int ParallelProcess = -1;
     lst ParallelSymbols = lst{ ep, eps, iEpsilon };
@@ -206,6 +212,7 @@ public:
     const char * CFLAGS = "";
     bool IsZero = false;
     bool CheckF1 = false;
+    bool use_CCF = true;
     lst BisectionPoints = lst { ex(1)/5, ex(1)/7, ex(1)/11, ex(1)/13, ex(1)/17, ex(1)/19, ex(1)/23  };
     
     map<int, numeric> Parameter;
@@ -214,11 +221,16 @@ public:
     
     long long TryPTS = 10000;
     long long LambdaSplit = 10;
-    qREAL LambdaMax = 100;
+    qREAL LambdaMax = 50;
+    int CTry = 3;
+    int CTryLeft = 6;
+    int CTryRight = 2;
+    double CTryRightRatio = 1.5;
     
     long long RunMAX = 500;
     long long RunPTS = 10000;
     qREAL EpsAbs = 1E-5;
+    int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     
     void Initialize(FeynmanParameter fpi);
     void Initialize(XIntegrand xint);

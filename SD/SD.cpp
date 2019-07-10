@@ -8,6 +8,7 @@ symbol const SD::eps("eps");
 symbol const SD::iEpsilon("iEpsilon");
 realsymbol const SD::NaN("NaN");
 bool SD::use_dlclose = true;
+bool SD::debug = false;
 
 vector<exmap> SecDecBase::x2y(const lst &xpols) {
     ex xpol = 1;
@@ -161,7 +162,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
         auto ft = collect_common_factors(ypolist.op(1).expand());
 
         ex ct = 1, fsgin = 1;
-        if(is_exactly_a<mul>(ft)) {
+        if(is_a<mul>(ft)) {
             ex ret = 1;
             for (auto item : ft) {
                 if( !(item.match(y(wild())) || item.match(pow(y(wild()), wild(1)))) ) {
@@ -219,7 +220,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             if(tn.evalf() < 0) tmp = ex(0)-tmp;
             double tmin = FindMinimum(tmp);
             if(tmin > 0) {
-                if(tn < 0) {
+                if(tn.evalf() < 0) {
                     ct = exp(-I * Pi * exlist.op(1));
                     fsgin = -1;
                 }
@@ -533,7 +534,7 @@ void SD::Initialize(FeynmanParameter fp) {
                 assert(is_a<numeric>(p.coeff(m,2)));
                 numeric nm = ex_to<numeric>(p.coeff(m,2));
                 if(nm.is_zero()) continue;
-                sgn = nm>0 ? -1 : 1;
+                sgn = nm>0 ? -1 : 1; //Feng
                 break;
             }
         }
@@ -574,7 +575,9 @@ void SD::Initialize(FeynmanParameter fp) {
         
         cu *= u;
         auto u_nd = numer_denom(u);
-        ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==1/2).subs(nsubs).subs(plsubs);
+        ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs).subs(plsubs);
+        if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/3).subs(nsubs).subs(plsubs);
+        assert(!usgn.is_zero());
         usgn = normal(usgn)>0 ? 1 : -1;
         
         if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(plsubs))) {
@@ -616,11 +619,14 @@ void SD::Initialize(FeynmanParameter fp) {
         
         cu *= u;
         auto u_nd = numer_denom(u);
-        ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==1/2).subs(nsubs).subs(plsubs);
+        ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs).subs(plsubs);
+        if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/3).subs(nsubs).subs(plsubs);
+        assert(!usgn.is_zero());
         usgn = normal(usgn)>0 ? 1 : -1;
-        
+                
         if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(plsubs))) {
             cout << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(plsubs) << endl;
+            
             assert(false);
         }
         if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(plsubs))) {
@@ -641,9 +647,9 @@ void SD::Initialize(FeynmanParameter fp) {
     rem = normal(rem * u);
     auto rem_nd = numer_denom(rem);
     
-    ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==1/2).subs(nsubs).subs(plsubs);
+    ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs).subs(plsubs);
     usgn = normal(usgn)>0 ? 1 : -1;
-    ex fsgn = rem_nd.op(1).subs(xtNeg).subs(x(wild())==1/2).subs(nsubs).subs(plsubs);
+    ex fsgn = rem_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs).subs(plsubs);
     fsgn = normal(fsgn)>0 ? 1 : -1;
     
     lst fList1, fList2;
@@ -977,7 +983,7 @@ void SD::SDPrepares() {
                 para_res_lst.append(lst{item.first, item.second});
             }
             return para_res_lst;
-        }, "f1", 0);
+        }, "f1", 0, !debug);
 
         FunExp.clear();
         for(auto &item : funexps) {
@@ -1090,7 +1096,7 @@ void SD::SDPrepares() {
         
         if(para_res_lst.nops()<1) para_res_lst.append(0);
         return para_res_lst;
-    }, "sd", Verbose);
+    }, "sd", Verbose, !debug);
     
     for(auto &item : res) {
         for(auto &it : ex_to<lst>(item)) Integrands.push_back(it);
@@ -1120,7 +1126,7 @@ void SD::EpsEpExpands() {
         }
         ex ct = (*(cts.begin())).subs(CT(wild())==wild());
         auto tmp = item.subs(CT(wild())==1);
-        tmp = collect_common_factors(tmp); //TODO: need collect_common_factors ?
+        if(use_CCF) tmp = collect_common_factors(tmp);
         lst para_res_lst;
         
         if(!tmp.has(eps) && !ct.has(eps)) {
@@ -1129,17 +1135,17 @@ void SD::EpsEpExpands() {
             for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                 auto intg = tmp.coeff(ep, di);
                 auto pref = series_to_poly(ct.series(ep, 1+exN+epN-di));
-                intg = collect_common_factors(intg); //TODO: collect_common_factors ?
+                if(use_CCF) intg = collect_common_factors(intg);
                 para_res_lst.append(lst{pref * pow(ep, di), intg});
             }
         } else {
             auto sct = ct;
             int sctN = epsRank(sct);
             ex stmp = series_to_poly(tmp.series(eps, 1+exN+epsN-sctN));
-            stmp = collect_common_factors(stmp); //TODO: collect_common_factors ?
+            if(use_CCF) stmp = collect_common_factors(stmp);
             for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
                 tmp = stmp.coeff(eps, sdi);
-                tmp = collect_common_factors(tmp); //TODO: collect_common_factors ?
+                if(use_CCF) tmp = collect_common_factors(tmp);
                 assert(!tmp.has(eps));
                 ct = series_to_poly(sct.series(eps, 1+exN+epsN-sdi));
                 int ctN = epRank(ct);
@@ -1148,7 +1154,7 @@ void SD::EpsEpExpands() {
                     auto intg = tmp.coeff(ep, di);
                     assert(!intg.has(ep));
                     auto pref = series_to_poly(ct.series(ep, 1+exN+epN-di));
-                    intg = collect_common_factors(intg); //TODO: collect_common_factors ?
+                    if(use_CCF) intg = collect_common_factors(intg);
                     para_res_lst.append(lst{pref * pow(eps, sdi) * pow(ep, di), intg});
                 }
             }
@@ -1157,7 +1163,7 @@ void SD::EpsEpExpands() {
         if(para_res_lst.nops()<1) para_res_lst.append(lst{0,0});
         return para_res_lst;
 
-    }, "ep", Verbose);
+    }, "ep", Verbose, !debug);
     
     epIntegrands.clear();
     for(auto &item : res) {
@@ -1326,17 +1332,16 @@ void SD::IntPrepares(const char* key) {
         if(ft.has(x(wild()))) {
             auto tmp = ft.subs(nReplacements).expand();
             if(is_a<add>(tmp)) {
-                need_contour_deformation = false;
                 for(auto item : tmp) {
                     if(item.subs(x(wild())==1) < 0) {
                         need_contour_deformation = true;
                         break;
                     }
                 }
-                if(!need_contour_deformation) ft = 1; //note the difference with SDPrepare
             } else {
                 if(tmp.subs(x(wild())==1) < 0) need_contour_deformation = true;
             }
+            if(!need_contour_deformation) ft = 1; //note the difference with SDPrepare
         }
         
         ostringstream cppfn;
@@ -1387,7 +1392,7 @@ inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
         ofs << "dREAL x[xn];" << endl;
         ofs << "for(int i=0; i<xn; i++) x[i] = xx[i];" << endl;
         ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
-        ofs << "for(int i=0; i<"<<(npls<0 ? 1 : npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
+        ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
         if(need_contour_deformation) {
             vector<symbol> ilas;
             for(int ii=0; ii<ftx.size(); ii++) {
@@ -1509,7 +1514,7 @@ ofs << R"EOF(
         ofn << pid << "/" << rid << ".o";
         cmd << "g++ -fPIC " << CFLAGS << " -c -o " << ofn.str() << " " << cppfn.str();
         system(cmd.str().c_str());
-        remove(cppfn.str().c_str());
+        if(!debug) remove(cppfn.str().c_str());
         return lst{ rid, xs.size(), kv.first, ft };
     }, "int", Verbose, false);
     
@@ -1536,7 +1541,7 @@ ofs << R"EOF(
     cmd.clear();
     cmd.str("");
     cmd << "rm -rf " << pid;
-    system(cmd.str().c_str());
+    if(!debug) system(cmd.str().c_str());
 }
 
 // need Parameter
@@ -1610,12 +1615,20 @@ void SD::ContourPrepares(const char * key) {
         
         ex zs[xs.size()];
         symbol ila("ila");
+        double tmp2 = 0;
         for(int i=0; i<xs.size(); i++) {
             //TODO: add other schema
             auto tmp = 1/dfmax;
             auto dla = ex_to<numeric>(las.op(i)).to_double();
-            if(dla > 1E-2 * dfmax) tmp = 1/dla;
-            
+            if(dla > 5E-2 * dfmax) tmp = 1/dla;
+            las.let_op(i) = tmp;
+            tmp2 += tmp * tmp;
+        }
+        
+        tmp2 = sqrt(tmp2);
+        for(int i=0; i<xs.size(); i++) {
+            auto tmp = las.op(i);
+            tmp = tmp / tmp2;
             las.let_op(i) = tmp;
             zs[i] = xs[i] - xs[i]*(1-xs[i])*dfs.op(i)*ila*tmp;
         }
@@ -1668,7 +1681,7 @@ typedef complex<long double> dCOMPLEX;
             zs[i].subs(cxRepl).print(cppL);
             ofs << ";" << endl;
         }
-        ofs << "dCOMPLEX zf = " << endl;
+        ofs << "dCOMPLEX zf = ";
         ft.subs(czRepl).print(cppL);
         ofs << ";" << endl;
         ofs << "return -zf.imag();" << endl; // find max image part, check with 0
@@ -1695,7 +1708,7 @@ typedef complex<long double> dCOMPLEX;
             UB[nvars-1] = min;
             dREAL res = Minimizer->FindMinimum(nvars, fp, UB);
             
-            if(res < -5E-4) laEnd = min;
+            if(res < 0) laEnd = min;
             else laBegin = min;
             
             if(laEnd - laBegin < 1E-3 * laEnd) break;
@@ -1707,12 +1720,19 @@ typedef complex<long double> dCOMPLEX;
         cmd.clear();
         cmd.str("");
         cmd << "rm " << cppfn.str() << " " << sofn.str();
-        system(cmd.str().c_str());
+        if(!debug) system(cmd.str().c_str());
                 
         las.append(numeric((double)min));
+        if(Verbose>3) {
+            auto oDigits = Digits;
+            Digits = 3;
+            cout << "\r                                 \r";
+            cout << "λ: " << las.evalf() << endl;
+            Digits = oDigits;
+        }
         return lst{ ft, las };
     
-    }, "la", Verbose);
+    }, "la", Verbose, !debug);
     
     ostringstream garfn;
     if(key != NULL) {
@@ -1732,7 +1752,7 @@ typedef complex<long double> dCOMPLEX;
     cmd.clear();
     cmd.str("");
     cmd << "rm -rf " << ppid;
-    system(cmd.str().c_str());
+    if(!debug) system(cmd.str().c_str());
 }
 
 // need Parameter
@@ -1778,7 +1798,7 @@ void SD::Integrates(const char * key) {
     void* module = nullptr;
     module = dlopen(sofn.str().c_str(), RTLD_NOW);
     if (module == nullptr) throw std::runtime_error("could not open compiled module!");
-    if(key == NULL) remove(sofn.str().c_str());
+    if(!debug && key == NULL) remove(sofn.str().c_str());
     
     int nprar = 0;
     lst plRepl;
@@ -1791,7 +1811,7 @@ void SD::Integrates(const char * key) {
     ResultError = 0;
     for(auto &item : soIntegrands) {
         if(Verbose > 1) {
-            cout << "\r                                      \r" << flush;
+            //cout << "\r                                      \r" << flush;
             cout << "\r  \\--Evaluating [" <<(++current)<<"/"<<total<< "] ... " << flush;
         }
         
@@ -1807,6 +1827,8 @@ void SD::Integrates(const char * key) {
         if(co.is_zero()) continue;
         assert(!co.has(PL(wild())));
         qREAL cmax = -1;
+        int reim = 0;
+        if(ReIm==3) reim = 3;
         for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
             auto tmp = co.coeff(eps, si);
             assert(!tmp.has(eps));
@@ -1820,12 +1842,24 @@ void SD::Integrates(const char * key) {
                 
                 for(int ci=0; ci<css.nops(); ci++) {
                     auto nt = css.op(ci).subs(nReplacements).evalf();
-                    nt = abs(nt).evalf(); // no PL here, then nReplacements
                     if(!is_a<numeric>(nt)) {
                         cout << "nt: " << nt << endl;
                         assert(false);
                     }
                     assert(!nt.has(ep));
+                    if(ReIm!=3 && reim!=3) {
+                        if(ex_to<numeric>(nt).imag()==0) {
+                            if(reim==2) reim = 3;
+                            else reim = 1;
+                        } else if(ex_to<numeric>(nt).real()==0) {
+                            if(reim==1) reim = 3;
+                            else reim = 2;
+                        } else {
+                            reim = 3;
+                        }
+                    }
+                    nt = abs(nt).evalf(); // no PL here, then nReplacements
+                    
                     qREAL qnt = CppFormat::ex2q(nt);
                     if(qnt > cmax) cmax = qnt;
                 }
@@ -1834,6 +1868,10 @@ void SD::Integrates(const char * key) {
         if(cmax<=0) {
             cout << "cmax<=0 with co = " << co <<endl;
             assert(false);
+        }
+        if(reim!=3 && ReIm!=3) {
+            if(reim==1 && ReIm==2) reim=2;
+            else if(reim==2 && ReIm==2) reim=1;
         }
         
         ostringstream fname;
@@ -1850,26 +1888,42 @@ void SD::Integrates(const char * key) {
         qREAL lambda[las.nops()];
         qREAL paras[nprar+1];
         for(auto kv : Parameter) paras[kv.first] = CppFormat::ex2q(kv.second);
-        
-        
+
+        Integrator->Verbose = Verbose;
+        Integrator->ReIm = reim;
         if(is_a<lst>(las)) {
+            qREAL lamin = 0;
             qREAL lamax = CppFormat::ex2q(las.op(las.nops()-1));
             if(lamax > LambdaMax) lamax = LambdaMax;
+            qREAL lamax0 = lamax;
             
-            Integrator->RunMAX = 1;
+            if(Verbose>3) cout << endl;
+            
+            Integrator->RunMAX = -1;
             Integrator->RunPTS = TryPTS;
             Integrator->EpsAbs = 0;
             Integrator->EpsRel = 0;
-
+            
             int smin = -1;
-            for(int stry=0; stry<5; stry++) {
+            int ctryR = 0, ctry = 0, ctryL = 0;
+            while(true) {
                 smin = -1;
                 ex emin = 0;
-                for(int s=0; s<LambdaSplit; s++) {
+                for(int s=1; s<=LambdaSplit; s++) {
+                    auto cla = (lamin + s * (lamax-lamin) / LambdaSplit);
                     for(int i=0; i<las.nops()-1; i++) {
-                        lambda[i] = (s+1) * lamax *  CppFormat::ex2q(las.op(i)) / LambdaSplit;
+                        lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
                     }
+ 
                     auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
+                    if(Verbose>3) {
+                        auto oDigits = Digits;
+                        Digits = 3;
+                        cout << "\r                                                    \r";
+                        cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res,epN,epsN)) << endl;
+                        Digits = oDigits;
+                    }
+                    
                     if(res.has(NaN)) continue;
                     auto res_tmp = res.subs(VE(wild(1), wild(2))==wild(2));
                     auto err = real_part(res_tmp);
@@ -1880,10 +1934,15 @@ void SD::Integrates(const char * key) {
                         if(emin < CppFormat::q2ex(EpsAbs)) {
                             smin = -2;
                             ResultError += co * res;
+                            if(Verbose>3) {
+                                cout << WHITE;
+                                cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res,epN,epsN)) << endl;
+                                cout << RESET;
+                            }
                             break;
                         }
                     }
-                } 
+                }
                 if(smin == -2) break; 
                 
                 if(smin == -1) {
@@ -1891,32 +1950,56 @@ void SD::Integrates(const char * key) {
                     assert(false);
                 }
                 
-                if(smin < 2) {
-                    lamax = (smin+1) * lamax / LambdaSplit;
-                    continue;
-                } else break;
+                if(smin <= 2) {
+                    ctryL++;
+                    if(ctryL >= CTryLeft) break;
+                    lamax = lamin + (smin+1) * (lamax-lamin) / LambdaSplit;
+                } else if(smin >= 8) {
+                    if(lamax0 < lamax * CTryRightRatio) {
+                        ctryR++;
+                        if(ctryR >= CTryRight) break;
+                    }
+                    lamin = lamin + (smin-1) * (lamax-lamin) / LambdaSplit;
+                    lamax *= CTryRightRatio;
+                } else {
+                    ctry++;
+                    if(ctry >= CTry) break;
+                    auto la1 = lamin + (smin-1) * (lamax-lamin) / LambdaSplit;
+                    auto la2 = lamin + (smin+1) * (lamax-lamin) / LambdaSplit;
+                    lamin = la1;
+                    lamax = la2;
+                }
             }
             
             if(smin == -2) continue;
             
+            auto cla = (lamin + smin * (lamax-lamin) / LambdaSplit);
+            if(Verbose > 3) cout << WHITE << "     λ=" << (double)cla << ": " << RESET << endl;
             for(int i=0; i<las.nops()-1; i++) {
-                lambda[i] = (smin+1) * lamax * CppFormat::ex2q(las.op(i)) / LambdaSplit;
+                lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
             }
-        }
+        } else if(Verbose > 3) cout << "xdim=" << xsize << endl;
         
         Integrator->RunMAX = RunMAX;
         Integrator->RunPTS = RunPTS;
         Integrator->EpsAbs = EpsAbs/cmax;
         Integrator->EpsRel = 0;
         auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
-        if(res.has(NaN)) ResultError += NaN;
-        else ResultError += co * res;
+        if(Verbose>3) {
+            cout << WHITE;
+            cout << "     "<< HepLib::VEResult(VESimplify(res,epN,epsN)) << endl;
+            cout << RESET;
+        }
+        if(res.has(NaN)) {
+            ResultError = NaN;
+            break;
+        } else ResultError += co * res;
     }
     
     if(use_dlclose) dlclose(module);
     if(total>0 && Verbose > 1) cout << "@" << now(false) << endl;
     
-    ResultError = VESimplify(ResultError, epN);
+    ResultError = VESimplify(ResultError,epN,epsN);
 }
 
 void SD::Initialize(XIntegrand xint) {
@@ -2063,7 +2146,7 @@ typedef complex<long double> dCOMPLEX;
     cmd.clear();
     cmd.str("");
     cmd << "rm " << cppfn.str() << " " << sofn.str();
-    system(cmd.str().c_str());
+    if(!debug) system(cmd.str().c_str());
     
     return min;
 }
