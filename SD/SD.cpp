@@ -173,7 +173,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
         } else if ( ft.match(y(wild())) || ft.match(pow(y(wild()), wild(1))) ) {
             ft = 1;
         }
-
+        
         bool need_contour_deformation = ft.has(PL(wild()));
         if(ft.has(y(wild())) && !need_contour_deformation) {
             auto tmp = ft.subs(nReplacements).expand();
@@ -181,6 +181,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
                 need_contour_deformation = false;
                 auto first = tmp.op(0).subs(y(wild())==1);
                 for(auto item : tmp) {
+                    assert(is_a<numeric>(item.subs(y(wild())==1)*first));
                     if(item.subs(y(wild())==1)*first<0) {
                         need_contour_deformation = true;
                         break;
@@ -203,7 +204,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             ft = 1;
         } else {
             auto tmp = ft.subs(nReplacements);
-            auto tn = tmp.subs(y(wild())==numeric(0.5));
+            auto tn = tmp.subs(y(wild())==numeric("1/3"));
             for(auto kv : ParameterUB) {
                 int k = kv.first;
                 tn = tn.subs(PL(k)==(ParameterUB[k]+ParameterLB[k])/ex(2));
@@ -241,7 +242,9 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             det1 *= pow(ys[i], det.degree(ys[i]));
         }
         assert(is_a<numeric>(det/det1) && ex_to<numeric>(det/det1).is_integer());
-        ex polexp = FT(ft)*CT(ct*det/det1);
+        lst ftxlst = lst{0};
+        for(auto xi : get_xy_from(ft)) ftxlst.append(xi);
+        ex polexp = FTX(ft,ftxlst)*CT(ct*det/det1);
 
         for(int i=0; i<ypolist.nops(); i++) {
             // need collect_common_factors
@@ -534,7 +537,7 @@ void SD::Initialize(FeynmanParameter fp) {
                 assert(is_a<numeric>(p.coeff(m,2)));
                 numeric nm = ex_to<numeric>(p.coeff(m,2));
                 if(nm.is_zero()) continue;
-                sgn = nm>0 ? -1 : 1; //Feng
+                sgn = nm>0 ? -1 : 1;
                 break;
             }
         }
@@ -623,7 +626,7 @@ void SD::Initialize(FeynmanParameter fp) {
         if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/3).subs(nsubs).subs(plsubs);
         assert(!usgn.is_zero());
         usgn = normal(usgn)>0 ? 1 : -1;
-                
+        
         if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(plsubs))) {
             cout << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(plsubs) << endl;
             
@@ -1011,8 +1014,8 @@ void SD::SDPrepares() {
                 bool pole_reached = true;
                 
                 exset fts;
-                expr.find(FT(wild()), fts);
-                bool noFT = (fts.size()==1) && ( (*(fts.begin())) == FT(1) );
+                expr.find(FTX(wild(1),wild(2)), fts);
+                bool noFT = (fts.size()==1) && ( (*(fts.begin())).op(0) == 1 );
                 
                 ex pole_requested = -1;
                 if(noFT || PoleRequested > -1) pole_requested = PoleRequested;
@@ -1195,6 +1198,7 @@ typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
 typedef complex<long double> dCOMPLEX;
+
 dCOMPLEX MatDetD(dCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
@@ -1286,7 +1290,7 @@ void SD::IntPrepares(const char* key) {
         auto xs = get_xy_from(expr);
         if(xs.size()<1) {
             return lst{
-                expr.subs(FT(wild())==1).subs(iEpsilon==I*power(10,-30)),
+                expr.subs(FTX(wild(1),wild(2))==1).subs(iEpsilon==I*power(10,-30)),
                 xs.size(), kv.first, 1
             };
         }
@@ -1310,20 +1314,20 @@ void SD::IntPrepares(const char* key) {
             plRepl.append(PL(i) == symbol(pl.str()));
         }
         
-        exset ftset;
-        expr.find(FT(wild()), ftset);
-        lst ftlst;
-        for(auto it=ftset.begin(); it!=ftset.end(); it++) ftlst.append(*it);
-        expr = expr.collect(ftlst);
+        exset ftxset;
+        expr.find(FTX(wild(1),wild(2)), ftxset);
+        lst ftxlst;
+        for(auto it=ftxset.begin(); it!=ftxset.end(); it++) ftxlst.append(*it);
+        expr = expr.collect(ftxlst);
         vector<pair<ex,ex>> ft_expr;
         ex ft;
         vector<ex> ftx;
-        for(auto item : ftlst) {
-            auto ftmp = item.subs(FT(wild())==wild());
+        for(auto item : ftxlst) {
+            auto ftmp = item.op(1);
             ft_expr.push_back(make_pair(ftmp, expr.coeff(item)));
             auto xys = get_xy_from(ftmp);
             if(xys.size()>=ftx.size()) {
-                ft = ftmp;
+                ft = item.op(0);
                 ftx = xys;
             }
         }
@@ -1331,19 +1335,26 @@ void SD::IntPrepares(const char* key) {
         bool need_contour_deformation = false;
         if(ft.has(x(wild()))) {
             auto tmp = ft.subs(nReplacements).expand();
+            for(auto kv : ParameterUB) {
+                int k = kv.first;
+                tmp = tmp.subs(PL(k)==(ParameterUB[k]+ParameterLB[k])/ex(2));
+            }
+
             if(is_a<add>(tmp)) {
                 for(auto item : tmp) {
+                    assert(is_a<numeric>(item.subs(x(wild())==1)));
                     if(item.subs(x(wild())==1) < 0) {
                         need_contour_deformation = true;
                         break;
                     }
                 }
             } else {
+                assert(is_a<numeric>(tmp.subs(x(wild())==1)));
                 if(tmp.subs(x(wild())==1) < 0) need_contour_deformation = true;
             }
             if(!need_contour_deformation) ft = 1; //note the difference with SDPrepare
         }
-        
+
         ostringstream cppfn;
         cppfn << pid << "/" << rid << ".cpp";
         std::ofstream ofs;
@@ -1380,7 +1391,7 @@ inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
 
 #define Pi 3.1415926535897932384626433832795028841971693993751L
 #define Euler 0.57721566490153286060651209008240243104215933593992L
-#define iEpsilon complex<long double>(0,1.E-15L)
+#define iEpsilon complex<long double>(0,1.E-20L)
 
 )EOF" << endl;
 /****************************************************************/
@@ -1406,10 +1417,13 @@ inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
             ofs << "dCOMPLEX ila["<<ftx.size()<<"];" << endl;
             ofs << "dCOMPLEX mat["<<(ftx.size()*ftx.size())<<"];" << endl;
             ofs << "for(int i=0; i<"<<ftx.size()<<"; i++) ila[i] = complex<long double>(0, la[i]);" << endl;
-
             symbol s;
             for(auto &kv : ft_expr) {
                 ofs << "for(int i=0; i<xn; i++) z[i] = x[i];" << endl;
+                if(SD::debug) {
+                    ofs << "//debug-xs: " << kv.first << endl;
+                    ofs << "//debug-int: " << kv.second << endl;
+                }
                 lst x0Repl;
                 for(int ii=0; ii<ftx.size(); ii++) {
                     if(!kv.first.has(ftx[ii])) x0Repl.append(ftx[ii]==0);
@@ -1431,10 +1445,10 @@ inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
                 ofs << "ytmp = ";
                 kv.second.subs(czRepl).subs(plRepl).print(cppL);
                 ofs << ";" << endl;
-                ofs << "yy += det * ytmp;" << endl;
+                ofs << "yy += det * ytmp;" << endl << endl;
             }
         } else {
-            auto tmp = expr.subs(FT(wild())==1).subs(cxRepl).subs(plRepl);
+            auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
             ofs << "dCOMPLEX yy = ";
             tmp.print(cppL);
             ofs << ";" << endl;
@@ -1494,10 +1508,10 @@ ofs << R"EOF(
                 ofs << "ytmp = ";
                 kv.second.subs(czRepl).subs(plRepl).print(cppQ);
                 ofs << ";" << endl;
-                ofs << "yy += det * ytmp;" << endl;
+                ofs << "yy += det * ytmp;" << endl << endl;
             }
         } else {
-            auto tmp = expr.subs(FT(wild())==1).subs(cxRepl).subs(plRepl);
+            auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
             ofs << "qCOMPLEX yy = ";
             tmp.print(cppQ);
             ofs << ";" << endl;
@@ -1822,6 +1836,8 @@ void SD::Integrates(const char * key) {
             continue;
         }
         
+        if(Verbose > 3) cout << "xdim=" << xsize << endl;
+        
         int rid = ex_to<numeric>(item.op(0)).to_int();
         auto co = item.op(2).subs(plRepl).expand().collect(lst{eps, ep}, true);
         if(co.is_zero()) continue;
@@ -1885,6 +1901,13 @@ void SD::Integrates(const char * key) {
         assert(fpQ!=NULL);
         
         auto las = LambdaFT[item.op(3).subs(plRepl)];
+        if(las.is_zero() && item.op(3).subs(plRepl).has(x(wild()))) {
+            cout << "lambda NOT found!" << endl;
+            cout << "LambdaFT = " << LambdaFT << endl;
+            cout << "FT=" << item.op(3).subs(plRepl) << endl;
+            assert(false);
+        }
+        
         qREAL lambda[las.nops()];
         qREAL paras[nprar+1];
         for(auto kv : Parameter) paras[kv.first] = CppFormat::ex2q(kv.second);
@@ -1896,12 +1919,10 @@ void SD::Integrates(const char * key) {
             qREAL lamax = CppFormat::ex2q(las.op(las.nops()-1));
             if(lamax > LambdaMax) lamax = LambdaMax;
             qREAL lamax0 = lamax;
-            
-            if(Verbose>3) cout << endl;
-            
+                        
             Integrator->RunMAX = -1;
             Integrator->RunPTS = TryPTS;
-            Integrator->EpsAbs = 0;
+            Integrator->EpsAbs = EpsAbs/cmax/2;
             Integrator->EpsRel = 0;
             
             int smin = -1;
@@ -1978,7 +1999,7 @@ void SD::Integrates(const char * key) {
             for(int i=0; i<las.nops()-1; i++) {
                 lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
             }
-        } else if(Verbose > 3) cout << "xdim=" << xsize << endl;
+        }
         
         Integrator->RunMAX = RunMAX;
         Integrator->RunPTS = RunPTS;
@@ -2000,6 +2021,17 @@ void SD::Integrates(const char * key) {
     if(total>0 && Verbose > 1) cout << "@" << now(false) << endl;
     
     ResultError = VESimplify(ResultError,epN,epsN);
+    
+    if(key != NULL) {
+        ostringstream garfn;
+        garfn << key << ".res.gar";
+        archive ar;
+        ar.archive_ex(ResultError, "res");
+        ar.archive_ex(19790923, "c");
+        ofstream out(garfn.str());
+        out << ar;
+        out.close();
+    }
 }
 
 void SD::Initialize(XIntegrand xint) {

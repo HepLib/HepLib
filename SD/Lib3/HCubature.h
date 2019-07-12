@@ -48,29 +48,13 @@ extern "C"
    to pass any additional data through to your function (it corresponds
    to the fdata parameter you pass to cubature).  Return 0 on
    success or nonzero to terminate the integration. */
-typedef int (*integrand) (unsigned ndim, const REAL *x, void *,
-                          unsigned fdim, REAL *fval);
+typedef int (*integrand) (unsigned ndim, const REAL *x, void *, unsigned fdim, REAL *fval);
 
 /* a vector integrand of a vector of npt points: x[i*ndim + j] is the
    j-th coordinate of the i-th point, and the k-th function evaluation
    for the i-th point is returned in fval[i*fdim + k].  Return 0 on success
    or nonzero to terminate the integration. */
-typedef int (*integrand_v) (unsigned ndim, long long npt,
-			    const REAL *x, void *,
-			    unsigned fdim, REAL *fval);
-
-/* Different ways of measuring the absolute and relative error when
-   we have multiple integrands, given a vector e of error estimates
-   in the individual components of a vector v of integrands.  These
-   are all equivalent when there is only a single integrand. */
-typedef enum {
-     ERROR_INDIVIDUAL = 0, /* individual relerr criteria in each component */
-     ERROR_PAIRED, /* paired L2 norms of errors in each component,
-		      mainly for integrating vectors of complex numbers */
-     ERROR_L2, /* abserr is L_2 norm |e|, and relerr is |e|/|v| */
-     ERROR_L1, /* abserr is L_1 norm |e|, and relerr is |e|/|v| */
-     ERROR_LINF /* abserr is L_\infty norm |e|, and relerr is |e|/|v| */
-} error_norm;
+typedef int (*integrand_v) (unsigned ndim, long long npt, const REAL *x, void *, unsigned fdim, REAL *fval);
 
 /* Integrate the function f from xmin[dim] to xmax[dim], with at most
    maxEval function evaluations (0 for no limit), until the given
@@ -83,20 +67,12 @@ typedef enum {
 /* adapative integration by partitioning the integration domain ("h-adaptive")
    and using the same fixed-degree quadrature in each subdomain, recursively,
    until convergence is achieved. */
-int hcubature(unsigned fdim, integrand f, void *fdata,
-	      unsigned dim, const REAL *xmin, const REAL *xmax,
-	      long long maxEval, REAL reqAbsError, REAL reqRelError,
-	      error_norm norm,
-	      REAL *val, REAL *err);
+int hcubature(unsigned fdim, integrand f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, long long maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err);
 
 typedef void (* PrintHookerType) (REAL*, REAL*, long long int*, void *);
 
 /* as hcubature, but vectorized integrand */
-int hcubature_v(unsigned fdim, integrand_v f, void *fdata,
-		unsigned dim, const REAL *xmin, const REAL *xmax,
-		long long minEval, long long maxEval, REAL reqAbsError, REAL reqRelError,
-		error_norm norm,
-		REAL *val, REAL *err, PrintHookerType PrintHooker);
+int hcubature_v(unsigned fdim, integrand_v f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, long long minEval, long long maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err, PrintHookerType PrintHooker);
 
 #ifdef __cplusplus
 }  /* extern "C" */

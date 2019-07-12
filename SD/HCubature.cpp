@@ -9,44 +9,49 @@ namespace HepLib {
 bool HCubature::useQ(unsigned xdim, qREAL const *x) {
     if(xdim<2) return true;
     for(int i=0; i<xdim; i++) {
-        if(x[i] < 1.0E-4Q) return true;
+        if(x[i] < 1.0E-3Q) return true;
     }
     return false;
 }
 
 int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y) {
     auto self = (HCubature*)fdata;
+    bool NaNQ = false;
     #pragma omp parallel for schedule(dynamic, 1)
     for(int i=0; i<npts; i++) {
-        if(useQ(xdim, x+i*xdim)) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+        if(self->UseQ || useQ(xdim, x+i*xdim)) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
         else {
             self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             bool ok = true;
             for(int j=0; j<ydim; j++) {
-                qREAL ytmp = *(y+i*ydim+j);
-                if(isnanq(ytmp) || fabsq(ytmp) > 1E8 ) {
+                qREAL ytmp = y[i*ydim+j];
+                if(isnanq(ytmp)) {
                     ok = false;
                     break;
                 }
             }
             if(!ok) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
         }
+        
+        for(int j=0; j<ydim; j++) {
+            qREAL ytmp = y[i*ydim+j];
+            if(isnanq(ytmp)) {
+                NaNQ = true;
+                break;
+            }
+        }
+        
         if(self->ReIm == 1) {
             y[i*ydim+1] = 0;
         } else if(self->ReIm == 2) {
             y[i*ydim+0] = 0;
         }
     }
-    return 0;
+    return NaNQ ? 1 : 0;
 }
 
 void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* nrun, void *fdata) {
     auto self = (HCubature*)fdata;
-    
-    if(self->Verbose>3 && self->RunMAX>0) {
-        auto co = VE(CppFormat::q2ex(result[0]),CppFormat::q2ex(epsabs[0]))+I*VE(CppFormat::q2ex(result[1]),CppFormat::q2ex(epsabs[1]));
-        cout << "     N: " << (*nrun) << ", " << VEResult(VESimplify(co)) << endl;
-    }
     
     if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1])) && (*nrun)>self->MaxPTS/100) {
          *nrun = self->MaxPTS + 1000;
@@ -66,6 +71,23 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         self->LastAbsErr[0] = epsabs[0];
         self->LastAbsErr[1] = epsabs[1];
         self->LastState = 1;
+    }
+    
+    if(self->Verbose>3 && self->RunMAX>0) {
+        qREAL r0 = result[0];
+        qREAL r1 = result[1];
+        qREAL e0 = epsabs[0];
+        qREAL e1 = epsabs[1];
+        if(fabsq(r0)<1E-30) r0 = 0;
+        if(fabsq(r1)<1E-30) r1 = 0;
+        if(fabsq(e0)<1E-30) e0 = 0;
+        if(fabsq(e1)<1E-30) e1 = 0;
+        auto ro = VE(CppFormat::q2ex(r0),CppFormat::q2ex(e0));
+        auto io = VE(CppFormat::q2ex(r1),CppFormat::q2ex(e1));
+        cout << "     N: " << (*nrun) << ", ";
+        if(self->ReIm==3 || self->ReIm==1) cout << VEResult(VESimplify(ro));
+        if(self->ReIm==3 || self->ReIm==2) cout << ", " << VEResult(VESimplify(io));
+        cout << endl;
     }
     
     bool rExit = (epsabs[0] < self->EpsAbs) || (epsabs[0] < fabsq(result[0])*self->EpsRel);
@@ -92,9 +114,12 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
     long long run_pts = RunPTS;
     MaxPTS = RunPTS * RunMAX;
     if(MaxPTS<0) MaxPTS = -MaxPTS;
-    if(xdim<2) RunPTS = 5000;
+    if(xdim<2 && RunPTS>10000) RunPTS = 10000;
     
-    hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, RunPTS, MaxPTS, EpsAbs, EpsRel, ERROR_INDIVIDUAL, result, estabs, PrintHooker);
+    int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
+    if(nok) {
+        cout << RED << "FAILURE Returned in HCubature ..." << RESET << endl;
+    }
     
     RunPTS = run_pts;
     

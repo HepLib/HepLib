@@ -199,6 +199,25 @@ string RunOS(const char * cmd) {
 
 
 /*********************************************************/
+// garResult Function
+/*********************************************************/
+ex garResult(const char *garfn, lst syms) {
+    archive ar;
+    ifstream in(garfn);
+    in >> ar;
+    in.close();
+    auto c = ar.unarchive_ex(syms, "c");
+    auto res = ar.unarchive_ex(syms, "res");
+    if(c!=19790923) {
+        cout << "gar file: " << garfn << endl;
+        cout << "c=" << c << ", different from 19790923!" << endl;
+        assert(false);
+    }
+    return res;
+}
+
+
+/*********************************************************/
 // Customized GiNaC Function
 /*********************************************************/
 REGISTER_FUNCTION(VF, dummy())

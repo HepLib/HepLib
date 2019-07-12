@@ -294,6 +294,8 @@ ex GiNaC_Replace(ex expr, const ex &pat, FUN f) {
 
 string RunOS(const char * cmd);
 
+ex garResult(const char *garfn, lst syms);
+
 /*********************************************************/
 // Customized GiNaC Function
 /*********************************************************/

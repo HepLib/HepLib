@@ -104,6 +104,7 @@ public:
     qREAL EpsRel = 0;
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     int Verbose = 0;
+    bool UseQ = false;
 };
 
 class HCubature : public IntegratorBase {
@@ -219,16 +220,16 @@ public:
     map<int, numeric> ParameterUB;
     map<int, numeric> ParameterLB;
     
-    long long TryPTS = 10000;
+    long long TryPTS = 100000;
     long long LambdaSplit = 10;
     qREAL LambdaMax = 50;
-    int CTry = 3;
-    int CTryLeft = 6;
-    int CTryRight = 2;
+    int CTry = 2;
+    int CTryLeft = 3;
+    int CTryRight = 1;
     double CTryRightRatio = 1.5;
     
-    long long RunMAX = 500;
-    long long RunPTS = 10000;
+    long long RunMAX = 100;
+    long long RunPTS = 100000;
     qREAL EpsAbs = 1E-5;
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     
@@ -272,8 +273,8 @@ DECLARE_FUNCTION_1P(y)
 DECLARE_FUNCTION_1P(z)
 DECLARE_FUNCTION_1P(t)
 DECLARE_FUNCTION_1P(PL)
-DECLARE_FUNCTION_1P(FT)
 DECLARE_FUNCTION_1P(CT)
+DECLARE_FUNCTION_2P(FTX)
 DECLARE_FUNCTION_2P(VE)
 DECLARE_FUNCTION_2P(VEO)
 

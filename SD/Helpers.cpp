@@ -189,6 +189,7 @@ ex VEResult(ex expr) {
 // Functions used in GiNaC
 /*********************************************************/
 static ex None_Diff(const ex & x, unsigned diff_param) {return 0;}
+static ex None_Diff2(const ex & x, const ex & y, unsigned diff_param) {return 0;}
 static ex VE_Conjugate(const ex & x, const ex & y) { return VE(x,y).hold(); }
 
 static void print_VEO(const ex & ex1, const ex & ex2, const print_context & c) {
@@ -212,7 +213,7 @@ REGISTER_FUNCTION(x, dummy())
 REGISTER_FUNCTION(y, dummy())
 REGISTER_FUNCTION(z, dummy())
 REGISTER_FUNCTION(PL, dummy())
-REGISTER_FUNCTION(FT, derivative_func(None_Diff))
+REGISTER_FUNCTION(FTX, derivative_func(None_Diff2))
 REGISTER_FUNCTION(CT, dummy())
 REGISTER_FUNCTION(VE, conjugate_func(VE_Conjugate))
 REGISTER_FUNCTION(VEO, print_func<print_dflt>(print_VEO))
