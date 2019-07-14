@@ -117,7 +117,7 @@ ex VESimplify(ex expr, int epN, int epsN) {
         }
         
         ccRes = GiNaC_Replace(ccRes, VF(wild()), [&](auto vf) {
-            ex exp = vf.op(0);
+            ex exp = collect_common_factors(vf.op(0));
             ex ret;
             if(is_a<mul>(exp)) {
                 ret = VF(1);
@@ -140,28 +140,24 @@ ex VESimplify(ex expr, int epN, int epsN) {
         find(ccRes, VF(wild()),vfs);
         
         for(auto vf : vfs) {
-            auto tmpIR = ccRes.coeff(vf);
-            auto tmp = (tmpIR + tmpIR.conjugate())/2;
-            while(true) {
-                auto tmp1 = tmp.expand().subs(lst{
-                    VE(wild(1), wild(2))+VE(wild(3), wild(4))+wild(5)==VE(wild(1)+wild(3), sqrt(wild(2)*wild(2)+wild(4)*wild(4)))+wild(5),
-                    wild(1)*VE(wild(2), wild(3))==VE(wild(1)*wild(2), abs(wild(1)*wild(3)))
-                    });
-                if(tmp1==tmp) break;
-                tmp = tmp1;
+            auto tmpIR = ccRes.coeff(vf).expand();
+            exset ves;
+            tmpIR.find(VE(wild(1), wild(2)), ves);
+            auto ntmp = tmpIR.subs(lst{VE(wild(1), wild(2))==0});
+            assert(is_a<numeric>(ntmp));
+            ex vIR = ntmp;
+            ex eI2 = 0, eR2 = 0;
+            for(auto ve : ves) {
+                auto co = tmpIR.coeff(ve);
+                vIR += co * ve.op(0);
+                assert(is_a<numeric>(co));
+                numeric nco = ex_to<numeric>(co);
+                ex ee = ve.op(1) * ve.op(1);
+                eR2 += nco.real_part() * nco.real_part() * ee;
+                eI2 += nco.imag_part() * nco.imag_part() * ee;
             }
-            ret += tmp * pow(eps,si) * pow(ep,i) * vf;
-            
-            tmp = (tmpIR - tmpIR.conjugate())/(2*I);
-            while(true) {
-                auto tmp1 = tmp.expand().subs(lst{
-                    VE(wild(1), wild(2))+VE(wild(3), wild(4))+wild(5)==VE(wild(1)+wild(3), sqrt(wild(2)*wild(2)+wild(4)*wild(4)))+wild(5),
-                    wild(1)*VE(wild(2), wild(3))==VE(wild(1)*wild(2), abs(wild(1)*wild(3)))
-                    });
-                if(tmp1==tmp) break;
-                tmp = tmp1;
-            }
-            ret += I * tmp * pow(eps,si) * pow(ep,i) * vf;
+            ret += VE(ex_to<numeric>(vIR).real_part(), sqrt(eR2)) * pow(eps,si) * pow(ep,i) * vf;
+            ret += VE(ex_to<numeric>(vIR).imag_part(), sqrt(eI2)) * pow(eps,si) * pow(ep,i) * vf * I;
         }
     }}
         
@@ -188,8 +184,8 @@ ex VEResult(ex expr) {
 /*********************************************************/
 // Functions used in GiNaC
 /*********************************************************/
-static ex None_Diff(const ex & x, unsigned diff_param) {return 0;}
-static ex None_Diff2(const ex & x, const ex & y, unsigned diff_param) {return 0;}
+static ex NoDiff_1P(const ex & x, unsigned diff_param) {return 0;}
+static ex NoDiff_2P(const ex & x, const ex & y, unsigned diff_param) {return 0;}
 static ex VE_Conjugate(const ex & x, const ex & y) { return VE(x,y).hold(); }
 
 static void print_VEO(const ex & ex1, const ex & ex2, const print_context & c) {
@@ -213,7 +209,7 @@ REGISTER_FUNCTION(x, dummy())
 REGISTER_FUNCTION(y, dummy())
 REGISTER_FUNCTION(z, dummy())
 REGISTER_FUNCTION(PL, dummy())
-REGISTER_FUNCTION(FTX, derivative_func(None_Diff2))
+REGISTER_FUNCTION(FTX, derivative_func(NoDiff_2P))
 REGISTER_FUNCTION(CT, dummy())
 REGISTER_FUNCTION(VE, conjugate_func(VE_Conjugate))
 REGISTER_FUNCTION(VEO, print_func<print_dflt>(print_VEO))

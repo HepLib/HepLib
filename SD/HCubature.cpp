@@ -74,19 +74,14 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     }
     
     if(self->Verbose>3 && self->RunMAX>0) {
-        qREAL r0 = result[0];
-        qREAL r1 = result[1];
-        qREAL e0 = epsabs[0];
-        qREAL e1 = epsabs[1];
-        if(fabsq(r0)<1E-30) r0 = 0;
-        if(fabsq(r1)<1E-30) r1 = 0;
-        if(fabsq(e0)<1E-30) e0 = 0;
-        if(fabsq(e1)<1E-30) e1 = 0;
-        auto ro = VE(CppFormat::q2ex(r0),CppFormat::q2ex(e0));
-        auto io = VE(CppFormat::q2ex(r1),CppFormat::q2ex(e1));
+        char r0[64], r1[64], e0[32], e1[32];
+        quadmath_snprintf(r0, sizeof r0, "%.10Qg", result[0]);
+        quadmath_snprintf(r1, sizeof r1, "%.10Qg", result[1]);
+        quadmath_snprintf(e0, sizeof e0, "%.5Qg", epsabs[0]);
+        quadmath_snprintf(e1, sizeof e1, "%.5Qg", epsabs[1]);
         cout << "     N: " << (*nrun) << ", ";
-        if(self->ReIm==3 || self->ReIm==1) cout << VEResult(VESimplify(ro));
-        if(self->ReIm==3 || self->ReIm==2) cout << ", " << VEResult(VESimplify(io));
+        if(self->ReIm==3 || self->ReIm==1) cout << "["<<r0 << ", " << e0 << "]";
+        if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";
         cout << endl;
     }
     
@@ -115,6 +110,7 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
     MaxPTS = RunPTS * RunMAX;
     if(MaxPTS<0) MaxPTS = -MaxPTS;
     if(xdim<2 && RunPTS>10000) RunPTS = 10000;
+    else if(xdim<3 && RunPTS>50000) RunPTS = 50000;
     
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
     if(nok) {

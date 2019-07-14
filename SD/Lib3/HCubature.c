@@ -773,8 +773,8 @@ static int rulecubature(rule *r, unsigned fdim,
             }
 
             if (eval_regions(nR, R, f, fdata, r) || heap_push_many(&regions, nR, R)) goto bad;
-          
-            if(PrintHooker != NULL && numEval - runs > minEval) {
+            
+            {// Feng
                 for (j = 0; j < fdim; ++j) val[j] = err[j] = 0;
                 for (i = 0; i < regions.n; ++i) {
                     for (j = 0; j < fdim; ++j) {
@@ -782,8 +782,13 @@ static int rulecubature(rule *r, unsigned fdim,
                         err[j] += regions.items[i].ee[j].err;
                     }
                 }
-                runs = numEval;
-                PrintHooker(val, err, &numEval, fdata);
+                int toExit = 1;
+                for (j = 0; j < fdim; ++j) toExit = toExit && (err[j]*10 < reqAbsError);
+                if(toExit) return SUCCESS;
+                if(PrintHooker != NULL && numEval - runs > minEval) {
+                    runs = numEval;
+                    PrintHooker(val, err, &numEval, fdata);
+                }
             }
         } else { /* minimize number of function evaluations */
             R[0] = heap_pop(&regions); /* get worst region */

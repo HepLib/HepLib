@@ -214,7 +214,7 @@ public:
     bool IsZero = false;
     bool CheckF1 = false;
     bool use_CCF = true;
-    lst BisectionPoints = lst { ex(1)/5, ex(1)/7, ex(1)/11, ex(1)/13, ex(1)/17, ex(1)/19, ex(1)/23  };
+    lst BisectionPoints = lst { ex(1)/11, ex(1)/13, ex(1)/17, ex(1)/19, ex(1)/23  };
     
     map<int, numeric> Parameter;
     map<int, numeric> ParameterUB;

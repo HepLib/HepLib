@@ -45,11 +45,11 @@ bool SD::IsBadF1(ex f, vector<exmap> vmap) {
         }
 
         ys_tmp = get_y_from(ft);
-        for(int pi=0; pi<std::pow(2, ys_tmp.size()); pi++) {
+        for(int pi=1; pi<std::pow(2, ys_tmp.size()); pi++) {
             lst yrepl;
             int ci = pi;
             for(int i=0; i<ys_tmp.size(); i++) {
-                yrepl.append(ys_tmp[i] == ((ci % 2) ? 1 : 0));
+                yrepl.append(ys_tmp[i] == ((ci%2)==1 ? 1 : 0));
                 ci /= 2;
             }
             if(normal(ft.subs(yrepl)).is_zero()) {
@@ -122,8 +122,8 @@ vector<pair<lst, lst>> SD::AutoF1(pair<lst, lst> po_ex) {
         }
     }}
     
-    cout << "F: " << po_ex.first.op(1) << endl;
-    cout << "F1 Failed with ALL possible bisections!" << endl;
+    cout << RED << "F: " << po_ex.first.op(1) << RESET << endl;
+    cout << RED << "F1 Failed with ALL possible bisections!" << RESET << endl;
     assert(false);
     return vector<pair<lst, lst>>();
 }
@@ -144,7 +144,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
         if( (!tmp.has(x(wild())) && !tmp.has(y(wild()))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
         sdList.append(tmp);
     }
-        
+
     vector<exmap> vmap = SecDec->x2y(sdList);
 
     vector<pair<exmap, ex>> sd;
@@ -973,11 +973,11 @@ void SD::SDPrepares() {
         return;
     }
     
-    if(Verbose > 0) cout << now() << " - SDPrepares ..." << endl << flush;
     symbol s;
     Integrands.clear();
     
     if(CheckF1) {
+        if(Verbose > 0) cout << now() << " - Bisection: " << FunExp.size() << " :> " << flush;
         vector<ex> funexps =
         GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &kv, auto rid) {
             lst para_res_lst;
@@ -994,7 +994,10 @@ void SD::SDPrepares() {
                 FunExp.push_back(make_pair(ex_to<lst>(it.op(0)), ex_to<lst>(it.op(1))));
             }
         }
+        if(Verbose > 0) cout << FunExp.size() << endl;
     }
+    
+    if(Verbose > 0) cout << now() << " - SDPrepares ..." << endl << flush;
     
     vector<ex> res =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &kv, auto rid) {
@@ -1323,9 +1326,8 @@ void SD::IntPrepares(const char* key) {
         ex ft;
         vector<ex> ftx;
         for(auto item : ftxlst) {
-            auto ftmp = item.op(1);
-            ft_expr.push_back(make_pair(ftmp, expr.coeff(item)));
-            auto xys = get_xy_from(ftmp);
+            ft_expr.push_back(make_pair(item.op(1), expr.coeff(item)));
+            auto xys = get_xy_from(item.op(0));
             if(xys.size()>=ftx.size()) {
                 ft = item.op(0);
                 ftx = xys;
@@ -1391,7 +1393,7 @@ inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
 
 #define Pi 3.1415926535897932384626433832795028841971693993751L
 #define Euler 0.57721566490153286060651209008240243104215933593992L
-#define iEpsilon complex<long double>(0,1.E-20L)
+#define iEpsilon complex<long double>(0,1.E-50L)
 
 )EOF" << endl;
 /****************************************************************/
@@ -1449,6 +1451,9 @@ inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
             }
         } else {
             auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
+            if(SD::debug) {
+                ofs << "//debug-int: " << tmp << endl;
+            }
             ofs << "dCOMPLEX yy = ";
             tmp.print(cppL);
             ofs << ";" << endl;
@@ -1464,7 +1469,7 @@ ofs << R"EOF(
 #undef iEpsilon
 #define Pi 3.1415926535897932384626433832795028841971693993751Q
 #define Euler 0.57721566490153286060651209008240243104215933593992Q
-#define iEpsilon 1.E-30Qi
+#define iEpsilon 1.E-50Qi
 )EOF" << endl;
 /****************************************************************/
         // Quadruple
@@ -1586,15 +1591,17 @@ void SD::ContourPrepares(const char * key) {
     fts.sort();
     fts.unique();
     
+    if(noFT) return;
+    
     lst plRepl;
     for(auto kv : Parameter) plRepl.append(PL(kv.first)==kv.second);
-    fts=ex_to<lst>(subs(fts, plRepl));
-    if(fts.has(PL(wild()))) {
-        cout << "fts has PL: " << fts << " ; " << plRepl  << endl;
+    plRepl.sort();
+    plRepl.unique();
+    auto fts_n=ex_to<lst>(subs(fts, plRepl));
+    if(fts_n.has(PL(wild()))) {
+        cout << "fts has PL: " << fts_n << " ; " << plRepl  << endl;
         assert(false);
     }
-    
-    if(noFT) return;
     
     if(Verbose > 0) cout << now() << " - ContourPrepares ..." << endl << flush;
     
@@ -1607,14 +1614,18 @@ void SD::ContourPrepares(const char * key) {
     system(cmd.str().c_str());
     
     vector<ex> res =
-    GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftvec, [&](auto &ft, auto rid) {
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftvec, [&](auto &ft0, auto rid) {
         // return lst{ F-term, lst{lambda-i, lambda-max} }
         // with I*[lambda-i]*lambda, lambda < lambda-max
+        // note that lambda sequence only matches to x sequence in F-term
+        ex ft_key = ft0;
+        if(plRepl.nops()>0) ft_key = ft_key*VF(plRepl);
+        ex ft = ft0.subs(plRepl);
         auto xs = get_xy_from(ft);
         lst las, dfs;
         if(xs.size()<1) {
-            las.append(numeric(100));
-            return lst{ ft, las };
+            las.append(1);
+            return lst{ ft_key, las };
         }
         
         symbol s;
@@ -1634,7 +1645,7 @@ void SD::ContourPrepares(const char * key) {
             //TODO: add other schema
             auto tmp = 1/dfmax;
             auto dla = ex_to<numeric>(las.op(i)).to_double();
-            if(dla > 5E-2 * dfmax) tmp = 1/dla;
+            if(dla > 1E-3 * dfmax) tmp = 1/dla;
             las.let_op(i) = tmp;
             tmp2 += tmp * tmp;
         }
@@ -1712,7 +1723,7 @@ typedef complex<long double> dCOMPLEX;
         auto fp = (MinimizeBase::FunctionType)dlsym(module, "minLaFunc");
         assert(fp!=NULL);
         
-        dREAL laBegin = 0, laEnd = 100, min;
+        dREAL laBegin = 0, laEnd = 50, min;
         int nvars = xs.size()+1;
         dREAL UB[nvars];
         for(int i=0; i<nvars; i++) UB[i] = 1;
@@ -1721,7 +1732,6 @@ typedef complex<long double> dCOMPLEX;
         while(true) {
             UB[nvars-1] = min;
             dREAL res = Minimizer->FindMinimum(nvars, fp, UB);
-            
             if(res < 0) laEnd = min;
             else laBegin = min;
             
@@ -1743,8 +1753,8 @@ typedef complex<long double> dCOMPLEX;
             cout << "\r                                 \r";
             cout << "λ: " << las.evalf() << endl;
             Digits = oDigits;
-        }
-        return lst{ ft, las };
+        } 
+        return lst{ ft_key, las };
     
     }, "la", Verbose, !debug);
     
@@ -1820,6 +1830,8 @@ void SD::Integrates(const char * key) {
         plRepl.append(PL(kv.first)==kv.second);
         if(kv.first>nprar) nprar = kv.first;
     }
+    plRepl.sort();
+    plRepl.unique();
     
     int total = soIntegrands.size(), current = 0;
     ResultError = 0;
@@ -1836,7 +1848,7 @@ void SD::Integrates(const char * key) {
             continue;
         }
         
-        if(Verbose > 3) cout << "xdim=" << xsize << endl;
+        if(Verbose > 3) cout << "XDim = " << xsize << endl;
         
         int rid = ex_to<numeric>(item.op(0)).to_int();
         auto co = item.op(2).subs(plRepl).expand().collect(lst{eps, ep}, true);
@@ -1900,13 +1912,23 @@ void SD::Integrates(const char * key) {
         auto fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
         assert(fpQ!=NULL);
         
-        auto las = LambdaFT[item.op(3).subs(plRepl)];
+        ex ft_key = item.op(3);
+        if(plRepl.nops()>0) ft_key = ft_key*VF(plRepl);
+        auto las = LambdaFT[ft_key];
         if(las.is_zero() && item.op(3).subs(plRepl).has(x(wild()))) {
-            cout << "lambda NOT found!" << endl;
-            cout << "LambdaFT = " << LambdaFT << endl;
-            cout << "FT=" << item.op(3).subs(plRepl) << endl;
+            cout << "lambda with the key is NOT found!" << endl;
+            cout << "ft_key = " << ft_key << endl;
             assert(false);
         }
+   
+//#def debug
+#ifdef  debug
+if(false) {
+    if(rid!=146) continue;
+    cout << "las=" << las << endl;
+    cout << item << endl;
+}
+#endif
         
         qREAL lambda[las.nops()];
         qREAL paras[nprar+1];
@@ -1995,6 +2017,13 @@ void SD::Integrates(const char * key) {
             if(smin == -2) continue;
             
             auto cla = (lamin + smin * (lamax-lamin) / LambdaSplit);
+            if(SD::debug) {
+                lst lalst;
+                for(int i=0; i<las.nops(); i++) {
+                    lalst.append(las.op(i) * CppFormat::q2ex(cla));
+                }
+                cout << "lalst: " << lalst << endl;
+            }
             if(Verbose > 3) cout << WHITE << "     λ=" << (double)cla << ": " << RESET << endl;
             for(int i=0; i<las.nops()-1; i++) {
                 lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
