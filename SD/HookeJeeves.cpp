@@ -93,11 +93,13 @@ dREAL HookeJeeves::ObjectWrapper(int nvars, dREAL* x) {
     for(int i=0; i<nvars; i++) {
         if(x[i]<LowerBound[i] || x[i]>UpperBound[i]) return 1E5;
     }
-    return ObjectFunction(nvars, x);
+    return ObjectFunction(nvars, x, PL, LAS);
 }
 
-dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *UB, dREAL *LB) {
+dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *las, dREAL *UB, dREAL *LB) {
     ObjectFunction = func;
+    PL = pl;
+    LAS = las;
     
     if(UB != NULL) for(int i=0; i<nvars; i++) UpperBound[i] = UB[i];
     else for(int i=0; i<nvars; i++) UpperBound[i] = 1;

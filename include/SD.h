@@ -136,13 +136,13 @@ private:
 typedef long double dREAL;
 class MinimizeBase {
 public:
-    typedef dREAL (*FunctionType)(int nvars, dREAL* x);
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *UB = NULL, dREAL *LB = NULL) =0;
+    typedef dREAL (*FunctionType)(int nvars, dREAL* x, dREAL* pl, dREAL *las);
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL) =0;
 };
 
 class HookeJeeves : public MinimizeBase {
 public:
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *UB = NULL, dREAL *LB = NULL) override;
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL) override;
 
 private:
     dREAL best_nearby(dREAL* delta, dREAL* point, dREAL prevbest, int nvars);
@@ -151,11 +151,13 @@ private:
     FunctionType ObjectFunction;
     dREAL UpperBound[50];
     dREAL LowerBound[50];
+    dREAL *PL;
+    dREAL *LAS;
 };
 
 class MinUit : public MinimizeBase {
 public:    
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *UB = NULL, dREAL *LB = NULL) override;
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL) override;
 };
 
 /*********************************************************/
@@ -205,7 +207,7 @@ public:
     vector<pair<lst, lst>> FunExp;
     vector<lst> Deltas;
     vector<ex> Integrands;
-    vector<pair<ex, ex>> epIntegrands;
+    vector<pair<ex, ex>> expResult;
     SecDecBase *SecDec = NULL;
     IntegratorBase *Integrator = NULL;
     MinimizeBase *Minimizer = NULL;
@@ -243,9 +245,9 @@ public:
     void XReOrders();
     bool IsBadF1(ex f, vector<exmap> vmap);
     vector<pair<lst, lst>> AutoF1(pair<lst, lst> po_ex);
-    void IntPrepares(const char* key = NULL);
-    void ContourPrepares(const char* key = NULL);
-    void Integrates(const char* key = NULL);
+    void CIPrepares(const char* key = NULL);
+    void Contours(const char * key = NULL, const char *pkey = NULL);
+    void Integrates(const char* key = NULL, const char *pkey = NULL);
     void Evaluate(FeynmanParameter fpi);
     void Evaluate(XIntegrand xint);
     
@@ -260,8 +262,9 @@ private:
     static int epsRank(ex);
 
     void CompileMatDet();
-    vector<lst> soIntegrands;
-    exmap LambdaFT;
+    vector<lst> ciResult;
+    lst FT_N_NX;
+    exmap LambdaMap;
 };
 
 /*********************************************************/

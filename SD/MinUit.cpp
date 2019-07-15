@@ -12,26 +12,30 @@ namespace HepLib {
 class FCN : public ROOT::Minuit2::FCNBase {
 private:
     MinimizeBase::FunctionType InnerFunction;
+    dREAL *PL;
+    dREAL *LAS;
     
 public:
     double operator()(const std::vector<double>& vec) const {
         int nx = vec.size();
         dREAL x[nx];
         for(int i=0; i<nx; i++) x[i] = vec[i];
-        return InnerFunction(nx, x);
+        return InnerFunction(nx, x, PL, LAS);
     }
 
     double Up() const {
         return 1.;
     }
     
-    FCN(MinimizeBase::FunctionType ff) {
+    FCN(MinimizeBase::FunctionType ff, dREAL* pl, dREAL *las) {
         InnerFunction = ff;
+        PL = pl;
+        LAS = las;
     }
     
 };
 
-dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *UB, dREAL *LB) {
+dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, dREAL *UB, dREAL *LB) {
     double ub[nvars], lb[nvars];
     
     if(UB != NULL) for(int i=0; i<nvars; i++) ub[i] = UB[i];
@@ -60,7 +64,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *UB, dREAL *LB) {
             iPoints[i] = lb[i] + pts[mi] * (ub[i]-lb[i]);
             li /= tryPTS;
         }
-        auto tmp = func(nvars, iPoints);
+        auto tmp = func(nvars, iPoints, PL, LAS);
         if(mValue[max_index] > tmp) {
             mValue[max_index] = tmp;
             for(int j=0; j<nvars; j++) mPoints[max_index][j] = iPoints[j];
@@ -73,7 +77,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *UB, dREAL *LB) {
     
     double ret = 1E5;
     for(int ii=0; ii<savePTS; ii++) {
-        FCN fcn(func);
+        FCN fcn(func, PL, LAS);
         ROOT::Minuit2::MnUserParameters upar;
         for(int i=0; i<nvars; i++) {
             ostringstream xs;
