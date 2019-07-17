@@ -305,6 +305,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             }
             polexp *= pow(rem-(i==1 && ft!=1 ? iEpsilon : ex(0)), exlist.op(i));
             polexp = polexp.subs(CT(wild()) == CT(wild()*pow(ct, exlist.op(i))));
+            polexp = polexp.subs(CT(0)==0);
         }
 
         exmap xmol;
@@ -997,6 +998,19 @@ void SD::SDPrepares() {
         if(Verbose > 0) cout << FunExp.size() << endl;
     }
     
+    auto kvs = FunExp;
+    FunExp.clear();
+    for(auto &kv : kvs) {
+        bool to_add = true;
+        for(auto item : kv.first) {
+            if(item.is_zero()) {
+                to_add = false;
+                break;
+            }
+        }
+        if(to_add) FunExp.push_back(kv);
+    }
+    
     if(Verbose > 0) cout << now() << " - SDPrepares ..." << endl << flush;
     
     vector<ex> res =
@@ -1006,7 +1020,7 @@ void SD::SDPrepares() {
         lst para_res_lst;
         auto xmol_exps = SDPrepare(kv);
         int run_count = 0;
-                
+
         while(xmol_exps.size()>0) {
             if((++run_count) > 100) throw runtime_error("run count > 100 limit!");
             
@@ -1045,7 +1059,7 @@ void SD::SDPrepares() {
                         break;
                     }
                 }
-                
+
                 if(pole_reached) {
                     lst exprs = {expr};
                     symbol dx;
@@ -1129,7 +1143,7 @@ void SD::EpsEpExpands() {
             cout << "CT size is NOT 1!" << endl;
             assert(false);
         }
-        ex ct = (*(cts.begin())).subs(CT(wild())==wild());
+        ex ct = (*(cts.begin())).subs(CT(wild())==wild()).subs(iEpsilon==0);
         auto tmp = item.subs(CT(wild())==1);
         if(use_CCF) tmp = collect_common_factors(tmp);
         lst para_res_lst;
@@ -1830,7 +1844,7 @@ void SD::Contours(const char *key, const char *pkey) {
         while(true) {
             UB[nvars] = min;
             dREAL res = Minimizer->FindMinimum(nvars+1, fp, paras, nlas, UB, NULL, true);
-            if(res < 0) laEnd = min;
+            if(res < -1E-50) laEnd = min;
             else laBegin = min;
             
             if(laEnd - laBegin < 1E-3 * laEnd) break;
@@ -1946,7 +1960,7 @@ void SD::Integrates(const char *key, const char *pkey) {
         if(Verbose > 3) cout << "XDim = " << xsize << endl;
         
         int rid = ex_to<numeric>(item.op(0)).to_int();
-        auto co = item.op(2).subs(plRepl).expand();
+        auto co = item.op(2).subs(plRepl).subs(iEpsilon==0).expand();
         if(co.is_zero()) continue;
         assert(!co.has(PL(wild())));
         qREAL cmax = -1;

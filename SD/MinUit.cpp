@@ -63,7 +63,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
             li /= (1+tryPTS);
         }
         auto tmp = func(nvars, iPoints, PL, LAS);
-        if(compare0 && tmp<0) return -1;
+        if(compare0 && tmp<-1E-50) return -1;
         if(mValue[max_index] > tmp) {
             mValue[max_index] = tmp;
             for(int j=0; j<nvars; j++) mPoints[max_index][j] = iPoints[j];
@@ -88,7 +88,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
         ROOT::Minuit2::FunctionMinimum fmin = minizer();
         auto tmp_ret = fmin.Fval();
         if(tmp_ret < ret) ret = tmp_ret;
-        if(compare0 && ret<0) return -1;
+        if(compare0 && ret<-1E-50) return -1;
     }
     return ret;
 }
