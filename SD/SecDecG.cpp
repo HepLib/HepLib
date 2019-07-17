@@ -320,12 +320,12 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
         for(int n=0; n<np; n++) {
             ex tmp = pol.op(n);
             for(int ix=0; ix<nx; ix++) {
-                deg_mat(n, ix) = tmp.degree(xs[ix]);
+                deg_mat(n, ix) = tmp.expand().degree(xs[ix]);
             }
         }
     } else {
         for(int ix=0; ix<nx; ix++) {
-            deg_mat(0, ix) = pol.degree(xs[ix]);
+            deg_mat(0, ix) = pol.expand().degree(xs[ix]);
         }
     }
     

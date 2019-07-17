@@ -218,6 +218,45 @@ ex garResult(const char *garfn, lst syms) {
 
 
 /*********************************************************/
+// Series at s=0 similar to Mathematica
+/*********************************************************/
+ex mma_series(ex expr_in, symbol s, int sn) {
+    ex expr = expr_in;
+    if(!expr.has(s)) return expr;
+    expr = expr + pow(s, sn+5);
+    int exN = 1;
+    while(exN<10) {
+        ex res = expr.series(s, sn+exN);
+        ex ot = 0;
+        for(int i=0; i<res.nops(); i++) {
+            if(is_order_function(res.op(i))) {
+                ot = res.op(i);
+                break;
+            }
+        }
+        if(!is_order_function(ot)) {
+            cout << RED << "Not an Order term: " << ot << RESET << endl;
+            cout << "expr = " << expr << endl;
+            cout << "res = " << res << endl;
+            assert(false);
+        }
+        if(ot.op(0).degree(s)>sn) {
+            res = series_to_poly(res).expand();
+            ex ret = 0;
+            for(int i=res.ldegree(s); (i<=res.degree(s) && i<=sn); i++) {
+                ret += res.coeff(s,i) * pow(s, i);
+            }
+            return ret;
+        }
+        exN++;
+    }
+    cout << RED << "mma_series seems not working!" << RESET << endl;
+    assert(false);
+    return 0;
+}
+
+
+/*********************************************************/
 // Customized GiNaC Function
 /*********************************************************/
 REGISTER_FUNCTION(VF, dummy())

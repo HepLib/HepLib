@@ -297,6 +297,11 @@ string RunOS(const char * cmd);
 ex garResult(const char *garfn, lst syms);
 
 /*********************************************************/
+// Series at s=0 similar to Mathematica
+/*********************************************************/
+ex mma_series(ex expr, symbol s, int sn);
+
+/*********************************************************/
 // Customized GiNaC Function
 /*********************************************************/
 DECLARE_FUNCTION_1P(VF)

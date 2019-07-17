@@ -100,9 +100,9 @@ ex VESimplify(ex expr, int epN, int epsN) {
     auto ep = SD::ep;
     auto eps = SD::eps;
     auto expr1 = expr.evalf();
-    if(expr1.has(eps)) expr1 = series_to_poly(expr1.series(eps, epsN+2));
-    expr1 = series_to_poly(expr1.series(ep,epN+2));
-    expr1 = expr1.expand().collect(lst{eps,ep}, true);
+    if(expr1.has(eps)) expr1 = mma_series(expr1, eps, epsN);
+    expr1 = mma_series(expr1, ep, epN);
+    expr1 = expr1.expand();
     ex ret = 0;
     for(int si=expr1.ldegree(eps); si<=epsN; si++) {
     for(int i=expr1.ldegree(ep); i<=epN; i++) {

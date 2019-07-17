@@ -137,12 +137,12 @@ typedef long double dREAL;
 class MinimizeBase {
 public:
     typedef dREAL (*FunctionType)(int nvars, dREAL* x, dREAL* pl, dREAL *las);
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL) =0;
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, bool compare0 = false) =0;
 };
 
 class HookeJeeves : public MinimizeBase {
 public:
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL) override;
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, bool compare0 = false) override;
 
 private:
     dREAL best_nearby(dREAL* delta, dREAL* point, dREAL prevbest, int nvars);
@@ -157,7 +157,7 @@ private:
 
 class MinUit : public MinimizeBase {
 public:    
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL) override;
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, bool compare0 = false) override;
 };
 
 /*********************************************************/
@@ -253,7 +253,7 @@ public:
     
     static ex PrefactorFIESTA(int nLoop);
     ex VEResult();
-    double FindMinimum(ex expr);
+    double FindMinimum(ex expr, bool compare0 = false);
         
 private:
     vector<pair<exmap, ex>> SDPrepare(const pair<lst, lst> po_ex);

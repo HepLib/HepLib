@@ -160,7 +160,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
 
         // need collect_common_factors
         auto ft = collect_common_factors(ypolist.op(1).expand());
-
+        
         ex ct = 1, fsgin = 1;
         if(is_a<mul>(ft)) {
             ex ret = 1;
@@ -219,7 +219,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             }
             
             if(tn.evalf() < 0) tmp = ex(0)-tmp;
-            double tmin = FindMinimum(tmp);
+            double tmin = FindMinimum(tmp, true);
             if(tmin > 0) {
                 if(tn.evalf() < 0) {
                     ct = exp(-I * Pi * exlist.op(1));
@@ -893,7 +893,7 @@ void SD::Scalelesses() {
                 ex n_s = 0;
                 for(int j=0; j<fun.nops(); j++) {
                     if(is_a<numeric>(exp.op(j)) && ex_to<numeric>(exp.op(j)).is_nonneg_integer() ) continue;
-                    auto tmp = fun.op(j).subs(sRepl);
+                    auto tmp = fun.op(j).subs(sRepl).expand();
                     if(tmp.degree(s)!=tmp.ldegree(s)) {
                         is_s = false;
                         break;
@@ -944,7 +944,7 @@ void SD::RemoveDeltas() {
                         cout << "fun is NOT polynormial of xj." << endl;
                         assert(false);
                     }
-                    auto expn = fun.degree(xj);
+                    auto expn = fun.expand().degree(xj);
                     fun = pow(xj, -expn) * fun;
                     fun = normal(fun.subs(xj==1/xj));
                     fun = fun.subs(xj==jInv);
@@ -1116,7 +1116,6 @@ void SD::EpsEpExpands() {
         return;
     }
     
-    int exN = 0;
     if(Verbose > 0) cout << now() << " - EpsEpExpands ..." << endl << flush;
     
     vector<ex> res =
@@ -1137,33 +1136,33 @@ void SD::EpsEpExpands() {
         
         if(!tmp.has(eps) && !ct.has(eps)) {
             int ctN = epRank(ct);
-            tmp = series_to_poly(tmp.series(ep, 1+exN+epN-ctN));
+            tmp = mma_series(tmp, ep, epN-ctN).expand();
             for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                 auto intg = tmp.coeff(ep, di);
-                auto pref = series_to_poly(ct.series(ep, 1+exN+epN-di));
+                auto pref = mma_series(ct, ep, epN-di);
                 if(use_CCF) intg = collect_common_factors(intg);
                 para_res_lst.append(lst{pref * pow(ep, di), intg});
             }
         } else {
             auto sct = ct;
             int sctN = epsRank(sct);
-            ex stmp = series_to_poly(tmp.series(eps, 1+exN+epsN-sctN));
-            if(use_CCF) stmp = collect_common_factors(stmp);
+            ex stmp = mma_series(tmp, eps, epsN-sctN).expand();
             for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
                 tmp = stmp.coeff(eps, sdi);
                 if(use_CCF) tmp = collect_common_factors(tmp);
                 assert(!tmp.has(eps));
-                ct = series_to_poly(sct.series(eps, 1+exN+epsN-sdi));
+                ct = mma_series(sct, eps, epsN-sdi);
                 int ctN = epRank(ct);
-                tmp = series_to_poly(tmp.series(ep, 1+exN+epN-ctN));
+                tmp = mma_series(tmp, ep, epN-ctN).expand();
                 for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                     auto intg = tmp.coeff(ep, di);
                     assert(!intg.has(ep));
-                    auto pref = series_to_poly(ct.series(ep, 1+exN+epN-di));
+                    auto pref = mma_series(ct, ep, epN-di);
                     if(use_CCF) intg = collect_common_factors(intg);
                     para_res_lst.append(lst{pref * pow(eps, sdi) * pow(ep, di), intg});
                 }
             }
+            
         }
 
         if(para_res_lst.nops()<1) para_res_lst.append(lst{0,0});
@@ -1306,35 +1305,24 @@ void SD::CIPrepares(const char *key) {
             }
         }
         
-        // Note: maybe failed with PL
         bool need_contour_deformation = false;
-        if(ft.has(x(wild()))) {
-            int fN = 10;
-            if(ParameterUB.size()<1) fN = 0;
-            bool need_cd = false;
-            for(int fi = 0; fi<=fN; fi++) {
-                auto tmp = ft.subs(nReplacements).expand();
-                for(auto kv : ParameterUB) {
-                    int k = kv.first;
-                    tmp = tmp.subs(PL(k)==ParameterLB[k]+(ParameterUB[k]-ParameterLB[k])*fi/ex(fN));
-                }
-
-                if(is_a<add>(tmp)) {
-                    for(auto item : tmp) {
-                        assert(is_a<numeric>(item.subs(x(wild())==1)));
-                        if(item.subs(x(wild())==1) < 0) {
-                            need_cd = true;
-                            break;
-                        }
+        if(ft.has(x(wild())) && !ft.has(PL(wild()))) {
+            auto tmp = ft.subs(nReplacements).expand();
+            if(is_a<add>(tmp)) {
+                for(auto item : tmp) {
+                    assert(is_a<numeric>(item.subs(x(wild())==1)));
+                    if(item.subs(x(wild())==1) < 0) {
+                        need_contour_deformation = true;
+                        break;
                     }
-                } else {
-                    assert(is_a<numeric>(tmp.subs(x(wild())==1)));
-                    if(tmp.subs(x(wild())==1) < 0) need_cd = true;
                 }
-                if(need_cd) break;
+            } else {
+                assert(is_a<numeric>(tmp.subs(x(wild())==1)));
+                if(tmp.subs(x(wild())==1) < 0) need_contour_deformation = true;
             }
-            need_contour_deformation = need_cd;
             if(!need_contour_deformation) ft = 1; //note the difference with SDPrepare
+        } else if(!ft.has(x(wild()))){
+            ft = 1;
         }
 
         return lst{ kv.first, kv.second, ft};
@@ -1371,7 +1359,10 @@ void SD::CIPrepares(const char *key) {
             ii.append(-1);
         } else {
             int ft_n = ftnmap[item.op(2)];
-            assert(ft_n!=0);
+            if(ft_n==0) {
+                cout << item.op(2) << endl;
+                assert(false);
+            }
             ii.append(ft_n);
         }
         res_vec.push_back(ii);
@@ -1443,7 +1434,7 @@ typedef complex<long double> dCOMPLEX;
 /****************************************************************/
         auto cppL = CppFormat(ofs, "L");
         ofs << "extern \"C\" " << endl;
-        ofs << "dREAL FI_" << ft_n << "(int xn, dREAL* x, dREAL *las, dREAL *pl) {" << endl;
+        ofs << "dREAL FI_" << ft_n << "(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
         ofs << "dCOMPLEX ila[xn];" << endl;
         ofs << "for(int i=0; i<xn-1; i++) ila[i] = las[i] * complex<long double>(0, x[xn-1]);" <<endl;
         ofs << "dCOMPLEX z[xn];" << endl;
@@ -1460,7 +1451,7 @@ typedef complex<long double> dCOMPLEX;
         
         for(int i=0; i<xs.size(); i++) {
             ofs << "extern \"C\" " << endl;
-            ofs << "dREAL DF"<<i<<"_" << ft_n << "(int xn, dREAL* x, dREAL *las, dREAL *pl) {" << endl;
+            ofs << "dREAL DF"<<i<<"_" << ft_n << "(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
             ofs << "dREAL yy = ";
             dfs[i].subs(plRepl).subs(cxRepl).print(cppL);
             ofs << ";" << endl;
@@ -1492,7 +1483,7 @@ typedef complex<long double> dCOMPLEX;
         
         if(xs.size()<1) {
             return lst{
-                expr.subs(FTX(wild(1),wild(2))==1).subs(iEpsilon==I*power(10,-30)),
+                expr.subs(FTX(wild(1),wild(2))==1).subs(iEpsilon==I*power(10,-50)),
                 xs.size(), kvf.op(0), -1
             };
         }
@@ -1504,7 +1495,7 @@ typedef complex<long double> dCOMPLEX;
         expr.find(FTX(wild(1),wild(2)), ftxset);
         lst ftxlst;
         for(auto it : ftxset) ftxlst.append(it);
-        expr = expr.collect(ftxlst);
+        expr = expr.expand();
         vector<pair<ex,ex>> ft_expr;
         for(auto item : ftxlst) {
             ft_expr.push_back(make_pair(item.op(1), expr.coeff(item)));
@@ -1800,7 +1791,7 @@ void SD::Contours(const char *key, const char *pkey) {
             fname << "DF"<<i<<"_" << nxn.op(0);
             auto dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
             assert(dfp!=NULL);
-            dREAL maxdf = Minimizer->FindMinimum(nvars, dfp, NULL, paras);
+            dREAL maxdf = Minimizer->FindMinimum(nvars, dfp, paras);
             maxdf = -maxdf;
             nlas[i] = maxdf;
             if(max_df<maxdf) max_df = maxdf;
@@ -1838,7 +1829,7 @@ void SD::Contours(const char *key, const char *pkey) {
         min = laEnd;
         while(true) {
             UB[nvars] = min;
-            dREAL res = Minimizer->FindMinimum(nvars+1, fp, nlas, paras, UB);
+            dREAL res = Minimizer->FindMinimum(nvars+1, fp, paras, nlas, UB, NULL, true);
             if(res < 0) laEnd = min;
             else laBegin = min;
             
@@ -1955,14 +1946,14 @@ void SD::Integrates(const char *key, const char *pkey) {
         if(Verbose > 3) cout << "XDim = " << xsize << endl;
         
         int rid = ex_to<numeric>(item.op(0)).to_int();
-        auto co = item.op(2).subs(plRepl).expand().collect(lst{eps, ep}, true);
+        auto co = item.op(2).subs(plRepl).expand();
         if(co.is_zero()) continue;
         assert(!co.has(PL(wild())));
         qREAL cmax = -1;
         int reim = 0;
         if(ReIm==3) reim = 3;
         for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
-            auto tmp = co.coeff(eps, si);
+            auto tmp = co.coeff(eps, si).expand();
             assert(!tmp.has(eps));
             for(int i=tmp.ldegree(ep); i<=tmp.degree(ep); i++) {
                 auto ccRes = tmp.coeff(ep, i).evalf().expand();
@@ -2017,20 +2008,10 @@ void SD::Integrates(const char *key, const char *pkey) {
         assert(fpQ!=NULL);
         
         auto las = LambdaMap[item.op(3)];
-        if(las.is_zero() && item.op(3).subs(plRepl).has(x(wild()))) {
-            cout << "lambda with the key is NOT found!" << endl;
-            cout << "ft_n = " << item.op(3) << endl;
+        if(las.is_zero() && item.op(3)>0) {
+            cout << "lambda with the key(ft_n=" << item.op(3) << ") is NOT found!" << endl;
             assert(false);
         }
-   
-//#def debug
-#ifdef  debug
-if(false) {
-    if(rid!=146) continue;
-    cout << "las=" << las << endl;
-    cout << item << endl;
-}
-#endif
         
         qREAL lambda[las.nops()];
         qREAL paras[npara+1];
@@ -2065,7 +2046,7 @@ if(false) {
                         auto oDigits = Digits;
                         Digits = 3;
                         cout << "\r                                                    \r";
-                        cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res,epN,epsN)) << endl;
+                        cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res)) << endl;
                         Digits = oDigits;
                     }
                     
@@ -2081,7 +2062,7 @@ if(false) {
                             ResultError += co * res;
                             if(Verbose>3) {
                                 cout << WHITE;
-                                cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res,epN,epsN)) << endl;
+                                cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res)) << endl;
                                 cout << RESET;
                             }
                             break;
@@ -2139,7 +2120,7 @@ if(false) {
         auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
         if(Verbose>3) {
             cout << WHITE;
-            cout << "     "<< HepLib::VEResult(VESimplify(res,epN,epsN)) << endl;
+            cout << "     "<< HepLib::VEResult(VESimplify(res)) << endl;
             cout << RESET;
         }
         if(res.has(NaN)) {
@@ -2229,7 +2210,7 @@ void SD::Evaluate(XIntegrand xint) {
     cout << "Finished @ " << now() << endl << endl;
 }
 
-double SD::FindMinimum(ex expr) {
+double SD::FindMinimum(ex expr, bool compare0) {
     static long long fid = 0;
     fid++;
     ostringstream cppfn, sofn, cmd;
@@ -2286,6 +2267,7 @@ typedef complex<long double> dCOMPLEX;
     ofs << "extern \"C\" " << endl;
     ofs << "dREAL minFunc(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
     auto tmp = expr.subs(cxRepl);
+    assert(!tmp.has(PL(wild())));
     ofs << "dREAL yy = ";
     tmp.print(cppL);
     ofs << ";" << endl;
@@ -2304,7 +2286,7 @@ typedef complex<long double> dCOMPLEX;
     auto fp = (MinimizeBase::FunctionType)dlsym(module, "minFunc");
     assert(fp!=NULL);
     
-    double min = Minimizer->FindMinimum(count, fp, UB, LB);
+    double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, compare0);
     
     if(use_dlclose) dlclose(module);
     cmd.clear();
@@ -2318,7 +2300,7 @@ int SD::epRank(ex expr) {
     if(!expr.has(ep)) return 0;
     int p = -5;
     while(true) {
-        auto tmp = normal(series_to_poly(expr.series(ep, p)));
+        auto tmp = normal(series_to_poly(expr.series(ep, p))).expand();
         if(!tmp.is_zero()) {
             return tmp.ldegree(ep);
         } else p++;
@@ -2330,7 +2312,7 @@ int SD::epsRank(ex expr) {
     if(!expr.has(eps)) return 0;
     int p = -5;
     while(true) {
-        auto tmp = normal(series_to_poly(expr.series(eps, p)));
+        auto tmp = normal(series_to_poly(expr.series(eps, p))).expand();
         if(!tmp.is_zero()) {
             return tmp.ldegree(eps);
         } else p++;
