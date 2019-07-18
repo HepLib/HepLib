@@ -515,7 +515,7 @@ void SD::Initialize(FeynmanParameter fp) {
             }
             continue;
         }
-        
+
         auto p = ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop).subs(nsubs).subs(plsubs);
         p = p.subs(lsubs,sop).subs(tsubs,sop).subs(nsubs).subs(plsubs);
         // check loop^2
@@ -1871,7 +1871,8 @@ void SD::Contours(const char *key, const char *pkey) {
     ostringstream garfn;
     if(key != NULL) {
         garfn << key;
-        if(pkey != NULL) garfn << "-" << pkey << ".la.gar";
+        if(pkey != NULL) garfn << "-" << pkey;
+        garfn << ".la.gar";
         lst gar_res;
         for(auto &item : res) gar_res.append(item);
         archive ar;
@@ -1916,7 +1917,8 @@ void SD::Integrates(const char *key, const char *pkey) {
         garfn.clear();
         garfn.str("");
         garfn << key;
-        if(pkey != NULL) garfn << "-" << pkey << ".la.gar";
+        if(pkey != NULL) garfn << "-" << pkey;
+        garfn << ".la.gar";
         if(file_exists(garfn.str().c_str())) {
             archive la_ar;
             ifstream la_in(garfn.str());
@@ -2155,7 +2157,8 @@ void SD::Integrates(const char *key, const char *pkey) {
     if(key != NULL) {
         ostringstream garfn;
         garfn << key;
-        if(pkey != NULL) garfn << "-" << pkey << ".res.gar";
+        if(pkey != NULL) garfn << "-" << pkey;
+        garfn << ".res.gar";
         archive ar;
         ar.archive_ex(ResultError, "res");
         ar.archive_ex(19790923, "c");
