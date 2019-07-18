@@ -235,14 +235,23 @@ ex garResult(const char *garfn, lst syms);
 // Series at s=0 similar to Mathematica
 /*********************************************************/
 ex mma_series(ex expr, symbol s, int sn);
+ex mma_collect(ex expr, ex pat, bool wrap=false);
 
 /*********************************************************/
 // Customized GiNaC Function
 /*********************************************************/
+DECLARE_FUNCTION_1P(CCF)
+DECLARE_FUNCTION_1P(CVF)
+
 DECLARE_FUNCTION_1P(VF)
 DECLARE_FUNCTION_1P(VF1)
 DECLARE_FUNCTION_2P(VF2)
 DECLARE_FUNCTION_3P(VF3)
+
+DECLARE_FUNCTION_1P(CF)
+DECLARE_FUNCTION_1P(CF1)
+DECLARE_FUNCTION_2P(CF2)
+DECLARE_FUNCTION_3P(CF3)
 
 
 }

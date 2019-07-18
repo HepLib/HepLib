@@ -241,7 +241,8 @@ ex mma_series(ex expr_in, symbol s, int sn) {
             assert(false);
         }
         if(ot.op(0).degree(s)>sn) {
-            res = series_to_poly(res).expand();
+            res = series_to_poly(res);
+            res = mma_collect(res,s);
             ex ret = 0;
             for(int i=res.ldegree(s); (i<=res.degree(s) && i<=sn); i++) {
                 ret += res.coeff(s,i) * pow(s, i);
@@ -257,11 +258,78 @@ ex mma_series(ex expr_in, symbol s, int sn) {
 
 
 /*********************************************************/
+// mma_collect
+/*********************************************************/
+ex mma_collect(ex expr_in, ex pat, bool wrap) {
+    lst crepl = lst{ CCF(wild(0))==wild(0), CVF(wild(1))==wild(1) };
+    auto expr = expr_in.subs(crepl);
+    if(!expr.has(pat)) return wrap ? CCF(expr) : expr;
+    ex res;
+    if(is_a<add>(expr)) {
+        res = 0;
+        for(auto item : expr) {
+            res += mma_collect(item, pat, true);
+        }
+    } else if(is_a<mul>(expr)) {
+        res = 1;
+        for(auto item : expr) {
+            res *= mma_collect(item, pat, true);
+        }
+    } else if(is_a<power>(expr)) {
+        res = pow(mma_collect(expr.op(0), pat, true), expr.op(1));
+    } else {
+        return wrap ? CVF(expr) : expr;
+    }
+    
+    res = res.expand(); // expand internally
+    exset vfset;
+    res.find(CVF(wild()), vfset);
+    lst vflst;
+    for(auto vf : vfset) vflst.append(vf);
+    res = collect(res, vflst, true); // collect internally
+    
+    res = res.subs(crepl);
+    lst items;
+    if(is_a<add>(res)) {
+        for(auto item : res) items.append(item);
+    } else {
+        items.append(res);
+    }
+    
+    ex ret = 0, cf = 0;
+    for(auto item : items) {
+        if(!item.has(pat)) cf += item;
+        else {
+            if(is_a<mul>(item)) {
+                ex tc = 1, tf = 1;
+                for(auto ii : item) {
+                    if(!ii.has(pat)) tc *= ii;
+                    else tf *= ii;
+                }
+                ret += CVF(tf) * CCF(tc);
+            } else {
+                ret += CVF(item);
+            }
+        }
+    }
+    ret += CCF(cf);
+    return wrap ? ret : ret.subs(crepl);
+}
+
+/*********************************************************/
 // Customized GiNaC Function
 /*********************************************************/
 REGISTER_FUNCTION(VF, dummy())
 REGISTER_FUNCTION(VF1, dummy())
 REGISTER_FUNCTION(VF2, dummy())
 REGISTER_FUNCTION(VF3, dummy())
+
+REGISTER_FUNCTION(CF, dummy())
+REGISTER_FUNCTION(CF1, dummy())
+REGISTER_FUNCTION(CF2, dummy())
+REGISTER_FUNCTION(CF3, dummy())
+
+REGISTER_FUNCTION(CCF, dummy())
+REGISTER_FUNCTION(CVF, dummy())
 
 }

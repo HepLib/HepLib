@@ -945,7 +945,7 @@ void SD::RemoveDeltas() {
                         cout << "fun is NOT polynormial of xj." << endl;
                         assert(false);
                     }
-                    auto expn = fun.expand().degree(xj);
+                    auto expn = mma_collect(fun, xj).degree(xj);
                     fun = pow(xj, -expn) * fun;
                     fun = normal(fun.subs(xj==1/xj));
                     fun = fun.subs(xj==jInv);
@@ -1150,9 +1150,10 @@ void SD::EpsEpExpands() {
         
         if(!tmp.has(eps) && !ct.has(eps)) {
             int ctN = epRank(ct);
-            tmp = mma_series(tmp, ep, epN-ctN).expand();
+            tmp = mma_series(tmp, ep, epN-ctN);
             for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                 auto intg = tmp.coeff(ep, di);
+                assert(!intg.has(ep));
                 auto pref = mma_series(ct, ep, epN-di);
                 if(use_CCF) intg = collect_common_factors(intg);
                 para_res_lst.append(lst{pref * pow(ep, di), intg});
@@ -1160,14 +1161,14 @@ void SD::EpsEpExpands() {
         } else {
             auto sct = ct;
             int sctN = epsRank(sct);
-            ex stmp = mma_series(tmp, eps, epsN-sctN).expand();
+            ex stmp = mma_series(tmp, eps, epsN-sctN);
             for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
                 tmp = stmp.coeff(eps, sdi);
                 if(use_CCF) tmp = collect_common_factors(tmp);
                 assert(!tmp.has(eps));
                 ct = mma_series(sct, eps, epsN-sdi);
                 int ctN = epRank(ct);
-                tmp = mma_series(tmp, ep, epN-ctN).expand();
+                tmp = mma_series(tmp, ep, epN-ctN);
                 for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                     auto intg = tmp.coeff(ep, di);
                     assert(!intg.has(ep));
@@ -1509,7 +1510,8 @@ typedef complex<long double> dCOMPLEX;
         expr.find(FTX(wild(1),wild(2)), ftxset);
         lst ftxlst;
         for(auto it : ftxset) ftxlst.append(it);
-        expr = expr.expand();
+        //expr = expr.collect(ftxlst);
+        expr = mma_collect(expr, FTX(wild(1),wild(2)));
         vector<pair<ex,ex>> ft_expr;
         for(auto item : ftxlst) {
             ft_expr.push_back(make_pair(item.op(1), expr.coeff(item)));
@@ -1960,15 +1962,17 @@ void SD::Integrates(const char *key, const char *pkey) {
         if(Verbose > 3) cout << "XDim = " << xsize << endl;
         
         int rid = ex_to<numeric>(item.op(0)).to_int();
-        auto co = item.op(2).subs(plRepl).subs(iEpsilon==0).expand();
+        auto co = item.op(2).subs(plRepl).subs(iEpsilon==0);
         if(co.is_zero()) continue;
         assert(!co.has(PL(wild())));
         qREAL cmax = -1;
         int reim = 0;
         if(ReIm==3) reim = 3;
+        co = mma_collect(co, eps);
         for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
-            auto tmp = co.coeff(eps, si).expand();
+            auto tmp = co.coeff(eps, si);
             assert(!tmp.has(eps));
+            tmp = mma_collect(tmp, ep);
             for(int i=tmp.ldegree(ep); i<=tmp.degree(ep); i++) {
                 auto ccRes = tmp.coeff(ep, i).evalf().expand();
                 lst css;
@@ -2314,8 +2318,9 @@ int SD::epRank(ex expr) {
     if(!expr.has(ep)) return 0;
     int p = -5;
     while(true) {
-        auto tmp = normal(series_to_poly(expr.series(ep, p))).expand();
+        auto tmp = normal(series_to_poly(expr.series(ep, p)));
         if(!tmp.is_zero()) {
+            tmp = mma_collect(tmp, ep);
             return tmp.ldegree(ep);
         } else p++;
     }
@@ -2326,8 +2331,9 @@ int SD::epsRank(ex expr) {
     if(!expr.has(eps)) return 0;
     int p = -5;
     while(true) {
-        auto tmp = normal(series_to_poly(expr.series(eps, p))).expand();
+        auto tmp = normal(series_to_poly(expr.series(eps, p)));
         if(!tmp.is_zero()) {
+            tmp = mma_collect(tmp, eps);
             return tmp.ldegree(eps);
         } else p++;
     }
