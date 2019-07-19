@@ -220,7 +220,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             
             if(tn.evalf() < 0) tmp = ex(0)-tmp;
             double tmin = FindMinimum(tmp, true);
-            if(tmin > 0) {
+            if(tmin > -1E-50) {
                 if(tn.evalf() < 0) {
                     ct = exp(-I * Pi * exlist.op(1));
                     fsgin = -1;
@@ -1338,8 +1338,14 @@ void SD::CIPrepares(const char *key) {
             if(!need_contour_deformation) ft = 1; //note the difference with SDPrepare
         } else if(!ft.has(x(wild()))){
             ft = 1;
+        } else {
+            double tmin = FindMinimum(ft, true);
+            if(tmin > -1E-50) {
+                ft = 1;
+            }
         }
-
+        
+        ft = collect_common_factors(ft);
         return lst{ kv.first, kv.second, ft};
         
     }, "ci-f", Verbose, false);
@@ -1384,7 +1390,7 @@ void SD::CIPrepares(const char *key) {
     }
 //============================================================================================================
 
-
+    // Prepare FT-lambda
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnvec, [&](auto &kv, auto rid) {
         // return nothing
         ex ft = kv.first;
@@ -1407,9 +1413,9 @@ void SD::CIPrepares(const char *key) {
             ila << "ila[" << i << "]";
             symbol s;
             auto df = ft.subs(xs[i]==s).diff(s).subs(s==xs[i]);
-            dfs[i] = df;
+            dfs[i] = collect_common_factors(df);
             symbol sila(ila.str());
-            zs[i] = xs[i] - xs[i]*(1-xs[i])*df*sila;
+            zs[i] = xs[i] - xs[i]*(1-xs[i])*dfs[i]*sila;
         }
 
         ostringstream cppfn, sofn;
@@ -1485,7 +1491,7 @@ typedef complex<long double> dCOMPLEX;
 
 //============================================================================================================
 
-
+    // Prepare Integrand
     vector<ex> res =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, res_vec, [&](auto &kvf, auto rid) {
         // return lst{ no-x-result, xn, x-indepent prefactor, ft_n }
@@ -1613,7 +1619,7 @@ inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
                 for(int ii=0; ii<ftx.size(); ii++) {
                     auto xi = ftx[ii];
                     ofs << xi.subs(czRepl) << " = ";
-                    auto zi = xi-xi*(1-xi)*ilas[ii]*(ft.subs(xi==s).diff(s).subs(s==xi).subs(x0Repl));
+                    auto zi = xi-xi*(1-xi)*ilas[ii]*collect_common_factors(ft.subs(xi==s).diff(s).subs(s==xi).subs(x0Repl));
                     zi.subs(cxRepl).subs(plRepl).print(cppL);
                     ofs << ";" << endl;
                     for(int jj=0; jj<ftx.size(); jj++) {
@@ -1623,9 +1629,25 @@ inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
                     }
                 }
                 ofs  << "det = MatDetD(mat, "<<ftx.size()<<");" << endl;
-                ofs << "ytmp = ";
-                kv.second.subs(czRepl).subs(plRepl).print(cppL);
-                ofs << ";" << endl;
+                if(is_a<add>(kv.second)) {
+                    ofs << "ytmp = 0;" << endl;
+                    for(int yi=0; yi<kv.second.nops(); yi++) {
+                        ofs << "ytmp += ";
+                        kv.second.op(yi).subs(czRepl).subs(plRepl).print(cppL);
+                        ofs << ";" << endl;
+                    }
+                } else if(is_a<mul>(kv.second)) {
+                    ofs << "ytmp = 1;" << endl;
+                    for(int yi=0; yi<kv.second.nops(); yi++) {
+                        ofs << "ytmp *= ";
+                        kv.second.op(yi).subs(czRepl).subs(plRepl).print(cppL);
+                        ofs << ";" << endl;
+                    }
+                } else {
+                    ofs << "ytmp = ";
+                    kv.second.subs(czRepl).subs(plRepl).print(cppL);
+                    ofs << ";" << endl;
+                }
                 ofs << "yy += det * ytmp;" << endl << endl;
             }
         } else {
@@ -1633,9 +1655,25 @@ inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
             if(SD::debug) {
                 ofs << "//debug-int: " << tmp << endl;
             }
-            ofs << "dCOMPLEX yy = ";
-            tmp.print(cppL);
-            ofs << ";" << endl;
+            if(is_a<add>(tmp)) {
+                ofs << "dCOMPLEX yy = 0;" << endl;
+                for(int yi=0; yi<tmp.nops(); yi++) {
+                    ofs << "yy += ";
+                    tmp.op(yi).print(cppL);
+                    ofs << ";" << endl;
+                }
+            } else if(is_a<mul>(tmp)) {
+                ofs << "dCOMPLEX yy = 1;" << endl;
+                for(int yi=0; yi<tmp.nops(); yi++) {
+                    ofs << "yy *= ";
+                    tmp.op(yi).print(cppL);
+                    ofs << ";" << endl;
+                }
+            } else {
+                ofs << "dCOMPLEX yy = ";
+                tmp.print(cppL);
+                ofs << ";" << endl;
+            }
         }
         ofs << "y[0] = yy.real();" << endl;
         ofs << "y[1] = yy.imag();" << endl;
@@ -1679,7 +1717,7 @@ ofs << R"EOF(
                 for(int ii=0; ii<ftx.size(); ii++) {
                     auto xi = ftx[ii];
                     ofs << xi.subs(czRepl) << " = ";
-                    auto zi = xi-xi*(1-xi)*ilas[ii]*(ft.subs(xi==s).diff(s).subs(s==xi).subs(x0Repl));
+                    auto zi = xi-xi*(1-xi)*ilas[ii]*collect_common_factors(ft.subs(xi==s).diff(s).subs(s==xi).subs(x0Repl));
                     zi.subs(cxRepl).subs(plRepl).print(cppQ);
                     ofs << ";" << endl;
                     for(int jj=0; jj<ftx.size(); jj++) {
@@ -1689,16 +1727,48 @@ ofs << R"EOF(
                     }
                 }
                 ofs  << "det = MatDetQ(mat, "<<ftx.size()<<");" << endl;
-                ofs << "ytmp = ";
-                kv.second.subs(czRepl).subs(plRepl).print(cppQ);
-                ofs << ";" << endl;
+                if(is_a<add>(kv.second)) {
+                    ofs << "ytmp = 0;" << endl;
+                    for(int yi=0; yi<kv.second.nops(); yi++) {
+                        ofs << "ytmp += ";
+                        kv.second.op(yi).subs(czRepl).subs(plRepl).print(cppQ);
+                        ofs << ";" << endl;
+                    }
+                } else if(is_a<mul>(kv.second)) {
+                    ofs << "ytmp = 1;" << endl;
+                    for(int yi=0; yi<kv.second.nops(); yi++) {
+                        ofs << "ytmp *= ";
+                        kv.second.op(yi).subs(czRepl).subs(plRepl).print(cppQ);
+                        ofs << ";" << endl;
+                    }
+                } else {
+                    ofs << "ytmp = ";
+                    kv.second.subs(czRepl).subs(plRepl).print(cppQ);
+                    ofs << ";" << endl;
+                }
                 ofs << "yy += det * ytmp;" << endl << endl;
             }
         } else {
             auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
-            ofs << "qCOMPLEX yy = ";
-            tmp.print(cppQ);
-            ofs << ";" << endl;
+            if(is_a<add>(tmp)) {
+                ofs << "qCOMPLEX yy = 0;" << endl;
+                for(int yi=0; yi<tmp.nops(); yi++) {
+                    ofs << "yy += ";
+                    tmp.op(yi).print(cppQ);
+                    ofs << ";" << endl;
+                }
+            } else if(is_a<mul>(tmp)) {
+                ofs << "qCOMPLEX yy = 1;" << endl;
+                for(int yi=0; yi<tmp.nops(); yi++) {
+                    ofs << "yy *= ";
+                    tmp.op(yi).print(cppQ);
+                    ofs << ";" << endl;
+                }
+            } else {
+                ofs << "qCOMPLEX yy = ";
+                tmp.print(cppQ);
+                ofs << ";" << endl;
+            }
         }
         ofs << "y[0] = crealq(yy);" << endl;
         ofs << "y[1] = cimagq(yy);" << endl;
@@ -1857,7 +1927,7 @@ void SD::Contours(const char *key, const char *pkey) {
         if(use_dlclose) dlclose(module);
         
         las.append(numeric((double)min));
-        if(Verbose>3) {
+        if(Verbose>5) {
             auto oDigits = Digits;
             Digits = 3;
             cout << "\r                                                    \r";
@@ -1961,8 +2031,6 @@ void SD::Integrates(const char *key, const char *pkey) {
             continue;
         }
         
-        if(Verbose > 3) cout << "XDim = " << xsize << endl;
-        
         int rid = ex_to<numeric>(item.op(0)).to_int();
         auto co = item.op(2).subs(plRepl).subs(iEpsilon==0);
         if(co.is_zero()) continue;
@@ -2017,6 +2085,8 @@ void SD::Integrates(const char *key, const char *pkey) {
             else if(reim==2 && ReIm==2) reim=1;
         }
         
+        if(Verbose > 3) cout << "XDim = " << xsize << ", cmax = " << (double)cmax << endl;
+        
         ostringstream fname;
         fname << "SD_D" << rid;
         auto fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
@@ -2062,7 +2132,7 @@ void SD::Integrates(const char *key, const char *pkey) {
                     }
  
                     auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
-                    if(Verbose>3) {
+                    if(Verbose>10) {
                         auto oDigits = Digits;
                         Digits = 3;
                         cout << "\r                                                    \r";
@@ -2080,7 +2150,7 @@ void SD::Integrates(const char *key, const char *pkey) {
                         if(emin < CppFormat::q2ex(EpsAbs/cmax)) {
                             smin = -2;
                             ResultError += co * res;
-                            if(Verbose>3) {
+                            if(Verbose>5) {
                                 cout << WHITE;
                                 cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res)) << endl;
                                 cout << RESET;
@@ -2127,7 +2197,7 @@ void SD::Integrates(const char *key, const char *pkey) {
                 }
                 cout << "lalst: " << lalst << endl;
             }
-            if(Verbose > 3) cout << WHITE << "     λ=" << (double)cla << ": " << RESET << endl;
+            if(Verbose > 7) cout << WHITE << "     λ=" << (double)cla << ": " << RESET << endl;
             for(int i=0; i<las.nops()-1; i++) {
                 lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
             }
@@ -2138,7 +2208,7 @@ void SD::Integrates(const char *key, const char *pkey) {
         Integrator->EpsAbs = EpsAbs/cmax;
         Integrator->EpsRel = 0;
         auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
-        if(Verbose>3) {
+        if(Verbose>5) { 
             cout << WHITE;
             cout << "     "<< HepLib::VEResult(VESimplify(res)) << endl;
             cout << RESET;

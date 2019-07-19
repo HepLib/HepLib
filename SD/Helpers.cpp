@@ -108,33 +108,32 @@ ex VESimplify(ex expr, int epN, int epsN) {
     for(int i=expr1.ldegree(ep); i<=epN; i++) {
     
         auto ccRes = expr1.coeff(eps,si).coeff(ep,i).expand();
+        lst ccResList;
         if(is_a<add>(ccRes)) {
-            auto tmp = ccRes;
-            ccRes = 0;
-            for(auto item : tmp) ccRes += VF(item);
+            for(auto item : ccRes) ccResList.append(item);
         } else {
-            ccRes = VF(ccRes);
+            ccResList.append(ccRes);
         }
         
-        ccRes = GiNaC_Replace(ccRes, VF(wild()), [&](auto vf) {
-            ex exp = collect_common_factors(vf.op(0));
-            ex ret;
-            if(is_a<mul>(exp)) {
-                ret = VF(1);
-                for(auto ii : exp) {
+        ccRes = 0;
+        for(auto item : ccResList) {
+            if(is_a<mul>(item)) {
+                ex cc = 1, cf = 1;
+                for(auto ii : item) {
                     if(is_a<numeric>(ii) || ii.match(VE(wild(1), wild(2)))) {
-                        ret *= ii;
+                        cc *= ii;
                     } else {
-                        ret = ret.subs(lst{VF(wild())==VF(wild()*ii)});
+                        cf *= ii;
                     }
                 }
-            } else if(is_a<numeric>(exp) || exp.match(VE(wild(1), wild(2)))) {
-                ret = exp*VF(1);
+                ccRes += cc * VF(cf);
+            } else if(is_a<numeric>(item) || item.match(VE(wild(1), wild(2)))) {
+                ccRes += item*VF(1);
             } else {
-                ret =VF(exp);
+                ccRes += VF(item);
             }
-            return ret;
-        });
+        }
+    
         
         exset vfs;
         find(ccRes, VF(wild()),vfs);
@@ -145,6 +144,7 @@ ex VESimplify(ex expr, int epN, int epsN) {
             tmpIR.find(VE(wild(1), wild(2)), ves);
             auto ntmp = tmpIR.subs(lst{VE(wild(1), wild(2))==0});
             assert(is_a<numeric>(ntmp));
+            if(abs(ntmp.evalf())>numeric("1E150")) return SD::NaN;
             ex vIR = ntmp;
             ex eI2 = 0, eR2 = 0;
             for(auto ve : ves) {
@@ -197,11 +197,15 @@ static void print_VEO(const ex & ex1, const ex & ex2, const print_context & c) {
         digits = digits > 30 ? 30 : digits;
     }
     auto oDigits = Digits;
-    Digits = digits;
-    c.s << "(" << ex1.evalf();
-    Digits = 2;
-    c.s << " +- " << ex2.evalf() << ")";
-    Digits = oDigits;
+    try{
+        Digits = digits;
+        c.s << "(" << ex1.evalf();
+        Digits = 2;
+        c.s << " +- " << ex2.evalf() << ")";
+        Digits = oDigits;
+    } catch(...) {
+        Digits = oDigits;
+    }
 }
 
 REGISTER_FUNCTION(fabs, dummy())

@@ -53,19 +53,19 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
 void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* nrun, void *fdata) {
     auto self = (HCubature*)fdata;
     
-    if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1])) && (*nrun)>self->MaxPTS/100) {
+    if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1]))) {
          *nrun = self->MaxPTS + 1000;
          if(self->LastState>0) self->LastState = -1;
          return;
     }
     
-    if(self->RunMAX>0 && (epsabs[0] > 1E15*self->EpsAbs || epsabs[1] > 1E15*self->EpsAbs) && (*nrun)>self->MaxPTS/10) {
+    if(self->RunMAX>0 && (epsabs[0] > 1E25*self->EpsAbs || epsabs[1] > 1E25*self->EpsAbs)) {
          *nrun = self->MaxPTS + 1000;
          if(self->LastState>0) self->LastState = -1;
          return;
     }
     
-    if((self->LastState == 0) || (*nrun)<5*self->RunPTS || (epsabs[0]<=10*self->LastAbsErr[0] && epsabs[1]<=10*self->LastAbsErr[1])) {
+    if((self->LastState == 0) || (*nrun)<3*self->RunPTS || (epsabs[0]<=10*self->LastAbsErr[0] && epsabs[1]<=10*self->LastAbsErr[1])) {
         self->LastResult[0] = result[0];
         self->LastResult[1] = result[1];
         self->LastAbsErr[0] = epsabs[0];
@@ -73,7 +73,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         self->LastState = 1;
     }
     
-    if(self->Verbose>3 && self->RunMAX>0) {
+    if(self->Verbose>10 && self->RunMAX>0) {
         char r0[64], r1[64], e0[32], e1[32];
         quadmath_snprintf(r0, sizeof r0, "%.10Qg", result[0]);
         quadmath_snprintf(r1, sizeof r1, "%.10Qg", result[1]);
@@ -109,8 +109,8 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
     long long run_pts = RunPTS;
     MaxPTS = RunPTS * RunMAX;
     if(MaxPTS<0) MaxPTS = -MaxPTS;
-    if(xdim<2 && RunPTS>10000) RunPTS = 10000;
-    else if(xdim<3 && RunPTS>50000) RunPTS = 50000;
+    if(xdim<2 && RunPTS>5000) RunPTS = 5000;
+    else if(xdim<3 && RunPTS>10000) RunPTS = 10000;
     
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
     if(nok) {
