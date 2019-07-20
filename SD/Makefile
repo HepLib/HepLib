@@ -6,7 +6,7 @@ SD.o : SD.cpp
 	g++ $(opt) -c -o $@ $^
 
 SecDecG.o : SecDecG.cpp
-	g++ $(opt) -rdynamic -c -o $@ $^
+	g++ $(opt) -c -o $@ $^
 
 Helpers.o : Helpers.cpp
 	g++  $(opt) -fPIC -c -o $@ $^

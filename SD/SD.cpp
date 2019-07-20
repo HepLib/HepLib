@@ -405,14 +405,14 @@ pair<lst, lst> SD::Normalize(const pair<lst, lst> &input) {
     return make_pair(plst_comb, nlst_comb);
 }
 
-void inline Replacements2(exmap &repl) {
+void Replacements2(exmap &repl) {
     auto tmp = repl;
     for(auto &kv : repl) {
         kv.second = kv.second.subs(tmp, subs_options::algebraic);
     }
 }
 
-bool inline xPositive(ex expr) {
+bool xPositive(ex expr) {
     auto tmp = expr.expand();
     if(tmp.is_zero()) return true;
     bool ret = false;
@@ -1216,6 +1216,21 @@ typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
 typedef complex<long double> dCOMPLEX;
 
+dREAL expt(dREAL a, dREAL b) { return pow(a,b); }
+dCOMPLEX expt(dCOMPLEX a, dREAL b) { return pow(a,b); }
+dREAL recip(dREAL a) { return 1.L/a; }
+dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
+
+qREAL expt(qREAL a, qREAL b) { return powq(a,b); }
+qCOMPLEX expt(qCOMPLEX a, qREAL b) { return cpowq(a,b); }
+qREAL recip(qREAL a) { return 1.Q/a; }
+qCOMPLEX recip(qCOMPLEX a) { return 1.Q/a; }
+
+qREAL pow(qREAL x, qREAL y) { return powq(x, y); }
+qREAL log(qREAL x) { return logq(x); }
+qCOMPLEX pow(qCOMPLEX x, qREAL y) { return cpowq(x, y); }
+qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
+
 dCOMPLEX MatDetD(dCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
@@ -1449,8 +1464,14 @@ using namespace std;
 typedef long double dREAL;
 typedef complex<long double> dCOMPLEX;
 
-#define expt(a,b) pow(a,b)
-#define recip(a) pow(a,-1)
+//#define expt(a,b) pow(a,b)
+//#define recip(a) pow(a,-1)
+
+dREAL expt(dREAL a, dREAL b);
+dCOMPLEX expt(dCOMPLEX a, dREAL b);
+dREAL recip(dREAL a);
+dCOMPLEX recip(dCOMPLEX a);
+
 )EOF" << endl;
 /****************************************************************/
         auto cppL = CppFormat(ofs, "L");
@@ -1568,13 +1589,23 @@ typedef complex<long double> dCOMPLEX;
 dCOMPLEX MatDetD(dCOMPLEX mat[], int n);
 qCOMPLEX MatDetQ(qCOMPLEX mat[], int n);
 
-#define expt(a,b) pow(a,b)
-#define recip(a) pow(a,-1)
+//#define expt(a,b) pow(a,b)
+//#define recip(a) pow(a,-1)
 
-inline qREAL pow(qREAL x, qREAL y) { return powq(x, y); }
-inline qREAL log(qREAL x) { return logq(x); }
-inline qCOMPLEX pow(qCOMPLEX x, qREAL y) { return cpowq(x, y); }
-inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
+dREAL expt(dREAL a, dREAL b);
+dCOMPLEX expt(dCOMPLEX a, dREAL b);
+dREAL recip(dREAL a);
+dCOMPLEX recip(dCOMPLEX a);
+
+qREAL expt(qREAL a, qREAL b);
+qCOMPLEX expt(qCOMPLEX a, qREAL b);
+qREAL recip(qREAL a);
+qCOMPLEX recip(qCOMPLEX a);
+
+qREAL pow(qREAL x, qREAL y);
+qREAL log(qREAL x);
+qCOMPLEX pow(qCOMPLEX x, qREAL y);
+qCOMPLEX log(qCOMPLEX x);
 
 #define Pi 3.1415926535897932384626433832795028841971693993751L
 #define Euler 0.57721566490153286060651209008240243104215933593992L
@@ -1809,7 +1840,7 @@ ofs << R"EOF(
     }
     
     CompileMatDet();
-    cmd << "g++ -fPIC -shared -lquadmath " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
+    cmd << "g++ -rdynamic -fPIC -shared -lquadmath " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
     system(cmd.str().c_str());
     cmd.clear();
     cmd.str("");
@@ -2349,8 +2380,13 @@ typedef complex<long double> dCOMPLEX;
 #define Pi 3.1415926535897932384626433832795028841971693993751L
 #define Euler 0.57721566490153286060651209008240243104215933593992L
 
-#define expt(a,b) pow(a,b)
-#define recip(a) pow(a,-1)
+//#define expt(a,b) pow(a,b)
+//#define recip(a) pow(a,-1)
+dREAL expt(dREAL a, dREAL b) { return pow(a,b); }
+dCOMPLEX expt(dCOMPLEX a, dREAL b) { return pow(a,b); }
+dREAL recip(dREAL a) { return 1.L/a; }
+dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
+
 )EOF" << endl;
 /****************************************************************/
 
