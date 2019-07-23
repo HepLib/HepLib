@@ -109,13 +109,10 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
     long long run_pts = RunPTS;
     MaxPTS = RunPTS * RunMAX;
     if(MaxPTS<0) MaxPTS = -MaxPTS;
-    if(xdim<2 && RunPTS>5000) RunPTS = 5000;
-    else if(xdim<3 && RunPTS>10000) RunPTS = 10000;
+    if(xdim<2 && RunPTS>1000) RunPTS = 1000;
+    else if(xdim<3 && RunPTS>5000) RunPTS = 5000;
     
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
-    if(nok) {
-        cout << RED << "FAILURE Returned in HCubature ..." << RESET << endl;
-    }
     
     RunPTS = run_pts;
     

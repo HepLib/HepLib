@@ -1231,7 +1231,7 @@ qREAL log(qREAL x) { return logq(x); }
 qCOMPLEX pow(qCOMPLEX x, qREAL y) { return cpowq(x, y); }
 qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
 
-dCOMPLEX MatDetD(dCOMPLEX mat[], int n) {
+dCOMPLEX MatDetL(dCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
@@ -1387,6 +1387,7 @@ void SD::CIPrepares(const char *key) {
         FT_N_NX.append(lst{ft_n, get_xy_from(item).size()});
         ft_n++;
     }
+    //ftnvec item: lst { ft, ft-id }
     
     vector<lst> res_vec;
     for(auto &item : resf) {
@@ -1403,14 +1404,16 @@ void SD::CIPrepares(const char *key) {
         }
         res_vec.push_back(ii);
     }
+    //res_vec item: lst { coeff, integrand, ft, ft-id }
 //============================================================================================================
 
     // Prepare FT-lambda
+    if(use_cpp)
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnvec, [&](auto &kv, auto rid) {
         // return nothing
         ex ft = kv.first;
         ex ft_n = kv.second;
-        auto xs = get_xy_from(ft);
+        auto fxs = get_xy_from(ft);
         lst las;
         
         auto pls = get_pl_from(ft);
@@ -1422,31 +1425,34 @@ void SD::CIPrepares(const char *key) {
             plRepl.append(PL(i) == symbol(pl.str()));
         }
         
-        ex zs[xs.size()], dfs[xs.size()];
-        for(int i=0; i<xs.size(); i++) {
-            ostringstream ila;
-            ila << "ila[" << i << "]";
+        ex DFs[fxs.size()], Mats[fxs.size()*fxs.size()];
+        for(int i=0; i<fxs.size(); i++) {
             symbol s;
-            auto df = ft.subs(xs[i]==s).diff(s).subs(s==xs[i]);
-            dfs[i] = collect_common_factors(df);
-            symbol sila(ila.str());
-            zs[i] = xs[i] - xs[i]*(1-xs[i])*dfs[i]*sila;
+            auto df = ft.subs(fxs[i]==s).diff(s).subs(s==fxs[i]);
+            DFs[i] = collect_common_factors(df);
+            ostringstream ilaos;
+            ilaos << "ilas[" << i << "]";
+            symbol ila(ilaos.str());
+            auto zi = fxs[i]-fxs[i]*(1-fxs[i])*DFs[i]*ila;
+            for(int j=0; j<fxs.size(); j++) {
+                Mats[fxs.size()*i+j] = zi.subs(fxs[j]==s).diff(s).subs(s==fxs[j]);
+            }
         }
 
         ostringstream cppfn, sofn;
-        cppfn << pid << "/" << ft_n << "F.cpp";
-        sofn << pid << "/" << ft_n << "F.o";
+        cppfn << pid << "/F" << ft_n << ".cpp";
+        sofn << pid << "/F" << ft_n << ".o";
         std::ofstream ofs;
         ofs.open(cppfn.str(), ios::out);
         if (!ofs) throw runtime_error("failed to open *.cpp file!");
         
         lst cxRepl, czRepl;
-        for (int i=0; i<xs.size(); i++) {
+        for (int i=0; i<fxs.size(); i++) {
             ostringstream sx, sz;
             sx << "x[" << i << "]";
-            cxRepl.append(xs[i] == symbol(sx.str()));
+            cxRepl.append(fxs[i] == symbol(sx.str()));
             sz << "z[" << i << "]";
-            czRepl.append(xs[i] == symbol(sz.str()));
+            czRepl.append(fxs[i] == symbol(sz.str()));
         }
 
 /****************************************************************/
@@ -1456,49 +1462,112 @@ ofs << R"EOF(
 #include <math.h>
 #include <complex>
 #include <iostream>
+extern "C" {
+#include <quadmath.h>
+}
+
 using namespace std;
 
 #define Pi 3.1415926535897932384626433832795028841971693993751L
 #define Euler 0.57721566490153286060651209008240243104215933593992L
 
+typedef __float128 qREAL;
+typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
 typedef complex<long double> dCOMPLEX;
-
-//#define expt(a,b) pow(a,b)
-//#define recip(a) pow(a,-1)
 
 dREAL expt(dREAL a, dREAL b);
 dCOMPLEX expt(dCOMPLEX a, dREAL b);
 dREAL recip(dREAL a);
 dCOMPLEX recip(dCOMPLEX a);
 
+qREAL expt(qREAL a, qREAL b);
+qCOMPLEX expt(qCOMPLEX a, qREAL b);
+qREAL recip(qREAL a);
+qCOMPLEX recip(qCOMPLEX a);
+
+qREAL pow(qREAL x, qREAL y);
+qREAL log(qREAL x);
+qCOMPLEX pow(qCOMPLEX x, qREAL y);
+qCOMPLEX log(qCOMPLEX x);
+
 )EOF" << endl;
 /****************************************************************/
         auto cppL = CppFormat(ofs, "L");
-        ofs << "extern \"C\" " << endl;
-        ofs << "dREAL FI_" << ft_n << "(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
-        ofs << "dCOMPLEX ila[xn];" << endl;
-        ofs << "for(int i=0; i<xn-1; i++) ila[i] = las[i] * complex<long double>(0, x[xn-1]);" <<endl;
-        ofs << "dCOMPLEX z[xn];" << endl;
-        for(int i=0; i<xs.size(); i++) {
-            ofs << "z["<<i<<"] = ";
-            zs[i].subs(plRepl).subs(cxRepl).print(cppL);
+        auto cppQ = CppFormat(ofs, "Q");
+        // DF_Lfn_xi
+        ofs << "dREAL DF_L" << ft_n << "(int n, const dREAL* x, const dREAL *pl) {" << endl;
+        for(int i=0; i<fxs.size(); i++) {
+            ofs << "if("<<i<<"==n) return ";
+            DFs[i].subs(plRepl).subs(cxRepl).print(cppL);
             ofs << ";" << endl;
         }
+        ofs << "return 0;" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
+        
+        // DF_Qfn_xi
+        ofs << "qREAL DF_Q" << ft_n << "(int n, const qREAL* x, const qREAL *pl) {" << endl;
+        for(int i=0; i<fxs.size(); i++) {
+            ofs << "if("<<i<<"==n) return ";
+            DFs[i].subs(plRepl).subs(cxRepl).print(cppQ);
+            ofs << ";" << endl;
+        }
+        ofs << "return 0;" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
+        
+        // Mat_Qfn
+        ofs << "void Mat_L" <<ft_n<< "(dCOMPLEX *mat, const dREAL* x, const dREAL *pl, const dREAL *las) {" << endl;
+        ofs << "int nfxs = "<<fxs.size()<<";" << endl;
+        ofs << "dCOMPLEX ilas[nfxs];" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>(0, las[i]);" << endl;
+        for(int i=0; i<fxs.size(); i++) {
+        for(int j=0; j<fxs.size(); j++) {
+            ofs << "mat["<<(i*fxs.size()+j)<<"] = ";
+            Mats[i*fxs.size()+j].subs(plRepl).subs(cxRepl).print(cppL);
+            ofs << ";" << endl;
+        }}
+        ofs << "}" << endl;
+        ofs << endl;
+        
+        // Mat_Qfn
+        ofs << "void Mat_Q" << ft_n << "(qCOMPLEX *mat, const qREAL* x, const qREAL *pl, const qREAL *las) {" << endl;
+        ofs << "int nfxs = "<<fxs.size()<<";" << endl;
+        ofs << "qCOMPLEX ilas[nfxs];" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;" << endl;
+        for(int i=0; i<fxs.size(); i++) {
+        for(int j=0; j<fxs.size(); j++) {
+            ofs << "mat["<<(i*fxs.size()+j)<<"] = ";
+            Mats[i*fxs.size()+j].subs(plRepl).subs(cxRepl).print(cppQ);
+            ofs << ";" << endl;
+        }}
+        ofs << "}" << endl;
+        ofs << endl;
+        
+        
+        // for Minimization of F-image
+        ofs << "extern \"C\" " << endl;
+        ofs << "dREAL imgF" << ft_n << "(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
+        ofs << "dCOMPLEX ilas[xn];" << endl;
+        ofs << "for(int i=0; i<xn-1; i++) ilas[i] = las[i] * complex<long double>(0, x[xn-1]);" <<endl;
+        ofs << "dCOMPLEX z[xn];" << endl;
+        ofs << "for(int i=0; i<xn-1; i++) z[i] = x[i] - x[i]*(1-x[i])*DF_L"<<ft_n<<"(i, x, pl)*ilas[i];" << endl;
         ofs << "dCOMPLEX zf = ";
         ft.subs(plRepl).subs(czRepl).print(cppL);
         ofs << ";" << endl;
         ofs << "return -zf.imag();" << endl; // find max image part, check with 0
-        ofs << "}" << endl << endl;
+        ofs << "}" << endl;
+        ofs << endl;
         
-        for(int i=0; i<xs.size(); i++) {
+        // for Minimization of DF-i
+        for(int i=0; i<fxs.size(); i++) {
             ofs << "extern \"C\" " << endl;
-            ofs << "dREAL DF"<<i<<"_" << ft_n << "(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
-            ofs << "dREAL yy = ";
-            dfs[i].subs(plRepl).subs(cxRepl).print(cppL);
-            ofs << ";" << endl;
+            ofs << "dREAL absDF"<<ft_n<<"_"<<i<<"(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
+            ofs << "dREAL yy = DF_L"<<ft_n<<"("<<i<<", x, pl);" << endl;
             ofs << "return -fabs(yy);" << endl;
-            ofs << "}" << endl << endl;
+            ofs << "}" << endl;
+            ofs << endl;
         }
         
         ostringstream cmd;
@@ -1508,12 +1577,13 @@ dCOMPLEX recip(dCOMPLEX a);
         return 0;
     
     }, "ci-c", Verbose, false);
-    
+
 
 //============================================================================================================
 
     // Prepare Integrand
-    vector<ex> res =
+    vector<ex> res;
+    if(use_cpp) res =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, res_vec, [&](auto &kvf, auto rid) {
         // return lst{ no-x-result, xn, x-indepent prefactor, ft_n }
         // or     lst{ id(SD_D|Q[id] in .so), xn, x-indepent prefactor, ft_n }
@@ -1531,13 +1601,12 @@ dCOMPLEX recip(dCOMPLEX a);
         }
         
         auto ft = kvf.op(2);
-        auto ftx = get_xy_from(ft);
+        auto fxs = get_xy_from(ft);
         
         exset ftxset;
         expr.find(FTX(wild(1),wild(2)), ftxset);
         lst ftxlst;
         for(auto it : ftxset) ftxlst.append(it);
-        //expr = expr.collect(ftxlst);
         expr = mma_collect(expr, FTX(wild(1),wild(2)));
         vector<pair<ex,ex>> ft_expr;
         for(auto item : ftxlst) {
@@ -1545,16 +1614,25 @@ dCOMPLEX recip(dCOMPLEX a);
         }
         
         lst cxRepl, czRepl, plRepl;
-        int count = 0;
-        for (auto xi : xs) {
+        for (int i=0; i<fxs.size(); i++) {
             ostringstream xs, zs;
-            xs << "x[" << count << "]";
-            zs << "z[" << count << "]";
-            cxRepl.append(xi == symbol(xs.str()));
-            czRepl.append(xi == symbol(zs.str()));
-            count++;
+            xs << "x[" << i << "]";
+            zs << "z[" << i << "]";
+            cxRepl.append(fxs[i] == symbol(xs.str()));
+            czRepl.append(fxs[i] == symbol(zs.str()));
         }
-        
+        int count = fxs.size();
+        for(auto xi : xs) {
+            auto xii = xi.subs(czRepl);
+            if(xii == xi) {
+                ostringstream xs, zs;
+                xs << "x[" << count << "]";
+                cxRepl.append(xi == symbol(xs.str()));
+                czRepl.append(xi == symbol(xs.str()));
+                count++;
+            }
+        }
+        assert(count==xs.size());
         auto pls = get_pl_from(expr);
         int npls = pls.size()>0 ? ex_to<numeric>(pls[pls.size()-1].subs(lst{PL(wild())==wild()})).to_int() : -1;
         for(int i=0; i<npls+1; i++) {
@@ -1586,11 +1664,9 @@ typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
 typedef complex<long double> dCOMPLEX;
-dCOMPLEX MatDetD(dCOMPLEX mat[], int n);
-qCOMPLEX MatDetQ(qCOMPLEX mat[], int n);
 
-//#define expt(a,b) pow(a,b)
-//#define recip(a) pow(a,-1)
+dCOMPLEX MatDetL(dCOMPLEX mat[], int n);
+qCOMPLEX MatDetQ(qCOMPLEX mat[], int n);
 
 dREAL expt(dREAL a, dREAL b);
 dCOMPLEX expt(dCOMPLEX a, dREAL b);
@@ -1614,71 +1690,54 @@ qCOMPLEX log(qCOMPLEX x);
 )EOF" << endl;
 /****************************************************************/
 
+        if(hasF) {
+            ofs << "dREAL DF_L"<<ft_n<<"(int, const dREAL*, const dREAL*);" << endl;
+            ofs << "qREAL DF_Q"<<ft_n<<"(int, const qREAL*, const qREAL*);" << endl;
+            ofs << "void Mat_L"<<ft_n<<"(dCOMPLEX*, const dREAL*, const dREAL*, const dREAL*);" << endl;
+            ofs << "void Mat_Q"<<ft_n<<"(qCOMPLEX*, const qREAL*, const qREAL*, const qREAL*);" << endl;
+            ofs << endl << endl;
+        }
+
         // long double
         auto cppL =  CppFormat(ofs, "L");
         ofs << "extern \"C\" " << endl;
-        ofs << "int SD_D"<<rid<<"(const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL la[]) {" << endl;
-        ofs << "dREAL x[xn];" << endl;
-        ofs << "for(int i=0; i<xn; i++) x[i] = xx[i];" << endl;
+        ofs << "int SD_D"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+        ofs << "dREAL x[xn], x0[xn];" << endl;
+        ofs << "for(int i=0; i<xn; i++) x[i] = qx[i];" << endl;
         ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
         ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
         if(hasF) {
-            vector<symbol> ilas;
-            for(int ii=0; ii<ftx.size(); ii++) {
-                ostringstream ilaos;
-                ilaos << "ila[" << ii << "]";
-                ilas.push_back(symbol(ilaos.str()));
-            }
             ofs << "dCOMPLEX z[xn];" << endl;
-            ofs << "dCOMPLEX yy=0;" << endl;
-            ofs << "dCOMPLEX ytmp, det;" << endl;
-            ofs << "dCOMPLEX ila["<<ftx.size()<<"];" << endl;
-            ofs << "dCOMPLEX mat["<<(ftx.size()*ftx.size())<<"];" << endl;
-            ofs << "for(int i=0; i<"<<ftx.size()<<"; i++) ila[i] = complex<long double>(0, la[i]);" << endl;
-            symbol s;
+            ofs << "dCOMPLEX yy=0, ytmp, det;" << endl;
+            ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
+            ofs << "dREAL las[nfxs];" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) las[i] = qlas[i];" << endl;
+            ofs << "dCOMPLEX ilas[nfxs];" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>(0, las[i]);" << endl;
+            ofs << "dCOMPLEX mat[nfxs*nfxs];" << endl;
             for(auto &kv : ft_expr) {
-                ofs << "for(int i=0; i<xn; i++) z[i] = x[i];" << endl;
                 if(SD::debug) {
                     ofs << "//debug-xs: " << kv.first << endl;
                     ofs << "//debug-int: " << kv.second << endl;
                 }
-                lst x0Repl;
-                for(int ii=0; ii<ftx.size(); ii++) {
-                    if(!kv.first.has(ftx[ii])) x0Repl.append(ftx[ii]==0);
+                lst xs0;
+                for(int ii=0; ii<fxs.size(); ii++) {
+                    if(!kv.first.has(fxs[ii])) xs0.append(ii);
                 }
-                
-                for(int ii=0; ii<ftx.size(); ii++) {
-                    auto xi = ftx[ii];
-                    ofs << xi.subs(czRepl) << " = ";
-                    auto zi = xi-xi*(1-xi)*ilas[ii]*collect_common_factors(ft.subs(xi==s).diff(s).subs(s==xi).subs(x0Repl));
-                    zi.subs(cxRepl).subs(plRepl).print(cppL);
-                    ofs << ";" << endl;
-                    for(int jj=0; jj<ftx.size(); jj++) {
-                        ofs << "mat["<<(ii*ftx.size()+jj)<<"] = ";
-                        zi.subs(ftx[jj]==s).diff(s).subs(s==ftx[jj]).subs(cxRepl).subs(plRepl).print(cppL);
-                        ofs << ";" << endl;
-                    }
+                ofs << "for(int i=0; i<xn; i++) z[i] = x0[i] = x[i];" << endl;
+                for(auto x0i : xs0) ofs << "x0["<<x0i<<"]=0;" << endl;
+                ofs << "for(int i=0; i<nfxs; i++) z[i]=x[i]-x[i]*(1-x[i])*DF_L"<<ft_n<<"(i, x0, pl)*ilas[i];" << endl;
+                ofs << "Mat_L" <<ft_n<< "(mat, x0, pl, las);" << endl;
+                for(auto x0i : xs0) {
+                    ofs << "ii = " << x0i << ";" << endl;
+                    ofs << "for(int j=0; j<nfxs;j++) mat[nfxs*ii+j] = 0;" << endl;
+                    ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = 0;" << endl;
+                    ofs << "mat[ii*nfxs+ii] = 1.L - (1-2*x[ii])*DF_L"<<ft_n<<"(ii, x0, pl)*ilas[ii];" << endl;
                 }
-                ofs  << "det = MatDetD(mat, "<<ftx.size()<<");" << endl;
-                if(is_a<add>(kv.second)) {
-                    ofs << "ytmp = 0;" << endl;
-                    for(int yi=0; yi<kv.second.nops(); yi++) {
-                        ofs << "ytmp += ";
-                        kv.second.op(yi).subs(czRepl).subs(plRepl).print(cppL);
-                        ofs << ";" << endl;
-                    }
-                } else if(is_a<mul>(kv.second)) {
-                    ofs << "ytmp = 1;" << endl;
-                    for(int yi=0; yi<kv.second.nops(); yi++) {
-                        ofs << "ytmp *= ";
-                        kv.second.op(yi).subs(czRepl).subs(plRepl).print(cppL);
-                        ofs << ";" << endl;
-                    }
-                } else {
-                    ofs << "ytmp = ";
-                    kv.second.subs(czRepl).subs(plRepl).print(cppL);
-                    ofs << ";" << endl;
-                }
+                ofs  << "det = MatDetL(mat, nfxs);" << endl;
+                ofs << "ytmp = ";
+                kv.second.subs(czRepl).subs(plRepl).print(cppL);
+                ofs << ";" << endl;
                 ofs << "yy += det * ytmp;" << endl << endl;
             }
         } else {
@@ -1686,25 +1745,9 @@ qCOMPLEX log(qCOMPLEX x);
             if(SD::debug) {
                 ofs << "//debug-int: " << tmp << endl;
             }
-            if(is_a<add>(tmp)) {
-                ofs << "dCOMPLEX yy = 0;" << endl;
-                for(int yi=0; yi<tmp.nops(); yi++) {
-                    ofs << "yy += ";
-                    tmp.op(yi).print(cppL);
-                    ofs << ";" << endl;
-                }
-            } else if(is_a<mul>(tmp)) {
-                ofs << "dCOMPLEX yy = 1;" << endl;
-                for(int yi=0; yi<tmp.nops(); yi++) {
-                    ofs << "yy *= ";
-                    tmp.op(yi).print(cppL);
-                    ofs << ";" << endl;
-                }
-            } else {
-                ofs << "dCOMPLEX yy = ";
-                tmp.print(cppL);
-                ofs << ";" << endl;
-            }
+            ofs << "dCOMPLEX yy = ";
+            tmp.print(cppL);
+            ofs << ";" << endl;
         }
         ofs << "y[0] = yy.real();" << endl;
         ofs << "y[1] = yy.imag();" << endl;
@@ -1723,83 +1766,41 @@ ofs << R"EOF(
         // Quadruple
         auto cppQ = CppFormat(ofs, "Q");
         ofs << "extern \"C\" " << endl;
-        ofs << "int SD_Q"<<rid<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL la[]) {" << endl;
+        ofs << "int SD_Q"<<rid<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
         if(hasF) {
-            vector<symbol> ilas;
-            for(int ii=0; ii<ftx.size(); ii++) {
-                ostringstream ilaos;
-                ilaos << "ila[" << ii << "]";
-                ilas.push_back(symbol(ilaos.str()));
-            }
+            ofs << "qREAL x0[xn];" << endl;
             ofs << "qCOMPLEX z[xn];" << endl;
-            ofs << "qCOMPLEX yy=0;" << endl;
-            ofs << "qCOMPLEX ytmp, det;" << endl;
-            ofs << "qCOMPLEX ila["<<ftx.size()<<"];" << endl;
-            ofs << "qCOMPLEX mat["<<(ftx.size()*ftx.size())<<"];" << endl;
-            ofs << "for(int i=0; i<"<<ftx.size()<<"; i++) ila[i] = la[i] * 1.Qi;" << endl;
-
-            symbol s;
+            ofs << "qCOMPLEX yy=0, ytmp, det;;" << endl;
+            ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
+            ofs << "qCOMPLEX ilas[nfxs];" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;" << endl;
+            ofs << "qCOMPLEX mat[nfxs*nfxs];" << endl;
             for(auto &kv : ft_expr) {
-                ofs << "for(int i=0; i<xn; i++) z[i] = x[i];" << endl;
-                lst x0Repl;
-                for(int ii=0; ii<ftx.size(); ii++) {
-                    if(!kv.first.has(ftx[ii])) x0Repl.append(ftx[ii]==0);
+                lst xs0;
+                for(int ii=0; ii<fxs.size(); ii++) {
+                    if(!kv.first.has(fxs[ii])) xs0.append(ii);
                 }
-                for(int ii=0; ii<ftx.size(); ii++) {
-                    auto xi = ftx[ii];
-                    ofs << xi.subs(czRepl) << " = ";
-                    auto zi = xi-xi*(1-xi)*ilas[ii]*collect_common_factors(ft.subs(xi==s).diff(s).subs(s==xi).subs(x0Repl));
-                    zi.subs(cxRepl).subs(plRepl).print(cppQ);
-                    ofs << ";" << endl;
-                    for(int jj=0; jj<ftx.size(); jj++) {
-                        ofs << "mat["<<(ii*ftx.size()+jj)<<"] = ";
-                        zi.subs(ftx[jj]==s).diff(s).subs(s==ftx[jj]).subs(cxRepl).subs(plRepl).print(cppQ);
-                        ofs << ";" << endl;
-                    }
+                ofs << "for(int i=0; i<xn; i++) z[i] = x0[i] = x[i];" << endl;
+                for(auto x0i : xs0) ofs << "x0["<<x0i<<"]=0;" << endl;
+                ofs << "for(int i=0; i<nfxs; i++) z[i]=x[i]-x[i]*(1-x[i])*DF_Q"<<ft_n<<"(i, x0, pl)*ilas[i];" << endl;
+                ofs << "Mat_Q" <<ft_n<< "(mat, x0, pl, las);" << endl;
+                for(auto x0i : xs0) {
+                    ofs << "ii = " << x0i << ";" << endl;
+                    ofs << "for(int j=0; j<nfxs;j++) mat[nfxs*ii+j] = 0;" << endl;
+                    ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = 0;" << endl;
+                    ofs << "mat[ii*nfxs+ii] = 1.Q - (1-2*x[ii])*DF_Q"<<ft_n<<"(ii, x0, pl)*ilas[ii];" << endl;
                 }
-                ofs  << "det = MatDetQ(mat, "<<ftx.size()<<");" << endl;
-                if(is_a<add>(kv.second)) {
-                    ofs << "ytmp = 0;" << endl;
-                    for(int yi=0; yi<kv.second.nops(); yi++) {
-                        ofs << "ytmp += ";
-                        kv.second.op(yi).subs(czRepl).subs(plRepl).print(cppQ);
-                        ofs << ";" << endl;
-                    }
-                } else if(is_a<mul>(kv.second)) {
-                    ofs << "ytmp = 1;" << endl;
-                    for(int yi=0; yi<kv.second.nops(); yi++) {
-                        ofs << "ytmp *= ";
-                        kv.second.op(yi).subs(czRepl).subs(plRepl).print(cppQ);
-                        ofs << ";" << endl;
-                    }
-                } else {
-                    ofs << "ytmp = ";
-                    kv.second.subs(czRepl).subs(plRepl).print(cppQ);
-                    ofs << ";" << endl;
-                }
+                ofs  << "det = MatDetQ(mat, nfxs);" << endl;
+                ofs << "ytmp = ";
+                kv.second.subs(czRepl).subs(plRepl).print(cppQ);
+                ofs << ";" << endl;
                 ofs << "yy += det * ytmp;" << endl << endl;
             }
         } else {
             auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
-            if(is_a<add>(tmp)) {
-                ofs << "qCOMPLEX yy = 0;" << endl;
-                for(int yi=0; yi<tmp.nops(); yi++) {
-                    ofs << "yy += ";
-                    tmp.op(yi).print(cppQ);
-                    ofs << ";" << endl;
-                }
-            } else if(is_a<mul>(tmp)) {
-                ofs << "qCOMPLEX yy = 1;" << endl;
-                for(int yi=0; yi<tmp.nops(); yi++) {
-                    ofs << "yy *= ";
-                    tmp.op(yi).print(cppQ);
-                    ofs << ";" << endl;
-                }
-            } else {
-                ofs << "qCOMPLEX yy = ";
-                tmp.print(cppQ);
-                ofs << ";" << endl;
-            }
+            ofs << "qCOMPLEX yy = ";
+            tmp.print(cppQ);
+            ofs << ";" << endl;
         }
         ofs << "y[0] = crealq(yy);" << endl;
         ofs << "y[1] = cimagq(yy);" << endl;
@@ -1820,32 +1821,56 @@ ofs << R"EOF(
 
 //============================================================================================================
 
-    
-    ostringstream sofn, garfn, cmd;
-    if(key != NULL) {
-        sofn << key << ".so";
-        garfn << key << ".ci.gar";
-        lst gar_res;
-        for(auto &item : res) gar_res.append(item);
-        archive ar;
-        ar.archive_ex(gar_res, "res");
-        ar.archive_ex(19790923, "c");
-        ar.archive_ex(FT_N_NX, "ftnxn");
-        ofstream out(garfn.str());
-        out << ar;
-        out.close();
+    if(use_cpp) {
+        ostringstream sofn, garfn, cmd;
+        if(key != NULL) {
+            sofn << key << ".so";
+            garfn << key << ".ci.gar";
+            lst gar_res;
+            for(auto &item : res) gar_res.append(item);
+            archive ar;
+            ar.archive_ex(gar_res, "res");
+            ar.archive_ex(19790923, "c");
+            ar.archive_ex(FT_N_NX, "ftnxn");
+            ofstream out(garfn.str());
+            out << ar;
+            out.close();
+        } else {
+            sofn << pid << ".so";
+            for(auto &item : res) ciResult.push_back(ex_to<lst>(item));
+        }
+        
+        CompileMatDet();
+        cmd << "g++ -rdynamic -fPIC -shared -lquadmath " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
+        system(cmd.str().c_str());
+        cmd.clear();
+        cmd.str("");
+        cmd << "rm -rf " << pid;
+        if(!debug) system(cmd.str().c_str());
     } else {
-        sofn << pid << ".so";
-        for(auto &item : res) ciResult.push_back(ex_to<lst>(item));
+        // Using GiNaC internally
+        ostringstream garfn;
+        lst fn_lst;
+        for(auto &kv : ftnvec) fn_lst.append(lst{kv.first, kv.second});
+        if(fn_lst.nops()<1) fn_lst = lst{lst{1, -1}};
+        lst cifn_lst;
+        for(auto &item : res_vec) cifn_lst.append(item);
+        if(key != NULL) {
+            garfn << key << ".ci.gar";
+            archive ar;
+            ar.archive_ex(fn_lst, "fn_lst");
+            ar.archive_ex(cifn_lst, "cifn_lst");
+            ar.archive_ex(FT_N_NX, "ftnxn");
+            ar.archive_ex(19790923, "c");
+            ofstream out(garfn.str());
+            out << ar;
+            out.close();
+        } else {
+            ciResult.clear();
+            ciResult.push_back(fn_lst);
+            ciResult.push_back(cifn_lst);
+        }
     }
-    
-    CompileMatDet();
-    cmd << "g++ -rdynamic -fPIC -shared -lquadmath " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
-    system(cmd.str().c_str());
-    cmd.clear();
-    cmd.str("");
-    cmd << "rm -rf " << pid;
-    if(!debug) system(cmd.str().c_str());
 }
 
 // need Parameter
@@ -1862,10 +1887,23 @@ void SD::Contours(const char *key, const char *pkey) {
         auto c = ar.unarchive_ex(ParallelSymbols, "c");
         if(c!=19790923) throw runtime_error("*.ci.gar error!");
         FT_N_NX = ex_to<lst>(ar.unarchive_ex(ParallelSymbols, "ftnxn"));
+        if(!use_cpp) {
+            lst fn_lst = ex_to<lst>(ar.unarchive_ex(ParallelSymbols, "fn_lst"));
+            ciResult.clear();
+            ciResult.push_back(fn_lst);
+        }
     }
     
     if(FT_N_NX.nops()<2) return; // 1st is 0
     if(Verbose > 0) cout << now() << " - Contours ..." << endl << flush;
+    
+    if(!use_cpp) {
+        lst fn_lst = ciResult[0];
+        exmap fn_map;
+        for(auto item : fn_lst) fn_map[item.op(1)] = item.op(0);
+        for(int i=1; i<FT_N_NX.nops(); i++) FT_N_NX.let_op(i)= lst{FT_N_NX.op(i).op(0), fn_map[FT_N_NX.op(i).op(0)]};
+        //now FT_N_NX item: lst { ft-id, ft}
+    }
     
     vector<ex> nxn_vec;
     for(int i=1; i<FT_N_NX.nops(); i++) nxn_vec.push_back(FT_N_NX.op(i));
@@ -1880,34 +1918,51 @@ void SD::Contours(const char *key, const char *pkey) {
         // return lst{ ft_n, lst{lambda-i, lambda-max} }
         // with I*[lambda-i]*lambda, lambda < lambda-max
         // note that lambda sequence only matches to x sequence in F-term
-        
         int npara = -1;
         for(auto kv : Parameter) if(npara<kv.first) npara = kv.first;
         dREAL paras[npara+1];
         for(auto kv : Parameter) paras[kv.first] = CppFormat::ex2q(kv.second);
         
-        ostringstream sofn;
-        if(key != NULL) {
-            sofn << key << ".so";
-        } else {
-            sofn << pid << ".so";
-        }
+        int nvars = 0;
         ostringstream fname;
-        
         void* module = nullptr;
-        module = dlopen(sofn.str().c_str(), RTLD_NOW);
-        if (module == nullptr) throw std::runtime_error("could not open compiled module!");
-        
-        int nvars = ex_to<numeric>(nxn.op(1)).to_int();
+        ex ft = 0; vector<ex> xs;
+        if(use_cpp) {
+            nvars = ex_to<numeric>(nxn.op(1)).to_int();
+            ostringstream sofn;
+            if(key != NULL) {
+                sofn << key << ".so";
+            } else {
+                sofn << pid << ".so";
+            }
+            module = dlopen(sofn.str().c_str(), RTLD_NOW);
+            if (module == nullptr) throw std::runtime_error("could not open compiled module!");
+        } else {
+            omp_set_num_threads(1);
+            lst plReplace;
+            for(auto kv : Parameter) plReplace.append(PL(kv.first)==kv.second);
+            ft = nxn.op(1).subs(plReplace);
+            xs = get_xy_from(ft);
+            nvars = xs.size();
+        }
         
         dREAL nlas[nvars];
-        dREAL max_df = -1;
+        dREAL max_df = -1; 
         for(int i=0; i<nvars; i++) {
-            fname.clear();
-            fname.str("");
-            fname << "DF"<<i<<"_" << nxn.op(0);
-            auto dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
-            assert(dfp!=NULL);
+            MinimizeBase::FunctionType dfp = NULL;
+            if(use_cpp) {
+                fname.clear();
+                fname.str("");
+                fname << "absDF"<<nxn.op(0)<<"_"<<i;
+                dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
+                assert(dfp!=NULL);
+            } else {
+                symbol s;
+                auto xi = get_xy_from(ft)[i];
+                ex df = ft.subs(xi==s).diff(s).subs(s==xi);
+                Wrapper::InitMinFunction(-abs(df), xs, 1);
+                dfp = Wrapper::MinFunction;
+            }
             dREAL maxdf = Minimizer->FindMinimum(nvars, dfp, paras);
             maxdf = -maxdf;
             nlas[i] = maxdf;
@@ -1930,14 +1985,29 @@ void SD::Contours(const char *key, const char *pkey) {
         
         lst las;
         for(int i=0; i<nvars; i++) {
-            las.append(numeric((double)nlas[i]));
+            las.append(CppFormat::q2ex(nlas[i]));
         }
         
-        fname.clear();
-        fname.str("");
-        fname << "FI_" << nxn.op(0);
-        auto fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
-        assert(fp!=NULL);
+        MinimizeBase::FunctionType fp;
+        if(use_cpp) {
+            fname.clear();
+            fname.str("");
+            fname << "imgF" << nxn.op(0);
+            fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
+            assert(fp!=NULL);
+        } else {
+            lst zRepl;
+            symbol s;
+            for(int i=0; i<nvars; i++) {
+                auto df = ft.subs(xs[i]==s).diff(s).subs(s==xs[i]);
+                ex zi = xs[i] - xs[i]*(1-xs[i])*df*I*CppFormat::q2ex(nlas[i])*x(nvars);
+                zRepl.append(xs[i]==zi);
+            }
+            auto xs2 = xs;
+            xs2.push_back(x(nvars));
+            Wrapper::InitMinFunction(-ft.subs(zRepl), xs2, 2);
+            fp = Wrapper::MinFunction;
+        }
         
         dREAL laBegin = 0, laEnd = 50, min;
         dREAL UB[nvars+1];
@@ -1957,7 +2027,7 @@ void SD::Contours(const char *key, const char *pkey) {
         
         if(use_dlclose) dlclose(module);
         
-        las.append(numeric((double)min));
+        las.append(CppFormat::q2ex(min));
         if(Verbose>5) {
             auto oDigits = Digits;
             Digits = 3;
@@ -1997,11 +2067,17 @@ void SD::Integrates(const char *key, const char *pkey) {
     if(IsZero) return;
     
     if(Verbose > 0) cout << now() << " - Integrates ..." << endl << flush;
+    if(!use_cpp) omp_set_num_threads(1);
     
     auto pid = getpid();
     ostringstream sofn, cmd;
     if(key == NULL) {
         sofn << pid << ".so";
+        if(!use_cpp) {
+            auto cifn_lst = ciResult[1];
+            ciResult.clear();
+            for(auto item : cifn_lst) ciResult.push_back(ex_to<lst>(item));
+        }
     } else {
         sofn << key << ".so";
         ostringstream garfn;
@@ -2011,9 +2087,16 @@ void SD::Integrates(const char *key, const char *pkey) {
         in >> ar;
         in.close();
         auto c = ar.unarchive_ex(ParallelSymbols, "c");
-        auto res = ar.unarchive_ex(ParallelSymbols, "res");
         if(c!=19790923) throw runtime_error("*.ci.gar error!");
-        for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
+        if(use_cpp) {
+            auto res = ar.unarchive_ex(ParallelSymbols, "res");
+            ciResult.clear();
+            for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
+        } else {
+            auto res = ex_to<lst>(ar.unarchive_ex(ParallelSymbols, "cifn_lst"));
+            ciResult.clear();
+            for(auto item : res) ciResult.push_back(ex_to<lst>(item));
+        }
         
         garfn.clear();
         garfn.str("");
@@ -2035,9 +2118,11 @@ void SD::Integrates(const char *key, const char *pkey) {
     }
     
     void* module = nullptr;
-    module = dlopen(sofn.str().c_str(), RTLD_NOW);
-    if (module == nullptr) throw std::runtime_error("could not open compiled module!");
-    if(!debug && key == NULL) remove(sofn.str().c_str());
+    if(use_cpp) {
+        module = dlopen(sofn.str().c_str(), RTLD_NOW);
+        if (module == nullptr) throw std::runtime_error("could not open compiled module!");
+        if(!debug && key == NULL) remove(sofn.str().c_str());
+    }
     
     int npara = 0;
     lst plRepl;
@@ -2055,15 +2140,32 @@ void SD::Integrates(const char *key, const char *pkey) {
             cout << "\r  \\--Evaluating [" <<(++current)<<"/"<<total<< "] ... " << flush;
         }
         
-        unsigned int xsize = ex_to<numeric>(item.op(1)).to_int();
-        if(xsize<1) {
-            Digits = 35;
-            ResultError +=  VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
-            continue;
+        unsigned int xsize = 0;
+        ex co, exint, exft;
+        vector<ex> xs, fxs;
+        if(use_cpp) {
+            xsize = ex_to<numeric>(item.op(1)).to_int();
+            if(xsize<1) {
+                Digits = 35;
+                ResultError +=  VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
+                continue;
+            }
+            co = item.op(2).subs(plRepl).subs(iEpsilon==0);
+        } else {
+            co = item.op(0).subs(plRepl);
+            exint = item.op(1).subs(plRepl);
+            exft = item.op(2).subs(plRepl);
+            xs = get_xy_from(exint);
+            fxs = get_xy_from(exft);
+            xsize = xs.size();
+            
+            if(xsize<1) {
+                Digits = 35;
+                ResultError +=  VE(exint.evalf(),0) * co;
+                continue;
+            }
         }
         
-        int rid = ex_to<numeric>(item.op(0)).to_int();
-        auto co = item.op(2).subs(plRepl).subs(iEpsilon==0);
         if(co.is_zero()) continue;
         assert(!co.has(PL(wild())));
         qREAL cmax = -1;
@@ -2118,20 +2220,57 @@ void SD::Integrates(const char *key, const char *pkey) {
         
         if(Verbose > 3) cout << "XDim = " << xsize << ", cmax = " << (double)cmax << endl;
         
-        ostringstream fname;
-        fname << "SD_D" << rid;
-        auto fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-        assert(fp!=NULL);
-        fname.clear();
-        fname.str("");
-        fname << "SD_Q" << rid;
-        auto fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-        assert(fpQ!=NULL);
-        
         auto las = LambdaMap[item.op(3)];
         if(las.is_zero() && item.op(3)>0) {
             cout << "lambda with the key(ft_n=" << item.op(3) << ") is NOT found!" << endl;
             assert(false);
+        }
+        
+        IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr;
+        if(use_cpp) {
+            int rid = ex_to<numeric>(item.op(0)).to_int();
+            ostringstream fname;
+            fname << "SD_D" << rid;
+            fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+            assert(fp!=NULL);
+            fname.clear();
+            fname.str("");
+            fname << "SD_Q" << rid;
+            fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+            assert(fpQ!=NULL);
+        } else {
+            ex intx = 0;
+            if(is_a<lst>(las)) {
+                exset ftxset;
+                exint.find(FTX(wild(1),wild(2)), ftxset);
+                lst ftxlst;
+                for(auto it : ftxset) ftxlst.append(it);
+                auto expr = mma_collect(exint, FTX(wild(1),wild(2)));
+                lst ftx_lst;
+                for(auto item : fxs) ftx_lst.append(item);
+                for(auto item : ftxlst) {
+                    ex cftx = item.op(1);
+                    ex cc = exint.coeff(item);
+                    lst x0Repl;
+                    for(auto xi : cftx) {
+                        if(!ftx_lst.has(xi)) x0Repl.append(xi==0);
+                    }
+                    lst zRepl;
+                    matrix mat(fxs.size(), fxs.size());
+                    for(int i=0; i<fxs.size(); i++) {
+                        symbol s;
+                        ex df = exft.subs(fxs[i]==s).diff(s).subs(s==fxs[i]).subs(x0Repl);
+                        ex zi = fxs[i] - fxs[i]*(1-fxs[i])*df*las.op(i)*I*z(0);
+                        zRepl.append(fxs[i]==zi);
+                        for(int j=0; j<fxs.size(); j++) mat(i, j) = zi.subs(fxs[j]==s).diff(s).subs(s==fxs[j]);
+                    }
+                    intx += mat.determinant() * cc.subs(zRepl);
+                }
+            } else {
+                intx = exint.subs(FTX(wild(1),wild(2))==1);
+            }
+            Wrapper::InitIntFunction(intx, xs);
+            fp = fpQ = Wrapper::IntFunction;
         }
         
         qREAL lambda[las.nops()];
@@ -2162,6 +2301,7 @@ void SD::Integrates(const char *key, const char *pkey) {
                         lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
                     }
  
+                    if(!use_cpp) Wrapper::Lambda = CppFormat::q2ex(cla);
                     auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
                     if(Verbose>10) {
                         auto oDigits = Digits;

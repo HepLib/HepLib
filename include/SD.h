@@ -95,8 +95,8 @@ typedef __complex128 qCOMPLEX;
 
 class IntegratorBase {
 public:
-    typedef int (*SD_Type) (const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL la[]);
-    virtual ex Integrate(unsigned int xn, SD_Type fp, SD_Type fpQ, const qREAL pl[], const qREAL la[]) =0;
+    typedef int (*SD_Type) (const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
+    virtual ex Integrate(unsigned int xn, SD_Type fp, SD_Type fpQ, const qREAL pl[], const qREAL las[]) =0;
     
     long long RunMAX = 100;
     long long RunPTS = 100000;
@@ -184,6 +184,26 @@ ex VESimplify(ex expr, int epN = 0, int epsN = 0);
 ex VEResult(ex expr);
 
 /*********************************************************/
+// Wrapper
+/*********************************************************/
+class Wrapper {
+public:
+    static void InitMinFunction(ex minF, vector<ex> xs, int ri = 1);
+    static dREAL MinFunction(int nvars, dREAL* x, dREAL* pl, dREAL *las);
+    
+    static void InitIntFunction(ex intF, vector<ex> xs);
+    static int IntFunction(const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
+    
+    static ex Lambda;
+    
+private:
+    static ex MinF;
+    static vector<ex> Xs;
+    static ex IntF;
+    static int ReIm;
+};
+
+/*********************************************************/
 // SD Class
 /*********************************************************/
 class SD {
@@ -216,6 +236,7 @@ public:
     bool IsZero = false;
     bool CheckF1 = false;
     bool use_CCF = true;
+    bool use_cpp = true;
     lst BisectionPoints = lst { ex(1)/11, ex(1)/13, ex(1)/17, ex(1)/19, ex(1)/23  };
     
     map<int, numeric> Parameter;

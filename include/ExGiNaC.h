@@ -152,15 +152,15 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
         
         try {
             auto res = f(item, para_run);
-            archive a;
-            a.archive_ex(res, "res");
-            a.archive_ex(19790923, "c");
+            archive ar;
+            ar.archive_ex(res, "res");
+            ar.archive_ex(19790923, "c");
             ostringstream garfn;
             if(key == NULL) garfn << ppid << "/" << para_run << ".gar";
             else garfn << ppid << "/" << para_run << "." << key << ".gar";
-            ofstream out(garfn.str().c_str());
-            out << a;
-            out.close();
+            ofstream outs(garfn.str().c_str());
+            outs << ar;
+            outs.close();
         } catch(exception &p) {
             cout << RED << "Failed in GiNaC_Parallel!" << RESET << endl;
             cout << RED << p.what() << RESET << endl;
@@ -189,17 +189,17 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
             }
         }
 
-        archive a;
+        archive ar;
         ostringstream garfn;
         if(key == NULL) garfn << ppid << "/" << i << ".gar";
         else garfn << ppid << "/" << i << "." << key << ".gar";
-        ifstream in(garfn.str().c_str());
-        in >> a;
-        in.close();
+        ifstream ins(garfn.str().c_str());
+        ins >> ar;
+        ins.close();
         remove(garfn.str().c_str());
-        auto c = a.unarchive_ex(syms, "c");
-        auto res = a.unarchive_ex(syms, "res");
+        auto c = ar.unarchive_ex(syms, "c");
         if(c!=19790923) throw runtime_error("*.gar error!");
+        auto res = ar.unarchive_ex(syms, "res");
         ovec.push_back(res);
     }
     

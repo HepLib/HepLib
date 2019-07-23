@@ -1,6 +1,6 @@
 include ../opt.mk
 
-all: SD.o SecDecG.o Helpers.o CppFormat.o HCubature.o MinUit.o HookeJeeves.o Lib3/HCubature.o
+all: SD.o SecDecG.o Helpers.o Wrapper.o CppFormat.o HCubature.o MinUit.o HookeJeeves.o Lib3/HCubature.o
 
 SD.o : SD.cpp
 	g++ $(opt) -c -o $@ $^
@@ -9,6 +9,9 @@ SecDecG.o : SecDecG.cpp
 	g++ $(opt) -c -o $@ $^
 
 Helpers.o : Helpers.cpp
+	g++  $(opt) -fPIC -c -o $@ $^
+
+Wrapper.o : Wrapper.cpp
 	g++  $(opt) -fPIC -c -o $@ $^
 
 CppFormat.o : CppFormat.cpp
