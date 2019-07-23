@@ -55,13 +55,11 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     
     if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1]))) {
          *nrun = self->MaxPTS + 1000;
-         if(self->LastState>0) self->LastState = -1;
          return;
     }
     
     if(self->RunMAX>0 && (epsabs[0] > 1E25*self->EpsAbs || epsabs[1] > 1E25*self->EpsAbs)) {
          *nrun = self->MaxPTS + 1000;
-         if(self->LastState>0) self->LastState = -1;
          return;
     }
     
@@ -109,18 +107,26 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
     long long run_pts = RunPTS;
     MaxPTS = RunPTS * RunMAX;
     if(MaxPTS<0) MaxPTS = -MaxPTS;
-    if(xdim<2 && RunPTS>1000) RunPTS = 1000;
-    else if(xdim<3 && RunPTS>5000) RunPTS = 5000;
+    if(xdim<2 && RunPTS>10000) RunPTS = 10000;
+    else if(xdim<3 && RunPTS>50000) RunPTS = 50000;
     
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
     
+    if(nok) {
+        if( (cabsq(result[0]+result[1]*1.Qi) < FLT128_EPSILON) && (cabsq(estabs[0]+estabs[1]*1.Qi) < FLT128_EPSILON) ) {
+            cout << RED << "HCubature Failed with 0 result returned!" << RESET << endl;
+            return SD::NaN;
+        }
+    }
+    
     RunPTS = run_pts;
     
-    if(LastState<0 && (xdim<2 || use_last)) {
+    if(LastState==1 && (xdim<2 || use_last)) {
         result[0] = LastResult[0];
         result[1] = LastResult[1];
         estabs[0] = LastAbsErr[0];
         estabs[1] = LastAbsErr[1];
+        cout << 1 << endl;
     }
     
     ex FResult = 0;

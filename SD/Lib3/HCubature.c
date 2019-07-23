@@ -746,7 +746,7 @@ static int rulecubature(rule *r, unsigned fdim,
     while (numEval < maxEval) {
 
         if (parallel) {
-        
+            REAL xmin = 10;
             long long nR = 0;
             REAL err_sum = 0;
             for (j = 0; j < fdim; ++j) ee[j] = regions.ee[j];
@@ -758,17 +758,23 @@ static int rulecubature(rule *r, unsigned fdim,
                     if (!R) goto bad;
                 }
                 R[nR] = heap_pop(&regions);
+                
+                // Feng : check xmin
+                for(j=0; j<R[nR].h.dim; j++) {
+                    if(R[nR].h.data[j] < xmin) xmin = R[nR].h.data[j];
+                }
+                
                 for (j = 0; j < fdim; ++j) ee[j].err -= R[nR].ee[j].err;
                 if (cut_region(R+nR, R+nR+1)) goto bad;
                 numEval += r->num_points * 2;
                 nR += 2;
                 
-                // Feng
-                int ok = (regions.n<=0) || (nR>100) && (numEval >= maxEval);
+                // Feng : check break
+                int ok = (regions.n<=0) || (nR>50) && (numEval >= maxEval);
                 if(ok) break;
                 REAL err_left = 0;
                 for (j = 0; j < fdim; ++j) err_left += ee[j].err;
-                ok = err_left < 0.75 * err_sum;
+                ok = err_left < 0.5 * err_sum;
                 if(ok && nR > 10) break;
             }
 
@@ -785,7 +791,7 @@ static int rulecubature(rule *r, unsigned fdim,
                 int toExit = 1;
                 for (j = 0; j < fdim; ++j) toExit = toExit && (err[j]*10 < reqAbsError);
                 if(toExit) return SUCCESS;
-                if(PrintHooker != NULL && numEval - runs > minEval) {
+                if(PrintHooker != NULL && (xmin<1E-9 || numEval - runs > minEval)) {
                     runs = numEval;
                     PrintHooker(val, err, &numEval, fdata);
                 }
@@ -823,7 +829,6 @@ bad:
         }
         destroy_region(&regions.items[i]);
     }
-    
     free(ee);
     heap_free(&regions);
     free(R);

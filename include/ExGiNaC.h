@@ -189,6 +189,9 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
             }
         }
 
+        int oDigits = Digits;
+        Digits = oDigits; // a fix to float overflow
+        
         archive ar;
         ostringstream garfn;
         if(key == NULL) garfn << ppid << "/" << i << ".gar";

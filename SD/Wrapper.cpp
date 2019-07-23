@@ -18,7 +18,7 @@ void Wrapper::InitMinFunction(ex minF, vector<ex> xs, int ri) {
     MinF = minF;
     Xs = xs;
     ReIm = ri;
-    Digits = 25;
+    Digits = 30;
 }
 
 dREAL Wrapper::MinFunction(int nvars, dREAL* x, dREAL* pl, dREAL *las) {
@@ -37,7 +37,7 @@ dREAL Wrapper::MinFunction(int nvars, dREAL* x, dREAL* pl, dREAL *las) {
 void Wrapper::InitIntFunction(ex intF, vector<ex> xs) {
     IntF = intF;
     Xs = xs;
-    Digits = 25;
+    Digits = 30;
 }
 
 int Wrapper::IntFunction(const unsigned int xn, const qREAL x[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]) {

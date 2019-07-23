@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 	--argc; ++argv;
-
+ 
 	bool dump_mode = false;
 	try {
 		lst l;

@@ -1,13 +1,12 @@
 include ../opt.mk
 
-all: garview
+all: garview FF FFz
 
-garview : garview.cpp
+% : %.cpp
 	g++ $(opt) -o $@ $^ -L .. -lHepLib -lginac -lcln -ldl -lqhullstatic
 
-
 clean:
-	rm -f garview
+	rm -f garview FF FFz
 
 
 
