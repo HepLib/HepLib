@@ -55,15 +55,17 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     
     if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1]))) {
          *nrun = self->MaxPTS + 1000;
+         if(self->LastState>0) self->LastState = -1;
          return;
     }
     
     if(self->RunMAX>0 && (epsabs[0] > 1E25*self->EpsAbs || epsabs[1] > 1E25*self->EpsAbs)) {
          *nrun = self->MaxPTS + 1000;
+         if(self->LastState>0) self->LastState = -1;
          return;
     }
     
-    if((self->LastState == 0) || (*nrun)<3*self->RunPTS || (epsabs[0]<=10*self->LastAbsErr[0] && epsabs[1]<=10*self->LastAbsErr[1])) {
+    if((self->LastState == 0) || (epsabs[0]<=2*self->LastAbsErr[0] && epsabs[1]<=2*self->LastAbsErr[1])) {
         self->LastResult[0] = result[0];
         self->LastResult[1] = result[1];
         self->LastAbsErr[0] = epsabs[0];
@@ -121,12 +123,11 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
     
     RunPTS = run_pts;
     
-    if(LastState==1 && (xdim<2 || use_last)) {
+    if(LastState==-1 && use_last) {
         result[0] = LastResult[0];
         result[1] = LastResult[1];
         estabs[0] = LastAbsErr[0];
         estabs[1] = LastAbsErr[1];
-        cout << 1 << endl;
     }
     
     ex FResult = 0;
