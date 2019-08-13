@@ -245,7 +245,8 @@ public:
     
     long long TryPTS = 100000;
     long long LambdaSplit = 10;
-    qREAL LambdaMax = 50;
+    qREAL LambdaMax = 100;
+    int CSchema = 1;
     int CTry = 2;
     int CTryLeft = 3;
     int CTryRight = 1;
@@ -268,7 +269,7 @@ public:
     vector<pair<lst, lst>> AutoF1(pair<lst, lst> po_ex);
     void CIPrepares(const char* key = NULL);
     void Contours(const char * key = NULL, const char *pkey = NULL);
-    void Integrates(const char* key = NULL, const char *pkey = NULL);
+    void Integrates(const char* key = NULL, const char *pkey = NULL, int kid=0);
     void Evaluate(FeynmanParameter fpi);
     void Evaluate(XIntegrand xint);
     

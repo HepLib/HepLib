@@ -446,6 +446,7 @@ void SD::Initialize(FeynmanParameter fp) {
     
     for(auto kv: fp.lReplacements) assert(!(lst{kv.first, kv.second}).has(iEpsilon));
     for(auto kv: fp.tReplacements) assert(!(lst{kv.first, kv.second}).has(iEpsilon));
+    for(auto kv: fp.nReplacements) assert(!(lst{kv.first, kv.second}).has(iEpsilon));
     
     auto sop = subs_options::algebraic;
     
@@ -1973,8 +1974,25 @@ void SD::Contours(const char *key, const char *pkey) {
 //--------------------------------------------------
         dREAL nlas2 = 0;
         for(int i=0; i<nvars; i++) {
-            if(nlas[i] > 1E-3 * max_df) nlas[i] = 1/nlas[i];
-            else nlas[i] = 1/max_df;
+        
+            if(CSchema<0 || CSchema>4) CSchema = 1;
+        
+            if(CSchema==0) {
+                nlas[i] = 1;
+            } else if(CSchema==1) {
+                if(nlas[i] > 1E-3 * max_df) nlas[i] = 1/nlas[i];
+                else nlas[i] = 1/max_df;
+            } else if (CSchema==2) {
+                nlas[i] = nlas[i] * nlas[i];
+                if(nlas[i] > 1E-3 * max_df*max_df) nlas[i] = 1/nlas[i];
+                else nlas[i] = 1/(max_df*max_df);
+            } else if (CSchema==3) {
+                if(nlas[i] < 1E-3 * max_df) nlas[i] = max_df * 1E-3;
+            } else if(CSchema==4) {
+                nlas[i] = nlas[i] * nlas[i];
+                if(nlas[i] < 1E-3 * max_df*max_df) nlas[i] = max_df*max_df * 1E-3;
+            }
+            
             nlas2 += nlas[i] * nlas[i];
         }
         nlas2 = sqrt(nlas2);
@@ -2009,7 +2027,7 @@ void SD::Contours(const char *key, const char *pkey) {
             fp = Wrapper::MinFunction;
         }
         
-        dREAL laBegin = 0, laEnd = 50, min;
+        dREAL laBegin = 0, laEnd = 100, min;
         dREAL UB[nvars+1];
         for(int i=0; i<nvars+1; i++) UB[i] = 1;
         
@@ -2063,12 +2081,13 @@ void SD::Contours(const char *key, const char *pkey) {
 }
 
 // need Parameter
-void SD::Integrates(const char *key, const char *pkey) {
+void SD::Integrates(const char *key, const char *pkey, int kid) {
     if(IsZero) return;
     
     if(Verbose > 0) cout << now() << " - Integrates ..." << endl << flush;
     if(!use_cpp) omp_set_num_threads(1);
     
+    lst lstRE;
     auto pid = getpid();
     ostringstream sofn, cmd;
     if(key == NULL) {
@@ -2115,6 +2134,22 @@ void SD::Integrates(const char *key, const char *pkey) {
                 LambdaMap[item.op(0)] = item.op(1);
             }
         }
+        
+        if(kid>0) {
+            garfn.clear();
+            garfn.str("");
+            garfn << key << "-" << pkey << ".res.gar";
+            assert(file_exists(garfn.str().c_str()));
+            
+            archive res_ar;
+            ifstream res_in(garfn.str());
+            res_in >> res_ar;
+            res_in.close();
+            auto res_c = res_ar.unarchive_ex(ParallelSymbols, "c");
+            auto relst = res_ar.unarchive_ex(ParallelSymbols, "relst");
+            if(res_c!=19790923) throw runtime_error("*.res.gar error with kid!");
+            lstRE = ex_to<lst>(relst);
+        }
     }
     
     void* module = nullptr;
@@ -2136,8 +2171,10 @@ void SD::Integrates(const char *key, const char *pkey) {
     int total = ciResult.size(), current = 0;
     ResultError = 0;
     for(auto &item : ciResult) {
+        current++;
+        if(kid>0 && current != kid) continue;
         if(Verbose > 1) {
-            cout << "\r  \\--Evaluating [" <<(++current)<<"/"<<total<< "] ... " << flush;
+            cout << "\r  \\--Evaluating [" <<current<<"/"<<total<< "] ... " << flush;
         }
         
         unsigned int xsize = 0;
@@ -2147,7 +2184,12 @@ void SD::Integrates(const char *key, const char *pkey) {
             xsize = ex_to<numeric>(item.op(1)).to_int();
             if(xsize<1) {
                 Digits = 35;
+                if(kid>0) {
+                    lstRE.let_op(kid-1) = VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
+                    break;
+                }
                 ResultError +=  VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
+                lstRE.append(VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl));
                 continue;
             }
             co = item.op(2).subs(plRepl).subs(iEpsilon==0);
@@ -2161,7 +2203,12 @@ void SD::Integrates(const char *key, const char *pkey) {
             
             if(xsize<1) {
                 Digits = 35;
+                if(kid>0) {
+                    lstRE.let_op(kid-1) = VE(exint.evalf(),0) * co;
+                    break;
+                }
                 ResultError +=  VE(exint.evalf(),0) * co;
+                lstRE.append(VE(exint.evalf(),0) * co);
                 continue;
             }
         }
@@ -2283,8 +2330,7 @@ void SD::Integrates(const char *key, const char *pkey) {
             qREAL lamin = 0;
             qREAL lamax = CppFormat::ex2q(las.op(las.nops()-1));
             if(lamax > LambdaMax) lamax = LambdaMax;
-            qREAL lamax0 = lamax;
-                        
+            
             Integrator->RunMAX = -1;
             Integrator->RunPTS = TryPTS;
             Integrator->EpsAbs = EpsAbs/cmax/2;
@@ -2295,8 +2341,13 @@ void SD::Integrates(const char *key, const char *pkey) {
             while(true) {
                 smin = -1;
                 ex emin = 0;
-                for(int s=1; s<=LambdaSplit; s++) {
+                for(int s=0; s<=LambdaSplit; s++) {
+                    if(Verbose>10 && s==0) {
+                        if(ctryR>0 || ctry>0 || ctryL>0)
+                            cout << "     ------------------------------" << endl;
+                    }
                     auto cla = (lamin + s * (lamax-lamin) / LambdaSplit);
+                    if(cla < 1E-10) continue;
                     for(int i=0; i<las.nops()-1; i++) {
                         lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
                     }
@@ -2320,7 +2371,12 @@ void SD::Integrates(const char *key, const char *pkey) {
                         emin = err;
                         if(emin < CppFormat::q2ex(EpsAbs/cmax)) {
                             smin = -2;
+                            if(kid>0) {
+                                lstRE.let_op(kid-1) = co * res;
+                                break;
+                            }
                             ResultError += co * res;
+                            lstRE.append(co * res);
                             if(Verbose>5) {
                                 cout << WHITE;
                                 cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res)) << endl;
@@ -2337,28 +2393,31 @@ void SD::Integrates(const char *key, const char *pkey) {
                     assert(false);
                 }
                 
-                if(smin <= 2) {
-                    ctryL++;
+                if(smin*1.0 <= 0.19*LambdaSplit && ctry<1 && ctryR<1) {
                     if(ctryL >= CTryLeft) break;
                     lamax = lamin + (smin+1) * (lamax-lamin) / LambdaSplit;
-                } else if(smin >= 8) {
-                    if(lamax0 < lamax * CTryRightRatio) {
-                        ctryR++;
-                        if(ctryR >= CTryRight) break;
-                    }
+                    ctryL++;
+                } else if(smin*1.0 >= 0.81*LambdaSplit && ctry<1 && ctryL<1) {
+                    if(ctryR >= CTryRight) break;
                     lamin = lamin + (smin-1) * (lamax-lamin) / LambdaSplit;
                     lamax *= CTryRightRatio;
-                } else {
-                    ctry++;
+                    ctryR++;
+                } else if(ctryL<2 && ctryR<2) {
                     if(ctry >= CTry) break;
                     auto la1 = lamin + (smin-1) * (lamax-lamin) / LambdaSplit;
                     auto la2 = lamin + (smin+1) * (lamax-lamin) / LambdaSplit;
                     lamin = la1;
                     lamax = la2;
+                    ctry++;
+                } else {
+                    break;
                 }
             }
             
-            if(smin == -2) continue;
+            if(smin == -2) {
+                if(kid>0) break;
+                continue;
+            }
             
             auto cla = (lamin + smin * (lamax-lamin) / LambdaSplit);
             if(SD::debug) {
@@ -2386,13 +2445,30 @@ void SD::Integrates(const char *key, const char *pkey) {
         }
         if(res.has(NaN)) {
             ResultError = NaN;
+            if(kid>0) {
+                lstRE.let_op(kid-1) = NaN;
+            } else {
+                lstRE.append(NaN);
+            }
             break;
-        } else ResultError += co * res;
+        } else {
+            if(kid>0) {
+                lstRE.let_op(kid-1) = co * res;
+                break;
+            } else {
+                ResultError += co * res;
+                lstRE.append(co * res);
+            }
+        }
     }
     
     if(use_dlclose) dlclose(module);
     if(total>0 && Verbose > 1) cout << "@" << now(false) << endl;
     
+    if(kid>0) {
+        ResultError = 0;
+        for(auto item : lstRE) ResultError += item;
+    }
     ResultError = VESimplify(ResultError,epN,epsN);
     
     if(key != NULL) {
@@ -2402,6 +2478,7 @@ void SD::Integrates(const char *key, const char *pkey) {
         garfn << ".res.gar";
         archive ar;
         ar.archive_ex(ResultError, "res");
+        ar.archive_ex(lstRE, "relst");
         ar.archive_ex(19790923, "c");
         ofstream out(garfn.str());
         out << ar;

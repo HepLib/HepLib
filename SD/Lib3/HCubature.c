@@ -751,6 +751,7 @@ static int rulecubature(rule *r, unsigned fdim,
             REAL err_sum = 0;
             for (j = 0; j < fdim; ++j) ee[j] = regions.ee[j];
             for (j = 0; j < fdim; ++j) err_sum += ee[j].err;
+            long long numEval2 = 0;
             while(1) {
                 if (nR + 2 > nR_alloc) {
                     nR_alloc = (nR + 2) * 2;
@@ -767,10 +768,12 @@ static int rulecubature(rule *r, unsigned fdim,
                 for (j = 0; j < fdim; ++j) ee[j].err -= R[nR].ee[j].err;
                 if (cut_region(R+nR, R+nR+1)) goto bad;
                 numEval += r->num_points * 2;
+                numEval2 += r->num_points * 2;
                 nR += 2;
                 
                 // Feng : check break
-                int ok = (regions.n<=0) || (nR>50) && (numEval >= maxEval);
+                //int ok = (regions.n<=0) || (nR>50000) || (numEval2>minEval) || (numEval >= maxEval);
+                int ok = (regions.n<=0) || (numEval2>minEval) || (numEval >= maxEval);
                 if(ok) break;
                 REAL err_left = 0;
                 for (j = 0; j < fdim; ++j) err_left += ee[j].err;
