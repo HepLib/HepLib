@@ -1972,27 +1972,29 @@ void SD::Contours(const char *key, const char *pkey) {
         
 //TODO: add other schema
 //--------------------------------------------------
+        dREAL lmin=1E10, lmax=-1E10;
+        for(int i=0; i<nvars; i++) {
+            
+            if(nlas[i] < 1E-20 * max_df) {
+                nlas[i] = 0;
+                continue;
+            } else if(nlas[i] > 1E-5 * max_df) nlas[i] = 1/nlas[i];
+            else nlas[i] = 1/max_df;
+            
+            if(lmin>nlas[i]) lmin = nlas[i];
+            if(lmax<nlas[i]) lmax = nlas[i];
+        }
+        
+        if(lmax-lmin > 1E-10 * lmax) {
+            dREAL mm_pow = CLogRatio/std::log10(lmax/lmin);
+            if(std::fabs(mm_pow) > 50) mm_pow = 10.*mm_pow/std::fabs(mm_pow);
+            for(int i=0; i<nvars; i++) {
+                nlas[i] = std::pow(nlas[i], mm_pow);
+            }
+        }
+        
         dREAL nlas2 = 0;
         for(int i=0; i<nvars; i++) {
-        
-            if(CSchema<0 || CSchema>4) CSchema = 1;
-        
-            if(CSchema==0) {
-                nlas[i] = 1;
-            } else if(CSchema==1) {
-                if(nlas[i] > 1E-3 * max_df) nlas[i] = 1/nlas[i];
-                else nlas[i] = 1/max_df;
-            } else if (CSchema==2) {
-                nlas[i] = nlas[i] * nlas[i];
-                if(nlas[i] > 1E-3 * max_df*max_df) nlas[i] = 1/nlas[i];
-                else nlas[i] = 1/(max_df*max_df);
-            } else if (CSchema==3) {
-                if(nlas[i] < 1E-3 * max_df) nlas[i] = max_df * 1E-3;
-            } else if(CSchema==4) {
-                nlas[i] = nlas[i] * nlas[i];
-                if(nlas[i] < 1E-3 * max_df*max_df) nlas[i] = max_df*max_df * 1E-3;
-            }
-            
             nlas2 += nlas[i] * nlas[i];
         }
         nlas2 = sqrt(nlas2);

@@ -246,11 +246,11 @@ public:
     long long TryPTS = 100000;
     long long LambdaSplit = 10;
     qREAL LambdaMax = 100;
-    int CSchema = 1;
+    dREAL CLogRatio = 1;
     int CTry = 2;
     int CTryLeft = 3;
     int CTryRight = 1;
-    double CTryRightRatio = 1.5;
+    dREAL CTryRightRatio = 2;
     
     long long RunMAX = 100;
     long long RunPTS = 100000;

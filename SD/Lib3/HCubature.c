@@ -772,8 +772,7 @@ static int rulecubature(rule *r, unsigned fdim,
                 nR += 2;
                 
                 // Feng : check break
-                //int ok = (regions.n<=0) || (nR>50000) || (numEval2>minEval) || (numEval >= maxEval);
-                int ok = (regions.n<=0) || (numEval2>minEval) || (numEval >= maxEval);
+                int ok = (regions.n<=0) || (nR>100000) || (numEval2>minEval) || (numEval >= maxEval);
                 if(ok) break;
                 REAL err_left = 0;
                 for (j = 0; j < fdim; ++j) err_left += ee[j].err;

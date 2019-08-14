@@ -109,8 +109,6 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
     long long run_pts = RunPTS;
     MaxPTS = RunPTS * RunMAX;
     if(MaxPTS<0) MaxPTS = -MaxPTS;
-    if(xdim<2 && RunPTS>10000) RunPTS = 10000;
-    else if(xdim<3 && RunPTS>50000) RunPTS = 50000;
     
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
     
