@@ -9,7 +9,7 @@ namespace HepLib {
 bool HCubature::useQ(unsigned xdim, qREAL const *x) {
     if(xdim<2) return true;
     for(int i=0; i<xdim; i++) {
-        if(x[i] < 1.0E-3Q) return true;
+        if(x[i] < 5.0E-6Q) return true;
     }
     return false;
 }

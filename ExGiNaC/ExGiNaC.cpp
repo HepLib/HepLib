@@ -223,10 +223,11 @@ ex garResult(const char *garfn, lst syms) {
 ex mma_series(ex expr_in, symbol s, int sn) {
     ex expr = expr_in;
     if(!expr.has(s)) return expr;
-    expr = expr + pow(s, sn+5);
     int exN = 1;
     while(exN<10) {
-        ex res = expr.series(s, sn+exN);
+        expr = expr_in + pow(s, sn+exN+2);
+        expr = mma_collect(expr, s);
+        ex res = expr.series(s, sn+exN); 
         ex ot = 0;
         for(int i=0; i<res.nops(); i++) {
             if(is_order_function(res.op(i))) {
@@ -275,7 +276,7 @@ ex mma_collect(ex expr_in, ex pat, bool wrap) {
         for(auto item : expr) {
             res *= mma_collect(item, pat, true);
         }
-    } else if(is_a<power>(expr)) {
+    } else if(is_a<power>(expr) && is_a<numeric>(expr.op(1)) && ex_to<numeric>(expr.op(1)).is_nonneg_integer()) {
         res = pow(mma_collect(expr.op(0), pat, true), expr.op(1));
     } else {
         return wrap ? CVF(expr) : expr;

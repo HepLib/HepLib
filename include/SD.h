@@ -247,6 +247,7 @@ public:
     long long LambdaSplit = 10;
     qREAL LambdaMax = 100;
     dREAL CLogRatio = 1;
+    int CMethod = 1;
     int CTry = 2;
     int CTryLeft = 3;
     int CTryRight = 1;

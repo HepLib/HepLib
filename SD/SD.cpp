@@ -678,7 +678,7 @@ void SD::Initialize(FeynmanParameter fp) {
     
     vector<pair<lst, lst>> ret;
     ret.push_back(make_pair(fList1, fList2));
-    
+
     // negative index
     for(int i=0; i<xn; i++) {
     if(is_a<numeric>(ns[i]) && ns[i]<0) {
@@ -696,7 +696,7 @@ void SD::Initialize(FeynmanParameter fp) {
             lstHelper::map_inplace(kv.second, [&](auto &&e) { return e.subs(x(i)==0); });
         }
     }}
-    
+
     // simplification
     // ex pre = fp.Prefactor; // moved to above
     pre *= asgn * pow(I,ls.nops()) * pow(Pi, ad/2) * tgamma(a-ad/2);
@@ -715,7 +715,7 @@ void SD::Initialize(FeynmanParameter fp) {
                 kv.second.append(ns.op(i)-1);
              }
     }
-    
+
     for(auto &kv : ret) {
         kv.first.append(pre);
         kv.second.append(1);
@@ -871,6 +871,8 @@ void SD::Normalizes() {
     
 }
 
+// Section 2.1 @ https://arxiv.org/pdf/1712.04441.pdf
+// also refers to Feng/Thinking.pdf
 void SD::Scalelesses() {
     if(IsZero) return;
     if(Deltas.size()<1) return;
@@ -883,6 +885,27 @@ void SD::Scalelesses() {
         bool is0;
         for(auto delta : Deltas) {
             is0 = false;
+            if(delta.nops()<2) continue;
+            // to make sure the integrand is prejective
+            if(delta.nops()>1) {
+                lst sRepl;
+                for(int j=0; j<delta.nops(); j++) {
+                    sRepl.append(delta[j]==delta[j]*s);
+                }
+                
+                bool is_s = true;
+                ex n_s = 0;
+                for(int j=0; j<fun.nops(); j++) {
+                    auto tmp = fun.op(j).subs(sRepl).expand();
+                    if(tmp.degree(s)!=tmp.ldegree(s)) {
+                        is_s = false;
+                        break;
+                    }
+                    n_s += tmp.degree(s) * exp.op(j);
+                }
+                if(!is_s || !normal(n_s+delta.nops()).is_zero()) continue;
+            }
+            
             for(long long i=1; i<ex_to<numeric>(GiNaC::pow(2,delta.nops())).to_long()-1; i++) {
                 lst sRepl;
                 auto ci = i;
@@ -1156,7 +1179,7 @@ void SD::EpsEpExpands() {
                 auto intg = tmp.coeff(ep, di);
                 assert(!intg.has(ep));
                 auto pref = mma_series(ct, ep, epN-di);
-                if(use_CCF) intg = collect_common_factors(intg);
+                if(use_CCF) intg = collect_common_factors(intg); 
                 para_res_lst.append(lst{pref * pow(ep, di), intg});
             }
         } else {
@@ -1496,7 +1519,7 @@ qCOMPLEX log(qCOMPLEX x);
 /****************************************************************/
         auto cppL = CppFormat(ofs, "L");
         auto cppQ = CppFormat(ofs, "Q");
-        // DF_Lfn_xi
+        // DF_Lfn@xi
         ofs << "dREAL DF_L" << ft_n << "(int n, const dREAL* x, const dREAL *pl) {" << endl;
         for(int i=0; i<fxs.size(); i++) {
             ofs << "if("<<i<<"==n) return ";
@@ -1507,7 +1530,7 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "}" << endl;
         ofs << endl;
         
-        // DF_Qfn_xi
+        // DF_Qfn@xi
         ofs << "qREAL DF_Q" << ft_n << "(int n, const qREAL* x, const qREAL *pl) {" << endl;
         for(int i=0; i<fxs.size(); i++) {
             ofs << "if("<<i<<"==n) return ";
@@ -1518,7 +1541,7 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "}" << endl;
         ofs << endl;
         
-        // Mat_Qfn
+        // Mat_Lfn
         ofs << "void Mat_L" <<ft_n<< "(dCOMPLEX *mat, const dREAL* x, const dREAL *pl, const dREAL *las) {" << endl;
         ofs << "int nfxs = "<<fxs.size()<<";" << endl;
         ofs << "dCOMPLEX ilas[nfxs];" << endl;
@@ -1546,6 +1569,25 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "}" << endl;
         ofs << endl;
         
+        // absF_Lfn
+        ofs << "extern \"C\" " << endl;
+        ofs << "dREAL absF_L" << ft_n << "(dREAL* x, dREAL *pl) {" << endl;
+        ofs << "dREAL yy = " << endl;
+        ft.subs(plRepl).subs(cxRepl).print(cppL);
+        ofs << ";" << endl;
+        ofs << "return fabs(yy);" << endl; // find max image part, check with 0
+        ofs << "}" << endl;
+        ofs << endl;
+        
+        // absF_Qfn
+        ofs << "extern \"C\" " << endl;
+        ofs << "qREAL absF_Q" << ft_n << "(qREAL* x, qREAL *pl) {" << endl;
+        ofs << "qREAL yy = " << endl;
+        ft.subs(plRepl).subs(cxRepl).print(cppQ);
+        ofs << ";" << endl;
+        ofs << "return fabsq(yy);" << endl; // find max image part, check with 0
+        ofs << "}" << endl;
+        ofs << endl;
         
         // for Minimization of F-image
         ofs << "extern \"C\" " << endl;
@@ -1567,6 +1609,38 @@ qCOMPLEX log(qCOMPLEX x);
             ofs << "dREAL absDF"<<ft_n<<"_"<<i<<"(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
             ofs << "dREAL yy = DF_L"<<ft_n<<"("<<i<<", x, pl);" << endl;
             ofs << "return -fabs(yy);" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
+        
+        // for Minimization of expDF-i
+        for(int i=0; i<fxs.size(); i++) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "dREAL expDF"<<ft_n<<"_"<<i<<"(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
+            ofs << "dREAL yy = DF_L"<<ft_n<<"("<<i<<", x, pl);" << endl;
+            ofs << "dREAL ff = absF_L"<<ft_n<<"(x,pl);";
+            ofs << "return -fabs(yy*exp(-ff));" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
+        
+        // for Minimization of xDF-i
+        for(int i=0; i<fxs.size(); i++) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "dREAL xDF"<<ft_n<<"_"<<i<<"(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
+            ofs << "dREAL yy = DF_L"<<ft_n<<"("<<i<<", x, pl);" << endl;
+            ofs << "return -fabs(yy*(1-x["<<i<<"]));" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
+        
+        // for Minimization of expxDF-i
+        for(int i=0; i<fxs.size(); i++) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "dREAL expxDF"<<ft_n<<"_"<<i<<"(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
+            ofs << "dREAL yy = DF_L"<<ft_n<<"("<<i<<", x, pl);" << endl;
+            ofs << "dREAL ff = absF_L"<<ft_n<<"(x,pl);";
+            ofs << "return -fabs(yy*(1-x["<<i<<"])*exp(-ff));" << endl;
             ofs << "}" << endl;
             ofs << endl;
         }
@@ -1696,6 +1770,8 @@ qCOMPLEX log(qCOMPLEX x);
             ofs << "qREAL DF_Q"<<ft_n<<"(int, const qREAL*, const qREAL*);" << endl;
             ofs << "void Mat_L"<<ft_n<<"(dCOMPLEX*, const dREAL*, const dREAL*, const dREAL*);" << endl;
             ofs << "void Mat_Q"<<ft_n<<"(qCOMPLEX*, const qREAL*, const qREAL*, const qREAL*);" << endl;
+            ofs << "dREAL absF_L"<<ft_n<<"(const dREAL*, const dREAL*);" << endl;
+            ofs << "qREAL absF_Q"<<ft_n<<"(const qREAL*, const qREAL*);" << endl;
             ofs << endl << endl;
         }
 
@@ -1954,7 +2030,12 @@ void SD::Contours(const char *key, const char *pkey) {
             if(use_cpp) {
                 fname.clear();
                 fname.str("");
-                fname << "absDF"<<nxn.op(0)<<"_"<<i;
+                
+                if(CMethod==2) fname << "xDF"<<nxn.op(0)<<"_"<<i;
+                else if(CMethod==3) fname << "expDF"<<nxn.op(0)<<"_"<<i;
+                else if(CMethod==4) fname << "expxDF"<<nxn.op(0)<<"_"<<i;
+                else fname << "absDF"<<nxn.op(0)<<"_"<<i;
+                
                 dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
                 assert(dfp!=NULL);
             } else {
@@ -1985,11 +2066,15 @@ void SD::Contours(const char *key, const char *pkey) {
             if(lmax<nlas[i]) lmax = nlas[i];
         }
         
-        if(lmax-lmin > 1E-10 * lmax) {
+        if(lmax-lmin > 1E-10 * lmax && std::fabs(CLogRatio) < 9) {
             dREAL mm_pow = CLogRatio/std::log10(lmax/lmin);
-            if(std::fabs(mm_pow) > 50) mm_pow = 10.*mm_pow/std::fabs(mm_pow);
+            if(std::fabs(mm_pow) > 9) mm_pow = 9*mm_pow/std::fabs(mm_pow);
             for(int i=0; i<nvars; i++) {
                 nlas[i] = std::pow(nlas[i], mm_pow);
+            }
+        } else if(CLogRatio < -9) {
+            for(int i=0; i<nvars; i++) {
+                nlas[i] = 1./nlas[i];
             }
         }
         
@@ -2360,7 +2445,8 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                         auto oDigits = Digits;
                         Digits = 3;
                         cout << "\r                                                    \r";
-                        cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res)) << endl;
+                        if(res.has(NaN)) cout << "     λ=" << (double)cla << ": " << NaN << endl;
+                        else cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res)) << endl;
                         Digits = oDigits;
                     }
                     
@@ -2429,7 +2515,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 }
                 cout << "lalst: " << lalst << endl;
             }
-            if(Verbose > 7) cout << WHITE << "     λ=" << (double)cla << ": " << RESET << endl;
+            if(Verbose > 7) cout << WHITE << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
             for(int i=0; i<las.nops()-1; i++) {
                 lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
             }
@@ -2442,7 +2528,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
         if(Verbose>5) { 
             cout << WHITE;
-            cout << "     "<< HepLib::VEResult(VESimplify(res)) << endl;
+            cout << "     Res = "<< HepLib::VEResult(VESimplify(res)) << endl;
             cout << RESET;
         }
         if(res.has(NaN)) {
@@ -2642,9 +2728,10 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     return min;
 }
 
-int SD::epRank(ex expr) {
-    if(!expr.has(ep)) return 0;
+int SD::epRank(ex expr_in) {
+    if(!expr_in.has(ep)) return 0;
     int p = -5;
+    auto expr = expr_in; //mma_collect(expr_in, ep);
     while(true) {
         auto tmp = normal(series_to_poly(expr.series(ep, p)));
         if(!tmp.is_zero()) {
@@ -2655,9 +2742,10 @@ int SD::epRank(ex expr) {
     throw runtime_error("epRank error!");
 }
 
-int SD::epsRank(ex expr) {
-    if(!expr.has(eps)) return 0;
+int SD::epsRank(ex expr_in) {
+    if(!expr_in.has(eps)) return 0;
     int p = -5;
+    auto expr = expr_in; //mma_collect(expr_in, eps);
     while(true) {
         auto tmp = normal(series_to_poly(expr.series(eps, p)));
         if(!tmp.is_zero()) {
