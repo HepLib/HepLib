@@ -137,13 +137,19 @@ typedef long double dREAL;
 class MinimizeBase {
 public:
     typedef dREAL (*FunctionType)(int nvars, dREAL* x, dREAL* pl, dREAL *las);
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, bool compare0 = false) =0;
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false) =0;
+    dREAL ZeroValue = -1E-20;
+    virtual void Minimize(int nvars, FunctionType func, dREAL *ip)=0;
+    virtual void ForceStop()=0;
 };
 
 class HookeJeeves : public MinimizeBase {
 public:
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, bool compare0 = false) override;
-
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false) override;
+    bool Exit = false;
+    virtual void Minimize(int nvars, FunctionType func, dREAL *ip) override;
+    virtual void ForceStop() override;
+    
 private:
     dREAL best_nearby(dREAL* delta, dREAL* point, dREAL prevbest, int nvars);
     int hooke(int nvars, dREAL* startpt, dREAL* endpt, dREAL rho, dREAL epsilon, int itermax);
@@ -157,7 +163,22 @@ private:
 
 class MinUit : public MinimizeBase {
 public:    
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, bool compare0 = false) override;
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false) override;
+    virtual void Minimize(int nvars, FunctionType func, dREAL *IP) override;
+    virtual void ForceStop() override;
+};
+
+class ExOpt : public MinimizeBase {
+public:
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false) override;
+    virtual void Minimize(int nvars, FunctionType func, dREAL *IP) override;
+    virtual void ForceStop() override;
+    bool Compare0 = false;
+    dREAL UB[50];
+    dREAL LB[50];
+    FunctionType ObjectFunction;
+    dREAL *PL;
+    dREAL *LAS;
 };
 
 /*********************************************************/
@@ -184,9 +205,9 @@ ex VESimplify(ex expr, int epN = 0, int epsN = 0);
 ex VEResult(ex expr);
 
 /*********************************************************/
-// Wrapper
+// Wrapper for use_cpp = false, i.e. use GiNaC
 /*********************************************************/
-class Wrapper {
+class GWrapper {
 public:
     static void InitMinFunction(ex minF, vector<ex> xs, int ri = 1);
     static dREAL MinFunction(int nvars, dREAL* x, dREAL* pl, dREAL *las);
@@ -201,6 +222,27 @@ private:
     static vector<ex> Xs;
     static ex IntF;
     static int ReIm;
+};
+
+/*********************************************************/
+// ILWrapper with HookeJeeves
+/*********************************************************/
+class ILWrapper {
+public:
+    static int Verbose;
+    static unsigned int xsize;
+    static IntegratorBase::SD_Type fp;
+    static IntegratorBase::SD_Type fpQ;
+    static IntegratorBase *Integrator;
+    static qREAL *paras;
+    static dREAL *lambda;
+    static dREAL err_max;
+    static dREAL err_min;
+    static long long MaxPTS;
+    static long long RunPTS;
+    static MinimizeBase *miner;
+    static ex lastResErr;
+    static dREAL IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2);
 };
 
 /*********************************************************/
@@ -237,21 +279,22 @@ public:
     bool CheckF1 = false;
     bool use_CCF = true;
     bool use_cpp = true;
+    bool use_ilwrapper = false;
     lst BisectionPoints = lst { ex(1)/11, ex(1)/13, ex(1)/17, ex(1)/19, ex(1)/23  };
     
     map<int, numeric> Parameter;
     map<int, numeric> ParameterUB;
     map<int, numeric> ParameterLB;
     
-    long long TryPTS = 100000;
+    long long TryPTS = 500000;
     long long LambdaSplit = 10;
     qREAL LambdaMax = 100;
     dREAL CLogRatio = 1;
     int CMethod = 1;
-    int CTry = 2;
-    int CTryLeft = 3;
+    int CTry = 1;
+    int CTryLeft = 1;
     int CTryRight = 1;
-    dREAL CTryRightRatio = 2;
+    dREAL CTryRightRatio = 1.5;
     
     long long RunMAX = 100;
     long long RunPTS = 100000;

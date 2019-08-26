@@ -11,6 +11,7 @@ dREAL HookeJeeves::best_nearby(dREAL* delta, dREAL* point, dREAL prevbest, int n
     minf = prevbest;
     for (i = 0; i < nvars; i++) z[i] = point[i];
     for (i = 0; i < nvars; i++) {
+        if(Exit) return (minf);
         z[i] = point[i] + delta[i];
         ftmp = ObjectWrapper(nvars, z);
         if (ftmp < minf) minf = ftmp;
@@ -43,6 +44,7 @@ int HookeJeeves::hooke(int nvars, dREAL* startpt, dREAL* endpt, dREAL rho, dREAL
     fbefore = ObjectWrapper(nvars, newx);
     newf = fbefore;
     while ((iters < itermax) && (steplength > epsilon)) {
+        if(Exit) return (iters);
         iters++;
         iadj++;
         /* find best new point, one coord at a time */
@@ -53,6 +55,7 @@ int HookeJeeves::hooke(int nvars, dREAL* startpt, dREAL* endpt, dREAL rho, dREAL
         /* if we made some improvements, pursue that direction */
         keep = 1;
         while ((newf < fbefore) && (keep == 1)) {
+            if(Exit) return (iters);
             iadj = 0;
             for (i = 0; i < nvars; i++) {
                 /* firstly, arrange the sign of delta[] */
@@ -96,7 +99,7 @@ dREAL HookeJeeves::ObjectWrapper(int nvars, dREAL* x) {
     return ObjectFunction(nvars, x, PL, LAS);
 }
 
-dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *las, dREAL *UB, dREAL *LB, bool compare0) {
+dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *las, dREAL *UB, dREAL *LB, dREAL *IP, bool compare0) {
     ObjectFunction = func;
     PL = pl;
     LAS = las;
@@ -111,8 +114,8 @@ dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *l
     dREAL EpsParameter = 1E-4;
     long long MaxParameter = 100000;
     
-    #define savePTS 3
-    #define tryPTS 5
+    #define savePTS 10
+    #define tryPTS 2
     double mPoints[savePTS][nvars], mValue[savePTS];
     for(int i=0; i<savePTS; i++) mValue[i] = 1E5;
     int max_index = 0;
@@ -133,14 +136,14 @@ dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *l
             mValue[max_index] = tmp;
             for(int j=0; j<nvars; j++) mPoints[max_index][j] = iPoints[j];
             max_index = 0;
-            for(int j=0; j<savePTS; j++) {
+            for(int j=0; j<savePTS && j<std::pow(tryPTS+1, nvars); j++) {
                 if(mValue[j] > mValue[max_index]) max_index = j;
             }
         }
     }
     
     double ret = 1E5;
-    for(int ii=0; ii<savePTS; ii++) {
+    for(int ii=0; ii<savePTS && ii<std::pow(tryPTS+1, nvars); ii++) {
         dREAL iPoints[nvars], oPoints[nvars];
         for(int i=0; i<nvars; i++) iPoints[i] = mPoints[ii][i];
         hooke(nvars, iPoints, oPoints, RhoParameter, EpsParameter, MaxParameter);
@@ -150,5 +153,27 @@ dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *l
     
     return ret;
 }
+
+void HookeJeeves::ForceStop() {
+    Exit = true;
+}
+
+void HookeJeeves::Minimize(int nvars, FunctionType func, dREAL *ip) {
+    ObjectFunction = func;
+    PL = NULL;
+    LAS = NULL;
+    
+    for(int i=0; i<nvars; i++) UpperBound[i] = 10;
+    for(int i=0; i<nvars; i++) LowerBound[i] = 0;
+    
+    dREAL RhoParameter = 0.5;
+    dREAL EpsParameter = 1E-3;
+    long long MaxParameter = 100000;
+    
+    dREAL iPoints[nvars], oPoints[nvars];
+    for(int i=0; i<nvars; i++) iPoints[i] = ip[i];
+    hooke(nvars, iPoints, oPoints, RhoParameter, EpsParameter, MaxParameter);
+}
+
 
 }

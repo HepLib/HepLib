@@ -35,7 +35,7 @@ public:
     
 };
 
-dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, dREAL *UB, dREAL *LB, bool compare0) {
+dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, dREAL *UB, dREAL *LB, dREAL *IP, bool compare0) {
     double ub[nvars], lb[nvars];
     
     if(UB != NULL) for(int i=0; i<nvars; i++) ub[i] = UB[i];
@@ -45,13 +45,16 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
     else for(int i=0; i<nvars; i++) lb[i] = 0;
     
     double step[nvars];
-    for(int i=0; i<nvars; i++) step[i] = 1E-3 * (ub[i]-lb[i]);
+    for(int i=0; i<nvars; i++) step[i] = 5E-4 * (ub[i]-lb[i]);
     
-    #define savePTS 2
-    #define tryPTS 8
-    double mPoints[savePTS][nvars], mValue[savePTS];
-    for(int i=0; i<savePTS; i++) mValue[i] = 1E5;
-    int max_index = 0;
+    #define savePTS 5
+    #define tryPTS 3
+    double minPoints[savePTS][nvars], maxPoints[savePTS][nvars], minValue[savePTS], maxValue[savePTS];
+    for(int i=0; i<savePTS; i++) {
+        minValue[i] = 1E5;
+        maxValue[i] = -1E5;
+    }
+    int min_index=0, max_index=0;
     dREAL pts[tryPTS+1];
     for(int i=0; i<=tryPTS; i++) pts[i] = i*1.0/tryPTS;
     for(long long ii=0; ii<std::pow(tryPTS+1, nvars); ii++) {
@@ -63,34 +66,83 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
             li /= (1+tryPTS);
         }
         auto tmp = func(nvars, iPoints, PL, LAS);
-        if(compare0 && tmp<-1E-50) return -1;
-        if(mValue[max_index] > tmp) {
-            mValue[max_index] = tmp;
-            for(int j=0; j<nvars; j++) mPoints[max_index][j] = iPoints[j];
+        if(compare0 && tmp<ZeroValue) return -1;
+        
+        if(minValue[max_index] > tmp) {
+            minValue[max_index] = tmp;
+            for(int j=0; j<nvars; j++) minPoints[max_index][j] = iPoints[j];
             max_index = 0;
-            for(int j=0; j<savePTS; j++) {
-                if(mValue[j] > mValue[max_index]) max_index = j;
+            for(int j=0; j<savePTS && j<std::pow(tryPTS+1, nvars); j++) {
+                if(minValue[j] > minValue[max_index]) max_index = j;
             }
         }
+        
+        if(maxValue[min_index] < tmp) {
+            maxValue[min_index] = tmp;
+            for(int j=0; j<nvars; j++) maxPoints[max_index][j] = iPoints[j];
+            min_index = 0;
+            for(int j=0; j<savePTS && j<std::pow(tryPTS+1, nvars); j++) {
+                if(maxValue[j] < maxValue[max_index]) min_index = j;
+            }
+        }
+        
     }
     
     double ret = 1E5;
-    for(int ii=0; ii<savePTS; ii++) {
+    
+    for(int ii=0; ii<savePTS && ii<std::pow(tryPTS+1, nvars); ii++) {
         FCN fcn(func, PL, LAS);
         ROOT::Minuit2::MnUserParameters upar;
         for(int i=0; i<nvars; i++) {
             ostringstream xs;
             xs << "x" << i;
-            upar.Add(xs.str(), mPoints[ii][i], step[i], lb[i], ub[i]);
+            upar.Add(xs.str(), minPoints[ii][i], step[i], lb[i], ub[i]);
         }
  
-        ROOT::Minuit2::MnMigrad minizer(fcn, upar);
+        ROOT::Minuit2::MnMigrad minizer(fcn, upar, 2);
         ROOT::Minuit2::FunctionMinimum fmin = minizer();
         auto tmp_ret = fmin.Fval();
         if(tmp_ret < ret) ret = tmp_ret;
-        if(compare0 && ret<-1E-50) return -1;
+        if(compare0 && ret<ZeroValue) return -1;
     }
+    
+    for(int ii=0; ii<savePTS && ii<std::pow(tryPTS+1, nvars); ii++) {
+        FCN fcn(func, PL, LAS);
+        ROOT::Minuit2::MnUserParameters upar;
+        for(int i=0; i<nvars; i++) {
+            ostringstream xs;
+            xs << "x" << i;
+            upar.Add(xs.str(), maxPoints[ii][i], step[i], lb[i], ub[i]);
+        }
+ 
+        ROOT::Minuit2::MnMigrad minizer(fcn, upar, 2);
+        ROOT::Minuit2::FunctionMinimum fmin = minizer();
+        auto tmp_ret = fmin.Fval();
+        if(tmp_ret < ret) ret = tmp_ret;
+        if(compare0 && ret<ZeroValue) return -1;
+    }
+    
     return ret;
+}
+
+void MinUit::ForceStop() {
+    throw domain_error("force stop!");
+}
+
+void MinUit::Minimize(int nvars, FunctionType func, dREAL *ip) {
+    try {
+        omp_set_num_threads(1);
+        FCN fcn(func, NULL, NULL);
+        ROOT::Minuit2::MnUserParameters upar;
+        for(int i=0; i<nvars; i++) {
+            ostringstream xs;
+            xs << "x" << i;
+            upar.Add(xs.str(), ip[i], 0.5, 0, 10);
+        }
+
+        ROOT::Minuit2::MnMigrad minizer(fcn, upar, 0);
+        minizer();
+    } catch(...) { }
 }
 
 }

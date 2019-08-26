@@ -220,7 +220,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             
             if(tn.evalf() < 0) tmp = ex(0)-tmp;
             double tmin = FindMinimum(tmp, true);
-            if(tmin > -1E-50) {
+            if(tmin > 1E-5) {
                 if(tn.evalf() < 0) {
                     ct = exp(-I * Pi * exlist.op(1));
                     fsgin = -1;
@@ -1169,7 +1169,7 @@ void SD::EpsEpExpands() {
         }
         ex ct = (*(cts.begin())).subs(CT(wild())==wild()).subs(iEpsilon==0);
         auto tmp = item.subs(CT(wild())==1);
-        if(use_CCF) tmp = collect_common_factors(tmp);
+        //if(use_CCF) tmp = collect_common_factors(tmp);
         lst para_res_lst;
         
         if(!tmp.has(eps) && !ct.has(eps)) {
@@ -1379,7 +1379,7 @@ void SD::CIPrepares(const char *key) {
             ft = 1;
         } else {
             double tmin = FindMinimum(ft, true);
-            if(tmin > -1E-50) {
+            if(tmin > 1E-5) {
                 ft = 1;
             }
         }
@@ -1596,10 +1596,12 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "for(int i=0; i<xn-1; i++) ilas[i] = las[i] * complex<long double>(0, x[xn-1]);" <<endl;
         ofs << "dCOMPLEX z[xn];" << endl;
         ofs << "for(int i=0; i<xn-1; i++) z[i] = x[i] - x[i]*(1-x[i])*DF_L"<<ft_n<<"(i, x, pl)*ilas[i];" << endl;
+        ofs << "dREAL la2 = 0;" << endl;
+        ofs << "for(int i=0; i<xn-1; i++) la2 += las[i] * las[i];" << endl;
         ofs << "dCOMPLEX zf = ";
         ft.subs(plRepl).subs(czRepl).print(cppL);
         ofs << ";" << endl;
-        ofs << "return -zf.imag();" << endl; // find max image part, check with 0
+        ofs << "return -zf.imag()/sqrt(la2);" << endl; // find max image part, check with 0
         ofs << "}" << endl;
         ofs << endl;
         
@@ -2042,8 +2044,8 @@ void SD::Contours(const char *key, const char *pkey) {
                 symbol s;
                 auto xi = get_xy_from(ft)[i];
                 ex df = ft.subs(xi==s).diff(s).subs(s==xi);
-                Wrapper::InitMinFunction(-abs(df), xs, 1);
-                dfp = Wrapper::MinFunction;
+                GWrapper::InitMinFunction(-abs(df), xs, 1);
+                dfp = GWrapper::MinFunction;
             }
             dREAL maxdf = Minimizer->FindMinimum(nvars, dfp, paras);
             maxdf = -maxdf;
@@ -2110,8 +2112,8 @@ void SD::Contours(const char *key, const char *pkey) {
             }
             auto xs2 = xs;
             xs2.push_back(x(nvars));
-            Wrapper::InitMinFunction(-ft.subs(zRepl), xs2, 2);
-            fp = Wrapper::MinFunction;
+            GWrapper::InitMinFunction(-ft.subs(zRepl), xs2, 2);
+            fp = GWrapper::MinFunction;
         }
         
         dREAL laBegin = 0, laEnd = 100, min;
@@ -2121,8 +2123,8 @@ void SD::Contours(const char *key, const char *pkey) {
         min = laEnd;
         while(true) {
             UB[nvars] = min;
-            dREAL res = Minimizer->FindMinimum(nvars+1, fp, paras, nlas, UB, NULL, true);
-            if(res < -1E-50) laEnd = min;
+            dREAL res = Minimizer->FindMinimum(nvars+1, fp, paras, nlas, UB, NULL, NULL, true);
+            if(res < -1E-20) laEnd = min;
             else laBegin = min;
             
             if(laEnd - laBegin < 1E-3 * laEnd) break;
@@ -2403,8 +2405,8 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             } else {
                 intx = exint.subs(FTX(wild(1),wild(2))==1);
             }
-            Wrapper::InitIntFunction(intx, xs);
-            fp = fpQ = Wrapper::IntFunction;
+            GWrapper::InitIntFunction(intx, xs);
+            fp = fpQ = GWrapper::IntFunction;
         }
         
         qREAL lambda[las.nops()];
@@ -2414,7 +2416,6 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         Integrator->Verbose = Verbose;
         Integrator->ReIm = reim;
         if(is_a<lst>(las)) {
-            qREAL lamin = 0;
             qREAL lamax = CppFormat::ex2q(las.op(las.nops()-1));
             if(lamax > LambdaMax) lamax = LambdaMax;
             
@@ -2425,21 +2426,27 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             
             int smin = -1;
             int ctryR = 0, ctry = 0, ctryL = 0;
+            ex cerr;
+            qREAL log_lamax = log10q(lamax);
+            qREAL log_lamin = log_lamax-3;
+            
             while(true) {
                 smin = -1;
                 ex emin = 0;
+                ex lastResErr = 0;
                 for(int s=0; s<=LambdaSplit; s++) {
                     if(Verbose>10 && s==0) {
                         if(ctryR>0 || ctry>0 || ctryL>0)
                             cout << "     ------------------------------" << endl;
                     }
-                    auto cla = (lamin + s * (lamax-lamin) / LambdaSplit);
+                    auto log_cla = (log_lamin + s * (log_lamax-log_lamin) / LambdaSplit);
+                    auto cla = powq(10.Q, log_cla);
                     if(cla < 1E-10) continue;
                     for(int i=0; i<las.nops()-1; i++) {
                         lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
                     }
  
-                    if(!use_cpp) Wrapper::Lambda = CppFormat::q2ex(cla);
+                    if(!use_cpp) GWrapper::Lambda = CppFormat::q2ex(cla);
                     auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
                     if(Verbose>10) {
                         auto oDigits = Digits;
@@ -2451,10 +2458,27 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                     }
                     
                     if(res.has(NaN)) continue;
+                    if(lastResErr.is_zero()) lastResErr = res;
+                    auto diff = VESimplify(lastResErr - res);
+                    diff = diff.subs(VE(0,0)==0);
+                    exset ves;
+                    diff.find(VE(wild(0), wild(1)), ves);
+                    for(auto ve : ves) {
+                        if(abs(ve.op(0)) > ve.op(1)) {
+                            smin = -3;
+                            log_lamax = log_lamin + (smin-1) * (log_lamax-log_lamin) / LambdaSplit;
+                            log_lamin = log_lamax - 3;
+                            break;
+                        }
+                    }
+                    lastResErr = res;
+                    
                     auto res_tmp = res.subs(VE(wild(1), wild(2))==wild(2));
                     auto err = real_part(res_tmp);
                     if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
                     if(smin<0 || err < emin) {
+                        ILWrapper::lastResErr = res;
+                        cerr = err;
                         smin = s;
                         emin = err;
                         if(emin < CppFormat::q2ex(EpsAbs/cmax)) {
@@ -2474,28 +2498,30 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                         }
                     }
                 }
-                if(smin == -2) break; 
+                if(smin == -2) break;
+                if(smin == -3) continue; // error not match between n-1 and n round
                 
                 if(smin == -1) {
                     cout << "smin = -1, optimized lambda NOT found!" << endl;
                     assert(false);
                 }
                 
-                if(smin*1.0 <= 0.19*LambdaSplit && ctry<1 && ctryR<1) {
+                if(smin <= 0 && ctry<1 && ctryR<1) {
                     if(ctryL >= CTryLeft) break;
-                    lamax = lamin + (smin+1) * (lamax-lamin) / LambdaSplit;
+                    log_lamax = log_lamin;
+                    log_lamin -= 3.Q;
                     ctryL++;
-                } else if(smin*1.0 >= 0.81*LambdaSplit && ctry<1 && ctryL<1) {
+                } else if(smin >= LambdaSplit && ctry<1 && ctryL<1) {
                     if(ctryR >= CTryRight) break;
-                    lamin = lamin + (smin-1) * (lamax-lamin) / LambdaSplit;
-                    lamax *= CTryRightRatio;
+                    log_lamin = log_lamax;
+                    log_lamax += log10q(CTryRightRatio);
                     ctryR++;
                 } else if(ctryL<2 && ctryR<2) {
                     if(ctry >= CTry) break;
-                    auto la1 = lamin + (smin-1) * (lamax-lamin) / LambdaSplit;
-                    auto la2 = lamin + (smin+1) * (lamax-lamin) / LambdaSplit;
-                    lamin = la1;
-                    lamax = la2;
+                    auto la1 = log_lamin + (smin-1) * (log_lamax-log_lamin) / LambdaSplit;
+                    auto la2 = log_lamin + (smin+1) * (log_lamax-log_lamin) / LambdaSplit;
+                    log_lamin = la1;
+                    log_lamax = la2;
                     ctry++;
                 } else {
                     break;
@@ -2507,7 +2533,8 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 continue;
             }
             
-            auto cla = (lamin + smin * (lamax-lamin) / LambdaSplit);
+            auto log_cla = (log_lamin + smin * (log_lamax-log_lamin) / LambdaSplit);
+            auto cla = powq(10.Q, log_cla);
             if(SD::debug) {
                 lst lalst;
                 for(int i=0; i<las.nops(); i++) {
@@ -2519,6 +2546,35 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             for(int i=0; i<las.nops()-1; i++) {
                 lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
             }
+            
+            // ---------------------------------------
+            // try HookeJeeves
+            // ---------------------------------------
+            if( use_ilwrapper && (cerr > CppFormat::q2ex(1E5 * EpsAbs/cmax)) ) {
+                auto miner = new HookeJeeves();
+                ILWrapper::miner = miner;
+                ILWrapper::xsize = xsize;
+                ILWrapper::fp = fp;
+                ILWrapper::fpQ = fpQ;
+                ILWrapper::paras = paras;
+                ILWrapper::Integrator = Integrator;
+                ILWrapper::Verbose = Verbose;
+                dREAL oo[las.nops()-1], ip[las.nops()-1];
+                for(int i=0; i<las.nops()-1; i++) ip[i] = lambda[i];
+                ILWrapper::lambda = oo;
+                ILWrapper::err_max = 1E30;
+                auto err_min = ILWrapper::err_min;
+                ILWrapper::err_min = err_min < 0 ? -err_min * ex_to<numeric>(cerr).to_double() : err_min/cmax;
+                ILWrapper::RunPTS = 0;
+                miner->Minimize(las.nops()-1, ILWrapper::IntError, ip);
+                delete miner;
+                ILWrapper::err_min = err_min;
+                for(int i=0; i<las.nops()-1; i++) {
+                    lambda[i] = ILWrapper::lambda[i];
+                }
+            }
+            // ---------------------------------------
+            
         }
         
         Integrator->RunMAX = RunMAX;
@@ -2718,7 +2774,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     auto fp = (MinimizeBase::FunctionType)dlsym(module, "minFunc");
     assert(fp!=NULL);
     
-    double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, compare0);
+    double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0);
     
     if(use_dlclose) dlclose(module);
     cmd.clear();
@@ -2731,7 +2787,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
 int SD::epRank(ex expr_in) {
     if(!expr_in.has(ep)) return 0;
     int p = -5;
-    auto expr = expr_in; //mma_collect(expr_in, ep);
+    auto expr = mma_collect(expr_in, ep);
     while(true) {
         auto tmp = normal(series_to_poly(expr.series(ep, p)));
         if(!tmp.is_zero()) {
@@ -2745,7 +2801,7 @@ int SD::epRank(ex expr_in) {
 int SD::epsRank(ex expr_in) {
     if(!expr_in.has(eps)) return 0;
     int p = -5;
-    auto expr = expr_in; //mma_collect(expr_in, eps);
+    auto expr = mma_collect(expr_in, eps);
     while(true) {
         auto tmp = normal(series_to_poly(expr.series(eps, p)));
         if(!tmp.is_zero()) {

@@ -127,7 +127,7 @@ template <typename F, typename T>
 vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, const char* key = NULL, int verb = 0, bool rm = true, int prtlvl = 0) {
     auto ppid = getpid();
     int para_run = 0;
-    int para_max_run = nproc<0 ? omp_get_max_threads() : nproc;
+    int para_max_run = nproc<0 ? omp_get_num_procs() : nproc;
     ostringstream cmd;
     cmd << "mkdir -p " << ppid;
     system(cmd.str().c_str());
