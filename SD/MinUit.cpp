@@ -47,7 +47,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
     double step[nvars];
     for(int i=0; i<nvars; i++) step[i] = 5E-4 * (ub[i]-lb[i]);
     
-    #define savePTS 5
+    #define savePTS 3
     #define tryPTS 3
     double minPoints[savePTS][nvars], maxPoints[savePTS][nvars], minValue[savePTS], maxValue[savePTS];
     for(int i=0; i<savePTS; i++) {
@@ -115,7 +115,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
             upar.Add(xs.str(), maxPoints[ii][i], step[i], lb[i], ub[i]);
         }
  
-        ROOT::Minuit2::MnMigrad minizer(fcn, upar, 2);
+        ROOT::Minuit2::MnMigrad minizer(fcn, upar);
         ROOT::Minuit2::FunctionMinimum fmin = minizer();
         auto tmp_ret = fmin.Fval();
         if(tmp_ret < ret) ret = tmp_ret;
@@ -140,7 +140,7 @@ void MinUit::Minimize(int nvars, FunctionType func, dREAL *ip) {
             upar.Add(xs.str(), ip[i], 0.5, 0, 10);
         }
 
-        ROOT::Minuit2::MnMigrad minizer(fcn, upar, 0);
+        ROOT::Minuit2::MnMigrad minizer(fcn, upar);
         minizer();
     } catch(...) { }
 }

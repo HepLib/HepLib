@@ -287,17 +287,15 @@ public:
     map<int, numeric> ParameterLB;
     
     long long TryPTS = 500000;
-    long long LambdaSplit = 10;
-    qREAL LambdaMax = 100;
-    dREAL CLogRatio = 1;
-    int CMethod = 1;
+    long long LambdaSplit = 5;
+    qREAL LambdaMax = 50;
     int CTry = 1;
     int CTryLeft = 1;
     int CTryRight = 1;
     dREAL CTryRightRatio = 1.5;
     
-    long long RunMAX = 100;
-    long long RunPTS = 100000;
+    long long RunMAX = 20;
+    long long RunPTS = 500000;
     qREAL EpsAbs = 1E-5;
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     
