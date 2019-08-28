@@ -742,9 +742,12 @@ static int rulecubature(rule *r, unsigned fdim,
     if (!R[0].ee || eval_regions(1, R, f, fdata, r) || heap_push(&regions, R[0])) goto bad;
     numEval += r->num_points;
     
+    {
     long long runs = 0;
+    REAL lastRES[fdim];
+    REAL lastERR[fdim];
+    int last1 = 1;
     while (numEval < maxEval) {
-
         if (parallel) {
             REAL xmin = 10;
             long long nR = 0;
@@ -772,7 +775,7 @@ static int rulecubature(rule *r, unsigned fdim,
                 nR += 2;
                 
                 // Feng : check break
-                int ok = (regions.n<=0) || (nR>100000) || (numEval2>minEval) || (numEval >= maxEval);
+                int ok = (regions.n<=0) || (nR>1000000) || (numEval2>minEval) || (numEval >= maxEval);
                 if(ok) break;
                 REAL err_left = 0;
                 for (j = 0; j < fdim; ++j) err_left += ee[j].err;
@@ -790,10 +793,47 @@ static int rulecubature(rule *r, unsigned fdim,
                         err[j] += regions.items[i].ee[j].err;
                     }
                 }
+                
+                // Check with last Result & Error
+                // ------------------------------
+                if(last1>0) {
+                    last1 = -1;
+                    for (j = 0; j < fdim; ++j) {
+                        lastRES[j] = val[j];
+                        lastERR[j] = err[j];
+                    }
+                }
+                int compLastOK = 1;
+                for (j = 0; j < fdim; ++j) {
+                    if(fabsq(lastRES[j]-val[j]) > (lastERR[j]+err[j])) {
+                        compLastOK = 0;
+                        break;
+                    }
+                    if(lastERR[j] < 1.5*err[j]) {
+                        compLastOK = -1;
+                        break;
+                    }
+                }
+                for (j = 0; j < fdim; ++j) {
+                    lastRES[j] = val[j];
+                    lastERR[j] = err[j];
+                }
+                if(compLastOK < 1) {
+                    if(numEval >= maxEval) {
+                        if(compLastOK==0) maxEval = maxEval*110/100;
+                        else if(last1==-1) {
+                            maxEval = maxEval*125/100;
+                            last1 = -2;
+                        }
+                    }
+                    continue;
+                }
+                // ------------------------------
+                
                 int toExit = 1;
-                for (j = 0; j < fdim; ++j) toExit = toExit && (err[j]*10 < reqAbsError);
+                for (j = 0; j < fdim; ++j) toExit = toExit && (err[j]*3 <= reqAbsError);
                 if(toExit) return SUCCESS;
-                if(PrintHooker != NULL && (xmin<1E-9 || numEval - runs > minEval)) {
+                if(PrintHooker != NULL && (xmin<1E-8 || numEval - runs > minEval)) {
                     runs = numEval;
                     PrintHooker(val, err, &numEval, fdata);
                 }
@@ -804,7 +844,8 @@ static int rulecubature(rule *r, unsigned fdim,
             numEval += r->num_points * 2;
         }
     }
-
+    }
+    
     /** re-sum integral and errors */
     for (j = 0; j < fdim; ++j) val[j] = err[j] = 0;
     for (i = 0; i < regions.n; ++i) {

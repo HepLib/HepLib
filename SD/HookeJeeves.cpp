@@ -163,7 +163,7 @@ void HookeJeeves::Minimize(int nvars, FunctionType func, dREAL *ip) {
     PL = NULL;
     LAS = NULL;
     
-    for(int i=0; i<nvars; i++) UpperBound[i] = 10;
+    for(int i=0; i<nvars; i++) UpperBound[i] = 100;
     for(int i=0; i<nvars; i++) LowerBound[i] = 0;
     
     dREAL RhoParameter = 0.5;

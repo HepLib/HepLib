@@ -288,7 +288,7 @@ public:
     
     long long TryPTS = 500000;
     long long LambdaSplit = 5;
-    qREAL LambdaMax = 50;
+    qREAL LambdaMax = 100;
     int CTry = 1;
     int CTryLeft = 1;
     int CTryRight = 1;

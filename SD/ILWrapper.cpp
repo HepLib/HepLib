@@ -40,7 +40,6 @@ dREAL ILWrapper::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
                 for(int i=0; i<nvars; i++) cout << las[i] << " ";
                 cout << endl << "     " << res << endl;
             }
-            //if(std::fabs(err_max-nerr.to_double()) < 0.01*err_max) miner->ForceStop();
             err_max = nerr.to_double();
             for(int i=0; i<nvars; i++) lambda[i] = las[i];
             if(err_max<=err_min) miner->ForceStop();

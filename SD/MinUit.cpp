@@ -6,6 +6,8 @@
 #include "Minuit2/FunctionMinimum.h"
 #include <string>
 #include <iostream>
+#include <cstdlib>
+#include <ctime>
 
 namespace HepLib {
 
@@ -34,6 +36,16 @@ public:
     }
     
 };
+
+void MinUit_Random(int n, double *x) {
+    static bool inited = false;
+    if(!inited) {
+        srand(static_cast<unsigned int>(clock()));
+    }
+    for(int i=0; i<n; i++) {
+        x[i] = double(rand())/(double(RAND_MAX)+1.0);
+    }
+}
 
 dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, dREAL *UB, dREAL *LB, dREAL *IP, bool compare0) {
     double ub[nvars], lb[nvars];
@@ -89,6 +101,24 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
     }
     
     double ret = 1E5;
+    
+    for(int ii=0; ii<2*savePTS; ii++) {
+        FCN fcn(func, PL, LAS);
+        ROOT::Minuit2::MnUserParameters upar;
+        double rndPoints[nvars];
+        MinUit_Random(nvars, rndPoints);
+        for(int i=0; i<nvars; i++) {
+            ostringstream xs;
+            xs << "x" << i;
+            upar.Add(xs.str(), rndPoints[i], step[i], lb[i], ub[i]);
+        }
+ 
+        ROOT::Minuit2::MnMigrad minizer(fcn, upar, 2);
+        ROOT::Minuit2::FunctionMinimum fmin = minizer();
+        auto tmp_ret = fmin.Fval();
+        if(tmp_ret < ret) ret = tmp_ret;
+        if(compare0 && ret<ZeroValue) return -1;
+    }
     
     for(int ii=0; ii<savePTS && ii<std::pow(tryPTS+1, nvars); ii++) {
         FCN fcn(func, PL, LAS);
