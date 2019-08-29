@@ -241,6 +241,7 @@ public:
     static long long MaxPTS;
     static long long RunPTS;
     static MinimizeBase *miner;
+    static dREAL hjRHO;
     static ex lastResErr;
     static dREAL IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2);
 };

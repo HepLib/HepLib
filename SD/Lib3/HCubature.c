@@ -746,7 +746,6 @@ static int rulecubature(rule *r, unsigned fdim,
     long long runs = 0;
     REAL lastRES[fdim];
     REAL lastERR[fdim];
-    int last1 = 1;
     while (numEval < maxEval) {
         if (parallel) {
             REAL xmin = 10;
@@ -775,14 +774,14 @@ static int rulecubature(rule *r, unsigned fdim,
                 nR += 2;
                 
                 // Feng : check break
-                int ok = (regions.n<=0) || (nR>1000000) || (numEval2>minEval) || (numEval >= maxEval);
+                int ok = (regions.n<=0) || (numEval2>3200) || (numEval >= maxEval);
                 if(ok) break;
                 REAL err_left = 0;
                 for (j = 0; j < fdim; ++j) err_left += ee[j].err;
-                ok = err_left < 0.5 * err_sum;
+                ok = err_left <= 0.5 * err_sum;
                 if(ok && nR > 10) break;
             }
-
+            
             if (eval_regions(nR, R, f, fdata, r) || heap_push_many(&regions, nR, R)) goto bad;
             
             {// Feng
@@ -793,42 +792,6 @@ static int rulecubature(rule *r, unsigned fdim,
                         err[j] += regions.items[i].ee[j].err;
                     }
                 }
-                
-                // Check with last Result & Error
-                // ------------------------------
-                if(last1>0) {
-                    last1 = -1;
-                    for (j = 0; j < fdim; ++j) {
-                        lastRES[j] = val[j];
-                        lastERR[j] = err[j];
-                    }
-                }
-                int compLastOK = 1;
-                for (j = 0; j < fdim; ++j) {
-                    if(fabsq(lastRES[j]-val[j]) > (lastERR[j]+err[j])) {
-                        compLastOK = 0;
-                        break;
-                    }
-                    if(lastERR[j] < 1.5*err[j]) {
-                        compLastOK = -1;
-                        break;
-                    }
-                }
-                for (j = 0; j < fdim; ++j) {
-                    lastRES[j] = val[j];
-                    lastERR[j] = err[j];
-                }
-                if(compLastOK < 1) {
-                    if(numEval >= maxEval) {
-                        if(compLastOK==0) maxEval = maxEval*110/100;
-                        else if(last1==-1) {
-                            maxEval = maxEval*125/100;
-                            last1 = -2;
-                        }
-                    }
-                    continue;
-                }
-                // ------------------------------
                 
                 int toExit = 1;
                 for (j = 0; j < fdim; ++j) toExit = toExit && (err[j]*3 <= reqAbsError);

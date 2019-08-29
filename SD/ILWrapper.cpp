@@ -11,6 +11,7 @@ MinimizeBase *ILWrapper::miner = NULL;
 qREAL *ILWrapper::paras = NULL;
 dREAL *ILWrapper::lambda = NULL;
 dREAL ILWrapper::err_max;
+dREAL ILWrapper::hjRHO = 0.75;
 dREAL ILWrapper::err_min = -0.001;
 long long ILWrapper::MaxPTS = 500;
 long long ILWrapper::RunPTS = 0;
@@ -38,7 +39,7 @@ dREAL ILWrapper::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
             if(Verbose > 3) {
                 cout << WHITE << "     " << RunPTS << ": " << RESET;
                 for(int i=0; i<nvars; i++) cout << las[i] << " ";
-                cout << endl << "     " << res << endl;
+                cout << endl << "     " << res.subs(VE(0,0)==0) << endl;
             }
             err_max = nerr.to_double();
             for(int i=0; i<nvars; i++) lambda[i] = las[i];

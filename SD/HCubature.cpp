@@ -17,7 +17,7 @@ bool HCubature::useQ(unsigned xdim, qREAL const *x) {
 int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y) {
     auto self = (HCubature*)fdata;
     bool NaNQ = false;
-    #pragma omp parallel for schedule(dynamic, 1) num_threads(omp_get_num_procs())
+    #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
     for(int i=0; i<npts; i++) {
         if(self->UseQ || useQ(xdim, x+i*xdim)) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
         else {

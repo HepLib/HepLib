@@ -11,6 +11,7 @@ lst para_sym = lst {ep, eps, iEpsilon};
 const char* cm_path = "cm";
 const char* SD_path = "SD";
 int verb = 0;
+int epN = 0;
 
 int nLoops = 0, ntLoops = 0, sFactor = 1;
 
@@ -114,10 +115,10 @@ void Prepare(int idx) {
     fp.nReplacements[eps] = ex(1)/111;
     
     SD work;
-    work.epN = 0;
+    work.epN = epN;
     work.Verbose = verb;
     work.ParallelSymbols = para_sym;
-    work.ParallelProcess = 0;
+    //work.ParallelProcess = 0;
     work.ParameterLB[0] = 0;
     work.ParameterUB[0] = 1;
     
@@ -210,17 +211,30 @@ void Contour(int idx, numeric zz) {
     delete work.Minimizer;
 }
 
-ex Integrate(int idx, numeric zz) {
+ex Integrate(int idx, numeric zz, int ii = -1) {
     SD work;
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
     work.ParallelSymbols = para_sym;
     work.Verbose = verb;
     work.Parameter[0] = zz;
+    work.epN = epN;
+    
+    work.use_ilwrapper = true;
+    ILWrapper::err_min = 1E-3;
+    ILWrapper::MaxPTS = 200;
+    ILWrapper::hjRHO = 0.75;
     
     work.EpsAbs = 1E-7;
-    work.RunPTS = 10000;
-    work.RunMAX = 200;
+    work.RunPTS = 5000000;
+    work.RunMAX = 10;
+    work.LambdaSplit = 10;
+    work.TryPTS = 100000;
+    work.CTryRight = 1;
+    work.CTryRight = 1;
+    work.CTry = 1;
+    work.CTryRightRatio = 5;
+    //work.ReIm = 1;
     
     ostringstream ikey;
     ikey << SD_path << "/" << idx;
@@ -234,7 +248,7 @@ ex Integrate(int idx, numeric zz) {
         intor->use_last = true;
         work.Integrator = intor;
     }
-    work.Integrates(ikey.str().c_str(), pkey);
+    work.Integrates(ikey.str().c_str(), pkey, ii);
     
     delete work.Integrator;
     return work.ResultError;
@@ -246,20 +260,28 @@ int main(int argc, char** argv) {
     
     const char* arg_a = NULL;
     const char* arg_n = NULL;
-    const char* arg_z = "1/3";
+    const char* arg_i = NULL;
+    const char* arg_z = "3/5";
     const char* arg_v = "1";
     bool is_o = false;
     const char* arg_o = "";
     
-    for (int opt; (opt = getopt(argc, argv, "a:n:z:o:v:")) != -1;) {
+    for (int opt; (opt = getopt(argc, argv, "a:n:i:z:o:v:")) != -1;) {
         switch (opt) {
             case 'a': arg_a = optarg; break;
             case 'n': arg_n = optarg; break;
+            case 'i': arg_i = optarg; break;
             case 'z': arg_z = optarg; break;
             case 'o': arg_o = optarg; is_o = true; break;
             case 'v': arg_v = optarg; break;
             default:
-                cout << "Not supported option!" << endl;
+                cout << "supported options: -a A -n N -i I -z Z -o O -v V -r R" << endl;
+                cout << "A: can be p(prepare), c(contour), i(integrate), r(result), ar(analyse result)." << endl;
+                cout << "N: only apply A on prefix N." << endl;
+                cout << "I: only apply A on part I in prefix N." << endl;
+                cout << "Z: z pararmeter in Fragmentation Function." << endl;
+                cout << "O: output filename." << endl;
+                cout << "V: verbose level." << endl;
                 exit(1);
         }
     }
@@ -280,6 +302,8 @@ int main(int argc, char** argv) {
     
     int in = 0;
     if(arg_n != NULL) in = stoi(arg_n);
+    int ii = -1;
+    if(arg_n != NULL && arg_i != NULL) ii = stoi(arg_i);
     verb = stoi(arg_v);
     
     if(arg_a == NULL || !strcmp(arg_a, "p")) {
@@ -329,7 +353,7 @@ int main(int argc, char** argv) {
             ss << SD_path << "/" << i << ".ci.gar";
             if(!file_exists(ss.str().c_str())) continue;
             cout << "Integrating @ z=" << arg_z << " - " << i << "/" << nmi << endl;
-            auto res = Integrate(i, zz);
+            auto res = Integrate(i, zz, ii);
             fRes += res;
             cout << endl;
             if(res.has(SD::NaN)) nid.push_back(i);
@@ -381,7 +405,7 @@ int main(int argc, char** argv) {
         
         fRes = VESimplify(fRes, 0);
         cout << endl << "Final Result @ z=" << arg_z << endl;
-        cout << VEResult(fRes) << endl;
+        cout << VEResult(fRes) << endl << endl << endl;
         
         if(is_o) {
             ofstream ofs;
@@ -390,6 +414,39 @@ int main(int argc, char** argv) {
             ofs << fRes << endl;
             ofs.close();
         }
+    }
+    
+    if(arg_a!=NULL && !strcmp(arg_a, "ar")) {
+        if(in<1) {
+            cout << "n should be setted with -a ar option!" << endl;
+            return 1;
+        }
+        stringstream ss;
+        ss << SD_path << "/" << in << "-" << pkey << ".res.gar";
+        archive ar;
+        ifstream in(ss.str().c_str());
+        in >> ar;
+        in.close();
+        auto c = ar.unarchive_ex(para_sym, "c");
+        if(c!=19790923) {
+            cout << "gar file: " << ss.str() << endl;
+            cout << "c=" << c << ", different from 19790923!" << endl;
+            assert(false);
+        }
+        auto relst = ex_to<lst>(ar.unarchive_ex(para_sym, "relst"));
+        int max_index;
+        ex max_re = -1;
+        for(int i=0; i<relst.nops(); i++) {
+            auto tmp = relst.op(i);
+            tmp = tmp.subs(VE(wild(1), wild(2))==wild(2));
+            tmp = tmp.expand().coeff(ep, epN).evalf();
+            if(abs(tmp)>max_re) {
+                max_re = abs(tmp);
+                max_index = i;
+            }
+        }
+        cout << "Max Index: " << max_index+1 << " / " << relst.nops() << endl;
+        cout << VESimplify(relst.op(max_index).expand().coeff(ep, epN)) << endl;
     }
 
     return 0;

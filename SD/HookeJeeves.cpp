@@ -166,13 +166,12 @@ void HookeJeeves::Minimize(int nvars, FunctionType func, dREAL *ip) {
     for(int i=0; i<nvars; i++) UpperBound[i] = 100;
     for(int i=0; i<nvars; i++) LowerBound[i] = 0;
     
-    dREAL RhoParameter = 0.5;
     dREAL EpsParameter = 1E-3;
     long long MaxParameter = 100000;
     
     dREAL iPoints[nvars], oPoints[nvars];
     for(int i=0; i<nvars; i++) iPoints[i] = ip[i];
-    hooke(nvars, iPoints, oPoints, RhoParameter, EpsParameter, MaxParameter);
+    hooke(nvars, iPoints, oPoints, ILWrapper::hjRHO, EpsParameter, MaxParameter);
 }
 
 

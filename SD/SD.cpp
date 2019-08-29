@@ -1426,9 +1426,15 @@ void SD::CIPrepares(const char *key) {
             }
             ii.append(ft_n);
         }
+        if(ii.op(0).is_zero() || ii.op(1).subs(FTX(wild(1),wild(2))==1).is_zero()) continue;
         res_vec.push_back(ii);
     }
     //res_vec item: lst { coeff, integrand, ft, ft-id }
+    
+    if(res_vec.size()<1) {
+        IsZero = true;
+        return;
+    }
 //============================================================================================================
 
     // Prepare FT-lambda
@@ -1441,7 +1447,7 @@ void SD::CIPrepares(const char *key) {
         lst las;
         
         // exp-fn configure, Exp[-Power[ftn,2*f2n]]//N
-        int ftn = 5, f2n = 2;
+        int ftn = 8, f2n = 1;
         ex ft_max = ex(0)-numeric(FindMinimum(-abs(ft)));
         ft_max = ft_max/ex(ftn);
         
@@ -2093,12 +2099,12 @@ void SD::Contours(const char *key, const char *pkey) {
                 nlas[i] = 0;
                 continue;
             } else {
-                if(nlas[i] > 5E-4 * max_df) nlas[i] = 1/nlas[i];
+                if(nlas[i] > 1E-4 * max_df) nlas[i] = 1/nlas[i];
                 else nlas[i] = 1/max_df;
             }
         }
         
-        if(false) {
+        if(true) {
             dREAL nlas2 = 0;
             for(int i=0; i<nvars; i++) {
                 nlas2 += nlas[i] * nlas[i];
