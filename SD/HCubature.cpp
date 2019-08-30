@@ -106,7 +106,6 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
     }
     LastState = 0;
     
-    long long run_pts = RunPTS;
     MaxPTS = RunPTS * RunMAX;
     if(MaxPTS<0) MaxPTS = -MaxPTS;
     
@@ -118,9 +117,7 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
             return SD::NaN;
         }
     }
-    
-    RunPTS = run_pts;
-    
+        
     if(LastState==-1 && use_last) {
         result[0] = LastResult[0];
         result[1] = LastResult[1];

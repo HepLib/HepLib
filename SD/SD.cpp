@@ -2450,8 +2450,8 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             qREAL lamax = CppFormat::ex2q(las.op(las.nops()-1));
             if(lamax > LambdaMax) lamax = LambdaMax;
             
-            Integrator->RunMAX = -1;
-            Integrator->RunPTS = TryPTS;
+            Integrator->RunMAX = -10;
+            Integrator->RunPTS = TryPTS/10;
             Integrator->EpsAbs = EpsAbs/cmax/2;
             Integrator->EpsRel = 0;
             
