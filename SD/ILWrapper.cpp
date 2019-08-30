@@ -37,18 +37,32 @@ dREAL ILWrapper::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
                 if(abs(ve.op(0)) > ve.op(1)) return 1E15;
             }
             if(Verbose > 3) {
+                cout << "\r                             \r";
                 cout << WHITE << "     " << RunPTS << ": " << RESET;
                 for(int i=0; i<nvars; i++) cout << las[i] << " ";
                 cout << endl << "     " << res.subs(VE(0,0)==0) << endl;
             }
             err_max = nerr.to_double();
             for(int i=0; i<nvars; i++) lambda[i] = las[i];
-            if(err_max<=err_min) miner->ForceStop();
+            if(err_max<=err_min) {
+                cout << "\r                             \r";
+                cout << "     ------------------------------" << endl;
+                miner->ForceStop();
+            }
+        } else {
+            if(Verbose > 3) {
+                cout << "\r                             \r";
+                cout << WHITE << "     [ " << RunPTS << " / " << MaxPTS << " ] ..." << RESET << flush;
+            }
         }
     } catch(domain_error &ex) {
         throw ex;
     } catch(...) { }
-    if(RunPTS>=MaxPTS) miner->ForceStop();
+    if(RunPTS>=MaxPTS) {
+        cout << "\r                             \r";
+        cout << "     ------------------------------" << endl;
+        miner->ForceStop();
+    }
     return nerr.to_double();
 }
 
