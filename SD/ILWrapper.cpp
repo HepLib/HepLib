@@ -48,6 +48,7 @@ dREAL ILWrapper::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
                 cout << "\r                             \r";
                 cout << "     ------------------------------" << endl;
                 miner->ForceStop();
+                return 0.;
             }
         } else {
             if(Verbose > 3) {
@@ -62,6 +63,7 @@ dREAL ILWrapper::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
         cout << "\r                             \r";
         cout << "     ------------------------------" << endl;
         miner->ForceStop();
+        return 0.;
     }
     return nerr.to_double();
 }
