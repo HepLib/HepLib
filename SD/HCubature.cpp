@@ -87,7 +87,15 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     
     bool rExit = (epsabs[0] < self->EpsAbs) || (epsabs[0] < fabsq(result[0])*self->EpsRel);
     bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabsq(result[1])*self->EpsRel+1E-50Q);
-    if(rExit && iExit) *nrun = self->MaxPTS + 1000;
+    if(rExit && iExit) {
+        *nrun = self->MaxPTS + 1000;
+        return;
+    }
+    
+    auto pid = getpid();
+    ostringstream fn;
+    fn << pid << ".int.done";
+    if(file_exists(fn.str().c_str())) *nrun = self->MaxPTS + 1000;
 }
 
 ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL* pl, const qREAL* la) {
