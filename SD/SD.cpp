@@ -99,6 +99,7 @@ vector<pair<lst, lst>> SD::AutoF1(pair<lst, lst> po_ex) {
             cpi /= 2;
         }
         bool OK = true;
+        Digits = 50;
         for(auto polist : polists) {
             lst sdList;
             for(int i=0; i<polist.nops(); i++) {
@@ -141,6 +142,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
         auto tmp = polist.op(i);
         auto ntmp = exlist.op(i);
         if(!tmp.subs(lst{x(wild())==0, y(wild())==0}).normal().is_zero()) continue;
+        Digits = 50;
         if( (!tmp.has(x(wild())) && !tmp.has(y(wild()))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
         sdList.append(tmp);
     }
@@ -197,6 +199,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
                 cout << "tmp is NOT a numeric." << endl;
                 assert(false);
             }
+            Digits = 50;
             if( tmp.evalf() < 0 ) {
                 ct = exp(-I * Pi * exlist.op(1));
                 fsgin = -1;
@@ -213,6 +216,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
                 cout << "PL still exists in " << tn << endl;
                 assert(false);
             }
+            Digits = 50;
             if(!is_a<numeric>(tn.evalf())) {
                 cout << "tn is not numeric: " << tn.eval() << endl;
                 assert(false);
@@ -280,6 +284,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
                         ct *= item;
                     } else if(!item.has(PL(wild()))) {
                         auto tr = item.subs(nReplacements);
+                        Digits = 50;
                         if(!is_a<numeric>(tr.evalf())) {
                             cout << "not numeric - item: " << tr << " ; " << item << endl;
                             assert(false);
@@ -2355,6 +2360,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             assert(!tmp.has(eps));
             tmp = mma_collect(tmp, ep);
             for(int i=tmp.ldegree(ep); i<=tmp.degree(ep); i++) {
+                Digits = 50;
                 auto ccRes = tmp.coeff(ep, i).evalf().expand();
                 lst css;
                 css.append(ccRes);

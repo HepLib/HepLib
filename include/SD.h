@@ -119,6 +119,7 @@ public:
     PrintHookerType PrintHooker = DefaultPrintHooker;
     long long MaxPTS;
     bool use_last = false;
+    qREAL XN = 1.Q;
     
 private:
     SD_Type Integrand;

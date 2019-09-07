@@ -19,9 +19,17 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
     bool NaNQ = false;
     #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
     for(int i=0; i<npts; i++) {
-        if(self->UseQ || useQ(xdim, x+i*xdim)) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-        else {
-            self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+        qREAL xx[xdim], det = 1.Q;
+        for(int xi=0; xi<xdim; xi++) {
+            xx[xi] = powq(x[xi+i*xdim], self->XN);
+            det *= self->XN * powq(x[xi+i*xdim], self->XN-1);
+        }
+        if(self->UseQ || useQ(xdim, xx)) {
+            self->IntegrandQ(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            //self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+        } else {
+            self->Integrand(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            //self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             bool ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
@@ -30,7 +38,8 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                     break;
                 }
             }
-            if(!ok) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            if(!ok) self->IntegrandQ(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            //if(!ok) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
         }
         
         for(int j=0; j<ydim; j++) {
@@ -46,6 +55,9 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
         } else if(self->ReIm == 2) {
             y[i*ydim+0] = 0;
         }
+        
+        y[i*ydim+0] *= det;
+        y[i*ydim+1] *= det;
     }
     return NaNQ ? 1 : 0;
 }
@@ -95,7 +107,12 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     auto pid = getpid();
     ostringstream fn;
     fn << pid << ".int.done";
-    if(file_exists(fn.str().c_str())) *nrun = self->MaxPTS + 1000;
+    if(file_exists(fn.str().c_str())) {
+        *nrun = self->MaxPTS + 1000;
+        ostringstream cmd;
+        cmd << "rm " << fn.str();
+        system(cmd.str().c_str());
+    }
 }
 
 ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL* pl, const qREAL* la) {
