@@ -21,8 +21,9 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
     for(int i=0; i<npts; i++) {
         qREAL xx[xdim], det = 1.Q;
         for(int xi=0; xi<xdim; xi++) {
-            xx[xi] = powq(x[xi+i*xdim], self->XN);
-            det *= self->XN * powq(x[xi+i*xdim], self->XN-1);
+            qREAL xxx = x[i*xdim+xi];
+            xx[xi] = powq(xxx, self->XN);
+            det *= self->XN * powq(xxx, self->XN-1);
         }
         if(self->UseQ || useQ(xdim, xx)) {
             self->IntegrandQ(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
