@@ -119,7 +119,6 @@ public:
     PrintHookerType PrintHooker = DefaultPrintHooker;
     long long MaxPTS;
     bool use_last = false;
-    qREAL XN = 1.Q;
     
 private:
     SD_Type Integrand;
@@ -343,7 +342,6 @@ DECLARE_FUNCTION_1P(z)
 DECLARE_FUNCTION_1P(t)
 DECLARE_FUNCTION_1P(PL)
 DECLARE_FUNCTION_1P(CT)
-DECLARE_FUNCTION_1P(FXN)
 DECLARE_FUNCTION_2P(FTX)
 DECLARE_FUNCTION_2P(VE)
 DECLARE_FUNCTION_2P(VEO)

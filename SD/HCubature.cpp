@@ -9,7 +9,7 @@ namespace HepLib {
 bool HCubature::useQ(unsigned xdim, qREAL const *x) {
     if(xdim<2) return true;
     for(int i=0; i<xdim; i++) {
-        if(x[i] < 5.0E-6Q) return true;
+        if(x[i] < 5.0E-5Q) return true;
     }
     return false;
 }
@@ -19,18 +19,10 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
     bool NaNQ = false;
     #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
     for(int i=0; i<npts; i++) {
-        qREAL xx[xdim], det = 1.Q;
-        for(int xi=0; xi<xdim; xi++) {
-            qREAL xxx = x[i*xdim+xi];
-            xx[xi] = powq(xxx, self->XN);
-            det *= self->XN * powq(xxx, self->XN-1);
-        }
-        if(self->UseQ || useQ(xdim, xx)) {
-            self->IntegrandQ(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
-            //self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+        if(self->UseQ || useQ(xdim, x+i*xdim)) {
+            self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
         } else {
-            self->Integrand(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
-            //self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             bool ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
@@ -39,8 +31,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                     break;
                 }
             }
-            if(!ok) self->IntegrandQ(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
-            //if(!ok) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            if(!ok) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
         }
         
         for(int j=0; j<ydim; j++) {
@@ -56,9 +47,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
         } else if(self->ReIm == 2) {
             y[i*ydim+0] = 0;
         }
-        
-        y[i*ydim+0] *= det;
-        y[i*ydim+1] *= det;
+
     }
     return NaNQ ? 1 : 0;
 }
