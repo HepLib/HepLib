@@ -2197,7 +2197,7 @@ void SD::Contours(const char *key, const char *pkey) {
     if(key != NULL) {
         garfn << key;
         if(pkey != NULL) garfn << "-" << pkey;
-        garfn << ".la.gar";
+        garfn << ".las.gar";
         lst gar_res;
         for(auto &item : res) gar_res.append(item);
         archive ar;
@@ -2257,7 +2257,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         garfn.str("");
         garfn << key;
         if(pkey != NULL) garfn << "-" << pkey;
-        garfn << ".la.gar";
+        garfn << ".las.gar";
         if(file_exists(garfn.str().c_str())) {
             archive la_ar;
             ifstream la_in(garfn.str());
@@ -2479,6 +2479,28 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             qREAL log_lamax = log10q(lamax);
             qREAL log_lamin = log_lamax-1.5Q;
             
+            ostringstream las_fn;
+            las_fn << key;
+            if(pkey != NULL) las_fn << "-" << pkey;
+            las_fn << "-" << current << ".las";
+            if(use_las && file_exists(las_fn.str().c_str())) {
+                std::ifstream las_ifs;
+                las_ifs.open(las_fn.str(), ios::in);
+                if (!las_ifs) throw runtime_error("failed to open *.las file!");
+                for(int i=0; i<las.nops()-1; i++) {
+                    dREAL la_tmp;
+                    las_ifs >> la_tmp;
+                    lambda[i] = la_tmp;
+                }
+                las_ifs.close();
+                auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
+                auto res_tmp = res.subs(VE(wild(1), wild(2))==wild(2));
+                auto err = real_part(res_tmp);
+                if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
+                ILWrapper::lastResErr = res;
+                cerr = err;
+            } else {
+            // ---------------------------------------
             while(true) {
                 smin = -1;
                 ex emin = 0;
@@ -2594,6 +2616,8 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             for(int i=0; i<las.nops()-1; i++) {
                 lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
             }
+            // ---------------------------------------
+            }
             
             // ---------------------------------------
             // try HookeJeeves
@@ -2622,6 +2646,16 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 }
             }
             // ---------------------------------------
+            
+            std::ofstream las_ofs;
+            las_ofs.open(las_fn.str(), ios::out);
+            if (!las_ofs) throw runtime_error("failed to open *.las file!");
+            for(int i=0; i<las.nops()-1; i++) {
+                dREAL la_tmp = lambda[i];
+                las_ofs << la_tmp << " ";
+            }
+            las_ofs << endl;
+            las_ofs.close();
             
         }
         
