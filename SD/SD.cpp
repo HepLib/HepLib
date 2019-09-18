@@ -1959,13 +1959,11 @@ qCOMPLEX log(qCOMPLEX x);
             ofs << "for(int i=0; i<nfxs; i++) las[i] = qlas[i];" << endl;
             ofs << "dCOMPLEX mat[nfxs*nfxs];" << endl;
             for(auto &kv : ft_expr) {
+                ofs << "{" << endl;
                 if(SD::debug) {
                     ofs << "//debug-xs: " << kv.first << endl;
                     ofs << "//debug-int: " << kv.second << endl;
                 }
-
-
-
                 lst xs0;
                 for(int ii=0; ii<fxs.size(); ii++) {
                     if(!kv.first.has(fxs[ii])) xs0.append(ii);
@@ -1982,10 +1980,32 @@ qCOMPLEX log(qCOMPLEX x);
                     ofs << "mat[ii*nfxs+ii] = 1.L-(1.L-2.L*x[ii])*r[ii];" << endl;
                 }
                 ofs  << "det = MatDetL(mat, nfxs);" << endl;
+                
+                ex intg = kv.second;
+                {
+                    exset pow_set;
+                    intg.find(pow(x(wild(1)), wild(2)), pow_set);
+                    int npow = 0;
+                    lst pow_repl;
+                    ofs << "dCOMPLEX zp[" << pow_set.size()+1 << "];" << endl;
+                    for(auto item : pow_set) {
+                        ostringstream ss;
+                        ss << "zp[" << npow << "]";
+                        symbol szp(ss.str().c_str());
+                        pow_repl.prepend(item == szp);
+                        ofs << szp << " = ";
+                        item.subs(czRepl).subs(plRepl).print(cppL);
+                        ofs << ";" << endl;
+                        npow++;
+                    }
+                    intg = intg.subs(pow_repl);
+                }
+                
                 ofs << "ytmp = ";
-                kv.second.subs(czRepl).subs(plRepl).print(cppL);
+                intg.subs(czRepl).subs(plRepl).print(cppL);
                 ofs << ";" << endl;
                 ofs << "yy += det * ytmp;" << endl << endl;
+                ofs << "}" << endl;
             }
         } else {
             auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
@@ -2022,6 +2042,7 @@ ofs << R"EOF(
             ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
             ofs << "qCOMPLEX mat[nfxs*nfxs];" << endl;
             for(auto &kv : ft_expr) {
+                ofs << "{" << endl;
                 lst xs0;
                 for(int ii=0; ii<fxs.size(); ii++) {
                     if(!kv.first.has(fxs[ii])) xs0.append(ii);
@@ -2038,10 +2059,32 @@ ofs << R"EOF(
                     ofs << "mat[ii*nfxs+ii] = 1.Q-(1.Q-2.Q*x[ii])*r[ii];" << endl;
                 }
                 ofs  << "det = MatDetQ(mat, nfxs);" << endl;
+                
+                ex intg = kv.second;
+                {
+                    exset pow_set;
+                    intg.find(pow(x(wild(1)), wild(2)), pow_set);
+                    int npow = 0;
+                    lst pow_repl;
+                    ofs << "qCOMPLEX zp[" << pow_set.size()+1 << "];" << endl;
+                    for(auto item : pow_set) {
+                        ostringstream ss;
+                        ss << "zp[" << npow << "]";
+                        symbol szp(ss.str().c_str());
+                        pow_repl.prepend(item == szp);
+                        ofs << szp << " = ";
+                        item.subs(czRepl).subs(plRepl).print(cppQ);
+                        ofs << ";" << endl;
+                        npow++;
+                    }
+                    intg = intg.subs(pow_repl);
+                }
+                
                 ofs << "ytmp = ";
-                kv.second.subs(czRepl).subs(plRepl).print(cppQ);
+                intg.subs(czRepl).subs(plRepl).print(cppQ);
                 ofs << ";" << endl;
                 ofs << "yy += det * ytmp;" << endl << endl;
+                ofs << "}" << endl;
             }
         } else {
             auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
@@ -2415,6 +2458,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
     plRepl.unique();
     
     int total = ciResult.size(), current = 0;
+    qREAL stot = sqrtq(total*1.Q);
     ResultError = 0;
     for(auto &item : ciResult) {
         current++;
@@ -2512,7 +2556,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             else if(reim==2 && ReIm==2) reim=1;
         }
         
-        if(Verbose > 3) cout << "XDim = " << xsize << ", cmax = " << (double)cmax << endl;
+        if(Verbose > 3) cout << "XDim=" << xsize << ", EpsAbs=" << (double)(EpsAbs/cmax/stot) << endl;
         
         auto las = LambdaMap[item.op(3)];
         if(las.is_zero() && item.op(3)>0) {
@@ -2580,14 +2624,14 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             if(TryPTS<10000) TryPTS = 10000;
             Integrator->RunMAX = -100;
             Integrator->RunPTS = TryPTS/100;
-            Integrator->EpsAbs = EpsAbs/cmax/2;
+            Integrator->EpsAbs = EpsAbs/cmax/2/stot;
             Integrator->EpsRel = 0;
             
             int smin = -1;
             int ctryR = 0, ctry = 0, ctryL = 0;
             ex cerr;
             qREAL log_lamax = log10q(lamax);
-            qREAL log_lamin = log_lamax-1.5Q;
+            qREAL log_lamin = log_lamax-1.Q;
             
             ostringstream las_fn;
             las_fn << key;
@@ -2663,7 +2707,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                         cerr = err;
                         smin = s;
                         emin = err;
-                        if(emin < CppFormat::q2ex(EpsAbs/cmax)) {
+                        if(emin < CppFormat::q2ex(EpsAbs/cmax/stot)) {
                             smin = -2;
                             if(kid>0) {
                                 lstRE.let_op(kid-1) = co * res;
@@ -2732,7 +2776,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             // ---------------------------------------
             // try HookeJeeves
             // ---------------------------------------
-            if( use_ilwrapper && (cerr > CppFormat::q2ex(1E5 * EpsAbs/cmax)) ) {
+            if( use_ilwrapper && (cerr > CppFormat::q2ex(1E5 * EpsAbs/cmax/stot)) ) {
                 auto miner = new HookeJeeves();
                 ILWrapper::miner = miner;
                 ILWrapper::xsize = xsize;
@@ -2768,10 +2812,10 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             las_ofs.close();
             
         }
-        
+
         Integrator->RunMAX = RunMAX;
         Integrator->RunPTS = RunPTS;
-        Integrator->EpsAbs = EpsAbs/cmax;
+        Integrator->EpsAbs = EpsAbs/cmax/stot;
         Integrator->EpsRel = 0;
         auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
         if(Verbose>5) { 

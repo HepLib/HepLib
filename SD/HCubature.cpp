@@ -31,7 +31,9 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                     break;
                 }
             }
-            if(!ok) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            if(!ok) {
+                self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            }
         }
         
         for(int j=0; j<ydim; j++) {
@@ -75,7 +77,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         self->LastState = 1;
     }
     
-    if(self->Verbose>10 && self->RunMAX>0) {
+    if(self->Verbose>10 && self->RunMAX>0 && (*nrun-self->NRUN) >= self->RunPTS ) {
         char r0[64], r1[64], e0[32], e1[32];
         quadmath_snprintf(r0, sizeof r0, "%.10Qg", result[0]);
         quadmath_snprintf(r1, sizeof r1, "%.10Qg", result[1]);
@@ -85,6 +87,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         if(self->ReIm==3 || self->ReIm==1) cout << "["<<r0 << ", " << e0 << "]";
         if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";
         cout << endl;
+        self->NRUN = *nrun;
     }
     
     bool rExit = (epsabs[0] < self->EpsAbs) || (epsabs[0] < fabsq(result[0])*self->EpsRel);
@@ -120,6 +123,7 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
         xmax[i] = 1.0Q;
     }
     LastState = 0;
+    NRUN = 0;
     
     MaxPTS = RunPTS * RunMAX;
     if(MaxPTS<0) MaxPTS = -MaxPTS;

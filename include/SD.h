@@ -118,6 +118,7 @@ public:
     static void DefaultPrintHooker(qREAL*, qREAL*, long long int*, void*);
     PrintHookerType PrintHooker = DefaultPrintHooker;
     long long MaxPTS;
+    long long NRUN = 0;
     bool use_last = false;
     
 private:
