@@ -309,6 +309,8 @@ public:
     void EpsEpExpands();
     void RemoveDeltas();
     void XReOrders();
+    void XTogethers();
+    void XExpands();
     bool IsBadF1(ex f, vector<exmap> vmap);
     vector<pair<lst, lst>> AutoF1(pair<lst, lst> po_ex);
     void CIPrepares(const char* key = NULL);

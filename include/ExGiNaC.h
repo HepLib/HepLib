@@ -238,7 +238,7 @@ ex garResult(const char *garfn, lst syms);
 // Series at s=0 similar to Mathematica
 /*********************************************************/
 ex mma_series(ex expr, symbol s, int sn);
-ex mma_collect(ex expr, ex pat, bool wrap=false);
+ex mma_collect(ex expr, ex pat, bool ccf=false, bool cvf=false);
 
 /*********************************************************/
 // Customized GiNaC Function

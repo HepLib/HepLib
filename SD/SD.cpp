@@ -873,6 +873,89 @@ void SD::Normalizes() {
         FunExp.push_back(kv);
         ifn[key] = 1;
     }
+}
+
+void SD::XTogethers() {
+
+    vector<pair<lst, lst>> funexp;
+    for(auto fe : FunExp) {
+        funexp.push_back(fe);
+    }
+    FunExp.clear();
+    
+    map<ex, ex, ex_is_less> fe_cc;
+    for(auto fe : funexp) {
+        lst key;
+        key.append(lst {fe.first.op(1), fe.second.op(1)});
+        ex rem = 1;
+        for(int i=0; i<fe.second.nops(); i++) {
+            if(i==1) continue;
+            if(!fe.second.op(i).has(ep) && !fe.second.op(i).has(eps)) {
+                if(is_a<numeric>(fe.second.op(i)) && ex_to<numeric>(fe.second.op(i)).is_nonneg_integer()) {
+                    rem *= pow(fe.first.op(i), fe.second.op(i));
+                    continue;
+                }
+            }
+            key.append(lst{ fe.first.op(i), fe.second.op(i) });
+        }
+        fe_cc[key] += rem;
+    }
+    
+    for(auto kv : fe_cc) {
+        lst klst = lst{1};
+        lst vlst = lst{1};
+        for(auto fe : kv.first) {
+            klst.append(fe.op(0));
+            vlst.append(fe.op(1));
+        }
+        klst.append(kv.second);
+        vlst.append(1);
+
+        FunExp.push_back(make_pair(klst, vlst));
+    }
+    
+}
+
+void SD::XExpands() {
+
+    vector<pair<lst, lst>> funexp;
+    for(auto fe : FunExp) {
+        funexp.push_back(fe);
+    }
+    FunExp.clear();
+    
+    for(auto fe : funexp) {
+        lst klst = lst{fe.first.op(0), fe.first.op(1)};
+        lst vlst = lst{fe.second.op(0), fe.second.op(1)};
+        ex rem = 1;
+        for(int i=2; i<fe.second.nops(); i++) {
+            if(!fe.second.op(i).has(ep) && !fe.second.op(i).has(eps)) {
+                if(is_a<numeric>(fe.second.op(i)) && ex_to<numeric>(fe.second.op(i)).is_nonneg_integer()) {
+                    rem *= pow(fe.first.op(i), fe.second.op(i));
+                    continue;
+                }
+            }
+            klst.append(fe.first.op(i));
+            vlst.append(fe.second.op(i));
+        }
+        
+        rem = mma_collect(rem, x(wild()));
+        
+        lst rem_lst;
+        if(is_a<add>(rem)) {
+            for(auto item : rem) rem_lst.append(item);
+        } else {
+            rem_lst.append(rem);
+        }
+        
+        lst vlst2 = vlst;
+        vlst2.append(1);
+        for(auto item : rem_lst) {
+            lst klst2 = klst;
+            klst2.append(item);
+            FunExp.push_back(make_pair(klst2, vlst2));
+        }
+    }
     
 }
 
@@ -1068,6 +1151,9 @@ void SD::SDPrepares() {
                 
                 for(auto xen : xmol) {
                     auto expn = xen.second.subs(lst{eps==0,ep==0}).normal();
+                    if(!is_a<numeric>(expn)) {
+                        cout << expn << endl;
+                    }
                     assert(is_a<numeric>(expn));
                     if(ex_to<numeric>(expn) < pole_requested) {
                         pole_reached = false;
@@ -1174,7 +1260,7 @@ void SD::EpsEpExpands() {
         }
         ex ct = (*(cts.begin())).subs(CT(wild())==wild()).subs(iEpsilon==0);
         auto tmp = item.subs(CT(wild())==1);
-        if(use_CCF) tmp = collect_common_factors(tmp);
+        //if(use_CCF) tmp = collect_common_factors(tmp);
         lst para_res_lst;
         
         if(!tmp.has(eps) && !ct.has(eps)) {
@@ -1193,7 +1279,7 @@ void SD::EpsEpExpands() {
             ex stmp = mma_series(tmp, eps, epsN-sctN);
             for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
                 tmp = stmp.coeff(eps, sdi);
-                if(use_CCF) tmp = collect_common_factors(tmp);
+                //if(use_CCF) tmp = collect_common_factors(tmp);
                 assert(!tmp.has(eps));
                 ct = mma_series(sct, eps, epsN-sdi);
                 int ctN = epRank(ct);
@@ -1214,12 +1300,24 @@ void SD::EpsEpExpands() {
 
     }, "ep", Verbose, !debug);
     
-    expResult.clear();
+    
+    map<ex, ex, ex_is_less> int_pref;
+    long long ncollect = 0;
     for(auto &item : res) {
+        ncollect += item.nops();
         for(auto &kv : ex_to<lst>(item)) {
-            expResult.push_back(make_pair(kv.op(0), kv.op(1)));
+            int_pref[kv.op(1)] += kv.op(0);
         }
     }
+    
+    if(Verbose > 1) cout << "  \\--Collecting: " << ncollect << " :> " << flush;
+    expResult.clear();
+    for(auto kv : int_pref) {
+        if(kv.second.normal().is_zero()) continue;
+        expResult.push_back(make_pair(kv.second, kv.first));
+    }
+    if(Verbose > 1) cout << expResult.size() << endl;
+    
 }
 
 void SD::CompileMatDet() {
@@ -1709,6 +1807,13 @@ qCOMPLEX log(qCOMPLEX x);
         cmd << "g++ -fPIC -c " << CFLAGS << " -o " << sofn.str() << " " << cppfn.str();
         system(cmd.str().c_str());
         
+        if(!file_exists(sofn.str().c_str())) {
+            cmd.clear();
+            cmd.str("");
+            cmd << "cp " << sofn.str() << " . ";
+            system(cmd.str().c_str());
+        }
+        
         return 0;
     
     }, "ci-c", Verbose, false);
@@ -1858,6 +1963,9 @@ qCOMPLEX log(qCOMPLEX x);
                     ofs << "//debug-xs: " << kv.first << endl;
                     ofs << "//debug-int: " << kv.second << endl;
                 }
+
+
+
                 lst xs0;
                 for(int ii=0; ii<fxs.size(); ii++) {
                     if(!kv.first.has(fxs[ii])) xs0.append(ii);
@@ -2274,7 +2382,9 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         if(kid>0) {
             garfn.clear();
             garfn.str("");
-            garfn << key << "-" << pkey << ".res.gar";
+            garfn << key;
+            if(pkey != NULL) garfn << "-" << pkey;
+            garfn << ".res.gar";
             assert(file_exists(garfn.str().c_str()));
             
             archive res_ar;

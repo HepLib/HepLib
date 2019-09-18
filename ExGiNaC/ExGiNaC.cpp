@@ -224,10 +224,23 @@ ex mma_series(ex expr_in, symbol s, int sn) {
     ex expr = expr_in;
     if(!expr.has(s)) return expr;
     int exN = 1;
+    ex expr_input = mma_collect(expr_in,s,true);
     while(exN<10) {
-        expr = expr_in + pow(s, sn+exN+2);
-        expr = mma_collect(expr, s);
-        ex res = expr.series(s, sn+exN); 
+        expr = expr_input + pow(s,sn+exN+2);
+        ex res = expr.series(s, sn+exN);
+        
+        // make sure CCF has no s
+        exset cset;
+        res.find(CCF(wild()), cset);
+        for(auto ccf : cset) {
+            if(ccf.has(s)) {
+                cout << "ccf = " << ccf << endl;
+                assert(false);
+                break;
+            }
+        }
+        
+        res = res.subs(CCF(wild())==wild()); // remove CCF
         ex ot = 0;
         for(int i=0; i<res.nops(); i++) {
             if(is_order_function(res.op(i))) {
@@ -261,25 +274,29 @@ ex mma_series(ex expr_in, symbol s, int sn) {
 /*********************************************************/
 // mma_collect
 /*********************************************************/
-ex mma_collect(ex expr_in, ex pat, bool wrap) {
-    lst crepl = lst{ CCF(wild(0))==wild(0), CVF(wild(1))==wild(1) };
-    auto expr = expr_in.subs(crepl);
-    if(!expr.has(pat)) return wrap ? CCF(expr) : expr;
+ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
+    lst cv_repl = lst{ CCF(wild(0))==wild(0), CVF(wild(1))==wild(1) };
+    lst c_repl = lst{ CCF(wild())==wild() };
+    lst v_repl = lst{ CVF(wild())==wild() };
+    
+    auto expr = expr_in.subs(cv_repl); // remove CCF & CVF
+    
+    if(!expr.has(pat)) return ccf ? CCF(expr) : expr;
     ex res;
     if(is_a<add>(expr)) {
         res = 0;
         for(auto item : expr) {
-            res += mma_collect(item, pat, true);
+            res += mma_collect(item, pat, true, true);
         }
     } else if(is_a<mul>(expr)) {
         res = 1;
         for(auto item : expr) {
-            res *= mma_collect(item, pat, true);
+            res *= mma_collect(item, pat, true, true);
         }
     } else if(is_a<power>(expr) && is_a<numeric>(expr.op(1)) && ex_to<numeric>(expr.op(1)).is_nonneg_integer()) {
-        res = pow(mma_collect(expr.op(0), pat, true), expr.op(1));
+        res = pow(mma_collect(expr.op(0), pat, true, true), expr.op(1));
     } else {
-        return wrap ? CVF(expr) : expr;
+        return cvf ? CVF(expr) : expr;
     }
     
     res = res.expand(); // expand internally
@@ -289,7 +306,7 @@ ex mma_collect(ex expr_in, ex pat, bool wrap) {
     for(auto vf : vfset) vflst.append(vf);
     res = collect(res, vflst, true); // collect internally
     
-    res = res.subs(crepl);
+    res = res.subs(cv_repl); // remove CCF & CVF
     lst items;
     if(is_a<add>(res)) {
         for(auto item : res) items.append(item);
@@ -314,7 +331,16 @@ ex mma_collect(ex expr_in, ex pat, bool wrap) {
         }
     }
     ret += CCF(cf);
-    return wrap ? ret : ret.subs(crepl);
+    
+    ret.find(CVF(wild()), vfset);
+    vflst.remove_all();
+    for(auto vf : vfset) vflst.append(vf);
+    ret = collect(ret, vflst, true); // collect internally
+    
+    if(!ccf) ret = ret.subs(c_repl);
+    if(!cvf) ret = ret.subs(v_repl);
+    
+    return ret;
 }
 
 /*********************************************************/
