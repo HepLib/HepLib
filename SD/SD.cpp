@@ -1983,8 +1983,13 @@ qCOMPLEX log(qCOMPLEX x);
                 
                 ex intg = kv.second;
                 {
+                    auto hop = has_options::algebraic;
+                    auto sop = subs_options::algebraic;
+                    auto w1 = wild(1);
+                    auto w2 = wild(2);
+                    
                     exset pow_set;
-                    intg.find(pow(x(wild(1)), wild(2)), pow_set);
+                    intg.find(pow(x(w1), w2), pow_set);
                     int npow = 0;
                     lst pow_repl;
                     ofs << "dCOMPLEX zp[" << pow_set.size()+1 << "];" << endl;
@@ -1992,13 +1997,41 @@ qCOMPLEX log(qCOMPLEX x);
                         ostringstream ss;
                         ss << "zp[" << npow << "]";
                         symbol szp(ss.str().c_str());
-                        pow_repl.prepend(item == szp);
+                        pow_repl.prepend(item == VF(szp));
                         ofs << szp << " = ";
                         item.subs(czRepl).subs(plRepl).print(cppL);
                         ofs << ";" << endl;
                         npow++;
                     }
                     intg = intg.subs(pow_repl);
+                    
+                    intg = intg.subs(x(w1)*x(w2)==VF(x(w1)*x(w2)), sop);
+                    while( intg.has(VF(w1)*VF(w2),hop) || intg.has(x(w1)*VF(w2),hop) ) {
+                        intg = intg.subs(lst{
+                            VF(w1)*VF(w2) == VF(w1*w2),
+                            x(w1)*VF(w2) == VF(x(w1)*w2)
+                        }, sop);
+                    }
+                    
+                    exset vf_set;
+                    intg.find(VF(wild()), vf_set);
+                    int nvf = 0;
+                    lst vf_repl;
+                    ofs << "dCOMPLEX vf[" << vf_set.size()+1 << "];" << endl;
+                    for(auto item : vf_set) {
+                        auto ii = item.subs(VF(wild())==wild());
+                        if(!is_a<mul>(ii)) continue;
+                        ostringstream ss;
+                        ss << "vf[" << nvf << "]";
+                        symbol svf(ss.str().c_str());
+                        vf_repl.prepend(item == svf);
+                        ofs << svf << " = ";
+                        ii.subs(czRepl).subs(plRepl).print(cppL);
+                        ofs << ";" << endl;
+                        nvf++;
+                    }
+                    intg = intg.subs(vf_repl);
+                    intg = intg.subs(VF(wild())==wild());
                 }
                 
                 ofs << "ytmp = ";
@@ -2062,8 +2095,13 @@ ofs << R"EOF(
                 
                 ex intg = kv.second;
                 {
+                    auto hop = has_options::algebraic;
+                    auto sop = subs_options::algebraic;
+                    auto w1 = wild(1);
+                    auto w2 = wild(2);
+                    
                     exset pow_set;
-                    intg.find(pow(x(wild(1)), wild(2)), pow_set);
+                    intg.find(pow(x(w1), w2), pow_set);
                     int npow = 0;
                     lst pow_repl;
                     ofs << "qCOMPLEX zp[" << pow_set.size()+1 << "];" << endl;
@@ -2071,13 +2109,41 @@ ofs << R"EOF(
                         ostringstream ss;
                         ss << "zp[" << npow << "]";
                         symbol szp(ss.str().c_str());
-                        pow_repl.prepend(item == szp);
+                        pow_repl.prepend(item == VF(szp));
                         ofs << szp << " = ";
                         item.subs(czRepl).subs(plRepl).print(cppQ);
                         ofs << ";" << endl;
                         npow++;
                     }
                     intg = intg.subs(pow_repl);
+                    
+                    intg = intg.subs(x(w1)*x(w2)==VF(x(w1)*x(w2)), sop);
+                    while( intg.has(VF(w1)*VF(w2),hop) || intg.has(x(w1)*VF(w2),hop) ) {
+                        intg = intg.subs(lst{
+                            VF(w1)*VF(w2) == VF(w1*w2),
+                            x(w1)*VF(w2) == VF(x(w1)*w2)
+                        }, sop);
+                    }
+                    
+                    exset vf_set;
+                    intg.find(VF(wild()), vf_set);
+                    int nvf = 0;
+                    lst vf_repl;
+                    ofs << "qCOMPLEX vf[" << vf_set.size()+1 << "];" << endl;
+                    for(auto item : vf_set) {
+                        auto ii = item.subs(VF(wild())==wild());
+                        if(!is_a<mul>(ii)) continue;
+                        ostringstream ss;
+                        ss << "vf[" << nvf << "]";
+                        symbol svf(ss.str().c_str());
+                        vf_repl.prepend(item == svf);
+                        ofs << svf << " = ";
+                        ii.subs(czRepl).subs(plRepl).print(cppQ);
+                        ofs << ";" << endl;
+                        nvf++;
+                    }
+                    intg = intg.subs(vf_repl);
+                    intg = intg.subs(VF(wild())==wild());
                 }
                 
                 ofs << "ytmp = ";
