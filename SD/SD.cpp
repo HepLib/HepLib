@@ -2052,6 +2052,7 @@ qCOMPLEX log(qCOMPLEX x);
                         npow++;
                     }
                     intg = intg.subs(wpow_repl);
+                    intg = intg.subs(VF(w)==w);
                     
                     intg = intg.subs(log(w)==VF(log(w)));
                     exset lg_set;
@@ -2070,6 +2071,7 @@ qCOMPLEX log(qCOMPLEX x);
                         npow++;
                     }
                     intg = intg.subs(lg_repl);
+                    intg = intg.subs(VF(w)==w);
                 }
                 
                 ofs << "ytmp = ";
@@ -2202,6 +2204,7 @@ ofs << R"EOF(
                         npow++;
                     }
                     intg = intg.subs(wpow_repl);
+                    intg = intg.subs(VF(w)==w);
                     
                     intg = intg.subs(log(w)==VF(log(w)));
                     exset lg_set;
@@ -2220,6 +2223,7 @@ ofs << R"EOF(
                         npow++;
                     }
                     intg = intg.subs(lg_repl);
+                    intg = intg.subs(VF(w)==w);
                 }
                 
                 ofs << "ytmp = ";

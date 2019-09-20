@@ -197,14 +197,17 @@ static void print_VEO(const ex & ex1, const ex & ex2, const print_context & c) {
         digits = digits > 30 ? 30 : digits;
     }
     auto oDigits = Digits;
-    try{
+    ostringstream oss;
+    try {
         Digits = digits;
-        c.s << "(" << ex1.evalf();
+        oss << "(" << ex1.evalf();
         Digits = 2;
-        c.s << " +- " << ex2.evalf() << ")";
+        oss << " +- " << ex2.evalf() << ")";
         Digits = oDigits;
+        c.s << oss.str();
     } catch(...) {
         Digits = oDigits;
+        c.s << RED << "[-NaN-]" << RESET;
     }
 }
 

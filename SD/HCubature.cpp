@@ -60,12 +60,14 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1]))) {
          *nrun = self->MaxPTS + 1000;
          if(self->LastState>0) self->LastState = -1;
+         if(self->Verbose>10) cout << RED << "     Exit: NaN." << RESET << endl;
          return;
     }
     
     if(self->RunMAX>0 && (epsabs[0] > 1E25*self->EpsAbs || epsabs[1] > 1E25*self->EpsAbs)) {
          *nrun = self->MaxPTS + 1000;
          if(self->LastState>0) self->LastState = -1;
+         if(self->Verbose>10) cout << RED << "     Exit: EpsAbs." << RESET << endl;
          return;
     }
     
@@ -105,6 +107,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         ostringstream cmd;
         cmd << "rm " << fn.str();
         system(cmd.str().c_str());
+        if(self->Verbose>10) cout << "     Exit: " << fn.str() << endl;
     }
 }
 
