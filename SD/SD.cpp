@@ -1270,7 +1270,7 @@ void SD::EpsEpExpands() {
                 auto intg = tmp.coeff(ep, di);
                 assert(!intg.has(ep));
                 auto pref = mma_series(ct, ep, epN-di);
-                if(use_CCF) intg = collect_common_factors(intg);
+                //if(use_CCF) intg = collect_common_factors(intg);
                 para_res_lst.append(lst{pref * pow(ep, di), intg});
             }
         } else {
@@ -1288,7 +1288,7 @@ void SD::EpsEpExpands() {
                     auto intg = tmp.coeff(ep, di);
                     assert(!intg.has(ep));
                     auto pref = mma_series(ct, ep, epN-di);
-                    if(use_CCF) intg = collect_common_factors(intg);
+                    //if(use_CCF) intg = collect_common_factors(intg);
                     para_res_lst.append(lst{pref * pow(eps, sdi) * pow(ep, di), intg});
                 }
             }
@@ -1982,96 +1982,13 @@ qCOMPLEX log(qCOMPLEX x);
                 ofs  << "det = MatDetL(mat, nfxs);" << endl;
                 
                 ex intg = kv.second;
-                {
-                    auto cppLQ = cppL;
-                    auto hop = has_options::algebraic;
-                    auto sop = subs_options::algebraic;
-                    auto w = wild();
-                    auto w1 = wild(1);
-                    auto w2 = wild(2);
-                    
-                    exset xpow_set;
-                    intg.find(pow(x(w1), w2), xpow_set);
-                    int npow = 0;
-                    lst pow_repl;
-                    ofs << "dCOMPLEX zp[" << xpow_set.size()+1 << "];" << endl;
-                    for(auto item : xpow_set) {
-                        ostringstream ss;
-                        ss << "zp[" << npow << "]";
-                        symbol szp(ss.str().c_str());
-                        pow_repl.prepend(item == VF(szp));
-                        ofs << szp << " = ";
-                        item.subs(czRepl).subs(plRepl).print(cppLQ);
-                        ofs << ";" << endl;
-                        npow++;
-                    }
-                    intg = intg.subs(pow_repl);
-                    
-                    intg = intg.subs(x(w1)*x(w2)==VF(x(w1)*x(w2)), sop);
-                    while( intg.has(VF(w1)*VF(w2),hop) || intg.has(x(w1)*VF(w2),hop) ) {
-                        intg = intg.subs(lst{
-                            VF(w1)*VF(w2) == VF(w1*w2),
-                            x(w1)*VF(w2) == VF(x(w1)*w2)
-                        }, sop);
-                    }
-                    
-                    exset vf_set;
-                    intg.find(VF(w), vf_set);
-                    int nvf = 0;
-                    lst vf_repl;
-                    ofs << "dCOMPLEX vf[" << vf_set.size()+1 << "];" << endl;
-                    for(auto item : vf_set) {
-                        auto ii = item.subs(VF(w)==w);
-                        if(!is_a<mul>(ii)) continue;
-                        ostringstream ss;
-                        ss << "vf[" << nvf << "]";
-                        symbol svf(ss.str().c_str());
-                        vf_repl.prepend(item == svf);
-                        ofs << svf << " = ";
-                        ii.subs(czRepl).subs(plRepl).print(cppLQ);
-                        ofs << ";" << endl;
-                        nvf++;
-                    }
-                    intg = intg.subs(vf_repl);
-                    intg = intg.subs(VF(w)==w);
-                    
-                    intg = intg.subs(pow(w1, w2)==VF(pow(w1, w2)));
-                    exset wpow_set;
-                    intg.find(VF(w), wpow_set);
-                    npow = 0;
-                    lst wpow_repl;
-                    ofs << "dCOMPLEX wp[" << wpow_set.size()+1 << "];" << endl;
-                    for(auto item : wpow_set) {
-                        ostringstream ss;
-                        ss << "wp[" << npow << "]";
-                        symbol swp(ss.str().c_str());
-                        wpow_repl.prepend(item == swp);
-                        ofs << swp << " = ";
-                        item.subs(VF(w)==w).subs(czRepl).subs(plRepl).print(cppLQ);
-                        ofs << ";" << endl;
-                        npow++;
-                    }
-                    intg = intg.subs(wpow_repl);
-                    intg = intg.subs(VF(w)==w);
-                    
-                    intg = intg.subs(log(w)==VF(log(w)));
-                    exset lg_set;
-                    intg.find(VF(w), lg_set);
-                    npow = 0;
-                    lst lg_repl;
-                    ofs << "dCOMPLEX lg[" << lg_set.size()+1 << "];" << endl;
-                    for(auto item : lg_set) {
-                        ostringstream ss;
-                        ss << "lg[" << npow << "]";
-                        symbol slg(ss.str().c_str());
-                        lg_repl.prepend(item == slg);
-                        ofs << slg << " = ";
-                        item.subs(VF(w)==w).subs(czRepl).subs(plRepl).print(cppLQ);
-                        ofs << ";" << endl;
-                        npow++;
-                    }
-                    intg = intg.subs(lg_repl);
-                    intg = intg.subs(VF(w)==w);
+                exParser ps;
+                intg = ps.Parse(intg);
+                ofs << "dCOMPLEX "<<ps.prefix<<"[" << ps.o_ex_vec.size()+1 << "];" << endl;
+                for(auto kv : ps.o_ex_vec) {
+                    ofs <<ps.prefix<< "["<<kv.first<<"] = ";
+                    kv.second.subs(czRepl).subs(plRepl).print(cppL);
+                    ofs << ";" << endl;
                 }
                 
                 ofs << "ytmp = ";
@@ -2134,96 +2051,13 @@ ofs << R"EOF(
                 ofs  << "det = MatDetQ(mat, nfxs);" << endl;
                 
                 ex intg = kv.second;
-                {
-                    auto cppLQ = cppQ;
-                    auto hop = has_options::algebraic;
-                    auto sop = subs_options::algebraic;
-                    auto w = wild();
-                    auto w1 = wild(1);
-                    auto w2 = wild(2);
-                    
-                    exset xpow_set;
-                    intg.find(pow(x(w1), w2), xpow_set);
-                    int npow = 0;
-                    lst pow_repl;
-                    ofs << "qCOMPLEX zp[" << xpow_set.size()+1 << "];" << endl;
-                    for(auto item : xpow_set) {
-                        ostringstream ss;
-                        ss << "zp[" << npow << "]";
-                        symbol szp(ss.str().c_str());
-                        pow_repl.prepend(item == VF(szp));
-                        ofs << szp << " = ";
-                        item.subs(czRepl).subs(plRepl).print(cppLQ);
-                        ofs << ";" << endl;
-                        npow++;
-                    }
-                    intg = intg.subs(pow_repl);
-                    
-                    intg = intg.subs(x(w1)*x(w2)==VF(x(w1)*x(w2)), sop);
-                    while( intg.has(VF(w1)*VF(w2),hop) || intg.has(x(w1)*VF(w2),hop) ) {
-                        intg = intg.subs(lst{
-                            VF(w1)*VF(w2) == VF(w1*w2),
-                            x(w1)*VF(w2) == VF(x(w1)*w2)
-                        }, sop);
-                    }
-                    
-                    exset vf_set;
-                    intg.find(VF(w), vf_set);
-                    int nvf = 0;
-                    lst vf_repl;
-                    ofs << "qCOMPLEX vf[" << vf_set.size()+1 << "];" << endl;
-                    for(auto item : vf_set) {
-                        auto ii = item.subs(VF(w)==w);
-                        if(!is_a<mul>(ii)) continue;
-                        ostringstream ss;
-                        ss << "vf[" << nvf << "]";
-                        symbol svf(ss.str().c_str());
-                        vf_repl.prepend(item == svf);
-                        ofs << svf << " = ";
-                        ii.subs(czRepl).subs(plRepl).print(cppLQ);
-                        ofs << ";" << endl;
-                        nvf++;
-                    }
-                    intg = intg.subs(vf_repl);
-                    intg = intg.subs(VF(w)==w);
-                    
-                    intg = intg.subs(pow(w1, w2)==VF(pow(w1, w2)));
-                    exset wpow_set;
-                    intg.find(VF(w), wpow_set);
-                    npow = 0;
-                    lst wpow_repl;
-                    ofs << "qCOMPLEX wp[" << wpow_set.size()+1 << "];" << endl;
-                    for(auto item : wpow_set) {
-                        ostringstream ss;
-                        ss << "wp[" << npow << "]";
-                        symbol swp(ss.str().c_str());
-                        wpow_repl.prepend(item == swp);
-                        ofs << swp << " = ";
-                        item.subs(VF(w)==w).subs(czRepl).subs(plRepl).print(cppLQ);
-                        ofs << ";" << endl;
-                        npow++;
-                    }
-                    intg = intg.subs(wpow_repl);
-                    intg = intg.subs(VF(w)==w);
-                    
-                    intg = intg.subs(log(w)==VF(log(w)));
-                    exset lg_set;
-                    intg.find(VF(w), lg_set);
-                    npow = 0;
-                    lst lg_repl;
-                    ofs << "qCOMPLEX lg[" << lg_set.size()+1 << "];" << endl;
-                    for(auto item : lg_set) {
-                        ostringstream ss;
-                        ss << "lg[" << npow << "]";
-                        symbol slg(ss.str().c_str());
-                        lg_repl.prepend(item == slg);
-                        ofs << slg << " = ";
-                        item.subs(VF(w)==w).subs(czRepl).subs(plRepl).print(cppLQ);
-                        ofs << ";" << endl;
-                        npow++;
-                    }
-                    intg = intg.subs(lg_repl);
-                    intg = intg.subs(VF(w)==w);
+                exParser ps;
+                intg = ps.Parse(intg);
+                ofs << "qCOMPLEX "<<ps.prefix<<"[" << ps.o_ex_vec.size()+1 << "];" << endl;
+                for(auto kv : ps.o_ex_vec) {
+                    ofs <<ps.prefix<< "["<<kv.first<<"] = ";
+                    kv.second.subs(czRepl).subs(plRepl).print(cppQ);
+                    ofs << ";" << endl;
                 }
                 
                 ofs << "ytmp = ";

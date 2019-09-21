@@ -279,7 +279,7 @@ public:
     const char * CFLAGS = "";
     bool IsZero = false;
     bool CheckF1 = false;
-    bool use_CCF = true;
+    //bool use_CCF = true;
     bool use_cpp = true;
     bool use_ilwrapper = false;
     bool use_las = false;
@@ -334,6 +334,19 @@ private:
     vector<lst> ciResult;
     lst FT_N_NX;
     exmap LambdaMap;
+};
+
+/*********************************************************/
+// Parsee
+/*********************************************************/
+class exParser {
+public:
+    ex Parse(ex expr, int level = 0);
+    map<ex, ex, ex_is_less> ex_var_map;
+    int no = 0;
+    vector<pair<int, ex>> o_ex_vec;
+    map<ex,int,ex_is_less> excount;
+    const char* prefix = "o";
 };
 
 /*********************************************************/
