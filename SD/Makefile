@@ -1,6 +1,6 @@
 include ../opt.mk
 
-all: SD.o SecDecG.o Helpers.o Wrapper.o ILWrapper.o exParser.o CppFormat.o HCubature.o MinUit.o HookeJeeves.o Lib3/HCubature.o
+all: SD.o SecDecG.o Helpers.o Wrapper.o ILWrapper.o cseParser.o CppFormat.o HCubature.o MinUit.o HookeJeeves.o Lib3/HCubature.o
 
 SD.o : SD.cpp
 	g++ $(opt) -c -o $@ $^
@@ -17,7 +17,7 @@ Wrapper.o : Wrapper.cpp
 ILWrapper.o : ILWrapper.cpp
 	g++  $(opt) -fPIC -c -o $@ $^
 
-exParser.o : exParser.cpp
+cseParser.o : cseParser.cpp
 	g++  $(opt) -fPIC -c -o $@ $^
 
 

@@ -339,14 +339,16 @@ private:
 /*********************************************************/
 // Parsee
 /*********************************************************/
-class exParser {
+class cseParser {
 public:
-    ex Parse(ex expr, int level = 0);
+    ex Parse(ex expr, bool reset=true);
+    const char* oc = "o";
+    int on();
+    vector<pair<int, ex>> os();
+private:
     map<ex, ex, ex_is_less> ex_var_map;
     int no = 0;
     vector<pair<int, ex>> o_ex_vec;
-    map<ex,int,ex_is_less> excount;
-    const char* prefix = "o";
 };
 
 /*********************************************************/

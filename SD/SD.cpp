@@ -1982,11 +1982,11 @@ qCOMPLEX log(qCOMPLEX x);
                 ofs  << "det = MatDetL(mat, nfxs);" << endl;
                 
                 ex intg = kv.second;
-                exParser ps;
-                intg = ps.Parse(intg);
-                ofs << "dCOMPLEX "<<ps.prefix<<"[" << ps.o_ex_vec.size()+1 << "];" << endl;
-                for(auto kv : ps.o_ex_vec) {
-                    ofs <<ps.prefix<< "["<<kv.first<<"] = ";
+                cseParser cse;
+                intg = cse.Parse(intg);
+                ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                for(auto kv : cse.os()) {
+                    ofs <<cse.oc<< "["<<kv.first<<"] = ";
                     kv.second.subs(czRepl).subs(plRepl).print(cppL);
                     ofs << ";" << endl;
                 }
@@ -2051,11 +2051,11 @@ ofs << R"EOF(
                 ofs  << "det = MatDetQ(mat, nfxs);" << endl;
                 
                 ex intg = kv.second;
-                exParser ps;
-                intg = ps.Parse(intg);
-                ofs << "qCOMPLEX "<<ps.prefix<<"[" << ps.o_ex_vec.size()+1 << "];" << endl;
-                for(auto kv : ps.o_ex_vec) {
-                    ofs <<ps.prefix<< "["<<kv.first<<"] = ";
+                cseParser cse;
+                intg = cse.Parse(intg);
+                ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                for(auto kv : cse.os()) {
+                    ofs <<cse.oc<< "["<<kv.first<<"] = ";
                     kv.second.subs(czRepl).subs(plRepl).print(cppQ);
                     ofs << ";" << endl;
                 }
