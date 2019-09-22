@@ -123,8 +123,8 @@ vector<pair<lst, lst>> SD::AutoF1(pair<lst, lst> po_ex) {
         }
     }}
     
-    cout << RED << "F: " << po_ex.first.op(1) << RESET << endl;
-    cout << RED << "F1 Failed with ALL possible bisections!" << RESET << endl;
+    cerr << RED << "F: " << po_ex.first.op(1) << RESET << endl;
+    cerr << RED << "F1 Failed with ALL possible bisections!" << RESET << endl;
     assert(false);
     return vector<pair<lst, lst>>();
 }
@@ -195,8 +195,8 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
         if(!need_contour_deformation) {
             auto tmp = ft.subs(y(wild())==1).subs(nReplacements);
             if(!is_a<numeric>(tmp)) {
-                cout << "tmp = " << tmp << endl;
-                cout << "tmp is NOT a numeric." << endl;
+                cerr << "tmp = " << tmp << endl;
+                cerr << "tmp is NOT a numeric." << endl;
                 assert(false);
             }
             Digits = 50;
@@ -213,12 +213,12 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
                 tn = tn.subs(PL(k)==(ParameterUB[k]+ParameterLB[k])/ex(2));
             }
             if(tn.has(PL(wild()))) {
-                cout << "PL still exists in " << tn << endl;
+                cerr << "PL still exists in " << tn << endl;
                 assert(false);
             }
             Digits = 50;
             if(!is_a<numeric>(tn.evalf())) {
-                cout << "tn is not numeric: " << tn.eval() << endl;
+                cerr << "tn is not numeric: " << tn.eval() << endl;
                 assert(false);
             }
             
@@ -286,7 +286,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
                         auto tr = item.subs(nReplacements);
                         Digits = 50;
                         if(!is_a<numeric>(tr.evalf())) {
-                            cout << "not numeric - item: " << tr << " ; " << item << endl;
+                            cerr << "not numeric - item: " << tr << " ; " << item << endl;
                             assert(false);
                         }
                         auto nitem = ex_to<numeric>(tr.evalf());
@@ -301,8 +301,8 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
                     }
                 } else {
                     if(nchk && item.subs(y(wild())==0).subs(iEpsilon==0).normal().is_zero()) {
-                        cout << "zero - item: " << item << endl;
-                        cout << "exlist.op(i) = " << exlist.op(i) << endl;
+                        cerr << "zero - item: " << item << endl;
+                        cerr << "exlist.op(i) = " << exlist.op(i) << endl;
                         assert(false);
                     }
                     rem *= item;
@@ -320,7 +320,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             if(is_a<numeric>(v)) {
                 auto nv = ex_to<numeric>(v);
                 if(nv<=-1) {
-                    cout << endl << "nv: " << nv << ", NOT larger than -1." << endl;
+                    cerr << endl << "nv: " << nv << ", NOT larger than -1." << endl;
                     assert(false);
                 }
             }
@@ -355,8 +355,8 @@ pair<lst, lst> SD::Normalize(const pair<lst, lst> &input) {
                         } else if(!tmp.has(PL(wild()))) {
                             auto tr = tmp.subs(nReplacements);
                             if(!is_a<numeric>(tr)) {
-                                cout << "tmp: " << tmp << endl;
-                                cout << "tmp is NOT numeric with nReplacements." << endl;
+                                cerr << "tmp: " << tmp << endl;
+                                cerr << "tmp is NOT numeric with nReplacements." << endl;
                                 assert(false);
                             }
                             if(ex_to<numeric>(tr)>0) {
@@ -438,7 +438,7 @@ bool xPositive(ex expr) {
 
 void SD::Initialize(FeynmanParameter fp) {
     if(fp.Propagators.nops() != fp.Exponents.nops()) {
-        cout << "the length of Propagators and Exponents are NOT equal." << endl;
+        cerr << "the length of Propagators and Exponents are NOT equal." << endl;
         assert(false);
     }
     
@@ -541,7 +541,10 @@ void SD::Initialize(FeynmanParameter fp) {
         // check tloop^2
         if(sgn.is_zero()) {
             for(auto m : tls) {
-                assert(is_a<numeric>(p.coeff(m,2)));
+                if(!is_a<numeric>(p.coeff(m,2))) {
+                    cerr << "not numeric: " << p.coeff(m,2) << endl;
+                    assert(false);
+                }
                 numeric nm = ex_to<numeric>(p.coeff(m,2));
                 if(nm.is_zero()) continue;
                 sgn = nm>0 ? -1 : 1;
@@ -591,11 +594,11 @@ void SD::Initialize(FeynmanParameter fp) {
         usgn = normal(usgn)>0 ? 1 : -1;
         
         if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(plsubs))) {
-            cout << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(plsubs) << endl;
+            cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(plsubs) << endl;
             assert(false);
         }
         if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(plsubs))) {
-            cout << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(plsubs) << endl;
+            cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(plsubs) << endl;
             assert(false);
         }
         
@@ -635,12 +638,11 @@ void SD::Initialize(FeynmanParameter fp) {
         usgn = normal(usgn)>0 ? 1 : -1;
         
         if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(plsubs))) {
-            cout << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(plsubs) << endl;
-            
+            cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(plsubs) << endl;
             assert(false);
         }
         if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(plsubs))) {
-            cout << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(plsubs) << endl;
+            cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(plsubs) << endl;
             assert(false);
         }
         
@@ -1052,9 +1054,9 @@ void SD::RemoveDeltas() {
                     auto fun = fe.first.op(j);
                     fun = fun.subs(repl).normal();
                     if(!fun.is_polynomial(xj)) {
-                        cout << "xj: " << xj << endl;
-                        cout << "fun: " << fun << endl;
-                        cout << "fun is NOT polynormial of xj." << endl;
+                        cerr << "xj: " << xj << endl;
+                        cerr << "fun: " << fun << endl;
+                        cerr << "fun is NOT polynormial of xj." << endl;
                         assert(false);
                     }
                     auto expn = mma_collect(fun, xj).degree(xj);
@@ -1183,8 +1185,8 @@ void SD::SDPrepares() {
                         
                         // commented below
                         if(!noFT && ex_to<numeric>(expn)<-1) {
-                            cout << "expn: " << expn << endl;
-                            cout << "expn<-1 in the case with FT." << endl;
+                            cerr << "expn: " << expn << endl;
+                            cerr << "expn<-1 in the case with FT." << endl;
                             assert(false);
                         }
 
@@ -1255,7 +1257,7 @@ void SD::EpsEpExpands() {
         exset cts;
         item.find(CT(wild()), cts);
         if(cts.size() != 1) {
-            cout << "CT size is NOT 1!" << endl;
+            cerr << "CT size is NOT 1!" << endl;
             assert(false);
         }
         ex ct = (*(cts.begin())).subs(CT(wild())==wild()).subs(iEpsilon==0);
@@ -1524,7 +1526,7 @@ void SD::CIPrepares(const char *key) {
         } else {
             int ft_n = ftnmap[item.op(2)];
             if(ft_n==0) {
-                cout << item.op(2) << endl;
+                cerr << item.op(2) << endl;
                 assert(false);
             }
             ii.append(ft_n);
@@ -2505,7 +2507,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 for(int ci=0; ci<css.nops(); ci++) {
                     auto nt = css.op(ci).subs(nReplacements).evalf();
                     if(!is_a<numeric>(nt)) {
-                        cout << "nt: " << nt << endl;
+                        cerr << "nt: " << nt << endl;
                         assert(false);
                     }
                     assert(!nt.has(ep));
@@ -2528,7 +2530,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             }
         }
         if(cmax<=0) {
-            cout << "cmax<=0 with co = " << co <<endl;
+            cerr << "cmax<=0 with co = " << co <<endl;
             assert(false);
         }
         if(reim!=3 && ReIm!=3) {
@@ -2536,11 +2538,11 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             else if(reim==2 && ReIm==2) reim=1;
         }
         
-        if(Verbose > 3) cout << "XDim=" << xsize << ", EpsAbs=" << (double)(EpsAbs/cmax/stot) << endl;
+        if(Verbose > 3) cout << "XDim=" << xsize << ", EpsAbs=" << (double)(EpsAbs/cmax/stot) << "/" << (double)cmax << endl;
         
         auto las = LambdaMap[item.op(3)];
         if(las.is_zero() && item.op(3)>0) {
-            cout << "lambda with the key(ft_n=" << item.op(3) << ") is NOT found!" << endl;
+            cerr << "lambda with the key(ft_n=" << item.op(3) << ") is NOT found!" << endl;
             assert(false);
         }
         
@@ -2631,7 +2633,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 auto res_tmp = res.subs(VE(wild(1), wild(2))==wild(2));
                 auto err = real_part(res_tmp);
                 if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
-                ILWrapper::lastResErr = res;
+                ErrMin::lastResErr = res;
                 cerr = err;
             } else {
             // ---------------------------------------
@@ -2683,7 +2685,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                     auto err = real_part(res_tmp);
                     if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
                     if(smin<0 || err < emin) {
-                        ILWrapper::lastResErr = res;
+                        ErrMin::lastResErr = res;
                         cerr = err;
                         smin = s;
                         emin = err;
@@ -2708,7 +2710,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 }
                 if(smin == -2) break;
                 if(smin == -1) {
-                    cout << "smin = -1, optimized lambda NOT found!" << endl;
+                    std::cerr << "smin = -1, optimized lambda NOT found!" << endl;
                     assert(false);
                 }
                 
@@ -2749,27 +2751,27 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             // ---------------------------------------
             // try HookeJeeves
             // ---------------------------------------
-            if( use_ilwrapper && (cerr > CppFormat::q2ex(1E5 * EpsAbs/cmax/stot)) ) {
+            if( use_ErrMin && (cerr > CppFormat::q2ex(1E5 * EpsAbs/cmax/stot)) ) {
                 auto miner = new HookeJeeves();
-                ILWrapper::miner = miner;
-                ILWrapper::xsize = xsize;
-                ILWrapper::fp = fp;
-                ILWrapper::fpQ = fpQ;
-                ILWrapper::paras = paras;
-                ILWrapper::Integrator = Integrator;
-                ILWrapper::Verbose = Verbose;
+                ErrMin::miner = miner;
+                ErrMin::xsize = xsize;
+                ErrMin::fp = fp;
+                ErrMin::fpQ = fpQ;
+                ErrMin::paras = paras;
+                ErrMin::Integrator = Integrator;
+                ErrMin::Verbose = Verbose;
                 dREAL oo[las.nops()-1], ip[las.nops()-1];
-                for(int i=0; i<las.nops()-1; i++) ip[i] = lambda[i];
-                ILWrapper::lambda = oo;
-                ILWrapper::err_max = 1E30;
-                auto err_min = ILWrapper::err_min;
-                ILWrapper::err_min = err_min < 0 ? -err_min * ex_to<numeric>(cerr).to_double() : err_min/cmax;
-                ILWrapper::RunPTS = 0;
-                miner->Minimize(las.nops()-1, ILWrapper::IntError, ip);
+                for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = lambda[i];
+                ErrMin::lambda = oo;
+                ErrMin::err_max = 1E30;
+                auto err_min = ErrMin::err_min;
+                ErrMin::err_min = err_min < 0 ? -err_min * ex_to<numeric>(cerr).to_double() : err_min/cmax;
+                ErrMin::RunPTS = 0;
+                miner->Minimize(las.nops()-1, ErrMin::IntError, ip);
                 delete miner;
-                ILWrapper::err_min = err_min;
+                ErrMin::err_min = err_min;
                 for(int i=0; i<las.nops()-1; i++) {
-                    lambda[i] = ILWrapper::lambda[i];
+                    lambda[i] = ErrMin::lambda[i];
                 }
             }
             // ---------------------------------------

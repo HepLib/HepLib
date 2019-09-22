@@ -89,12 +89,13 @@ int HookeJeeves::hooke(int nvars, dREAL* startpt, dREAL* endpt, dREAL rho, dREAL
         }
     }
     for (i = 0; i < nvars; i++) endpt[i] = xbefore[i];
+cout << "iters = " << iters << endl;
     return (iters);
 }
 
 dREAL HookeJeeves::ObjectWrapper(int nvars, dREAL* x) {
     for(int i=0; i<nvars; i++) {
-        if(x[i]<LowerBound[i] || x[i]>UpperBound[i]) return 1E5;
+        if(x[i]<LowerBound[i] || (UpperBound[i]>0 && x[i]>UpperBound[i])) return 1E50;
     }
     return ObjectFunction(nvars, x, PL, LAS);
 }
@@ -163,7 +164,7 @@ void HookeJeeves::Minimize(int nvars, FunctionType func, dREAL *ip) {
     PL = NULL;
     LAS = NULL;
     
-    for(int i=0; i<nvars; i++) UpperBound[i] = 100;
+    for(int i=0; i<nvars; i++) UpperBound[i] = -1;
     for(int i=0; i<nvars; i++) LowerBound[i] = 0;
     
     dREAL EpsParameter = 1E-3;
@@ -171,7 +172,7 @@ void HookeJeeves::Minimize(int nvars, FunctionType func, dREAL *ip) {
     
     dREAL iPoints[nvars], oPoints[nvars];
     for(int i=0; i<nvars; i++) iPoints[i] = ip[i];
-    hooke(nvars, iPoints, oPoints, ILWrapper::hjRHO, EpsParameter, MaxParameter);
+    hooke(nvars, iPoints, oPoints, ErrMin::hjRHO, EpsParameter, MaxParameter);
 }
 
 

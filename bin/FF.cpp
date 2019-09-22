@@ -220,10 +220,10 @@ ex Integrate(int idx, numeric zz, int ii = -1) {
     work.Parameter[0] = zz;
     work.epN = epN;
     
-    work.use_ilwrapper = true;
-    ILWrapper::err_min = 1E-3;
-    ILWrapper::MaxPTS = 200;
-    ILWrapper::hjRHO = 0.75;
+    work.use_ErrMin = true;
+    ErrMin::err_min = 1E-3;
+    ErrMin::MaxPTS = 200;
+    ErrMin::hjRHO = 0.75;
     
     work.EpsAbs = 1E-7;
     work.RunPTS = 5000000;
@@ -429,8 +429,8 @@ int main(int argc, char** argv) {
         in.close();
         auto c = ar.unarchive_ex(para_sym, "c");
         if(c!=19790923) {
-            cout << "gar file: " << ss.str() << endl;
-            cout << "c=" << c << ", different from 19790923!" << endl;
+            cerr << "gar file: " << ss.str() << endl;
+            cerr << "c=" << c << ", different from 19790923!" << endl;
             assert(false);
         }
         auto relst = ex_to<lst>(ar.unarchive_ex(para_sym, "relst"));

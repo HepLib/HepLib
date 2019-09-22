@@ -809,7 +809,7 @@ static int rulecubature(rule *r, unsigned fdim,
     }
     }
     
-    /** re-sum integral and errors */
+    /* re-sum integral and errors */
     for (j = 0; j < fdim; ++j) val[j] = err[j] = 0;
     for (i = 0; i < regions.n; ++i) {
         for (j = 0; j < fdim; ++j) {

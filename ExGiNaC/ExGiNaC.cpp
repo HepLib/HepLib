@@ -209,8 +209,8 @@ ex garResult(const char *garfn, lst syms) {
     auto c = ar.unarchive_ex(syms, "c");
     auto res = ar.unarchive_ex(syms, "res");
     if(c!=19790923) {
-        cout << "gar file: " << garfn << endl;
-        cout << "c=" << c << ", different from 19790923!" << endl;
+        cerr << "gar file: " << garfn << endl;
+        cerr << "c=" << c << ", different from 19790923!" << endl;
         assert(false);
     }
     return res;
@@ -234,7 +234,7 @@ ex mma_series(ex expr_in, symbol s, int sn) {
         res.find(CCF(wild()), cset);
         for(auto ccf : cset) {
             if(ccf.has(s)) {
-                cout << "ccf = " << ccf << endl;
+                cerr << "ccf = " << ccf << endl;
                 assert(false);
                 break;
             }
@@ -249,9 +249,9 @@ ex mma_series(ex expr_in, symbol s, int sn) {
             }
         }
         if(!is_order_function(ot)) {
-            cout << RED << "Not an Order term: " << ot << RESET << endl;
-            cout << "expr = " << expr << endl;
-            cout << "res = " << res << endl;
+            cerr << RED << "Not an Order term: " << ot << RESET << endl;
+            cerr << "expr = " << expr << endl;
+            cerr << "res = " << res << endl;
             assert(false);
         }
         if(ot.op(0).degree(s)>sn) {
@@ -265,7 +265,7 @@ ex mma_series(ex expr_in, symbol s, int sn) {
         }
         exN++;
     }
-    cout << RED << "mma_series seems not working!" << RESET << endl;
+    cerr << RED << "mma_series seems not working!" << RESET << endl;
     assert(false);
     return 0;
 }

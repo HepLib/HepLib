@@ -2,22 +2,22 @@
 
 namespace HepLib {
 
-int ILWrapper::Verbose;
-unsigned int ILWrapper::xsize;
-IntegratorBase::SD_Type ILWrapper::fp = NULL;
-IntegratorBase::SD_Type ILWrapper::fpQ = NULL;
-IntegratorBase *ILWrapper::Integrator = NULL;
-MinimizeBase *ILWrapper::miner = NULL;
-qREAL *ILWrapper::paras = NULL;
-dREAL *ILWrapper::lambda = NULL;
-dREAL ILWrapper::err_max;
-dREAL ILWrapper::hjRHO = 0.75;
-dREAL ILWrapper::err_min = -0.001;
-long long ILWrapper::MaxPTS = 500;
-long long ILWrapper::RunPTS = 0;
-ex ILWrapper::lastResErr;
+int ErrMin::Verbose;
+unsigned int ErrMin::xsize;
+IntegratorBase::SD_Type ErrMin::fp = NULL;
+IntegratorBase::SD_Type ErrMin::fpQ = NULL;
+IntegratorBase *ErrMin::Integrator = NULL;
+MinimizeBase *ErrMin::miner = NULL;
+qREAL *ErrMin::paras = NULL;
+dREAL *ErrMin::lambda = NULL;
+dREAL ErrMin::err_max;
+dREAL ErrMin::hjRHO = 0.75;
+dREAL ErrMin::err_min = -0.001;
+long long ErrMin::MaxPTS = 500;
+long long ErrMin::RunPTS = 0;
+ex ErrMin::lastResErr;
 
-dREAL ILWrapper::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
+dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     RunPTS++;
     qREAL qlas[nvars];
     for(int i=0; i<nvars; i++) qlas[i] = las[i];
