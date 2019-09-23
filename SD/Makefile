@@ -1,6 +1,6 @@
 include ../opt.mk
 
-all: SD.o SecDecG.o Helpers.o Wrapper.o ErrMin.o cseParser.o CppFormat.o HCubature.o MinUit.o HookeJeeves.o Lib3/HCubature.o
+all: SD.o SecDecG.o Helpers.o Wrapper.o ErrMin.o cseParser.o CppFormat.o HCubature.o CUBA.o MinUit.o HookeJeeves.o Lib3/HCubature.o
 
 SD.o : SD.cpp
 	g++ $(opt) -c -o $@ $^
@@ -25,6 +25,9 @@ CppFormat.o : CppFormat.cpp
 	g++ $(opt) -c -o $@ $^
 
 HCubature.o : HCubature.cpp
+	g++ $(opt) -I Lib3 -fopenmp -c -o $@ $^
+
+CUBA.o : CUBA.cpp
 	g++ $(opt) -I Lib3 -fopenmp -c -o $@ $^
 
 MinUit.o : MinUit.cpp

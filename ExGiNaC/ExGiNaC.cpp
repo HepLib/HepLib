@@ -2,9 +2,9 @@
 
 namespace HepLib {
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Global Symbol
-/*********************************************************/
+/*-----------------------------------------------------*/
 const symbol & get_symbol(const string & s) {
     static map<string, symbol> directory;
     map<string, symbol>::iterator i = directory.find(s);
@@ -14,9 +14,9 @@ const symbol & get_symbol(const string & s) {
         return directory.insert(make_pair(s, symbol(s))).first->second;
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // split
-/*********************************************************/
+/*-----------------------------------------------------*/
 std::vector<std::string> split(const std::string& s, char delimiter) {
     std::vector<std::string> tokens;
     std::string token;
@@ -27,9 +27,9 @@ std::vector<std::string> split(const std::string& s, char delimiter) {
     return tokens;
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // MatHelper
-/*********************************************************/
+/*-----------------------------------------------------*/
 bool MatHelper::has_zero_row(const matrix &mat) {
     for(int r=0; r<mat.rows(); r++) {
         bool iszero = true;
@@ -96,9 +96,9 @@ matrix MatHelper::sub(matrix mat, int r, int nr, int c, int nc) {
 
 
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // lstHelper
-/*********************************************************/
+/*-----------------------------------------------------*/
 lst lstHelper::sub(lst m, int s, int n) {
     lst ret;
     for(int i=0; (i<=n || n<0) && i+s<m.nops(); i++) ret.append(m.op(s+i));
@@ -119,9 +119,9 @@ lst lstHelper::subs(lst m, exmap r) {
     return map(m, [&](auto &&e){return e.subs(r);});
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // now string
-/*********************************************************/
+/*-----------------------------------------------------*/
 string now(bool use_date) {
     time_t timep;
     time (&timep);
@@ -131,9 +131,9 @@ string now(bool use_date) {
     return tmp;
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Symbols
-/*********************************************************/
+/*-----------------------------------------------------*/
 void gather_symbols_inner(const ex & e, lst & l) {
     if (is_a<symbol>(e)) {
         l.append(e);
@@ -180,9 +180,9 @@ lst gather_symbols(const vector<pair<ex,ex>> & ve) {
     return l;
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // RunOS Command
-/*********************************************************/
+/*-----------------------------------------------------*/
 string RunOS(const char * cmd) {
     char buf[128];
     ostringstream oss;
@@ -198,9 +198,9 @@ string RunOS(const char * cmd) {
 }
 
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // garResult Function
-/*********************************************************/
+/*-----------------------------------------------------*/
 ex garResult(const char *garfn, lst syms) {
     archive ar;
     ifstream in(garfn);
@@ -217,9 +217,9 @@ ex garResult(const char *garfn, lst syms) {
 }
 
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Series at s=0 similar to Mathematica
-/*********************************************************/
+/*-----------------------------------------------------*/
 ex mma_series(ex expr_in, symbol s, int sn) {
     ex expr = expr_in;
     if(!expr.has(s)) return expr;
@@ -271,9 +271,9 @@ ex mma_series(ex expr_in, symbol s, int sn) {
 }
 
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // mma_collect
-/*********************************************************/
+/*-----------------------------------------------------*/
 ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
     lst cv_repl = lst{ CCF(wild(0))==wild(0), CVF(wild(1))==wild(1) };
     lst c_repl = lst{ CCF(wild())==wild() };
@@ -343,9 +343,9 @@ ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
     return ret;
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Customized GiNaC Function
-/*********************************************************/
+/*-----------------------------------------------------*/
 REGISTER_FUNCTION(VF, dummy())
 REGISTER_FUNCTION(VF1, dummy())
 REGISTER_FUNCTION(VF2, dummy())

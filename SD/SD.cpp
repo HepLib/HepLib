@@ -16,9 +16,9 @@ vector<exmap> SecDecBase::x2y(const lst &xpols) {
     return x2y(xpol);
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 /*                    CheckFAtX1                         */
-/*********************************************************/
+/*-----------------------------------------------------*/
 bool SD::IsBadF1(ex f, vector<exmap> vmap) {
     for(auto &vi : vmap) {
         auto ft = f.subs(vi);
@@ -129,9 +129,9 @@ vector<pair<lst, lst>> SD::AutoF1(pair<lst, lst> po_ex) {
     return vector<pair<lst, lst>>();
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 /*                    SDPrepare                         */
-/*********************************************************/
+/*-----------------------------------------------------*/
 // 1st element in input polist is the constant term
 // 2nd element in input polist is the F-term
 vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
@@ -749,9 +749,9 @@ void SD::Initialize(FeynmanParameter fp) {
 
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 /*               's Funtions in SD                       */
-/*********************************************************/
+/*-----------------------------------------------------*/
 void SD::XReOrders() {
 if(IsZero) return;
 if(Deltas.size()>0) {
@@ -2324,7 +2324,7 @@ void SD::Contours(const char *key, const char *pkey) {
         }
         return lst{ nxn.op(0), las };
     
-    }, "la", Verbose, !debug);
+    }, "las", Verbose, !debug);
     
     ostringstream garfn;
     if(key != NULL) {
@@ -2778,14 +2778,14 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             
             std::ofstream las_ofs;
             las_ofs.open(las_fn.str(), ios::out);
-            if (!las_ofs) throw runtime_error("failed to open *.las file!");
-            for(int i=0; i<las.nops()-1; i++) {
-                dREAL la_tmp = lambda[i];
-                las_ofs << la_tmp << " ";
+            if (las_ofs) {
+                for(int i=0; i<las.nops()-1; i++) {
+                    dREAL la_tmp = lambda[i];
+                    las_ofs << la_tmp << " ";
+                }
+                las_ofs << endl;
+                las_ofs.close();
             }
-            las_ofs << endl;
-            las_ofs.close();
-            
         }
 
         Integrator->RunMAX = RunMAX;

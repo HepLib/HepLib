@@ -19,9 +19,9 @@ extern "C" {
 
 namespace HepLib {
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // SD Input
-/*********************************************************/
+/*-----------------------------------------------------*/
 struct FeynmanParameter {
     lst LoopMomenta;
     lst tLoopMomenta;
@@ -41,18 +41,18 @@ struct XIntegrand {
     ex Prefactor = 1;
 };
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Global Functions
-/*********************************************************/
+/*-----------------------------------------------------*/
 vector<ex> get_xy_from(ex pol);
 vector<ex> get_x_from(ex pol);
 vector<ex> get_y_from(ex pol);
 vector<ex> get_pl_from(ex pol);
 vector<pair<lst, lst>> diff_wrt(const pair<lst, lst> &input, ex xi);
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // SecDec Classes
-/*********************************************************/
+/*-----------------------------------------------------*/
 class SecDecBase {
 public:
     virtual vector<exmap> x2y(const ex &xpol) =0;
@@ -73,23 +73,9 @@ private:
     vector<matrix> SimplexCones(matrix pts);
 };
 
-class SecDecX : public SecDecBase {
-public:
-    vector<exmap> x2y(const ex &xpol) override;
-private:
-    bool PointOver(ex xx, ex yy);
-    ex OnlyLowPoints(ex xx);
-    ex NormShift(ex xx);
-    ex MakeOneStep(ex xx);
-    ex MakeOneStep(ex xx, ex facet);
-    ex MakeOneStep(ex xx, ex facet, ex graphas);
-    ex FindSD(ex xxx);
-    ex FindSD(ex xxx, bool extra);
-};
-
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Integrator Classes
-/*********************************************************/
+/*-----------------------------------------------------*/
 typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 
@@ -131,9 +117,38 @@ private:
     int LastState = 0;
 };
 
-/*********************************************************/
+class CUBA : public IntegratorBase {
+public:
+    
+    enum METHOD { VEGAS, CUHRE };
+    METHOD Method = CUHRE;
+    
+    // CUHRE Parameters
+    int CUHRE_KEY = 0;
+    
+    // VEGAS Parameters
+    int VEGAS_SEED = 0;
+    long long VEGAS_NSTART = 10000;
+    long long VEGAS_NINCREASE = 5000;
+    long long VEGAS_NBATCH = 1000;
+    
+    static bool useQ(unsigned xdim, qREAL const *x);
+    static int Wrapper(const int *xdim, const qREAL *x, const int *ydim, qREAL *y, void *fdata);
+    long long MaxPTS;
+    virtual ex Integrate(unsigned int, SD_Type, SD_Type, const qREAL[], const qREAL[]) override;
+    
+private:
+    SD_Type Integrand;
+    SD_Type IntegrandQ;
+    const qREAL* Lambda;
+    const qREAL* Parameter;
+    qREAL LastResult[2];
+    qREAL LastAbsErr[2];
+};
+
+/*-----------------------------------------------------*/
 // Minimize Classes
-/*********************************************************/
+/*-----------------------------------------------------*/
 typedef long double dREAL;
 class MinimizeBase {
 public:
@@ -182,9 +197,9 @@ public:
     dREAL *LAS;
 };
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // CppFormat Class
-/*********************************************************/
+/*-----------------------------------------------------*/
 class CppFormat : public print_csrc_cl_N {
     GINAC_DECLARE_PRINT_CONTEXT(CppFormat, print_csrc_cl_N)
 public:
@@ -199,15 +214,15 @@ private:
     static void print_numeric(const numeric & p, const CppFormat & c, unsigned level);
 };
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // VE
-/*********************************************************/
+/*-----------------------------------------------------*/
 ex VESimplify(ex expr, int epN = 0, int epsN = 0);
 ex VEResult(ex expr);
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Wrapper for use_cpp = false, i.e. use GiNaC
-/*********************************************************/
+/*-----------------------------------------------------*/
 class GWrapper {
 public:
     static void InitMinFunction(ex minF, vector<ex> xs, int ri = 1);
@@ -225,9 +240,9 @@ private:
     static int ReIm;
 };
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // ErrMin with HookeJeeves
-/*********************************************************/
+/*-----------------------------------------------------*/
 class ErrMin {
 public:
     static int Verbose;
@@ -247,9 +262,9 @@ public:
     static dREAL IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2);
 };
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // SD Class
-/*********************************************************/
+/*-----------------------------------------------------*/
 class SD {
 
 public:
@@ -336,9 +351,9 @@ private:
     exmap LambdaMap;
 };
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Common SubExpression Parser
-/*********************************************************/
+/*-----------------------------------------------------*/
 class cseParser {
 public:
     ex Parse(ex expr, bool reset=true);
@@ -351,9 +366,9 @@ private:
     vector<pair<int, ex>> o_ex_vec;
 };
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Customized GiNaC Function
-/*********************************************************/
+/*-----------------------------------------------------*/
 DECLARE_FUNCTION_1P(fabs)
 DECLARE_FUNCTION_1P(x)
 DECLARE_FUNCTION_1P(y)

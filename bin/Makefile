@@ -3,7 +3,7 @@ include ../opt.mk
 all: garview FF FFz UF
 
 % : %.cpp
-	g++ $(opt) -o $@ $^ -L .. -lHepLib -lginac -lcln -ldl -lqhullstatic
+	g++ $(opt) -o $@ $^ -lHepLib -lginac -lcln -ldl -lqhullstatic -lcubaq -lquadmath
 
 clean:
 	rm -f garview FF FFz UF

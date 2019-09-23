@@ -2,18 +2,18 @@
 
 namespace HepLib {
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Wrapper Members
-/*********************************************************/
+/*-----------------------------------------------------*/
 ex GWrapper::MinF;
 vector<ex> GWrapper::Xs;
 ex GWrapper::IntF;
 ex GWrapper::Lambda;
 int GWrapper::ReIm = 1;
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Wrapper Function: MinFunction
-/*********************************************************/
+/*-----------------------------------------------------*/
 void GWrapper::InitMinFunction(ex minF, vector<ex> xs, int ri) {
     MinF = minF;
     Xs = xs;
@@ -31,9 +31,9 @@ dREAL GWrapper::MinFunction(int nvars, dREAL* x, dREAL* pl, dREAL *las) {
     return ex_to<numeric>(res).to_double();
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Wrapper Function: IntFunction
-/*********************************************************/
+/*-----------------------------------------------------*/
 void GWrapper::InitIntFunction(ex intF, vector<ex> xs) {
     IntF = intF;
     Xs = xs;

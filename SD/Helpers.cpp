@@ -2,9 +2,9 @@
 
 namespace HepLib {
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Global Functions
-/*********************************************************/
+/*-----------------------------------------------------*/
 
 vector<ex> get_xy_from(ex pol) {
     exset xyset;
@@ -92,9 +92,9 @@ vector<pair<lst, lst>> diff_wrt(const pair<lst, lst> &input, ex xi) {
     return ret;
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // VE
-/*********************************************************/
+/*-----------------------------------------------------*/
 ex VESimplify(ex expr, int epN, int epsN) {
     Digits = 50;
     auto ep = SD::ep;
@@ -181,9 +181,9 @@ ex VEResult(ex expr) {
     return expr.subs(VE(wild(1),wild(2))==VEO(wild(1),wild(2)));
 }
 
-/*********************************************************/
+/*-----------------------------------------------------*/
 // Functions used in GiNaC
-/*********************************************************/
+/*-----------------------------------------------------*/
 static ex NoDiff_1P(const ex & x, unsigned diff_param) {return 0;}
 static ex NoDiff_2P(const ex & x, const ex & y, unsigned diff_param) {return 0;}
 static ex VE_Conjugate(const ex & x, const ex & y) { return VE(x,y).hold(); }
