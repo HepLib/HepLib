@@ -123,13 +123,15 @@ public:
     enum METHOD { VEGAS, CUHRE };
     METHOD Method = CUHRE;
     
+    int VERBOSE = 0;
+    
     // CUHRE Parameters
     int CUHRE_KEY = 0;
     
     // VEGAS Parameters
     int VEGAS_SEED = 0;
-    long long VEGAS_NSTART = 10000;
-    long long VEGAS_NINCREASE = 5000;
+    long long VEGAS_NSTART = 1000;
+    long long VEGAS_NINCREASE = 1000;
     long long VEGAS_NBATCH = 1000;
     
     static bool useQ(unsigned xdim, qREAL const *x);

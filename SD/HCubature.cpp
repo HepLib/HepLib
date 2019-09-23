@@ -64,7 +64,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
          return;
     }
     
-    if(self->RunMAX>0 && (epsabs[0] > 1E25*self->EpsAbs || epsabs[1] > 1E25*self->EpsAbs)) {
+    if(self->RunMAX>0 && (epsabs[0] > 1E30*self->EpsAbs || epsabs[1] > 1E30*self->EpsAbs)) {
          *nrun = self->MaxPTS + 1000;
          if(self->LastState>0) self->LastState = -1;
          if(self->Verbose>10 && self->RunMAX>0) cout << RED << "     Exit: EpsAbs." << RESET << endl;

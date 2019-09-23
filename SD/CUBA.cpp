@@ -72,8 +72,7 @@ ex CUBA::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL* pl, 
     if(MaxPTS<0) MaxPTS = -MaxPTS;
     
     int ndim = xdim;
-    long long int nvec = 1;
-    int VERBOSE = Verbose;
+    long long int NVEC = 1;
     
     int nregions, fail;
     long long neval;
@@ -81,7 +80,7 @@ ex CUBA::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL* pl, 
     
     switch(Method) {
         case VEGAS:
-            llVegas(ndim, ydim, Wrapper, this, nvec, EpsRel, EpsAbs, VERBOSE,
+            llVegas(ndim, ydim, Wrapper, this, NVEC, EpsRel, EpsAbs, VERBOSE,
                 VEGAS_SEED, RunPTS, MaxPTS, VEGAS_NSTART, VEGAS_NINCREASE, VEGAS_NBATCH,
                 0, NULL, NULL,
                 &neval, &fail, result, estabs, prob
@@ -89,7 +88,7 @@ ex CUBA::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL* pl, 
             break;
         case CUHRE:
             if(ndim==1) ndim = 2;
-            llCuhre(ndim, ydim, Wrapper, this, nvec, EpsRel, EpsAbs, VERBOSE | 4, RunPTS, MaxPTS,
+            llCuhre(ndim, ydim, Wrapper, this, NVEC, EpsRel, EpsAbs, VERBOSE | 4, RunPTS, MaxPTS,
                 CUHRE_KEY, NULL, NULL,
                 &nregions, &neval, &fail, result, estabs, prob
             );
