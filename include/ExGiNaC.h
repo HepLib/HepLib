@@ -138,7 +138,9 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
         if(verb > 1) {
             cout << "\r  ";
             for(int pi=0;pi<prtlvl;pi++) cout << "   ";
-            cout << "\\--Evaluating ["<<para_run<<"/"<<total<<"] ... "<< flush;
+            cout << "\\--Evaluating ";
+            if(key != NULL) cout << WHITE << key << RESET << " ";
+            cout << "["<<para_run<<"/"<<total<<"] ... "<< flush;
         }
 
         if(para_max_run>0) {
@@ -185,12 +187,12 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
             } else {
                 cout << "\r  ";
                 for(int pi=0;pi<prtlvl;pi++) cout << "   ";
-                cout << "\\--Reading *."<<key<<".gar ["<<i<<"/"<<para_run<<"] ... "<< flush;
+                cout << "\\--Reading *."<<WHITE<<key<<RESET<<".gar ["<<i<<"/"<<para_run<<"] ... "<< flush;
             }
         }
 
         int oDigits = Digits;
-        Digits = oDigits; // a fix to float overflow
+        Digits = 50; // a fix to float overflow
         
         archive ar;
         ostringstream garfn;
@@ -204,12 +206,16 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
         if(c!=19790923) throw runtime_error("*.gar error!");
         auto res = ar.unarchive_ex(syms, "res");
         ovec.push_back(res);
+        Digits = oDigits;
     }
     
-    cmd.clear();
-    cmd.str("");
-    cmd << "rm -r " << ppid;
-    if(rm) system(cmd.str().c_str());
+    if(rm) {
+        cmd.clear();
+        cmd.str("");
+        cmd << "rm -fr " << ppid;
+        system(cmd.str().c_str());
+        system(cmd.str().c_str());
+    }
     if(verb > 1 && para_run > 0) cout << "@" << now(false) << endl;
     return ovec;
 }
@@ -239,6 +245,7 @@ ex garResult(const char *garfn, lst syms);
 /*-----------------------------------------------------*/
 ex mma_series(ex expr, symbol s, int sn);
 ex mma_collect(ex expr, ex pat, bool ccf=false, bool cvf=false);
+ex mma_diff(ex expr, ex xp, unsigned nth=1);
 
 /*-----------------------------------------------------*/
 // Customized GiNaC Function

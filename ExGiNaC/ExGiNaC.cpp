@@ -225,21 +225,21 @@ ex mma_series(ex expr_in, symbol s, int sn) {
     if(!expr.has(s)) return expr;
     int exN = 1;
     ex expr_input = mma_collect(expr_in,s,true);
+    
+    // make sure CCF has no s
+    exset cset;
+    expr_input.find(CCF(wild()), cset);
+    for(auto ccf : cset) {
+        if(ccf.has(s)) {
+            cerr << "ccf = " << ccf << endl;
+            assert(false);
+            break;
+        }
+    }
+    
     while(exN<10) {
         expr = expr_input + pow(s,sn+exN+2);
         ex res = expr.series(s, sn+exN);
-        
-        // make sure CCF has no s
-        exset cset;
-        res.find(CCF(wild()), cset);
-        for(auto ccf : cset) {
-            if(ccf.has(s)) {
-                cerr << "ccf = " << ccf << endl;
-                assert(false);
-                break;
-            }
-        }
-        
         res = res.subs(CCF(wild())==wild()); // remove CCF
         ex ot = 0;
         for(int i=0; i<res.nops(); i++) {
@@ -268,6 +268,32 @@ ex mma_series(ex expr_in, symbol s, int sn) {
     cerr << RED << "mma_series seems not working!" << RESET << endl;
     assert(false);
     return 0;
+}
+
+/*-----------------------------------------------------*/
+// mma_collect
+/*-----------------------------------------------------*/
+ex mma_diff(ex expr, ex xp, unsigned nth) {
+    symbol s;
+    ex res = expr.subs(xp==s);
+    res = mma_collect(res, s, true);
+    
+    // make sure CCF has no s
+    exset cset;
+    res.find(CCF(wild()), cset);
+    for(auto ccf : cset) {
+        if(ccf.has(s)) {
+            cerr << "ccf = " << ccf << endl;
+            assert(false);
+            break;
+        }
+    }
+    
+    res = res.diff(s, nth);
+    res = res.subs(CCF(wild())==wild()); // remove CCF
+    res = res.subs(s==xp);
+    
+    return res;
 }
 
 
@@ -346,12 +372,13 @@ ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
 /*-----------------------------------------------------*/
 // Customized GiNaC Function
 /*-----------------------------------------------------*/
+static ex CCF_Diff(const ex & x, unsigned diff_param) {return 0;}
 REGISTER_FUNCTION(VF, dummy())
 REGISTER_FUNCTION(VF1, dummy())
 REGISTER_FUNCTION(VF2, dummy())
 REGISTER_FUNCTION(VF3, dummy())
 
-REGISTER_FUNCTION(CCF, dummy())
+REGISTER_FUNCTION(CCF, derivative_func(CCF_Diff))
 REGISTER_FUNCTION(CVF, dummy())
 
 }

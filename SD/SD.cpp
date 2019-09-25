@@ -1088,7 +1088,6 @@ void SD::SDPrepares() {
         return;
     }
     
-    symbol s;
     Integrands.clear();
     
     if(CheckF1) {
@@ -1125,101 +1124,135 @@ void SD::SDPrepares() {
         if(to_add) FunExp.push_back(kv);
     }
     
-    if(Verbose > 0) cout << now() << " - SDPrepares ..." << endl << flush;
+    if(Verbose > 0) cout << now() << " - SDPrepares: ..." << endl << flush;
+    
+    vector<ex> sd_res =
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &kv, auto rid) {
+        // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, exp }.
+        
+        lst para_res_lst;
+        auto xmol_exps = SDPrepare(kv);
+        for(auto const &xmol_exp : xmol_exps) {
+            auto xmol = xmol_exp.first;
+            auto expr = xmol_exp.second;
+            lst xn_lst;
+            for(auto xen : xmol) {
+                xn_lst.append(lst{ xen.first, xen.second });
+            }
+            para_res_lst.append(lst{xn_lst, expr});
+        }
+        return para_res_lst;
+    }, "sd", Verbose, true);
+    
+    vector<ex> ibp_in_vec;
+    for(auto &item : sd_res) {
+        for(auto &it : ex_to<lst>(item)) ibp_in_vec.push_back(it);
+    }
+    
+    vector<ex> ibp_res_vec;
+    while(ibp_in_vec.size()>0) {
+        vector<ex> ibp_res =
+        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ibp_in_vec, [&](auto &xns_expr, auto rid) {
+            // return { 1 element for pole reached } or { 2 elements for pole NOT reached }.
+            
+            auto xns = xns_expr.op(0);
+            auto expr = xns_expr.op(1);
+            
+            exset fts;
+            expr.find(FTX(wild(1),wild(2)), fts);
+            bool noFT = (fts.size()==1) && ( (*(fts.begin())).op(0) == 1 );
+            
+            ex pole_requested = -1;
+            if(noFT || PoleRequested > -1) pole_requested = PoleRequested;
+            
+            for(int n=0; n<xns.nops(); n++) {
+                ex xn = xns.op(n);
+                auto expn = xn.op(1).subs(lst{eps==0,ep==0}).normal();
+                if(!is_a<numeric>(expn)) {
+                    cout << RED << "expn NOT numeric: " << expn << RESET << endl;
+                    assert(false);
+                }
+
+                if(ex_to<numeric>(expn) < pole_requested) {
+                    auto xx = xn.op(0);
+                    expr = expr / (xn.op(1)+1);
+                    
+                    lst xns2, xns_expr2;
+                    for(int i=0; i<xns.nops(); i++) {
+                        if(xns.op(i).op(0) != xx) xns2.append(xns.op(i));
+                    }
+                    auto expr2 = expr.subs(xx==1);
+                    xns_expr2.append(xns2);
+                    xns_expr2.append(expr2);
+                    
+                    lst xns3, xns_expr3;
+                    for(int i=0; i<xns.nops(); i++) {
+                        if(xns.op(i).op(0) != xx) xns3.append(xns.op(i));
+                        else xns3.append(lst{ xx, xns.op(i).op(1)+1 });
+                    }
+                    
+                    auto expr3 = ex(0)-mma_diff(expr, xx);
+                    xns_expr3.append(xns3);
+                    xns_expr3.append(expr3);
+                    
+                    return lst { xns_expr2, xns_expr3 };
+                }
+            }
+            
+            return lst { xns_expr };
+
+        }, "ibp", Verbose, true);
+    
+        ibp_in_vec.clear();
+        for(auto &item : ibp_res) {
+            if(item.nops()>1) {
+                assert(item.nops()==2);
+                for(auto &it : ex_to<lst>(item)) ibp_in_vec.push_back(it);
+            } else {
+                ibp_res_vec.push_back(item.op(0));
+            }
+        }
+    }
     
     vector<ex> res =
-    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &kv, auto rid) {
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, ibp_res_vec, [&](auto &xns_expr, auto rid) {
 
         // return single element in which ep/eps can be expanded safely.
         lst para_res_lst;
-        auto xmol_exps = SDPrepare(kv);
-        int run_count = 0;
-
-        while(xmol_exps.size()>0) {
-            if((++run_count) > 100) throw runtime_error("run count > 100 limit!");
+        auto xns = xns_expr.op(0);
+        auto expr = xns_expr.op(1);
+        lst exprs = { expr };
+        symbol dx;
+        for(auto xn : xns) {
+            auto expn = xn.op(1).subs(lst{eps==0,ep==0}).normal();
+            assert(is_a<numeric>(expn));
             
-            vector<pair<exmap, ex>> todo_list;
-            for(auto const &xmol_exp : xmol_exps) {
-                auto xmol = xmol_exp.first;
-                auto expr = xmol_exp.second;
-                bool pole_reached = true;
-                
-                exset fts;
-                expr.find(FTX(wild(1),wild(2)), fts);
-                bool noFT = (fts.size()==1) && ( (*(fts.begin())).op(0) == 1 );
-                
-                ex pole_requested = -1;
-                if(noFT || PoleRequested > -1) pole_requested = PoleRequested;
-                
-                for(auto xen : xmol) {
-                    auto expn = xen.second.subs(lst{eps==0,ep==0}).normal();
-                    if(!is_a<numeric>(expn)) {
-                        cout << expn << endl;
-                    }
-                    assert(is_a<numeric>(expn));
-                    if(ex_to<numeric>(expn) < pole_requested) {
-                        pole_reached = false;
-                        auto xx = xen.first;
-                        expr = expr / (xen.second+1);
-                        
-                        exmap xmol2;
-                        for(auto kv : xmol) {
-                            if(kv.first != xx) xmol2[kv.first] = kv.second;
-                        }
-                        auto exp2 = expr.subs(xx==1);
-                        todo_list.push_back(make_pair(xmol2, exp2));
-                        
-                        xmol[xx] = xen.second+1;
-                        expr = ex(0)-expr.subs(xx==s).diff(s).subs(s==xx);
-                        todo_list.push_back(make_pair(xmol, expr));
-                        break;
+            lst exprs2;
+            for(auto it : exprs) {
+                ex rem = pow(xn.op(0), xn.op(1)) * it;
+                if(ex_to<numeric>(expn)<=-1) {
+                    ex dit = it;
+                    ex dit0 = dit.subs(xn.op(0)==0);
+                    ex ifact = 1;
+                    rem -= pow(xn.op(0), xn.op(1)) * dit0 / ifact;
+                    exprs2.append(dit0/(xn.op(1)+1)/ifact);
+                    for(int i=1; i+expn<0; i++) {
+                        dit = mma_diff(dit, xn.op(0));
+                        dit0 = dit.subs(xn.op(0)==0);
+                        ifact *= i;
+                        rem -= pow(xn.op(0), xn.op(1)+i) * dit0 / ifact;
+                        exprs2.append(dit0/(xn.op(1)+i+1)/ifact);
                     }
                 }
-
-                if(pole_reached) {
-                    lst exprs = {expr};
-                    symbol dx;
-                    for(auto xen : xmol) {
-                        auto expn = xen.second.subs(lst{eps==0,ep==0}).normal();
-                        assert(is_a<numeric>(expn));
-                        
-                        // commented below
-                        if(!noFT && ex_to<numeric>(expn)<-1) {
-                            cerr << "expn: " << expn << endl;
-                            cerr << "expn<-1 in the case with FT." << endl;
-                            assert(false);
-                        }
-
-                        lst exprs2;
-                        for(auto it : exprs) {
-                            ex rem = pow(xen.first, xen.second) * it;
-                            if(ex_to<numeric>(expn)<=-1) {
-                                ex dit = it;
-                                ex dit0 = dit.subs(xen.first==0);
-                                ex ifact = 1;
-                                rem -= pow(xen.first, xen.second) * dit0 / ifact;
-                                exprs2.append(dit0/(xen.second+1)/ifact);
-                                for(int i=1; i+expn<0; i++) {
-                                    dit = dit.subs(xen.first==dx).diff(dx).subs(dx==xen.first);
-                                    dit0 = dit.subs(xen.first==0);
-                                    ifact *= i;
-                                    rem -= pow(xen.first, xen.second+i) * dit0 / ifact;
-                                    exprs2.append(dit0/(xen.second+i+1)/ifact);
-                                }
-                            }
-                            exprs2.append(rem);
-                        }
-                        exprs = exprs2;
-                    }
-                    
-                    for(auto const &it : exprs) {
-                        if(!it.is_zero()) para_res_lst.append(it);
-                    }
-                }
+                exprs2.append(rem);
             }
-            xmol_exps = todo_list;
+            exprs = exprs2;
         }
-        
+
+        for(auto const &it : exprs) {
+            if(!it.is_zero()) para_res_lst.append(it);
+        }
+     
         for(int i=0; i<para_res_lst.nops(); i++) {
             auto xs = get_x_from(para_res_lst.op(i));
             
@@ -1230,10 +1263,11 @@ void SD::SDPrepares() {
             
             para_res_lst.let_op(i) = para_res_lst.op(i).subs(x2y).subs(y(wild())==x(wild()));
         }
-        
-        if(para_res_lst.nops()<1) para_res_lst.append(0);
+
+        //deleted from GiNaC 1.7.7
+        //if(para_res_lst.nops()<1) para_res_lst.append(0);
         return para_res_lst;
-    }, "sd", Verbose, true);
+    }, "taylor", Verbose, true);
     
     for(auto &item : res) {
         for(auto &it : ex_to<lst>(item)) Integrands.push_back(it);
@@ -1296,8 +1330,9 @@ void SD::EpsEpExpands() {
             }
             
         }
-
-        if(para_res_lst.nops()<1) para_res_lst.append(lst{0,0});
+        
+        //deleted from GiNaC 1.7.7
+        //if(para_res_lst.nops()<1) para_res_lst.append(lst{0,0});
         return para_res_lst;
 
     }, "ep", Verbose, !debug);
@@ -1509,7 +1544,10 @@ void SD::CIPrepares(const char *key) {
     map<ex,int,ex_is_less> ftnmap;
     int ft_n = 1;
     FT_N_NX.remove_all();
-    FT_N_NX.append(lst{0, 0});
+    
+    //deleted from GiNaC 1.7.7
+    //FT_N_NX.append(lst{0, 0});
+    
     for(auto item : fts) {
         ftnvec.push_back(make_pair(item, ft_n));
         ftnmap[item] = ft_n;
@@ -1569,14 +1607,13 @@ void SD::CIPrepares(const char *key) {
         
         ex DFs[fxs.size()], DDFs[fxs.size()*fxs.size()];
         for(int i=0; i<fxs.size(); i++) {
-            symbol s;
-            auto df = ft.subs(fxs[i]==s).diff(s).subs(s==fxs[i]);
+            auto df = mma_diff(ft, fxs[i]);
             DFs[i] = collect_common_factors(df);
             ostringstream ilaos;
             ilaos << "ilas[" << i << "]";
             symbol ila(ilaos.str());
             for(int j=0; j<fxs.size(); j++) {
-                auto ddf = DFs[i].subs(fxs[j]==s).diff(s).subs(s==fxs[j]);
+                auto ddf = mma_diff(DFs[i], fxs[j]);
                 DDFs[fxs.size()*i+j] = collect_common_factors(ddf);
             }
         }
@@ -2124,7 +2161,10 @@ ofs << R"EOF(
         ostringstream garfn;
         lst fn_lst;
         for(auto &kv : ftnvec) fn_lst.append(lst{kv.first, kv.second});
-        if(fn_lst.nops()<1) fn_lst = lst{lst{1, -1}};
+        
+        //deleted from GiNaC 1.7.7
+        //if(fn_lst.nops()<1) fn_lst = lst{lst{1, -1}};
+        
         lst cifn_lst;
         for(auto &item : res_vec) cifn_lst.append(item);
         if(key != NULL) {
@@ -2166,19 +2206,22 @@ void SD::Contours(const char *key, const char *pkey) {
         }
     }
     
-    if(FT_N_NX.nops()<2) return; // 1st is 0
+    //change 2->1 from GiNaC 1.7.7
+    if(FT_N_NX.nops()<1) return;
     if(Verbose > 0) cout << now() << " - Contours ..." << endl << flush;
     
     if(!use_cpp) {
         lst fn_lst = ciResult[0];
         exmap fn_map;
         for(auto item : fn_lst) fn_map[item.op(1)] = item.op(0);
-        for(int i=1; i<FT_N_NX.nops(); i++) FT_N_NX.let_op(i)= lst{FT_N_NX.op(i).op(0), fn_map[FT_N_NX.op(i).op(0)]};
+        //change 1->0 from GiNaC 1.7.7
+        for(int i=0; i<FT_N_NX.nops(); i++) FT_N_NX.let_op(i)= lst{FT_N_NX.op(i).op(0), fn_map[FT_N_NX.op(i).op(0)]};
         //now FT_N_NX item: lst { ft-id, ft}
     }
     
     vector<ex> nxn_vec;
-    for(int i=1; i<FT_N_NX.nops(); i++) nxn_vec.push_back(FT_N_NX.op(i));
+    //change 1->0 from GiNaC 1.7.7
+    for(int i=0; i<FT_N_NX.nops(); i++) nxn_vec.push_back(FT_N_NX.op(i));
     
     auto pid = getpid();
     ostringstream cmd;
@@ -2229,9 +2272,8 @@ void SD::Contours(const char *key, const char *pkey) {
                 dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
                 assert(dfp!=NULL);
             } else {
-                symbol s;
                 auto xi = get_xy_from(ft)[i];
-                ex df = ft.subs(xi==s).diff(s).subs(s==xi);
+                ex df = mma_diff(ft, xi);
                 GWrapper::InitMinFunction(-abs(df), xs, 1);
                 dfp = GWrapper::MinFunction;
             }
@@ -2279,9 +2321,8 @@ void SD::Contours(const char *key, const char *pkey) {
             assert(fp!=NULL);
         } else {
             lst zRepl;
-            symbol s;
             for(int i=0; i<nvars; i++) {
-                auto df = ft.subs(xs[i]==s).diff(s).subs(s==xs[i]);
+                auto df = mma_diff(ft, xs[i]);
                 ex zi = xs[i] - xs[i]*(1-xs[i])*df*I*CppFormat::q2ex(nlas[i])*x(nvars);
                 zRepl.append(xs[i]==zi);
             }
@@ -2578,11 +2619,10 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                     lst zRepl;
                     matrix mat(fxs.size(), fxs.size());
                     for(int i=0; i<fxs.size(); i++) {
-                        symbol s;
-                        ex df = exft.subs(fxs[i]==s).diff(s).subs(s==fxs[i]).subs(x0Repl);
+                        ex df = mma_diff(exft, fxs[i]).subs(x0Repl);
                         ex zi = fxs[i] - fxs[i]*(1-fxs[i])*df*las.op(i)*I*z(0);
                         zRepl.append(fxs[i]==zi);
-                        for(int j=0; j<fxs.size(); j++) mat(i, j) = zi.subs(fxs[j]==s).diff(s).subs(s==fxs[j]);
+                        for(int j=0; j<fxs.size(); j++) mat(i, j) = mma_diff(zi, fxs[j]);
                     }
                     intx += mat.determinant() * cc.subs(zRepl);
                 }
@@ -2857,7 +2897,7 @@ void SD::Initialize(XIntegrand xint) {
     Normalizes();
 }
 
-void SD::Evaluate(FeynmanParameter fp) {    
+void SD::Evaluate(FeynmanParameter fp, const char* key) {
     cout << endl << "Starting @ " << now() << endl;
     if(SecDec==NULL) SecDec = new SecDecG();
     if(Integrator==NULL) Integrator = new HCubature();
@@ -2872,16 +2912,16 @@ void SD::Evaluate(FeynmanParameter fp) {
     RemoveDeltas();
     SDPrepares();
     EpsEpExpands();
-    CIPrepares();
-    Contours();
-    Integrates();
+    CIPrepares(key);
+    Contours(key);
+    Integrates(key);
     delete SecDec;
     delete Integrator;
     delete Minimizer;
     cout << "Finished @ " << now() << endl << endl;
 }
 
-void SD::Evaluate(XIntegrand xint) {
+void SD::Evaluate(XIntegrand xint, const char *key) {
     cout << endl << "Starting @ " << now() << endl;
     if(SecDec==NULL) SecDec = new SecDecG();
     if(Integrator==NULL) Integrator = new HCubature();
@@ -2895,9 +2935,9 @@ void SD::Evaluate(XIntegrand xint) {
     RemoveDeltas();
     SDPrepares();
     EpsEpExpands();
-    CIPrepares();
-    Contours();
-    Integrates();
+    CIPrepares(key);
+    Contours(key);
+    Integrates(key);
     delete SecDec;
     delete Integrator;
     delete Minimizer;

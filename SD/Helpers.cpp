@@ -144,7 +144,7 @@ ex VESimplify(ex expr, int epN, int epsN) {
             tmpIR.find(VE(wild(1), wild(2)), ves);
             auto ntmp = tmpIR.subs(lst{VE(wild(1), wild(2))==0});
             assert(is_a<numeric>(ntmp));
-            if(abs(ntmp.evalf())>numeric("1E150")) return SD::NaN;
+            if(abs(ntmp.evalf())>numeric("1E300")) return SD::NaN;
             ex vIR = ntmp;
             ex eI2 = 0, eR2 = 0;
             for(auto ve : ves) {
@@ -160,20 +160,9 @@ ex VESimplify(ex expr, int epN, int epsN) {
             ret += VE(ex_to<numeric>(vIR).imag_part(), sqrt(eI2)) * pow(eps,si) * pow(ep,i) * vf * I;
         }
     }}
-        
-    exset ves;
-    ret = ret.subs(lst{VF(wild())==wild()});
-    ret.find(VE(wild(1), wild(2)), ves);
-    lst repl;
-    for(auto it : ves) {
-        auto v = it.op(0);
-        if(abs(v.evalf()) < 1E-30) v = 0;
-        auto e = it.op(1);
-        if(abs(e.evalf()) < 1E-30) e = 0;
-        if(v.is_zero() || e.is_zero()) repl.append(it == VE(v, e));
-    }
-    ret = ret.subs(repl).subs(lst{VE(0,0)==0});
     
+    ret = ret.subs(lst{VF(wild())==wild()});
+    ret = ret.subs(lst{VE(0,0)==0});
     return ret.collect(lst{eps,ep}, true);
 }
 
@@ -188,7 +177,10 @@ static ex NoDiff_1P(const ex & x, unsigned diff_param) {return 0;}
 static ex NoDiff_2P(const ex & x, const ex & y, unsigned diff_param) {return 0;}
 static ex VE_Conjugate(const ex & x, const ex & y) { return VE(x,y).hold(); }
 
-static void print_VEO(const ex & ex1, const ex & ex2, const print_context & c) {
+static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context & c) {
+    ex ex1 = ex1_in, ex2 = ex2_in;
+    if(abs(ex1) < numeric("1E-30")) ex1 = 0;
+    if(abs(ex2) < numeric("1E-30")) ex2 = 0;
     int digits = 30;
     if(!ex2.is_zero()) {
         auto ratio = ex_to<numeric>(abs(ex1/ex2));

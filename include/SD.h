@@ -334,8 +334,8 @@ public:
     void CIPrepares(const char* key = NULL);
     void Contours(const char * key = NULL, const char *pkey = NULL);
     void Integrates(const char* key = NULL, const char *pkey = NULL, int kid=0);
-    void Evaluate(FeynmanParameter fpi);
-    void Evaluate(XIntegrand xint);
+    void Evaluate(FeynmanParameter fpi, const char *key = NULL);
+    void Evaluate(XIntegrand xint, const char *key = NULL);
     
     static ex PrefactorFIESTA(int nLoop);
     ex VEResult();
