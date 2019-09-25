@@ -1142,15 +1142,30 @@ void SD::SDPrepares() {
             para_res_lst.append(lst{xn_lst, expr});
         }
         return para_res_lst;
-    }, "sd", Verbose, true);
+    }, "SD", Verbose, true);
     
     vector<ex> ibp_in_vec;
+    ex min_expn = 1;
     for(auto &item : sd_res) {
-        for(auto &it : ex_to<lst>(item)) ibp_in_vec.push_back(it);
+        for(auto &it : ex_to<lst>(item)) {
+            ex expn = 0;
+            for(auto xn : it.op(0)) {
+                ex nxn = xn.op(1).subs(lst{ep==0, eps==0});
+                if(nxn<-1) expn += nxn+1;
+            }
+            if(expn < min_expn) min_expn = expn;
+            ibp_in_vec.push_back(it);
+        }
     }
     
+    if(Verbose > 1) cout << "  \\--Maximum x^n: " << WHITE << ex(0)-min_expn << RESET << endl << flush;
+    
     vector<ex> ibp_res_vec;
+    int pn = 0;
     while(ibp_in_vec.size()>0) {
+        pn++;
+        ostringstream spn;
+        spn << "IBP-" << pn;
         vector<ex> ibp_res =
         GiNaC_Parallel(ParallelProcess, ParallelSymbols, ibp_in_vec, [&](auto &xns_expr, auto rid) {
             // return { 1 element for pole reached } or { 2 elements for pole NOT reached }.
@@ -1201,7 +1216,7 @@ void SD::SDPrepares() {
             
             return lst { xns_expr };
 
-        }, "ibp", Verbose, true);
+        }, spn.str().c_str(), Verbose, true);
     
         ibp_in_vec.clear();
         for(auto &item : ibp_res) {
@@ -1267,7 +1282,7 @@ void SD::SDPrepares() {
         //deleted from GiNaC 1.7.7
         //if(para_res_lst.nops()<1) para_res_lst.append(0);
         return para_res_lst;
-    }, "taylor", Verbose, true);
+    }, "Taylor", Verbose, true);
     
     for(auto &item : res) {
         for(auto &it : ex_to<lst>(item)) Integrands.push_back(it);
@@ -1335,9 +1350,9 @@ void SD::EpsEpExpands() {
         //if(para_res_lst.nops()<1) para_res_lst.append(lst{0,0});
         return para_res_lst;
 
-    }, "ep", Verbose, !debug);
+    }, "EpsEp", Verbose, !debug);
     
-    
+    if(Verbose > 1) cout << "  \\--Collecting: ";
     map<ex, ex, ex_is_less> int_pref;
     long long ncollect = 0;
     for(auto &item : res) {
@@ -1347,7 +1362,7 @@ void SD::EpsEpExpands() {
         }
     }
     
-    if(Verbose > 1) cout << "  \\--Collecting: " << ncollect << " :> " << flush;
+    if(Verbose > 1) cout << ncollect << " :> " << flush;
     expResult.clear();
     for(auto kv : int_pref) {
         if(kv.second.normal().is_zero()) continue;
@@ -1527,7 +1542,7 @@ void SD::CIPrepares(const char *key) {
         ft = collect_common_factors(ft);
         return lst{ kv.first, kv.second, ft};
         
-    }, "ci-f", Verbose, false);
+    }, "CI-F", Verbose, false);
     
 
 //============================================================================================================
@@ -1855,7 +1870,7 @@ qCOMPLEX log(qCOMPLEX x);
         
         return 0;
     
-    }, "ci-c", Verbose, false);
+    }, "CI-C", Verbose, false);
 
 
 //============================================================================================================
@@ -2125,7 +2140,7 @@ ofs << R"EOF(
         system(cmd.str().c_str());
         if(!debug) remove(cppfn.str().c_str());
         return lst{ rid, xs.size(), kvf.op(0), ft_n };
-    }, "ci-i", Verbose, false);
+    }, "CI-I", Verbose, false);
     
 
 //============================================================================================================
