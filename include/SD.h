@@ -342,7 +342,7 @@ public:
     double FindMinimum(ex expr, bool compare0 = false);
         
 private:
-    vector<pair<exmap, ex>> SDPrepare(const pair<lst, lst> po_ex);
+    vector<lst> DS(const pair<lst, lst> po_ex);
     pair<lst, lst> Normalize(const pair<lst, lst> &input);
     static int epRank(ex);
     static int epsRank(ex);

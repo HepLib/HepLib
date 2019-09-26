@@ -130,11 +130,13 @@ vector<pair<lst, lst>> SD::AutoF1(pair<lst, lst> po_ex) {
 }
 
 /*-----------------------------------------------------*/
-/*                    SDPrepare                         */
+/*                       SD                            */
 /*-----------------------------------------------------*/
-// 1st element in input polist is the constant term
-// 2nd element in input polist is the F-term
-vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
+//return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }
+//e1 is a const term, e2 still the F-term
+vector<lst> SD::DS(pair<lst, lst> po_ex) {
+    // 1st element in input polist is the constant term, guess NOT necessary
+    // 2nd element in input polist is the F-term, required!
     lst const polist = po_ex.first;
     lst const exlist = po_ex.second;
     lst sdList;
@@ -149,7 +151,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
 
     vector<exmap> vmap = SecDec->x2y(sdList);
 
-    vector<pair<exmap, ex>> sd;
+    vector<lst> sd;
     for(auto &vi : vmap) {
         auto ypolist = polist.subs(vi);
         auto xs_tmp = get_x_from(ypolist);
@@ -207,7 +209,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             ft = 1;
         } else {
             auto tmp = ft.subs(nReplacements);
-            auto tn = tmp.subs(y(wild())==numeric("1/3"));
+            auto tn = tmp.subs(y(wild())==numeric("1/17"));
             for(auto kv : ParameterUB) {
                 int k = kv.first;
                 tn = tn.subs(PL(k)==(ParameterUB[k]+ParameterLB[k])/ex(2));
@@ -246,12 +248,14 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
             det1 *= pow(ys[i], det.degree(ys[i]));
         }
         assert(is_a<numeric>(det/det1) && ex_to<numeric>(det/det1).is_integer());
+        
         lst ftxlst = lst{0};
         for(auto xi : get_xy_from(ft)) ftxlst.append(xi);
-        ex polexp = FTX(ft,ftxlst)*CT(ct*det/det1);
+        
+        lst pol_exp_lst;
+        pol_exp_lst.append(lst{ subs(FTX(ft,ftxlst)*CT(ct*det/det1), y(wild())==x(wild())), 1 });
 
         for(int i=0; i<ypolist.nops(); i++) {
-            // need collect_common_factors
             auto tmp = ypolist.op(i);
             auto nex = exlist.op(i);
             bool nchk = (!is_a<numeric>(nex) || ex_to<numeric>(nex)<0);
@@ -264,6 +268,7 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
                 tmp1 = tmp;
             }
             
+            // need collect_common_factors
             if(tmp.has(y(wild()))) tmp = collect_common_factors(tmp.expand());
 
             lst tmps;
@@ -308,15 +313,20 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
                     rem *= item;
                 }
             }
-            polexp *= pow(rem-(i==1 && ft!=1 ? iEpsilon : ex(0)), exlist.op(i));
-            polexp = polexp.subs(CT(wild()) == CT(wild()*pow(ct, exlist.op(i))));
-            polexp = polexp.subs(CT(0)==0);
+            
+            ex pnp = rem-(i==1 && ft!=1 ? iEpsilon : ex(0));
+            pnp = pnp.subs(y(wild())==x(wild()));
+            ex pnn = exlist.op(i);
+            pnn = pnn.subs(y(wild())==x(wild()));
+            
+            pol_exp_lst.append(lst{pnp, pnn});
+            pol_exp_lst.let_op(0) = pol_exp_lst.op(0).subs(CT(wild()) == CT(wild()*pow(ct, exlist.op(i)))).subs(CT(0)==0);
         }
 
-        exmap xmol;
+        lst x_n_lst;
         for(auto & kv : ymol) {
-            auto k = kv.first.subs({y(wild())==x(wild())});
-            auto v = kv.second.subs({y(wild())==x(wild())});
+            auto k = kv.first.subs(y(wild())==x(wild()));
+            auto v = kv.second.subs(y(wild())==x(wild()));
             if(is_a<numeric>(v)) {
                 auto nv = ex_to<numeric>(v);
                 if(nv<=-1) {
@@ -324,10 +334,10 @@ vector<pair<exmap, ex>> SD::SDPrepare(pair<lst, lst> po_ex) {
                     assert(false);
                 }
             }
-            xmol[k] = v;
+            x_n_lst.append(lst{k, v});
         }
-        polexp = polexp.subs({y(wild())==x(wild())});
-        sd.push_back(make_pair(xmol, polexp));
+        
+        sd.push_back(lst{x_n_lst, pol_exp_lst});
     }
     
     return sd;
@@ -1128,24 +1138,17 @@ void SD::SDPrepares() {
     
     vector<ex> sd_res =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &kv, auto rid) {
-        // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, exp }.
-        
+        // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
         lst para_res_lst;
-        auto xmol_exps = SDPrepare(kv);
-        for(auto const &xmol_exp : xmol_exps) {
-            auto xmol = xmol_exp.first;
-            auto expr = xmol_exp.second;
-            lst xn_lst;
-            for(auto xen : xmol) {
-                xn_lst.append(lst{ xen.first, xen.second });
-            }
-            para_res_lst.append(lst{xn_lst, expr});
+        auto xns_pns = DS(kv);
+        for(auto const &item : xns_pns) {
+            para_res_lst.append(item);
         }
         return para_res_lst;
     }, "SD", Verbose, true);
     
-    vector<ex> ibp_in_vec;
     ex min_expn = 1;
+    vector<ex> ibp_in_vec;
     for(auto &item : sd_res) {
         for(auto &it : ex_to<lst>(item)) {
             ex expn = 0;
@@ -1154,27 +1157,44 @@ void SD::SDPrepares() {
                 if(nxn<-1) expn += nxn+1;
             }
             if(expn < min_expn) min_expn = expn;
-            ibp_in_vec.push_back(it);
+            
+            lst xns = ex_to<lst>(it.op(0));
+            lst pns;
+            ex tmp = 1;
+            for(int i=0; i<it.op(1).nops(); i++) {
+                lst pn = ex_to<lst>(it.op(1).op(i));
+                bool sim = pn.op(0).expand().nops()<4;
+                bool nni = is_a<numeric>(pn.op(1)) && ex_to<numeric>(pn.op(1)).is_nonneg_integer();
+                if(i>1 && (sim||nni)) {
+                    tmp *= pow(pn.op(0), pn.op(1));
+                } else if(pn.op(0)!=1) {
+                    pns.append(pn);
+                }
+            }
+            if(tmp!=1) pns.append(lst{tmp, 1});
+            ibp_in_vec.push_back(lst{xns, pns});
         }
     }
+    if(Verbose > 1) cout << WHITE << "  \\--Maximum x^n: " << ex(0)-min_expn << "+1" << RESET << endl << flush;
     
-    if(Verbose > 1) cout << "  \\--Maximum x^n: " << WHITE << ex(0)-min_expn << RESET << endl << flush;
-    
-    vector<ex> ibp_res_vec;
     int pn = 0;
+    vector<ex> ibp_res_vec;
     while(ibp_in_vec.size()>0) {
         pn++;
         ostringstream spn;
         spn << "IBP-" << pn;
         vector<ex> ibp_res =
-        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ibp_in_vec, [&](auto &xns_expr, auto rid) {
-            // return { 1 element for pole reached } or { 2 elements for pole NOT reached }.
+        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ibp_in_vec, [&](auto &xns_pns, auto rid) {
+            // return lst
+            // if(the lst length is 1): { 1 element for pole reached }
+            // else: { elements for pole NOT reached, need to loop again }.
+            // element pattern still as { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }
             
-            auto xns = xns_expr.op(0);
-            auto expr = xns_expr.op(1);
+            auto xns = xns_pns.op(0);
+            auto pns = xns_pns.op(1);
             
             exset fts;
-            expr.find(FTX(wild(1),wild(2)), fts);
+            pns.op(0).find(FTX(wild(1),wild(2)), fts);
             bool noFT = (fts.size()==1) && ( (*(fts.begin())).op(0) == 1 );
             
             ex pole_requested = -1;
@@ -1190,41 +1210,54 @@ void SD::SDPrepares() {
 
                 if(ex_to<numeric>(expn) < pole_requested) {
                     auto xx = xn.op(0);
-                    expr = expr / (xn.op(1)+1);
+                    pns.let_op(0).let_op(0) = pns.op(0).op(0) / (xn.op(1)+1);
                     
-                    lst xns2, xns_expr2;
+                    lst xns2;
                     for(int i=0; i<xns.nops(); i++) {
-                        if(xns.op(i).op(0) != xx) xns2.append(xns.op(i));
+                        if(i!=n) xns2.append(xns.op(i));
                     }
-                    auto expr2 = expr.subs(xx==1);
-                    xns_expr2.append(xns2);
-                    xns_expr2.append(expr2);
-                    
-                    lst xns3, xns_expr3;
-                    for(int i=0; i<xns.nops(); i++) {
-                        if(xns.op(i).op(0) != xx) xns3.append(xns.op(i));
-                        else xns3.append(lst{ xx, xns.op(i).op(1)+1 });
+                    lst pns2 = ex_to<lst>(pns);
+                    for(int i=0; i<pns.nops(); i++) {
+                        pns2.let_op(i).let_op(0) = pns2.op(i).op(0).subs(xx==1);
                     }
                     
-                    auto expr3 = ex(0)-mma_diff(expr, xx);
-                    xns_expr3.append(xns3);
-                    xns_expr3.append(expr3);
+                    lst xns_pns_lst;
+                    xns_pns_lst.append(lst{xns2, pns2});
                     
-                    return lst { xns_expr2, xns_expr3 };
+                    lst xns3 = ex_to<lst>(xns);
+                    xns3.let_op(n).let_op(1) = xn.op(1)+1;
+                    
+                    for(int i=0; i<pns.nops(); i++) {
+                        ex tmp = ex(0)-pns.op(i).op(1)*mma_diff(pns.op(i).op(0),xx);
+                        if(tmp.is_zero()) continue;
+                        lst pns3 = ex_to<lst>(pns);
+                        if(pns.op(i).op(1)==1) {
+                            pns3.let_op(i).let_op(0) = tmp;
+                        } else {
+                            pns3.let_op(i).let_op(1) = pns.op(i).op(1)-1;
+                            int nn = pns.nops();
+                            if(!(pns.op(nn-1).op(1)-1).is_zero()) pns3.append(lst{ tmp, 1 });
+                            else pns3.let_op(nn-1).let_op(0) = pns.op(nn-1).op(0) * tmp;
+                        }
+                        xns_pns_lst.append(lst{xns3, pns3});
+                    }
+                    
+                    return xns_pns_lst;
                 }
             }
             
-            return lst { xns_expr };
+            return lst { xns_pns };
 
         }, spn.str().c_str(), Verbose, true);
     
         ibp_in_vec.clear();
         for(auto &item : ibp_res) {
             if(item.nops()>1) {
-                assert(item.nops()==2);
                 for(auto &it : ex_to<lst>(item)) ibp_in_vec.push_back(it);
             } else {
-                ibp_res_vec.push_back(item.op(0));
+                ex expr = 1;
+                for(auto pn : item.op(0).op(1)) expr *= pow(pn.op(0), pn.op(1));
+                ibp_res_vec.push_back(lst{ item.op(0).op(0), expr });
             }
         }
     }
@@ -1379,7 +1412,7 @@ void SD::CompileMatDet() {
     cppfn << pid << "/MatDet.cpp";
     ofs.open(cppfn.str(), ios::out);
     if (!ofs) throw runtime_error("failed to open *.cpp file!");
-/****************************************************************/
+/*----------------------------------------------*/
 ofs << R"EOF(
 #include <math.h>
 #include <complex>
@@ -1475,7 +1508,7 @@ qCOMPLEX MatDetQ(qCOMPLEX mat[], int n) {
     return ret;
 }
 )EOF" << endl;
-/****************************************************************/
+/*----------------------------------------------*/
     ofs.close();
     cmd.clear();
     cmd.str("");
@@ -1572,6 +1605,9 @@ void SD::CIPrepares(const char *key) {
     //ftnvec item: lst { ft, ft-id }
     
     vector<lst> res_vec;
+    map<ex, ex, ex_is_less> cf_int;
+    bool int_by_fterm = true;
+    
     for(auto &item : resf) {
         auto ii = ex_to<lst>(item);
         if(ii.op(2)==1) {
@@ -1585,8 +1621,22 @@ void SD::CIPrepares(const char *key) {
             ii.append(ft_n);
         }
         if(ii.op(0).is_zero() || ii.op(1).subs(FTX(wild(1),wild(2))==1).is_zero()) continue;
-        res_vec.push_back(ii);
+        if(!int_by_fterm) res_vec.push_back(ii);
+        else {
+            ex key = ii;
+            key.let_op(1) = 1;
+            cf_int[key] += ii.op(1);
+        }
     }
+    
+    if(int_by_fterm) {
+        for(auto kv : cf_int) {
+            lst ii = ex_to<lst>(kv.first);
+            ii.let_op(1) = kv.second;
+            res_vec.push_back(ii);
+        }
+    }
+    
     //res_vec item: lst { coeff, integrand, ft, ft-id }
     
     if(res_vec.size()<1) {
@@ -1649,7 +1699,7 @@ void SD::CIPrepares(const char *key) {
             czRepl.append(fxs[i] == symbol(sz.str()));
         }
 
-/****************************************************************/
+/*----------------------------------------------*/
 ofs << R"EOF(
 #include <stddef.h>
 #include <stdlib.h>
@@ -1686,7 +1736,7 @@ qCOMPLEX pow(qCOMPLEX x, qREAL y);
 qCOMPLEX log(qCOMPLEX x);
 
 )EOF" << endl;
-/****************************************************************/
+/*----------------------------------------------*/
         auto cppL = CppFormat(ofs, "L");
         auto cppQ = CppFormat(ofs, "Q");
         
@@ -1940,8 +1990,8 @@ qCOMPLEX log(qCOMPLEX x);
         std::ofstream ofs;
         ofs.open(cppfn.str(), ios::out);
         if (!ofs) throw runtime_error("failed to open *.cpp file!");
-        
-/****************************************************************/
+
+/*----------------------------------------------*/
 ofs << R"EOF(
 #include <stddef.h>
 #include <stdlib.h>
@@ -1982,7 +2032,7 @@ qCOMPLEX log(qCOMPLEX x);
 #define iEpsilon complex<long double>(0,1.E-50L)
 
 )EOF" << endl;
-/****************************************************************/
+/*----------------------------------------------*/
 
         if(hasF) {
             ofs << "dREAL FL_"<<ft_n<<"(const int, const dREAL*, const dREAL*);" << endl;
@@ -2064,7 +2114,7 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "y[1] = yy.imag();" << endl;
         ofs << "return 0;" << endl;
         ofs << "}" << endl;
-/****************************************************************/
+/*----------------------------------------------*/
 ofs << R"EOF(
 #undef Pi
 #undef Euler
@@ -2073,7 +2123,7 @@ ofs << R"EOF(
 #define Euler 0.57721566490153286060651209008240243104215933593992Q
 #define iEpsilon 1.E-50Qi
 )EOF" << endl;
-/****************************************************************/
+/*----------------------------------------------*/
         // Quadruple
         auto cppQ = CppFormat(ofs, "Q");
         ofs << "extern \"C\" " << endl;
@@ -2992,7 +3042,7 @@ double SD::FindMinimum(ex expr, bool compare0) {
         count++;
     }
     
-/****************************************************************/
+/*----------------------------------------------*/
 ofs << R"EOF(
 #include <stddef.h>
 #include <stdlib.h>
@@ -3015,7 +3065,7 @@ dREAL recip(dREAL a) { return 1.L/a; }
 dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
 
 )EOF" << endl;
-/****************************************************************/
+/*----------------------------------------------*/
 
     auto cppL = CppFormat(ofs, "L");
     ofs << "extern \"C\" " << endl;
