@@ -133,7 +133,9 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
     system(cmd.str().c_str());
     
     int total = invec.size();
-    for(auto item : invec) {
+    
+    for(int i=0; i<invec.size(); i++) {
+        auto item = invec[i];
         para_run++;
         if(verb > 1) {
             cout << "\r  ";

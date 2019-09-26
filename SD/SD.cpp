@@ -2001,7 +2001,7 @@ ofs << R"EOF(
 extern "C" {
 #include <quadmath.h>
 }
-
+#include <vector>
 using namespace std;
 
 typedef __float128 qREAL;
@@ -2088,7 +2088,7 @@ qCOMPLEX log(qCOMPLEX x);
                 ex intg = kv.second;
                 cseParser cse;
                 intg = cse.Parse(intg);
-                ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                ofs << "vector<dCOMPLEX> "<<cse.oc<<"(" << cse.on()+1 << ");" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
                     kv.second.subs(czRepl).subs(plRepl).print(cppL);
@@ -2157,7 +2157,7 @@ ofs << R"EOF(
                 ex intg = kv.second;
                 cseParser cse;
                 intg = cse.Parse(intg);
-                ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                ofs << "vector<qCOMPLEX> "<<cse.oc<<"(" << cse.on()+1 << ");" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
                     kv.second.subs(czRepl).subs(plRepl).print(cppQ);
