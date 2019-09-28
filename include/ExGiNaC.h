@@ -247,7 +247,7 @@ ex garResult(const char *garfn, lst syms);
 /*-----------------------------------------------------*/
 ex mma_series(ex expr, symbol s, int sn);
 ex mma_collect(ex expr, ex pat, bool ccf=false, bool cvf=false);
-ex mma_diff(ex expr, ex xp, unsigned nth=1);
+ex mma_diff(ex expr, ex xp, unsigned nth=1, bool expand=true);
 
 /*-----------------------------------------------------*/
 // Customized GiNaC Function

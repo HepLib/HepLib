@@ -336,7 +336,7 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
             }
             x_n_lst.append(lst{k, v});
         }
-        
+        x_n_lst.sort();
         sd.push_back(lst{x_n_lst, pol_exp_lst});
     }
     
@@ -1158,16 +1158,24 @@ void SD::SDPrepares() {
             }
             if(expn < min_expn) min_expn = expn;
             
+            int sim_max;
+            if((ex(0)-expn)>=6) sim_max = 10;
+            else if((ex(0)-expn)>=4) sim_max = 50;
+            else if((ex(0)-expn)>=2) sim_max = 100;
+            else sim_max = 1000;
+            
+            //sim_max = 0; //disable sim
+                        
             lst xns = ex_to<lst>(it.op(0));
             lst pns;
             ex tmp = 1;
             for(int i=0; i<it.op(1).nops(); i++) {
                 lst pn = ex_to<lst>(it.op(1).op(i));
-                bool sim = pn.op(0).expand().nops()<4;
+                bool sim = pn.op(0).expand().nops()<=sim_max;
                 bool nni = is_a<numeric>(pn.op(1)) && ex_to<numeric>(pn.op(1)).is_nonneg_integer();
                 if(i>1 && (sim||nni)) {
                     tmp *= pow(pn.op(0), pn.op(1));
-                } else if(pn.op(0)!=1) {
+                } else if(i<2 || pn.op(0)!=1) {
                     pns.append(pn);
                 }
             }
@@ -1228,8 +1236,51 @@ void SD::SDPrepares() {
                     xns3.let_op(n).let_op(1) = xn.op(1)+1;
                     
                     for(int i=0; i<pns.nops(); i++) {
-                        ex tmp = ex(0)-pns.op(i).op(1)*mma_diff(pns.op(i).op(0),xx);
+                        ex tmp = ex(0)-pns.op(i).op(1)*mma_diff(pns.op(i).op(0),xx,1,false);
                         if(tmp.is_zero()) continue;
+                        
+                        auto xs = get_x_from(tmp);
+                        bool tz = false;
+                        for(auto xi : xs) {
+                            if(tmp.subs(xi==0).is_zero()) {
+                                tz = true;
+                                break;
+                            }
+                        }
+                        // need collect_common_factors
+                        if(tz) tmp = collect_common_factors(tmp);
+                        if(tmp.is_zero()) continue;
+                        
+                        if(tz && is_a<mul>(tmp)) {
+                            ex rem = 1;
+                            for(auto ii : tmp) {
+                                if(ii.match(pow(x(wild()), wild(2)))) {
+                                    bool t = true;
+                                    for(int ij=0; ij<xns3.nops(); ij++) {
+                                        if(xns3.op(ij).op(0)==ii.op(0)) {
+                                            xns3.let_op(ij).let_op(1) += ii.op(1);
+                                            t = false;
+                                            break;
+                                        }
+                                    }
+                                    if(t) xns3.append(lst{ii.op(0), ii.op(1)});
+                                } else if(ii.match(x(wild()))) {
+                                    bool t = true;
+                                    for(int ij=0; ij<xns3.nops(); ij++) {
+                                        if(xns3.op(ij).op(0)==ii) {
+                                            xns3.let_op(ij).let_op(1) += 1;
+                                            t = false;
+                                            break;
+                                        }
+                                    }
+                                    if(t) xns3.append(lst{ii, 1});
+                                } else {
+                                    rem *= ii;
+                                }
+                            }
+                            tmp = rem;
+                        }
+                        
                         lst pns3 = ex_to<lst>(pns);
                         if(pns.op(i).op(1)==1) {
                             pns3.let_op(i).let_op(0) = tmp;
@@ -1606,7 +1657,6 @@ void SD::CIPrepares(const char *key) {
     
     vector<lst> res_vec;
     map<ex, ex, ex_is_less> cf_int;
-    bool int_by_fterm = true;
     
     for(auto &item : resf) {
         auto ii = ex_to<lst>(item);
@@ -1621,7 +1671,7 @@ void SD::CIPrepares(const char *key) {
             ii.append(ft_n);
         }
         if(ii.op(0).is_zero() || ii.op(1).subs(FTX(wild(1),wild(2))==1).is_zero()) continue;
-        if(!int_by_fterm) res_vec.push_back(ii);
+        if(!use_IBF) res_vec.push_back(ii);
         else {
             ex key = ii;
             key.let_op(1) = 1;
@@ -1629,7 +1679,7 @@ void SD::CIPrepares(const char *key) {
         }
     }
     
-    if(int_by_fterm) {
+    if(use_IBF) {
         for(auto kv : cf_int) {
             lst ii = ex_to<lst>(kv.first);
             ii.let_op(1) = kv.second;
@@ -2001,7 +2051,7 @@ ofs << R"EOF(
 extern "C" {
 #include <quadmath.h>
 }
-#include <vector>
+
 using namespace std;
 
 typedef __float128 qREAL;
@@ -2088,7 +2138,7 @@ qCOMPLEX log(qCOMPLEX x);
                 ex intg = kv.second;
                 cseParser cse;
                 intg = cse.Parse(intg);
-                ofs << "vector<dCOMPLEX> "<<cse.oc<<"(" << cse.on()+1 << ");" << endl;
+                ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
                     kv.second.subs(czRepl).subs(plRepl).print(cppL);
@@ -2157,7 +2207,7 @@ ofs << R"EOF(
                 ex intg = kv.second;
                 cseParser cse;
                 intg = cse.Parse(intg);
-                ofs << "vector<qCOMPLEX> "<<cse.oc<<"(" << cse.on()+1 << ");" << endl;
+                ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
                     kv.second.subs(czRepl).subs(plRepl).print(cppQ);

@@ -273,19 +273,22 @@ ex mma_series(ex expr_in, symbol s, int sn) {
 /*-----------------------------------------------------*/
 // mma_collect
 /*-----------------------------------------------------*/
-ex mma_diff(ex expr, ex xp, unsigned nth) {
+ex mma_diff(ex expr, ex xp, unsigned nth, bool expand) {
     symbol s;
     ex res = expr.subs(xp==s);
-    res = mma_collect(res, s, true);
     
-    // make sure CCF has no s
-    exset cset;
-    res.find(CCF(wild()), cset);
-    for(auto ccf : cset) {
-        if(ccf.has(s)) {
-            cerr << "ccf = " << ccf << endl;
-            assert(false);
-            break;
+    if(expand) {
+        res = mma_collect(res, s, true);
+        
+        // make sure CCF has no s
+        exset cset;
+        res.find(CCF(wild()), cset);
+        for(auto ccf : cset) {
+            if(ccf.has(s)) {
+                cerr << "ccf = " << ccf << endl;
+                assert(false);
+                break;
+            }
         }
     }
     

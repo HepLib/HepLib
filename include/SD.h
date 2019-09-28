@@ -300,6 +300,7 @@ public:
     bool use_cpp = true;
     bool use_ErrMin = false;
     bool use_las = false;
+    bool use_IBF = false;
     lst BisectionPoints = lst { ex(1)/11, ex(1)/13, ex(1)/17, ex(1)/19, ex(1)/23  };
     
     map<int, numeric> Parameter;
