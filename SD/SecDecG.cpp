@@ -256,6 +256,7 @@ vector<matrix> SecDecG::Simplexify(const matrix &dc, int dim) {
         ret[i] = mat;
     }
     vmat.clear();
+    vmat.shrink_to_fit();
     return ret;
 }
 
@@ -381,6 +382,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     }
     
     vmat.clear();
+    vmat.shrink_to_fit();
     return ret;
     
 }

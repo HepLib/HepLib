@@ -69,29 +69,6 @@ vector<ex> get_pl_from(ex pol) {
     return pls;
 }
 
-vector<pair<lst, lst>> diff_wrt(const pair<lst, lst> &input, ex xi) {
-    symbol x;
-    vector<pair<lst, lst>> ret;
-    auto plst = input.first;
-    auto nlst = input.second;
-    for(int i=0; i<nlst.nops(); i++) {
-        auto dtmp = plst.op(i).subs(xi==x).diff(x).subs(x==xi);
-        if(dtmp.is_zero()) continue;
-        auto p_tmp = plst;
-        auto n_tmp = nlst;
-        
-        if((nlst[i]-1).is_zero()) {
-            p_tmp.let_op(i) = dtmp;
-        } else {
-            p_tmp.append(nlst[i]*dtmp);
-            n_tmp.append(1);
-            n_tmp.let_op(i) = nlst[i]-1;
-        }
-        ret.push_back(make_pair(p_tmp, n_tmp));
-    }
-    return ret;
-}
-
 /*-----------------------------------------------------*/
 // VE
 /*-----------------------------------------------------*/

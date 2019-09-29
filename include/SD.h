@@ -48,7 +48,6 @@ vector<ex> get_xy_from(ex pol);
 vector<ex> get_x_from(ex pol);
 vector<ex> get_y_from(ex pol);
 vector<ex> get_pl_from(ex pol);
-vector<pair<lst, lst>> diff_wrt(const pair<lst, lst> &input, ex xi);
 
 /*-----------------------------------------------------*/
 // SecDec Classes
@@ -323,7 +322,7 @@ public:
     void Initialize(FeynmanParameter fpi);
     void Initialize(XIntegrand xint);
     void Normalizes();
-    void Scalelesses();
+    void Scalelesses(bool verb=false);
     void SDPrepares();
     void EpsEpExpands();
     void RemoveDeltas();

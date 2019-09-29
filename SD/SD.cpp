@@ -663,7 +663,7 @@ void SD::Initialize(FeynmanParameter fp) {
             uList2.append((2-2*ep)/2);
         }
     } 
-    
+
     u = normal(cu);
     auto u_nd = numer_denom(u);
     rem = normal(rem * u);
@@ -702,8 +702,25 @@ void SD::Initialize(FeynmanParameter fp) {
         for(int j=0; j<-ns[i]; j++) {
             vector<pair<lst, lst>> nret;
             for(auto kv : ret) {
-                auto tmp = diff_wrt(kv, x(i));
-                for(auto nkv : tmp) nret.push_back(nkv);
+                auto plst = kv.first;
+                auto nlst = kv.second;
+                for(int ij=0; ij<nlst.nops(); ij++) {
+                    auto dtmp = nlst.op(ij) * mma_diff(plst.op(ij),x(i),1,false);
+                    if(dtmp.is_zero()) continue;
+                    auto plst2 = plst;
+                    auto nlst2 = nlst;
+                    if((nlst.op(ij)-1).is_zero()) {
+                        plst2.let_op(ij) = dtmp;
+                    } else {
+                        nlst2.let_op(ij) = nlst.op(ij)-1;
+                        int nn = plst.nops();
+                        if(!(nlst.op(nn-1)-1).is_zero()) {
+                            plst2.append(dtmp);
+                            nlst2.append(1);
+                        } else plst2.let_op(nn-1) = plst.op(nn-1) * dtmp;
+                    }
+                    nret.push_back(make_pair(plst2, nlst2));
+                }
             }
             ret = nret;
         }
@@ -756,7 +773,6 @@ void SD::Initialize(FeynmanParameter fp) {
     Normalizes();
     XReOrders();
     Normalizes();
-
 }
 
 /*-----------------------------------------------------*/
@@ -867,6 +883,7 @@ void SD::Normalizes() {
         funexp.push_back(Normalize(fe));
     }
     FunExp.clear();
+    FunExp.shrink_to_fit();
     
     exmap fn, ifn;
     for(auto fe : funexp) {
@@ -894,6 +911,7 @@ void SD::XTogethers() {
         funexp.push_back(fe);
     }
     FunExp.clear();
+    FunExp.shrink_to_fit();
     
     map<ex, ex, ex_is_less> fe_cc;
     for(auto fe : funexp) {
@@ -935,6 +953,7 @@ void SD::XExpands() {
         funexp.push_back(fe);
     }
     FunExp.clear();
+    FunExp.shrink_to_fit();
     
     for(auto fe : funexp) {
         lst klst = lst{fe.first.op(0), fe.first.op(1)};
@@ -973,12 +992,13 @@ void SD::XExpands() {
 
 // Section 2.1 @ https://arxiv.org/pdf/1712.04441.pdf
 // also refers to Feng/Thinking.pdf
-void SD::Scalelesses() {
+void SD::Scalelesses(bool verb) {
     if(IsZero) return;
     if(Deltas.size()<1) return;
-    
-    vector<pair<lst,lst>> ret;
-    for(auto funexp : FunExp) {
+    if(verb) cout << now() << " - Scaleless: " << FunExp.size() << " :> " << flush;
+
+    vector<ex> sl_res =
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &funexp, auto rid) {
         symbol s;
         auto fun = funexp.first;
         auto exp = funexp.second;
@@ -1017,8 +1037,8 @@ void SD::Scalelesses() {
                 bool is_s = true;
                 ex n_s = 0;
                 for(int j=0; j<fun.nops(); j++) {
-                    if(is_a<numeric>(exp.op(j)) && ex_to<numeric>(exp.op(j)).is_nonneg_integer() ) continue;
-                    auto tmp = fun.op(j).subs(sRepl).expand();
+                    if(is_a<numeric>(exp.op(j)) && ex_to<numeric>(exp.op(j)).is_nonneg_integer()) continue;
+                    auto tmp = mma_collect(fun.op(j).subs(sRepl),s);
                     if(tmp.degree(s)!=tmp.ldegree(s)) {
                         is_s = false;
                         break;
@@ -1033,9 +1053,19 @@ void SD::Scalelesses() {
             }
             if(is0) break;
         }
-        if(!is0) ret.push_back(make_pair(fun, exp));
+        if(!is0) return lst{fun, exp};
+        else return lst{};
+    }, "SL", 0, true);
+    
+    FunExp.clear();
+    FunExp.shrink_to_fit();
+    for(auto item : sl_res) {
+        lst kv = ex_to<lst>(item);
+        if(kv.nops()<1) continue;
+        FunExp.push_back(make_pair(ex_to<lst>(kv.op(0)), ex_to<lst>(kv.op(1))));
     }
-    FunExp = ret;
+    
+    if(verb) cout << FunExp.size() << endl;
     if(FunExp.size()<1) IsZero = true;
 }
 
@@ -1099,6 +1129,7 @@ void SD::SDPrepares() {
     }
     
     Integrands.clear();
+    Integrands.shrink_to_fit();
     
     if(CheckF1) {
         if(Verbose > 0) cout << now() << " - Bisection: " << FunExp.size() << " :> " << flush;
@@ -1123,6 +1154,7 @@ void SD::SDPrepares() {
     
     auto kvs = FunExp;
     FunExp.clear();
+    FunExp.shrink_to_fit();
     for(auto &kv : kvs) {
         bool to_add = true;
         for(auto item : kv.first) {
@@ -1159,10 +1191,12 @@ void SD::SDPrepares() {
             if(expn < min_expn) min_expn = expn;
             
             int sim_max;
-            if((ex(0)-expn)>=6) sim_max = 10;
-            else if((ex(0)-expn)>=4) sim_max = 50;
-            else if((ex(0)-expn)>=2) sim_max = 100;
-            else sim_max = 1000;
+            if((ex(0)-expn)>=10) sim_max = 1;
+            else if((ex(0)-expn)>=8) sim_max = 3;
+            else if((ex(0)-expn)>=6) sim_max = 5;
+            else if((ex(0)-expn)>=4) sim_max = 10;
+            else if((ex(0)-expn)>=2) sim_max = 50;
+            else sim_max = 100;
             
             //sim_max = 0; //disable sim
                         
@@ -1302,6 +1336,7 @@ void SD::SDPrepares() {
         }, spn.str().c_str(), Verbose, true);
     
         ibp_in_vec.clear();
+        ibp_in_vec.shrink_to_fit();
         for(auto &item : ibp_res) {
             if(item.nops()>1) {
                 for(auto &it : ex_to<lst>(item)) ibp_in_vec.push_back(it);
@@ -1448,6 +1483,7 @@ void SD::EpsEpExpands() {
     
     if(Verbose > 1) cout << ncollect << " :> " << flush;
     expResult.clear();
+    expResult.shrink_to_fit();
     for(auto kv : int_pref) {
         if(kv.second.normal().is_zero()) continue;
         expResult.push_back(make_pair(kv.second, kv.first));
@@ -2294,6 +2330,7 @@ ofs << R"EOF(
             out.close();
         } else {
             ciResult.clear();
+            ciResult.shrink_to_fit();
             ciResult.push_back(fn_lst);
             ciResult.push_back(cifn_lst);
         }
