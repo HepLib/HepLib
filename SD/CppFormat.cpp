@@ -69,9 +69,9 @@ void CppFormat::print_numeric(const numeric & p, const CppFormat & c, unsigned l
         } else {
             c.s << "(";
             print_real(c, cln::realpart(p.to_cl_N()));
-            c.s << "+";
+            c.s << "+(";
             print_real(c, cln::imagpart(p.to_cl_N()));
-            c.s << "i)";
+            c.s << ")*1.Qi)";
         }
     }
 }

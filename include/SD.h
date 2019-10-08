@@ -84,7 +84,7 @@ public:
     virtual ex Integrate(unsigned int xn, SD_Type fp, SD_Type fpQ, const qREAL pl[], const qREAL las[]) =0;
     
     long long RunMAX = 100;
-    long long RunPTS = 100000;
+    long long RunPTS = 10000;
     qREAL EpsAbs = 1E-5;
     qREAL EpsRel = 0;
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
@@ -272,15 +272,18 @@ public:
     static const symbol iEpsilon;
     static const symbol ep;
     static const symbol eps;
+    static const symbol epv;
+    static const symbol vz;
     static const realsymbol NaN;
     static bool use_dlclose;
     static bool debug;
     
     int ParallelProcess = -1;
-    lst ParallelSymbols = lst{ ep, eps, iEpsilon };
+    lst ParallelSymbols = lst{ ep, eps, epv, vz, iEpsilon };
     
     int epN = 0;
     int epsN = 0;
+    int sN = 0;
     int Verbose = 1;
     int PoleRequested = -100;
     exmap nReplacements;
@@ -316,7 +319,7 @@ public:
     
     long long RunMAX = 20;
     long long RunPTS = 500000;
-    qREAL EpsAbs = 1E-5;
+    qREAL EpsAbs = 1E-4;
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     
     void Initialize(FeynmanParameter fpi);
@@ -339,6 +342,7 @@ public:
     
     static ex PrefactorFIESTA(int nLoop);
     ex VEResult();
+    void VEPrint(bool endlQ=true);
     double FindMinimum(ex expr, bool compare0 = false);
         
 private:

@@ -153,6 +153,7 @@ ex VEResult(ex expr) {
 static ex NoDiff_1P(const ex & x, unsigned diff_param) {return 0;}
 static ex NoDiff_2P(const ex & x, const ex & y, unsigned diff_param) {return 0;}
 static ex VE_Conjugate(const ex & x, const ex & y) { return VE(x,y).hold(); }
+static ex Diff_ID(const ex & x, unsigned diff_param) {return 1;}
 
 static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context & c) {
     ex ex1 = ex1_in, ex2 = ex2_in;
@@ -186,7 +187,7 @@ REGISTER_FUNCTION(y, dummy())
 REGISTER_FUNCTION(z, dummy())
 REGISTER_FUNCTION(PL, dummy())
 REGISTER_FUNCTION(FTX, derivative_func(NoDiff_2P))
-REGISTER_FUNCTION(CT, dummy())
+REGISTER_FUNCTION(CT, derivative_func(Diff_ID))
 REGISTER_FUNCTION(VE, conjugate_func(VE_Conjugate))
 REGISTER_FUNCTION(VEO, print_func<print_dflt>(print_VEO))
 

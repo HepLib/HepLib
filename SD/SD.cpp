@@ -5,6 +5,8 @@ namespace HepLib {
 
 symbol const SD::ep("ep");
 symbol const SD::eps("eps");
+symbol const SD::epv("s");
+symbol const SD::vz("z");
 symbol const SD::iEpsilon("iEpsilon");
 realsymbol const SD::NaN("NaN");
 bool SD::use_dlclose = true;
@@ -447,6 +449,11 @@ bool xPositive(ex expr) {
 }
 
 void SD::Initialize(FeynmanParameter fp) {
+    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    for(auto is : isyms) ParallelSymbols.append(is);
+    ParallelSymbols.sort();
+    ParallelSymbols.unique();
+    
     if(fp.Propagators.nops() != fp.Exponents.nops()) {
         cerr << "the length of Propagators and Exponents are NOT equal." << endl;
         assert(false);
@@ -1128,6 +1135,30 @@ void SD::SDPrepares() {
         return;
     }
     
+    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    for(auto is : isyms) ParallelSymbols.append(is);
+    ParallelSymbols.sort();
+    ParallelSymbols.unique();
+    
+    //check epv
+    //TODO: check w2 is 0
+    for(auto &kv : FunExp) {
+        ex ft = kv.first.op(1);
+        if(ft.has(epv)) {
+            ft = mma_collect(ft, epv);
+            assert(ft.is_polynomial(epv) && (ft.degree(epv)-1)==0);
+            ex expn = -kv.second.op(1);
+            // (2*Pi*I) dropped out, since we will take residue later.
+            kv.first.let_op(0) = kv.first.op(0) * tgamma(expn+vz)*tgamma(-vz)/tgamma(expn)*pow(epv,vz);
+            ex w1 = ft.coeff(epv);
+            ex w2 = ft.subs(epv==0);
+            kv.first.let_op(1) = w2;
+            kv.first.append(w1);
+            kv.second.let_op(1) = kv.second.op(1)-vz;
+            kv.second.append(vz);
+        }
+    }
+    
     Integrands.clear();
     Integrands.shrink_to_fit();
     
@@ -1174,7 +1205,53 @@ void SD::SDPrepares() {
         lst para_res_lst;
         auto xns_pns = DS(kv);
         for(auto const &item : xns_pns) {
-            para_res_lst.append(item);
+
+            //TODO: handle other poles, e.g., PolyGamma/Gamma from input
+
+            // take z-poles
+            if(item.has(vz)) {
+                lst zpols;
+                // poles from Gamma(-z)
+                for(int vn=0; vn<=sN; vn++) {
+                    zpols.append(vn);
+                }
+                // poles from xi^{c1*z+c0}
+                for(auto xn : item.op(0)) {
+                    assert(is_a<numeric>(xn.op(1).coeff(vz)));
+                    if(xn.op(1).coeff(vz)<0) {
+                        ex c0 = xn.op(1).coeff(vz, 0);
+                        ex c1 = xn.op(1).coeff(vz, 1);
+                        int pxn = -1;
+                        while(true) {
+                            ex zp = (pxn-c0)/c1;
+                            ex zpn = zp.subs(lst{eps==0,ep==0});
+                            assert(is_a<numeric>(zpn));
+                            if(zpn>sN) break;
+                            zpols.append(zp);
+                            pxn -= 1;
+                        }
+                    }
+                }
+                zpols.sort();
+                zpols.unique();
+                
+                symbol ss;
+                for(auto zp : zpols) {
+                    auto xn = item.op(0);
+                    auto pn = item.op(1);
+                    for(int i=0; i<xn.nops(); i++) {
+                        xn.let_op(i).let_op(0) = xn.op(i).op(0).subs(vz==ss+zp).subs(ss==vz);
+                        xn.let_op(i).let_op(1) = xn.op(i).op(1).subs(vz==ss+zp).subs(ss==vz);
+                    }
+                    for(int i=0; i<pn.nops(); i++) {
+                        pn.let_op(i).let_op(0) = pn.op(i).op(0).subs(vz==ss+zp).subs(ss==vz);
+                        pn.let_op(i).let_op(1) = pn.op(i).op(1).subs(vz==ss+zp).subs(ss==vz);
+                    }
+                    para_res_lst.append(lst{xn, pn});
+                }
+            } else {
+                para_res_lst.append(item);
+            }
         }
         return para_res_lst;
     }, "SD", Verbose, true);
@@ -1185,7 +1262,7 @@ void SD::SDPrepares() {
         for(auto &it : ex_to<lst>(item)) {
             ex expn = 0;
             for(auto xn : it.op(0)) {
-                ex nxn = xn.op(1).subs(lst{ep==0, eps==0});
+                ex nxn = xn.op(1).subs(lst{ep==0, eps==0, vz==0});
                 if(nxn<-1) expn += nxn+1;
             }
             if(expn < min_expn) min_expn = expn;
@@ -1218,7 +1295,7 @@ void SD::SDPrepares() {
         }
     }
     if(Verbose > 1) cout << WHITE << "  \\--Maximum x^n: " << ex(0)-min_expn << "+1" << RESET << endl << flush;
-    
+
     int pn = 0;
     vector<ex> ibp_res_vec;
     while(ibp_in_vec.size()>0) {
@@ -1244,7 +1321,7 @@ void SD::SDPrepares() {
             
             for(int n=0; n<xns.nops(); n++) {
                 ex xn = xns.op(n);
-                auto expn = xn.op(1).subs(lst{eps==0,ep==0}).normal();
+                auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0}).normal();
                 if(!is_a<numeric>(expn)) {
                     cout << RED << "expn NOT numeric: " << expn << RESET << endl;
                     assert(false);
@@ -1358,7 +1435,7 @@ void SD::SDPrepares() {
         lst exprs = { expr };
         symbol dx;
         for(auto xn : xns) {
-            auto expn = xn.op(1).subs(lst{eps==0,ep==0}).normal();
+            auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0}).normal();
             assert(is_a<numeric>(expn));
             
             lst exprs2;
@@ -1403,9 +1480,19 @@ void SD::SDPrepares() {
         return para_res_lst;
     }, "Taylor", Verbose, true);
     
+    if(Verbose > 1) cout << "  \\--Taking z-Residues ..." << flush;
+    // Take z-residues
     for(auto &item : res) {
-        for(auto &it : ex_to<lst>(item)) Integrands.push_back(it);
+        for(auto it : ex_to<lst>(item)) {
+            if(it.has(vz)) {
+                it = it.subs(CT(wild())==wild())*CT(1);
+                it = mma_series(it,vz,-1);
+                it = ex(0)-it.coeff(vz, -1);
+            }
+            if(!it.is_zero()) Integrands.push_back(it);
+        }
     }
+    if(Verbose > 1) cout << " @" << now(false) << endl;
 }
 
 void SD::EpsEpExpands() {
@@ -1417,6 +1504,11 @@ void SD::EpsEpExpands() {
     
     if(Verbose > 0) cout << now() << " - EpsEpExpands ..." << endl << flush;
     
+    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    for(auto is : isyms) ParallelSymbols.append(is);
+    ParallelSymbols.sort();
+    ParallelSymbols.unique();
+    
     vector<ex> res =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, Integrands, [&](auto &item, auto rid) {
         // return two elements,
@@ -1425,33 +1517,28 @@ void SD::EpsEpExpands() {
         exset cts;
         item.find(CT(wild()), cts);
         if(cts.size() != 1) {
-            cerr << "CT size is NOT 1!" << endl;
+            cerr << "item: " << item << endl;
+            cerr << "CT size is NOT 1: " << cts << endl;
             assert(false);
         }
         ex ct = (*(cts.begin())).subs(CT(wild())==wild()).subs(iEpsilon==0);
-        auto tmp = item.subs(CT(wild())==1);
-        //if(use_CCF) tmp = collect_common_factors(tmp);
-        lst para_res_lst;
-        
-        if(!tmp.has(eps) && !ct.has(eps)) {
-            int ctN = epRank(ct);
-            tmp = mma_series(tmp, ep, epN-ctN);
-            for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
-                auto intg = tmp.coeff(ep, di);
-                assert(!intg.has(ep));
-                auto pref = mma_series(ct, ep, epN-di);
-                //if(use_CCF) intg = collect_common_factors(intg);
-                para_res_lst.append(lst{pref * pow(ep, di), intg});
-            }
+        auto it = item.subs(CT(wild())==1);
+        it = mma_collect(it, epv, true);
+        lst its;
+        if(is_a<add>(it)) {
+            for(auto ii : it) its.append(ii);
         } else {
-            auto sct = ct;
-            int sctN = epsRank(sct);
-            ex stmp = mma_series(tmp, eps, epsN-sctN);
-            for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
-                tmp = stmp.coeff(eps, sdi);
-                //if(use_CCF) tmp = collect_common_factors(tmp);
-                assert(!tmp.has(eps));
-                ct = mma_series(sct, eps, epsN-sdi);
+            its.append(it);
+        }
+
+        lst para_res_lst;
+        for(int i=0; i<its.nops();i++) {
+            auto tmp = its.op(i);
+            auto vc = tmp.subs(CCF(wild())==1);
+            tmp = tmp / vc;
+            tmp = tmp.subs(CCF(wild())==wild());
+            //if(use_CCF) tmp = collect_common_factors(tmp);
+            if(!tmp.has(eps) && !ct.has(eps)) {
                 int ctN = epRank(ct);
                 tmp = mma_series(tmp, ep, epN-ctN);
                 for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
@@ -1459,10 +1546,28 @@ void SD::EpsEpExpands() {
                     assert(!intg.has(ep));
                     auto pref = mma_series(ct, ep, epN-di);
                     //if(use_CCF) intg = collect_common_factors(intg);
-                    para_res_lst.append(lst{pref * pow(eps, sdi) * pow(ep, di), intg});
+                    para_res_lst.append(lst{pref * pow(ep, di) * vc, intg});
+                }
+            } else {
+                auto sct = ct;
+                int sctN = epsRank(sct);
+                ex stmp = mma_series(tmp, eps, epsN-sctN);
+                for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
+                    tmp = stmp.coeff(eps, sdi);
+                    //if(use_CCF) tmp = collect_common_factors(tmp);
+                    assert(!tmp.has(eps));
+                    ct = mma_series(sct, eps, epsN-sdi);
+                    int ctN = epRank(ct);
+                    tmp = mma_series(tmp, ep, epN-ctN);
+                    for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
+                        auto intg = tmp.coeff(ep, di);
+                        assert(!intg.has(ep));
+                        auto pref = mma_series(ct, ep, epN-di);
+                        //if(use_CCF) intg = collect_common_factors(intg);
+                        para_res_lst.append(lst{pref * pow(eps, sdi) * pow(ep, di) * vc, intg});
+                    }
                 }
             }
-            
         }
         
         //deleted from GiNaC 1.7.7
@@ -1489,7 +1594,6 @@ void SD::EpsEpExpands() {
         expResult.push_back(make_pair(kv.second, kv.first));
     }
     if(Verbose > 1) cout << expResult.size() << endl;
-    
 }
 
 void SD::CompileMatDet() {
@@ -1612,6 +1716,11 @@ void SD::CIPrepares(const char *key) {
     
     if(Verbose > 0) cout << now() << " - CIPrepares ..." << endl << flush;
     auto pid = getpid();
+    
+    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    for(auto is : isyms) ParallelSymbols.append(is);
+    ParallelSymbols.sort();
+    ParallelSymbols.unique();
     
     vector<ex> resf =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, expResult, [&](auto &kv, auto rid) {
@@ -2341,6 +2450,11 @@ ofs << R"EOF(
 void SD::Contours(const char *key, const char *pkey) {
     if(IsZero) return;
     
+    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    for(auto is : isyms) ParallelSymbols.append(is);
+    ParallelSymbols.sort();
+    ParallelSymbols.unique();
+    
     if(key != NULL) {
         ostringstream garfn;
         garfn << key << ".ci.gar";
@@ -2546,6 +2660,11 @@ void SD::Contours(const char *key, const char *pkey) {
 void SD::Integrates(const char *key, const char *pkey, int kid) {
     if(IsZero) return;
     
+    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    for(auto is : isyms) ParallelSymbols.append(is);
+    ParallelSymbols.sort();
+    ParallelSymbols.unique();
+    
     if(Verbose > 0) cout << now() << " - Integrates ..." << endl << flush;
     if(!use_cpp) omp_set_num_threads(1);
     
@@ -2698,7 +2817,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 }
                 
                 for(int ci=0; ci<css.nops(); ci++) {
-                    auto nt = css.op(ci).subs(nReplacements).evalf();
+                    auto nt = css.op(ci).subs(log(epv)==1).subs(epv==1).subs(nReplacements).evalf();
                     if(!is_a<numeric>(nt)) {
                         cerr << "nt: " << nt << endl;
                         assert(false);
@@ -3034,6 +3153,11 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
 }
 
 void SD::Initialize(XIntegrand xint) {
+    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    for(auto is : isyms) ParallelSymbols.append(is);
+    ParallelSymbols.sort();
+    ParallelSymbols.unique();
+    
     IsZero = false;
     Replacements2(xint.nReplacements);
     
@@ -3050,11 +3174,14 @@ void SD::Initialize(XIntegrand xint) {
 }
 
 void SD::Evaluate(FeynmanParameter fp, const char* key) {
+    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    for(auto is : isyms) ParallelSymbols.append(is);
+    ParallelSymbols.sort();
+    ParallelSymbols.unique();
+    
     cout << endl << "Starting @ " << now() << endl;
     if(SecDec==NULL) SecDec = new SecDecG();
     if(Integrator==NULL) Integrator = new HCubature();
-    
-    //if(Minimizer==NULL) Minimizer = new HookeJeeves();
     if(Minimizer==NULL) Minimizer = new MinUit();
     
     Initialize(fp);
@@ -3074,6 +3201,11 @@ void SD::Evaluate(FeynmanParameter fp, const char* key) {
 }
 
 void SD::Evaluate(XIntegrand xint, const char *key) {
+    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    for(auto is : isyms) ParallelSymbols.append(is);
+    ParallelSymbols.sort();
+    ParallelSymbols.unique();
+    
     cout << endl << "Starting @ " << now() << endl;
     if(SecDec==NULL) SecDec = new SecDecG();
     if(Integrator==NULL) Integrator = new HCubature();
@@ -3217,6 +3349,18 @@ int SD::epsRank(ex expr_in) {
 
 ex SD::VEResult() {
     return HepLib::VEResult(ResultError);
+}
+
+void SD::VEPrint(bool endlQ) {
+    ex expr = HepLib::VEResult(ResultError);
+    for(int i=expr.ldegree(eps); i<=expr.degree(eps); i++) {
+        ex exp1 = expr.coeff(eps, i);
+        for(int j=expr.ldegree(ep); j<=expr.degree(ep); j++) {
+            cout << "(" << exp1.coeff(ep, j) << ")*" << pow(ep,j)*pow(eps,i);
+            if(j<expr.degree(ep)) cout << " + ";
+        }
+    }
+    if(endlQ) cout << endl;
 }
 
 ex SD::PrefactorFIESTA(int nLoop) {
