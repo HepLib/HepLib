@@ -250,6 +250,11 @@ ex mma_collect(ex expr, ex pat, bool ccf=false, bool cvf=false);
 ex mma_diff(ex expr, ex xp, unsigned nth=1, bool expand=true);
 
 /*-----------------------------------------------------*/
+// Evalf
+/*-----------------------------------------------------*/
+ex Evalf(ex);
+
+/*-----------------------------------------------------*/
 // Customized GiNaC Function
 /*-----------------------------------------------------*/
 DECLARE_FUNCTION_1P(CCF)

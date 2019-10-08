@@ -373,6 +373,25 @@ ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
 }
 
 /*-----------------------------------------------------*/
+// Evalf
+/*-----------------------------------------------------*/
+ex Evalf(ex expr) {
+    exset zs;
+    //patterns needing evalf()
+    expr.find(zeta(wild()), zs);
+    expr.find(zeta(wild(),wild()), zs);
+    
+    lst repl;
+    auto dd = Digits;
+    Digits = 50;
+    for(auto zi : zs) {
+        repl.append(zi==zi.evalf());
+    }
+    Digits = dd;
+    return expr.subs(repl);
+}
+
+/*-----------------------------------------------------*/
 // Customized GiNaC Function
 /*-----------------------------------------------------*/
 static ex CCF_Diff(const ex & x, unsigned diff_param) {return 0;}

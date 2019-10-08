@@ -1480,19 +1480,25 @@ void SD::SDPrepares() {
         return para_res_lst;
     }, "Taylor", Verbose, true);
     
-    if(Verbose > 1) cout << "  \\--Taking z-Residues ..." << flush;
     // Take z-residues
+    vector<ex> ints;
     for(auto &item : res) {
         for(auto it : ex_to<lst>(item)) {
-            if(it.has(vz)) {
-                it = it.subs(CT(wild())==wild())*CT(1);
-                it = mma_series(it,vz,-1);
-                it = ex(0)-it.coeff(vz, -1);
-            }
-            if(!it.is_zero()) Integrands.push_back(it);
+            if(!it.is_zero()) ints.push_back(it);
         }
     }
-    if(Verbose > 1) cout << " @" << now(false) << endl;
+    
+    Integrands =
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, ints, [&](auto &item, auto rid) {
+        ex it = item;
+        if(it.has(vz)) {
+            it = it.subs(CT(wild())==wild())*CT(1);
+            it = mma_series(it,vz,-1);
+            it = ex(0)-it.coeff(vz, -1);
+        }
+        return it;
+    }, "zResidue", Verbose, true);
+
 }
 
 void SD::EpsEpExpands() {
@@ -1511,9 +1517,10 @@ void SD::EpsEpExpands() {
     
     vector<ex> res =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, Integrands, [&](auto &item, auto rid) {
-        // return two elements,
+        // return { {two elements}, {two elements}, ...},
         // 1st: x-independent coefficient, expanded in ep/eps
         // 2nd: x-integrand
+        if(item.is_zero()) return lst{ lst{0, 0} };
         exset cts;
         item.find(CT(wild()), cts);
         if(cts.size() != 1) {
@@ -1934,6 +1941,7 @@ qCOMPLEX log(qCOMPLEX x);
 /*----------------------------------------------*/
         auto cppL = CppFormat(ofs, "L");
         auto cppQ = CppFormat(ofs, "Q");
+        ft = Evalf(ft);
         
         // FL_fid
         ofs << "dREAL FL_" << ft_n << "(const dREAL* x, const dREAL *pl) {" << endl;
@@ -2286,12 +2294,12 @@ qCOMPLEX log(qCOMPLEX x);
                 ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                    kv.second.subs(czRepl).subs(plRepl).print(cppL);
+                    Evalf(kv.second.subs(czRepl).subs(plRepl)).print(cppL);
                     ofs << ";" << endl;
                 }
                 
                 ofs << "ytmp = ";
-                intg.subs(czRepl).subs(plRepl).print(cppL);
+                Evalf(intg.subs(czRepl).subs(plRepl)).print(cppL);
                 ofs << ";" << endl;
                 ofs << "yy += det * ytmp;" << endl << endl;
                 ofs << "}" << endl;
@@ -2302,7 +2310,7 @@ qCOMPLEX log(qCOMPLEX x);
                 ofs << "//debug-int: " << tmp << endl;
             }
             ofs << "dCOMPLEX yy = ";
-            tmp.print(cppL);
+            Evalf(tmp).print(cppL);
             ofs << ";" << endl;
         }
         ofs << "y[0] = yy.real();" << endl;
@@ -2355,12 +2363,12 @@ ofs << R"EOF(
                 ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                    kv.second.subs(czRepl).subs(plRepl).print(cppQ);
+                    Evalf(kv.second.subs(czRepl).subs(plRepl)).print(cppQ);
                     ofs << ";" << endl;
                 }
                 
                 ofs << "ytmp = ";
-                intg.subs(czRepl).subs(plRepl).print(cppQ);
+                Evalf(intg.subs(czRepl).subs(plRepl)).print(cppQ);
                 ofs << ";" << endl;
                 ofs << "yy += det * ytmp;" << endl << endl;
                 ofs << "}" << endl;
@@ -2368,7 +2376,7 @@ ofs << R"EOF(
         } else {
             auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
             ofs << "qCOMPLEX yy = ";
-            tmp.print(cppQ);
+            Evalf(tmp).print(cppQ);
             ofs << ";" << endl;
         }
         ofs << "y[0] = crealq(yy);" << endl;
@@ -3356,7 +3364,10 @@ void SD::VEPrint(bool endlQ) {
     for(int i=expr.ldegree(eps); i<=expr.degree(eps); i++) {
         ex exp1 = expr.coeff(eps, i);
         for(int j=expr.ldegree(ep); j<=expr.degree(ep); j++) {
-            cout << "(" << exp1.coeff(ep, j) << ")*" << pow(ep,j)*pow(eps,i);
+            cout << WHITE <<"(" << RESET;
+            cout << exp1.coeff(ep, j);
+            cout << WHITE << ")" << RESET;
+            if(j!=0 || i!=0) cout << "*" << WHITE << pow(ep,j)*pow(eps,i) << RESET;
             if(j<expr.degree(ep)) cout << " + ";
         }
     }
