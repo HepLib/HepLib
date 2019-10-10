@@ -272,14 +272,14 @@ public:
     static const symbol iEpsilon;
     static const symbol ep;
     static const symbol eps;
-    static const symbol epv;
+    static const symbol vs;
     static const symbol vz;
     static const realsymbol NaN;
     static bool use_dlclose;
     static bool debug;
     
     int ParallelProcess = -1;
-    lst ParallelSymbols = lst{ ep, eps, epv, vz, iEpsilon };
+    lst ParallelSymbols = lst{ ep, eps, vs, vz, iEpsilon };
     
     int epN = 0;
     int epsN = 0;

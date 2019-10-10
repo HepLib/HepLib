@@ -5,7 +5,7 @@ namespace HepLib {
 
 symbol const SD::ep("ep");
 symbol const SD::eps("eps");
-symbol const SD::epv("s");
+symbol const SD::vs("s");
 symbol const SD::vz("z");
 symbol const SD::iEpsilon("iEpsilon");
 realsymbol const SD::NaN("NaN");
@@ -364,10 +364,13 @@ pair<lst, lst> SD::Normalize(const pair<lst, lst> &input) {
                     if(!tmp.has(x(wild())) && !tmp.has(y(wild()))) {
                         if(is_a<numeric>(ntmp) && ex_to<numeric>(ntmp).is_integer()) {
                             const_term *=  pow(tmp,ntmp);
+                        } else if((tmp-vs).is_zero() || tmp.match(pow(vs,wild()))) {
+                            const_term *=  pow(tmp,ntmp);
                         } else if(!tmp.has(PL(wild()))) {
                             auto tr = tmp.subs(nReplacements);
                             if(!is_a<numeric>(tr)) {
                                 cerr << "tmp: " << tmp << endl;
+                                cerr << "nReplacements: " << nReplacements << endl;
                                 cerr << "tmp is NOT numeric with nReplacements." << endl;
                                 assert(false);
                             }
@@ -449,7 +452,7 @@ bool xPositive(ex expr) {
 }
 
 void SD::Initialize(FeynmanParameter fp) {
-    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
     ParallelSymbols.sort();
     ParallelSymbols.unique();
@@ -1135,27 +1138,29 @@ void SD::SDPrepares() {
         return;
     }
     
-    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
     ParallelSymbols.sort();
     ParallelSymbols.unique();
     
-    //check epv
+    //check vs
     //TODO: check w2 is 0
     for(auto &kv : FunExp) {
         ex ft = kv.first.op(1);
-        if(ft.has(epv)) {
-            ft = mma_collect(ft, epv);
-            assert(ft.is_polynomial(epv) && (ft.degree(epv)-1)==0);
+        if(ft.has(vs)) {
+            ft = mma_collect(ft, vs);
+            assert(ft.is_polynomial(vs) && (ft.degree(vs)-1)==0);
             ex expn = -kv.second.op(1);
             // (2*Pi*I) dropped out, since we will take residue later.
-            kv.first.let_op(0) = kv.first.op(0) * tgamma(expn+vz)*tgamma(-vz)/tgamma(expn)*pow(epv,vz);
-            ex w1 = ft.coeff(epv);
-            ex w2 = ft.subs(epv==0);
-            kv.first.let_op(1) = w2;
-            kv.first.append(w1);
-            kv.second.let_op(1) = kv.second.op(1)-vz;
-            kv.second.append(vz);
+            kv.first.let_op(0) = kv.first.op(0) * tgamma(expn+vz)*tgamma(-vz)/tgamma(expn)*pow(vs,vz);
+            ex w1 = ft.coeff(vs);
+            ex w2 = ft.subs(vs==0);
+            if(!w2.is_zero()) {
+                kv.first.let_op(1) = w2;
+                kv.first.append(w1);
+                kv.second.let_op(1) = kv.second.op(1)-vz;
+                kv.second.append(vz);
+            }
         }
     }
     
@@ -1492,7 +1497,25 @@ void SD::SDPrepares() {
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, ints, [&](auto &item, auto rid) {
         ex it = item;
         if(it.has(vz)) {
-            it = it.subs(CT(wild())==wild())*CT(1);
+            exset cts;
+            it.find(CT(wild()),cts);
+            lst repl;
+            for(auto ct : cts) {
+                ex cc = 1;
+                ex ll = 1;
+                lst cls;
+                if(is_a<mul>(ct.op(0))) {
+                    for(auto ii : ct.op(0)) cls.append(ii);
+                } else {
+                    cls.append(ct.op(0));
+                }
+                for(auto cl : cls) {
+                    if(cl.has(vz)) cc *= cl;
+                    else ll *= cl;
+                }
+                if(cc!=1) repl.append(ct==cc*CT(ll));
+            }
+            it = it.subs(repl);
             it = mma_series(it,vz,-1);
             it = ex(0)-it.coeff(vz, -1);
         }
@@ -1510,7 +1533,7 @@ void SD::EpsEpExpands() {
     
     if(Verbose > 0) cout << now() << " - EpsEpExpands ..." << endl << flush;
     
-    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
     ParallelSymbols.sort();
     ParallelSymbols.unique();
@@ -1530,7 +1553,7 @@ void SD::EpsEpExpands() {
         }
         ex ct = (*(cts.begin())).subs(CT(wild())==wild()).subs(iEpsilon==0);
         auto it = item.subs(CT(wild())==1);
-        it = mma_collect(it, epv, true);
+        it = mma_collect(it, vs, true);
         lst its;
         if(is_a<add>(it)) {
             for(auto ii : it) its.append(ii);
@@ -1724,7 +1747,7 @@ void SD::CIPrepares(const char *key) {
     if(Verbose > 0) cout << now() << " - CIPrepares ..." << endl << flush;
     auto pid = getpid();
     
-    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
     ParallelSymbols.sort();
     ParallelSymbols.unique();
@@ -2458,7 +2481,7 @@ ofs << R"EOF(
 void SD::Contours(const char *key, const char *pkey) {
     if(IsZero) return;
     
-    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
     ParallelSymbols.sort();
     ParallelSymbols.unique();
@@ -2668,7 +2691,7 @@ void SD::Contours(const char *key, const char *pkey) {
 void SD::Integrates(const char *key, const char *pkey, int kid) {
     if(IsZero) return;
     
-    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
     ParallelSymbols.sort();
     ParallelSymbols.unique();
@@ -2825,7 +2848,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 }
                 
                 for(int ci=0; ci<css.nops(); ci++) {
-                    auto nt = css.op(ci).subs(log(epv)==1).subs(epv==1).subs(nReplacements).evalf();
+                    auto nt = css.op(ci).subs(log(vs)==1).subs(vs==1).subs(nReplacements).evalf();
                     if(!is_a<numeric>(nt)) {
                         cerr << "nt: " << nt << endl;
                         assert(false);
@@ -3161,7 +3184,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
 }
 
 void SD::Initialize(XIntegrand xint) {
-    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
     ParallelSymbols.sort();
     ParallelSymbols.unique();
@@ -3182,7 +3205,7 @@ void SD::Initialize(XIntegrand xint) {
 }
 
 void SD::Evaluate(FeynmanParameter fp, const char* key) {
-    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
     ParallelSymbols.sort();
     ParallelSymbols.unique();
@@ -3209,7 +3232,7 @@ void SD::Evaluate(FeynmanParameter fp, const char* key) {
 }
 
 void SD::Evaluate(XIntegrand xint, const char *key) {
-    lst isyms = { ep, eps, epv, vz, iEpsilon };
+    lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
     ParallelSymbols.sort();
     ParallelSymbols.unique();
