@@ -1144,7 +1144,6 @@ void SD::SDPrepares() {
     ParallelSymbols.unique();
     
     //check vs
-    //TODO: check w2 is 0
     for(auto &kv : FunExp) {
         ex ft = kv.first.op(1);
         if(ft.has(vs)) {
@@ -1201,6 +1200,10 @@ void SD::SDPrepares() {
         }
         if(to_add) FunExp.push_back(kv);
     }
+    if(FunExp.size()<1) {
+        IsZero = true;
+        return;
+    }
     
     if(Verbose > 0) cout << now() << " - SDPrepares: ..." << endl << flush;
     
@@ -1212,7 +1215,6 @@ void SD::SDPrepares() {
         for(auto const &item : xns_pns) {
 
             //TODO: handle other poles, e.g., PolyGamma/Gamma from input
-
             // take z-poles
             if(item.has(vz)) {
                 lst zpols;
@@ -1486,41 +1488,47 @@ void SD::SDPrepares() {
     }, "Taylor", Verbose, true);
     
     // Take z-residues
+    bool zResides = false;
     vector<ex> ints;
     for(auto &item : res) {
         for(auto it : ex_to<lst>(item)) {
             if(!it.is_zero()) ints.push_back(it);
+            if(!zResides && it.has(vz)) zResides = true;
         }
     }
     
-    Integrands =
-    GiNaC_Parallel(ParallelProcess, ParallelSymbols, ints, [&](auto &item, auto rid) {
-        ex it = item;
-        if(it.has(vz)) {
-            exset cts;
-            it.find(CT(wild()),cts);
-            lst repl;
-            for(auto ct : cts) {
-                ex cc = 1;
-                ex ll = 1;
-                lst cls;
-                if(is_a<mul>(ct.op(0))) {
-                    for(auto ii : ct.op(0)) cls.append(ii);
-                } else {
-                    cls.append(ct.op(0));
+    if(zResides) {
+        Integrands =
+        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ints, [&](auto &item, auto rid) {
+            ex it = item;
+            if(it.has(vz)) {
+                exset cts;
+                it.find(CT(wild()),cts);
+                lst repl;
+                for(auto ct : cts) {
+                    ex cc = 1;
+                    ex ll = 1;
+                    lst cls;
+                    if(is_a<mul>(ct.op(0))) {
+                        for(auto ii : ct.op(0)) cls.append(ii);
+                    } else {
+                        cls.append(ct.op(0));
+                    }
+                    for(auto cl : cls) {
+                        if(cl.has(vz)) cc *= cl;
+                        else ll *= cl;
+                    }
+                    if(cc!=1) repl.append(ct==cc*CT(ll));
                 }
-                for(auto cl : cls) {
-                    if(cl.has(vz)) cc *= cl;
-                    else ll *= cl;
-                }
-                if(cc!=1) repl.append(ct==cc*CT(ll));
+                it = it.subs(repl);
+                it = mma_series(it,vz,-1);
+                it = ex(0)-it.coeff(vz, -1);
             }
-            it = it.subs(repl);
-            it = mma_series(it,vz,-1);
-            it = ex(0)-it.coeff(vz, -1);
-        }
-        return it;
-    }, "zResidue", Verbose, true);
+            return it;
+        }, "zResidue", Verbose, true);
+    } else {
+        Integrands = ints;
+    }
 
 }
 
@@ -2583,13 +2591,8 @@ void SD::Contours(const char *key, const char *pkey) {
 //TODO: add other schema
 //--------------------------------------------------
         for(int i=0; i<nvars; i++) {
-            if(nlas[i] < 1E-10 * max_df) {
-                nlas[i] = 0;
-                continue;
-            } else {
-                if(nlas[i] > 1E-4 * max_df) nlas[i] = 1/nlas[i];
-                else nlas[i] = 1/max_df;
-            }
+            if(nlas[i] > 5E-3 * max_df) nlas[i] = 1/nlas[i];
+            else nlas[i] = 1/max_df;
         }
         
         if(true) {

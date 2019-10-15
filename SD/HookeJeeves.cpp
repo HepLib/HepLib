@@ -89,7 +89,6 @@ int HookeJeeves::hooke(int nvars, dREAL* startpt, dREAL* endpt, dREAL rho, dREAL
         }
     }
     for (i = 0; i < nvars; i++) endpt[i] = xbefore[i];
-cout << "iters = " << iters << endl;
     return (iters);
 }
 

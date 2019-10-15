@@ -1,6 +1,6 @@
 include ../opt.mk
 
-all: garview FF FFz UF
+all: garview UF
 
 % : %.cpp
 	g++ $(opt) -o $@ $^ -lHepLib -lginac -lcln -ldl -lqhullstatic -lcubaq -lquadmath
