@@ -2648,7 +2648,7 @@ void SD::Contours(const char *key, const char *pkey) {
                 break;
             }
             
-            if(laEnd-laBegin < 1E-3*laEnd) break;
+            if(laEnd-laBegin <= 5.E-2*laEnd) break;
             min = (laBegin + laEnd) / 2.0;
         }
         min = laBegin;
@@ -3123,7 +3123,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             
             std::ofstream las_ofs;
             las_ofs.open(las_fn.str(), ios::out);
-            if (las_ofs) {
+            if (save_las && las_ofs) {
                 for(int i=0; i<las.nops()-1; i++) {
                     dREAL la_tmp = lambda[i];
                     las_ofs << la_tmp << " ";
