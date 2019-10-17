@@ -3111,7 +3111,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 ErrMin::err_max = 1E30;
                 auto err_min = ErrMin::err_min;
                 ErrMin::err_min = err_min < 0 ? -err_min * ex_to<numeric>(cerr).to_double() : err_min/cmax;
-                ErrMin::RunPTS = 0;
+                ErrMin::RunRND = 0;
                 miner->Minimize(las.nops()-1, ErrMin::IntError, ip);
                 delete miner;
                 ErrMin::err_min = err_min;

@@ -13,12 +13,12 @@ dREAL *ErrMin::lambda = NULL;
 dREAL ErrMin::err_max;
 dREAL ErrMin::hjRHO = 0.75;
 dREAL ErrMin::err_min = -0.001;
-long long ErrMin::MaxPTS = 500;
-long long ErrMin::RunPTS = 0;
+long long ErrMin::MaxRND = 50;
+long long ErrMin::RunRND = 0;
 ex ErrMin::lastResErr;
 
 dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
-    RunPTS++;
+    RunRND++;
     qREAL qlas[nvars];
     for(int i=0; i<nvars; i++) qlas[i] = las[i];
     auto res = Integrator->Integrate(xsize, fp, fpQ, paras, qlas);
@@ -38,7 +38,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
             }
             if(Verbose > 3) {
                 cout << "\r                             \r";
-                cout << WHITE << "     " << RunPTS << ": " << RESET;
+                cout << WHITE << "     " << RunRND << ": " << RESET;
                 for(int i=0; i<nvars; i++) cout << las[i] << " ";
                 cout << endl << "     " << res.subs(VE(0,0)==0) << endl;
             }
@@ -53,13 +53,13 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
         } else {
             if(Verbose > 3) {
                 cout << "\r                             \r";
-                cout << WHITE << "     [ " << RunPTS << " / " << MaxPTS << " ] ..." << RESET << flush;
+                cout << WHITE << "     [ " << RunRND << " / " << MaxRND << " ] ..." << RESET << flush;
             }
         }
     } catch(domain_error &ex) {
         throw ex;
     } catch(...) { }
-    if(RunPTS>=MaxPTS) {
+    if(RunRND>=MaxRND) {
         cout << "\r                             \r";
         cout << "     ------------------------------" << endl;
         miner->ForceStop();

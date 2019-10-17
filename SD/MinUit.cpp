@@ -37,6 +37,9 @@ public:
     
 };
 
+int MinUit::TryPTS = 5;
+int MinUit::SavePTS = 2;
+
 void MinUit_Random(int n, double *x) {
     static bool inited = false;
     if(!inited) {
@@ -59,23 +62,21 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
     double step[nvars];
     for(int i=0; i<nvars; i++) step[i] = 5E-4 * (ub[i]-lb[i]);
     
-    #define savePTS 3
-    #define tryPTS 4
-    double minPoints[savePTS][nvars], maxPoints[savePTS][nvars], minValue[savePTS], maxValue[savePTS];
-    for(int i=0; i<savePTS; i++) {
+    double minPoints[SavePTS][nvars], maxPoints[SavePTS][nvars], minValue[SavePTS], maxValue[SavePTS];
+    for(int i=0; i<SavePTS; i++) {
         minValue[i] = 1E5;
         maxValue[i] = -1E5;
     }
     int min_index=0, max_index=0;
-    dREAL pts[tryPTS+1];
-    for(int i=0; i<=tryPTS; i++) pts[i] = i*1.0/tryPTS;
-    for(long long ii=0; ii<std::pow(tryPTS+1, nvars); ii++) {
+    dREAL pts[TryPTS+1];
+    for(int i=0; i<=TryPTS; i++) pts[i] = i*1.0/TryPTS;
+    for(long long ii=0; ii<std::pow(TryPTS+1, nvars); ii++) {
         dREAL iPoints[nvars];
         int li = ii;
         for(int i=0; i<nvars; i++) {
-            int mi = li % (1+tryPTS);
+            int mi = li % (1+TryPTS);
             iPoints[i] = lb[i] + pts[mi] * (ub[i]-lb[i]);
-            li /= (1+tryPTS);
+            li /= (1+TryPTS);
         }
         auto tmp = func(nvars, iPoints, PL, LAS);
         if(compare0 && tmp<ZeroValue) return -1;
@@ -84,7 +85,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
             minValue[max_index] = tmp;
             for(int j=0; j<nvars; j++) minPoints[max_index][j] = iPoints[j];
             max_index = 0;
-            for(int j=0; j<savePTS && j<std::pow(tryPTS+1, nvars); j++) {
+            for(int j=0; j<SavePTS && j<std::pow(TryPTS+1, nvars); j++) {
                 if(minValue[j] > minValue[max_index]) max_index = j;
             }
         }
@@ -93,7 +94,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
             maxValue[min_index] = tmp;
             for(int j=0; j<nvars; j++) maxPoints[max_index][j] = iPoints[j];
             min_index = 0;
-            for(int j=0; j<savePTS && j<std::pow(tryPTS+1, nvars); j++) {
+            for(int j=0; j<SavePTS && j<std::pow(TryPTS+1, nvars); j++) {
                 if(maxValue[j] < maxValue[max_index]) min_index = j;
             }
         }
@@ -102,7 +103,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
     
     double ret = 1E5;
     
-    for(int ii=0; ii<2*savePTS; ii++) {
+    for(int ii=0; ii<2*SavePTS; ii++) {
         FCN fcn(func, PL, LAS);
         ROOT::Minuit2::MnUserParameters upar;
         double rndPoints[nvars];
@@ -120,7 +121,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
         if(compare0 && ret<ZeroValue) return -1;
     }
     
-    for(int ii=0; ii<savePTS && ii<std::pow(tryPTS+1, nvars); ii++) {
+    for(int ii=0; ii<SavePTS && ii<std::pow(TryPTS+1, nvars); ii++) {
         FCN fcn(func, PL, LAS);
         ROOT::Minuit2::MnUserParameters upar;
         for(int i=0; i<nvars; i++) {
@@ -136,7 +137,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
         if(compare0 && ret<ZeroValue) return -1;
     }
     
-    for(int ii=0; ii<savePTS && ii<std::pow(tryPTS+1, nvars); ii++) {
+    for(int ii=0; ii<SavePTS && ii<std::pow(TryPTS+1, nvars); ii++) {
         FCN fcn(func, PL, LAS);
         ROOT::Minuit2::MnUserParameters upar;
         for(int i=0; i<nvars; i++) {

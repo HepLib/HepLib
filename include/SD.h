@@ -183,19 +183,8 @@ public:
     virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false) override;
     virtual void Minimize(int nvars, FunctionType func, dREAL *IP) override;
     virtual void ForceStop() override;
-};
-
-class ExOpt : public MinimizeBase {
-public:
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false) override;
-    virtual void Minimize(int nvars, FunctionType func, dREAL *IP) override;
-    virtual void ForceStop() override;
-    bool Compare0 = false;
-    dREAL UB[50];
-    dREAL LB[50];
-    FunctionType ObjectFunction;
-    dREAL *PL;
-    dREAL *LAS;
+    static int TryPTS;
+    static int SavePTS;
 };
 
 /*-----------------------------------------------------*/
@@ -255,8 +244,8 @@ public:
     static dREAL *lambda;
     static dREAL err_max;
     static dREAL err_min;
-    static long long MaxPTS;
-    static long long RunPTS;
+    static long long MaxRND;
+    static long long RunRND;
     static MinimizeBase *miner;
     static dREAL hjRHO;
     static ex lastResErr;
