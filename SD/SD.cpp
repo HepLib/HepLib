@@ -3121,15 +3121,17 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             }
             // ---------------------------------------
             
-            std::ofstream las_ofs;
-            las_ofs.open(las_fn.str(), ios::out);
-            if (save_las && las_ofs) {
-                for(int i=0; i<las.nops()-1; i++) {
-                    dREAL la_tmp = lambda[i];
-                    las_ofs << la_tmp << " ";
+            if(save_las) {
+                std::ofstream las_ofs;
+                las_ofs.open(las_fn.str(), ios::out);
+                if (las_ofs) {
+                    for(int i=0; i<las.nops()-1; i++) {
+                        dREAL la_tmp = lambda[i];
+                        las_ofs << la_tmp << " ";
+                    }
+                    las_ofs << endl;
+                    las_ofs.close();
                 }
-                las_ofs << endl;
-                las_ofs.close();
             }
         }
 

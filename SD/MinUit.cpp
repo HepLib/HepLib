@@ -37,8 +37,8 @@ public:
     
 };
 
-int MinUit::TryPTS = 5;
-int MinUit::SavePTS = 2;
+int MinUit::TryPTS = 4;
+int MinUit::SavePTS = 1;
 
 void MinUit_Random(int n, double *x) {
     static bool inited = false;

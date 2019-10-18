@@ -65,6 +65,21 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
         miner->ForceStop();
         return 0.;
     }
+    
+    auto pid = getpid();
+    ostringstream fn;
+    fn << pid << ".las.done";
+    if(file_exists(fn.str().c_str())) {
+        ostringstream cmd;
+        cmd << "rm " << fn.str();
+        system(cmd.str().c_str());
+        cout << "\r                             \r";
+        if(Verbose>3) cout << "     Exit: " << fn.str() << endl;
+        cout << "     ------------------------------" << endl;
+        miner->ForceStop();
+        return 0.;
+    }
+    
     return nerr.to_double();
 }
 
