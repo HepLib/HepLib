@@ -99,7 +99,7 @@ dREAL HookeJeeves::ObjectWrapper(int nvars, dREAL* x) {
     return ObjectFunction(nvars, x, PL, LAS);
 }
 
-dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *las, dREAL *UB, dREAL *LB, dREAL *IP, bool compare0) {
+dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *las, dREAL *UB, dREAL *LB, dREAL *IP, bool compare0, int TryPTS, int SavePTS) {
     ObjectFunction = func;
     PL = pl;
     LAS = las;
@@ -114,36 +114,36 @@ dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *l
     dREAL EpsParameter = 1E-4;
     long long MaxParameter = 100000;
     
-    #define savePTS 10
-    #define tryPTS 2
-    double mPoints[savePTS][nvars], mValue[savePTS];
-    for(int i=0; i<savePTS; i++) mValue[i] = 1E5;
+    if(SavePTS<=0) SavePTS = 1;
+    if(TryPTS<=0) TryPTS= 3;
+    double mPoints[SavePTS][nvars], mValue[SavePTS];
+    for(int i=0; i<SavePTS; i++) mValue[i] = 1E5;
     int max_index = 0;
-    dREAL pts[tryPTS+1];
+    dREAL pts[TryPTS+1];
     pts[0] = 1E-4;
-    pts[tryPTS] = 1-1E-4;
-    for(int i=1; i<tryPTS; i++) pts[i] = i*1.0/tryPTS;
-    for(long long ii=0; ii<std::pow(tryPTS+1, nvars); ii++) {
+    pts[TryPTS] = 1-1E-4;
+    for(int i=1; i<TryPTS; i++) pts[i] = i*1.0/TryPTS;
+    for(long long ii=0; ii<std::pow(TryPTS+1, nvars); ii++) {
         dREAL iPoints[nvars];
         int li = ii;
         for(int i=0; i<nvars; i++) {
-            int mi = li % (1+tryPTS);
+            int mi = li % (1+TryPTS);
             iPoints[i] = LowerBound[i] + pts[mi]*(UpperBound[i]-LowerBound[i]);
-            li /= (1+tryPTS);
+            li /= (1+TryPTS);
         }
         auto tmp = ObjectWrapper(nvars, iPoints);
         if(mValue[max_index] > tmp) {
             mValue[max_index] = tmp;
             for(int j=0; j<nvars; j++) mPoints[max_index][j] = iPoints[j];
             max_index = 0;
-            for(int j=0; j<savePTS && j<std::pow(tryPTS+1, nvars); j++) {
+            for(int j=0; j<SavePTS && j<std::pow(TryPTS+1, nvars); j++) {
                 if(mValue[j] > mValue[max_index]) max_index = j;
             }
         }
     }
     
     double ret = 1E5;
-    for(int ii=0; ii<savePTS && ii<std::pow(tryPTS+1, nvars); ii++) {
+    for(int ii=0; ii<SavePTS && ii<std::pow(TryPTS+1, nvars); ii++) {
         dREAL iPoints[nvars], oPoints[nvars];
         for(int i=0; i<nvars; i++) iPoints[i] = mPoints[ii][i];
         hooke(nvars, iPoints, oPoints, RhoParameter, EpsParameter, MaxParameter);

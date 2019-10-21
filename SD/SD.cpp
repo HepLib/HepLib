@@ -235,7 +235,7 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
                 }
                 ft = 1;
                 need_contour_deformation = false;
-            }
+            } 
         }
 
         exmap ymol;
@@ -1803,7 +1803,7 @@ void SD::CIPrepares(const char *key) {
             double tmin = FindMinimum(ft, true);
             if(tmin > 1E-5) {
                 ft = 1;
-            }
+            } 
         }
         
         ft = collect_common_factors(ft);
@@ -2632,14 +2632,14 @@ void SD::Contours(const char *key, const char *pkey) {
             fp = GWrapper::MinFunction;
         }
         
-        dREAL laBegin = 0, laEnd = 100, min;
+        dREAL laBegin = 0, laEnd = CTMax, min;
         dREAL UB[nvars+1];
         for(int i=0; i<nvars+1; i++) UB[i] = 1;
         
         min = laEnd;
         while(true) {
             UB[nvars] = min;
-            dREAL res = Minimizer->FindMinimum(nvars+1, fp, paras, nlas, UB, NULL, NULL, true);
+            dREAL res = Minimizer->FindMinimum(nvars+1, fp, paras, nlas, UB, NULL, NULL, true, CTTryPTS, CTSavePTS);
             if(res < -1E-5) laEnd = min;
             else laBegin = min;
             
@@ -3345,7 +3345,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     auto fp = (MinimizeBase::FunctionType)dlsym(module, "minFunc");
     assert(fp!=NULL);
     
-    double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0);
+    double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0, 5, 5);
     
     if(use_dlclose) dlclose(module);
     cmd.clear();

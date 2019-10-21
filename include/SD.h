@@ -154,7 +154,7 @@ typedef long double dREAL;
 class MinimizeBase {
 public:
     typedef dREAL (*FunctionType)(int nvars, dREAL* x, dREAL* pl, dREAL *las);
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false) =0;
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false, int TryPTS=0, int SavePTS=0) =0;
     dREAL ZeroValue = -1E-20;
     virtual void Minimize(int nvars, FunctionType func, dREAL *ip)=0;
     virtual void ForceStop()=0;
@@ -162,7 +162,7 @@ public:
 
 class HookeJeeves : public MinimizeBase {
 public:
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false) override;
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false, int TryPTS=0, int SavePTS=0) override;
     bool Exit = false;
     virtual void Minimize(int nvars, FunctionType func, dREAL *ip) override;
     virtual void ForceStop() override;
@@ -180,11 +180,9 @@ private:
 
 class MinUit : public MinimizeBase {
 public:    
-    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false) override;
+    virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false, int TryPTS=0, int SavePTS=0) override;
     virtual void Minimize(int nvars, FunctionType func, dREAL *IP) override;
     virtual void ForceStop() override;
-    static int TryPTS;
-    static int SavePTS;
 };
 
 /*-----------------------------------------------------*/
@@ -299,13 +297,18 @@ public:
     map<int, numeric> ParameterUB;
     map<int, numeric> ParameterLB;
     
+    // used in Contours
+    dREAL CTMax = 100; 
+    int CTTryPTS = 3;
+    int CTSavePTS = 1;
+    
     long long TryPTS = 500000;
     long long LambdaSplit = 5;
     qREAL LambdaMax = 100;
     int CTry = 1;
     int CTryLeft = 1;
     int CTryRight = 1;
-    dREAL CTryRightRatio = 1.5;
+    dREAL CTryRightRatio = 1.5; 
     
     long long RunMAX = 20;
     long long RunPTS = 500000;

@@ -37,9 +37,6 @@ public:
     
 };
 
-int MinUit::TryPTS = 4;
-int MinUit::SavePTS = 1;
-
 void MinUit_Random(int n, double *x) {
     static bool inited = false;
     if(!inited) {
@@ -50,7 +47,7 @@ void MinUit_Random(int n, double *x) {
     }
 }
 
-dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, dREAL *UB, dREAL *LB, dREAL *IP, bool compare0) {
+dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, dREAL *UB, dREAL *LB, dREAL *IP, bool compare0, int TryPTS, int SavePTS) {
     double ub[nvars], lb[nvars];
     
     if(UB != NULL) for(int i=0; i<nvars; i++) ub[i] = UB[i];
@@ -60,8 +57,10 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
     else for(int i=0; i<nvars; i++) lb[i] = 0;
     
     double step[nvars];
-    for(int i=0; i<nvars; i++) step[i] = 5E-4 * (ub[i]-lb[i]);
+    for(int i=0; i<nvars; i++) step[i] = 1E-3 * (ub[i]-lb[i]);
     
+    if(SavePTS<=0) SavePTS = 1;
+    if(TryPTS<=0) TryPTS= 3;
     double minPoints[SavePTS][nvars], maxPoints[SavePTS][nvars], minValue[SavePTS], maxValue[SavePTS];
     for(int i=0; i<SavePTS; i++) {
         minValue[i] = 1E5;
@@ -168,7 +167,7 @@ void MinUit::Minimize(int nvars, FunctionType func, dREAL *ip) {
         for(int i=0; i<nvars; i++) {
             ostringstream xs;
             xs << "x" << i;
-            upar.Add(xs.str(), ip[i], 0.5, 0, 10);
+            upar.Add(xs.str(), ip[i], 0.1, 0, 10);
         }
 
         ROOT::Minuit2::MnMigrad minizer(fcn, upar);
