@@ -238,7 +238,7 @@ ex mma_series(ex expr_in, symbol s, int sn) {
     }
     
     while(exN<10) {
-        expr = expr_input + pow(s,sn+exN+2);
+        expr = expr_input + pow(s,sn+exN+2)+pow(s,sn+exN+3);
         ex res = expr.series(s, sn+exN);
         res = res.subs(CCF(wild())==wild()); // remove CCF
         ex ot = 0;
@@ -404,3 +404,4 @@ REGISTER_FUNCTION(CCF, derivative_func(CCF_Diff))
 REGISTER_FUNCTION(CVF, dummy())
 
 }
+
