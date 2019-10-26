@@ -226,16 +226,18 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
                 assert(false);
             }
             
-            if(tn.evalf() < 0) tmp = ex(0)-tmp;
-            double tmin = FindMinimum(tmp, true);
-            if(tmin > 1E-5) {
-                if(tn.evalf() < 0) {
-                    ct = exp(-I * Pi * exlist.op(1));
-                    fsgin = -1;
-                }
-                ft = 1;
-                need_contour_deformation = false;
-            } 
+            if(use_ff) {
+                if(tn.evalf() < 0) tmp = ex(0)-tmp;
+                double tmin = FindMinimum(tmp, true);
+                if(tmin > 1E-5) {
+                    if(tn.evalf() < 0) {
+                        ct = exp(-I * Pi * exlist.op(1));
+                        fsgin = -1;
+                    }
+                    ft = 1;
+                    need_contour_deformation = false;
+                } 
+            }
         }
 
         exmap ymol;
@@ -278,11 +280,11 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
                 for (auto item : tmp) tmps.append(item);
             } else {
                 tmps.append(tmp);
-            }
+            } 
             
             ex rem = 1;
             ex ct = 1;
-            for (auto item : tmps) {
+            for (auto item : tmps) { 
                 if( item.match(y(wild())) || item.match(pow(y(wild()), wild(1))) ) {
                     auto yi = get_xy_from(item)[0];
                     ymol[yi] = ymol[yi] + (item.nops()<2 ? 1 : item.op(1)) * exlist.op(i);
@@ -315,7 +317,7 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
                     rem *= item;
                 }
             }
-            
+
             ex pnp = rem-(i==1 && ft!=1 ? iEpsilon : ex(0));
             pnp = pnp.subs(y(wild())==x(wild()));
             ex pnn = exlist.op(i);
@@ -584,7 +586,7 @@ void SD::Initialize(FeynmanParameter fp) {
         rem += x(i) * p;
     }
 
-    rem = rem.expand();
+    rem = rem.expand(); 
     lst uList1, uList2;
     ex u=1, cu=1;
     
@@ -1350,10 +1352,10 @@ void SD::SDPrepares() {
                     lst xns_pns_lst;
                     xns_pns_lst.append(lst{xns2, pns2});
                     
-                    lst xns3 = ex_to<lst>(xns);
-                    xns3.let_op(n).let_op(1) = xn.op(1)+1;
-                    
                     for(int i=0; i<pns.nops(); i++) {
+                        lst xns3 = ex_to<lst>(xns);
+                        xns3.let_op(n).let_op(1) = xn.op(1)+1;
+                        
                         ex tmp = ex(0)-pns.op(i).op(1)*mma_diff(pns.op(i).op(0),xx,1,false);
                         if(tmp.is_zero()) continue;
                         
@@ -1746,11 +1748,11 @@ qCOMPLEX MatDetQ(qCOMPLEX mat[], int n) {
 }
 
 void SD::CIPrepares(const char *key) {
-    if(IsZero) return;
     if(expResult.size()<1) {
         IsZero = true;
-        return;
     }
+    
+    if(IsZero) return;
     
     if(Verbose > 0) cout << now() << " - CIPrepares ..." << endl << flush;
     auto pid = getpid();
@@ -1800,10 +1802,12 @@ void SD::CIPrepares(const char *key) {
         } else if(!ft.has(x(wild()))){
             ft = 1;
         } else {
-            double tmin = FindMinimum(ft, true);
-            if(tmin > 1E-5) {
-                ft = 1;
-            } 
+            if(use_ff) {
+                double tmin = FindMinimum(ft, true);
+                if(tmin > 1E-5) {
+                    ft = 1;
+                } 
+            }
         }
         
         ft = collect_common_factors(ft);
@@ -1890,8 +1894,10 @@ void SD::CIPrepares(const char *key) {
         // exp-fn configure, Exp[-Power[ftn,2*f2n]]//N
         char * ri = "0.0";
         int ftn = 10, f2n = 1;
-        bool use_exp = true;
-        ex ft_max = ex(0)-numeric(FindMinimum(-abs(ft)));
+        
+        //use_exp = true;
+        ex ft_max = 1;
+        if(use_exp) ft_max = ex(0)-numeric(FindMinimum(-abs(ft)));
         ft_max = ft_max/ex(ftn);
         
         auto pls = get_pl_from(ft);
@@ -3345,7 +3351,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     auto fp = (MinimizeBase::FunctionType)dlsym(module, "minFunc");
     assert(fp!=NULL);
     
-    double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0, 5, 5);
+    double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0, 2, 2);
     
     if(use_dlclose) dlclose(module);
     cmd.clear();

@@ -60,7 +60,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
     for(int i=0; i<nvars; i++) step[i] = 1E-3 * (ub[i]-lb[i]);
     
     if(SavePTS<=0) SavePTS = 1;
-    if(TryPTS<=0) TryPTS= 3;
+    if(TryPTS<=0) TryPTS= 1;
     double minPoints[SavePTS][nvars], maxPoints[SavePTS][nvars], minValue[SavePTS], maxValue[SavePTS];
     for(int i=0; i<SavePTS; i++) {
         minValue[i] = 1E5;

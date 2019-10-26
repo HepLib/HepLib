@@ -115,7 +115,7 @@ dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *l
     long long MaxParameter = 100000;
     
     if(SavePTS<=0) SavePTS = 1;
-    if(TryPTS<=0) TryPTS= 3;
+    if(TryPTS<=0) TryPTS= 1;
     double mPoints[SavePTS][nvars], mValue[SavePTS];
     for(int i=0; i<SavePTS; i++) mValue[i] = 1E5;
     int max_index = 0;

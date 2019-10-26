@@ -291,7 +291,9 @@ public:
     bool use_las = false;
     bool save_las = false;
     bool use_IBF = false;
-    lst BisectionPoints = lst { ex(1)/11, ex(1)/13, ex(1)/17, ex(1)/19, ex(1)/23  };
+    bool use_ff = false; // use FindMinimum in F-term
+    bool use_exp = false; // use exp in contour deformation
+    lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
     
     map<int, numeric> Parameter;
     map<int, numeric> ParameterUB;
