@@ -20,6 +20,14 @@ bool useq = false;
 ex nL = 3;
 ex nH = 1;
 
+void ExportNull(const char* fn) {
+    ofstream ofs;
+    ofs.open(fn, ios::out);
+    if (!ofs) throw runtime_error("failed to open final null file!");
+    ofs << "Result is Null." << endl;
+    ofs.close();
+}
+
 void Prepare(int idx) {
     
     symbol p("p"), n("n");
@@ -67,6 +75,7 @@ void Prepare(int idx) {
     table["zz"] = zz;
     table["nL"] = nL;
     table["nH"] = nH;
+    table["ApartNull"] = 1;
     
     table["kp"] = kp;
     table["pp"] = pp;
@@ -129,7 +138,12 @@ void Prepare(int idx) {
     
     work.Initialize(fp);
     
-    if(work.IsZero) return;
+    if(work.IsZero) {
+        ostringstream ifn;
+        ifn << SD_path << "/" << idx << ".null";
+        ExportNull(ifn.str().c_str());
+        return;
+    }
     
     if(work.SecDec==NULL) work.SecDec = new SecDecG();
     if(work.Minimizer==NULL) work.Minimizer = new MinUit();
@@ -173,6 +187,12 @@ void Prepare(int idx) {
             kv.second.append(tmp.op(1));
         }
         
+        if(false)
+        for(int i=1; i<=nts; i++) {
+            kv.first.append(x(xn+i-1));
+            kv.second.append(eps);
+        }
+        
     }
     
     work.Normalizes();
@@ -190,6 +210,11 @@ void Prepare(int idx) {
     delete work.SecDec;
     delete work.Minimizer;
     
+    if(work.IsZero) {
+        ostringstream ifn;
+        ifn << SD_path << "/" << idx << ".null";
+        ExportNull(ifn.str().c_str());
+    }
 }
 
 void Contour(int idx, numeric zz) {
@@ -367,7 +392,6 @@ int main(int argc, char** argv) {
             cout << "Integrating @ z=" << arg_z << " - " << i << "/" << nmi << endl;
             auto res = Integrate(i, zz, ii);
             fRes += res;
-            //if(!res.is_zero()) cout << VEResult(res) << endl;
             cout << endl;
             if(res.has(SD::NaN)) nid.push_back(i);
             
@@ -393,7 +417,15 @@ int main(int argc, char** argv) {
             if(in>0 && i!=in) continue;
             stringstream ss;
             ss << SD_path << "/" << i << ".ci.gar";
-            if(!file_exists(ss.str().c_str())) continue;
+            if(!file_exists(ss.str().c_str())) {
+                ostringstream ifn;
+                ifn << SD_path << "/" << i << ".null";
+                if(!file_exists(ifn.str().c_str())) {
+                    cout << RED << "File NOT Found: " << ifn.str() << RESET << endl;
+                    assert(false);
+                }
+                continue;
+            }
             
             ss.clear();
             ss.str("");

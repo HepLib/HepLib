@@ -21,10 +21,17 @@ int epN = 0;
 bool useq = false;
 
 bool zeps = true;
-int zmod = 2;
 ex zz = z(zn);
 ex nL = 3;
 ex nH = 1;
+
+void ExportNull(const char* fn) {
+    ofstream ofs;
+    ofs.open(fn, ios::out);
+    if (!ofs) throw runtime_error("failed to open final null file!");
+    ofs << "Result is Null." << endl;
+    ofs.close();
+}
 
 void Prepare(int idx) {
     
@@ -42,14 +49,13 @@ void Prepare(int idx) {
     ex m = 1;
     ex m2=m*m;
     
-    ex k1p = z(1)*(1-zz)*kp;
+    ex k1p = z(1)*kp;
     ex k1m = (pow(K1,2))/(2*k1p);
-    ex k2p = z(2)*(1-zz)*kp;
+    ex k2p = z(2)*kp;
     ex k2m = (pow(K2,2))/(2*k2p);
-    ex k3p = z(3)*(1-zz)*kp;
+    ex k3p = z(3)*kp;
     ex k3m = (pow(K3,2))/(2*k3p);
     
-    if(fp.tLoopMomenta.nops()<1) zz = 1;
     ex pp = zz/2*kp;
     ex pm = m2/(2*pp);
     
@@ -72,6 +78,7 @@ void Prepare(int idx) {
     table["zz"] = zz;
     table["nL"] = nL;
     table["nH"] = nH;
+    table["ApartNull"] = 1;
     
     table["kp"] = kp;
     table["pp"] = pp;
@@ -92,7 +99,7 @@ void Prepare(int idx) {
     ex M = 2*m;
     ex nts = fp.tLoopMomenta.nops();
     ex psFactor;
-    if(nts>0) psFactor = NCS*M/S*(-((pow(2,(2-nts-(3-2*ep)*nts))*pow(Pi,(1-(3-2*ep)*nts)))/(kp*(-1+zz))));
+    if(nts>0) psFactor = NCS*M/S*(-((pow(2,(2-nts-(3-2*ep)*nts))*pow(Pi,(1-(3-2*ep)*nts)))/(-kp)));
     else psFactor = NCS*M*4*Pi/kp;
     fp.Prefactor = fp.Prefactor * psFactor;
     
@@ -136,29 +143,15 @@ void Prepare(int idx) {
         for(auto &kv : work.FunExp) {
             kv.first.append(z(zn));
             kv.second.append(eps);
-            kv.first.append(1-z(zn));
-            kv.second.append(eps);
         }
     }
-    
-    if(zmod == 2) {
-        auto funexp = work.FunExp;
-        for(auto &kv : work.FunExp) {
-            kv.first.let_op(0) = kv.first.op(0) * z0;
-            for(auto i=0; i<kv.first.nops(); i++) kv.first.let_op(i) = kv.first.op(i).subs(zz==zz*z0);
-            for(auto i=0; i<kv.second.nops(); i++) kv.second.let_op(i) = kv.second.op(i).subs(zz==zz*z0);
-        }
         
-        for(auto &kv : funexp) {
-            kv.first.let_op(0) = kv.first.op(0) * (1-z0);
-            for(auto i=0; i<kv.first.nops(); i++) kv.first.let_op(i) = kv.first.op(i).subs(zz==zz*(z0-1)+1);
-            for(auto i=0; i<kv.second.nops(); i++) kv.second.let_op(i) = kv.second.op(i).subs(zz==zz*(z0-1)+1);
-        }
-        
-        for(auto &item : funexp) work.FunExp.push_back(item);
+    if(work.IsZero) {
+        ostringstream ifn;
+        ifn << SD_path << "/" << idx << ".null";
+        ExportNull(ifn.str().c_str());
+        return;
     }
-    
-    if(work.IsZero) return;
     
     if(work.SecDec==NULL) work.SecDec = new SecDecG();
     if(work.Minimizer==NULL) work.Minimizer = new MinUit();
@@ -174,6 +167,7 @@ void Prepare(int idx) {
         zFactor /= x(xn+i-1);
     }
     z2x[z(zn)] = x(xn+zn);
+    zs.append(x(xn+zn));
     
     if(nts>0) work.Deltas.push_back(zs);
 
@@ -221,6 +215,11 @@ void Prepare(int idx) {
     delete work.SecDec;
     delete work.Minimizer;
     
+    if(work.IsZero) {
+        ostringstream ifn;
+        ifn << SD_path << "/" << idx << ".null";
+        ExportNull(ifn.str().c_str());
+    }
 }
 
 void Contour(int idx) {
@@ -229,6 +228,7 @@ void Contour(int idx) {
     work.CFLAGS = CFLAGS;
     work.ParallelSymbols = para_sym;
     work.Verbose = verb;
+    work.ParallelProcess = 0;
     
     ostringstream ikey;
     ikey << SD_path << "/" << idx;
@@ -409,7 +409,15 @@ int main(int argc, char** argv) {
             if(in>0 && i!=in) continue;
             stringstream ss;
             ss << SD_path << "/" << i << ".ci.gar";
-            if(!file_exists(ss.str().c_str())) continue;
+            if(!file_exists(ss.str().c_str())) {
+                ostringstream ifn;
+                ifn << SD_path << "/" << i << ".null";
+                if(!file_exists(ifn.str().c_str())) {
+                    cout << RED << "File NOT Found: " << ifn.str() << RESET << endl;
+                    assert(false);
+                }
+                continue;
+            }
             
             ss.clear();
             ss.str("");

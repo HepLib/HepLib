@@ -90,6 +90,7 @@ public:
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     int Verbose = 0;
     bool UseQ = false;
+    bool UseCpp = true;
 };
 
 class HCubature : public IntegratorBase {
@@ -220,6 +221,7 @@ public:
     static int IntFunction(const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
     
     static ex Lambda;
+    static int GiNaC_Digits;
     
 private:
     static ex MinF;

@@ -1892,13 +1892,14 @@ void SD::CIPrepares(const char *key) {
         lst las;
         
         // exp-fn configure, Exp[-Power[ftn,2*f2n]]//N
-        char * ri = "0.0";
         int ftn = 10, f2n = 1;
         
         //use_exp = true;
         ex ft_max = 1;
-        if(use_exp) ft_max = ex(0)-numeric(FindMinimum(-abs(ft)));
-        ft_max = ft_max/ex(ftn);
+        if(use_exp) {
+            ft_max = ex(0)-numeric(FindMinimum(-abs(ft)));
+            ft_max = ft_max/ex(ftn);
+        }
         
         auto pls = get_pl_from(ft);
         int npls = pls.size()>0 ? ex_to<numeric>(pls[pls.size()-1].subs(lst{PL(wild())==wild()})).to_int() : -1;
@@ -2049,13 +2050,13 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
         ofs << "dREAL fmax = "; ft_max.print(cppL); ofs << ";" << endl;
         ofs << "dCOMPLEX ilas[nfxs];" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>("<<ri<<"L*las[i], las[i]);" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>(0.L, las[i]);" << endl;
         ofs << "dff[nfxs] = FL_"<<ft_n<<"(x,pl);" << endl;
         if(use_exp) ofs << "dREAL expf2n=exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
         else ofs << "dREAL expf2n=1.L;" << endl;
         ofs << "for(int i=0; i<nfxs; i++) dff[i] = FL_"<<ft_n<<"(i,x,pl);" << endl;
         ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]*expf2n;" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1-x[i])*r[i];" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.L-x[i])*r[i];" << endl;
         ofs << "}" << endl;
         ofs << endl;
         
@@ -2064,13 +2065,13 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
         ofs << "qREAL fmax = "; ft_max.print(cppQ); ofs << ";" << endl;
         ofs << "qCOMPLEX ilas[nfxs];" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * ("<<ri<<"Q+1.Qi);" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;" << endl;
         ofs << "dff[nfxs] = FQ_"<<ft_n<<"(x,pl);" << endl;
         if(use_exp) ofs << "qREAL expf2n=expq(-powq(dff[nfxs]/fmax,2*f2n));" << endl;
         else ofs << "dREAL expf2n = 1.Q;" << endl;
         ofs << "for(int i=0; i<nfxs; i++) dff[i] = FQ_"<<ft_n<<"(i,x,pl);" << endl;
         ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]*expf2n;" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1-x[i])*r[i];" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.Q-x[i])*r[i];" << endl;
         ofs << "}" << endl;
         ofs << endl;
         
@@ -2079,7 +2080,7 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
         ofs << "dREAL fmax = "; ft_max.print(cppL); ofs << ";" << endl;
         ofs << "dCOMPLEX ilas[nfxs];" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>("<<ri<<"L*las[i], las[i]);" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>(0.L, las[i]);" << endl;
         if(use_exp) ofs << "dREAL expf2n = exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
         else ofs << "dREAL expf2n = 1.L;" << endl;
         ofs << "for(int i=0; i<nfxs; i++) {" << endl;
@@ -2087,10 +2088,10 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "int ij = i*nfxs+j;" << endl;
         ofs << "if(i!=j) mat[ij] = 0;" << endl;
         ofs << "else mat[ij] = 1.L-(1.L-2.L*x[i])*dff[i]*ilas[i]*expf2n;" << endl;
-        ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*FL_"<<ft_n<<"(i,j,x,pl)*ilas[i]*expf2n;" << endl;
+        ofs << "mat[ij] = mat[ij]-x[i]*(1.L-x[i])*FL_"<<ft_n<<"(i,j,x,pl)*ilas[i]*expf2n;" << endl;
         if(use_exp) {
             ofs << "dREAL df2n = -2*f2n*dff[j]/fmax*pow(dff[nfxs]/fmax,2*f2n-1);" << endl;
-            ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff[i]*ilas[i]*expf2n*df2n;" << endl;
+            ofs << "mat[ij] = mat[ij]-x[i]*(1.L-x[i])*dff[i]*ilas[i]*expf2n*df2n;" << endl;
         }
         ofs << "}}" << endl;
         ofs << "}" << endl;
@@ -2101,7 +2102,7 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
         ofs << "qREAL fmax = "; ft_max.print(cppQ); ofs << ";" << endl;
         ofs << "qCOMPLEX ilas[nfxs];" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * ("<<ri<<"Q+1.Qi);" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;" << endl;
         if(use_exp) ofs << "qREAL expf2n = expq(-powq(dff[nfxs]/fmax,2*f2n));" << endl;
         else ofs << "qREAL expf2n = 1.Q;" << endl;
         ofs << "for(int i=0; i<nfxs; i++) {" << endl;
@@ -2109,10 +2110,10 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "int ij = i*nfxs+j;" << endl;
         ofs << "if(i!=j) mat[ij] = 0;" << endl;
         ofs << "else mat[ij] = 1.Q-(1.Q-2.Q*x[i])*dff[i]*ilas[i]*expf2n;" << endl;
-        ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*FQ_"<<ft_n<<"(i,j,x,pl)*ilas[i]*expf2n;" << endl;
+        ofs << "mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*FQ_"<<ft_n<<"(i,j,x,pl)*ilas[i]*expf2n;" << endl;
         if(use_exp) {
             ofs << "qREAL df2n = -2*f2n*dff[j]/fmax*powq(dff[nfxs]/fmax,2*f2n-1);" << endl;
-            ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff[i]*ilas[i]*expf2n*df2n;" << endl;
+            ofs << "mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*dff[i]*ilas[i]*expf2n*df2n;" << endl;
         }
         ofs << "}}" << endl;
         ofs << "}" << endl;
@@ -2318,7 +2319,7 @@ qCOMPLEX log(qCOMPLEX x);
                 ofs << "MatL_"<<ft_n<<"(mat,x0,dff,pl,las);" << endl;
                 for(auto x0i : xs0) {
                     ofs << "ii = " << x0i << ";" << endl;
-                    ofs << "z[ii] = x[ii]-x[ii]*(1-x[ii])*r[ii];" << endl;
+                    ofs << "z[ii] = x[ii]-x[ii]*(1.L-x[ii])*r[ii];" << endl;
                     ofs << "for(int j=0; j<nfxs;j++) mat[nfxs*ii+j] = 0;" << endl;
                     ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = 0;" << endl;
                     ofs << "mat[ii*nfxs+ii] = 1.L-(1.L-2.L*x[ii])*r[ii];" << endl;
@@ -2387,7 +2388,7 @@ ofs << R"EOF(
                 ofs << "MatQ_"<<ft_n<<"(mat,x0,dff,pl,las);" << endl;
                 for(auto x0i : xs0) {
                     ofs << "ii = " << x0i << ";" << endl;
-                    ofs << "z[ii] = x[ii]-x[ii]*(1-x[ii])*r[ii];" << endl;
+                    ofs << "z[ii] = x[ii]-x[ii]*(1.Q-x[ii])*r[ii];" << endl;
                     ofs << "for(int j=0; j<nfxs;j++) mat[nfxs*ii+j] = 0;" << endl;
                     ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = 0;" << endl;
                     ofs << "mat[ii*nfxs+ii] = 1.Q-(1.Q-2.Q*x[ii])*r[ii];" << endl;
@@ -2633,7 +2634,7 @@ void SD::Contours(const char *key, const char *pkey) {
                 zRepl.append(xs[i]==zi);
             }
             auto xs2 = xs;
-            xs2.push_back(x(nvars));
+            xs2.push_back(x(nvars)); 
             GWrapper::InitMinFunction(-ft.subs(zRepl), xs2, 2);
             fp = GWrapper::MinFunction;
         }
@@ -2641,13 +2642,13 @@ void SD::Contours(const char *key, const char *pkey) {
         dREAL laBegin = 0, laEnd = CTMax, min;
         dREAL UB[nvars+1];
         for(int i=0; i<nvars+1; i++) UB[i] = 1;
-        
+
         min = laEnd;
         while(true) {
             UB[nvars] = min;
             dREAL res = Minimizer->FindMinimum(nvars+1, fp, paras, nlas, UB, NULL, NULL, true, CTTryPTS, CTSavePTS);
             if(res < -1E-5) laEnd = min;
-            else laBegin = min;
+            else laBegin = min; 
             
             if(laEnd < 1E-10) {
                 cout << RED << "too small lambda!" << RESET << endl;
@@ -2659,7 +2660,7 @@ void SD::Contours(const char *key, const char *pkey) {
         }
         min = laBegin;
         
-        if(use_dlclose) dlclose(module);
+        if(use_cpp && use_dlclose) dlclose(module);
         
         las.append(CppFormat::q2ex(min));
         if(Verbose>5) {
@@ -2669,6 +2670,7 @@ void SD::Contours(const char *key, const char *pkey) {
             cout << "     λ: " << las.evalf() << endl;
             Digits = oDigits;
         }
+
         return lst{ nxn.op(0), las };
     
     }, "las", Verbose, !debug);
@@ -2735,7 +2737,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         } else {
             auto res = ex_to<lst>(ar.unarchive_ex(ParallelSymbols, "cifn_lst"));
             ciResult.clear();
-            for(auto item : res) ciResult.push_back(ex_to<lst>(item));
+            for(int i=0; i<res.nops(); i++) ciResult.push_back(ex_to<lst>(res.op(i)));
         }
         
         garfn.clear();
@@ -2794,6 +2796,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
     int total = ciResult.size(), current = 0;
     qREAL stot = sqrtq(total*1.Q);
     ResultError = 0;
+    
     for(auto &item : ciResult) {
         current++;
         if(kid>0 && current != kid) continue;
@@ -2827,6 +2830,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             
             if(xsize<1) {
                 Digits = 35;
+                exint = exint.subs(lst{FTX(wild(1),wild(2))==1, iEpsilon==I*numeric("1E-50")});
                 if(kid>0) {
                     lstRE.let_op(kid-1) = VE(exint.evalf(),0) * co;
                     break;
@@ -2940,8 +2944,10 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             } else {
                 intx = exint.subs(FTX(wild(1),wild(2))==1);
             }
+            Integrator->UseCpp = false;
+            Integrator->UseQ = true;
             GWrapper::InitIntFunction(intx, xs);
-            fp = fpQ = GWrapper::IntFunction;
+            fp = fpQ = GWrapper::IntFunction;            
         }
         
         qREAL lambda[las.nops()];
@@ -3170,7 +3176,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         }
     }
     
-    if(use_dlclose) dlclose(module);
+    if(use_cpp && use_dlclose) dlclose(module);
     if(total>0 && Verbose > 1) cout << "@" << now(false) << endl;
     
     if(kid>0) {
@@ -3353,7 +3359,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     
     double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0, 2, 2);
     
-    if(use_dlclose) dlclose(module);
+    if(use_cpp && use_dlclose) dlclose(module);
     cmd.clear();
     cmd.str("");
     cmd << "rm " << cppfn.str() << " " << sofn.str();

@@ -17,25 +17,32 @@ bool HCubature::useQ(unsigned xdim, qREAL const *x) {
 int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y) {
     auto self = (HCubature*)fdata;
     bool NaNQ = false;
-    #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
-    for(int i=0; i<npts; i++) {
-        if(self->UseQ || useQ(xdim, x+i*xdim)) {
-            self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-        } else {
-            self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-            bool ok = true;
-            for(int j=0; j<ydim; j++) {
-                qREAL ytmp = y[i*ydim+j];
-                if(isnanq(ytmp)) {
-                    ok = false;
-                    break;
+
+    if(self->UseCpp) {
+        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
+        for(int i=0; i<npts; i++) {
+            if(self->UseQ || useQ(xdim, x+i*xdim)) {
+                self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            } else {
+                self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                bool ok = true;
+                for(int j=0; j<ydim; j++) {
+                    qREAL ytmp = y[i*ydim+j];
+                    if(isnanq(ytmp)) {
+                        ok = false;
+                        break;
+                    }
+                }
+                if(!ok) {
+                    self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
                 }
             }
-            if(!ok) {
-                self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-            }
         }
-        
+    } else {
+        self->IntegrandQ(xdim+npts*100, x, ydim+npts*100, y, self->Parameter, self->Lambda);
+    } 
+    
+    for(int i=0; i<npts; i++) {
         for(int j=0; j<ydim; j++) {
             qREAL ytmp = y[i*ydim+j];
             if(isnanq(ytmp)) {
@@ -43,14 +50,13 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 break;
             }
         }
-        
         if(self->ReIm == 1) {
             y[i*ydim+1] = 0;
         } else if(self->ReIm == 2) {
             y[i*ydim+0] = 0;
         }
-
     }
+    
     return NaNQ ? 1 : 0;
 }
 
