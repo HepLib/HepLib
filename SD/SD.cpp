@@ -469,6 +469,7 @@ void SD::Initialize(FeynmanParameter fp) {
         return;
     }
     
+    Digits = 50;
     IsZero = false;
     
     for(auto kv: fp.lReplacements) assert(!(lst{kv.first, kv.second}).has(iEpsilon));
@@ -2306,8 +2307,8 @@ qCOMPLEX log(qCOMPLEX x);
             for(auto &kv : ft_expr) {
                 ofs << "{" << endl;
                 if(SD::debug) {
-                    ofs << "//debug-xs: " << kv.first << endl;
-                    ofs << "//debug-int: " << kv.second << endl;
+                    ofs << "//debug-xs: " << kv.first.subs(czRepl) << endl;
+                    ofs << "//debug-int: " << kv.second.subs(czRepl) << endl;
                 }
                 lst xs0;
                 for(int ii=0; ii<fxs.size(); ii++) {
@@ -3206,6 +3207,7 @@ void SD::Initialize(XIntegrand xint) {
     ParallelSymbols.sort();
     ParallelSymbols.unique();
     
+    Digits = 50;
     IsZero = false;
     Replacements2(xint.nReplacements);
     

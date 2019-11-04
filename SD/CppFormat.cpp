@@ -66,7 +66,13 @@ void CppFormat::print_numeric(const numeric & p, const CppFormat & c, unsigned l
             c.s << ",";
             print_real(c, cln::imagpart(p.to_cl_N()));
             c.s << ")";
-        } else {
+        } else if(c.suffix=="Q") {
+            c.s << "(";
+            print_real(c, cln::realpart(p.to_cl_N()));
+            c.s << "+(";
+            print_real(c, cln::imagpart(p.to_cl_N()));
+            c.s << ")*1.Qi)";
+        } else if(c.suffix=="QD") {
             c.s << "(";
             print_real(c, cln::realpart(p.to_cl_N()));
             c.s << "+(";

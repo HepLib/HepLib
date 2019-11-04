@@ -308,7 +308,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     int np = is_a<add>(pol) ? pol.nops() : 1;
     matrix deg_mat(np, nx);
     
-    if(nx<2) {
+    if(nx<2 || np<2) {
         vector<exmap> vmap;
         exmap nmap;
         nmap[x(-1)] = 1;
@@ -317,18 +317,24 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
         return vmap;
     }
     
-    if(is_a<add>(pol)) {
-        for(int n=0; n<np; n++) {
-            ex tmp = pol.op(n);
-            for(int ix=0; ix<nx; ix++) {
-                deg_mat(n, ix) = mma_collect(tmp, xs[ix]).degree(xs[ix]);
-            }
-        }
-    } else {
+    for(int n=0; n<np; n++) {
+        ex tmp = pol.op(n);
         for(int ix=0; ix<nx; ix++) {
-            deg_mat(0, ix) = mma_collect(pol, xs[ix]).degree(xs[ix]);
+            deg_mat(n, ix) = mma_collect(tmp, xs[ix]).degree(xs[ix]);
         }
     }
+//    if(is_a<add>(pol)) {
+//        for(int n=0; n<np; n++) {
+//            ex tmp = pol.op(n);
+//            for(int ix=0; ix<nx; ix++) {
+//                deg_mat(n, ix) = mma_collect(tmp, xs[ix]).degree(xs[ix]);
+//            }
+//        }
+//    } else {
+//        for(int ix=0; ix<nx; ix++) {
+//            deg_mat(0, ix) = mma_collect(pol, xs[ix]).degree(xs[ix]);
+//        }
+//    }
     
     vector<matrix> vmat;
     for(int r=0; r<deg_mat.rows(); r++) {
