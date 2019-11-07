@@ -6,12 +6,16 @@ namespace HepLib {
 // HCubature Classes
 /*-----------------------------------------------------*/
 #include "HCubature.h"
-bool HCubature::useQ(unsigned xdim, qREAL const *x) {
-    if(xdim<2) return true;
+
+int HCubature::inDQMP(unsigned xdim, qREAL const *x) {
+    if(xdim==1) return 3;
+    qREAL xmin = 100;
     for(int i=0; i<xdim; i++) {
-        if(x[i] < 5.0E-5Q) return true;
+        if(x[i] < xmin) xmin = x[i];
     }
-    return false;
+    if(xmin < 1E-6) return 3;
+    if(xdim==2 || xmin < 1E-3) return 2;
+    return 1;
 }
 
 int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y) {
@@ -21,33 +25,73 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
     if(self->UseCpp) {
         #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
         for(int i=0; i<npts; i++) {
-            if(self->UseQ || useQ(xdim, x+i*xdim)) {
+            int iDQMP = inDQMP(xdim, x+i*xdim);
+            if(self->DQMP>2 || iDQMP>2) {
+                self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            } else if(self->DQMP>1 || iDQMP>1) {
                 self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                bool ok = true;
+                for(int j=0; j<ydim; j++) {
+                    qREAL ytmp = y[i*ydim+j];
+                    if(isnanq(ytmp) || isinfq(ytmp)) {
+                        ok = false;
+                        break;
+                    }
+                }
+                if(!ok) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             } else {
                 self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
                 bool ok = true;
                 for(int j=0; j<ydim; j++) {
                     qREAL ytmp = y[i*ydim+j];
-                    if(isnanq(ytmp)) {
+                    if(isnanq(ytmp) || isinfq(ytmp)) {
                         ok = false;
                         break;
                     }
                 }
-                if(!ok) {
-                    self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                if(!ok) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                
+                ok = true;
+                for(int j=0; j<ydim; j++) {
+                    qREAL ytmp = y[i*ydim+j];
+                    if(isnanq(ytmp) || isinfq(ytmp)) {
+                        ok = false;
+                        break;
+                    }
                 }
+                if(!ok) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            }
+            
+            // Final Check NaN/Inf
+            bool ok = true;
+            for(int j=0; j<ydim; j++) {
+                qREAL ytmp = y[i*ydim+j];
+                if(isnanq(ytmp) || isinfq(ytmp)) {
+                    ok = false;
+                    break;
+                }
+            }
+            if(!ok) {
+                qREAL xx[xdim];
+                for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] * 0.995Q;
+                self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
             }
         }
     } else {
-        self->IntegrandQ(xdim+npts*100, x, ydim+npts*100, y, self->Parameter, self->Lambda);
+        self->Integrand(xdim+npts*100, x, ydim+npts*100, y, self->Parameter, self->Lambda);
     } 
     
     for(int i=0; i<npts; i++) {
         for(int j=0; j<ydim; j++) {
             qREAL ytmp = y[i*ydim+j];
-            if(isnanq(ytmp)) {
-                NaNQ = true;
-                break;
+            if(isnanq(ytmp) || isinfq(ytmp)) {
+                self->nNAN++;
+                if(self->nNAN > self->NANMax) {
+                    NaNQ = true;
+                    break;
+                } else {
+                    y[i*ydim+j] = 0;
+                }
             }
         }
         if(self->ReIm == 1) {
@@ -56,12 +100,13 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
             y[i*ydim+0] = 0;
         }
     }
-    
+        
     return NaNQ ? 1 : 0;
 }
 
 void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* nrun, void *fdata) {
     auto self = (HCubature*)fdata;
+    self->NRUN = *nrun;
     
     if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1]))) {
          *nrun = self->MaxPTS + 1000;
@@ -104,7 +149,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         *nrun = self->MaxPTS + 1000;
         return;
     }
-    
+
     auto pid = getpid();
     ostringstream fn;
     fn << pid << ".int.done";
@@ -117,9 +162,10 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     }
 }
 
-ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL* pl, const qREAL* la) {
+ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, SD_Type fpMP, const qREAL* pl, const qREAL* la) {
     Integrand = fp;
     IntegrandQ = fpQ;
+    IntegrandMP = fpMP;
     Parameter = pl;
     Lambda = la;
     
@@ -133,19 +179,19 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
     }
     LastState = 0;
     NRUN = 0;
+    nNAN = 0;
     
     MaxPTS = RunPTS * RunMAX;
     if(MaxPTS<0) MaxPTS = -MaxPTS;
     
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
-    
     if(nok) {
         if( (cabsq(result[0]+result[1]*1.Qi) < FLT128_EPSILON) && (cabsq(estabs[0]+estabs[1]*1.Qi) < FLT128_EPSILON) ) {
             cout << RED << "HCubature Failed with 0 result returned!" << RESET << endl;
             return SD::NaN;
         }
     }
-        
+
     if(LastState==-1 && use_last) {
         result[0] = LastResult[0];
         result[1] = LastResult[1];
@@ -162,6 +208,11 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, const qREAL*
         } catch(...) {
             FResult += SD::NaN;
         }
+    }
+    
+    // Check nNAN / NRUN
+    if(nNAN * 1000 > NRUN) {
+        cout << RED << "NAN=" << nNAN << " v.s. RUN=" << NRUN << RESET << endl;
     }
     
     return FResult;

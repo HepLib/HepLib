@@ -25,9 +25,12 @@ void CppFormat::QPrint(qREAL num) {
 
 void CppFormat::print_integer(const CppFormat & c, const cln::cl_I & x) {
     const int max_cln_int = 536870911; // 2^29-1
-    if (x >= cln::cl_I(-max_cln_int) && x <= cln::cl_I(max_cln_int))
-        c.s << cln::cl_I_to_int(x) << ".0" << c.suffix;
-    else {
+    if (x >= cln::cl_I(-max_cln_int) && x <= cln::cl_I(max_cln_int)) {
+        if(strcmp(c.suffix,"MP")==0) c.s << "mpREAL(" << c.MQuote;
+        c.s << cln::cl_I_to_int(x);
+        if(strcmp(c.suffix,"MP")==0) c.s << c.MQuote << ")";
+        else c.s << ".0" << c.suffix;
+    } else {
         print_real(c, cln::cl_float(x));
     }
 }
@@ -49,10 +52,12 @@ void CppFormat::print_real(const CppFormat & c, const cln::cl_R & x) {
         print_integer(c, denom);
         c.s << ")";
     } else {
+        if(strcmp(c.suffix,"MP")==0) c.s << "mpREAL(" << c.MQuote;
         cln::cl_print_flags ourflags;
         ourflags.default_float_format = cln::float_format(cln::the<cln::cl_F>(x));
         cln::print_real(c.s, ourflags, x);
-        c.s << c.suffix;
+        if(strcmp(c.suffix,"MP")==0) c.s << c.MQuote << ")";
+        else c.s << c.suffix;
     }
 }
 
@@ -60,24 +65,27 @@ void CppFormat::print_numeric(const numeric & p, const CppFormat & c, unsigned l
     if (p.is_real()) {
         print_real(c, cln::the<cln::cl_R>(p.to_cl_N()));
     } else {
-        if(c.suffix=="L") {
+        if(strcmp(c.suffix,"L")==0) {
             c.s << "complex<long double>(";
             print_real(c, cln::realpart(p.to_cl_N()));
             c.s << ",";
             print_real(c, cln::imagpart(p.to_cl_N()));
             c.s << ")";
-        } else if(c.suffix=="Q") {
+        } else if(strcmp(c.suffix,"Q")==0) {
             c.s << "(";
             print_real(c, cln::realpart(p.to_cl_N()));
             c.s << "+(";
             print_real(c, cln::imagpart(p.to_cl_N()));
             c.s << ")*1.Qi)";
-        } else if(c.suffix=="QD") {
-            c.s << "(";
+        } else if(strcmp(c.suffix,"MP")==0) {
+            c.s << "complex<mpREAL>(";
             print_real(c, cln::realpart(p.to_cl_N()));
-            c.s << "+(";
+            c.s << ",";
             print_real(c, cln::imagpart(p.to_cl_N()));
-            c.s << ")*1.Qi)";
+            c.s << ")";
+        } else {
+            cout << "suffix is Wrong, Abort!" << endl;
+            assert(false);
         }
     }
 }

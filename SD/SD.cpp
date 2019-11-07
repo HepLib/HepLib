@@ -1,5 +1,6 @@
 #include "SD.h"
 #include <math.h>
+#include "mpreal.h"
 
 namespace HepLib {
 
@@ -19,9 +20,9 @@ vector<exmap> SecDecBase::x2y(const lst &xpols) {
 }
 
 /*-----------------------------------------------------*/
-/*                    CheckFAtX1                         */
+/*                    CheckAtX1                        */
 /*-----------------------------------------------------*/
-bool SD::IsBadF1(ex f, vector<exmap> vmap) {
+bool SD::IsBad(ex f, vector<exmap> vmap) {
     for(auto &vi : vmap) {
         auto ft = f.subs(vi);
         auto xs_tmp = get_x_from(ft);
@@ -30,6 +31,7 @@ bool SD::IsBadF1(ex f, vector<exmap> vmap) {
         for(int i=0; i<xs_tmp.size(); i++) {
             vi[xs_tmp[i]] = y(ysn+i);
         }
+        if(xs_tmp.size()>0) ft = ft.subs(vi);
 
         // need collect_common_factors
         ft = collect_common_factors(ft.expand());
@@ -62,7 +64,7 @@ bool SD::IsBadF1(ex f, vector<exmap> vmap) {
     return false;
 }
 
-vector<pair<lst, lst>> SD::AutoF1(pair<lst, lst> po_ex) {
+vector<pair<lst, lst>> SD::AutoEnd(pair<lst, lst> po_ex) {
     assert(Deltas.size()<1);
     lst const exlist = po_ex.second;
     assert((exlist.op(0)-1).is_zero());
@@ -112,10 +114,17 @@ vector<pair<lst, lst>> SD::AutoF1(pair<lst, lst> po_ex) {
                 sdList.append(tmp);
             }
             vector<exmap> vmap = SecDec->x2y(sdList);
-            if(IsBadF1(polist.op(1), vmap)) {
-                OK = false;
-                break;
+            
+            for(int ni=0; ni<polist.nops(); ni++) {
+                auto po = polist.op(ni);
+                auto expo = exlist.op(ni).subs(lst{ep==0,eps==0});
+                if(is_a<numeric>(expo) && expo>=0) continue;
+                if(IsBad(po, vmap)) {
+                    OK = false;
+                    break;
+                }
             }
+            if(!OK) break;
         }
         
         if(OK) {
@@ -125,8 +134,8 @@ vector<pair<lst, lst>> SD::AutoF1(pair<lst, lst> po_ex) {
         }
     }}
     
-    cerr << RED << "F: " << po_ex.first.op(1) << RESET << endl;
-    cerr << RED << "F1 Failed with ALL possible bisections!" << RESET << endl;
+    cerr << RED << "polynormial list: " << po_ex.first << RESET << endl;
+    cerr << RED << "AutoEnd Failed @ ALL possible bisections!" << RESET << endl;
     assert(false);
     return vector<pair<lst, lst>>();
 }
@@ -1169,12 +1178,12 @@ void SD::SDPrepares() {
     Integrands.clear();
     Integrands.shrink_to_fit();
     
-    if(CheckF1) {
+    if(CheckEnd) {
         if(Verbose > 0) cout << now() << " - Bisection: " << FunExp.size() << " :> " << flush;
         vector<ex> funexps =
         GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &kv, auto rid) {
             lst para_res_lst;
-            auto kvs = AutoF1(kv);
+            auto kvs = AutoEnd(kv);
             for(auto item : kvs) {
                 para_res_lst.append(lst{item.first, item.second});
             }
@@ -1651,6 +1660,8 @@ ofs << R"EOF(
 extern "C" {
 #include <quadmath.h>
 }
+#include "mpreal.h"
+
 #define Pi 3.1415926535897932384626433832795028841971693993751L
 #define Euler 0.57721566490153286060651209008240243104215933593992L
 
@@ -1659,6 +1670,8 @@ typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
 typedef complex<long double> dCOMPLEX;
+typedef mpfr::mpreal mpREAL;
+typedef complex<mpREAL> mpCOMPLEX;
 
 dREAL expt(dREAL a, dREAL b) { return pow(a,b); }
 dCOMPLEX expt(dCOMPLEX a, dREAL b) { return pow(a,b); }
@@ -1669,6 +1682,11 @@ qREAL expt(qREAL a, qREAL b) { return powq(a,b); }
 qCOMPLEX expt(qCOMPLEX a, qREAL b) { return cpowq(a,b); }
 qREAL recip(qREAL a) { return 1.Q/a; }
 qCOMPLEX recip(qCOMPLEX a) { return 1.Q/a; }
+
+mpREAL expt(mpREAL a, mpREAL b) { return pow(a,b); }
+mpCOMPLEX expt(mpCOMPLEX a, mpREAL b) { return pow(a,b); }
+mpREAL recip(mpREAL a) { return mpREAL(1)/a; }
+mpCOMPLEX recip(mpCOMPLEX a) { return mpREAL(1)/a; }
 
 qREAL pow(qREAL x, qREAL y) { return powq(x, y); }
 qREAL log(qREAL x) { return logq(x); }
@@ -1714,10 +1732,10 @@ qCOMPLEX MatDetQ(qCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
-        if(cabsq(mat[i*n+i])<1.0E-15) {
+        if(cabsq(mat[i*n+i])<1.0E-25) {
             bool is_zero = true;
             for(int j=i+1; j<n; j++) {
-                if(cabsq(mat[i*n+j])>1.0E-15) {
+                if(cabsq(mat[i*n+j])>1.0E-25) {
                     for(int k=0; k<n; k++) {
                         auto tmp = mat[k*n+j];
                         mat[k*n+j] = mat[k*n+i];
@@ -1739,6 +1757,42 @@ qCOMPLEX MatDetQ(qCOMPLEX mat[], int n) {
     for(int k=0; k<n; k++) ret *= mat[k*n+k];
     return ret;
 }
+
+#undef Pi
+#undef Euler
+#define Pi mpreal("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
+#define Euler mpreal("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
+
+mpCOMPLEX MatDetMP(mpCOMPLEX mat[], int n) {
+    bool is_zero = false;
+    int s=1;
+    for(int i=0; i<n-1; i++) {
+        if(abs(mat[i*n+i])<1.0E-35) {
+            bool is_zero = true;
+            for(int j=i+1; j<n; j++) {
+                if(abs(mat[i*n+j])>1.0E-35) {
+                    for(int k=0; k<n; k++) {
+                        auto tmp = mat[k*n+j];
+                        mat[k*n+j] = mat[k*n+i];
+                        mat[k*n+i] = tmp;
+                    }
+                    is_zero = false;
+                    s=-s;
+                    break;
+                }
+            }
+            if(is_zero) return mpREAL(0);
+        }
+        for(int k=i+1; k<n; k++) {
+            auto m = mat[k*n+i]/mat[i*n+i];
+            for(int j=0; j<n; j++) mat[k*n+j] = mat[k*n+j] - m*mat[i*n+j];
+        }
+    }
+    mpCOMPLEX ret = mpREAL(s);
+    for(int k=0; k<n; k++) ret *= mat[k*n+k];
+    return ret;
+}
+
 )EOF" << endl;
 /*----------------------------------------------*/
     ofs.close();
@@ -1950,6 +2004,7 @@ ofs << R"EOF(
 extern "C" {
 #include <quadmath.h>
 }
+#include "mpreal.h"
 
 using namespace std;
 
@@ -1960,6 +2015,8 @@ typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
 typedef complex<long double> dCOMPLEX;
+typedef mpfr::mpreal mpREAL;
+typedef complex<mpREAL> mpCOMPLEX;
 
 dREAL expt(dREAL a, dREAL b);
 dCOMPLEX expt(dCOMPLEX a, dREAL b);
@@ -1971,6 +2028,11 @@ qCOMPLEX expt(qCOMPLEX a, qREAL b);
 qREAL recip(qREAL a);
 qCOMPLEX recip(qCOMPLEX a);
 
+mpREAL expt(mpREAL a, mpREAL b);
+mpCOMPLEX expt(mpCOMPLEX a, mpREAL b);
+mpREAL recip(mpREAL a);
+mpCOMPLEX recip(mpCOMPLEX a);
+
 qREAL pow(qREAL x, qREAL y);
 qREAL log(qREAL x);
 qCOMPLEX pow(qCOMPLEX x, qREAL y);
@@ -1980,6 +2042,7 @@ qCOMPLEX log(qCOMPLEX x);
 /*----------------------------------------------*/
         auto cppL = CppFormat(ofs, "L");
         auto cppQ = CppFormat(ofs, "Q");
+        auto cppMP = CppFormat(ofs, "MP");
         ft = Evalf(ft);
         
         // FL_fid
@@ -1995,6 +2058,15 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "qREAL FQ_" << ft_n << "(const qREAL* x, const qREAL *pl) {" << endl;
         ofs << "qREAL yy = " << endl;
         ft.subs(plRepl).subs(cxRepl).print(cppQ);
+        ofs << ";" << endl;
+        ofs << "return yy;" << endl; // find max image part, check with 0
+        ofs << "}" << endl;
+        ofs << endl;
+        
+        // FMP_fid
+        ofs << "mpREAL FMP_" << ft_n << "(const mpREAL* x, const mpREAL *pl) {" << endl;
+        ofs << "mpREAL yy = " << endl;
+        ft.subs(plRepl).subs(cxRepl).print(cppMP);
         ofs << ";" << endl;
         ofs << "return yy;" << endl; // find max image part, check with 0
         ofs << "}" << endl;
@@ -2022,6 +2094,17 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "}" << endl;
         ofs << endl;
         
+        // D's FMP_fid
+        ofs << "mpREAL FMP_" << ft_n << "(const int i, const mpREAL* x, const mpREAL *pl) {" << endl;
+        for(int i=0; i<fxs.size(); i++) {
+            ofs << "if("<<i<<"==i) return ";
+            DFs[i].subs(plRepl).subs(cxRepl).print(cppMP);
+            ofs << ";" << endl;
+        }
+        ofs << "return 0;" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
+        
         // DD's FL_fid
         ofs << "dREAL FL_" << ft_n << "(const int i, const int j, const dREAL* x, const dREAL *pl) {" << endl;
         for(int i=0; i<fxs.size(); i++) {
@@ -2040,6 +2123,18 @@ qCOMPLEX log(qCOMPLEX x);
         for(int j=0; j<fxs.size(); j++) {
             ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
             DDFs[i*fxs.size()+j].subs(plRepl).subs(cxRepl).print(cppQ);
+            ofs << ";" << endl;
+        }}
+        ofs << "return 0;" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
+        
+        // DD's FMP_fid
+        ofs << "mpREAL FMP_" << ft_n << "(const int i, const int j, const mpREAL* x, const mpREAL *pl) {" << endl;
+        for(int i=0; i<fxs.size(); i++) {
+        for(int j=0; j<fxs.size(); j++) {
+            ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
+            DDFs[i*fxs.size()+j].subs(plRepl).subs(cxRepl).print(cppMP);
             ofs << ";" << endl;
         }}
         ofs << "return 0;" << endl;
@@ -2073,6 +2168,21 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "for(int i=0; i<nfxs; i++) dff[i] = FQ_"<<ft_n<<"(i,x,pl);" << endl;
         ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]*expf2n;" << endl;
         ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.Q-x[i])*r[i];" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
+        
+        // X2ZMP_fid
+        ofs << "void X2ZMP_" << ft_n << "(const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {" << endl;
+        ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
+        ofs << "mpREAL fmax = "; ft_max.print(cppMP); ofs << ";" << endl;
+        ofs << "mpCOMPLEX ilas[nfxs];" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(las[i],mpREAL(1));" << endl;
+        ofs << "dff[nfxs] = FMP_"<<ft_n<<"(x,pl);" << endl;
+        if(use_exp) ofs << "mpREAL expf2n=exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
+        else ofs << "mpREAL expf2n = 1;" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) dff[i] = FMP_"<<ft_n<<"(i,x,pl);" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]*expf2n;" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1-x[i])*r[i];" << endl;
         ofs << "}" << endl;
         ofs << endl;
         
@@ -2115,6 +2225,28 @@ qCOMPLEX log(qCOMPLEX x);
         if(use_exp) {
             ofs << "qREAL df2n = -2*f2n*dff[j]/fmax*powq(dff[nfxs]/fmax,2*f2n-1);" << endl;
             ofs << "mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*dff[i]*ilas[i]*expf2n*df2n;" << endl;
+        }
+        ofs << "}}" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
+        
+        // MatMP_fid
+        ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX *mat, const mpREAL* x, const mpREAL* dff, const mpREAL *pl, const mpREAL *las) {" << endl;
+        ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
+        ofs << "mpREAL fmax = "; ft_max.print(cppMP); ofs << ";" << endl;
+        ofs << "mpCOMPLEX ilas[nfxs];" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(las[i],mpREAL(1));" << endl;
+        if(use_exp) ofs << "mpREAL expf2n = exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
+        else ofs << "mpREAL expf2n = 1;" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) {" << endl;
+        ofs << "for(int j=0; j<nfxs; j++) {" << endl;
+        ofs << "int ij = i*nfxs+j;" << endl;
+        ofs << "if(i!=j) mat[ij] = 0;" << endl;
+        ofs << "else mat[ij] = mpREAL(1)-(1-2*x[i])*dff[i]*ilas[i]*expf2n;" << endl;
+        ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*FMP_"<<ft_n<<"(i,j,x,pl)*ilas[i]*expf2n;" << endl;
+        if(use_exp) {
+            ofs << "mpREAL df2n = -2*f2n*dff[j]/fmax*pow(dff[nfxs]/fmax,2*f2n-1);" << endl;
+            ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff[i]*ilas[i]*expf2n*df2n;" << endl;
         }
         ofs << "}}" << endl;
         ofs << "}" << endl;
@@ -2243,6 +2375,7 @@ ofs << R"EOF(
 extern "C" {
 #include <quadmath.h>
 }
+#include "mpreal.h"
 
 using namespace std;
 
@@ -2250,9 +2383,12 @@ typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
 typedef complex<long double> dCOMPLEX;
+typedef mpfr::mpreal mpREAL;
+typedef complex<mpREAL> mpCOMPLEX;
 
 dCOMPLEX MatDetL(dCOMPLEX mat[], int n);
 qCOMPLEX MatDetQ(qCOMPLEX mat[], int n);
+mpCOMPLEX MatDetMP(mpCOMPLEX mat[], int n);
 
 dREAL expt(dREAL a, dREAL b);
 dCOMPLEX expt(dCOMPLEX a, dREAL b);
@@ -2264,14 +2400,15 @@ qCOMPLEX expt(qCOMPLEX a, qREAL b);
 qREAL recip(qREAL a);
 qCOMPLEX recip(qCOMPLEX a);
 
+mpREAL expt(mpREAL a, mpREAL b);
+mpCOMPLEX expt(mpCOMPLEX a, mpREAL b);
+mpREAL recip(mpREAL a);
+mpCOMPLEX recip(mpCOMPLEX a);
+
 qREAL pow(qREAL x, qREAL y);
 qREAL log(qREAL x);
 qCOMPLEX pow(qCOMPLEX x, qREAL y);
 qCOMPLEX log(qCOMPLEX x);
-
-#define Pi 3.1415926535897932384626433832795028841971693993751L
-#define Euler 0.57721566490153286060651209008240243104215933593992L
-#define iEpsilon complex<long double>(0,1.E-50L)
 
 )EOF" << endl;
 /*----------------------------------------------*/
@@ -2279,16 +2416,30 @@ qCOMPLEX log(qCOMPLEX x);
         if(hasF) {
             ofs << "dREAL FL_"<<ft_n<<"(const int, const dREAL*, const dREAL*);" << endl;
             ofs << "qREAL FQ_"<<ft_n<<"(const int, const qREAL*, const qREAL*);" << endl;
+            ofs << "qREAL FMP_"<<ft_n<<"(const int, const mpREAL*, const mpREAL*);" << endl;
             ofs << "dREAL FL_"<<ft_n<<"(const int, const int, const dREAL*, const dREAL*);" << endl;
             ofs << "qREAL FQ_"<<ft_n<<"(const int, const int, const qREAL*, const qREAL*);" << endl;
+            ofs << "qREAL FMP_"<<ft_n<<"(const int, const int, const mpREAL*, const mpREAL*);" << endl;
             ofs << "void X2ZL_"<<ft_n<<"(const dREAL*, dCOMPLEX*, dCOMPLEX*, dREAL*, const dREAL*, const dREAL*);" << endl;
             ofs << "void X2ZQ_"<<ft_n<<"(const qREAL*, qCOMPLEX*, qCOMPLEX*, qREAL*, const qREAL*, const qREAL*);" << endl;
+            ofs << "void X2ZMP_"<<ft_n<<"(const mpREAL*, mpCOMPLEX*, mpCOMPLEX*, mpREAL*, const mpREAL*, const mpREAL*);" << endl;
             ofs << "void MatL_"<<ft_n<<"(dCOMPLEX*, const dREAL*, const dREAL*, const dREAL*, const dREAL*);" << endl;
             ofs << "void MatQ_"<<ft_n<<"(qCOMPLEX*, const qREAL*, const qREAL*, const qREAL*, const qREAL*);" << endl;
+            ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX*, const mpREAL*, const mpREAL*, const mpREAL*, const mpREAL*);" << endl;
             ofs << endl << endl;
         }
 
         // long double
+/*----------------------------------------------*/
+ofs << R"EOF(
+#undef Pi
+#undef Euler
+#undef iEpsilon
+#define Pi 3.1415926535897932384626433832795028841971693993751L
+#define Euler 0.57721566490153286060651209008240243104215933593992L
+#define iEpsilon complex<long double>(0, 1.E-50)
+)EOF" << endl;
+/*----------------------------------------------*/
         auto cppL =  CppFormat(ofs, "L");
         ofs << "extern \"C\" " << endl;
         ofs << "int SDD_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
@@ -2356,6 +2507,9 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "y[1] = yy.imag();" << endl;
         ofs << "return 0;" << endl;
         ofs << "}" << endl;
+        ofs << endl;
+        
+        // Quadruple
 /*----------------------------------------------*/
 ofs << R"EOF(
 #undef Pi
@@ -2366,7 +2520,6 @@ ofs << R"EOF(
 #define iEpsilon 1.E-50Qi
 )EOF" << endl;
 /*----------------------------------------------*/
-        // Quadruple
         auto cppQ = CppFormat(ofs, "Q");
         ofs << "extern \"C\" " << endl;
         ofs << "int SDQ_"<<rid<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
@@ -2423,6 +2576,80 @@ ofs << R"EOF(
         ofs << "return 0;" << endl;
         ofs << "}" << endl;
         ofs << endl;
+        
+        // Multiple Precision
+/*----------------------------------------------*/
+ofs << R"EOF(
+#undef Pi
+#undef Euler
+#undef iEpsilon
+#define Pi mpreal("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
+#define Euler mpreal("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
+#define iEpsilon complex<mpREAL>(mpREAL(0), mpREAL(1.E-50))
+)EOF" << endl;
+/*----------------------------------------------*/
+        auto cppMP =  CppFormat(ofs, "MP");
+        ofs << "extern \"C\" " << endl;
+        ofs << "int SDMP_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+        ofs << "mpREAL x[xn], x0[xn];" << endl;
+        ofs << "for(int i=0; i<xn; i++) x[i] = mpREAL(qx[i]);" << endl;
+        ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
+        ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
+        if(hasF) {
+            ofs << "mpCOMPLEX z[xn],r[xn];" << endl;
+            ofs << "mpREAL dff[xn+1];";
+            ofs << "mpCOMPLEX yy=mpREAL(0), ytmp, det;" << endl;
+            ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
+            ofs << "mpREAL las[nfxs];" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) las[i] = mpREAL(qlas[i]);" << endl;
+            ofs << "mpCOMPLEX mat[nfxs*nfxs];" << endl;
+            for(auto &kv : ft_expr) {
+                ofs << "{" << endl;
+                lst xs0;
+                for(int ii=0; ii<fxs.size(); ii++) {
+                    if(!kv.first.has(fxs[ii])) xs0.append(ii);
+                }
+                ofs << "for(int i=0; i<xn; i++) z[i] = x0[i] = x[i];" << endl;
+                for(auto x0i : xs0) ofs << "x0["<<x0i<<"]=0;" << endl;
+                ofs << "X2ZMP_"<<ft_n<<"(x0,z,r,dff,pl,las);" << endl;
+                ofs << "MatMP_"<<ft_n<<"(mat,x0,dff,pl,las);" << endl;
+                for(auto x0i : xs0) {
+                    ofs << "ii = " << x0i << ";" << endl;
+                    ofs << "z[ii] = x[ii]-x[ii]*(mpREAL(1)-x[ii])*r[ii];" << endl;
+                    ofs << "for(int j=0; j<nfxs;j++) mat[nfxs*ii+j] = 0;" << endl;
+                    ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = 0;" << endl;
+                    ofs << "mat[ii*nfxs+ii] = mpREAL(1)-(mpREAL(1)-2*x[ii])*r[ii];" << endl;
+                }
+                ofs  << "det = MatDetMP(mat, nfxs);" << endl;
+                
+                ex intg = kv.second;
+                cseParser cse;
+                intg = cse.Parse(intg);
+                ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                for(auto kv : cse.os()) {
+                    ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                    Evalf(kv.second.subs(czRepl).subs(plRepl)).print(cppMP);
+                    ofs << ";" << endl;
+                }
+                
+                ofs << "ytmp = ";
+                Evalf(intg.subs(czRepl).subs(plRepl)).print(cppMP);
+                ofs << ";" << endl;
+                ofs << "yy += det * ytmp;" << endl << endl;
+                ofs << "}" << endl;
+            }
+        } else {
+            auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
+            ofs << "mpCOMPLEX yy = ";
+            Evalf(tmp).print(cppMP);
+            ofs << ";" << endl;
+        }
+        ofs << "y[0] = yy.real().toFloat128();" << endl;
+        ofs << "y[1] = yy.imag().toFloat128();" << endl;
+        ofs << "return 0;" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
+        
 
         ofs.close();
         
@@ -2457,7 +2684,7 @@ ofs << R"EOF(
         }
         
         CompileMatDet();
-        cmd << "g++ -rdynamic -fPIC -shared -lquadmath " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
+        cmd << "g++ -rdynamic -fPIC -shared -lquadmath -lmpfr -lgmp " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
         system(cmd.str().c_str());
         cmd.clear();
         cmd.str("");
@@ -2635,7 +2862,7 @@ void SD::Contours(const char *key, const char *pkey) {
                 zRepl.append(xs[i]==zi);
             }
             auto xs2 = xs;
-            xs2.push_back(x(nvars)); 
+            xs2.push_back(x(nvars));
             GWrapper::InitMinFunction(-ft.subs(zRepl), xs2, 2);
             fp = GWrapper::MinFunction;
         }
@@ -2649,7 +2876,7 @@ void SD::Contours(const char *key, const char *pkey) {
             UB[nvars] = min;
             dREAL res = Minimizer->FindMinimum(nvars+1, fp, paras, nlas, UB, NULL, NULL, true, CTTryPTS, CTSavePTS);
             if(res < -1E-5) laEnd = min;
-            else laBegin = min; 
+            else laBegin = min;
             
             if(laEnd < 1E-10) {
                 cout << RED << "too small lambda!" << RESET << endl;
@@ -2702,6 +2929,7 @@ void SD::Contours(const char *key, const char *pkey) {
 // need Parameter
 void SD::Integrates(const char *key, const char *pkey, int kid) {
     if(IsZero) return;
+    mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     
     lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
@@ -2903,7 +3131,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             assert(false);
         }
         
-        IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr;
+        IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr, fpMP = nullptr;
         if(use_cpp) {
             int rid = ex_to<numeric>(item.op(0)).to_int();
             ostringstream fname;
@@ -2915,6 +3143,11 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             fname << "SDQ_" << rid;
             fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             assert(fpQ!=NULL);
+            fname.clear();
+            fname.str("");
+            fname << "SDMP_" << rid;
+            fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+            assert(fpMP!=NULL);
         } else {
             ex intx = 0;
             if(is_a<lst>(las)) {
@@ -2946,9 +3179,8 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 intx = exint.subs(FTX(wild(1),wild(2))==1);
             }
             Integrator->UseCpp = false;
-            Integrator->UseQ = true;
             GWrapper::InitIntFunction(intx, xs);
-            fp = fpQ = GWrapper::IntFunction;            
+            fp = fpQ = fpMP = GWrapper::IntFunction;
         }
         
         qREAL lambda[las.nops()];
@@ -2987,7 +3219,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                     lambda[i] = la_tmp;
                 }
                 las_ifs.close();
-                auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
+                auto res = Integrator->Integrate(xsize, fp, fpQ, fpMP, paras, lambda);
                 auto res_tmp = res.subs(VE(wild(1), wild(2))==wild(2));
                 auto err = real_part(res_tmp);
                 if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
@@ -3012,7 +3244,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                     }
  
                     if(!use_cpp) GWrapper::Lambda = CppFormat::q2ex(cla);
-                    auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
+                    auto res = Integrator->Integrate(xsize, fp, fpQ, fpMP, paras, lambda);
                     if(Verbose>10) {
                         auto oDigits = Digits;
                         Digits = 3;
@@ -3152,7 +3384,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         Integrator->RunPTS = RunPTS;
         Integrator->EpsAbs = EpsAbs/cmax/stot;
         Integrator->EpsRel = 0;
-        auto res = Integrator->Integrate(xsize, fp, fpQ, paras, lambda);
+        auto res = Integrator->Integrate(xsize, fp, fpQ, fpMP, paras, lambda);
         if(Verbose>5) { 
             cout << WHITE;
             cout << "     Res = "<< HepLib::VEResult(VESimplify(res)) << endl;

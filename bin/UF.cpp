@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
     
     SD work;
     work.Verbose = 0;
-    //work.CheckF1 = true;
+    //work.CheckEnd = true;
     
     work.Initialize(fp);
     

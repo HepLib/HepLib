@@ -134,7 +134,7 @@ void Prepare(int idx) {
     
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
-    work.CheckF1 = true;
+    work.CheckEnd = true;
     
     work.Initialize(fp);
     

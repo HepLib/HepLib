@@ -81,7 +81,7 @@ typedef __complex128 qCOMPLEX;
 class IntegratorBase {
 public:
     typedef int (*SD_Type) (const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
-    virtual ex Integrate(unsigned int xn, SD_Type fp, SD_Type fpQ, const qREAL pl[], const qREAL las[]) =0;
+    virtual ex Integrate(unsigned int xn, SD_Type fp, SD_Type fpQ, SD_Type fpMP, const qREAL pl[], const qREAL las[]) =0;
     
     long long RunMAX = 100;
     long long RunPTS = 10000;
@@ -89,18 +89,20 @@ public:
     qREAL EpsRel = 0;
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     int Verbose = 0;
-    bool UseQ = false;
+    int DQMP = 0;
+    int NANMax = 1000;
+    int nNAN = 0;
     bool UseCpp = true;
 };
 
 class HCubature : public IntegratorBase {
 public:
-    static bool useQ(unsigned xdim, qREAL const *x);
+    static int inDQMP(unsigned xdim, qREAL const *x);
     static int Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y);
     
     typedef void (*PrintHookerType) (qREAL*, qREAL*, long long int*, void *);
     
-    virtual ex Integrate(unsigned int, SD_Type, SD_Type, const qREAL[], const qREAL[]) override;
+    virtual ex Integrate(unsigned int, SD_Type, SD_Type, SD_Type, const qREAL[], const qREAL[]) override;
     static void DefaultPrintHooker(qREAL*, qREAL*, long long int*, void*);
     PrintHookerType PrintHooker = DefaultPrintHooker;
     long long MaxPTS;
@@ -110,6 +112,7 @@ public:
 private:
     SD_Type Integrand;
     SD_Type IntegrandQ;
+    SD_Type IntegrandMP;
     const qREAL* Lambda;
     const qREAL* Parameter;
     qREAL LastResult[2];
@@ -134,14 +137,15 @@ public:
     long long VEGAS_NINCREASE = 1000;
     long long VEGAS_NBATCH = 1000;
     
-    static bool useQ(unsigned xdim, qREAL const *x);
+    static int inDQMP(unsigned xdim, qREAL const *x);
     static int Wrapper(const int *xdim, const qREAL *x, const int *ydim, qREAL *y, void *fdata);
     long long MaxPTS;
-    virtual ex Integrate(unsigned int, SD_Type, SD_Type, const qREAL[], const qREAL[]) override;
+    virtual ex Integrate(unsigned int, SD_Type, SD_Type, SD_Type, const qREAL[], const qREAL[]) override;
     
 private:
     SD_Type Integrand;
     SD_Type IntegrandQ;
+    SD_Type IntegrandMP;
     const qREAL* Lambda;
     const qREAL* Parameter;
     qREAL LastResult[2];
@@ -197,6 +201,7 @@ public:
     static qREAL ex2q(ex);
     const char* suffix;
     static void QPrint(qREAL qr);
+    const char* MQuote = "\"";
 private:
     static void print_integer(const CppFormat & c, const cln::cl_I & x);
     static void print_real(const CppFormat & c, const cln::cl_R & x);
@@ -239,6 +244,7 @@ public:
     static unsigned int xsize;
     static IntegratorBase::SD_Type fp;
     static IntegratorBase::SD_Type fpQ;
+    static IntegratorBase::SD_Type fpMP;
     static IntegratorBase *Integrator;
     static qREAL *paras;
     static dREAL *lambda;
@@ -286,7 +292,7 @@ public:
     ex ResultError;
     const char * CFLAGS = "";
     bool IsZero = false;
-    bool CheckF1 = false;
+    bool CheckEnd = false;
     //bool use_CCF = true;
     bool use_cpp = true;
     bool use_ErrMin = false;
@@ -295,6 +301,7 @@ public:
     bool use_IBF = false;
     bool use_ff = false; // use FindMinimum in F-term
     bool use_exp = false; // use exp in contour deformation
+    int MPDigits = 50; // digits in mpREAL for MP
     lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
     
     map<int, numeric> Parameter;
@@ -329,8 +336,8 @@ public:
     void XReOrders();
     void XTogethers();
     void XExpands();
-    bool IsBadF1(ex f, vector<exmap> vmap);
-    vector<pair<lst, lst>> AutoF1(pair<lst, lst> po_ex);
+    bool IsBad(ex f, vector<exmap> vmap);
+    vector<pair<lst, lst>> AutoEnd(pair<lst, lst> po_ex);
     void CIPrepares(const char* key = NULL);
     void Contours(const char * key = NULL, const char *pkey = NULL);
     void Integrates(const char* key = NULL, const char *pkey = NULL, int kid=0);

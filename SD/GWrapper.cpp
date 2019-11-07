@@ -23,12 +23,21 @@ void GWrapper::InitMinFunction(ex minF, vector<ex> xs, int ri) {
 
 dREAL GWrapper::MinFunction(int nvars, dREAL* x, dREAL* pl, dREAL *las) {
     //using MinF
+    int digits = Digits;
+    Digits = GiNaC_Digits;
     lst xRepl;
     for(int i=0; i<nvars; i++) xRepl.append(Xs[i]==numeric((double)x[i]));
     ex res = MinF.subs(xRepl).evalf();
     if(ReIm==1) res = res.real_part();
     else if(ReIm==2) res = res.imag_part();
-    return ex_to<numeric>(res).to_double();
+    dREAL ret;
+    try {
+        ret = ex_to<numeric>(res).to_double();
+    } catch(...) {
+        ret = CppFormat::ex2q(res);
+    }
+    Digits = digits;
+    return ret;
 }
 
 /*-----------------------------------------------------*/

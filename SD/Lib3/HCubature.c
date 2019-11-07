@@ -795,7 +795,11 @@ static int rulecubature(rule *r, unsigned fdim,
                 
                 int toExit = 1;
                 for (j = 0; j < fdim; ++j) toExit = toExit && (err[j]*3 <= reqAbsError);
-                if(toExit) return SUCCESS;
+                if(toExit) {
+                    runs = numEval;
+                    if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);
+                    return SUCCESS;
+                }
                 if(PrintHooker != NULL && (xmin<1E-8 || numEval - runs > minEval)) {
                     runs = numEval;
                     PrintHooker(val, err, &numEval, fdata);

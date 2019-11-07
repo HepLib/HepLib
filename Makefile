@@ -8,7 +8,7 @@ dep:
 	make -C IBP
 	
 libHepLib.so: ExGiNaC/*.o SD/*.o SD/Lib3/*.o IBP/*.o
-	g++ $(opt) -shared -lgomp -lquadmath -ldl -lqhullstatic -lMinuit2 -lginac -lcln -lcubaq -o $@ $^
+	g++ $(opt) -shared -lgomp -lquadmath -ldl -lqhullstatic -lMinuit2 -lginac -lcln -lcubaq -lmpfr -lgmp -o $@ $^
 
 install: libHepLib.so
 	make -C bin

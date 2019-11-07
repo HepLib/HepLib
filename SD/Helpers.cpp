@@ -159,6 +159,13 @@ static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context 
     ex ex1 = ex1_in, ex2 = ex2_in;
     if(abs(ex1) < numeric("1E-30")) ex1 = 0;
     if(abs(ex2) < numeric("1E-30")) ex2 = 0;
+    if(ex1==0 || ex2==0) {
+        char bf1[128], bf2[128];
+        quadmath_snprintf(bf1, sizeof bf1, "%.10Qg", CppFormat::ex2q(ex1_in));
+        quadmath_snprintf(bf2, sizeof bf2, "%.10Qg", CppFormat::ex2q(ex2_in));
+        c.s << bf1 << " +- " << bf2;
+        return;
+    }
     int digits = 30;
     if(!ex2.is_zero()) {
         auto ratio = ex_to<numeric>(abs(ex1/ex2));

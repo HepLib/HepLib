@@ -6,6 +6,7 @@ int ErrMin::Verbose;
 unsigned int ErrMin::xsize;
 IntegratorBase::SD_Type ErrMin::fp = NULL;
 IntegratorBase::SD_Type ErrMin::fpQ = NULL;
+IntegratorBase::SD_Type ErrMin::fpMP = NULL;
 IntegratorBase *ErrMin::Integrator = NULL;
 MinimizeBase *ErrMin::miner = NULL;
 qREAL *ErrMin::paras = NULL;
@@ -21,7 +22,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     RunRND++;
     qREAL qlas[nvars];
     for(int i=0; i<nvars; i++) qlas[i] = las[i];
-    auto res = Integrator->Integrate(xsize, fp, fpQ, paras, qlas);
+    auto res = Integrator->Integrate(xsize, fp, fpQ, fpMP, paras, qlas);
     if(res.has(SD::NaN)) return 1.E15;
     auto err = res.subs(VE(wild(0), wild(1))==wild(1));
     numeric nerr = numeric("1E15");
