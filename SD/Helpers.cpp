@@ -177,7 +177,7 @@ static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context 
         char bf1[128], bf2[128];
         quadmath_snprintf(bf1, sizeof bf1, "%.10Qg", CppFormat::ex2q(ex1_in));
         quadmath_snprintf(bf2, sizeof bf2, "%.10Qg", CppFormat::ex2q(ex2_in));
-        c.s << bf1 << " +- " << bf2;
+        c.s << "(" << bf1 << " +- " << bf2 << ")";
         return;
     }
     int digits = 30;
@@ -198,7 +198,14 @@ static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context 
         c.s << oss.str();
     } catch(...) {
         Digits = oDigits;
-        c.s << RED << "[-NaN-]" << RESET;
+        try {
+            char bf1[128], bf2[128];
+            quadmath_snprintf(bf1, sizeof bf1, "%.10Qg", CppFormat::ex2q(ex1_in));
+            quadmath_snprintf(bf2, sizeof bf2, "%.10Qg", CppFormat::ex2q(ex2_in));
+            c.s << "(" << bf1 << " +- " << bf2 << ")";
+        } catch(...) {
+            c.s << RED << "[-NaN-]" << RESET;
+        }
     }
 }
 

@@ -20,28 +20,30 @@ ex ErrMin::lastResErr;
 
 dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     RunRND++;
+    auto digits = Digits;
+    Digits = 50;
     qREAL qlas[nvars];
     for(int i=0; i<nvars; i++) qlas[i] = las[i];
     auto res = Integrator->Integrate(xsize, fp, fpQ, fpMP, paras, qlas);
-    if(res.has(SD::NaN)) return 1.E15;
+    if(res.has(SD::NaN)) return 1.E100;
     auto err = res.subs(VE(wild(0), wild(1))==wild(1));
-    numeric nerr = numeric("1E15");
+    numeric nerr = numeric(1.E100);
     try {
         nerr = ex_to<numeric>(abs(err).evalf());
-        if(nerr > numeric("1E15")) nerr = numeric("1E15");
+        if(nerr > numeric(1.E100)) nerr = numeric(1.E100);
         if(err_max > nerr.to_double()) {
             auto diff = VESimplify(lastResErr - res);
             diff = diff.subs(VE(0,0)==0);
             exset ves;
             diff.find(VE(wild(0), wild(1)), ves);
             for(auto ve : ves) {
-                if(abs(ve.op(0)) > ve.op(1)) return 1E15;
+                if(abs(ve.op(0)) > ve.op(1)) return 1.E100;
             }
             if(Verbose > 3) {
                 cout << "\r                             \r";
                 cout << WHITE << "     " << RunRND << ": " << RESET;
                 for(int i=0; i<nvars; i++) cout << las[i] << " ";
-                cout << endl << "     " << res.subs(VE(0,0)==0) << endl;
+                cout << endl << "     " << res.subs(VE(0,0)==0).subs(VE(wild(1),wild(2))==VEO(wild(1),wild(2))) << endl;
             }
             err_max = nerr.to_double();
             for(int i=0; i<nvars; i++) lambda[i] = las[i];
@@ -80,8 +82,9 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
         miner->ForceStop();
         return 0.;
     }
-    
-    return nerr.to_double();
+    dREAL ret = nerr.to_double();
+    Digits = digits;
+    return ret;
 }
 
 

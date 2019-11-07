@@ -3353,7 +3353,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 dREAL oo[las.nops()-1], ip[las.nops()-1];
                 for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = lambda[i];
                 ErrMin::lambda = oo;
-                ErrMin::err_max = 1E30;
+                ErrMin::err_max = 1E100;
                 auto err_min = ErrMin::err_min;
                 ErrMin::err_min = err_min < 0 ? -err_min * ex_to<numeric>(cerr).to_double() : err_min/cmax;
                 ErrMin::RunRND = 0;
