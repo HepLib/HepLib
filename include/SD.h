@@ -82,6 +82,7 @@ class IntegratorBase {
 public:
     typedef int (*SD_Type) (const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
     virtual ex Integrate(unsigned int xn, SD_Type fp, SD_Type fpQ, SD_Type fpMP, const qREAL pl[], const qREAL las[]) =0;
+    virtual int inDQMP(unsigned xdim, qREAL const *x);
     
     long long RunMAX = 100;
     long long RunPTS = 10000;
@@ -90,14 +91,17 @@ public:
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     int Verbose = 0;
     int DQMP = 0;
-    int NANMax = 1000;
+    int NANMax = 250;
     int nNAN = 0;
+    int QXDim = 2;
+    int MPXDim = 1;
+    qREAL QXLimit = 1.Q-4;
+    qREAL MPXLimit = 1.Q-8;
     bool UseCpp = true;
 };
 
 class HCubature : public IntegratorBase {
 public:
-    static int inDQMP(unsigned xdim, qREAL const *x);
     static int Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y);
     
     typedef void (*PrintHookerType) (qREAL*, qREAL*, long long int*, void *);
@@ -137,7 +141,6 @@ public:
     long long VEGAS_NINCREASE = 1000;
     long long VEGAS_NBATCH = 1000;
     
-    static int inDQMP(unsigned xdim, qREAL const *x);
     static int Wrapper(const int *xdim, const qREAL *x, const int *ydim, qREAL *y, void *fdata);
     long long MaxPTS;
     virtual ex Integrate(unsigned int, SD_Type, SD_Type, SD_Type, const qREAL[], const qREAL[]) override;

@@ -7,17 +7,6 @@ namespace HepLib {
 /*-----------------------------------------------------*/
 #include "HCubature.h"
 
-int HCubature::inDQMP(unsigned xdim, qREAL const *x) {
-    if(xdim==1) return 3;
-    qREAL xmin = 100;
-    for(int i=0; i<xdim; i++) {
-        if(x[i] < xmin) xmin = x[i];
-    }
-    if(xmin < 1E-6) return 3;
-    if(xdim==2 || xmin < 1E-3) return 2;
-    return 1;
-}
-
 int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y) {
     auto self = (HCubature*)fdata;
     bool NaNQ = false;
@@ -25,7 +14,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
     if(self->UseCpp) {
         #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
         for(int i=0; i<npts; i++) {
-            int iDQMP = inDQMP(xdim, x+i*xdim);
+            int iDQMP = self->inDQMP(xdim, x+i*xdim);
             if(self->DQMP>2 || iDQMP>2) {
                 self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             } else if(self->DQMP>1 || iDQMP>1) {
@@ -73,7 +62,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
             }
             if(!ok) {
                 qREAL xx[xdim];
-                for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] * 0.995Q;
+                for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.Q-30 ? 1.Q-30  : x[i*xdim+ii] * 0.995Q;
                 self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
             }
         }

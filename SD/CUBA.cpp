@@ -9,15 +9,6 @@ extern "C" {
 #include "cubaq.h"
 }
 
-int CUBA::inDQMP(unsigned xdim, qREAL const *x) {
-    return 3;
-    if(xdim<2) return 3;
-    for(int i=0; i<xdim; i++) {
-        if(x[i] < 5.0E-5Q) return 3;
-    }
-    return 1;
-}
-
 int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, void *fdata) {
     auto self = (CUBA*)fdata;
     int xdim = *pxdim, ydim = *pydim;
@@ -25,7 +16,7 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
     //#pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
     int npts = 1;
     for(int i=0; i<npts; i++) {
-        int iDQMP = inDQMP(xdim, x+i*xdim);
+        int iDQMP = self->inDQMP(xdim, x+i*xdim);
         if(self->DQMP>2 || iDQMP>2) {
             self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
         } else if(self->DQMP>1 || iDQMP>1) {
@@ -33,41 +24,71 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
             bool ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
-                if(isnanq(ytmp)) {
+                if(isnanq(ytmp) || isinfq(ytmp)) {
                     ok = false;
                     break;
                 }
             }
-            if(!ok) {
-                self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-            }
+            if(!ok) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
         } else {
             self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             bool ok = true;
-            
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
-                if(isnanq(ytmp)) {
+                if(isnanq(ytmp) || isinfq(ytmp)) {
                     ok = false;
                     break;
                 }
             }
-            if(!ok) {
-                self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-            }
+            if(!ok) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             
+            ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
-                if(isnanq(ytmp)) {
+                if(isnanq(ytmp) || isinfq(ytmp)) {
                     ok = false;
                     break;
                 }
             }
-            if(!ok) {
-                self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            if(!ok) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+        }
+        
+        // Final Check NaN/Inf
+        bool ok = true;
+        for(int j=0; j<ydim; j++) {
+            qREAL ytmp = y[i*ydim+j];
+            if(isnanq(ytmp) || isinfq(ytmp)) {
+                ok = false;
+                break;
             }
         }
+        if(!ok) {
+            qREAL xx[xdim];
+            for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] * 0.995Q;
+            self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
+        }
     }
+    
+    for(int i=0; i<npts; i++) {
+        for(int j=0; j<ydim; j++) {
+            qREAL ytmp = y[i*ydim+j];
+            if(isnanq(ytmp) || isinfq(ytmp)) {
+                self->nNAN++;
+                if(self->nNAN > self->NANMax) {
+                    NaNQ = true;
+                    break;
+                } else {
+                    y[i*ydim+j] = 0;
+                }
+            }
+        }
+        if(self->ReIm == 1) {
+            y[i*ydim+1] = 0;
+        } else if(self->ReIm == 2) {
+            y[i*ydim+0] = 0;
+        }
+    }
+    
     return NaNQ ? 1 : 0;
 }
 

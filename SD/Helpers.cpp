@@ -3,6 +3,20 @@
 namespace HepLib {
 
 /*-----------------------------------------------------*/
+// IntegratorBase::inDQMP
+/*-----------------------------------------------------*/
+int IntegratorBase::inDQMP(unsigned xdim, qREAL const *x) {
+    if(xdim<=MPXDim) return 3;
+    qREAL xmin = 100;
+    for(int i=0; i<xdim; i++) {
+        if(x[i] < xmin) xmin = x[i];
+    }
+    if(xmin <= MPXLimit) return 3;
+    if(xdim <= QXDim|| xmin < QXLimit) return 2;
+    return 1;
+}
+
+/*-----------------------------------------------------*/
 // Global Functions
 /*-----------------------------------------------------*/
 
