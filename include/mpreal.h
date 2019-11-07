@@ -171,7 +171,7 @@ public:
     mpreal(const unsigned int u,           mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
     mpreal(const long int u,               mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
     mpreal(const int u,                    mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
-    mpreal(const __float128 u, mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
+    mpreal(const __float128 u,             mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
     
     // Construct mpreal from mpfr_t structure.
     // shared = true allows to avoid deep copy, so that mpreal and 'u' share the same data & pointers.    
@@ -302,7 +302,7 @@ public:
     float              toFloat     (mp_rnd_t mode = GMP_RNDN)    const;
     double             toDouble    (mp_rnd_t mode = GMP_RNDN)    const;
     long double        toLDouble   (mp_rnd_t mode = GMP_RNDN)    const;
-    __float128         toFloat128   (mp_rnd_t mode = GMP_RNDN)    const;
+    __float128         toFloat128  (mp_rnd_t mode = GMP_RNDN)    const;
     
 
 #if defined (MPREAL_HAVE_EXPLICIT_CONVERTERS)
@@ -316,7 +316,7 @@ public:
     explicit operator float              () const { return toFloat();                }
     explicit operator double             () const { return toDouble();               }
     explicit operator long double        () const { return toLDouble();              }
-    explicit operator __float128         () const { return toFloat128();              }
+    explicit operator __float128         () const { return toFloat128();             }
 #endif
 
     // Get raw pointers so that mpreal can be directly used in raw mpfr_* functions
@@ -1742,7 +1742,7 @@ inline double             mpreal::toDouble (mp_rnd_t mode)  const    {    return
 inline long double        mpreal::toLDouble(mp_rnd_t mode)  const    {    return  mpfr_get_ld (mpfr_srcptr(), mode);    }
 inline long long          mpreal::toLLong  (mp_rnd_t mode)  const    {    return  mpfr_get_sj (mpfr_srcptr(), mode);    }
 inline unsigned long long mpreal::toULLong (mp_rnd_t mode)  const    {    return  mpfr_get_uj (mpfr_srcptr(), mode);    }
-inline __float128        mpreal::toFloat128(mp_rnd_t mode)  const    {    return  mpfr_get_float128 (mpfr_srcptr(), mode);    }
+inline __float128         mpreal::toFloat128(mp_rnd_t mode)  const   {    return  mpfr_get_float128 (mpfr_srcptr(), mode);    }
 
 inline ::mpfr_ptr     mpreal::mpfr_ptr()             { return mp; }
 inline ::mpfr_srcptr  mpreal::mpfr_ptr()    const    { return mp; }

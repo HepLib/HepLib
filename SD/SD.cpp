@@ -2176,7 +2176,7 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
         ofs << "mpREAL fmax = "; ft_max.print(cppMP); ofs << ";" << endl;
         ofs << "mpCOMPLEX ilas[nfxs];" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(las[i],mpREAL(1));" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
         ofs << "dff[nfxs] = FMP_"<<ft_n<<"(x,pl);" << endl;
         if(use_exp) ofs << "mpREAL expf2n=exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
         else ofs << "mpREAL expf2n = 1;" << endl;
@@ -2235,7 +2235,7 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
         ofs << "mpREAL fmax = "; ft_max.print(cppMP); ofs << ";" << endl;
         ofs << "mpCOMPLEX ilas[nfxs];" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(las[i],mpREAL(1));" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
         if(use_exp) ofs << "mpREAL expf2n = exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
         else ofs << "mpREAL expf2n = 1;" << endl;
         ofs << "for(int i=0; i<nfxs; i++) {" << endl;
@@ -2615,10 +2615,10 @@ ofs << R"EOF(
                 ofs << "MatMP_"<<ft_n<<"(mat,x0,dff,pl,las);" << endl;
                 for(auto x0i : xs0) {
                     ofs << "ii = " << x0i << ";" << endl;
-                    ofs << "z[ii] = x[ii]-x[ii]*(mpREAL(1)-x[ii])*r[ii];" << endl;
-                    ofs << "for(int j=0; j<nfxs;j++) mat[nfxs*ii+j] = 0;" << endl;
-                    ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = 0;" << endl;
-                    ofs << "mat[ii*nfxs+ii] = mpREAL(1)-(mpREAL(1)-2*x[ii])*r[ii];" << endl;
+                    ofs << "z[ii] = x[ii]-x[ii]*(1-x[ii])*r[ii];" << endl;
+                    ofs << "for(int j=0; j<nfxs;j++) mat[nfxs*ii+j] = mpREAL(0);" << endl;
+                    ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = mpREAL(0);" << endl;
+                    ofs << "mat[ii*nfxs+ii] = mpREAL(1)-(1-2*x[ii])*r[ii];" << endl;
                 }
                 ofs  << "det = MatDetMP(mat, nfxs);" << endl;
                 
