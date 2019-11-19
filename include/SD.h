@@ -98,6 +98,8 @@ public:
     qREAL QXLimit = 1.Q-4;
     qREAL MPXLimit = 1.Q-8;
     bool UseCpp = true;
+    long long NEval = 0;
+    int MPDigits;
 };
 
 class HCubature : public IntegratorBase {
@@ -110,7 +112,6 @@ public:
     static void DefaultPrintHooker(qREAL*, qREAL*, long long int*, void*);
     PrintHookerType PrintHooker = DefaultPrintHooker;
     long long MaxPTS;
-    long long NRUN = 0;
     bool use_last = false;
     
 private:
@@ -121,6 +122,8 @@ private:
     const qREAL* Parameter;
     qREAL LastResult[2];
     qREAL LastAbsErr[2];
+    long long lastNRUN = 0;
+    int lastnNAN = 0;
     int LastState = 0;
 };
 
@@ -304,6 +307,8 @@ public:
     bool use_IBF = false;
     bool use_ff = false; // use FindMinimum in F-term
     bool use_exp = false; // use exp in contour deformation
+    bool use_MP = true;
+    bool use_ErrBreak = false; // use Error Break in Try
     int MPDigits = 50; // digits in mpREAL for MP
     lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
     
@@ -339,6 +344,7 @@ public:
     void XReOrders();
     void XTogethers();
     void XExpands();
+    bool KillSquares();
     bool IsBad(ex f, vector<exmap> vmap);
     vector<pair<lst, lst>> AutoEnd(pair<lst, lst> po_ex);
     void CIPrepares(const char* key = NULL);

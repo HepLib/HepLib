@@ -25,7 +25,10 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     qREAL qlas[nvars];
     for(int i=0; i<nvars; i++) qlas[i] = las[i];
     auto res = Integrator->Integrate(xsize, fp, fpQ, fpMP, paras, qlas);
-    if(res.has(SD::NaN)) return 1.E100;
+    if(res.has(SD::NaN)) {
+        Digits = digits;
+        return 1.E100;
+    }
     auto err = res.subs(VE(wild(0), wild(1))==wild(1));
     numeric nerr = numeric(1.E100);
     try {
@@ -37,7 +40,10 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
             exset ves;
             diff.find(VE(wild(0), wild(1)), ves);
             for(auto ve : ves) {
-                if(abs(ve.op(0)) > ve.op(1)) return 1.E100;
+                if(abs(ve.op(0)) > ve.op(1)) {
+                    Digits = digits;
+                    return 1.E100;
+                }
             }
             if(Verbose > 3) {
                 cout << "\r                             \r";
@@ -50,6 +56,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
             if(err_max<=err_min) {
                 cout << "\r                             \r";
                 cout << "     ------------------------------" << endl;
+                Digits = digits; cout << "2" << endl;
                 miner->ForceStop();
                 return 0.;
             }
@@ -65,6 +72,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     if(RunRND>=MaxRND) {
         cout << "\r                             \r";
         cout << "     ------------------------------" << endl;
+        Digits = digits; cout << "3" << endl;
         miner->ForceStop();
         return 0.;
     }
@@ -79,6 +87,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
         cout << "\r                             \r";
         if(Verbose>3) cout << "     Exit: " << fn.str() << endl;
         cout << "     ------------------------------" << endl;
+        Digits = digits; cout << "1" << endl;
         miner->ForceStop();
         return 0.;
     }

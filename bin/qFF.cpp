@@ -1,24 +1,24 @@
 #include "SD.h"
 
-// Computation for quark Fragmentation Function
+// Computation for Fragmentation Function of Quark into Quarkonium
 
 using namespace HepLib;
+bool use_eps = false;
 
 auto ep = SD::ep;
 auto eps = SD::eps;
 auto iEpsilon = SD::iEpsilon;
 auto vs = SD::vs;
 auto vz = SD::vz;
-
 lst para_sym = lst { ep, eps, vs, vz, iEpsilon };
 
+int sf = 1; // symetry factor
+int nt = 0; // number of final state, exclude Quarkonium itself
+int nl = 0; // number of loops
 const char* cm_path = "cm";
 const char* SD_path = "SD";
 int verb = 0;
 int epN = 0;
-bool useq = false;
-ex nL = 3;
-ex nH = 1;
 
 void ExportNull(const char* fn) {
     ofstream ofs;
@@ -31,14 +31,20 @@ void ExportNull(const char* fn) {
 void Prepare(int idx) {
     
     symbol p("p"), n("n");
-    symbol q1("q1"), q2("q2");
+    symbol q1("q1"), q2("q2"), q3("q3");
     symbol k1("k1"), k2("k2"), k3("k3");
     symbol K1("K1"), K2("K2"), K3("K3");
     
     FeynmanParameter fp;
-    fp.LoopMomenta = lst{ q1 };
-    fp.tLoopMomenta = lst{ K1 };
-    ex S = 1; // phase space symmetry factor, note the ONE Quark
+    fp.LoopMomenta = lst{ };
+    fp.tLoopMomenta = lst{ };
+    if(nl>0) fp.LoopMomenta.append(q1);
+    if(nl>1) fp.LoopMomenta.append(q2);
+    if(nl>2) fp.LoopMomenta.append(q3);
+    if(nt>0) fp.tLoopMomenta.append(K1);
+    if(nt>1) fp.tLoopMomenta.append(K2);
+    if(nt>2) fp.tLoopMomenta.append(K3);
+    ex S = sf; // phase space symmetry factor
     
     ex kp = 1;
     ex m = 1;
@@ -71,11 +77,9 @@ void Prepare(int idx) {
     table["K3"] = K3;
     table["q1"] = q1;
     table["q2"] = q2;
+    table["q3"] = q3;
     table["m"] = m;
     table["zz"] = zz;
-    table["nL"] = nL;
-    table["nH"] = nH;
-    table["ApartNull"] = 1;
     
     table["kp"] = kp;
     table["pp"] = pp;
@@ -91,7 +95,7 @@ void Prepare(int idx) {
     fp.Prefactor = pow(2*Pi, (2*ep-4)*fp.LoopMomenta.nops()) * cms.op(2);
     fp.Propagators = ex_to<lst>(cms.op(0));
     fp.Exponents = ex_to<lst>(cms.op(1));
-        
+    
     ex NCS = pow(zz,(1-2*ep))/(8*3*kp*Pi);
     ex M = 2*m;
     ex nts = fp.tLoopMomenta.nops();
@@ -119,11 +123,10 @@ void Prepare(int idx) {
     fp.tReplacements[p*p] = m2;
     fp.tReplacements[n*n] = 0;
     fp.tReplacements[p*n] = pp;
-    
-    if(nts>0) fp.nReplacements[z(wild())] = ex(1)/nts;
-    
+    fp.nReplacements[CV(wild(1),wild(2))] = wild(2);
     fp.nReplacements[ep] = ex(1)/11;
     fp.nReplacements[eps] = ex(1)/111;
+    if(nts>0) fp.nReplacements[z(wild())] = ex(1)/nts;
     
     SD work;
     work.epN = epN;
@@ -137,7 +140,6 @@ void Prepare(int idx) {
     work.CheckEnd = true;
     
     work.Initialize(fp);
-    
     if(work.IsZero) {
         ostringstream ifn;
         ifn << SD_path << "/" << idx << ".null";
@@ -187,10 +189,11 @@ void Prepare(int idx) {
             kv.second.append(tmp.op(1));
         }
         
-        if(false)
-        for(int i=1; i<=nts; i++) {
-            kv.first.append(x(xn+i-1));
-            kv.second.append(eps);
+        if(use_eps) {
+            for(int i=1; i<=nts; i++) {
+                kv.first.append(x(xn+i-1));
+                kv.second.append(eps);
+            }
         }
         
     }
@@ -226,6 +229,7 @@ void Contour(int idx, numeric zz) {
     work.Verbose = verb;
     work.Parameter[0] = zz;
     work.ParallelProcess = 0;
+    work.nReplacements[CV(wild(1), wild(2))] = wild(2);
     
     ostringstream ikey;
     ikey << SD_path << "/" << idx;
@@ -248,6 +252,7 @@ ex Integrate(int idx, numeric zz, int ii = -1) {
     work.Verbose = verb;
     work.Parameter[0] = zz;
     work.epN = epN;
+    work.nReplacements[CV(wild(1),wild(2))] = wild(2);
     
     work.use_ErrMin = false;
     ErrMin::err_min = 1E-3;
@@ -256,7 +261,7 @@ ex Integrate(int idx, numeric zz, int ii = -1) {
     
     work.EpsAbs = 5E-6;
     work.RunPTS = 1000000;
-    work.RunMAX = 10;
+    work.RunMAX = 20;
     work.LambdaSplit = 5;
     work.TryPTS = 1000000;
     work.CTryLeft = 3;
@@ -276,7 +281,6 @@ ex Integrate(int idx, numeric zz, int ii = -1) {
         auto intor = new HCubature();
         intor->use_last = true;
         work.Integrator = intor;
-        intor->UseQ = useq;
     }
     work.Integrates(ikey.str().c_str(), pkey, ii);
     
@@ -298,8 +302,11 @@ int main(int argc, char** argv) {
     const char* arg_e = "1E-2";
     bool is_o = false;
     const char* arg_o = "";
+    const char* arg_s = "1";
+    const char* arg_t = "0";
+    const char* arg_l = "0";
     
-    for (int opt; (opt = getopt(argc, argv, "a:n:i:z:o:v:qe:")) != -1;) {
+    for (int opt; (opt = getopt(argc, argv, "a:n:i:z:o:v:e:s:t:l:")) != -1;) {
         switch (opt) {
             case 'a': arg_a = optarg; break;
             case 'n': arg_n = optarg; break;
@@ -308,9 +315,11 @@ int main(int argc, char** argv) {
             case 'o': arg_o = optarg; is_o = true; break;
             case 'v': arg_v = optarg; break;
             case 'e': arg_e = optarg; break;
-            case 'q': useq = true; break;
+            case 's': arg_s = optarg; break;
+            case 't': arg_t = optarg; break;
+            case 'l': arg_l = optarg; break;
             default:
-                cout << "supported options: -a A -n N -i I -z Z -o O -v V -q -e E" << endl;
+                cout << "supported options: -a A -n N -i I -z Z -o O -v V -e E -s S -t T -l L" << endl;
                 cout << "A: can be p(prepare), c(contour), i(integrate), r(result), ar(analyse result)." << endl;
                 cout << "N: only apply A on prefix N." << endl;
                 cout << "I: only apply A on part I in prefix N." << endl;
@@ -318,7 +327,9 @@ int main(int argc, char** argv) {
                 cout << "O: output filename." << endl;
                 cout << "V: verbose level." << endl;
                 cout << "E: print when error > E." << endl;
-                cout << "-q: use quadruple precision." << endl;
+                cout << "S: symetry factor." << endl;
+                cout << "T: number of transverse loops." << endl;
+                cout << "L: number of loops." << endl;
                 exit(1);
         }
     }
@@ -342,6 +353,9 @@ int main(int argc, char** argv) {
     int ii = -1;
     if(arg_n != NULL && arg_i != NULL) ii = stoi(arg_i);
     verb = stoi(arg_v);
+    sf = stoi(arg_s);
+    nt = stoi(arg_t);
+    nl = stoi(arg_l);
     
     if(arg_a == NULL || !strcmp(arg_a, "p")) {
         vector<int> fid;
@@ -393,12 +407,11 @@ int main(int argc, char** argv) {
             cout << "Integrating @ z=" << arg_z << " - " << i << "/" << nmi << endl;
             auto res = Integrate(i, zz, ii);
             fRes += res;
-            //if(!res.is_zero()) cout << VEResult(res) << endl;
             cout << endl;
             if(res.has(SD::NaN)) nid.push_back(i);
             
-            auto err = res.subs(lst{VE(wild(1),wild(2))==wild(2)});
-            if(abs(err.coeff(ep,0))>ee) {
+            auto err = res.subs(lst{VE(wild(1),wild(2))==wild(2),CV(wild(1),wild(2))==wild(2)});
+            if(abs(err.coeff(ep,epN).coeff(eps,0))>ee) {
                 cout << "n = " << i << endl;
                 cout << res.subs(I*wild()==0, subs_options::algebraic) << endl << endl;
             }
@@ -440,8 +453,8 @@ int main(int argc, char** argv) {
             fRes += res;
             if(res.has(SD::NaN)) nid.push_back(i);
             
-            auto err = res.subs(lst{VE(wild(1),wild(2))==wild(2)});
-            if(abs(err.coeff(ep,0))>ee) {
+            auto err = res.subs(lst{VE(wild(1),wild(2))==wild(2),CV(wild(1),wild(2))==wild(2)});
+            if(abs(err.coeff(ep,epN).coeff(eps,0))>ee) {
                 cout << "n = " << i << endl;
                 cout << res.subs(I*wild()==0, subs_options::algebraic) << endl << endl;
             }
@@ -491,9 +504,9 @@ int main(int argc, char** argv) {
         int max_index;
         ex max_re = -1;
         for(int i=0; i<relst.nops(); i++) {
-            auto tmp = relst.op(i).subs(lst{VE(wild(1),wild(2))==wild(2)});
+            auto tmp = relst.op(i).subs(lst{VE(wild(1),wild(2))==wild(2),CV(wild(1),wild(2))==wild(2)});
             tmp = tmp.subs(VE(wild(1), wild(2))==wild(2));
-            tmp = tmp.expand().coeff(ep, epN).evalf();
+            tmp = tmp.expand().coeff(ep, epN).coeff(eps,0).evalf();
             if(abs(tmp)>max_re) {
                 max_re = abs(tmp);
                 max_index = i;

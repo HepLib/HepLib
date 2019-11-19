@@ -1,4 +1,5 @@
 #include "SD.h"
+#include "mpreal.h"
 
 namespace HepLib {
 
@@ -17,7 +18,7 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
     int npts = 1;
     for(int i=0; i<npts; i++) {
         int iDQMP = self->inDQMP(xdim, x+i*xdim);
-        if(self->DQMP>2 || iDQMP>2) {
+        if((self->IntegrandMP!=NULL) && (self->DQMP>2 || iDQMP>2)) {
             self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
         } else if(self->DQMP>1 || iDQMP>1) {
             self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
@@ -29,7 +30,7 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
                     break;
                 }
             }
-            if(!ok) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            if(!ok && (self->IntegrandMP!=NULL)) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
         } else {
             self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             bool ok = true;
@@ -50,7 +51,7 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
                     break;
                 }
             }
-            if(!ok) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+            if(!ok && (self->IntegrandMP!=NULL)) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
         }
         
         // Final Check NaN/Inf
@@ -93,6 +94,9 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
 }
 
 ex CUBA::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, SD_Type fpMP, const qREAL* pl, const qREAL* la) {
+    mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
+    assert(mpfr_buildopt_tls_p()>0);
+    
     Integrand = fp;
     IntegrandQ = fpQ;
     IntegrandMP = fpMP;
@@ -128,6 +132,7 @@ ex CUBA::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, SD_Type fpMP, con
             );
             break;
     }
+    NEval = neval;
     
     ex FResult = 0;
     if(isnanq(result[0]) || isnanq(result[1])) FResult += SD::NaN;

@@ -1,6 +1,5 @@
 #include "SD.h"
 #include <math.h>
-#include "mpreal.h"
 
 namespace HepLib {
 
@@ -558,7 +557,11 @@ void SD::Initialize(FeynmanParameter fp) {
         p = p.subs(lsubs,sop).subs(tsubs,sop).subs(nsubs).subs(plsubs);
         // check loop^2
         for(auto m : ls) {
-            assert(is_a<numeric>(p.coeff(m,2)));
+            if(!is_a<numeric>(p.coeff(m,2))) {
+                cout << "not numeric: " << p.coeff(m,2) << endl;
+                cout << "nsubs = " << nsubs << endl;
+                assert(false);
+            }
             numeric nm = ex_to<numeric>(p.coeff(m,2));
             if(nm.is_zero()) continue;
             sgn = nm>0 ? -1 : 1;
@@ -1012,6 +1015,199 @@ void SD::XExpands() {
     
 }
 
+bool SD::KillSquares() {
+    vector<pair<lst, lst>> funexp;
+    for(auto fe : FunExp) {
+        funexp.push_back(fe);
+    }
+    FunExp.clear();
+    FunExp.shrink_to_fit();
+    
+    bool ret = false;
+    for(auto fe : funexp) {
+        ex ft = fe.first.op(1);
+        ft = collect_common_factors(ft);
+        lst fts;
+        if(is_a<mul>(ft)) {
+            for(auto item : ft) fts.append(item);
+        } else {
+            fts.append(ft);
+        }
+        
+        bool ok = true;
+        ex eqn;
+        for(auto fti : fts) {
+            auto xs = get_x_from(fti);
+            for(int i=0; i<xs.size(); i++) {
+                for(int j=i+1; j<xs.size(); j++) {
+                    if(Deltas.size()>0) {
+                        bool has_xij = false;
+                        for(auto delta : Deltas) {
+                            if(delta.has(xs[i]) && delta.has(xs[j])) {
+                                has_xij = true;
+                                break;
+                            }
+                        }
+                        if(!has_xij) continue;
+                    }
+                    
+                    symbol xi("xi"), xj("xj");
+                    auto ftij = fti.subs(lst{xs[i]==xi, xs[j]==xj});
+                    auto xs2 = get_x_from(ftij);
+                    for(int nn=0; nn<std::pow(2,xs2.size()); nn++) {
+                        int tnn = nn;
+                        lst xsubs;
+                        for(int ni=0; ni<xs2.size(); ni++) {
+                            if(tnn%2==1) xsubs.append(xs2[ni]==1);
+                            else xsubs.append(xs2[ni]==0);
+                            tnn /= 2;
+                        }
+                        auto ftt = factor(ftij.subs(xsubs));
+                        lst fts2;
+                        if(is_a<mul>(ftt)) {
+                            for(auto item : ftt) fts2.append(item);
+                        } else {
+                            fts2.append(ftt);
+                        }
+                        
+                        int NN = 100;
+                        for(auto item : fts2) {
+                            if(item.match(pow(wild(1),wild(2))) && (item.has(xi) || item.has(xj))) {
+                                eqn = item.op(0);
+                                auto t1 = eqn.subs(lst{xi==1/ex(11), xj==1/ex(19)});
+                                if(t1.is_zero()) t1 = eqn.subs(lst{xi==1/ex(3), xj==1/ex(23)});
+                                if(t1.is_zero()) t1 = eqn.subs(lst{xi==1/ex(13), xj==1/ex(37)});
+                                
+                                bool ook = true;
+                                for(int ni=0; ni<=NN; ni++) {
+                                    for(int nj=0; nj<=NN; nj++) {
+                                        auto t2 = eqn.subs(lst{xi==ni/ex(NN), xj==nj/ex(NN)});
+                                        if(t1*t2 < 0) {
+                                            ook = false;
+                                            break;
+                                        }
+                                    }
+                                    if(!ook) break;
+                                }
+                                
+                                if(eqn.degree(xi)>1 || eqn.degree(xj)>1) {
+                                    cout << RED << "Skip Non-linear term: " << eqn << RESET << endl;
+                                    continue;
+                                }
+                                
+                                if(!ook) {
+                                    eqn = eqn.subs(lst{xi==xs[i], xj==xs[j]});
+                                    ok = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if(!ok) break;
+                    }
+                    if(!ok) break;
+                }
+                if(!ok) break;
+            }
+            if(!ok) break;
+        }
+        
+        if(!ok) {
+            auto xij = get_x_from(eqn);
+            ex xi = xij[0];
+            ex xj = xij[1];
+            ex ci = eqn.coeff(xi);
+            ex cj = eqn.coeff(xj);
+            
+            // handle eqn==ci xi - cj xj
+            if((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0) {
+                ret = true;
+                ci = abs(ci);
+                cj = abs(cj);
+                if(Deltas.size()>0) {
+                    symbol yi,yj;
+                    // Part I: ci xi-cj xj>0, i.e., xi>cj/ci xj
+                    auto f1 = fe.first;
+                    auto e1 = fe.second;
+                    ex c1 = cj/ci;
+                    for(int i=0; i<f1.nops(); i++) {
+                        f1.let_op(i) = f1.op(i).subs(lst{xi==c1*yj/(1+c1)+yi,xj==yj/(1+c1)}).subs(lst{yi==xi,yj==xj});
+                    }
+                    f1.let_op(0) = f1.op(0)/(1+c1); // Jaccobi
+                    FunExp.push_back(make_pair(f1,e1));
+                    // Part II: ci xi-cj xj<0, i.e., i.e., xj>ci/cj xi
+                    auto f2 = fe.first;
+                    auto e2 = fe.second;
+                    ex c2 = ci/cj;
+                    for(int i=0; i<f2.nops(); i++) {
+                        f2.let_op(i) = f2.op(i).subs(lst{xj==c2*yi/(1+c2)+yj,xi==yi/(1+c2)}).subs(lst{yi==xi,yj==xj});
+                    }
+                    f2.let_op(0) = f2.op(0)/(1+c2); // Jaccobi
+                    FunExp.push_back(make_pair(f2,e2));
+                } else if(ci==cj) {
+                    symbol xx;
+                    // Part I: xi<xj
+                    auto f1 = fe.first;
+                    auto e1 = fe.second;
+                    for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xi==xx*xj).subs(xx==xi);
+                    f1.append(xj); // Jaccobi
+                    e1.append(1);
+                    FunExp.push_back(make_pair(f1,e1));
+                    // Part II: xj<xi
+                    auto f2 = fe.first;
+                    auto e2 = fe.second;
+                    for(int i=0; i<f2.nops(); i++) f2.let_op(i) = f2.op(i).subs(xj==xx*xi).subs(xx==xj);
+                    f2.append(xi); // Jaccobi
+                    e2.append(1);
+                    FunExp.push_back(make_pair(f2,e2));
+                } else {
+                    // we set c1 > c2 always
+                    ex c1 = ci;
+                    ex x1 = xi;
+                    ex c2 = cj;
+                    ex x2 = xj;
+                    if(c1 < c2) {
+                        c1 = cj;
+                        x1 = xj;
+                        c2 = ci;
+                        x2 = xi;
+                    }
+                    symbol xx;
+                    // Part I: 0<x2<1, c2/c1<x1<1
+                    auto f1 = fe.first;
+                    auto e1 = fe.second;
+                    for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(x1==xx*(c1-c2)/c1+c2/c1).subs(xx==x1);
+                    f1.let_op(0) = f1.op(0)*(c1-c2)/c1; // Jaccobi
+                    FunExp.push_back(make_pair(f1,e1));
+                    // Part II: x1>c2/c1 x2, i.e., x2<c1/c2 x1, 0<x1<c2/c1
+                    auto f2 = fe.first;
+                    auto e2 = fe.second;
+                    for(int i=0; i<f2.nops(); i++) f2.let_op(i) = f2.op(i).subs(x1==xx*c2/c1).subs(xx==x1);
+                    f2.let_op(0) = f2.op(0)*c2/c1;
+                    // now x2<x1, 0<x1<1
+                    for(int i=0; i<f2.nops(); i++) f2.let_op(i) = f2.op(i).subs(x2==xx*x1).subs(xx==x2);
+                    f2.append(x1); // Jaccobi
+                    e2.append(1);
+                    FunExp.push_back(make_pair(f2,e2));
+                    // Part III: x1<c2/c2 x2
+                    auto f3 = fe.first;
+                    auto e3 = fe.second;
+                    for(int i=0; i<f3.nops(); i++) f3.let_op(i) = f3.op(i).subs(x1==xx*x2*c2/c1).subs(xx==x1);
+                    f3.append(x2); // Jaccobi
+                    e3.append(1);
+                    f3.let_op(0) = f3.op(0)*c2/c1;
+                    FunExp.push_back(make_pair(f3,e3));
+                }
+            } else {
+                cout << RED << "Still under working with eqn = " << RESET << eqn << endl;
+                assert(false);
+            }
+        } else {
+            FunExp.push_back(fe);
+        }
+    }
+    return ret;
+}
+
 // Section 2.1 @ https://arxiv.org/pdf/1712.04441.pdf
 // also refers to Feng/Thinking.pdf
 void SD::Scalelesses(bool verb) {
@@ -1157,6 +1353,15 @@ void SD::SDPrepares() {
     
     //check vs
     for(auto &kv : FunExp) {
+        // check variables besides x or PL
+        for(int i=1; i<kv.first.nops(); i++) {
+            auto tmp = kv.first.op(i).subs(lst{x(wild())==1, PL(wild())==1, ep==1/ex(1121), eps==1/ex(1372)});
+            if(!is_a<numeric>(tmp.evalf())) {
+                cout << RED << "Extra Variable(^[ep,eps,PL,x]) Found: " << RESET << kv.first.op(i) << endl;
+                assert(false);
+            }
+        }
+    
         ex ft = kv.first.op(1);
         if(ft.has(vs)) {
             ft = mma_collect(ft, vs);
@@ -2064,13 +2269,15 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << endl;
         
         // FMP_fid
-        ofs << "mpREAL FMP_" << ft_n << "(const mpREAL* x, const mpREAL *pl) {" << endl;
-        ofs << "mpREAL yy = " << endl;
-        ft.subs(plRepl).subs(cxRepl).print(cppMP);
-        ofs << ";" << endl;
-        ofs << "return yy;" << endl; // find max image part, check with 0
-        ofs << "}" << endl;
-        ofs << endl;
+        if(use_MP) {
+            ofs << "mpREAL FMP_" << ft_n << "(const mpREAL* x, const mpREAL *pl) {" << endl;
+            ofs << "mpREAL yy = " << endl;
+            ft.subs(plRepl).subs(cxRepl).print(cppMP);
+            ofs << ";" << endl;
+            ofs << "return yy;" << endl; // find max image part, check with 0
+            ofs << "}" << endl;
+            ofs << endl;
+        }
         
         // D's FL_fid
         ofs << "dREAL FL_" << ft_n << "(const int i, const dREAL* x, const dREAL *pl) {" << endl;
@@ -2095,15 +2302,17 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << endl;
         
         // D's FMP_fid
-        ofs << "mpREAL FMP_" << ft_n << "(const int i, const mpREAL* x, const mpREAL *pl) {" << endl;
-        for(int i=0; i<fxs.size(); i++) {
-            ofs << "if("<<i<<"==i) return ";
-            DFs[i].subs(plRepl).subs(cxRepl).print(cppMP);
-            ofs << ";" << endl;
+        if(use_MP) {
+            ofs << "mpREAL FMP_" << ft_n << "(const int i, const mpREAL* x, const mpREAL *pl) {" << endl;
+            for(int i=0; i<fxs.size(); i++) {
+                ofs << "if("<<i<<"==i) return ";
+                DFs[i].subs(plRepl).subs(cxRepl).print(cppMP);
+                ofs << ";" << endl;
+            }
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
         }
-        ofs << "return 0;" << endl;
-        ofs << "}" << endl;
-        ofs << endl;
         
         // DD's FL_fid
         ofs << "dREAL FL_" << ft_n << "(const int i, const int j, const dREAL* x, const dREAL *pl) {" << endl;
@@ -2130,16 +2339,18 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << endl;
         
         // DD's FMP_fid
-        ofs << "mpREAL FMP_" << ft_n << "(const int i, const int j, const mpREAL* x, const mpREAL *pl) {" << endl;
-        for(int i=0; i<fxs.size(); i++) {
-        for(int j=0; j<fxs.size(); j++) {
-            ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
-            DDFs[i*fxs.size()+j].subs(plRepl).subs(cxRepl).print(cppMP);
-            ofs << ";" << endl;
-        }}
-        ofs << "return 0;" << endl;
-        ofs << "}" << endl;
-        ofs << endl;
+        if(use_MP) {
+            ofs << "mpREAL FMP_" << ft_n << "(const int i, const int j, const mpREAL* x, const mpREAL *pl) {" << endl;
+            for(int i=0; i<fxs.size(); i++) {
+            for(int j=0; j<fxs.size(); j++) {
+                ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
+                DDFs[i*fxs.size()+j].subs(plRepl).subs(cxRepl).print(cppMP);
+                ofs << ";" << endl;
+            }}
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
         
         // X2ZL_fid
         ofs << "void X2ZL_" << ft_n << "(const dREAL* x, dCOMPLEX* z, dCOMPLEX* r, dREAL* dff, const dREAL* pl, const dREAL* las) {" << endl;
@@ -2172,19 +2383,21 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << endl;
         
         // X2ZMP_fid
-        ofs << "void X2ZMP_" << ft_n << "(const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {" << endl;
-        ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
-        ofs << "mpREAL fmax = "; ft_max.print(cppMP); ofs << ";" << endl;
-        ofs << "mpCOMPLEX ilas[nfxs];" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
-        ofs << "dff[nfxs] = FMP_"<<ft_n<<"(x,pl);" << endl;
-        if(use_exp) ofs << "mpREAL expf2n=exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
-        else ofs << "mpREAL expf2n = 1;" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) dff[i] = FMP_"<<ft_n<<"(i,x,pl);" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]*expf2n;" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1-x[i])*r[i];" << endl;
-        ofs << "}" << endl;
-        ofs << endl;
+        if(use_MP) {
+            ofs << "void X2ZMP_" << ft_n << "(const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {" << endl;
+            ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
+            ofs << "mpREAL fmax = "; ft_max.print(cppMP); ofs << ";" << endl;
+            ofs << "mpCOMPLEX ilas[nfxs];" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
+            ofs << "dff[nfxs] = FMP_"<<ft_n<<"(x,pl);" << endl;
+            if(use_exp) ofs << "mpREAL expf2n=exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
+            else ofs << "mpREAL expf2n = 1;" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) dff[i] = FMP_"<<ft_n<<"(i,x,pl);" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]*expf2n;" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1-x[i])*r[i];" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
         
         // MatL_id
         ofs << "void MatL_"<<ft_n<<"(dCOMPLEX* mat, const dREAL* x, const dREAL* dff, const dREAL* pl, const dREAL* las) {" << endl;
@@ -2231,26 +2444,28 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << endl;
         
         // MatMP_fid
-        ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX *mat, const mpREAL* x, const mpREAL* dff, const mpREAL *pl, const mpREAL *las) {" << endl;
-        ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
-        ofs << "mpREAL fmax = "; ft_max.print(cppMP); ofs << ";" << endl;
-        ofs << "mpCOMPLEX ilas[nfxs];" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
-        if(use_exp) ofs << "mpREAL expf2n = exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
-        else ofs << "mpREAL expf2n = 1;" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) {" << endl;
-        ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-        ofs << "int ij = i*nfxs+j;" << endl;
-        ofs << "if(i!=j) mat[ij] = 0;" << endl;
-        ofs << "else mat[ij] = mpREAL(1)-(1-2*x[i])*dff[i]*ilas[i]*expf2n;" << endl;
-        ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*FMP_"<<ft_n<<"(i,j,x,pl)*ilas[i]*expf2n;" << endl;
-        if(use_exp) {
-            ofs << "mpREAL df2n = -2*f2n*dff[j]/fmax*pow(dff[nfxs]/fmax,2*f2n-1);" << endl;
-            ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff[i]*ilas[i]*expf2n*df2n;" << endl;
+        if(use_MP) {
+            ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX *mat, const mpREAL* x, const mpREAL* dff, const mpREAL *pl, const mpREAL *las) {" << endl;
+            ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
+            ofs << "mpREAL fmax = "; ft_max.print(cppMP); ofs << ";" << endl;
+            ofs << "mpCOMPLEX ilas[nfxs];" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
+            if(use_exp) ofs << "mpREAL expf2n = exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
+            else ofs << "mpREAL expf2n = 1;" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) {" << endl;
+            ofs << "for(int j=0; j<nfxs; j++) {" << endl;
+            ofs << "int ij = i*nfxs+j;" << endl;
+            ofs << "if(i!=j) mat[ij] = 0;" << endl;
+            ofs << "else mat[ij] = mpREAL(1)-(1-2*x[i])*dff[i]*ilas[i]*expf2n;" << endl;
+            ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*FMP_"<<ft_n<<"(i,j,x,pl)*ilas[i]*expf2n;" << endl;
+            if(use_exp) {
+                ofs << "mpREAL df2n = -2*f2n*dff[j]/fmax*pow(dff[nfxs]/fmax,2*f2n-1);" << endl;
+                ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff[i]*ilas[i]*expf2n*df2n;" << endl;
+            }
+            ofs << "}}" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
         }
-        ofs << "}}" << endl;
-        ofs << "}" << endl;
-        ofs << endl;
         
         // for Minimization of F(z)-image, x[xn-1] is the lambda
         ofs << "extern \"C\" " << endl;
@@ -2578,6 +2793,7 @@ ofs << R"EOF(
         ofs << endl;
         
         // Multiple Precision
+        if(use_MP) {
 /*----------------------------------------------*/
 ofs << R"EOF(
 #undef Pi
@@ -2649,7 +2865,9 @@ ofs << R"EOF(
         ofs << "return 0;" << endl;
         ofs << "}" << endl;
         ofs << endl;
-        
+        // -----------------------
+        } // end of if(use_MP)
+        // -----------------------
 
         ofs.close();
         
@@ -2684,7 +2902,8 @@ ofs << R"EOF(
         }
         
         CompileMatDet();
-        cmd << "g++ -rdynamic -fPIC -shared -lquadmath -lmpfr -lgmp " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
+        if(use_MP) cmd << "g++ -rdynamic -fPIC -shared -lquadmath -lmpfr -lgmp " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
+        else cmd << "g++ -rdynamic -fPIC -shared -lquadmath " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
         system(cmd.str().c_str());
         cmd.clear();
         cmd.str("");
@@ -2826,7 +3045,7 @@ void SD::Contours(const char *key, const char *pkey) {
 //TODO: add other schema
 //--------------------------------------------------
         for(int i=0; i<nvars; i++) {
-            if(nlas[i] > 5E-3 * max_df) nlas[i] = 1/nlas[i];
+            if(nlas[i] > 5E-4 * max_df) nlas[i] = 1/nlas[i];
             else nlas[i] = 1/max_df;
         }
         
@@ -2929,7 +3148,6 @@ void SD::Contours(const char *key, const char *pkey) {
 // need Parameter
 void SD::Integrates(const char *key, const char *pkey, int kid) {
     if(IsZero) return;
-    mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     
     lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
@@ -3143,11 +3361,13 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             fname << "SDQ_" << rid;
             fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             assert(fpQ!=NULL);
-            fname.clear();
-            fname.str("");
-            fname << "SDMP_" << rid;
-            fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-            assert(fpMP!=NULL);
+            if(use_MP) {
+                fname.clear();
+                fname.str("");
+                fname << "SDMP_" << rid;
+                fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+                assert(fpMP!=NULL);
+            }
         } else {
             ex intx = 0;
             if(is_a<lst>(las)) {
@@ -3189,13 +3409,14 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         
         Integrator->Verbose = Verbose;
         Integrator->ReIm = reim;
+        Integrator->MPDigits = MPDigits;
         if(is_a<lst>(las)) {
             qREAL lamax = CppFormat::ex2q(las.op(las.nops()-1));
             if(lamax > LambdaMax) lamax = LambdaMax;
             
             if(TryPTS<10000) TryPTS = 10000;
-            Integrator->RunMAX = -100;
-            Integrator->RunPTS = TryPTS/100;
+            Integrator->RunMAX = -5;
+            Integrator->RunPTS = TryPTS/5;
             Integrator->EpsAbs = EpsAbs/cmax/2/stot;
             Integrator->EpsRel = 0;
             
@@ -3249,8 +3470,8 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                         auto oDigits = Digits;
                         Digits = 3;
                         cout << "\r                                                    \r";
-                        if(res.has(NaN)) cout << "     λ=" << (double)cla << ": " << NaN << endl;
-                        else cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res)) << endl;
+                        if(res.has(NaN)) cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << NaN << endl;
+                        else cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::VEResult(VESimplify(res)) << endl;
                         Digits = oDigits;
                     }
                     
@@ -3262,13 +3483,15 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                     exset ves;
                     diff.find(VE(wild(0), wild(1)), ves);
                     bool err_break = false;
-                    for(auto ve : ves) {
-                        if(abs(ve.op(0)) > 3*ve.op(1)) {
-                            err_break = true;
-                            break;
+                    if(use_ErrBreak) {
+                        for(auto ve : ves) {
+                            if(abs(ve.op(0)) > 3*ve.op(1)) {
+                                err_break = true;
+                                break;
+                            }
                         }
                     }
-                    if(err_break) break;
+                    if(use_ErrBreak && err_break) break;
                     lastResErr = res;
                     
                     auto res_tmp = res.subs(VE(wild(1), wild(2))==wild(2));
@@ -3289,7 +3512,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                             lstRE.append(co * res);
                             if(Verbose>5) {
                                 cout << WHITE;
-                                cout << "     λ=" << (double)cla << ": " << HepLib::VEResult(VESimplify(res)) << endl;
+                                cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::VEResult(VESimplify(res)) << endl;
                                 cout << RESET;
                             }
                             break;
@@ -3469,8 +3692,9 @@ void SD::Evaluate(FeynmanParameter fp, const char* key) {
     Initialize(fp);
     if(FunExp.size()<1) return;
     Scalelesses();
-        
+    KillSquares();
     RemoveDeltas();
+    KillSquares();
     SDPrepares();
     EpsEpExpands();
     CIPrepares(key);
@@ -3490,15 +3714,14 @@ void SD::Evaluate(XIntegrand xint, const char *key) {
     
     cout << endl << "Starting @ " << now() << endl;
     if(SecDec==NULL) SecDec = new SecDecG();
-    if(Integrator==NULL) Integrator = new HCubature();
-    
-    //if(Minimizer==NULL) Minimizer = new HookeJeeves();
+    if(Integrator==NULL) Integrator = new HCubature();    
     if(Minimizer==NULL) Minimizer = new MinUit();
     
     Initialize(xint);
     if(FunExp.size()<1) return;
-    
+    KillSquares();
     RemoveDeltas();
+    KillSquares();
     SDPrepares();
     EpsEpExpands();
     CIPrepares(key);

@@ -1,4 +1,5 @@
 #include "SD.h"
+#include "mpreal.h"
 
 namespace HepLib {
 
@@ -14,8 +15,9 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
     if(self->UseCpp) {
         #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
         for(int i=0; i<npts; i++) {
+            mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
             int iDQMP = self->inDQMP(xdim, x+i*xdim);
-            if(self->DQMP>2 || iDQMP>2) {
+            if( (self->IntegrandMP!=NULL) && (self->DQMP>2 || iDQMP>2) ) {
                 self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             } else if(self->DQMP>1 || iDQMP>1) {
                 self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
@@ -27,7 +29,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                         break;
                     }
                 }
-                if(!ok) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                if(!ok && (self->IntegrandMP!=NULL)) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             } else {
                 self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
                 bool ok = true;
@@ -48,7 +50,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                         break;
                     }
                 }
-                if(!ok) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                if(!ok && (self->IntegrandMP!=NULL)) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             }
             
             // Final Check NaN/Inf
@@ -60,9 +62,9 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                     break;
                 }
             }
-            if(!ok) {
+            if(!ok && (self->IntegrandMP!=NULL)) {
                 qREAL xx[xdim];
-                for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.Q-30 ? 1.Q-30  : x[i*xdim+ii] * 0.995Q;
+                for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.Q-30 ? 1.Q-30  : x[i*xdim+ii] * 0.95Q;
                 self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
             }
         }
@@ -95,31 +97,8 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
 
 void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* nrun, void *fdata) {
     auto self = (HCubature*)fdata;
-    self->NRUN = *nrun;
-    
-    if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1]))) {
-         *nrun = self->MaxPTS + 1000;
-         if(self->LastState>0) self->LastState = -1;
-         if(self->Verbose>10 && self->RunMAX>0) cout << RED << "     Exit: NaN." << RESET << endl;
-         return;
-    }
-    
-    if(self->RunMAX>0 && (epsabs[0] > 1E30*self->EpsAbs || epsabs[1] > 1E30*self->EpsAbs)) {
-         *nrun = self->MaxPTS + 1000;
-         if(self->LastState>0) self->LastState = -1;
-         if(self->Verbose>10 && self->RunMAX>0) cout << RED << "     Exit: EpsAbs." << RESET << endl;
-         return;
-    }
-    
-    if((self->LastState == 0) || (epsabs[0]<=2*self->LastAbsErr[0] && epsabs[1]<=2*self->LastAbsErr[1])) {
-        self->LastResult[0] = result[0];
-        self->LastResult[1] = result[1];
-        self->LastAbsErr[0] = epsabs[0];
-        self->LastAbsErr[1] = epsabs[1];
-        self->LastState = 1;
-    }
-    
-    if(self->Verbose>10 && self->RunMAX>0 && (*nrun-self->NRUN) >= self->RunPTS ) {
+
+    if(self->Verbose>10 && self->RunMAX>0 && (*nrun-self->NEval) >= self->RunPTS ) {
         char r0[64], r1[64], e0[32], e1[32];
         quadmath_snprintf(r0, sizeof r0, "%.10Qg", result[0]);
         quadmath_snprintf(r1, sizeof r1, "%.10Qg", result[1]);
@@ -129,10 +108,34 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         if(self->ReIm==3 || self->ReIm==1) cout << "["<<r0 << ", " << e0 << "]";
         if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";
         cout << endl;
-        self->NRUN = *nrun;
+    }
+    self->NEval = *nrun;
+    
+    if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1])) || (isinfq(result[0]) || isinfq(result[1]) || isinfq(epsabs[0]) || isinfq(epsabs[1]))) {
+         *nrun = self->MaxPTS + 1000;
+         if(self->LastState>0) self->LastState = -1;
+         if(self->Verbose>10 && self->RunMAX>0) cout << RED << "     Exit: NaN, N = " << self->NEval << RESET << endl;
+         return;
     }
     
-    bool rExit = (epsabs[0] < self->EpsAbs) || (epsabs[0] < fabsq(result[0])*self->EpsRel);
+    if(self->RunMAX>0 && (epsabs[0] > 1E30*self->EpsAbs || epsabs[1] > 1E30*self->EpsAbs)) {
+         *nrun = self->MaxPTS + 1000;
+         if(self->LastState>0) self->LastState = -1;
+         if(self->Verbose>10 && self->RunMAX>0) cout << RED << "     Exit: EpsAbs, N = " << self->NEval << RESET << endl;
+         return;
+    }
+    
+    if((self->LastState == 0) || (epsabs[0]<=2*self->LastAbsErr[0] && epsabs[1]<=2*self->LastAbsErr[1])) {
+        self->LastResult[0] = result[0];
+        self->LastResult[1] = result[1];
+        self->LastAbsErr[0] = epsabs[0];
+        self->LastAbsErr[1] = epsabs[1];
+        self->LastState = 1;
+        self->lastNRUN = *nrun;
+        self->lastnNAN = self->nNAN;
+    }
+    
+    bool rExit = (epsabs[0] < self->EpsAbs+1E-50Q) || (epsabs[0] < fabsq(result[0])*self->EpsRel+1E-50Q);
     bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabsq(result[1])*self->EpsRel+1E-50Q);
     if(rExit && iExit) {
         *nrun = self->MaxPTS + 1000;
@@ -152,12 +155,13 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
 }
 
 ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, SD_Type fpMP, const qREAL* pl, const qREAL* la) {
+    assert(mpfr_buildopt_tls_p()>0);
     Integrand = fp;
     IntegrandQ = fpQ;
     IntegrandMP = fpMP;
     Parameter = pl;
     Lambda = la;
-    
+        
     unsigned int ydim = 2;
     qREAL result[ydim], estabs[ydim];
 
@@ -167,7 +171,7 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, SD_Type fpMP
         xmax[i] = 1.0Q;
     }
     LastState = 0;
-    NRUN = 0;
+    NEval = 0;
     nNAN = 0;
     
     MaxPTS = RunPTS * RunMAX;
@@ -186,6 +190,8 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, SD_Type fpMP
         result[1] = LastResult[1];
         estabs[0] = LastAbsErr[0];
         estabs[1] = LastAbsErr[1];
+        NEval = lastNRUN;
+        nNAN = lastnNAN;
     }
     
     ex FResult = 0;
@@ -199,9 +205,9 @@ ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, SD_Type fpMP
         }
     }
     
-    // Check nNAN / NRUN
-    if(nNAN * 1000 > NRUN) {
-        cout << RED << "NAN=" << nNAN << " v.s. RUN=" << NRUN << RESET << endl;
+    // Check nNAN / NEval
+    if(nNAN * 1000 > NEval) {
+        cout << RED << "NAN=" << nNAN << " v.s. RUN=" << NEval << RESET << endl;
     }
     
     return FResult;

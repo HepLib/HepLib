@@ -1,6 +1,6 @@
 #include "SD.h"
 
-// Computation for Fragmentation Function of gluon into Quarkonium
+// Computation for Fragmentation Function of Quark into Quarkonium
 
 using namespace HepLib;
 bool use_eps = false;
@@ -53,7 +53,7 @@ void Prepare(int idx) {
     ex m2=m*m;
     
     ex k1p = z(1)*kp;
-    ex k1m = (pow(K1,2))/(2*k1p);
+    ex k1m = (pow(K1,2)+m2)/(2*k1p); // k1^2 = m^2
     ex k2p = z(2)*kp;
     ex k2m = (pow(K2,2))/(2*k2p);
     ex k3p = z(3)*kp;
@@ -94,8 +94,8 @@ void Prepare(int idx) {
     fp.Prefactor = pow(2*Pi, (2*ep-4)*fp.LoopMomenta.nops()) * cms.op(2);
     fp.Propagators = ex_to<lst>(cms.op(0));
     fp.Exponents = ex_to<lst>(cms.op(1));
-    
-    ex NCS = -pow(zz,(1-2*ep))/(16*(2-2*ep)*kp*Pi);
+        
+    ex NCS = pow(zz,(1-2*ep))/(8*3*kp*Pi);
     ex M = 2*m;
     ex nts = fp.tLoopMomenta.nops();
     ex psFactor;
@@ -106,7 +106,7 @@ void Prepare(int idx) {
     fp.lReplacements[p*p] = m2;
     fp.lReplacements[n*n] = 0;
     fp.lReplacements[p*n] = pp;
-    fp.lReplacements[k1*k1] = 0;
+    fp.lReplacements[k1*k1] = m2;
     fp.lReplacements[k2*k2] = 0;
     fp.lReplacements[k3*k3] = 0;
     fp.lReplacements[n*k1] = k1p;
@@ -305,7 +305,7 @@ int main(int argc, char** argv) {
             case 't': arg_t = optarg; break;
             case 'l': arg_l = optarg; break;
             default:
-                cout << "supported options: -a A -n N -i I -o O -v V -q -e E -s S -f F -l L" << endl;
+                cout << "supported options: -a A -n N -i I -o O -v V -e E -s S -f F -l L" << endl;
                 cout << "A: can be p(prepare), c(contour), i(integrate), r(result), ar(analyse result)." << endl;
                 cout << "N: only apply A on prefix N." << endl;
                 cout << "I: only apply A on part I in prefix N." << endl;
