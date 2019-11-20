@@ -1015,7 +1015,7 @@ void SD::XExpands() {
     
 }
 
-bool SD::KillSquares() {
+bool SD::KillPowers() {
     vector<pair<lst, lst>> funexp;
     for(auto fe : FunExp) {
         funexp.push_back(fe);
@@ -1198,8 +1198,8 @@ bool SD::KillSquares() {
                     FunExp.push_back(make_pair(f3,e3));
                 }
             } else {
-                cout << RED << "Still under working with eqn = " << RESET << eqn << endl;
-                assert(false);
+                cout << RED << "Warning: Still under working with eqn = " << RESET << eqn << endl;
+                FunExp.push_back(fe);
             }
         } else {
             FunExp.push_back(fe);
@@ -3692,9 +3692,9 @@ void SD::Evaluate(FeynmanParameter fp, const char* key) {
     Initialize(fp);
     if(FunExp.size()<1) return;
     Scalelesses();
-    KillSquares();
+    KillPowers();
     RemoveDeltas();
-    KillSquares();
+    KillPowers();
     SDPrepares();
     EpsEpExpands();
     CIPrepares(key);
@@ -3719,9 +3719,9 @@ void SD::Evaluate(XIntegrand xint, const char *key) {
     
     Initialize(xint);
     if(FunExp.size()<1) return;
-    KillSquares();
+    KillPowers();
     RemoveDeltas();
-    KillSquares();
+    KillPowers();
     SDPrepares();
     EpsEpExpands();
     CIPrepares(key);

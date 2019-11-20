@@ -344,7 +344,7 @@ public:
     void XReOrders();
     void XTogethers();
     void XExpands();
-    bool KillSquares();
+    bool KillPowers();
     bool IsBad(ex f, vector<exmap> vmap);
     vector<pair<lst, lst>> AutoEnd(pair<lst, lst> po_ex);
     void CIPrepares(const char* key = NULL);

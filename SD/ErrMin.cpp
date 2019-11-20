@@ -56,7 +56,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
             if(err_max<=err_min) {
                 cout << "\r                             \r";
                 cout << "     ------------------------------" << endl;
-                Digits = digits; cout << "2" << endl;
+                Digits = digits;
                 miner->ForceStop();
                 return 0.;
             }
@@ -72,7 +72,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     if(RunRND>=MaxRND) {
         cout << "\r                             \r";
         cout << "     ------------------------------" << endl;
-        Digits = digits; cout << "3" << endl;
+        Digits = digits;
         miner->ForceStop();
         return 0.;
     }
@@ -87,7 +87,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
         cout << "\r                             \r";
         if(Verbose>3) cout << "     Exit: " << fn.str() << endl;
         cout << "     ------------------------------" << endl;
-        Digits = digits; cout << "1" << endl;
+        Digits = digits;
         miner->ForceStop();
         return 0.;
     }
