@@ -1208,6 +1208,18 @@ while(true) {
             auto xij = get_x_from(eqn);
             ex xi = xij[0];
             ex xj = xij[1];
+            
+            if(false)
+            if((eqn-(xi+xj-1)).is_zero() || (eqn+(xi+xj-1)).is_zero()) {
+                symbol xx;
+                auto f1 = fe.first;
+                auto e1 = fe.second;
+                for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xi==1-xx).subs(xx==xi);
+                FunExp.push_back(make_pair(f1,e1));
+                ret = true;
+                continue; // for(auto fe : funexp)
+            }
+            
             ex ci = eqn.coeff(xi);
             ex cj = eqn.coeff(xj);
             
