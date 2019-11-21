@@ -100,10 +100,10 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
 
     if(self->Verbose>10 && self->RunMAX>0 && (*nrun-self->NEval) >= self->RunPTS ) {
         char r0[64], r1[64], e0[32], e1[32];
-        quadmath_snprintf(r0, sizeof r0, "%.10Qg", result[0]);
-        quadmath_snprintf(r1, sizeof r1, "%.10Qg", result[1]);
-        quadmath_snprintf(e0, sizeof e0, "%.5Qg", epsabs[0]);
-        quadmath_snprintf(e1, sizeof e1, "%.5Qg", epsabs[1]);
+        quadmath_snprintf(r0, sizeof r0, "%.10QG", result[0]);
+        quadmath_snprintf(r1, sizeof r1, "%.10QG", result[1]);
+        quadmath_snprintf(e0, sizeof e0, "%.5QG", epsabs[0]);
+        quadmath_snprintf(e1, sizeof e1, "%.5QG", epsabs[1]);
         cout << "     N: " << (*nrun) << ", ";
         if(self->ReIm==3 || self->ReIm==1) cout << "["<<r0 << ", " << e0 << "]";
         if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";

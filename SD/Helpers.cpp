@@ -175,8 +175,8 @@ static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context 
     if(abs(ex2) < numeric("1E-30")) ex2 = 0;
     if(ex1==0 || ex2==0) {
         char bf1[128], bf2[128];
-        quadmath_snprintf(bf1, sizeof bf1, "%.10Qg", CppFormat::ex2q(ex1_in));
-        quadmath_snprintf(bf2, sizeof bf2, "%.10Qg", CppFormat::ex2q(ex2_in));
+        quadmath_snprintf(bf1, sizeof bf1, "%.10QG", CppFormat::ex2q(ex1_in));
+        quadmath_snprintf(bf2, sizeof bf2, "%.10QG", CppFormat::ex2q(ex2_in));
         c.s << "(" << bf1 << " +- " << bf2 << ")";
         return;
     }
@@ -200,8 +200,8 @@ static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context 
         Digits = oDigits;
         try {
             char bf1[128], bf2[128];
-            quadmath_snprintf(bf1, sizeof bf1, "%.10Qg", CppFormat::ex2q(ex1_in));
-            quadmath_snprintf(bf2, sizeof bf2, "%.10Qg", CppFormat::ex2q(ex2_in));
+            quadmath_snprintf(bf1, sizeof bf1, "%.10QG", CppFormat::ex2q(ex1_in));
+            quadmath_snprintf(bf2, sizeof bf2, "%.10QG", CppFormat::ex2q(ex2_in));
             c.s << "(" << bf1 << " +- " << bf2 << ")";
         } catch(...) {
             c.s << RED << "[-NaN-]" << RESET;

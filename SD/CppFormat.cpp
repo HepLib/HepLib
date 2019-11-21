@@ -7,7 +7,7 @@ GINAC_IMPLEMENT_PRINT_CONTEXT(CppFormat, print_csrc_cl_N)
 
 ex CppFormat::q2ex(qREAL num) {
     char buffer[128];
-    quadmath_snprintf(buffer, sizeof buffer, "%.36Qg", num);
+    quadmath_snprintf(buffer, sizeof buffer, "%.36QG", num);
     numeric ret(buffer);
     return ret;
 }
@@ -19,7 +19,7 @@ qREAL CppFormat::ex2q(ex num) {
 
 void CppFormat::QPrint(qREAL num) {
     char buffer[128];
-    quadmath_snprintf(buffer, sizeof buffer, "%.36Qg", num);
+    quadmath_snprintf(buffer, sizeof buffer, "%.36QG", num);
     cout << buffer << endl;
 }
 

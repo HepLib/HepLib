@@ -99,7 +99,7 @@ public:
     qREAL MPXLimit = 1.Q-8;
     bool UseCpp = true;
     long long NEval = 0;
-    int MPDigits;
+    int MPDigits = 50;
 };
 
 class HCubature : public IntegratorBase {
@@ -344,7 +344,7 @@ public:
     void XReOrders();
     void XTogethers();
     void XExpands();
-    bool KillPowers();
+    void KillPowers(bool repeat=true);
     bool IsBad(ex f, vector<exmap> vmap);
     vector<pair<lst, lst>> AutoEnd(pair<lst, lst> po_ex);
     void CIPrepares(const char* key = NULL);
