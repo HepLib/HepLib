@@ -1487,7 +1487,7 @@ void SD::SDPrepares() {
     for(auto &kv : FunExp) {
         // check variables besides x or PL
         for(int i=1; i<kv.first.nops(); i++) {
-            auto tmp = kv.first.op(i).subs(lst{x(wild())==1, PL(wild())==1, ep==1/ex(1121), eps==1/ex(1372)});
+            auto tmp = kv.first.op(i).subs(lst{x(wild())==1, PL(wild())==1, ep==1/ex(1121), eps==1/ex(1372), vs==1/ex(123456)});
             if(!is_a<numeric>(tmp.evalf())) {
                 cout << RED << "Extra Variable(^[ep,eps,PL,x]) Found: " << RESET << kv.first.op(i) << endl;
                 assert(false);
@@ -1535,7 +1535,6 @@ void SD::SDPrepares() {
         }
         if(Verbose > 0) cout << FunExp.size() << endl;
     }
-    KillPowers(false);
         
     auto kvs = FunExp;
     FunExp.clear();
@@ -2099,8 +2098,8 @@ qCOMPLEX MatDetQ(qCOMPLEX mat[], int n) {
 
 #undef Pi
 #undef Euler
-#define Pi mpreal("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
-#define Euler mpreal("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
+#define Pi mpREAL("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
+#define Euler mpREAL("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
 
 mpCOMPLEX MatDetMP(mpCOMPLEX mat[], int n) {
     bool is_zero = false;
@@ -2933,8 +2932,8 @@ ofs << R"EOF(
 #undef Pi
 #undef Euler
 #undef iEpsilon
-#define Pi mpreal("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
-#define Euler mpreal("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
+#define Pi mpREAL("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
+#define Euler mpREAL("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
 #define iEpsilon complex<mpREAL>(mpREAL(0), mpREAL(1.E-50))
 )EOF" << endl;
 /*----------------------------------------------*/

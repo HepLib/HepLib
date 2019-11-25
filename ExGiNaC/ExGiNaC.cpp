@@ -404,6 +404,6 @@ REGISTER_FUNCTION(CCF, derivative_func(CCF_Diff))
 REGISTER_FUNCTION(CVF, dummy())
 
 REGISTER_FUNCTION(FF, dummy())
-REGISTER_FUNCTION(CV, dummy())
+REGISTER_FUNCTION(CV, do_not_evalf_params())
 }
 

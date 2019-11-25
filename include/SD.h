@@ -308,7 +308,7 @@ public:
     bool use_ff = false; // use FindMinimum in F-term
     bool use_exp = false; // use exp in contour deformation
     bool use_MP = true;
-    bool use_ErrBreak = false; // use Error Break in Try
+    bool use_ErrBreak = true; // use Error Break in Try
     int MPDigits = 50; // digits in mpREAL for MP
     lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
     

@@ -77,6 +77,7 @@ void Prepare(int idx) {
     table["K3"] = K3;
     table["q1"] = q1;
     table["q2"] = q2;
+    table["q3"] = q3;
     table["m"] = m;
     table["zz"] = zz;
     
@@ -463,18 +464,19 @@ int main(int argc, char** argv) {
         }
     }
     
-    if(arg_a != NULL && !strcmp(arg_a, "ar")) {
+    if(arg_a != NULL && (!strcmp(arg_a, "ar") || !strcmp(arg_a, "ae"))) {
         if(in<1) {
             cout << "n should be setted with -a ar option!" << endl;
             return 1;
         }
         
+        bool ae = !strcmp(arg_a, "ae");
         stringstream ss;
         ss << SD_path << "/" << in << ".res.gar";
         archive ar;
-        ifstream in(ss.str().c_str());
-        in >> ar;
-        in.close();
+        ifstream ins(ss.str().c_str());
+        ins >> ar;
+        ins.close();
         auto c = ar.unarchive_ex(para_sym, "c");
         if(c!=19790923) {
             cout << "gar file: " << ss.str() << endl;
@@ -492,9 +494,14 @@ int main(int argc, char** argv) {
                 max_re = abs(tmp);
                 max_index = i;
             }
+            if(ae && abs(tmp)>ee) {
+                cout << "./gFFz -n " << arg_n << " -a i -i " << (i+1) << endl;
+                cout << "# " << VESimplify(relst.op(i).expand().coeff(ep, epN)) << endl;
+                cout << endl;
+            }
         }
-        cout << "Max Index: " << max_index+1 << " / " << relst.nops() << endl;
-        cout << VESimplify(relst.op(max_index).expand().coeff(ep, epN)) << endl;
+        cout << "# Max Index: " << max_index+1 << " / " << relst.nops() << endl;
+        cout << "# " << VESimplify(relst.op(max_index).expand().coeff(ep, epN)) << endl;
     }
 
     return 0;
