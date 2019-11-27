@@ -24,7 +24,7 @@ ex cseParser::Parse(ex expr, bool reset) {
     } else if(expr.match(log(wild()))) {
         ret = log(Parse(expr.op(0),false));
     }
-    ostringstream ss;
+    stringstream ss;
     ss << oc << "[" << no << "]";
     symbol so(ss.str().c_str());
     o_ex_vec.push_back(make_pair(no, ret));

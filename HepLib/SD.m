@@ -1,12 +1,18 @@
 (* ::Package:: *)
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*M2C*)
+
+
+Unprotect[pow];
+Clear[pow];
+pow::usage="pow in GiNaC";
+Protect[pow];
 
 
 Clear[M2C];
 M2C[exp_]:=Module[{ret},
-ret=exp/.Rule->List;
+ret=exp/.Rule->List/.Power->pow;
 ret=ret/.{"EulerGamma"->"Euler","Zeta"->"zeta","Gamma"->"tgamma","Power"->"pow"};
 ret=ToString[InputForm[ret],PageWidth->Infinity];
 ret=StringReplace[ret,{"["->"(", "]"->")"}];

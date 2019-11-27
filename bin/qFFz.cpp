@@ -3,7 +3,7 @@
 // Computation for Fragmentation Function of Quark into Quarkonium
 
 using namespace HepLib;
-bool use_eps = false;
+bool use_eps = true;
 
 auto ep = SD::ep;
 auto eps = SD::eps;
@@ -253,9 +253,9 @@ ex Integrate(int idx, int ii = -1) {
     ErrMin::MaxRND = 20;
     ErrMin::hjRHO = 0.5;
     
-    work.EpsAbs = 1E-5;
+    work.EpsAbs = 5E-6;
     work.RunPTS = 1000000;
-    work.RunMAX = 20;
+    work.RunMAX = 25;
     work.LambdaSplit = 5;
     work.TryPTS = 1000000;
     work.CTryLeft = 3;

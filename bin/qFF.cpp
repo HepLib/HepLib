@@ -3,7 +3,7 @@
 // Computation for Fragmentation Function of Quark into Quarkonium
 
 using namespace HepLib;
-bool use_eps = false;
+bool use_eps = true;
 
 auto ep = SD::ep;
 auto eps = SD::eps;
@@ -234,12 +234,11 @@ void Contour(int idx, numeric zz) {
     ostringstream ikey;
     ikey << SD_path << "/" << idx;
     
-    stringstream skey;
+    ostringstream skey;
     skey << setprecision(2) << zz.to_double();
-    const char *pkey = skey.str().c_str();
     
     if(work.Minimizer==NULL) work.Minimizer = new MinUit();
-    work.Contours(ikey.str().c_str(), pkey);
+    work.Contours(ikey.str().c_str(), skey.str().c_str());
     
     delete work.Minimizer;
 }
@@ -261,7 +260,7 @@ ex Integrate(int idx, numeric zz, int ii = -1) {
     
     work.EpsAbs = 5E-6;
     work.RunPTS = 1000000;
-    work.RunMAX = 20;
+    work.RunMAX = 25;
     work.LambdaSplit = 5;
     work.TryPTS = 1000000;
     work.CTryLeft = 3;
@@ -273,16 +272,15 @@ ex Integrate(int idx, numeric zz, int ii = -1) {
     ostringstream ikey;
     ikey << SD_path << "/" << idx;
     
-    stringstream skey;
+    ostringstream skey;
     skey << setprecision(2) << zz.to_double();
-    const char *pkey = skey.str().c_str();
     
     if(work.Integrator==NULL) {
         auto intor = new HCubature();
         intor->use_last = true;
         work.Integrator = intor;
     }
-    work.Integrates(ikey.str().c_str(), pkey, ii);
+    work.Integrates(ikey.str().c_str(), skey.str().c_str(), ii);
     
     delete work.Integrator;
     return work.ResultError;
@@ -380,9 +378,8 @@ int main(int argc, char** argv) {
     
     numeric zz(arg_z);
     numeric ee(arg_e);
-    stringstream skey;
+    ostringstream skey;
     skey << setprecision(2) << zz.to_double();
-    const char *pkey = skey.str().c_str();
 
     if(arg_a == NULL || !strcmp(arg_a, "c") || !strcmp(arg_a, "ci")) {
         for(int i=1; i<=nmi; i++) {
@@ -444,7 +441,7 @@ int main(int argc, char** argv) {
             
             ss.clear();
             ss.str("");
-            ss << SD_path << "/" << i << "-" << pkey << ".res.gar";
+            ss << SD_path << "/" << i << "-" << skey.str().c_str() << ".res.gar";
             if(!file_exists(ss.str().c_str())) {
                 cout << RED << "File NOT Found: " << ss.str() << RESET << endl;
                 assert(false);
@@ -491,7 +488,7 @@ int main(int argc, char** argv) {
         
         bool ae = !strcmp(arg_a, "ae");
         stringstream ss;
-        ss << SD_path << "/" << in << "-" << pkey << ".res.gar";
+        ss << SD_path << "/" << in << "-" << skey.str().c_str() << ".res.gar";
         archive ar;
         ifstream ins(ss.str().c_str());
         ins >> ar;

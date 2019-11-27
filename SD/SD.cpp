@@ -1,5 +1,6 @@
 #include "SD.h"
 #include <math.h>
+#include <cmath>
 
 namespace HepLib {
 
@@ -1486,8 +1487,9 @@ void SD::SDPrepares() {
     //check vs
     for(auto &kv : FunExp) {
         // check variables besides x or PL
+        // CV should only appear at kv.first.op(0), i.e., the prefactor
         for(int i=1; i<kv.first.nops(); i++) {
-            auto tmp = kv.first.op(i).subs(lst{x(wild())==1, PL(wild())==1, ep==1/ex(1121), eps==1/ex(1372), vs==1/ex(123456)});
+            auto tmp = kv.first.op(i).subs(lst{x(wild())==1,PL(wild())==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
             if(!is_a<numeric>(tmp.evalf())) {
                 cout << RED << "Extra Variable(^[ep,eps,PL,x]) Found: " << RESET << kv.first.op(i) << endl;
                 assert(false);

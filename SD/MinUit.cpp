@@ -1,4 +1,5 @@
 #include "SD.h"
+#include <cmath>
 
 #include "Minuit2/FCNBase.h"
 #include "Minuit2/MnMigrad.h"
