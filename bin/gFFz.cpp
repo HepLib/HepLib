@@ -123,7 +123,6 @@ void Prepare(int idx) {
     fp.tReplacements[p*p] = m2;
     fp.tReplacements[n*n] = 0;
     fp.tReplacements[p*n] = pp;
-    fp.nReplacements[CV(wild(1),wild(2))] = wild(2);
     fp.nReplacements[z(wild())] = ex(1)/(1+nts);
     fp.nReplacements[ep] = ex(1)/11;
     fp.nReplacements[eps] = ex(1)/111;
@@ -246,7 +245,6 @@ ex Integrate(int idx, int ii = -1) {
     work.ParallelSymbols = para_sym;
     work.Verbose = verb;
     work.epN = epN;
-    work.nReplacements[CV(wild(1),wild(2))] = wild(2);
     
     work.use_ErrMin = false;
     ErrMin::err_min = 1E-3;
