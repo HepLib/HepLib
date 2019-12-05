@@ -2387,7 +2387,7 @@ qCOMPLEX log(qCOMPLEX x);
         
         // FL_fid
         ofs << "dREAL FL_" << ft_n << "(const dREAL* x, const dREAL *pl) {" << endl;
-        ofs << "dREAL yy = " << endl;
+        ofs << "dREAL yy = ";
         ft.subs(plRepl).subs(cxRepl).print(cppL);
         ofs << ";" << endl;
         ofs << "return yy;" << endl; // find max image part, check with 0
@@ -2396,7 +2396,7 @@ qCOMPLEX log(qCOMPLEX x);
         
         // FQ_fid
         ofs << "qREAL FQ_" << ft_n << "(const qREAL* x, const qREAL *pl) {" << endl;
-        ofs << "qREAL yy = " << endl;
+        ofs << "qREAL yy = ";
         ft.subs(plRepl).subs(cxRepl).print(cppQ);
         ofs << ";" << endl;
         ofs << "return yy;" << endl; // find max image part, check with 0
@@ -2406,7 +2406,7 @@ qCOMPLEX log(qCOMPLEX x);
         // FMP_fid
         if(use_MP) {
             ofs << "mpREAL FMP_" << ft_n << "(const mpREAL* x, const mpREAL *pl) {" << endl;
-            ofs << "mpREAL yy = " << endl;
+            ofs << "mpREAL yy = ";
             ft.subs(plRepl).subs(cxRepl).print(cppMP);
             ofs << ";" << endl;
             ofs << "return yy;" << endl; // find max image part, check with 0
@@ -2764,6 +2764,7 @@ qCOMPLEX log(qCOMPLEX x);
 /*----------------------------------------------*/
 
         if(hasF) {
+            ofs << "qREAL FQ_"<<ft_n<<"(const qREAL*, const qREAL*);" << endl; // for FT only
             ofs << "dREAL FL_"<<ft_n<<"(const int, const dREAL*, const dREAL*);" << endl;
             ofs << "qREAL FQ_"<<ft_n<<"(const int, const qREAL*, const qREAL*);" << endl;
             ofs << "qREAL FMP_"<<ft_n<<"(const int, const mpREAL*, const mpREAL*);" << endl;
@@ -3003,6 +3004,16 @@ ofs << R"EOF(
         // -----------------------
         } // end of if(use_MP)
         // -----------------------
+        
+        // Export the F-term
+        if(hasF) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "qREAL FT_"<<rid<<"(const qREAL x[], const qREAL pl[]) {" << endl;
+            ofs << "qREAL yy = FQ_" << ft_n << "(x, pl);" << endl;
+            ofs << "return yy;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
 
         ofs.close();
         
@@ -3485,6 +3496,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         }
         
         IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr, fpMP = nullptr;
+        IntegratorBase::FT_Type ftp = nullptr;
         if(use_cpp) {
             int rid = ex_to<numeric>(item.op(0)).to_int();
             ostringstream fname;
@@ -3502,6 +3514,13 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 fname << "SDMP_" << rid;
                 fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
                 assert(fpMP!=NULL);
+            }
+            if(use_FT && is_a<lst>(las)) {
+                fname.clear();
+                fname.str("");
+                fname << "FT_" << rid;
+                ftp = (IntegratorBase::FT_Type)dlsym(module, fname.str().c_str());
+                assert(ftp!=NULL);
             }
         } else {
             ex intx = 0;
@@ -3545,6 +3564,14 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         Integrator->Verbose = Verbose;
         Integrator->ReIm = reim;
         Integrator->MPDigits = MPDigits;
+        Integrator->Integrand = fp;
+        Integrator->IntegrandQ = fpQ;
+        Integrator->IntegrandMP = fpMP;
+        Integrator->FT = ftp;
+        Integrator->Parameter = paras;
+        Integrator->Lambda = lambda;
+        Integrator->XDim = xsize;
+        
         if(is_a<lst>(las)) {
             qREAL lamax = CppFormat::ex2q(las.op(las.nops()-1));
             if(lamax > LambdaMax) lamax = LambdaMax;
@@ -3575,7 +3602,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                     lambda[i] = la_tmp;
                 }
                 las_ifs.close();
-                auto res = Integrator->Integrate(xsize, fp, fpQ, fpMP, paras, lambda);
+                auto res = Integrator->Integrate();
                 auto res_tmp = res.subs(VE(wild(1), wild(2))==wild(2));
                 auto err = real_part(res_tmp);
                 if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
@@ -3600,7 +3627,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                     }
  
                     if(!use_cpp) GWrapper::Lambda = CppFormat::q2ex(cla);
-                    auto res = Integrator->Integrate(xsize, fp, fpQ, fpMP, paras, lambda);
+                    auto res = Integrator->Integrate();
                     if(Verbose>10) {
                         auto oDigits = Digits;
                         Digits = 3;
@@ -3702,10 +3729,6 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             if( use_ErrMin && (cerr > CppFormat::q2ex(1E5 * EpsAbs/cmax/stot)) ) {
                 auto miner = new HookeJeeves();
                 ErrMin::miner = miner;
-                ErrMin::xsize = xsize;
-                ErrMin::fp = fp;
-                ErrMin::fpQ = fpQ;
-                ErrMin::paras = paras;
                 ErrMin::Integrator = Integrator;
                 ErrMin::Verbose = Verbose;
                 dREAL oo[las.nops()-1], ip[las.nops()-1];
@@ -3721,6 +3744,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 for(int i=0; i<las.nops()-1; i++) {
                     lambda[i] = ErrMin::lambda[i];
                 }
+                Integrator->Lambda = lambda; // Integrator->Lambda changed in ErrMin
             }
             // ---------------------------------------
             
@@ -3742,7 +3766,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         Integrator->RunPTS = RunPTS;
         Integrator->EpsAbs = EpsAbs/cmax/stot;
         Integrator->EpsRel = 0;
-        auto res = Integrator->Integrate(xsize, fp, fpQ, fpMP, paras, lambda);
+        auto res = Integrator->Integrate();
         if(Verbose>5) { 
             cout << WHITE;
             cout << "     Res = "<< HepLib::VEResult(VESimplify(res)) << endl;

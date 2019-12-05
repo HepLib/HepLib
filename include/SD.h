@@ -81,8 +81,17 @@ typedef __complex128 qCOMPLEX;
 class IntegratorBase {
 public:
     typedef int (*SD_Type) (const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
-    virtual ex Integrate(unsigned int xn, SD_Type fp, SD_Type fpQ, SD_Type fpMP, const qREAL pl[], const qREAL las[]) =0;
-    virtual int inDQMP(unsigned xdim, qREAL const *x);
+    typedef qREAL (*FT_Type) (const qREAL xx[], const qREAL pl[]);
+    virtual ex Integrate() =0;
+    virtual int inDQMP(qREAL const *x);
+    
+    FT_Type FT = NULL;
+    SD_Type Integrand = NULL;
+    SD_Type IntegrandQ = NULL;
+    SD_Type IntegrandMP = NULL;
+    const qREAL* Lambda;
+    const qREAL* Parameter;
+    int XDim;
     
     long long RunMAX = 100;
     long long RunPTS = 10000;
@@ -90,13 +99,17 @@ public:
     qREAL EpsRel = 0;
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     int Verbose = 0;
-    int DQMP = 0;
     int NANMax = 250;
     int nNAN = 0;
+    
+    int DQMP = 0;
     int QXDim = 2;
     int MPXDim = 1;
     qREAL QXLimit = 1.Q-4;
     qREAL MPXLimit = 1.Q-8;
+    qREAL QFLimit = 1.Q-3;
+    qREAL MPFLimit = 1.Q-5;
+    
     bool UseCpp = true;
     long long NEval = 0;
     int MPDigits = 50;
@@ -108,18 +121,13 @@ public:
     
     typedef void (*PrintHookerType) (qREAL*, qREAL*, long long int*, void *);
     
-    virtual ex Integrate(unsigned int, SD_Type, SD_Type, SD_Type, const qREAL[], const qREAL[]) override;
+    virtual ex Integrate() override;
     static void DefaultPrintHooker(qREAL*, qREAL*, long long int*, void*);
     PrintHookerType PrintHooker = DefaultPrintHooker;
     long long MaxPTS;
     bool use_last = false;
     
 private:
-    SD_Type Integrand;
-    SD_Type IntegrandQ;
-    SD_Type IntegrandMP;
-    const qREAL* Lambda;
-    const qREAL* Parameter;
     qREAL LastResult[2];
     qREAL LastAbsErr[2];
     long long lastNRUN = 0;
@@ -132,7 +140,6 @@ public:
     
     enum METHOD { VEGAS, CUHRE };
     METHOD Method = CUHRE;
-    
     int VERBOSE = 0;
     
     // CUHRE Parameters
@@ -146,14 +153,9 @@ public:
     
     static int Wrapper(const int *xdim, const qREAL *x, const int *ydim, qREAL *y, void *fdata);
     long long MaxPTS;
-    virtual ex Integrate(unsigned int, SD_Type, SD_Type, SD_Type, const qREAL[], const qREAL[]) override;
+    virtual ex Integrate() override;
     
 private:
-    SD_Type Integrand;
-    SD_Type IntegrandQ;
-    SD_Type IntegrandMP;
-    const qREAL* Lambda;
-    const qREAL* Parameter;
     qREAL LastResult[2];
     qREAL LastAbsErr[2];
 };
@@ -247,10 +249,6 @@ private:
 class ErrMin {
 public:
     static int Verbose;
-    static unsigned int xsize;
-    static IntegratorBase::SD_Type fp;
-    static IntegratorBase::SD_Type fpQ;
-    static IntegratorBase::SD_Type fpMP;
     static IntegratorBase *Integrator;
     static qREAL *paras;
     static dREAL *lambda;
@@ -308,6 +306,7 @@ public:
     bool use_ff = false; // use FindMinimum in F-term
     bool use_exp = false; // use exp in contour deformation
     bool use_MP = true;
+    bool use_FT = true;
     bool use_ErrBreak = true; // use Error Break in Try
     int MPDigits = 50; // digits in mpREAL for MP
     lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };

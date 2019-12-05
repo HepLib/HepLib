@@ -3,10 +3,6 @@
 namespace HepLib {
 
 int ErrMin::Verbose;
-unsigned int ErrMin::xsize;
-IntegratorBase::SD_Type ErrMin::fp = NULL;
-IntegratorBase::SD_Type ErrMin::fpQ = NULL;
-IntegratorBase::SD_Type ErrMin::fpMP = NULL;
 IntegratorBase *ErrMin::Integrator = NULL;
 MinimizeBase *ErrMin::miner = NULL;
 qREAL *ErrMin::paras = NULL;
@@ -24,7 +20,8 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     Digits = 50;
     qREAL qlas[nvars];
     for(int i=0; i<nvars; i++) qlas[i] = las[i];
-    auto res = Integrator->Integrate(xsize, fp, fpQ, fpMP, paras, qlas);
+    Integrator->Lambda = qlas;
+    auto res = Integrator->Integrate();
     if(res.has(SD::NaN)) {
         Digits = digits;
         return 1.E100;

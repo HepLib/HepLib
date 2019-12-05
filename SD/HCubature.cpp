@@ -16,7 +16,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
         #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
         for(int i=0; i<npts; i++) {
             mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
-            int iDQMP = self->inDQMP(xdim, x+i*xdim);
+            int iDQMP = self->inDQMP(x+i*xdim);
             if( (self->IntegrandMP!=NULL) && (self->DQMP>2 || iDQMP>2) ) {
                 self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             } else if(self->DQMP>1 || iDQMP>1) {
@@ -154,14 +154,10 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     }
 }
 
-ex HCubature::Integrate(unsigned int xdim, SD_Type fp, SD_Type fpQ, SD_Type fpMP, const qREAL* pl, const qREAL* la) {
+ex HCubature::Integrate() {
     assert(mpfr_buildopt_tls_p()>0);
-    Integrand = fp;
-    IntegrandQ = fpQ;
-    IntegrandMP = fpMP;
-    Parameter = pl;
-    Lambda = la;
-        
+    
+    unsigned int xdim = XDim;
     unsigned int ydim = 2;
     qREAL result[ydim], estabs[ydim];
 

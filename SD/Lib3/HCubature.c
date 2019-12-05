@@ -811,6 +811,7 @@ static int rulecubature(rule *r, unsigned fdim,
             numEval += r->num_points * 2;
         }
     }
+    if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);
     }
     
     /* re-sum integral and errors */

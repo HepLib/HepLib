@@ -5,14 +5,30 @@ namespace HepLib {
 /*-----------------------------------------------------*/
 // IntegratorBase::inDQMP
 /*-----------------------------------------------------*/
-int IntegratorBase::inDQMP(unsigned xdim, qREAL const *x) {
+int IntegratorBase::inDQMP(qREAL const *x) {
+    unsigned int xdim = XDim;
+    
     if(xdim<=MPXDim) return 3;
     qREAL xmin = 100;
     for(int i=0; i<xdim; i++) {
         if(x[i] < xmin) xmin = x[i];
     }
     if(xmin <= MPXLimit) return 3;
-    if(xdim <= QXDim|| xmin < QXLimit) return 2;
+    
+    qREAL ft = 1E5;
+    if(FT!=NULL) {
+        ft = fabsq(FT(x, Parameter));
+        qREAL x0[xdim];
+        for(int i=0; i<xdim; i++) x0[xdim]=0;
+        qREAL ft0 = fabsq(FT(x0, Parameter));
+        if(ft0<1E-50) ft0 = 1;
+        ft = ft/ft0;
+    }
+    if(ft<MPFLimit) return 3;
+    
+    if(xdim <= QXDim || xmin < QXLimit) return 2;
+    if(ft<QFLimit) return 2;
+    
     return 1;
 }
 
