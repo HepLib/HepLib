@@ -22,7 +22,8 @@ ex exRead() {
 }
 
 int main(int argc, char** argv) {
-        
+    
+    ex isQuasi = exRead();
     ex ls = exRead();
     ex tls = exRead();
     ex ps = exRead();
@@ -34,6 +35,7 @@ int main(int argc, char** argv) {
     
     FeynmanParameter fp;
     
+    if(isQuasi>0) fp.isQuasi = true;
     fp.LoopMomenta = ex_to<lst>(ls);
     fp.tLoopMomenta = ex_to<lst>(tls);
     fp.Propagators = ex_to<lst>(ps);

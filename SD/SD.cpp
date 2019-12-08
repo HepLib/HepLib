@@ -362,7 +362,7 @@ pair<lst, lst> SD::Normalize(const pair<lst, lst> &input) {
     ex const_term = 1;
     lst plst, nlst;
     for(int i=0; i<input.first.nops(); i++) {
-        if(input.second[i].is_zero() || input.first[i]==ex(1)) continue;
+        if(i!=1 && (input.second[i].is_zero() || input.first[i]==ex(1))) continue;
         if(i!=1 && !input.first[i].has(x(wild())) && !input.first[i].has(y(wild()))) {
             const_term *= pow(input.first[i], input.second[i]);
         } else {
@@ -377,7 +377,7 @@ pair<lst, lst> SD::Normalize(const pair<lst, lst> &input) {
                             const_term *=  pow(tmp,ntmp);
                         } else if((tmp-vs).is_zero() || tmp.match(pow(vs,wild()))) {
                             const_term *=  pow(tmp,ntmp);
-                        } else if(!tmp.has(PL(wild()))) {
+                        } else if(!tmp.has(PL(wild())) && !tmp.has(vs)) {
                             auto tr = tmp.subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2));
                             if(!is_a<numeric>(tr)) {
                                 cerr << "tmp: " << tmp << endl;
@@ -418,7 +418,6 @@ pair<lst, lst> SD::Normalize(const pair<lst, lst> &input) {
             }
         }
     }
-    
     plst.prepend(const_term);
     nlst.prepend(1);
     
@@ -511,7 +510,9 @@ void SD::Initialize(FeynmanParameter fp) {
     
     ex asgn = 1;
     ex a = 0;
-    ex ad = (4-2*ep)*ls.nops() + (2-2*ep)*tls.nops();
+    ex ad = (4-2*ep)*ls.nops();
+    if(fp.isQuasi) ad += (3-2*ep)*tls.nops();
+    else ad += (2-2*ep)*tls.nops();
     int xn = ps.nops();
     ex rem = 0;
     exmap xtNeg;
@@ -683,10 +684,12 @@ void SD::Initialize(FeynmanParameter fp) {
         }
         
         uList1.append(usgn*u_nd.op(0));
-        uList2.append(-(2-2*ep)/2);
+        if(fp.isQuasi) uList2.append(-(3-2*ep)/2);
+        else uList2.append(-(2-2*ep)/2);
         if(usgn*u_nd.op(1) != 1) {
             uList1.append(usgn*u_nd.op(1));
-            uList2.append((2-2*ep)/2);
+            if(fp.isQuasi) uList2.append((3-2*ep)/2);
+            else uList2.append((2-2*ep)/2);
         }
     } 
 
@@ -759,12 +762,12 @@ void SD::Initialize(FeynmanParameter fp) {
 
     // simplification
     // ex pre = fp.Prefactor; // moved to above
-    pre *= asgn * pow(I,ls.nops()) * pow(Pi, ad/2) * tgamma(a-ad/2);
+    pre *= asgn * pow(I,ls.nops()+(fp.isQuasi ? tls.nops() : 0)) * pow(Pi, ad/2) * tgamma(a-ad/2);
     for(int i=0; i<ns.nops(); i++) {
         if(is_a<numeric>(ns[i]) && ns.op(i)<=0) continue;
         pre /= tgamma(ns.op(i));
     }
-    if(tls.nops()>0) pre *= exp(I * Pi * tls.nops()*(2-2*ep)/2);
+    if(tls.nops()>0 && (!fp.isQuasi)) pre *= exp(I * Pi * tls.nops()*(2-2*ep)/2);
     
     ex xpre = 1;
     for(int i=0; i<ns.nops(); i++) {
@@ -1096,7 +1099,7 @@ while(true) {
                 if(!ok1) break;
             }
             if(!ok1) break;
-        }}
+        }} 
         if(!ok1) {
             auto xij = get_x_from(eqn);
             ex xi = xij[0];
@@ -1485,10 +1488,17 @@ void SD::SDPrepares() {
     ParallelSymbols.unique();
     
     //check vs
+    bool has_vs = false;
     for(auto &kv : FunExp) {
         // check variables besides x or PL
         // CV should only appear at kv.first.op(0), i.e., the prefactor
         for(int i=1; i<kv.first.nops(); i++) {
+            // make sure only Constant/F terms can contain small variable: vs
+            if(i!=1 && kv.first.op(i).has(vz)) {
+                cout << "vz Found @ " << i << " of " << kv.first << endl;
+                assert(false);
+            }
+            
             auto tmp = kv.first.op(i).subs(lst{x(wild())==1,PL(wild())==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
             if(!is_a<numeric>(tmp.evalf())) {
                 cout << RED << "Extra Variable(^[ep,eps,PL,x]) Found: " << RESET << kv.first.op(i) << endl;
@@ -1498,8 +1508,12 @@ void SD::SDPrepares() {
     
         ex ft = kv.first.op(1);
         if(ft.has(vs)) {
+            has_vs = true;
             ft = mma_collect(ft, vs);
-            assert(ft.is_polynomial(vs) && (ft.degree(vs)-1)==0);
+            if(!ft.is_polynomial(vs) || (ft.degree(vs)-1)!=0) {
+                cout << RED << "Not supported F-term with s: " << ft << RESET << endl;
+                assert(false);
+            }
             ex expn = -kv.second.op(1);
             // (2*Pi*I) dropped out, since we will take residue later.
             kv.first.let_op(0) = kv.first.op(0) * tgamma(expn+vz)*tgamma(-vz)/tgamma(expn)*pow(vs,vz);
@@ -1512,6 +1526,9 @@ void SD::SDPrepares() {
                 kv.second.append(vz);
             }
         }
+    }
+    if(has_vs) {
+        KillPowers();
     }
     
     Integrands.clear();
@@ -1565,12 +1582,15 @@ void SD::SDPrepares() {
         auto xns_pns = DS(kv);
         for(auto const &item : xns_pns) {
 
-            //TODO: handle other poles, e.g., PolyGamma/Gamma from input
             // take z-poles
             if(item.has(vz)) {
+                auto ct = item.op(1).op(0).op(0);
+                ct = ct.subs(lst{ CT(wild())==wild(),FTX(wild(1),wild(2))==1 }).subs(pow(vs,vz)==1);
+                int sNN = sN - vsRank(ct.subs(pow(vs,vz)==1));
+            
                 lst zpols;
                 // poles from Gamma(-z)
-                for(int vn=0; vn<=sN; vn++) {
+                for(int vn=0; vn<=sNN; vn++) {
                     zpols.append(vn);
                 }
                 // poles from xi^{c1*z+c0}
@@ -1584,7 +1604,7 @@ void SD::SDPrepares() {
                             ex zp = (pxn-c0)/c1;
                             ex zpn = zp.subs(lst{eps==0,ep==0});
                             assert(is_a<numeric>(zpn));
-                            if(zpn>sN) break;
+                            if(zpn>sNN) break;
                             zpols.append(zp);
                             pxn -= 1;
                         }
@@ -1929,37 +1949,40 @@ void SD::EpsEpExpands() {
             tmp = tmp.subs(CCF(wild())==wild());
             //if(use_CCF) tmp = collect_common_factors(tmp);
             if(!tmp.has(eps) && !ct.has(eps)) {
-                int ctN = epRank(ct);
+                auto ct2 = vc * ct;
+                int ctN = epRank(ct2);
                 tmp = mma_series(tmp, ep, epN-ctN);
                 for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                     auto intg = tmp.coeff(ep, di);
                     assert(!intg.has(ep));
-                    auto pref = mma_series(ct, ep, epN-di);
+                    auto pref = mma_series(ct2, ep, epN-di);
+                    if(pref.has(vs)) pref = mma_series(pref, vs, sN);
                     //if(use_CCF) intg = collect_common_factors(intg);
-                    para_res_lst.append(lst{pref * pow(ep, di) * vc, intg});
+                    para_res_lst.append(lst{pref * pow(ep, di), intg});
                 }
             } else {
-                auto sct = ct;
+                auto sct = vc * ct;
                 int sctN = epsRank(sct);
                 ex stmp = mma_series(tmp, eps, epsN-sctN);
                 for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
                     tmp = stmp.coeff(eps, sdi);
                     //if(use_CCF) tmp = collect_common_factors(tmp);
                     assert(!tmp.has(eps));
-                    ct = mma_series(sct, eps, epsN-sdi);
-                    int ctN = epRank(ct);
+                    auto ct2 = mma_series(sct, eps, epsN-sdi);
+                    int ctN = epRank(ct2);
                     tmp = mma_series(tmp, ep, epN-ctN);
                     for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                         auto intg = tmp.coeff(ep, di);
                         assert(!intg.has(ep));
-                        auto pref = mma_series(ct, ep, epN-di);
+                        auto pref = mma_series(ct2, ep, epN-di);
+                        if(pref.has(vs)) pref = mma_series(pref, vs, sN);
                         //if(use_CCF) intg = collect_common_factors(intg);
-                        para_res_lst.append(lst{pref * pow(eps, sdi) * pow(ep, di) * vc, intg});
+                        para_res_lst.append(lst{pref * pow(eps, sdi) * pow(ep, di), intg});
                     }
                 }
             }
         }
-        
+
         //deleted from GiNaC 1.7.7
         //if(para_res_lst.nops()<1) para_res_lst.append(lst{0,0});
         return para_res_lst;
@@ -3452,7 +3475,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 if(is_a<add>(ccRes)) {
                     for(auto item : ccRes) css.append(item);
                 }
-                
+
                 for(int ci=0; ci<css.nops(); ci++) {
                     auto nt = css.op(ci).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).evalf();
                     if(!is_a<numeric>(nt)) {
@@ -3744,7 +3767,17 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 for(int i=0; i<las.nops()-1; i++) {
                     lambda[i] = ErrMin::lambda[i];
                 }
+                
                 Integrator->Lambda = lambda; // Integrator->Lambda changed in ErrMin
+                if(Verbose > 7) {
+                    cout << WHITE << "     Final λs: " << RESET;
+                    for(int i=0; i<xsize; i++) {
+                        char buffer[128];
+                        quadmath_snprintf(buffer, sizeof buffer, "%.6QG", lambda[i]);
+                        cout << buffer << " ";
+                    }
+                    cout << endl << "     ------------------------------" << endl;
+                }
             }
             // ---------------------------------------
             
@@ -4015,6 +4048,20 @@ int SD::epsRank(ex expr_in) {
         } else p++;
     }
     throw runtime_error("epsRank error!");
+}
+
+int SD::vsRank(ex expr_in) {
+    if(!expr_in.has(vs)) return 0;
+    int p = -5;
+    auto expr = mma_collect(expr_in, vs);
+    while(true) {
+        auto tmp = normal(series_to_poly(expr.series(vs, p)));
+        if(!tmp.is_zero()) {
+            tmp = mma_collect(tmp, vs);
+            return tmp.ldegree(vs);
+        } else p++;
+    }
+    throw runtime_error("vsRank error!");
 }
 
 ex SD::VEResult() {

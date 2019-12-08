@@ -31,6 +31,7 @@ struct FeynmanParameter {
     exmap tReplacements;
     exmap nReplacements;
     ex Prefactor = 1;
+    bool isQuasi = false;
 };
 
 struct XIntegrand {
@@ -38,7 +39,6 @@ struct XIntegrand {
     lst Exponents;
     exmap nReplacements;
     vector<lst> Deltas;
-    ex Prefactor = 1;
 };
 
 /*-----------------------------------------------------*/
@@ -362,6 +362,7 @@ private:
     pair<lst, lst> Normalize(const pair<lst, lst> &input);
     static int epRank(ex);
     static int epsRank(ex);
+    static int vsRank(ex);
 
     void CompileMatDet();
     vector<lst> ciResult;

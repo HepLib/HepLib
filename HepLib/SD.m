@@ -1,6 +1,6 @@
 (* ::Package:: *)
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*M2C*)
 
 
@@ -147,12 +147,12 @@ Return[tmp];
 ];
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*UF*)
 
 
 Clear[UF];
-UF[ls_,tls_,ps_,ns_,lr_:{},tlr_:{},nr_:{}]:=Module[{exe,proc,err,is,os,es,res},
+UF[ls_,tls_,ps_,ns_,lr_:{},tlr_:{},nr_:{},isQuasi_:False]:=Module[{exe,proc,err,is,os,es,res},
 exe="/usr/local/feng/bin/UF";
 proc=StartProcess[exe,ProcessEnvironment-><|"DYLD_LIBRARY_PATH"->"/usr/local/feng/lib"|>];
 is=ProcessConnection[proc,"StandardInput"];
@@ -160,6 +160,8 @@ os=ProcessConnection[proc,"StandardOutput"];
 es=ProcessConnection[proc,"StandardError"];
 err=ReadString[es,EndOfBuffer];
 If[StringLength[StringTrim[err]]>0,Print[err];Abort[];Return[]];
+WriteLine[is,M2C[If[isQuasi,1,0]]];
+WriteLine[is,".end"];
 WriteLine[is,M2C[ls]];
 WriteLine[is,".end"];
 WriteLine[is,M2C[tls]];
