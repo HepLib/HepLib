@@ -1666,6 +1666,8 @@ void SD::SDPrepares() {
                     tmp *= pow(pn.op(0), pn.op(1));
                 } else if(i<2 || pn.op(0)!=1) {
                     pns.append(pn);
+                } else {
+                    assert(false);
                 }
             }
             if(tmp!=1) pns.append(lst{tmp, 1});
@@ -2301,7 +2303,6 @@ void SD::CIPrepares(const char *key) {
 //============================================================================================================
 
     // Prepare FT-lambda
-    if(use_cpp)
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnvec, [&](auto &kv, auto rid) {
         // return nothing
         ex ft = kv.first;
@@ -2673,8 +2674,7 @@ qCOMPLEX log(qCOMPLEX x);
 //============================================================================================================
 
     // Prepare Integrand
-    vector<ex> res;
-    if(use_cpp) res =
+    vector<ex> res =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, res_vec, [&](auto &kvf, auto rid) {
         // return lst{ no-x-result, xn, x-indepent prefactor, ft_n }
         // or     lst{ id(SD(D|Q)_id in .so), xn, x-indepent prefactor, ft_n }
@@ -3051,61 +3051,33 @@ ofs << R"EOF(
 
 //============================================================================================================
 
-    if(use_cpp) {
-        ostringstream sofn, garfn, cmd;
-        if(key != NULL) {
-            sofn << key << ".so";
-            garfn << key << ".ci.gar";
-            lst gar_res;
-            for(auto &item : res) gar_res.append(item);
-            archive ar;
-            ar.archive_ex(gar_res, "res");
-            ar.archive_ex(19790923, "c");
-            ar.archive_ex(FT_N_NX, "ftnxn");
-            ofstream out(garfn.str());
-            out << ar;
-            out.close();
-        } else {
-            sofn << pid << ".so";
-            for(auto &item : res) ciResult.push_back(ex_to<lst>(item));
-        }
-        
-        CompileMatDet();
-        if(use_MP) cmd << "g++ -rdynamic -fPIC -shared -lquadmath -lmpfr -lgmp " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
-        else cmd << "g++ -rdynamic -fPIC -shared -lquadmath " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
-        system(cmd.str().c_str());
-        cmd.clear();
-        cmd.str("");
-        cmd << "rm -rf " << pid;
-        if(!debug) system(cmd.str().c_str());
+    ostringstream sofn, garfn, cmd;
+    if(key != NULL) {
+        sofn << key << ".so";
+        garfn << key << ".ci.gar";
+        lst gar_res;
+        for(auto &item : res) gar_res.append(item);
+        archive ar;
+        ar.archive_ex(gar_res, "res");
+        ar.archive_ex(19790923, "c");
+        ar.archive_ex(FT_N_NX, "ftnxn");
+        ofstream out(garfn.str());
+        out << ar;
+        out.close();
     } else {
-        // Using GiNaC internally
-        ostringstream garfn;
-        lst fn_lst;
-        for(auto &kv : ftnvec) fn_lst.append(lst{kv.first, kv.second});
-        
-        //deleted from GiNaC 1.7.7
-        //if(fn_lst.nops()<1) fn_lst = lst{lst{1, -1}};
-        
-        lst cifn_lst;
-        for(auto &item : res_vec) cifn_lst.append(item);
-        if(key != NULL) {
-            garfn << key << ".ci.gar";
-            archive ar;
-            ar.archive_ex(fn_lst, "fn_lst");
-            ar.archive_ex(cifn_lst, "cifn_lst");
-            ar.archive_ex(FT_N_NX, "ftnxn");
-            ar.archive_ex(19790923, "c");
-            ofstream out(garfn.str());
-            out << ar;
-            out.close();
-        } else {
-            ciResult.clear();
-            ciResult.shrink_to_fit();
-            ciResult.push_back(fn_lst);
-            ciResult.push_back(cifn_lst);
-        }
+        sofn << pid << ".so";
+        for(auto &item : res) ciResult.push_back(ex_to<lst>(item));
     }
+    
+    CompileMatDet();
+    if(use_MP) cmd << "g++ -rdynamic -fPIC -shared -lquadmath -lmpfr -lgmp " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
+    else cmd << "g++ -rdynamic -fPIC -shared -lquadmath " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
+    system(cmd.str().c_str());
+    cmd.clear();
+    cmd.str("");
+    cmd << "rm -rf " << pid;
+    if(!debug) system(cmd.str().c_str());
+
 }
 
 // need Parameter
@@ -3127,25 +3099,11 @@ void SD::Contours(const char *key, const char *pkey) {
         auto c = ar.unarchive_ex(ParallelSymbols, "c");
         if(c!=19790923) throw runtime_error("*.ci.gar error!");
         FT_N_NX = ex_to<lst>(ar.unarchive_ex(ParallelSymbols, "ftnxn"));
-        if(!use_cpp) {
-            lst fn_lst = ex_to<lst>(ar.unarchive_ex(ParallelSymbols, "fn_lst"));
-            ciResult.clear();
-            ciResult.push_back(fn_lst);
-        }
     }
     
     //change 2->1 from GiNaC 1.7.7
     if(FT_N_NX.nops()<1) return;
     if(Verbose > 0) cout << now() << " - Contours ..." << endl << flush;
-    
-    if(!use_cpp) {
-        lst fn_lst = ciResult[0];
-        exmap fn_map;
-        for(auto item : fn_lst) fn_map[item.op(1)] = item.op(0);
-        //change 1->0 from GiNaC 1.7.7
-        for(int i=0; i<FT_N_NX.nops(); i++) FT_N_NX.let_op(i)= lst{FT_N_NX.op(i).op(0), fn_map[FT_N_NX.op(i).op(0)]};
-        //now FT_N_NX item: lst { ft-id, ft}
-    }
     
     vector<ex> nxn_vec;
     //change 1->0 from GiNaC 1.7.7
@@ -3170,41 +3128,28 @@ void SD::Contours(const char *key, const char *pkey) {
         ostringstream fname;
         void* module = nullptr;
         ex ft = 0; vector<ex> xs;
-        if(use_cpp) {
-            nvars = ex_to<numeric>(nxn.op(1)).to_int();
-            ostringstream sofn;
-            if(key != NULL) {
-                sofn << key << ".so";
-            } else {
-                sofn << pid << ".so";
-            }
-            module = dlopen(sofn.str().c_str(), RTLD_NOW);
-            if (module == nullptr) throw std::runtime_error("could not open compiled module!");
+
+        nvars = ex_to<numeric>(nxn.op(1)).to_int();
+        ostringstream sofn;
+        if(key != NULL) {
+            sofn << key << ".so";
         } else {
-            omp_set_num_threads(1);
-            lst plReplace;
-            for(auto kv : Parameter) plReplace.append(PL(kv.first)==kv.second);
-            ft = nxn.op(1).subs(plReplace);
-            xs = get_xy_from(ft);
-            nvars = xs.size();
+            sofn << pid << ".so";
         }
+        module = dlopen(sofn.str().c_str(), RTLD_NOW);
+        if (module == nullptr) throw std::runtime_error("could not open compiled module!");
+        
         
         dREAL nlas[nvars];
         dREAL max_df = -1, max_f;
         for(int i=0; i<nvars; i++) {
             MinimizeBase::FunctionType dfp = NULL;
-            if(use_cpp) {
-                fname.clear();
-                fname.str("");
-                fname << "dirF_"<<nxn.op(0)<<"_"<<i;
-                dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
-                assert(dfp!=NULL);
-            } else {
-                auto xi = get_xy_from(ft)[i];
-                ex df = mma_diff(ft, xi);
-                GWrapper::InitMinFunction(-abs(df), xs, 1);
-                dfp = GWrapper::MinFunction;
-            }
+            fname.clear();
+            fname.str("");
+            fname << "dirF_"<<nxn.op(0)<<"_"<<i;
+            dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
+            assert(dfp!=NULL);
+            
             dREAL maxdf = Minimizer->FindMinimum(nvars, dfp, paras);
             maxdf = -maxdf;
             nlas[i] = maxdf;
@@ -3214,7 +3159,7 @@ void SD::Contours(const char *key, const char *pkey) {
 //TODO: add other schema
 //--------------------------------------------------
         for(int i=0; i<nvars; i++) {
-            if(nlas[i] > 5E-4 * max_df) nlas[i] = 1/nlas[i];
+            if(nlas[i] > 1E-2 * max_df) nlas[i] = 1/nlas[i];
             else nlas[i] = 1/max_df;
         }
         
@@ -3236,24 +3181,11 @@ void SD::Contours(const char *key, const char *pkey) {
         }
         
         MinimizeBase::FunctionType fp;
-        if(use_cpp) {
-            fname.clear();
-            fname.str("");
-            fname << "imgF_"<<nxn.op(0);
-            fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
-            assert(fp!=NULL);
-        } else {
-            lst zRepl;
-            for(int i=0; i<nvars; i++) {
-                auto df = mma_diff(ft, xs[i]);
-                ex zi = xs[i] - xs[i]*(1-xs[i])*df*I*CppFormat::q2ex(nlas[i])*x(nvars);
-                zRepl.append(xs[i]==zi);
-            }
-            auto xs2 = xs;
-            xs2.push_back(x(nvars));
-            GWrapper::InitMinFunction(-ft.subs(zRepl), xs2, 2);
-            fp = GWrapper::MinFunction;
-        }
+        fname.clear();
+        fname.str("");
+        fname << "imgF_"<<nxn.op(0);
+        fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
+        assert(fp!=NULL);
         
         dREAL laBegin = 0, laEnd = CTMax, min;
         dREAL UB[nvars+1];
@@ -3276,7 +3208,7 @@ void SD::Contours(const char *key, const char *pkey) {
         }
         min = laBegin;
         
-        if(use_cpp && use_dlclose) dlclose(module);
+        if(use_dlclose) dlclose(module);
         
         las.append(CppFormat::q2ex(min));
         if(Verbose>5) {
@@ -3324,18 +3256,12 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
     ParallelSymbols.unique();
     
     if(Verbose > 0) cout << now() << " - Integrates ..." << endl << flush;
-    if(!use_cpp) omp_set_num_threads(1);
     
     lst lstRE;
     auto pid = getpid();
     ostringstream sofn, cmd;
     if(key == NULL) {
         sofn << pid << ".so";
-        if(!use_cpp) {
-            auto cifn_lst = ciResult[1];
-            ciResult.clear();
-            for(auto item : cifn_lst) ciResult.push_back(ex_to<lst>(item));
-        }
     } else {
         sofn << key << ".so";
         ostringstream garfn;
@@ -3346,15 +3272,9 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         in.close();
         auto c = ar.unarchive_ex(ParallelSymbols, "c");
         if(c!=19790923) throw runtime_error("*.ci.gar error!");
-        if(use_cpp) {
-            auto res = ar.unarchive_ex(ParallelSymbols, "res");
-            ciResult.clear();
-            for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
-        } else {
-            auto res = ex_to<lst>(ar.unarchive_ex(ParallelSymbols, "cifn_lst"));
-            ciResult.clear();
-            for(int i=0; i<res.nops(); i++) ciResult.push_back(ex_to<lst>(res.op(i)));
-        }
+        auto res = ar.unarchive_ex(ParallelSymbols, "res");
+        ciResult.clear();
+        for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
         
         garfn.clear();
         garfn.str("");
@@ -3393,12 +3313,9 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         }
     }
     
-    void* module = nullptr;
-    if(use_cpp) {
-        module = dlopen(sofn.str().c_str(), RTLD_NOW);
-        if (module == nullptr) throw std::runtime_error("could not open compiled module!");
-        if(!debug && key == NULL) remove(sofn.str().c_str());
-    }
+    void* module = dlopen(sofn.str().c_str(), RTLD_NOW);
+    if (module == nullptr) throw std::runtime_error("could not open compiled module!");
+    if(!debug && key == NULL) remove(sofn.str().c_str());
     
     int npara = 0;
     lst plRepl;
@@ -3423,39 +3340,18 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         unsigned int xsize = 0;
         ex co, exint, exft;
         vector<ex> xs, fxs;
-        if(use_cpp) {
-            xsize = ex_to<numeric>(item.op(1)).to_int();
-            if(xsize<1) {
-                Digits = 35;
-                if(kid>0) {
-                    lstRE.let_op(kid-1) = VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
-                    break;
-                }
-                ResultError +=  VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
-                lstRE.append(VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl));
-                continue;
+        xsize = ex_to<numeric>(item.op(1)).to_int();
+        if(xsize<1) {
+            Digits = 35;
+            if(kid>0) {
+                lstRE.let_op(kid-1) = VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
+                break;
             }
-            co = item.op(2).subs(plRepl).subs(iEpsilon==0);
-        } else {
-            co = item.op(0).subs(plRepl);
-            exint = item.op(1).subs(plRepl);
-            exft = item.op(2).subs(plRepl);
-            xs = get_xy_from(exint);
-            fxs = get_xy_from(exft);
-            xsize = xs.size();
-            
-            if(xsize<1) {
-                Digits = 35;
-                exint = exint.subs(lst{FTX(wild(1),wild(2))==1, iEpsilon==I*numeric("1E-50")});
-                if(kid>0) {
-                    lstRE.let_op(kid-1) = VE(exint.evalf(),0) * co;
-                    break;
-                }
-                ResultError +=  VE(exint.evalf(),0) * co;
-                lstRE.append(VE(exint.evalf(),0) * co);
-                continue;
-            }
+            ResultError +=  VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
+            lstRE.append(VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl));
+            continue;
         }
+        co = item.op(2).subs(plRepl).subs(iEpsilon==0);
         
         if(co.is_zero()) continue;
         assert(!co.has(PL(wild())));
@@ -3520,65 +3416,31 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         
         IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr, fpMP = nullptr;
         IntegratorBase::FT_Type ftp = nullptr;
-        if(use_cpp) {
-            int rid = ex_to<numeric>(item.op(0)).to_int();
-            ostringstream fname;
-            fname << "SDD_" << rid;
-            fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-            assert(fp!=NULL);
+        int rid = ex_to<numeric>(item.op(0)).to_int();
+        ostringstream fname;
+        fname << "SDD_" << rid;
+        fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+        assert(fp!=NULL);
+        fname.clear();
+        fname.str("");
+        fname << "SDQ_" << rid;
+        fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+        assert(fpQ!=NULL);
+        if(use_MP) {
             fname.clear();
             fname.str("");
-            fname << "SDQ_" << rid;
-            fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-            assert(fpQ!=NULL);
-            if(use_MP) {
-                fname.clear();
-                fname.str("");
-                fname << "SDMP_" << rid;
-                fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-                assert(fpMP!=NULL);
-            }
-            if(use_FT && is_a<lst>(las)) {
-                fname.clear();
-                fname.str("");
-                fname << "FT_" << rid;
-                ftp = (IntegratorBase::FT_Type)dlsym(module, fname.str().c_str());
-                assert(ftp!=NULL);
-            }
-        } else {
-            ex intx = 0;
-            if(is_a<lst>(las)) {
-                exset ftxset;
-                exint.find(FTX(wild(1),wild(2)), ftxset);
-                lst ftxlst;
-                for(auto it : ftxset) ftxlst.append(it);
-                auto expr = mma_collect(exint, FTX(wild(1),wild(2)));
-                lst ftx_lst;
-                for(auto item : fxs) ftx_lst.append(item);
-                for(auto item : ftxlst) {
-                    ex cftx = item.op(1);
-                    ex cc = exint.coeff(item);
-                    lst x0Repl;
-                    for(auto xi : cftx) {
-                        if(!ftx_lst.has(xi)) x0Repl.append(xi==0);
-                    }
-                    lst zRepl;
-                    matrix mat(fxs.size(), fxs.size());
-                    for(int i=0; i<fxs.size(); i++) {
-                        ex df = mma_diff(exft, fxs[i]).subs(x0Repl);
-                        ex zi = fxs[i] - fxs[i]*(1-fxs[i])*df*las.op(i)*I*z(0);
-                        zRepl.append(fxs[i]==zi);
-                        for(int j=0; j<fxs.size(); j++) mat(i, j) = mma_diff(zi, fxs[j]);
-                    }
-                    intx += mat.determinant() * cc.subs(zRepl);
-                }
-            } else {
-                intx = exint.subs(FTX(wild(1),wild(2))==1);
-            }
-            Integrator->UseCpp = false;
-            GWrapper::InitIntFunction(intx, xs);
-            fp = fpQ = fpMP = GWrapper::IntFunction;
+            fname << "SDMP_" << rid;
+            fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+            assert(fpMP!=NULL);
         }
+        if(use_FT && is_a<lst>(las)) {
+            fname.clear();
+            fname.str("");
+            fname << "FT_" << rid;
+            ftp = (IntegratorBase::FT_Type)dlsym(module, fname.str().c_str());
+            assert(ftp!=NULL);
+        }
+        
         
         qREAL lambda[las.nops()];
         qREAL paras[npara+1];
@@ -3609,7 +3471,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             int ctryR = 0, ctry = 0, ctryL = 0;
             ex cerr;
             qREAL log_lamax = log10q(lamax);
-            qREAL log_lamin = log_lamax-1.Q;
+            qREAL log_lamin = log_lamax-2.5Q;
             
             ostringstream las_fn;
             las_fn << key;
@@ -3649,7 +3511,6 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                         lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
                     }
  
-                    if(!use_cpp) GWrapper::Lambda = CppFormat::q2ex(cla);
                     auto res = Integrator->Integrate();
                     if(Verbose>10) {
                         auto oDigits = Digits;
@@ -3824,7 +3685,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         }
     }
     
-    if(use_cpp && use_dlclose) dlclose(module);
+    if(use_dlclose) dlclose(module);
     if(total>0 && Verbose > 1) cout << "@" << now(false) << endl;
     
     if(kid>0) {
@@ -4014,7 +3875,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     
     double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0, 2, 2);
     
-    if(use_cpp && use_dlclose) dlclose(module);
+    if(use_dlclose) dlclose(module);
     cmd.clear();
     cmd.str("");
     cmd << "rm " << cppfn.str() << " " << sofn.str();

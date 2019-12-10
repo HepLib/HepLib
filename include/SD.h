@@ -223,27 +223,6 @@ ex VESimplify(ex expr, int epN = 0, int epsN = 0);
 ex VEResult(ex expr);
 
 /*-----------------------------------------------------*/
-// Wrapper for use_cpp = false, i.e. use GiNaC
-/*-----------------------------------------------------*/
-class GWrapper {
-public:
-    static void InitMinFunction(ex minF, vector<ex> xs, int ri = 1);
-    static dREAL MinFunction(int nvars, dREAL* x, dREAL* pl, dREAL *las);
-    
-    static void InitIntFunction(ex intF, vector<ex> xs);
-    static int IntFunction(const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
-    
-    static ex Lambda;
-    static int GiNaC_Digits;
-    
-private:
-    static ex MinF;
-    static vector<ex> Xs;
-    static ex IntF;
-    static int ReIm;
-};
-
-/*-----------------------------------------------------*/
 // ErrMin with HookeJeeves
 /*-----------------------------------------------------*/
 class ErrMin {
@@ -298,7 +277,6 @@ public:
     bool IsZero = false;
     bool CheckEnd = false;
     //bool use_CCF = true;
-    bool use_cpp = true;
     bool use_ErrMin = false;
     bool use_las = false;
     bool save_las = false;
@@ -316,14 +294,14 @@ public:
     map<int, numeric> ParameterLB;
     
     // used in Contours
-    dREAL CTMax = 100; 
-    int CTTryPTS = 3;
-    int CTSavePTS = 1;
+    dREAL CTMax = 50;
+    int CTTryPTS = 5;
+    int CTSavePTS = 3;
     
     long long TryPTS = 500000;
     long long LambdaSplit = 5;
-    qREAL LambdaMax = 100;
-    int CTry = 1;
+    qREAL LambdaMax = 10;
+    int CTry = 2;
     int CTryLeft = 1;
     int CTryRight = 1;
     dREAL CTryRightRatio = 1.5; 
