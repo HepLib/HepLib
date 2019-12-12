@@ -285,7 +285,6 @@ public:
     bool use_exp = false; // use exp in contour deformation
     bool use_MP = true;
     bool use_FT = true;
-    bool use_ErrBreak = true; // use Error Break in Try
     int MPDigits = 50; // digits in mpREAL for MP
     lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
     
@@ -295,8 +294,8 @@ public:
     
     // used in Contours
     dREAL CTMax = 50;
-    int CTTryPTS = 5;
-    int CTSavePTS = 3;
+    int CTTryPTS = 3;
+    int CTSavePTS = 5;
     
     long long TryPTS = 500000;
     long long LambdaSplit = 5;
@@ -334,6 +333,7 @@ public:
     ex VEResult();
     void VEPrint(bool endlQ=true);
     double FindMinimum(ex expr, bool compare0 = false);
+    static ex FactorX(const ex expr);
         
 private:
     vector<lst> DS(const pair<lst, lst> po_ex);

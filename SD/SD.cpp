@@ -218,7 +218,7 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
                 fsgin = -1;
             }
             ft = 1;
-        } else {
+        } else if(use_ff){
             auto tmp = ft.subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2));
             auto tn = tmp.subs(y(wild())==numeric("1/17"));
             for(auto kv : ParameterUB) {
@@ -234,18 +234,16 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
                 cerr << "tn is not numeric: " << tn.eval() << endl;
                 assert(false);
             }
-            
-            if(use_ff) {
-                if(tn.evalf() < 0) tmp = ex(0)-tmp;
-                double tmin = FindMinimum(tmp, true);
-                if(tmin > 1E-5) {
-                    if(tn.evalf() < 0) {
-                        ct = exp(-I * Pi * exlist.op(1));
-                        fsgin = -1;
-                    }
-                    ft = 1;
-                    need_contour_deformation = false;
-                } 
+        
+            if(tn.evalf() < 0) tmp = ex(0)-tmp;
+            double tmin = FindMinimum(tmp, true);
+            if(tmin > 1E-5) {
+                if(tn.evalf() < 0) {
+                    ct = exp(-I * Pi * exlist.op(1));
+                    fsgin = -1;
+                }
+                ft = 1;
+                need_contour_deformation = false;
             }
         }
 
@@ -1057,7 +1055,7 @@ while(true) {
                         else xsubs.append(xs2[ni]==0);
                         tnn /= 2;
                     }
-                    auto ftt = factor(fti.subs(xsubs));
+                    auto ftt = FactorX(fti.subs(xsubs));
                     lst fts2;
                     if(is_a<mul>(ftt)) {
                         for(auto item : ftt) fts2.append(item);
@@ -1159,7 +1157,7 @@ while(true) {
                             else xsubs.append(xs2[ni]==0);
                             tnn /= 2;
                         }
-                        auto ftt = factor(ftij.subs(xsubs));
+                        auto ftt = FactorX(ftij.subs(xsubs));
                         lst fts2;
                         if(is_a<mul>(ftt)) {
                             for(auto item : ftt) fts2.append(item);
@@ -2221,12 +2219,10 @@ void SD::CIPrepares(const char *key) {
             if(!need_contour_deformation) ft = 1; //note the difference with SDPrepare
         } else if(!ft.has(x(wild()))){
             ft = 1;
-        } else {
-            if(use_ff) {
-                double tmin = FindMinimum(ft, true);
-                if(tmin > 1E-5) {
-                    ft = 1;
-                } 
+        } else if(use_ff){
+            double tmin = FindMinimum(ft, true);
+            if(tmin > 1E-5) {
+                ft = 1;
             }
         }
         
@@ -3529,15 +3525,16 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                     exset ves;
                     diff.find(VE(wild(0), wild(1)), ves);
                     bool err_break = false;
-                    if(use_ErrBreak) {
-                        for(auto ve : ves) {
-                            if(abs(ve.op(0)) > 3*ve.op(1)) {
-                                err_break = true;
-                                break;
-                            }
+                    for(auto ve : ves) {
+                        if(abs(ve.op(0)) > ve.op(1)) {
+                            err_break = true;
+                            break;
                         }
                     }
-                    if(use_ErrBreak && err_break) break;
+                    if(err_break) {
+                        if(Verbose>10) cout << WHITE << "     Error Break ..." << RESET << endl;
+                        break;
+                    }
                     lastResErr = res;
                     
                     auto res_tmp = res.subs(VE(wild(1), wild(2))==wild(2));
@@ -3873,7 +3870,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     auto fp = (MinimizeBase::FunctionType)dlsym(module, "minFunc");
     assert(fp!=NULL);
     
-    double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0, 2, 2);
+    double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0);
     
     if(use_dlclose) dlclose(module);
     cmd.clear();
@@ -3942,6 +3939,21 @@ void SD::VEPrint(bool endlQ) {
         }
     }
     if(endlQ) cout << endl;
+}
+
+ex SD::FactorX(const ex expr) {
+    exset xset;
+    expr.find(x(wild()), xset);
+    lst x2s, s2x;
+    for(auto xi : xset) {
+        symbol tx;
+        x2s.append(xi==tx);
+        s2x.append(tx==xi);
+    }
+    ex expr2 = expr.subs(x2s);
+    expr2 = factor(expr2);
+    expr2 = expr2.subs(s2x);
+    return expr2;
 }
 
 ex SD::PrefactorFIESTA(int nLoop) {
