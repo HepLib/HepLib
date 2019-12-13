@@ -218,33 +218,6 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
                 fsgin = -1;
             }
             ft = 1;
-        } else if(use_ff){
-            auto tmp = ft.subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2));
-            auto tn = tmp.subs(y(wild())==numeric("1/17"));
-            for(auto kv : ParameterUB) {
-                int k = kv.first;
-                tn = tn.subs(PL(k)==(ParameterUB[k]+ParameterLB[k])/ex(2));
-            }
-            if(tn.has(PL(wild()))) {
-                cerr << "PL still exists in " << tn << endl;
-                assert(false);
-            }
-            Digits = 50;
-            if(!is_a<numeric>(tn.evalf())) {
-                cerr << "tn is not numeric: " << tn.eval() << endl;
-                assert(false);
-            }
-        
-            if(tn.evalf() < 0) tmp = ex(0)-tmp;
-            double tmin = FindMinimum(tmp, true);
-            if(tmin > 1E-5) {
-                if(tn.evalf() < 0) {
-                    ct = exp(-I * Pi * exlist.op(1));
-                    fsgin = -1;
-                }
-                ft = 1;
-                need_contour_deformation = false;
-            }
         }
 
         exmap ymol;
@@ -497,11 +470,6 @@ void SD::Initialize(FeynmanParameter fp) {
     auto lsubs = fp.lReplacements;
     auto tsubs = fp.tReplacements;
     auto nsubs = fp.nReplacements;
-    lst plsubs;
-    for(auto kv : ParameterUB) {
-        int k = kv.first;
-        plsubs.append(PL(k)==(ParameterUB[k]+ParameterLB[k])/ex(2));
-    }
     nReplacements = fp.nReplacements;
     
     if(Verbose > 0) cout << now() << " - Initialize ..." << endl << flush;
@@ -553,8 +521,8 @@ void SD::Initialize(FeynmanParameter fp) {
             continue;
         }
 
-        auto p = ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop).subs(nsubs).subs(plsubs);
-        p = p.subs(lsubs,sop).subs(tsubs,sop).subs(nsubs).subs(plsubs);
+        auto p = ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop).subs(nsubs);
+        p = p.subs(lsubs,sop).subs(tsubs,sop).subs(nsubs);
         // check loop^2
         for(auto m : ls) {
             if(!is_a<numeric>(p.coeff(m,2))) {
@@ -623,17 +591,17 @@ void SD::Initialize(FeynmanParameter fp) {
         
         cu *= u;
         auto u_nd = numer_denom(u);
-        ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs).subs(plsubs);
-        if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/3).subs(nsubs).subs(plsubs);
+        ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs);
+        if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/3).subs(nsubs);
         assert(!usgn.is_zero());
         usgn = normal(usgn)>0 ? 1 : -1;
         
-        if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).subs(plsubs))) {
-            cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).subs(plsubs) << endl;
+        if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)))) {
+            cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)) << endl;
             assert(false);
         }
-        if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).subs(plsubs))) {
-            cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).subs(plsubs) << endl;
+        if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)))) {
+            cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)) << endl;
             assert(false);
         }
         
@@ -667,17 +635,17 @@ void SD::Initialize(FeynmanParameter fp) {
         
         cu *= u;
         auto u_nd = numer_denom(u);
-        ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs).subs(plsubs);
-        if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/3).subs(nsubs).subs(plsubs);
+        ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs);
+        if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/3).subs(nsubs);
         assert(!usgn.is_zero());
         usgn = normal(usgn)>0 ? 1 : -1;
         
-        if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).subs(plsubs))) {
-            cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).subs(plsubs) << endl;
+        if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)))) {
+            cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)) << endl;
             assert(false);
         }
-        if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).subs(plsubs))) {
-            cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).subs(plsubs) << endl;
+        if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)))) {
+            cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)) << endl;
             assert(false);
         }
         
@@ -696,9 +664,9 @@ void SD::Initialize(FeynmanParameter fp) {
     rem = normal(rem * u);
     auto rem_nd = numer_denom(rem);
     
-    ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs).subs(plsubs);
+    ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs);
     usgn = normal(usgn)>0 ? 1 : -1;
-    ex fsgn = rem_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs).subs(plsubs);
+    ex fsgn = rem_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs);
     fsgn = normal(fsgn)>0 ? 1 : -1;
     
     lst fList1, fList2;
@@ -2219,11 +2187,6 @@ void SD::CIPrepares(const char *key) {
             if(!need_contour_deformation) ft = 1; //note the difference with SDPrepare
         } else if(!ft.has(x(wild()))){
             ft = 1;
-        } else if(use_ff){
-            double tmin = FindMinimum(ft, true);
-            if(tmin > 1E-5) {
-                ft = 1;
-            }
         }
         
         ft = collect_common_factors(ft);
@@ -2245,15 +2208,15 @@ void SD::CIPrepares(const char *key) {
     vector<pair<ex,int>> ftnvec;
     map<ex,int,ex_is_less> ftnmap;
     int ft_n = 1;
-    FT_N_NX.remove_all();
+    FT_N_XN.remove_all();
     
     //deleted from GiNaC 1.7.7
-    //FT_N_NX.append(lst{0, 0});
+    //FT_N_XN.append(lst{0, 0});
     
     for(auto item : fts) {
         ftnvec.push_back(make_pair(item, ft_n));
         ftnmap[item] = ft_n;
-        FT_N_NX.append(lst{ft_n, get_xy_from(item).size()});
+        FT_N_XN.append(lst{item, ft_n, get_xy_from(item).size()});
         ft_n++;
     }
     //ftnvec item: lst { ft, ft-id }
@@ -2799,7 +2762,8 @@ qCOMPLEX log(qCOMPLEX x);
             ofs << endl << endl;
         }
 
-        // long double
+/*----------------------------------------------*/
+// long double
 /*----------------------------------------------*/
 ofs << R"EOF(
 #undef Pi
@@ -2811,13 +2775,14 @@ ofs << R"EOF(
 )EOF" << endl;
 /*----------------------------------------------*/
         auto cppL =  CppFormat(ofs, "L");
-        ofs << "extern \"C\" " << endl;
-        ofs << "int SDD_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
-        ofs << "dREAL x[xn], x0[xn];" << endl;
-        ofs << "for(int i=0; i<xn; i++) x[i] = qx[i];" << endl;
-        ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
-        ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
         if(hasF) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "int CSDD_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+            ofs << "dREAL x[xn], x0[xn];" << endl;
+            ofs << "for(int i=0; i<xn; i++) x[i] = qx[i];" << endl;
+            ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
+            ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
+            
             ofs << "dCOMPLEX z[xn],r[xn];" << endl;
             ofs << "dREAL dff[xn+1];";
             ofs << "dCOMPLEX yy=0, ytmp, det;" << endl;
@@ -2864,7 +2829,23 @@ ofs << R"EOF(
                 ofs << "yy += det * ytmp;" << endl << endl;
                 ofs << "}" << endl;
             }
-        } else {
+            
+            ofs << "y[0] = yy.real();" << endl;
+            ofs << "y[1] = yy.imag();" << endl;
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
+        
+        // alwasy export non-complex function
+        if(true) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "int SDD_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+            ofs << "dREAL x[xn], x0[xn];" << endl;
+            ofs << "for(int i=0; i<xn; i++) x[i] = qx[i];" << endl;
+            ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
+            ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
+            
             auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
             if(SD::debug) {
                 ofs << "//debug-int: " << tmp << endl;
@@ -2872,14 +2853,15 @@ ofs << R"EOF(
             ofs << "dCOMPLEX yy = ";
             Evalf(tmp).print(cppL);
             ofs << ";" << endl;
+            ofs << "y[0] = yy.real();" << endl;
+            ofs << "y[1] = yy.imag();" << endl;
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
         }
-        ofs << "y[0] = yy.real();" << endl;
-        ofs << "y[1] = yy.imag();" << endl;
-        ofs << "return 0;" << endl;
-        ofs << "}" << endl;
-        ofs << endl;
         
-        // Quadruple
+/*----------------------------------------------*/
+// Quadruple
 /*----------------------------------------------*/
 ofs << R"EOF(
 #undef Pi
@@ -2891,9 +2873,10 @@ ofs << R"EOF(
 )EOF" << endl;
 /*----------------------------------------------*/
         auto cppQ = CppFormat(ofs, "Q");
-        ofs << "extern \"C\" " << endl;
-        ofs << "int SDQ_"<<rid<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
         if(hasF) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "int CSDQ_"<<rid<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
+            
             ofs << "qREAL x0[xn];" << endl;
             ofs << "qCOMPLEX z[xn],r[xn];" << endl;
             ofs << "qREAL dff[xn+1];";
@@ -2935,21 +2918,42 @@ ofs << R"EOF(
                 ofs << "yy += det * ytmp;" << endl << endl;
                 ofs << "}" << endl;
             }
-        } else {
+            ofs << "y[0] = crealq(yy);" << endl;
+            ofs << "y[1] = cimagq(yy);" << endl;
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+            
+            // Export the F-term, only Quadruple-type
+            ofs << "extern \"C\" " << endl;
+            ofs << "qREAL FT_"<<rid<<"(const qREAL x[], const qREAL pl[]) {" << endl;
+            ofs << "qREAL yy = FQ_" << ft_n << "(x, pl);" << endl;
+            ofs << "return yy;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
+        
+        // always export non-complex function
+        if(true) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "int SDQ_"<<rid<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
+            
             auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
             ofs << "qCOMPLEX yy = ";
             Evalf(tmp).print(cppQ);
             ofs << ";" << endl;
+            
+            ofs << "y[0] = crealq(yy);" << endl;
+            ofs << "y[1] = cimagq(yy);" << endl;
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
         }
-        ofs << "y[0] = crealq(yy);" << endl;
-        ofs << "y[1] = cimagq(yy);" << endl;
-        ofs << "return 0;" << endl;
-        ofs << "}" << endl;
-        ofs << endl;
         
-        // Multiple Precision
-        if(use_MP) {
 /*----------------------------------------------*/
+// Multiple Precision
+/*----------------------------------------------*/
+if(use_MP) {
 ofs << R"EOF(
 #undef Pi
 #undef Euler
@@ -2960,13 +2964,14 @@ ofs << R"EOF(
 )EOF" << endl;
 /*----------------------------------------------*/
         auto cppMP =  CppFormat(ofs, "MP");
-        ofs << "extern \"C\" " << endl;
-        ofs << "int SDMP_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
-        ofs << "mpREAL x[xn], x0[xn];" << endl;
-        ofs << "for(int i=0; i<xn; i++) x[i] = mpREAL(qx[i]);" << endl;
-        ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
-        ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
         if(hasF) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "int CSDMP_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+            ofs << "mpREAL x[xn], x0[xn];" << endl;
+            ofs << "for(int i=0; i<xn; i++) x[i] = mpREAL(qx[i]);" << endl;
+            ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
+            ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
+            
             ofs << "mpCOMPLEX z[xn],r[xn];" << endl;
             ofs << "mpREAL dff[xn+1];";
             ofs << "mpCOMPLEX yy=mpREAL(0), ytmp, det;" << endl;
@@ -3009,31 +3014,37 @@ ofs << R"EOF(
                 ofs << "yy += det * ytmp;" << endl << endl;
                 ofs << "}" << endl;
             }
-        } else {
+            
+            ofs << "y[0] = yy.real().toFloat128();" << endl;
+            ofs << "y[1] = yy.imag().toFloat128();" << endl;
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
+        
+        // always export non-complex function
+        if(true) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "int SDMP_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+            ofs << "mpREAL x[xn], x0[xn];" << endl;
+            ofs << "for(int i=0; i<xn; i++) x[i] = mpREAL(qx[i]);" << endl;
+            ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
+            ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
+            
             auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
             ofs << "mpCOMPLEX yy = ";
             Evalf(tmp).print(cppMP);
             ofs << ";" << endl;
-        }
-        ofs << "y[0] = yy.real().toFloat128();" << endl;
-        ofs << "y[1] = yy.imag().toFloat128();" << endl;
-        ofs << "return 0;" << endl;
-        ofs << "}" << endl;
-        ofs << endl;
-        // -----------------------
-        } // end of if(use_MP)
-        // -----------------------
-        
-        // Export the F-term
-        if(hasF) {
-            ofs << "extern \"C\" " << endl;
-            ofs << "qREAL FT_"<<rid<<"(const qREAL x[], const qREAL pl[]) {" << endl;
-            ofs << "qREAL yy = FQ_" << ft_n << "(x, pl);" << endl;
-            ofs << "return yy;" << endl;
+            
+            ofs << "y[0] = yy.real().toFloat128();" << endl;
+            ofs << "y[1] = yy.imag().toFloat128();" << endl;
+            ofs << "return 0;" << endl;
             ofs << "}" << endl;
             ofs << endl;
         }
-
+// -----------------------
+} // end of if(use_MP)
+// -----------------------
         ofs.close();
         
         ostringstream ofn, cmd;
@@ -3056,7 +3067,7 @@ ofs << R"EOF(
         archive ar;
         ar.archive_ex(gar_res, "res");
         ar.archive_ex(19790923, "c");
-        ar.archive_ex(FT_N_NX, "ftnxn");
+        ar.archive_ex(FT_N_XN, "ftnxn");
         ofstream out(garfn.str());
         out << ar;
         out.close();
@@ -3094,16 +3105,16 @@ void SD::Contours(const char *key, const char *pkey) {
         in.close();
         auto c = ar.unarchive_ex(ParallelSymbols, "c");
         if(c!=19790923) throw runtime_error("*.ci.gar error!");
-        FT_N_NX = ex_to<lst>(ar.unarchive_ex(ParallelSymbols, "ftnxn"));
+        FT_N_XN = ex_to<lst>(ar.unarchive_ex(ParallelSymbols, "ftnxn"));
     }
     
     //change 2->1 from GiNaC 1.7.7
-    if(FT_N_NX.nops()<1) return;
+    if(FT_N_XN.nops()<1) return;
     if(Verbose > 0) cout << now() << " - Contours ..." << endl << flush;
     
-    vector<ex> nxn_vec;
+    vector<ex> ftnxn_vec;
     //change 1->0 from GiNaC 1.7.7
-    for(int i=0; i<FT_N_NX.nops(); i++) nxn_vec.push_back(FT_N_NX.op(i));
+    for(int i=0; i<FT_N_XN.nops(); i++) ftnxn_vec.push_back(FT_N_XN.op(i));
     
     auto pid = getpid();
     ostringstream cmd;
@@ -3111,21 +3122,30 @@ void SD::Contours(const char *key, const char *pkey) {
     system(cmd.str().c_str());
     
     vector<ex> res =
-    GiNaC_Parallel(ParallelProcess, ParallelSymbols, nxn_vec, [&](auto & nxn, auto rid) {
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnxn_vec, [&](auto & ftnxn, auto rid) {
         // return lst{ ft_n, lst{lambda-i, lambda-max} }
         // with I*[lambda-i]*lambda, lambda < lambda-max
         // note that lambda sequence only matches to x sequence in F-term
         int npara = -1;
         for(auto kv : Parameter) if(npara<kv.first) npara = kv.first;
         dREAL paras[npara+1];
-        for(auto kv : Parameter) paras[kv.first] = CppFormat::ex2q(kv.second);
+        lst plRepl;
+        for(auto kv : Parameter) {
+            paras[kv.first] = CppFormat::ex2q(kv.second);
+            plRepl.append(PL(kv.first)==kv.second);
+        }
+        
+        auto ft = ftnxn.op(0);
+        ft = ft.subs(plRepl);
+        if(xPositive(ft) || xPositive(ex(0)-ft)) {
+            return lst{ ftnxn.op(1), 1979 }; // ft_id, las
+        }
         
         int nvars = 0;
         ostringstream fname;
         void* module = nullptr;
-        ex ft = 0; vector<ex> xs;
 
-        nvars = ex_to<numeric>(nxn.op(1)).to_int();
+        nvars = ex_to<numeric>(ftnxn.op(2)).to_int();
         ostringstream sofn;
         if(key != NULL) {
             sofn << key << ".so";
@@ -3135,14 +3155,13 @@ void SD::Contours(const char *key, const char *pkey) {
         module = dlopen(sofn.str().c_str(), RTLD_NOW);
         if (module == nullptr) throw std::runtime_error("could not open compiled module!");
         
-        
         dREAL nlas[nvars];
         dREAL max_df = -1, max_f;
         for(int i=0; i<nvars; i++) {
             MinimizeBase::FunctionType dfp = NULL;
             fname.clear();
             fname.str("");
-            fname << "dirF_"<<nxn.op(0)<<"_"<<i;
+            fname << "dirF_"<<ftnxn.op(1)<<"_"<<i;
             dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
             assert(dfp!=NULL);
             
@@ -3179,7 +3198,7 @@ void SD::Contours(const char *key, const char *pkey) {
         MinimizeBase::FunctionType fp;
         fname.clear();
         fname.str("");
-        fname << "imgF_"<<nxn.op(0);
+        fname << "imgF_"<<ftnxn.op(1);
         fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
         assert(fp!=NULL);
         
@@ -3215,7 +3234,7 @@ void SD::Contours(const char *key, const char *pkey) {
             Digits = oDigits;
         }
 
-        return lst{ nxn.op(0), las };
+        return lst{ ftnxn.op(1), las }; // ft_id, las
     
     }, "las", Verbose, !debug);
     
@@ -3405,26 +3424,39 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         if(Verbose > 3) cout << "XDim=" << xsize << ", EpsAbs=" << (double)(EpsAbs/cmax/stot) << "/" << (double)cmax << endl;
         
         auto las = LambdaMap[item.op(3)];
-        if(las.is_zero() && item.op(3)>0) {
-            cerr << "lambda with the key(ft_n=" << item.op(3) << ") is NOT found!" << endl;
+        bool hasF = item.op(3)>0;
+        if(hasF && las.is_zero()) {
+            cerr << RED << "lambda with the key(ft_n=" << item.op(3) << ") is NOT found!" << RESET << endl;
             assert(false);
+        }
+        
+        if(hasF && !is_a<lst>(las)) {
+            if(!is_zero(las-ex(1979))) {
+                cerr << RED << "something is wrong with the F-term @ ft_n = " << item.op(3) << ", las=" << las << RESET << endl;
+                assert(false);
+            } else {
+                hasF = false;
+            }
         }
         
         IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr, fpMP = nullptr;
         IntegratorBase::FT_Type ftp = nullptr;
         int rid = ex_to<numeric>(item.op(0)).to_int();
         ostringstream fname;
+        if(hasF) fname << "C";
         fname << "SDD_" << rid;
         fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
         assert(fp!=NULL);
         fname.clear();
         fname.str("");
+        if(hasF) fname << "C";
         fname << "SDQ_" << rid;
         fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
         assert(fpQ!=NULL);
         if(use_MP) {
             fname.clear();
             fname.str("");
+            if(hasF) fname << "C";
             fname << "SDMP_" << rid;
             fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             assert(fpMP!=NULL);
@@ -3436,7 +3468,6 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             ftp = (IntegratorBase::FT_Type)dlsym(module, fname.str().c_str());
             assert(ftp!=NULL);
         }
-        
         
         qREAL lambda[las.nops()];
         qREAL paras[npara+1];
@@ -3453,7 +3484,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         Integrator->Lambda = lambda;
         Integrator->XDim = xsize;
         
-        if(is_a<lst>(las)) {
+        if(hasF) {
             qREAL lamax = CppFormat::ex2q(las.op(las.nops()-1));
             if(lamax > LambdaMax) lamax = LambdaMax;
             
@@ -3801,7 +3832,7 @@ double SD::FindMinimum(ex expr, bool compare0) {
     if (!ofs) throw runtime_error("failed to open *.cpp file!");
     
     auto xs = get_xy_from(expr);
-    dREAL UB[xs.size()+ParameterUB.size()], LB[xs.size()+ParameterUB.size()];
+    dREAL UB[xs.size()], LB[xs.size()];
     lst cxRepl;
     int count = 0;
     for (auto xi : xs) {
@@ -3810,15 +3841,6 @@ double SD::FindMinimum(ex expr, bool compare0) {
         cxRepl.append(xi == symbol(xs.str()));
         UB[count] = 1;
         LB[count] = 0;
-        count++;
-    }
-    for(auto kv : ParameterUB) {
-        int key = kv.first;
-        ostringstream xs;
-        xs << "x[" << count << "]";
-        cxRepl.append(PL(key) == symbol(xs.str()));
-        UB[count] = ParameterUB[key].to_double();
-        LB[count] = ParameterLB[key].to_double();
         count++;
     }
     

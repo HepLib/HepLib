@@ -288,9 +288,7 @@ public:
     int MPDigits = 50; // digits in mpREAL for MP
     lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
     
-    map<int, numeric> Parameter;
-    map<int, numeric> ParameterUB;
-    map<int, numeric> ParameterLB;
+    map<int, numeric> Parameter; // used Contours and Integrates, use PL in Prepares part
     
     // used in Contours
     dREAL CTMax = 50;
@@ -344,7 +342,7 @@ private:
 
     void CompileMatDet();
     vector<lst> ciResult;
-    lst FT_N_NX;
+    lst FT_N_XN; // list of { ft, n, xn }
     exmap LambdaMap;
 };
 

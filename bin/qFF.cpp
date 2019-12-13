@@ -126,13 +126,12 @@ void Prepare(int idx) {
     fp.nReplacements[ep] = ex(1)/11;
     fp.nReplacements[eps] = ex(1)/111;
     if(nts>0) fp.nReplacements[z(wild())] = ex(1)/nts;
+    fp.nReplacements[zz] = ex(1)/3;
     
     SD work;
     work.epN = epN;
     work.Verbose = verb;
     work.ParallelSymbols = para_sym;
-    work.ParameterLB[0] = 0;
-    work.ParameterUB[0] = 1;
     
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
