@@ -331,7 +331,7 @@ public:
     ex VEResult();
     void VEPrint(bool endlQ=true);
     double FindMinimum(ex expr, bool compare0 = false);
-    static ex FactorX(const ex expr);
+    static ex Factor(const ex expr);
         
 private:
     vector<lst> DS(const pair<lst, lst> po_ex);

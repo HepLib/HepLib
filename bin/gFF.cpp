@@ -167,7 +167,7 @@ void Prepare(int idx) {
         kv.first.let_op(0) = kv.first.op(0) * zFactor;
         kv.first = lstHelper::subs(kv.first, z2x);
         
-        auto tmp = SD::FactorX(kv.first.op(0));
+        auto tmp = SD::Factor(kv.first.op(0));
         if(tmp.has(x(wild())) && is_a<mul>(tmp)) {
             ex rem = 1;
             for(auto item : tmp) {

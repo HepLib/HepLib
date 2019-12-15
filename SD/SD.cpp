@@ -35,7 +35,6 @@ bool SD::IsBad(ex f, vector<exmap> vmap) {
 
         // need collect_common_factors
         ft = collect_common_factors(ft.expand());
-
         if(is_exactly_a<mul>(ft)) {
             ex ret = 1;
             for (auto item : ft) {
@@ -1023,7 +1022,7 @@ while(true) {
                         else xsubs.append(xs2[ni]==0);
                         tnn /= 2;
                     }
-                    auto ftt = FactorX(fti.subs(xsubs));
+                    auto ftt = Factor(fti.subs(xsubs));
                     lst fts2;
                     if(is_a<mul>(ftt)) {
                         for(auto item : ftt) fts2.append(item);
@@ -1125,7 +1124,7 @@ while(true) {
                             else xsubs.append(xs2[ni]==0);
                             tnn /= 2;
                         }
-                        auto ftt = FactorX(ftij.subs(xsubs));
+                        auto ftt = Factor(ftij.subs(xsubs));
                         lst fts2;
                         if(is_a<mul>(ftt)) {
                             for(auto item : ftt) fts2.append(item);
@@ -2775,6 +2774,41 @@ ofs << R"EOF(
 )EOF" << endl;
 /*----------------------------------------------*/
         auto cppL =  CppFormat(ofs, "L");
+        // alwasy export non-complex function
+        if(true) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "int SDD_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+            ofs << "dREAL x[xn], x0[xn];" << endl;
+            ofs << "for(int i=0; i<xn; i++) x[i] = qx[i];" << endl;
+            ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
+            ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
+            
+            if(SD::debug) {
+                auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
+                ofs << "//debug-int: " << tmp << endl;
+            }
+            
+            auto intg = expr.subs(FTX(wild(1),wild(2))==1);
+            cseParser cse;
+            intg = cse.Parse(intg);
+            ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+            for(auto kv : cse.os()) {
+                ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppL);
+                ofs << ";" << endl;
+            }
+            
+            ofs << "dCOMPLEX yy = ";
+            Evalf(intg.subs(cxRepl).subs(plRepl)).print(cppL);
+            ofs << ";" << endl;
+            
+            ofs << "y[0] = yy.real();" << endl;
+            ofs << "y[1] = yy.imag();" << endl;
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
+        
         if(hasF) {
             ofs << "extern \"C\" " << endl;
             ofs << "int CSDD_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
@@ -2792,10 +2826,6 @@ ofs << R"EOF(
             ofs << "dCOMPLEX mat[nfxs*nfxs];" << endl;
             for(auto &kv : ft_expr) {
                 ofs << "{" << endl;
-                if(SD::debug) {
-                    ofs << "//debug-xs: " << kv.first.subs(czRepl) << endl;
-                    ofs << "//debug-int: " << kv.second.subs(czRepl) << endl;
-                }
                 lst xs0;
                 for(int ii=0; ii<fxs.size(); ii++) {
                     if(!kv.first.has(fxs[ii])) xs0.append(ii);
@@ -2837,28 +2867,7 @@ ofs << R"EOF(
             ofs << endl;
         }
         
-        // alwasy export non-complex function
-        if(true) {
-            ofs << "extern \"C\" " << endl;
-            ofs << "int SDD_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
-            ofs << "dREAL x[xn], x0[xn];" << endl;
-            ofs << "for(int i=0; i<xn; i++) x[i] = qx[i];" << endl;
-            ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
-            ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
-            
-            auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
-            if(SD::debug) {
-                ofs << "//debug-int: " << tmp << endl;
-            }
-            ofs << "dCOMPLEX yy = ";
-            Evalf(tmp).print(cppL);
-            ofs << ";" << endl;
-            ofs << "y[0] = yy.real();" << endl;
-            ofs << "y[1] = yy.imag();" << endl;
-            ofs << "return 0;" << endl;
-            ofs << "}" << endl;
-            ofs << endl;
-        }
+        
         
 /*----------------------------------------------*/
 // Quadruple
@@ -2873,6 +2882,33 @@ ofs << R"EOF(
 )EOF" << endl;
 /*----------------------------------------------*/
         auto cppQ = CppFormat(ofs, "Q");
+        
+        // always export non-complex function
+        if(true) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "int SDQ_"<<rid<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
+            
+            auto intg = expr.subs(FTX(wild(1),wild(2))==1);
+            cseParser cse;
+            intg = cse.Parse(intg);
+            ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+            for(auto kv : cse.os()) {
+                ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppQ);
+                ofs << ";" << endl;
+            }
+            
+            ofs << "qCOMPLEX yy = ";
+            Evalf(intg.subs(cxRepl).subs(plRepl)).print(cppQ);
+            ofs << ";" << endl;
+            
+            ofs << "y[0] = crealq(yy);" << endl;
+            ofs << "y[1] = cimagq(yy);" << endl;
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
+        
         if(hasF) {
             ofs << "extern \"C\" " << endl;
             ofs << "int CSDQ_"<<rid<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
@@ -2933,22 +2969,6 @@ ofs << R"EOF(
             ofs << endl;
         }
         
-        // always export non-complex function
-        if(true) {
-            ofs << "extern \"C\" " << endl;
-            ofs << "int SDQ_"<<rid<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
-            
-            auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
-            ofs << "qCOMPLEX yy = ";
-            Evalf(tmp).print(cppQ);
-            ofs << ";" << endl;
-            
-            ofs << "y[0] = crealq(yy);" << endl;
-            ofs << "y[1] = cimagq(yy);" << endl;
-            ofs << "return 0;" << endl;
-            ofs << "}" << endl;
-            ofs << endl;
-        }
         
 /*----------------------------------------------*/
 // Multiple Precision
@@ -2964,6 +2984,37 @@ ofs << R"EOF(
 )EOF" << endl;
 /*----------------------------------------------*/
         auto cppMP =  CppFormat(ofs, "MP");
+        
+        // always export non-complex function
+        if(true) {
+            ofs << "extern \"C\" " << endl;
+            ofs << "int SDMP_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+            ofs << "mpREAL x[xn], x0[xn];" << endl;
+            ofs << "for(int i=0; i<xn; i++) x[i] = mpREAL(qx[i]);" << endl;
+            ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
+            ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
+            
+            auto intg = expr.subs(FTX(wild(1),wild(2))==1);
+            cseParser cse;
+            intg = cse.Parse(intg);
+            ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+            for(auto kv : cse.os()) {
+                ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppMP);
+                ofs << ";" << endl;
+            }
+            
+            ofs << "mpCOMPLEX yy = ";
+            Evalf(intg.subs(cxRepl).subs(plRepl)).print(cppMP);
+            ofs << ";" << endl;
+            
+            ofs << "y[0] = yy.real().toFloat128();" << endl;
+            ofs << "y[1] = yy.imag().toFloat128();" << endl;
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+        }
+        
         if(hasF) {
             ofs << "extern \"C\" " << endl;
             ofs << "int CSDMP_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
@@ -3022,26 +3073,6 @@ ofs << R"EOF(
             ofs << endl;
         }
         
-        // always export non-complex function
-        if(true) {
-            ofs << "extern \"C\" " << endl;
-            ofs << "int SDMP_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
-            ofs << "mpREAL x[xn], x0[xn];" << endl;
-            ofs << "for(int i=0; i<xn; i++) x[i] = mpREAL(qx[i]);" << endl;
-            ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
-            ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
-            
-            auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
-            ofs << "mpCOMPLEX yy = ";
-            Evalf(tmp).print(cppMP);
-            ofs << ";" << endl;
-            
-            ofs << "y[0] = yy.real().toFloat128();" << endl;
-            ofs << "y[1] = yy.imag().toFloat128();" << endl;
-            ofs << "return 0;" << endl;
-            ofs << "}" << endl;
-            ofs << endl;
-        }
 // -----------------------
 } // end of if(use_MP)
 // -----------------------
@@ -3138,6 +3169,10 @@ void SD::Contours(const char *key, const char *pkey) {
         auto ft = ftnxn.op(0);
         ft = ft.subs(plRepl);
         if(xPositive(ft) || xPositive(ex(0)-ft)) {
+            if(Verbose>5) {
+                cout << "\r                                                    \r";
+                cout << "     λ: xPositive Found!" << endl;
+            }
             return lst{ ftnxn.op(1), 1979 }; // ft_id, las
         }
         
@@ -3218,7 +3253,7 @@ void SD::Contours(const char *key, const char *pkey) {
                 break;
             }
             
-            if(laEnd-laBegin <= 5.E-2*laEnd) break;
+            if(laEnd-laBegin <= 0.05*laEnd) break;
             min = (laBegin + laEnd) / 2.0;
         }
         min = laBegin;
@@ -3963,18 +3998,20 @@ void SD::VEPrint(bool endlQ) {
     if(endlQ) cout << endl;
 }
 
-ex SD::FactorX(const ex expr) {
-    exset xset;
-    expr.find(x(wild()), xset);
-    lst x2s, s2x;
-    for(auto xi : xset) {
-        symbol tx;
-        x2s.append(xi==tx);
-        s2x.append(tx==xi);
+ex SD::Factor(const ex expr) {
+    exset xyset;
+    expr.find(x(wild()), xyset);
+    expr.find(y(wild()), xyset);
+    expr.find(PL(wild()), xyset);
+    lst xy2s, s2xy;
+    for(auto xyi : xyset) {
+        symbol txy;
+        xy2s.append(xyi==txy);
+        s2xy.append(txy==xyi);
     }
-    ex expr2 = expr.subs(x2s);
+    ex expr2 = expr.subs(xy2s);
     expr2 = factor(expr2);
-    expr2 = expr2.subs(s2x);
+    expr2 = expr2.subs(s2xy);
     return expr2;
 }
 
