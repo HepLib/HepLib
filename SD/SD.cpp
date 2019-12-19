@@ -116,8 +116,8 @@ vector<pair<lst, lst>> SD::AutoEnd(pair<lst, lst> po_ex) {
             
             for(int ni=0; ni<polist.nops(); ni++) {
                 auto po = polist.op(ni);
-                auto expo = exlist.op(ni).subs(lst{ep==0,eps==0});
-                if(is_a<numeric>(expo) && expo>=0) continue;
+                auto expo = exlist.op(ni); // note that expo may decrease when using diff
+                if(is_a<numeric>(expo) && ex_to<numeric>(expo).is_pos_integer()) continue;
                 if(IsBad(po, vmap)) {
                     OK = false;
                     break;
@@ -125,7 +125,7 @@ vector<pair<lst, lst>> SD::AutoEnd(pair<lst, lst> po_ex) {
             }
             if(!OK) break;
         }
-        
+
         if(OK) {
             vector<pair<lst, lst>> res;
             for(auto item : polists) res.push_back(make_pair(ex_to<lst>(item), exlist));
@@ -773,7 +773,7 @@ void SD::Initialize(FeynmanParameter fp) {
     Normalizes();
     
     if(fp.isAsy) {
-        KillPowers();
+        KillPowers(); // TODO: needs check again
         auto fes = FunExp;
         FunExp.clear();
         FunExp.shrink_to_fit();
@@ -1085,7 +1085,7 @@ while(true) {
     
     bool ret = false;
     for(auto fe : funexp) {
-        ex ft = fe.first.op(1);
+        ex ft = fe.first.op(1).subs(vs==0); // only used in Initialize when isAsy=true;
         ft = collect_common_factors(ft);
         lst fts;
         if(is_a<mul>(ft)) {
@@ -1183,6 +1183,7 @@ while(true) {
                 cout << RED << "Warning: Still under working with eqn = " << RESET << eqn << endl;
                 FunExp.push_back(fe);
             }
+            if(Verbose>0) cout << "KillPowers used!" << endl;
             continue; // for(auto fe : funexp)
         }
         
@@ -1276,6 +1277,7 @@ while(true) {
                 for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xi==1-xx).subs(xx==xi);
                 FunExp.push_back(make_pair(f1,e1));
                 ret = true;
+                if(Verbose>0) cout << "KillPowers used!" << endl;
                 continue; // for(auto fe : funexp)
             }
             
@@ -1361,7 +1363,7 @@ while(true) {
                     e3.append(1);
                     FunExp.push_back(make_pair(f3,e3));
                 }
-            } else if((eqn-(xi+xj-1)).is_zero() || (eqn+(xi+xj-1)).is_zero()) {
+            } else if( (Deltas.size()<1) && ((eqn-(xi+xj-1)).is_zero() || (eqn+(xi+xj-1)).is_zero()) ) {
                 ret = true;
                 symbol xx, yy, zz;
                 // Part I: xi+xj-1>0
@@ -1388,9 +1390,11 @@ while(true) {
                 e3.append(1);
                 FunExp.push_back(make_pair(f3,e3));
             } else {
-                cout << RED << "Not handled with eqn=" << eqn << RESET << endl;
                 FunExp.push_back(fe);
+                if(Deltas.size()>0) continue; // for(auto fe : funexp)
+                cout << RED << "Not handled with eqn=" << eqn << RESET << endl;
             }
+            if(Verbose>0) cout << "KillPowers used!" << endl;
             continue; // for(auto fe : funexp)
         }
         

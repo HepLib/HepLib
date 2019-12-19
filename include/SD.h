@@ -276,7 +276,7 @@ public:
     ex ResultError;
     const char * CFLAGS = "";
     bool IsZero = false;
-    bool CheckEnd = false;
+    bool CheckEnd = true;
     //bool use_CCF = true;
     bool use_ErrMin = false;
     bool use_las = false;
