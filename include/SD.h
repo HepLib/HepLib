@@ -32,6 +32,7 @@ struct FeynmanParameter {
     exmap nReplacements;
     ex Prefactor = 1;
     bool isQuasi = false;
+    bool isAsy = false;
 };
 
 struct XIntegrand {
@@ -61,8 +62,8 @@ public:
 class SecDecG : public SecDecBase {
 public:
     vector<exmap> x2y(const ex &xpol) override;
+    static vector<vector<int>> RunQHull(const matrix &pts);
 private:
-    vector<vector<int>> RunQHull(const matrix &pts);
     vector<matrix> ZeroFaces(const matrix &pts);
     matrix NormalVectors(const vector<matrix> &zfs);
     matrix DualCone(const matrix &pts);
@@ -332,6 +333,8 @@ public:
     void VEPrint(bool endlQ=true);
     double FindMinimum(ex expr, bool compare0 = false);
     static ex Factor(const ex expr);
+    static ex PExpand(ex xpol);
+    static int PRank(matrix m);
         
 private:
     vector<lst> DS(const pair<lst, lst> po_ex);
@@ -368,7 +371,6 @@ DECLARE_FUNCTION_1P(fabs)
 DECLARE_FUNCTION_1P(x)
 DECLARE_FUNCTION_1P(y)
 DECLARE_FUNCTION_1P(z)
-DECLARE_FUNCTION_1P(t)
 DECLARE_FUNCTION_1P(PL)
 DECLARE_FUNCTION_1P(CT)
 DECLARE_FUNCTION_2P(FTX)

@@ -687,6 +687,14 @@ void SD::Initialize(FeynmanParameter fp) {
         fList2.append(uList2[i]);
     }
     
+    ex xpol = 1;
+    if(fp.isAsy) {
+        auto uf = fList1;
+        uf.sort();
+        uf.unique();
+        for(auto item : uf) xpol *= item.subs(xtNeg);
+    }
+    
     vector<pair<lst, lst>> ret;
     ret.push_back(make_pair(fList1, fList2));
 
@@ -762,9 +770,91 @@ void SD::Initialize(FeynmanParameter fp) {
     }
     Deltas.push_back(delta);
     FunExp = ret;
+    Normalizes();
+    
+    if(fp.isAsy) {
+        KillPowers();
+        auto fes = FunExp;
+        FunExp.clear();
+        FunExp.shrink_to_fit();
+        auto rs = PExpand(xpol);
+        if(Verbose>0) {
+            cout << "  \\--Asy Regions:" << (rs.nops()-1) << endl;
+            if(rs.nops()>1) {
+                for(auto ri : rs) cout << "  \\--" << ri << endl;
+            }
+        }
+        
+        auto r0 = rs.op(0);
+        auto r0y = subs(r0,x(wild())==y(wild()));
+        for(int i=1; i<rs.nops(); i++) {
+            lst srepl;
+            auto ri = rs.op(i);
+            ex vs_pow = 0;
+            for(int j=0; j<r0.nops(); j++) {
+                srepl.append(r0.op(j)==r0y.op(j) * pow(vs, ri.op(j)));
+                vs_pow += ri.op(j);
+            }
+            for(auto fe : fes) {
+                auto fs = subs(fe.first, srepl);
+                fs = subs(fs, y(wild())==x(wild()));
+                auto es = fe.second;
+                ex fpre = fs.op(0);
+                assert((es.op(0)-1).is_zero());
+                
+                lst fs2, es2;
+                for(int j=1; j<fs.nops(); j++) {
+                    auto fj = fs.op(j);
+                    auto tmp = fj.expand();
+                    auto vsp = tmp.ldegree(vs);
+                    vs_pow += vsp * es.op(j);
+                    tmp = collect_common_factors(tmp)/pow(vs,vsp);
+                    fs2.append(tmp);
+                    es2.append(es.op(j));
+                }
+                auto vsn0 = vsRank(fpre); // maybe need to expand ep/eps first
+                auto vsn = vsn0 + vs_pow.subs(lst{ep==0, eps==0});
+                int di=0;
+                lst fss, ess;
+                fss.append(fs2);
+                ess.append(es2);
+                while(di<=sN-vsn) { // fss, ess will get updated
+                    lst fss2, ess2;
+                    for(int ife=0; ife<fss.nops(); ife++) {
+                        lst fs3 = ex_to<lst>(fss.op(ife));
+                        lst es3 = ex_to<lst>(ess.op(ife));
+                        if(di<sN-vsn) {
+                            for(int ii=0; ii<fs3.nops(); ii++) {
+                                lst fs4 = fs3;
+                                lst es4 = es3;
+                                auto dit = mma_diff(fs4.op(ii),vs,1,false);
+                                if(!dit.is_zero()) {
+                                    if((es4.op(ii)-1).is_zero()) {
+                                        fs4.let_op(ii) = dit;
+                                    } else {
+                                        fs4.append(es4.op(ii)*dit);
+                                        es4.let_op(ii) = es4.op(ii)-1;
+                                        es4.append(1);
+                                    }
+                                    fss2.append(fs4);
+                                    ess2.append(es4);
+                                }
+                            }
+                        }
+                        fs3 = ex_to<lst>(subs(fs3,vs==0));
+                        fs3.prepend(fpre/factorial(di) * pow(vs,di+vs_pow));
+                        es3.prepend(1);
+                        FunExp.push_back(make_pair(fs3,es3));
+                    }
+                    fss = fss2;
+                    ess = ess2;
+                    di++;
+                }
+            }
+        }
+    }
 
     // Do Other Simplifications
-    Normalizes();
     XReOrders();
     Normalizes();
 }
@@ -3804,6 +3894,7 @@ void SD::Evaluate(FeynmanParameter fp, const char* key) {
     if(SecDec==NULL) SecDec = new SecDecG();
     if(Integrator==NULL) Integrator = new HCubature();
     if(Minimizer==NULL) Minimizer = new MinUit();
+    if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");
     
     Initialize(fp);
     if(FunExp.size()<1) return;
@@ -3835,6 +3926,7 @@ void SD::Evaluate(XIntegrand xint, const char *key) {
     if(SecDec==NULL) SecDec = new SecDecG();
     if(Integrator==NULL) Integrator = new HCubature();    
     if(Minimizer==NULL) Minimizer = new MinUit();
+    if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");
     
     Initialize(xint);
     if(FunExp.size()<1) return;
@@ -4002,6 +4094,7 @@ ex SD::Factor(const ex expr) {
     exset xyset;
     expr.find(x(wild()), xyset);
     expr.find(y(wild()), xyset);
+    expr.find(z(wild()), xyset);
     expr.find(PL(wild()), xyset);
     lst xy2s, s2xy;
     for(auto xyi : xyset) {
@@ -4017,6 +4110,123 @@ ex SD::Factor(const ex expr) {
 
 ex SD::PrefactorFIESTA(int nLoop) {
     return  pow(I*pow(Pi,2-ep)*exp(-ep*Euler), -ex(nLoop));
+}
+
+int SD::PRank(matrix m) {
+    int nr = m.rows();
+    int nc = m.cols();
+    int pr = 0;
+    if(nr>1) {
+        matrix pr_mat(nr, nc);
+        for(int ic=0; ic<nc; ic++) {
+            for(int ir=0; ir<nr; ir++) {
+                pr_mat(ir,ic) = m(ir,ic)-m(0,ic);
+            }
+        }
+        pr = pr_mat.rank();
+    }
+    return pr;
+}
+
+// PExpand from asy2.1.1.m
+ex SD::PExpand(ex xpol) {
+    lst nlst;
+    ex pol = collect_common_factors(xpol.expand());
+    if(is_a<mul>(pol)) {
+        ex tmp = 1;
+        for(int i=0; i<pol.nops(); i++) {
+            if(pol.op(i).match(pow(x(wild(1)),wild(2)))) continue;
+            if(pol.op(i).match(pow(y(wild(1)),wild(2)))) continue;
+            if(pol.op(i).match(pow(vs,wild(2)))) continue;
+            tmp *= pol.op(i);
+        }
+        pol = tmp;
+    }
+    pol = pol.expand();
+    auto xs = get_xy_from(pol);
+    int nx = xs.size();
+    int id = nx-1;
+    
+    lst lxs;
+    for(auto item : xs) lxs.append(item);
+    lxs.append(vs);
+    pol = pol.expand().collect(lxs, true);
+    int np = is_a<add>(pol) ? pol.nops() : 1;
+    matrix rs_mat(np, nx+1);
+        
+    for(int n=0; n<np; n++) {
+        ex tmp = pol.op(n);
+        rs_mat(n,0) = tmp.degree(vs);
+        for(int ix=0; ix<nx; ix++) {
+            rs_mat(n, ix+1) = mma_collect(tmp, xs[ix]).degree(xs[ix]);
+        }
+    }
+    
+    int pr = PRank(rs_mat);
+    if(pr-1 != id) return nlst;
+    
+    matrix rp_mat(np, nx);
+    for(int n=0; n<np; n++) {
+        for(int ix=0; ix<nx; ix++) {
+            rp_mat(n,ix) = rs_mat(n,ix);
+        }
+    }
+    int rp = PRank(rp_mat);
+    
+    if(pr != rp) {
+        cout << "pr=" << pr << ", rp=" << rp << endl;
+        cout << RED << "projection method does not work!" << RESET << endl;
+        assert(false);
+    }
+    
+    auto fs = SecDecG::RunQHull(rp_mat);
+    lst vs, ret;
+    for(int i=0; i<id+1; i++) {
+        symbol v;
+        vs.append(v);
+    }
+    auto vv = vs.op(id);
+    for(auto fi : fs) {
+        lst eqns;
+        for(auto pi : fi) {
+            ex eqn = rs_mat(pi,0);
+            for(int i=0; i<id; i++) {
+                eqn += vs.op(i) * rs_mat(pi,i+1);
+            }
+            eqns.append(eqn==vv);
+        }
+        auto lss = lsolve(eqns, vs);
+        if(lss.nops()>1) {
+            bool bf = true;
+            auto vs2 = subs(vs,lss);
+            for(int r=0; r<np; r++) {
+                ex eqn = rs_mat(r,0);
+                for(int i=0; i<id; i++) {
+                    eqn += vs2.op(i) * rs_mat(r,i+1);
+                }
+                ex chk = eqn-vs2.op(id);
+                assert(is_a<numeric>(chk));
+                if(chk<0) {
+                    bf = false;
+                    break;
+                }
+            }
+            if(bf) {
+                vs2.let_op(id) = 0;
+                ex min = vs2.op(0);
+                for(auto vsi : vs2) {
+                    if(vsi<min) min = vsi;
+                }
+                for(int i=0; i<vs2.nops(); i++) vs2.let_op(i) = vs2.op(i)-min;
+                ret.append(vs2);
+            }
+        }
+    }
+    
+    lst lxs2;
+    for(auto item : xs) lxs2.append(item);
+    ret.prepend(lxs2);
+    return ret;
 }
 
 }
