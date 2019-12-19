@@ -20,7 +20,7 @@ vector<exmap> SecDecBase::x2y(const lst &xpols) {
 }
 
 /*-----------------------------------------------------*/
-/*                    CheckAtX1                        */
+/*                   CheckAtEnd                        */
 /*-----------------------------------------------------*/
 bool SD::IsBad(ex f, vector<exmap> vmap) {
     for(auto &vi : vmap) {
@@ -686,15 +686,7 @@ void SD::Initialize(FeynmanParameter fp) {
         fList1.append(uList1[i]);
         fList2.append(uList2[i]);
     }
-    
-    ex xpol = 1;
-    if(fp.isAsy) {
-        auto uf = fList1;
-        uf.sort();
-        uf.unique();
-        for(auto item : uf) xpol *= item.subs(xtNeg);
-    }
-    
+
     vector<pair<lst, lst>> ret;
     ret.push_back(make_pair(fList1, fList2));
 
@@ -770,91 +762,9 @@ void SD::Initialize(FeynmanParameter fp) {
     }
     Deltas.push_back(delta);
     FunExp = ret;
-    Normalizes();
     
-    if(fp.isAsy) {
-        KillPowers(); // TODO: needs check again
-        auto fes = FunExp;
-        FunExp.clear();
-        FunExp.shrink_to_fit();
-        auto rs = PExpand(xpol);
-        if(Verbose>0) {
-            cout << "  \\--Asy Regions:" << (rs.nops()-1) << endl;
-            if(rs.nops()>1) {
-                for(auto ri : rs) cout << "  \\--" << ri << endl;
-            }
-        }
-        
-        auto r0 = rs.op(0);
-        auto r0y = subs(r0,x(wild())==y(wild()));
-        for(int i=1; i<rs.nops(); i++) {
-            lst srepl;
-            auto ri = rs.op(i);
-            ex vs_pow = 0;
-            for(int j=0; j<r0.nops(); j++) {
-                srepl.append(r0.op(j)==r0y.op(j) * pow(vs, ri.op(j)));
-                vs_pow += ri.op(j);
-            }
-            for(auto fe : fes) {
-                auto fs = subs(fe.first, srepl);
-                fs = subs(fs, y(wild())==x(wild()));
-                auto es = fe.second;
-                ex fpre = fs.op(0);
-                assert((es.op(0)-1).is_zero());
-                
-                lst fs2, es2;
-                for(int j=1; j<fs.nops(); j++) {
-                    auto fj = fs.op(j);
-                    auto tmp = fj.expand();
-                    auto vsp = tmp.ldegree(vs);
-                    vs_pow += vsp * es.op(j);
-                    tmp = collect_common_factors(tmp)/pow(vs,vsp);
-                    fs2.append(tmp);
-                    es2.append(es.op(j));
-                }
-                auto vsn0 = vsRank(fpre); // maybe need to expand ep/eps first
-                auto vsn = vsn0 + vs_pow.subs(lst{ep==0, eps==0});
-                int di=0;
-                lst fss, ess;
-                fss.append(fs2);
-                ess.append(es2);
-                while(di<=sN-vsn) { // fss, ess will get updated
-                    lst fss2, ess2;
-                    for(int ife=0; ife<fss.nops(); ife++) {
-                        lst fs3 = ex_to<lst>(fss.op(ife));
-                        lst es3 = ex_to<lst>(ess.op(ife));
-                        if(di<sN-vsn) {
-                            for(int ii=0; ii<fs3.nops(); ii++) {
-                                lst fs4 = fs3;
-                                lst es4 = es3;
-                                auto dit = mma_diff(fs4.op(ii),vs,1,false);
-                                if(!dit.is_zero()) {
-                                    if((es4.op(ii)-1).is_zero()) {
-                                        fs4.let_op(ii) = dit;
-                                    } else {
-                                        fs4.append(es4.op(ii)*dit);
-                                        es4.let_op(ii) = es4.op(ii)-1;
-                                        es4.append(1);
-                                    }
-                                    fss2.append(fs4);
-                                    ess2.append(es4);
-                                }
-                            }
-                        }
-                        fs3 = ex_to<lst>(subs(fs3,vs==0));
-                        fs3.prepend(fpre/factorial(di) * pow(vs,di+vs_pow));
-                        es3.prepend(1);
-                        FunExp.push_back(make_pair(fs3,es3));
-                    }
-                    fss = fss2;
-                    ess = ess2;
-                    di++;
-                }
-            }
-        }
-    }
-
-    // Do Other Simplifications
+    Normalizes();
+    if(fp.isAsy) DoAsy();
     XReOrders();
     Normalizes();
 }
@@ -1183,7 +1093,6 @@ while(true) {
                 cout << RED << "Warning: Still under working with eqn = " << RESET << eqn << endl;
                 FunExp.push_back(fe);
             }
-            if(Verbose>0) cout << "KillPowers used!" << endl;
             continue; // for(auto fe : funexp)
         }
         
@@ -1247,7 +1156,7 @@ while(true) {
                                     cout << RED << "Not handled with eqn=" << eqn << RESET << endl;
                                     continue;
                                 }
-                                
+
                                 if(!ook) {
                                     eqn = eqn.subs(lst{xi==xs[i], xj==xs[j]});
                                     ok2 = false;
@@ -1263,7 +1172,7 @@ while(true) {
             }
             if(!ok2) break;
         }
-        
+
         if(!ok2) {
             auto xij = get_x_from(eqn);
             ex xi = xij[0];
@@ -1277,7 +1186,6 @@ while(true) {
                 for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xi==1-xx).subs(xx==xi);
                 FunExp.push_back(make_pair(f1,e1));
                 ret = true;
-                if(Verbose>0) cout << "KillPowers used!" << endl;
                 continue; // for(auto fe : funexp)
             }
             
@@ -1394,7 +1302,6 @@ while(true) {
                 if(Deltas.size()>0) continue; // for(auto fe : funexp)
                 cout << RED << "Not handled with eqn=" << eqn << RESET << endl;
             }
-            if(Verbose>0) cout << "KillPowers used!" << endl;
             continue; // for(auto fe : funexp)
         }
         
@@ -3882,8 +3789,8 @@ void SD::Initialize(XIntegrand xint) {
     FunExp.clear();
     FunExp.push_back(make_pair(xint.Functions, xint.Exponents));
     
-    // Do Other Simplifications
     Normalizes();
+    if(xint.isAsy) DoAsy();
     XReOrders();
     Normalizes();
 }
@@ -4231,6 +4138,106 @@ ex SD::PExpand(ex xpol) {
     for(auto item : xs) lxs2.append(item);
     ret.prepend(lxs2);
     return ret;
+}
+
+void SD::DoAsy() {
+    KillPowers(); // TODO: needs more check
+    auto fes = FunExp;
+    FunExp.clear();
+    FunExp.shrink_to_fit();
+    
+    for(auto fe : fes) {
+        ex xpol = 1;
+        lst uf;
+        for(int i=0; i<fe.first.nops(); i++) {
+            if(is_a<numeric>(fe.second.op(i)) && ex_to<numeric>(fe.second.op(i)).is_nonneg_integer()) continue;
+            uf.append(fe.first.op(i));
+        }
+        uf.sort();
+        uf.unique();
+        for(auto item : uf) xpol *= item;
+        auto rs = PExpand(xpol);
+        if(Verbose>10) {
+            cout << "  \\--Asy Regions:" << (rs.nops()-1) << endl;
+            if(rs.nops()>1) {
+                for(auto ri : rs) cout << "     " << ri << endl;
+            }
+        }
+        
+        auto r0 = rs.op(0);
+        auto r0y = subs(r0,x(wild())==y(wild()));
+        for(int i=1; i<rs.nops(); i++) {
+            lst srepl;
+            auto ri = rs.op(i);
+            ex vs_pow = 0;
+            for(int j=0; j<r0.nops(); j++) {
+                srepl.append(r0.op(j)==r0y.op(j) * pow(vs, ri.op(j)));
+                vs_pow += ri.op(j);
+            }
+
+            auto fs = subs(fe.first, srepl);
+            fs = subs(fs, y(wild())==x(wild()));
+            auto es = fe.second;
+            ex fpre = fs.op(0);
+            assert((es.op(0)-1).is_zero());
+            
+            lst fs2, es2;
+            for(int j=1; j<fs.nops(); j++) {
+                auto fj = fs.op(j);
+                auto tmp = fj.expand();
+                auto vsp = 0;
+                try {
+                    vsp = tmp.ldegree(vs);
+                } catch(exception &e) {
+                    cout << e.what() << endl;
+                    cout << WHITE << "non-integer exponent" << RESET << endl;
+                    assert(false);
+                }
+                vs_pow += vsp * es.op(j);
+                tmp = collect_common_factors(tmp)/pow(vs,vsp);
+                fs2.append(tmp);
+                es2.append(es.op(j));
+            }
+            auto vsn0 = vsRank(fpre); // maybe need to expand ep/eps first
+            auto vsn = vsn0 + vs_pow.subs(lst{ep==0, eps==0});
+            int di=0;
+            lst fss, ess;
+            fss.append(fs2);
+            ess.append(es2);
+            while(di<=sN-vsn) { // fss, ess will get updated
+                lst fss2, ess2;
+                for(int ife=0; ife<fss.nops(); ife++) {
+                    lst fs3 = ex_to<lst>(fss.op(ife));
+                    lst es3 = ex_to<lst>(ess.op(ife));
+                    if(di<sN-vsn) {
+                        for(int ii=0; ii<fs3.nops(); ii++) {
+                            lst fs4 = fs3;
+                            lst es4 = es3;
+                            auto dit = mma_diff(fs4.op(ii),vs,1,false);
+                            if(!dit.is_zero()) {
+                                if((es4.op(ii)-1).is_zero()) {
+                                    fs4.let_op(ii) = dit;
+                                } else {
+                                    fs4.append(es4.op(ii)*dit);
+                                    es4.let_op(ii) = es4.op(ii)-1;
+                                    es4.append(1);
+                                }
+                                fss2.append(fs4);
+                                ess2.append(es4);
+                            }
+                        }
+                    }
+                    fs3 = ex_to<lst>(subs(fs3,vs==0));
+                    fs3.prepend(fpre/factorial(di) * pow(vs,di+vs_pow));
+                    es3.prepend(1);
+                    FunExp.push_back(make_pair(fs3,es3));
+                }
+                fss = fss2;
+                ess = ess2;
+                di++;
+            }
+        }
+    }
 }
 
 }

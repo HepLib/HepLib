@@ -40,6 +40,7 @@ struct XIntegrand {
     lst Exponents;
     exmap nReplacements;
     vector<lst> Deltas;
+    bool isAsy = false;
 };
 
 /*-----------------------------------------------------*/
@@ -342,6 +343,7 @@ private:
     static int epRank(ex);
     static int epsRank(ex);
     static int vsRank(ex);
+    void DoAsy();
 
     void CompileMatDet();
     vector<lst> ciResult;
