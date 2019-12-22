@@ -334,7 +334,7 @@ public:
     void VEPrint(bool endlQ=true);
     double FindMinimum(ex expr, bool compare0 = false);
     static ex Factor(const ex expr);
-    static ex PExpand(ex xpol);
+    static ex PExpand(ex xpol, bool delta=true);
     static int PRank(matrix m);
         
 private:

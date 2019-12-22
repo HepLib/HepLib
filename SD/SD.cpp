@@ -511,7 +511,7 @@ void SD::Initialize(FeynmanParameter fp) {
             ns.let_op(i) = 0;
             ps.let_op(i) = 1;
             continue;
-        } else if(ns.op(i) <= 0) {
+        } else if(is_a<numeric>(ns.op(i)) && (ns.op(i)<=0)) {
             xtNeg[x(i)]=0;
             if(ns.op(i)<0) {
                 asgn *= pow(-1, ns.op(i));
@@ -692,8 +692,9 @@ void SD::Initialize(FeynmanParameter fp) {
 
     // negative index
     for(int i=0; i<xn; i++) {
-    if(is_a<numeric>(ns[i]) && ns[i]<0) {
-        for(int j=0; j<-ns[i]; j++) {
+    if(is_a<numeric>(ns.op(i)) && ns.op(i)<0) {
+        assert(ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer());
+        for(int j=0; j<-ns.op(i); j++) {
             vector<pair<lst, lst>> nret;
             for(auto kv : ret) {
                 auto plst = kv.first;
@@ -729,19 +730,20 @@ void SD::Initialize(FeynmanParameter fp) {
     // ex pre = fp.Prefactor; // moved to above
     pre *= asgn * pow(I,ls.nops()+(fp.isQuasi ? tls.nops() : 0)) * pow(Pi, ad/2) * tgamma(a-ad/2);
     for(int i=0; i<ns.nops(); i++) {
-        if(is_a<numeric>(ns[i]) && ns.op(i)<=0) continue;
+        if(is_a<numeric>(ns.op(i)) && ns.op(i)<=0) continue;
         pre /= tgamma(ns.op(i));
     }
     if(tls.nops()>0 && (!fp.isQuasi)) pre *= exp(I * Pi * tls.nops()*(2-2*ep)/2);
     
     ex xpre = 1;
     for(int i=0; i<ns.nops(); i++) {
-        if(is_a<numeric>(ns[i]) && ns.op(i)<=1) continue;
-        if(is_a<numeric>(ns.op(i))) xpre *= pow(x(i), ns.op(i)-1);
-        else for(auto &kv : ret) {
+        if(is_a<numeric>(ns.op(i)) && ns.op(i)<=1) continue;
+        else {
+            for(auto &kv : ret) {
                 kv.first.append(x(i));
                 kv.second.append(ns.op(i)-1);
              }
+        }
     }
 
     for(auto &kv : ret) {
@@ -757,7 +759,7 @@ void SD::Initialize(FeynmanParameter fp) {
 
     lst delta;
     for(int i=0; i<ns.nops(); i++) {
-        if(is_a<numeric>(ns[i]) && ns.op(i)<=0) continue;
+        if(is_a<numeric>(ns.op(i)) && ns.op(i)<=0) continue;
         delta.append(x(i));
     }
     Deltas.push_back(delta);
@@ -1349,13 +1351,16 @@ void SD::Scalelesses(bool verb) {
             for(long long i=1; i<ex_to<numeric>(GiNaC::pow(2,delta.nops())).to_long()-1; i++) {
                 lst sRepl;
                 auto ci = i;
+                ex n_s = 0;
                 for(int j=0; (j<delta.nops() && ci>0); j++) {
-                    if((ci % 2)==1) sRepl.append(delta[j]==delta[j]*s);
+                    if((ci % 2)==1) {
+                        sRepl.append(delta[j]==delta[j]*s);
+                        n_s += 1;
+                    }
                     ci = ci / 2;
                 }
                 
                 bool is_s = true;
-                ex n_s = 0;
                 for(int j=0; j<fun.nops(); j++) {
                     if(is_a<numeric>(exp.op(j)) && ex_to<numeric>(exp.op(j)).is_nonneg_integer()) continue;
                     auto tmp = mma_collect(fun.op(j).subs(sRepl),s);
@@ -1366,7 +1371,7 @@ void SD::Scalelesses(bool verb) {
                     n_s += tmp.degree(s) * exp.op(j);
                 }
                 if(!is_s) continue;
-                if(normal(n_s).has(ep)) {
+                if(!normal(n_s).is_zero()) {
                     is0 = true;
                     break;
                 }
@@ -4040,7 +4045,7 @@ int SD::PRank(matrix m) {
 }
 
 // PExpand from asy2.1.1.m
-ex SD::PExpand(ex xpol) {
+ex SD::PExpand(ex xpol, bool delta) {
     lst nlst;
     ex pol = collect_common_factors(xpol.expand());
     if(is_a<mul>(pol)) {
@@ -4056,7 +4061,7 @@ ex SD::PExpand(ex xpol) {
     pol = pol.expand();
     auto xs = get_xy_from(pol);
     int nx = xs.size();
-    int id = nx-1;
+    int id = delta ? nx-1 : nx;
     
     lst lxs;
     for(auto item : xs) lxs.append(item);
@@ -4076,9 +4081,9 @@ ex SD::PExpand(ex xpol) {
     int pr = PRank(rs_mat);
     if(pr-1 != id) return nlst;
     
-    matrix rp_mat(np, nx);
+    matrix rp_mat(np, id+1);
     for(int n=0; n<np; n++) {
-        for(int ix=0; ix<nx; ix++) {
+        for(int ix=0; ix<id+1; ix++) {
             rp_mat(n,ix) = rs_mat(n,ix);
         }
     }
@@ -4141,7 +4146,29 @@ ex SD::PExpand(ex xpol) {
 }
 
 void SD::DoAsy() {
+    bool has_delta = Deltas.size()>0;
+    if(has_delta) assert(Deltas.size()==1);
+    if(has_delta) {
+        for(auto fe : FunExp) {
+            ex expn = 0;
+            symbol s;
+            for(int i=0; i<fe.first.nops(); i++) {
+                auto item = fe.first.op(i).subs(x(wild())==s*y(wild())).subs(y(wild())==x(wild()));
+                if(!item.has(s)) continue;
+                item = mma_collect(item, s);
+                assert(item.ldegree(s)==item.degree(s));
+                expn += item.degree(s) * fe.second.op(i);
+            }
+            auto xsize = get_x_from(fe.first).size();
+            if(!normal(expn+xsize).is_zero()) {
+                cout << RED << "expn=" << expn << ", xsize=" << xsize << RESET << endl;
+                assert(false);
+            }
+        }
+    }
+    
     KillPowers(); // TODO: needs more check
+    
     auto fes = FunExp;
     FunExp.clear();
     FunExp.shrink_to_fit();
@@ -4156,7 +4183,7 @@ void SD::DoAsy() {
         uf.sort();
         uf.unique();
         for(auto item : uf) xpol *= item;
-        auto rs = PExpand(xpol);
+        auto rs = PExpand(xpol, has_delta);
         if(Verbose>10) {
             cout << "  \\--Asy Regions:" << (rs.nops()-1) << endl;
             if(rs.nops()>1) {
