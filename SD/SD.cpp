@@ -997,7 +997,7 @@ while(true) {
     
     bool ret = false;
     for(auto fe : funexp) {
-        ex ft = fe.first.op(1).subs(vs==0); // only used in Initialize when isAsy=true;
+        ex ft = fe.first.op(1);
         ft = collect_common_factors(ft);
         lst fts;
         if(is_a<mul>(ft)) {
@@ -4146,6 +4146,101 @@ ex SD::PExpand(ex xpol, bool delta) {
 }
 
 void SD::DoAsy() {
+    
+    // part copied from KillPowers
+    while(true) {
+        vector<pair<lst, lst>> funexp;
+        for(auto fe : FunExp) {
+            funexp.push_back(fe);
+        }
+        FunExp.clear();
+        FunExp.shrink_to_fit();
+        
+        bool ret = false;
+        for(auto fe : funexp) {
+            ex ft = fe.first.op(1).subs(vs==0);
+            ex eqn;
+            bool ok2 = true;
+            auto xs = get_x_from(ft);
+            for(int i=0; i<xs.size(); i++) { // keep only 2 xi's
+                for(int j=i+1; j<xs.size(); j++) { // keep only 2 xi's
+                    symbol xi("xi"), xj("xj");
+                    auto ftt = ft.subs(lst{xs[i]==xi, xs[j]==xj});
+                    ftt = Factor(ftt);
+                    lst fts2;
+                    if(is_a<mul>(ftt)) {
+                        for(auto item : ftt) fts2.append(item);
+                    } else {
+                        fts2.append(ftt);
+                    }
+                    lst tmp_lst;
+                    for(auto item : fts2) {
+                        auto tmp = Factor(item.subs(x(wild())==0));
+                        if(is_a<mul>(tmp)) {
+                            for(auto it : tmp) tmp_lst.append(it);
+                        } else {
+                            tmp_lst.append(tmp);
+                        }
+                    }
+                    fts2 = tmp_lst;
+                                        
+                    for(auto item : fts2) {
+                        auto tmp = item;
+                        if(item.match(pow(wild(1),wild(2)))) tmp = item.op(0);
+                        if(tmp.degree(xi)==1 && tmp.degree(xj)==1) {
+                            ex ci = tmp.coeff(xi);
+                            ex cj = tmp.coeff(xj);
+                            if((ci*xi+cj*xj-tmp).is_zero() && is_a<numeric>(ci*cj) && (ci*cj)<0) {
+                                eqn = tmp.subs(lst{xi==xs[i], xj==xs[j]});
+                                ok2 = false;
+                                break;
+                            }
+                        }
+                    }
+                    if(!ok2) break;
+                }
+                if(!ok2) break;
+            }
+            
+            if(!ok2) {
+                auto xij = get_x_from(eqn);
+                ex xi = xij[0];
+                ex xj = xij[1];
+                
+                ex ci = eqn.coeff(xi);
+                ex cj = eqn.coeff(xj);
+                
+                // handle eqn==ci xi - cj xj
+                ret = true;
+                ci = abs(ci);
+                cj = abs(cj);
+                symbol yi,yj;
+                // Part I: ci xi-cj xj>0, i.e., xi>cj/ci xj
+                auto f1 = fe.first;
+                auto e1 = fe.second;
+                ex c1 = cj/ci;
+                for(int i=0; i<f1.nops(); i++) {
+                    f1.let_op(i) = f1.op(i).subs(lst{xi==c1*yj/(1+c1)+yi,xj==yj/(1+c1)}).subs(lst{yi==xi,yj==xj});
+                }
+                f1.let_op(0) = f1.op(0)/(1+c1); // Jaccobi
+                FunExp.push_back(make_pair(f1,e1));
+                // Part II: ci xi-cj xj<0, i.e., i.e., xj>ci/cj xi
+                auto f2 = fe.first;
+                auto e2 = fe.second;
+                ex c2 = ci/cj;
+                for(int i=0; i<f2.nops(); i++) {
+                    f2.let_op(i) = f2.op(i).subs(lst{xj==c2*yi/(1+c2)+yj,xi==yi/(1+c2)}).subs(lst{yi==xi,yj==xj});
+                }
+                f2.let_op(0) = f2.op(0)/(1+c2); // Jaccobi
+                FunExp.push_back(make_pair(f2,e2));
+            } else {
+                FunExp.push_back(fe);
+            }
+        }
+        if(!ret) break;
+    }
+    
+    // check to make sure when delta is there
     bool has_delta = Deltas.size()>0;
     if(has_delta) assert(Deltas.size()==1);
     if(has_delta) {
@@ -4166,8 +4261,6 @@ void SD::DoAsy() {
             }
         }
     }
-    
-    KillPowers(); // TODO: needs more check
     
     auto fes = FunExp;
     FunExp.clear();

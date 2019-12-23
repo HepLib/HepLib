@@ -20,14 +20,14 @@ ret
 ];
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*C2M*)
 
 
 Clear[C2M]
 C2M[cex_String]:=Module[{ret},
 ret=StringReplace[cex,{
-"VE"->"VE","iEpsilon"->"iEpsilon","Euler"->"EulerGamma","zeta"->"Zeta","tgamma"->"Gamma","pow"->"Power","E"->"*10^"
+"VE"->"VE","iEpsilon"->"iEpsilon","Euler"->"EulerGamma","zeta"->"Zeta","tgamma"->"Gamma","pow"->"Power","sqrt"->"Sqrt","E"->"*10^"
 }];
 ret=ToExpression[ret,TraditionalForm];
 ret=ret/.{psi[ex_]:>PolyGamma[1,ex]};

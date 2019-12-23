@@ -220,11 +220,26 @@ ex garResult(const char *garfn, lst syms) {
 /*-----------------------------------------------------*/
 // Series at s=0 similar to Mathematica
 /*-----------------------------------------------------*/
-ex mma_series(ex expr_in, symbol s, int sn) {
+ex mma_series(ex expr_in, symbol s0, int sn0) {
     ex expr = expr_in;
-    if(!expr.has(s)) return expr;
+    if(!expr.has(s0)) return expr;
+    
+    exset sset;
+    expr.find(pow(s0, wild()), sset);
+    numeric sn_lcm = 1;
+    for(auto pi : sset) {
+        auto sn = pi.op(1);
+        assert(is_a<numeric>(sn) && ex_to<numeric>(sn).is_rational());
+        sn_lcm = lcm(sn_lcm, ex_to<numeric>(sn).denom());
+    }
+    symbol s;
+    assert(sn_lcm.is_integer());
+    if(sn_lcm<0) sn_lcm = numeric(0)-sn_lcm;
+    int sn = sn0 * sn_lcm.to_int();
+    expr = expr.subs(pow(s0,wild())==pow(s,wild()*sn_lcm)).subs(s0==pow(s, sn_lcm));
+    
     int exN = 1;
-    ex expr_input = mma_collect(expr_in,s,true);
+    ex expr_input = mma_collect(expr,s,true);
     
     // make sure CCF has no s
     exset cset;
@@ -261,6 +276,7 @@ ex mma_series(ex expr_in, symbol s, int sn) {
             for(int i=res.ldegree(s); (i<=res.degree(s) && i<=sn); i++) {
                 ret += res.coeff(s,i) * pow(s, i);
             }
+            ret = ret.subs(pow(s,wild())==pow(s0,wild()/sn_lcm)).subs(s==pow(s0,1/sn_lcm));
             return ret;
         }
         exN++;
