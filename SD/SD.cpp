@@ -1164,6 +1164,14 @@ while(true) {
                                     ok2 = false;
                                     break;
                                 }
+                            } else if(item.degree(xi)==1 && item.degree(xj)==1) {
+                                ex ci = item.coeff(xi);
+                                ex cj = item.coeff(xj);
+                                if((ci*xi+cj*xj-item).is_zero() && is_a<numeric>(ci*cj) && (ci*cj)<0) {
+                                    eqn = item.subs(lst{xi==xs[i], xj==xs[j]});
+                                    ok2 = false;
+                                    break;
+                                }
                             }
                         }
                         if(!ok2) break;
@@ -1491,16 +1499,24 @@ void SD::SDPrepares() {
             ex w1 = ft.coeff(vs);
             ex w2 = ft.subs(vs==0);
             if(!w2.is_zero()) {
-                kv.first.let_op(1) = w2;
-                kv.first.append(w1);
-                kv.second.let_op(1) = kv.second.op(1)-vz;
-                kv.second.append(vz);
+                if(xPositive(w1)) {
+                    kv.first.let_op(1) = w2;
+                    kv.first.append(w1);
+                    kv.second.let_op(1) = kv.second.op(1)-vz;
+                    kv.second.append(vz);
+                } else if(xPositive(w2)) {
+                    kv.first.let_op(1) = w1;
+                    kv.first.append(w2);
+                    kv.second.let_op(1) = vz;
+                    kv.second.append(kv.second.op(1)-vz);
+                } else {
+                    cout << RED << "Neither w1 nor w2 is xPositive!" << RESET << endl;
+                    assert(false);
+                }
             }
         }
     }
-    if(has_vs) {
-        KillPowers();
-    }
+    if(has_vs) KillPowers();
     
     Integrands.clear();
     Integrands.shrink_to_fit();
@@ -3846,6 +3862,7 @@ void SD::Evaluate(XIntegrand xint, const char *key) {
     
     Initialize(xint);
     if(FunExp.size()<1) return;
+    Scalelesses();
     KillPowers();
     RemoveDeltas();
     KillPowers();
@@ -4148,6 +4165,7 @@ ex SD::PExpand(ex xpol, bool delta) {
 void SD::DoAsy() {
     
     // part copied from KillPowers
+    if(false)
     while(true) {
         vector<pair<lst, lst>> funexp;
         for(auto fe : FunExp) {
