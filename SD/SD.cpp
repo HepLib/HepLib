@@ -393,13 +393,20 @@ pair<lst, lst> SD::Normalize(const pair<lst, lst> &input) {
     
     lst plst_comb, nlst_comb;
     exmap np;
-    map<ex,int,ex_is_less> inp;
-    for(int i=0; i<nlst.nops(); i++) np[plst[i]] += nlst[i];
     for(int i=0; i<nlst.nops(); i++) {
-        if(inp[plst[i]] != 0) continue;
-        plst_comb.append(plst[i]);
-        nlst_comb.append(np[plst[i]]);
-        inp[plst[i]] = 1;
+        if(i!=1) np[plst[i]] += nlst[i];
+    }
+    map<ex,int,ex_is_less> inp;
+    for(int i=0; i<nlst.nops(); i++) {
+        if(i==1) {
+            plst_comb.append(plst[1]);
+            nlst_comb.append(nlst[1]);
+        } else {
+            if(inp[plst[i]]!=0) continue;
+            plst_comb.append(plst[i]);
+            nlst_comb.append(np[plst[i]]);
+            inp[plst[i]] = 1;
+        }
     }
     
     return make_pair(plst_comb, nlst_comb);
@@ -987,18 +994,22 @@ void SD::XExpands() {
 }
 
 void SD::KillPowers(bool repeat) {
+int kpi = 0;
 while(true) {
+    kpi++;
+    if(Deltas.size()>0 && kpi>2) break;
+    
     vector<pair<lst, lst>> funexp;
     for(auto fe : FunExp) {
         funexp.push_back(fe);
     }
     FunExp.clear();
     FunExp.shrink_to_fit();
-    
+
     bool ret = false;
     for(auto fe : funexp) {
         ex ft = fe.first.op(1);
-        ft = collect_common_factors(ft);
+        ft = Factor(ft);
         lst fts;
         if(is_a<mul>(ft)) {
             for(auto item : ft) fts.append(item);
@@ -1048,6 +1059,7 @@ while(true) {
                                     break;
                                 }
                             }
+                            if(ook) continue;
                             
                             if(eqn.degree(xi)>1) {
                                 cout << RED << "Skip Non-linear term: " << eqn << RESET << endl;
@@ -1066,14 +1078,15 @@ while(true) {
                 if(!ok1) break;
             }
             if(!ok1) break;
-        }} 
+        }}
+
         if(!ok1) {
             auto xij = get_x_from(eqn);
             ex xi = xij[0];
             ex ci = eqn.coeff(xi);
             ex c0 = eqn.subs(lst{xi==0});
             // handle eqn==ci xi - c0
-            if((ci*xi+c0-eqn).is_zero() && is_a<numeric>(ci*c0) && (ci*c0)<0) {
+            if((ci*xi+c0-eqn).is_zero() && is_a<numeric>(ci*c0) && (ci*c0)<0 && abs(c0)<abs(ci)) {
                 ret = true;
                 ci = abs(ci);
                 c0 = abs(c0);
@@ -1138,6 +1151,21 @@ while(true) {
                         for(auto item : fts2) {
                             if(item.match(pow(wild(1),wild(2))) && (item.has(xi) || item.has(xj))) {
                                 eqn = item.op(0);
+                                
+                                if(Deltas.size()>0) {
+                                    eqn = eqn.expand();
+                                    if(eqn.degree(xi)==1 && eqn.degree(xj)==1) {
+                                        ex ci = eqn.coeff(xi);
+                                        ex cj = eqn.coeff(xj);
+                                        if((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci*cj) && (ci*cj)<0) {
+                                            eqn = eqn.subs(lst{xi==xs[i], xj==xs[j]});
+                                            ok2 = false;
+                                            break;
+                                        }
+                                    }
+                                    continue;
+                                }
+                                
                                 auto t1 = eqn.subs(lst{xi==1/ex(11), xj==1/ex(19)});
                                 if(t1.is_zero()) t1 = eqn.subs(lst{xi==1/ex(3), xj==1/ex(23)});
                                 if(t1.is_zero()) t1 = eqn.subs(lst{xi==1/ex(13), xj==1/ex(37)});
@@ -1153,6 +1181,7 @@ while(true) {
                                     }
                                     if(!ook) break;
                                 }
+                                if(ook) continue;
                                 
                                 if(eqn.degree(xi)>1 || eqn.degree(xj)>1) {
                                     cout << RED << "Not handled with eqn=" << eqn << RESET << endl;
@@ -1187,18 +1216,6 @@ while(true) {
             auto xij = get_x_from(eqn);
             ex xi = xij[0];
             ex xj = xij[1];
-            
-            if(false)
-            if((eqn-(xi+xj-1)).is_zero() || (eqn+(xi+xj-1)).is_zero()) {
-                symbol xx;
-                auto f1 = fe.first;
-                auto e1 = fe.second;
-                for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xi==1-xx).subs(xx==xi);
-                FunExp.push_back(make_pair(f1,e1));
-                ret = true;
-                continue; // for(auto fe : funexp)
-            }
-            
             ex ci = eqn.coeff(xi);
             ex cj = eqn.coeff(xj);
             
@@ -1312,9 +1329,11 @@ while(true) {
                 if(Deltas.size()>0) continue; // for(auto fe : funexp)
                 cout << RED << "Not handled with eqn=" << eqn << RESET << endl;
             }
+
             continue; // for(auto fe : funexp)
         }
         
+        // when ok1 && ok2 is true
         FunExp.push_back(fe);
     }
     if(!repeat || !ret) break;
@@ -4165,7 +4184,6 @@ ex SD::PExpand(ex xpol, bool delta) {
 void SD::DoAsy() {
     
     // part copied from KillPowers
-    if(false)
     while(true) {
         vector<pair<lst, lst>> funexp;
         for(auto fe : FunExp) {
