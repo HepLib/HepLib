@@ -5,6 +5,8 @@ default: install
 dep: 
 	make -j -C ExGiNaC
 	make -j -C SD
+
+lib: libHepLib.so
 	
 libHepLib.so: ExGiNaC/*.o SD/*.o SD/Lib3/*.o
 	g++ $(opt) -shared -lgomp -lquadmath -ldl -lqhullstatic -lMinuit2 -lginac -lcln -lcubaq -lmpfr -lgmp -o $@ $^

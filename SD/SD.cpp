@@ -190,7 +190,9 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
         
         bool need_contour_deformation = ft.has(PL(wild()));
         if(ft.has(y(wild())) && !need_contour_deformation) {
-            auto tmp = ft.subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).expand();
+            auto tmp = ft.subs(nReplacements).subs(lst{
+                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+            }).expand();
             if(is_a<add>(tmp)) {
                 need_contour_deformation = false;
                 auto first = tmp.op(0).subs(y(wild())==1);
@@ -205,7 +207,9 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
         }
 
         if(!need_contour_deformation) {
-            auto tmp = ft.subs(y(wild())==1).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2));
+            auto tmp = ft.subs(y(wild())==1).subs(nReplacements).subs(lst{
+                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+            });
             if(!is_a<numeric>(tmp)) {
                 cerr << "tmp = " << tmp << endl;
                 cerr << "tmp is NOT a numeric." << endl;
@@ -271,7 +275,9 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
                     if(is_a<numeric>(exlist.op(i)) && ex_to<numeric>(exlist.op(i)).is_integer()) {
                         ct *= item;
                     } else if(!item.has(PL(wild()))) {
-                        auto tr = item.subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2));
+                        auto tr = item.subs(nReplacements).subs(lst{
+                            CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                        });
                         Digits = 50;
                         if(!is_a<numeric>(tr.evalf())) {
                             cerr << "not numeric - item: " << tr << " ; " << item << endl;
@@ -348,7 +354,9 @@ pair<lst, lst> SD::Normalize(const pair<lst, lst> &input) {
                         } else if((tmp-vs).is_zero() || tmp.match(pow(vs,wild()))) {
                             const_term *=  pow(tmp,ntmp);
                         } else if(!tmp.has(PL(wild())) && !tmp.has(vs)) {
-                            auto tr = tmp.subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2));
+                            auto tr = tmp.subs(nReplacements).subs(lst{
+                                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                            });
                             if(!is_a<numeric>(tr)) {
                                 cerr << "tmp: " << tmp << endl;
                                 cerr << "nReplacements: " << nReplacements << endl;
@@ -602,12 +610,20 @@ void SD::Initialize(FeynmanParameter fp) {
         assert(!usgn.is_zero());
         usgn = normal(usgn)>0 ? 1 : -1;
         
-        if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)))) {
-            cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)) << endl;
+        if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+            CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+        }))) {
+            cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+            }) << endl;
             assert(false);
         }
-        if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)))) {
-            cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)) << endl;
+        if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+            CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+        }))) {
+            cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+            }) << endl;
             assert(false);
         }
         
@@ -646,12 +662,20 @@ void SD::Initialize(FeynmanParameter fp) {
         assert(!usgn.is_zero());
         usgn = normal(usgn)>0 ? 1 : -1;
         
-        if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)))) {
-            cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)) << endl;
+        if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+            CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+        }))) {
+            cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+            }) << endl;
             assert(false);
         }
-        if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)))) {
-            cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)) << endl;
+        if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+            CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+        }))) {
+            cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+            }) << endl;
             assert(false);
         }
         
@@ -2211,7 +2235,9 @@ void SD::CIPrepares(const char *key) {
         
         bool need_contour_deformation = false;
         if(ft.has(x(wild())) && !ft.has(PL(wild()))) {
-            auto tmp = ft.subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).expand();
+            auto tmp = ft.subs(nReplacements).subs(lst{
+                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+            }).expand();
             if(is_a<add>(tmp)) {
                 for(auto item : tmp) {
                     assert(is_a<numeric>(item.subs(x(wild())==1)));
@@ -3464,7 +3490,9 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
                 }
 
                 for(int ci=0; ci<css.nops(); ci++) {
-                    auto nt = css.op(ci).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(CV(wild(1),wild(2))==wild(2)).evalf();
+                    auto nt = css.op(ci).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{
+                        CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                    }).evalf();
                     if(!is_a<numeric>(nt)) {
                         cerr << "nt: " << nt << endl;
                         assert(false);
@@ -4087,6 +4115,8 @@ ex SD::PExpand(ex xpol, bool delta) {
     if(is_a<mul>(pol)) {
         ex tmp = 1;
         for(int i=0; i<pol.nops(); i++) {
+            if(is_a<numeric>(pol.op(i))) continue;
+            if(pol.op(i).match(x(wild(1)))) continue;
             if(pol.op(i).match(pow(x(wild(1)),wild(2)))) continue;
             if(pol.op(i).match(pow(y(wild(1)),wild(2)))) continue;
             if(pol.op(i).match(pow(vs,wild(2)))) continue;
@@ -4113,7 +4143,7 @@ ex SD::PExpand(ex xpol, bool delta) {
             rs_mat(n, ix+1) = mma_collect(tmp, xs[ix]).degree(xs[ix]);
         }
     }
-    
+
     int pr = PRank(rs_mat);
     if(pr-1 != id) return nlst;
     
@@ -4312,7 +4342,16 @@ void SD::DoAsy() {
         uf.sort();
         uf.unique();
         for(auto item : uf) xpol *= item;
+        if(!xpol.has(vs)) {
+            FunExp.push_back(fe);
+            continue;
+        }
+        
         auto rs = PExpand(xpol, has_delta);
+        if(rs.nops()<1) {
+            cout << RED << "PExpand returned with nothing, even without hard region!" << RESET <<endl;
+            assert(false);
+        }
         if(Verbose>10) {
             cout << "  \\--Asy Regions:" << (rs.nops()-1) << endl;
             if(rs.nops()>1) {
