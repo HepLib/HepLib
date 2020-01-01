@@ -5,6 +5,7 @@ default: install
 dep: 
 	make -j -C ExGiNaC
 	make -j -C SD
+	make -j -C MB
 
 lib: libHepLib.so
 	

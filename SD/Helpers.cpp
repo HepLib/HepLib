@@ -226,9 +226,6 @@ static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context 
 }
 
 REGISTER_FUNCTION(fabs, dummy())
-REGISTER_FUNCTION(x, dummy())
-REGISTER_FUNCTION(y, dummy())
-REGISTER_FUNCTION(z, dummy())
 REGISTER_FUNCTION(PL, dummy())
 REGISTER_FUNCTION(FTX, derivative_func(NoDiff_2P))
 REGISTER_FUNCTION(CT, derivative_func(Diff_ID))

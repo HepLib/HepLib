@@ -408,6 +408,28 @@ ex Evalf(ex expr) {
 }
 
 /*-----------------------------------------------------*/
+// xPositive
+/*-----------------------------------------------------*/
+bool xPositive(ex expr) {
+    auto tmp = expr.expand();
+    if(tmp.is_zero()) return true;
+    bool ret = false;
+    if(is_a<add>(tmp)) {
+        for(auto item : tmp) {
+            auto nit = item.subs(x(wild())==1).normal();
+            if(!(is_a<numeric>(nit) && ex_to<numeric>(nit).is_positive())) {
+                return false;
+            }
+        }
+        ret = true;
+    } else {
+        auto ntmp = tmp.subs(x(wild())==1).normal();
+        ret = (is_a<numeric>(ntmp) && ex_to<numeric>(ntmp).is_positive());
+    }
+    return ret;
+}
+
+/*-----------------------------------------------------*/
 // Customized GiNaC Function
 /*-----------------------------------------------------*/
 static ex CCF_Diff(const ex & x, unsigned diff_param) {return 0;}
@@ -421,6 +443,10 @@ REGISTER_FUNCTION(CVF, dummy())
 
 REGISTER_FUNCTION(FF, dummy())
 REGISTER_FUNCTION(CV, do_not_evalf_params())
+
+REGISTER_FUNCTION(x, dummy())
+REGISTER_FUNCTION(y, dummy())
+REGISTER_FUNCTION(z, dummy())
 
 
 }

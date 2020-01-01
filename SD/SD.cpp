@@ -427,25 +427,6 @@ void Replacements2(exmap &repl) {
     }
 }
 
-bool xPositive(ex expr) {
-    auto tmp = expr.expand();
-    if(tmp.is_zero()) return true;
-    bool ret = false;
-    if(is_a<add>(tmp)) {
-        for(auto item : tmp) {
-            auto nit = item.subs(x(wild())==1).normal();
-            if(!(is_a<numeric>(nit) && ex_to<numeric>(nit).is_positive())) {
-                return false;
-            }
-        }
-        ret = true;
-    } else {
-        auto ntmp = tmp.subs(x(wild())==1).normal();
-        ret = (is_a<numeric>(ntmp) && ex_to<numeric>(ntmp).is_positive());
-    }
-    return ret;
-}
-
 void SD::Initialize(FeynmanParameter fp) {
     lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
@@ -2337,14 +2318,6 @@ void SD::CIPrepares(const char *key) {
         
         // exp-fn configure, Exp[-Power[ftn,2*f2n]]//N
         int ftn = 10, f2n = 1;
-        
-        //use_exp = true;
-        ex ft_max = 1;
-        if(use_exp) {
-            ft_max = ex(0)-numeric(FindMinimum(-abs(ft)));
-            ft_max = ft_max/ex(ftn);
-        }
-        
         auto pls = get_pl_from(ft);
         int npls = pls.size()>0 ? ex_to<numeric>(pls[pls.size()-1].subs(lst{PL(wild())==wild()})).to_int() : -1;
         lst plRepl;
@@ -2539,14 +2512,14 @@ qCOMPLEX log(qCOMPLEX x);
         // X2ZL_fid
         ofs << "void X2ZL_" << ft_n << "(const dREAL* x, dCOMPLEX* z, dCOMPLEX* r, dREAL* dff, const dREAL* pl, const dREAL* las) {" << endl;
         ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
-        ofs << "dREAL fmax = "; ft_max.print(cppL); ofs << ";" << endl;
         ofs << "dCOMPLEX ilas[nfxs];" << endl;
         ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>(0.L, las[i]);" << endl;
         ofs << "dff[nfxs] = FL_"<<ft_n<<"(x,pl);" << endl;
-        if(use_exp) ofs << "dREAL expf2n=exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
-        else ofs << "dREAL expf2n=1.L;" << endl;
         ofs << "for(int i=0; i<nfxs; i++) dff[i] = FL_"<<ft_n<<"(i,x,pl);" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]*expf2n;" << endl;
+        ofs << "dREAL fscale=0.L;" << endl;
+        if(CT_method==1) ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
+        else ofs << "fscale=1.L;" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]/fscale;" << endl;
         ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.L-x[i])*r[i];" << endl;
         ofs << "}" << endl;
         ofs << endl;
@@ -2554,14 +2527,14 @@ qCOMPLEX log(qCOMPLEX x);
         // X2ZQ_fid
         ofs << "void X2ZQ_" << ft_n << "(const qREAL* x, qCOMPLEX* z, qCOMPLEX* r, qREAL* dff, const qREAL* pl, const qREAL* las) {" << endl;
         ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
-        ofs << "qREAL fmax = "; ft_max.print(cppQ); ofs << ";" << endl;
         ofs << "qCOMPLEX ilas[nfxs];" << endl;
         ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;" << endl;
         ofs << "dff[nfxs] = FQ_"<<ft_n<<"(x,pl);" << endl;
-        if(use_exp) ofs << "qREAL expf2n=expq(-powq(dff[nfxs]/fmax,2*f2n));" << endl;
-        else ofs << "dREAL expf2n = 1.Q;" << endl;
         ofs << "for(int i=0; i<nfxs; i++) dff[i] = FQ_"<<ft_n<<"(i,x,pl);" << endl;
-        ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]*expf2n;" << endl;
+        ofs << "qREAL fscale=0.Q;" << endl;
+        if(CT_method==1) ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
+        else ofs << "fscale=1.Q;" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]/fscale;" << endl;
         ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.Q-x[i])*r[i];" << endl;
         ofs << "}" << endl;
         ofs << endl;
@@ -2570,14 +2543,14 @@ qCOMPLEX log(qCOMPLEX x);
         if(use_MP) {
             ofs << "void X2ZMP_" << ft_n << "(const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {" << endl;
             ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
-            ofs << "mpREAL fmax = "; ft_max.print(cppMP); ofs << ";" << endl;
             ofs << "mpCOMPLEX ilas[nfxs];" << endl;
             ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
             ofs << "dff[nfxs] = FMP_"<<ft_n<<"(x,pl);" << endl;
-            if(use_exp) ofs << "mpREAL expf2n=exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
-            else ofs << "mpREAL expf2n = 1;" << endl;
             ofs << "for(int i=0; i<nfxs; i++) dff[i] = FMP_"<<ft_n<<"(i,x,pl);" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]*expf2n;" << endl;
+            ofs << "mpREAL fscale=0;" << endl;
+            if(CT_method==1) ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
+            else ofs << "fscale=1;" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]/fscale;" << endl;
             ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1-x[i])*r[i];" << endl;
             ofs << "}" << endl;
             ofs << endl;
@@ -2586,20 +2559,27 @@ qCOMPLEX log(qCOMPLEX x);
         // MatL_id
         ofs << "void MatL_"<<ft_n<<"(dCOMPLEX* mat, const dREAL* x, const dREAL* dff, const dREAL* pl, const dREAL* las) {" << endl;
         ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
-        ofs << "dREAL fmax = "; ft_max.print(cppL); ofs << ";" << endl;
         ofs << "dCOMPLEX ilas[nfxs];" << endl;
         ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>(0.L, las[i]);" << endl;
-        if(use_exp) ofs << "dREAL expf2n = exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
-        else ofs << "dREAL expf2n = 1.L;" << endl;
+        ofs << "dREAL fscale=0.L;" << endl;
+        if(CT_method==1) ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
+        else ofs << "fscale=1.L;" << endl;
+        ofs << "dREAL dff2[nfxs][nfxs];" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) {" << endl;
+        ofs << "for(int j=0; j<nfxs; j++) {" << endl;
+        ofs << "dff2[i][j] = FL_"<<ft_n<<"(i,j,x,pl);" << endl;
+        ofs << "}}" << endl;
         ofs << "for(int i=0; i<nfxs; i++) {" << endl;
         ofs << "for(int j=0; j<nfxs; j++) {" << endl;
         ofs << "int ij = i*nfxs+j;" << endl;
         ofs << "if(i!=j) mat[ij] = 0;" << endl;
-        ofs << "else mat[ij] = 1.L-(1.L-2.L*x[i])*dff[i]*ilas[i]*expf2n;" << endl;
-        ofs << "mat[ij] = mat[ij]-x[i]*(1.L-x[i])*FL_"<<ft_n<<"(i,j,x,pl)*ilas[i]*expf2n;" << endl;
-        if(use_exp) {
-            ofs << "dREAL df2n = -2*f2n*dff[j]/fmax*pow(dff[nfxs]/fmax,2*f2n-1);" << endl;
-            ofs << "mat[ij] = mat[ij]-x[i]*(1.L-x[i])*dff[i]*ilas[i]*expf2n*df2n;" << endl;
+        ofs << "else mat[ij] = 1.L-(1.L-2.L*x[i])*dff[i]*ilas[i]/fscale;" << endl;
+        ofs << "mat[ij] = mat[ij]-x[i]*(1.L-x[i])*dff2[i][j]*ilas[i]/fscale;" << endl;
+        if(CT_method==1) {
+            ofs << "dREAL dfscale = 0;" << endl;
+            ofs << "for(int ii=0; ii<nfxs; ii++) dfscale -= 2*dff[ii]*dff2[ii][j];" << endl;
+            ofs << "dfscale = dfscale / (fscale*fscale);" << endl;
+            ofs << "mat[ij] = mat[ij]-x[i]*(1.L-x[i])*dff[i]*ilas[i]*dfscale;" << endl;
         }
         ofs << "}}" << endl;
         ofs << "}" << endl;
@@ -2608,20 +2588,27 @@ qCOMPLEX log(qCOMPLEX x);
         // MatQ_fid
         ofs << "void MatQ_"<<ft_n<<"(qCOMPLEX *mat, const qREAL* x, const qREAL* dff, const qREAL *pl, const qREAL *las) {" << endl;
         ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
-        ofs << "qREAL fmax = "; ft_max.print(cppQ); ofs << ";" << endl;
         ofs << "qCOMPLEX ilas[nfxs];" << endl;
         ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;" << endl;
-        if(use_exp) ofs << "qREAL expf2n = expq(-powq(dff[nfxs]/fmax,2*f2n));" << endl;
-        else ofs << "qREAL expf2n = 1.Q;" << endl;
+        ofs << "qREAL fscale=0.Q;" << endl;
+        if(CT_method==1) ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
+        else ofs << "fscale=1.Q;" << endl;
+        ofs << "qREAL dff2[nfxs][nfxs];" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) {" << endl;
+        ofs << "for(int j=0; j<nfxs; j++) {" << endl;
+        ofs << "dff2[i][j] = FQ_"<<ft_n<<"(i,j,x,pl);" << endl;
+        ofs << "}}" << endl;
         ofs << "for(int i=0; i<nfxs; i++) {" << endl;
         ofs << "for(int j=0; j<nfxs; j++) {" << endl;
         ofs << "int ij = i*nfxs+j;" << endl;
         ofs << "if(i!=j) mat[ij] = 0;" << endl;
-        ofs << "else mat[ij] = 1.Q-(1.Q-2.Q*x[i])*dff[i]*ilas[i]*expf2n;" << endl;
-        ofs << "mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*FQ_"<<ft_n<<"(i,j,x,pl)*ilas[i]*expf2n;" << endl;
-        if(use_exp) {
-            ofs << "qREAL df2n = -2*f2n*dff[j]/fmax*powq(dff[nfxs]/fmax,2*f2n-1);" << endl;
-            ofs << "mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*dff[i]*ilas[i]*expf2n*df2n;" << endl;
+        ofs << "else mat[ij] = 1.Q-(1.Q-2.Q*x[i])*dff[i]*ilas[i]/fscale;" << endl;
+        ofs << "mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*dff2[i][j]*ilas[i]/fscale;" << endl;
+        if(CT_method==1) {
+            ofs << "qREAL dfscale = 0;" << endl;
+            ofs << "for(int ii=0; ii<nfxs; ii++) dfscale -= 2*dff[ii]*dff2[ii][j];" << endl;
+            ofs << "dfscale = dfscale / (fscale*fscale);" << endl;
+            ofs << "mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*dff[i]*ilas[i]*dfscale;" << endl;
         }
         ofs << "}}" << endl;
         ofs << "}" << endl;
@@ -2631,20 +2618,27 @@ qCOMPLEX log(qCOMPLEX x);
         if(use_MP) {
             ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX *mat, const mpREAL* x, const mpREAL* dff, const mpREAL *pl, const mpREAL *las) {" << endl;
             ofs << "int nfxs="<<fxs.size()<<", f2n="<<f2n<<";" << endl;
-            ofs << "mpREAL fmax = "; ft_max.print(cppMP); ofs << ";" << endl;
             ofs << "mpCOMPLEX ilas[nfxs];" << endl;
             ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
-            if(use_exp) ofs << "mpREAL expf2n = exp(-pow(dff[nfxs]/fmax,2*f2n));" << endl;
-            else ofs << "mpREAL expf2n = 1;" << endl;
+            ofs << "mpREAL fscale=0;" << endl;
+            if(CT_method==1) ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
+            else ofs << "fscale=1;" << endl;
+            ofs << "mpREAL dff2[nfxs][nfxs];" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) {" << endl;
+            ofs << "for(int j=0; j<nfxs; j++) {" << endl;
+            ofs << "dff2[i][j] = FMP_"<<ft_n<<"(i,j,x,pl);" << endl;
+            ofs << "}}" << endl;
             ofs << "for(int i=0; i<nfxs; i++) {" << endl;
             ofs << "for(int j=0; j<nfxs; j++) {" << endl;
             ofs << "int ij = i*nfxs+j;" << endl;
             ofs << "if(i!=j) mat[ij] = 0;" << endl;
-            ofs << "else mat[ij] = mpREAL(1)-(1-2*x[i])*dff[i]*ilas[i]*expf2n;" << endl;
-            ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*FMP_"<<ft_n<<"(i,j,x,pl)*ilas[i]*expf2n;" << endl;
-            if(use_exp) {
-                ofs << "mpREAL df2n = -2*f2n*dff[j]/fmax*pow(dff[nfxs]/fmax,2*f2n-1);" << endl;
-                ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff[i]*ilas[i]*expf2n*df2n;" << endl;
+            ofs << "else mat[ij] = mpREAL(1)-(1-2*x[i])*dff[i]*ilas[i]/fscale;" << endl;
+            ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff2[i][j]*ilas[i]/fscale;" << endl;
+            if(CT_method==1) {
+                ofs << "mpREAL dfscale = 0;" << endl;
+                ofs << "for(int ii=0; ii<nfxs; ii++) dfscale -= 2*dff[ii]*dff2[ii][j];" << endl;
+                ofs << "dfscale = dfscale / (fscale*fscale);" << endl;
+                ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff[i]*ilas[i]*dfscale;" << endl;
             }
             ofs << "}}" << endl;
             ofs << "}" << endl;
@@ -2671,10 +2665,7 @@ qCOMPLEX log(qCOMPLEX x);
             ofs << "extern \"C\" " << endl;
             ofs << "dREAL dirF_"<<ft_n<<"_"<<i<<"(const int xn, const dREAL* x, const dREAL *pl, const dREAL *las) {" << endl;
             ofs << "int f2n="<<f2n<<";" << endl;
-            ofs << "dREAL fmax = "; ft_max.print(cppL); ofs << ";" << endl;
-            if(use_exp) ofs << "dREAL expf2n = exp(-pow(FL_"<<ft_n<<"(x,pl)/fmax,2*f2n));" << endl;
-            else ofs << "dREAL expf2n = 1.L;" << endl;
-            ofs << "dREAL yy = FL_"<<ft_n<<"("<<i<<", x, pl)*expf2n;" << endl;
+            ofs << "dREAL yy = FL_"<<ft_n<<"("<<i<<", x, pl);" << endl;
             ofs << "return -fabs(yy);" << endl;
             ofs << "}" << endl;
             ofs << endl;
@@ -3258,39 +3249,42 @@ void SD::Contours(const char *key, const char *pkey) {
         if (module == nullptr) throw std::runtime_error("could not open compiled module!");
         
         dREAL nlas[nvars];
-        dREAL max_df = -1, max_f;
-        for(int i=0; i<nvars; i++) {
-            MinimizeBase::FunctionType dfp = NULL;
-            fname.clear();
-            fname.str("");
-            fname << "dirF_"<<ftnxn.op(1)<<"_"<<i;
-            dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
-            assert(dfp!=NULL);
+        if(CT_method==0) {
+            dREAL max_df = -1, max_f;
+            for(int i=0; i<nvars; i++) {
+                MinimizeBase::FunctionType dfp = NULL;
+                fname.clear();
+                fname.str("");
+                fname << "dirF_"<<ftnxn.op(1)<<"_"<<i;
+                dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
+                assert(dfp!=NULL);
+                
+                dREAL maxdf = Minimizer->FindMinimum(nvars, dfp, paras);
+                maxdf = -maxdf;
+                nlas[i] = maxdf;
+                if(max_df<maxdf) max_df = maxdf;
+            }
             
-            dREAL maxdf = Minimizer->FindMinimum(nvars, dfp, paras);
-            maxdf = -maxdf;
-            nlas[i] = maxdf;
-            if(max_df<maxdf) max_df = maxdf;
-        }
-        
-//TODO: add other schema
-//--------------------------------------------------
-        for(int i=0; i<nvars; i++) {
-            if(nlas[i] > 1E-2 * max_df) nlas[i] = 1/nlas[i];
-            else nlas[i] = 1/max_df;
-        }
-        
-        if(true) {
-            dREAL nlas2 = 0;
             for(int i=0; i<nvars; i++) {
-                nlas2 += nlas[i] * nlas[i];
+                if(nlas[i] > 1E-2 * max_df) nlas[i] = 1/nlas[i];
+                else nlas[i] = 1/max_df;
             }
-            nlas2 = sqrt(nlas2);
+            
+            if(true) {
+                dREAL nlas2 = 0;
+                for(int i=0; i<nvars; i++) {
+                    nlas2 += nlas[i] * nlas[i];
+                }
+                nlas2 = sqrt(nlas2);
+                for(int i=0; i<nvars; i++) {
+                    nlas[i] = nlas[i]/nlas2;
+                }
+            }
+        } else if(CT_method==1) {
             for(int i=0; i<nvars; i++) {
-                nlas[i] = nlas[i]/nlas2;
+                nlas[i] = 1;
             }
         }
-//--------------------------------------------------
         
         lst las;
         for(int i=0; i<nvars; i++) {

@@ -255,6 +255,11 @@ ex mma_diff(ex expr, ex xp, unsigned nth=1, bool expand=true);
 ex Evalf(ex);
 
 /*-----------------------------------------------------*/
+// xPositive
+/*-----------------------------------------------------*/
+bool xPositive(ex expr);
+
+/*-----------------------------------------------------*/
 // Customized GiNaC Function
 /*-----------------------------------------------------*/
 DECLARE_FUNCTION_1P(CCF)
@@ -267,4 +272,8 @@ DECLARE_FUNCTION_3P(VF3)
 
 DECLARE_FUNCTION_1P(FF) // not used internally, for user use only
 DECLARE_FUNCTION_2P(CV) // not used internally, for user use only
+
+DECLARE_FUNCTION_1P(x)
+DECLARE_FUNCTION_1P(y)
+DECLARE_FUNCTION_1P(z)
 }

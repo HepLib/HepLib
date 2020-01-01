@@ -277,14 +277,13 @@ public:
     ex ResultError;
     const char * CFLAGS = "";
     bool IsZero = false;
-    bool CheckEnd = true;
+    bool CheckEnd = false;
     //bool use_CCF = true;
     bool use_ErrMin = false;
     bool use_las = false;
     bool save_las = false;
     bool use_IBF = false;
-    bool use_ff = false; // use FindMinimum in F-term
-    bool use_exp = false; // use exp in contour deformation
+    int CT_method = 1; // 0: original, 1: rescaled
     bool use_MP = true;
     bool use_FT = true;
     int MPDigits = 50; // digits in mpREAL for MP
@@ -299,7 +298,7 @@ public:
     
     long long TryPTS = 500000;
     long long LambdaSplit = 5;
-    qREAL LambdaMax = 10;
+    qREAL LambdaMax = 50;
     int CTry = 2;
     int CTryLeft = 1;
     int CTryRight = 1;
@@ -370,9 +369,6 @@ private:
 // Customized GiNaC Function
 /*-----------------------------------------------------*/
 DECLARE_FUNCTION_1P(fabs)
-DECLARE_FUNCTION_1P(x)
-DECLARE_FUNCTION_1P(y)
-DECLARE_FUNCTION_1P(z)
 DECLARE_FUNCTION_1P(PL)
 DECLARE_FUNCTION_1P(CT)
 DECLARE_FUNCTION_2P(FTX)
