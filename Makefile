@@ -26,6 +26,7 @@ install: libHepLib.so
 clean:
 	make -j -C ExGiNaC clean
 	make -j -C SD clean
+	make -j -C MB clean
 	make -j -C IBP clean
 	rm -f libHepLib.so
 	make -j -C bin clean

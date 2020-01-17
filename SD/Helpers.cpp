@@ -231,5 +231,5 @@ REGISTER_FUNCTION(FTX, derivative_func(NoDiff_2P))
 REGISTER_FUNCTION(CT, derivative_func(Diff_ID))
 REGISTER_FUNCTION(VE, conjugate_func(VE_Conjugate))
 REGISTER_FUNCTION(VEO, print_func<print_dflt>(print_VEO))
-
+REGISTER_FUNCTION(WF, dummy())
 }

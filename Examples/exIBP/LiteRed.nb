@@ -1,0 +1,603 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 11.2' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[     22854,        595]
+NotebookOptionsPosition[     18269,        519]
+NotebookOutlinePosition[     18628,        535]
+CellTagsIndexPosition[     18585,        532]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Init", "Section",ExpressionUUID->"66458211-6516-4d8f-9b50-0221fe5faab7"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"<<", "LiteRed`"}]], "Input",ExpressionUUID->"24a8b9c2-b88c-4e28-84a7-6b303200f8d1"],
+
+Cell[BoxData[
+ FormBox[
+  InterpretationBox[
+   RowBox[{"\<\"**************** \"\>", "\[InvisibleSpace]", 
+    StyleBox["\<\"LiteRed v1.82\"\>",
+     StripOnInput->False,
+     LineColor->RGBColor[1, 
+       Rational[1, 3], 
+       Rational[1, 3]],
+     FrontFaceColor->RGBColor[1, 
+       Rational[1, 3], 
+       Rational[1, 3]],
+     BackFaceColor->RGBColor[1, 
+       Rational[1, 3], 
+       Rational[1, 3]],
+     GraphicsColor->RGBColor[1, 
+       Rational[1, 3], 
+       Rational[1, 3]],
+     FontWeight->Bold,
+     FontColor->RGBColor[1, 
+       Rational[1, 3], 
+       Rational[1, 3]]], 
+    "\[InvisibleSpace]", "\<\" ********************\\nAuthor: Roman N. Lee, \
+Budker Institute of Nuclear Physics, Novosibirsk.\\nRelease Date: \
+01.06.2015\\nLiteRed stands for Loop InTEgrals REDuction.\\nThe package is \
+designed for the search and application of the Integration-By-Part reduction \
+rules. It also contains some other useful tools.\\nSee ?LiteRed`* for a list \
+of functions. \"\>"}],
+   SequenceForm["**************** ", 
+    Style["LiteRed v1.82", {Bold, 
+      RGBColor[1, 
+       Rational[1, 3], 
+       Rational[1, 3]]}], 
+    " ********************\nAuthor: Roman N. Lee, Budker Institute of Nuclear \
+Physics, Novosibirsk.\nRelease Date: 01.06.2015\nLiteRed stands for Loop \
+InTEgrals REDuction.\nThe package is designed for the search and application \
+of the Integration-By-Part reduction rules. It also contains some other \
+useful tools.\nSee ?LiteRed`* for a list of functions. "],
+   Editable->False], TraditionalForm]], "Print",ExpressionUUID->"d365a259-\
+abb7-4296-adbe-934f7dd4c4b4"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"SetDirectory", "[", 
+   RowBox[{"NotebookDirectory", "[", "]"}], "]"}], ";"}]], "Input",ExpressionU\
+UID->"26faf61d-83f1-41a3-9118-0acf4414e1fb"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"SetDim", "[", "d", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Declare", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{"n", ",", "p", ",", "k1", ",", "k2"}], "}"}], ",", "Vector", ",", 
+    RowBox[{"{", "z", "}"}], ",", "Number"}], "]"}], ";"}]}], "Input",Expressi\
+onUUID->"3d97c69f-2bcf-45b8-8fd9-90e6068cd72e"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"sp", "[", 
+    RowBox[{"p", ",", "p"}], "]"}], "=", 
+   RowBox[{"m", "^", "2"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"sp", "[", 
+    RowBox[{"n", ",", "n"}], "]"}], "=", "0"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"sp", "[", 
+    RowBox[{"n", ",", "p"}], "]"}], "=", "pp"}], ";"}]}], "Input",ExpressionUU\
+ID->"762cbb05-4288-4829-9c19-1d17333c8c71"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"m", "=", "1"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pp", "=", 
+   RowBox[{"z", "/", "2"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"kp", "=", "1"}], ";"}]}], "Input",ExpressionUUID->"24387d07-d058-\
+4543-b7c1-6a7dbe428ecb"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"With", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{"dir", "=", 
+      RowBox[{"FileNameJoin", "[", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"NotebookDirectory", "[", "]"}], ",", "\"\<LR\>\""}], "}"}], 
+       "]"}]}], "}"}], ",", "\[IndentingNewLine]", 
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{"DirectoryQ", "[", "dir", "]"}], ",", 
+      RowBox[{"DeleteDirectory", "[", 
+       RowBox[{"dir", ",", 
+        RowBox[{"DeleteContents", "\[Rule]", "True"}]}], "]"}]}], "]"}]}], 
+   "\[IndentingNewLine]", "]"}], ";"}]], "Input",ExpressionUUID->"29e4ed67-\
+6eef-49f0-97c9-58077f2b1a79"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"NewBasis", "[", 
+  RowBox[{"t1", ",", 
+   RowBox[{"{", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"sp", "[", "k1", "]"}], ",", 
+     RowBox[{"sp", "[", "k2", "]"}], ",", 
+     RowBox[{
+      RowBox[{"sp", "[", 
+       RowBox[{"n", ",", 
+        RowBox[{"k1", "+", "k2", "+", 
+         RowBox[{"2", "p"}]}]}], "]"}], "-", "kp"}], ",", 
+     "\[IndentingNewLine]", 
+     RowBox[{"(*", 
+      RowBox[{"k1", ",", 
+       RowBox[{"k2", ":", " ", 
+        RowBox[{
+         RowBox[{"the", " ", "momentum", " ", "of", " ", "two", " ", "on"}], 
+         "-", 
+         RowBox[{
+         "shell", " ", "gluons", " ", "in", " ", "final", " ", "states"}]}]}],
+        ",", " ", 
+       RowBox[{
+       "the", " ", "3", "rd", " ", "element", " ", "comes", " ", "from", " ", 
+        "the", " ", "delta", " ", "function"}]}], "*)"}], 
+     "\[IndentingNewLine]", 
+     RowBox[{"sp", "[", 
+      RowBox[{"k2", ",", "n"}], "]"}], ",", 
+     RowBox[{"sp", "[", 
+      RowBox[{"k1", "+", "k2"}], "]"}], ",", 
+     RowBox[{"sp", "[", 
+      RowBox[{"k1", "+", "k2", "+", 
+       RowBox[{"2", "p"}]}], "]"}], ",", 
+     RowBox[{"sp", "[", 
+      RowBox[{
+       RowBox[{"2", "p"}], "+", "k2"}], "]"}]}], "\[IndentingNewLine]", 
+    RowBox[{"(*", 
+     RowBox[{"the", " ", "other", " ", "propagators"}], "*)"}], 
+    "\[IndentingNewLine]", "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"k1", ",", "k2"}], "}"}], ",", 
+   RowBox[{"Directory", "\[Rule]", "\"\<LR\>\""}]}], "]"}]], "Input",Expressio\
+nUUID->"425e9951-7512-4d25-9ff9-be41735cbe3f"],
+
+Cell[BoxData[
+ FormBox["\<\"Valid basis.\\n    Ds[t1] \[LongDash] denominators,\\n    \
+SPs[t1] \[LongDash] scalar products involving loop momenta,\\n    LMs[t1] \
+\[LongDash] loop momenta,\\n    EMs[t1] \[LongDash] external momenta,\\n    \
+Toj[t1] \[LongDash] rules to transform scalar products to denominators.\\nThe \
+definitions of the basis will be saved in LR\"\>", TraditionalForm]], "Print",\
+ExpressionUUID->"0b52e331-e504-47fd-9a13-61ac6b8d718f"],
+
+Cell[BoxData[
+ FormBox[
+  TemplateBox[{
+   "DiskSave","dir",
+    "\"The directory \\!\\(\\*FormBox[\\\"\\\\\\\"LR\\\\\\\"\\\", \
+TraditionalForm]\\) has been created.\"",2,12,1,24200965285888400358,"Local",
+    "LiteRed`DiskSave"},
+   "MessageTemplate2"], TraditionalForm]], "Message", \
+"MSG",ExpressionUUID->"f0965a1c-a0a6-4730-9487-67cb5c353425"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"GenerateIBP", "[", "t1", "]"}]], "Input",ExpressionUUID->"5c788f4d-7407-47d5-af76-2657f2396cd2"],
+
+Cell[BoxData[
+ FormBox["\<\"Integration-By-Part&Lorentz-Invariance identities are \
+generated.\\n    IBP[t1] \[LongDash] integration-by-part identities,\\n    \
+LI[t1] \[LongDash] Lorentz invariance identities.\"\>", 
+  TraditionalForm]], "Print",ExpressionUUID->"9bdfada8-471d-4177-8898-\
+2f6027f70767"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"AnalyzeSectors", "[", 
+  RowBox[{"t1", ",", 
+   RowBox[{"CutDs", "\[Rule]", 
+    RowBox[{"{", 
+     RowBox[{
+     "1", ",", "1", ",", "1", ",", "0", ",", "0", ",", "0", ",", "0"}], 
+     "}"}]}]}], "]"}]], "Input",ExpressionUUID->"4d90cf7d-d79b-4752-8199-\
+bb13e7935cc4"],
+
+Cell[BoxData[
+ FormBox["\<\"Found 118 zero sectors out of 128.\\n    ZeroSectors[t1] \
+\[LongDash] zero sectors,\\n    NonZeroSectors[t1] \[LongDash] nonzero \
+sectors,\\n    SimpleSectors[t1] \[LongDash] simple sectors (no nonzero \
+subsectors),\\n    BasisSectors[t1] \[LongDash] basis sectors (at least one \
+immediate subsector is zero),\\n    ZerojRule[t1] \[LongDash] a rule to \
+nullify all zero j[t1\[Ellipsis]],\\n    CutDs[t1] \[LongDash] a flag list of \
+cut denominatorsj (1=cut).\"\>", TraditionalForm]], "Print",ExpressionUUID->\
+"2db0a669-0fb4-4bc2-949f-1198439b31c9"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"FindSymmetries", "[", "t1", "]"}]], "Input",ExpressionUUID->"83cd963d-f5f8-4a92-ade1-7617bc40aed1"],
+
+Cell[BoxData[
+ FormBox["\<\"Found 0 mapped sectors and 10 unique sectors.\\n    \
+UniqueSectors[t1] \[LongDash] unique sectors.\\n    MappedSectors[t1] \
+\[LongDash] mapped sectors.\\n    SR[t1][\[Ellipsis]] \[LongDash] symmetry \
+relations for j[t1,\[Ellipsis]] from UniqueSectors[t1].\\n    jSymmetries[t1,\
+\[Ellipsis]] \[LongDash] symmetry rules for the sector js[t1,\[Ellipsis]] in \
+UniqueSectors[t1].\\n    jRules[t1,\[Ellipsis]] \[LongDash] reduction rules \
+for j[t1,\[Ellipsis]] from MappedSectors[t1].\"\>", TraditionalForm]], "Print",\
+ExpressionUUID->"4d731049-1b30-4737-a805-c25eb0f24454"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"SolvejSector", "/@", 
+  RowBox[{"UniqueSectors", "[", "t1", "]"}]}]], "Input",ExpressionUUID->\
+"81631c3c-ec8b-409c-a564-d0f4d1d6855c"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ FormBox[
+  InterpretationBox[
+   RowBox[{"\<\"Sector \"\>", "\[InvisibleSpace]", 
+    RowBox[{"js", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "0", ",", "0", ",", "1", ",", 
+      "0"}], ")"}]}],
+   SequenceForm["Sector ", 
+    LiteRed`js[$CellContext`t1, 1, 1, 1, 0, 0, 1, 0]],
+   Editable->False], TraditionalForm]], "Print",ExpressionUUID->"6b9be3fb-\
+7750-4366-89ac-e56a9a35ce19"],
+
+Cell[BoxData[
+ FormBox["\<\"    1 master integrals found:\\nj[t1, 1, 1, 1, 0, 0, 1, 0].\\n  \
+  jRules[t1, 1, 1, 1, 0, 0, 1, 0] \[LongDash] reduction rules for the sector.\
+\\n    MIs[t1] \[LongDash] updated list of the masters.\"\>", 
+  TraditionalForm]], "Print",ExpressionUUID->"7a713aaa-7b5b-4cad-9afb-\
+6016e7869f52"],
+
+Cell[BoxData[
+ FormBox[
+  InterpretationBox[
+   RowBox[{"\<\"Sector \"\>", "\[InvisibleSpace]", 
+    RowBox[{"js", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "0", ",", "0", ",", "1", ",", 
+      "1"}], ")"}]}],
+   SequenceForm["Sector ", 
+    LiteRed`js[$CellContext`t1, 1, 1, 1, 0, 0, 1, 1]],
+   Editable->False], TraditionalForm]], "Print",ExpressionUUID->"8f01e07a-\
+6b85-48ac-a026-c89d26617ce2"],
+
+Cell[BoxData[
+ FormBox["\<\"    1 master integrals found:\\nj[t1, 1, 1, 1, 0, 0, 1, 1].\\n  \
+  jRules[t1, 1, 1, 1, 0, 0, 1, 1] \[LongDash] reduction rules for the sector.\
+\\n    MIs[t1] \[LongDash] updated list of the masters.\"\>", 
+  TraditionalForm]], "Print",ExpressionUUID->"cd04460c-f75c-4e3b-8a1a-\
+efb22821e01f"],
+
+Cell[BoxData[
+ FormBox[
+  InterpretationBox[
+   RowBox[{"\<\"Sector \"\>", "\[InvisibleSpace]", 
+    RowBox[{"js", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "0", ",", "1", ",", "0", ",", 
+      "1"}], ")"}]}],
+   SequenceForm["Sector ", 
+    LiteRed`js[$CellContext`t1, 1, 1, 1, 0, 1, 0, 1]],
+   Editable->False], TraditionalForm]], "Print",ExpressionUUID->"0c1c07c7-\
+3c8a-46f2-a900-467a3b0880de"],
+
+Cell[BoxData[
+ FormBox["\<\"    1 master integrals found:\\nj[t1, 1, 1, 1, 0, 1, 0, 1].\\n  \
+  jRules[t1, 1, 1, 1, 0, 1, 0, 1] \[LongDash] reduction rules for the sector.\
+\\n    MIs[t1] \[LongDash] updated list of the masters.\"\>", 
+  TraditionalForm]], "Print",ExpressionUUID->"5afb0081-6e85-4f5f-9e9c-\
+2d5c59daf66a"],
+
+Cell[BoxData[
+ FormBox[
+  InterpretationBox[
+   RowBox[{"\<\"Sector \"\>", "\[InvisibleSpace]", 
+    RowBox[{"js", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "0", ",", "1", ",", "1", ",", 
+      "0"}], ")"}]}],
+   SequenceForm["Sector ", 
+    LiteRed`js[$CellContext`t1, 1, 1, 1, 0, 1, 1, 0]],
+   Editable->False], TraditionalForm]], "Print",ExpressionUUID->"a9701e95-\
+b87e-438c-887a-ce66b3922476"],
+
+Cell[BoxData[
+ FormBox["\<\"    0 master integrals found.\\n    jRules[t1, 1, 1, 1, 0, 1, \
+1, 0] \[LongDash] reduction rules for the sector.\\n    MIs[t1] \[LongDash] \
+updated list of the masters.\"\>", TraditionalForm]], "Print",ExpressionUUID->\
+"07da9b24-43fe-4640-a291-03062f9f9434"],
+
+Cell[BoxData[
+ FormBox[
+  InterpretationBox[
+   RowBox[{"\<\"Sector \"\>", "\[InvisibleSpace]", 
+    RowBox[{"js", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "1", ",", "0", ",", "1", ",", 
+      "0"}], ")"}]}],
+   SequenceForm["Sector ", 
+    LiteRed`js[$CellContext`t1, 1, 1, 1, 1, 0, 1, 0]],
+   Editable->False], TraditionalForm]], "Print",ExpressionUUID->"a699f633-\
+9ba7-42fa-bd69-ca9a23485ecd"],
+
+Cell[BoxData[
+ FormBox["\<\"    0 master integrals found.\\n    jRules[t1, 1, 1, 1, 1, 0, \
+1, 0] \[LongDash] reduction rules for the sector.\\n    MIs[t1] \[LongDash] \
+updated list of the masters.\"\>", TraditionalForm]], "Print",ExpressionUUID->\
+"5fc2b32b-840a-4087-be05-8d428c6e4fee"],
+
+Cell[BoxData[
+ FormBox[
+  InterpretationBox[
+   RowBox[{"\<\"Sector \"\>", "\[InvisibleSpace]", 
+    RowBox[{"js", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "0", ",", "1", ",", "1", ",", 
+      "1"}], ")"}]}],
+   SequenceForm["Sector ", 
+    LiteRed`js[$CellContext`t1, 1, 1, 1, 0, 1, 1, 1]],
+   Editable->False], TraditionalForm]], "Print",ExpressionUUID->"3dda8d62-\
+039a-42b3-a004-77b60608d53b"],
+
+Cell[BoxData[
+ FormBox["\<\"    0 master integrals found.\\n    jRules[t1, 1, 1, 1, 0, 1, \
+1, 1] \[LongDash] reduction rules for the sector.\\n    MIs[t1] \[LongDash] \
+updated list of the masters.\"\>", TraditionalForm]], "Print",ExpressionUUID->\
+"65f0444c-143f-4bfd-a6de-fb7105e55e0a"],
+
+Cell[BoxData[
+ FormBox[
+  InterpretationBox[
+   RowBox[{"\<\"Sector \"\>", "\[InvisibleSpace]", 
+    RowBox[{"js", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "1", ",", "0", ",", "1", ",", 
+      "1"}], ")"}]}],
+   SequenceForm["Sector ", 
+    LiteRed`js[$CellContext`t1, 1, 1, 1, 1, 0, 1, 1]],
+   Editable->False], TraditionalForm]], "Print",ExpressionUUID->"55747564-\
+fe54-431a-a8b8-ebd49b33f911"],
+
+Cell[BoxData[
+ FormBox["\<\"    0 master integrals found.\\n    jRules[t1, 1, 1, 1, 1, 0, \
+1, 1] \[LongDash] reduction rules for the sector.\\n    MIs[t1] \[LongDash] \
+updated list of the masters.\"\>", TraditionalForm]], "Print",ExpressionUUID->\
+"7d9b3c06-4446-4d55-bd79-f806c4aeb5c5"],
+
+Cell[BoxData[
+ FormBox[
+  InterpretationBox[
+   RowBox[{"\<\"Sector \"\>", "\[InvisibleSpace]", 
+    RowBox[{"js", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "1", ",", "1", ",", "0", ",", 
+      "1"}], ")"}]}],
+   SequenceForm["Sector ", 
+    LiteRed`js[$CellContext`t1, 1, 1, 1, 1, 1, 0, 1]],
+   Editable->False], TraditionalForm]], "Print",ExpressionUUID->"386fde01-\
+a1b5-4088-8aef-e55164cb2b4c"],
+
+Cell[BoxData[
+ FormBox["\<\"    0 master integrals found.\\n    jRules[t1, 1, 1, 1, 1, 1, \
+0, 1] \[LongDash] reduction rules for the sector.\\n    MIs[t1] \[LongDash] \
+updated list of the masters.\"\>", TraditionalForm]], "Print",ExpressionUUID->\
+"ab9dfbb2-26a6-4917-8a78-ada30dd78714"],
+
+Cell[BoxData[
+ FormBox[
+  InterpretationBox[
+   RowBox[{"\<\"Sector \"\>", "\[InvisibleSpace]", 
+    RowBox[{"js", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "1", ",", "1", ",", "1", ",", 
+      "0"}], ")"}]}],
+   SequenceForm["Sector ", 
+    LiteRed`js[$CellContext`t1, 1, 1, 1, 1, 1, 1, 0]],
+   Editable->False], TraditionalForm]], "Print",ExpressionUUID->"fb34ffb6-\
+bbcc-4b82-b4b4-99fc3d07646c"],
+
+Cell[BoxData[
+ FormBox["\<\"    0 master integrals found.\\n    jRules[t1, 1, 1, 1, 1, 1, \
+1, 0] \[LongDash] reduction rules for the sector.\\n    MIs[t1] \[LongDash] \
+updated list of the masters.\"\>", TraditionalForm]], "Print",ExpressionUUID->\
+"36c5447e-90f5-4bcb-9cea-6875209df603"],
+
+Cell[BoxData[
+ FormBox[
+  InterpretationBox[
+   RowBox[{"\<\"Sector \"\>", "\[InvisibleSpace]", 
+    RowBox[{"js", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "1", ",", "1", ",", "1", ",", 
+      "1"}], ")"}]}],
+   SequenceForm["Sector ", 
+    LiteRed`js[$CellContext`t1, 1, 1, 1, 1, 1, 1, 1]],
+   Editable->False], TraditionalForm]], "Print",ExpressionUUID->"595574ea-\
+2882-4b07-9533-424d66e532c5"],
+
+Cell[BoxData[
+ FormBox["\<\"    1 master integrals found:\\nj[t1, 1, 1, 1, 1, 1, 1, 1].\\n  \
+  jRules[t1, 1, 1, 1, 1, 1, 1, 1] \[LongDash] reduction rules for the sector.\
+\\n    MIs[t1] \[LongDash] updated list of the masters.\"\>", 
+  TraditionalForm]], "Print",ExpressionUUID->"89e2f918-04dd-446d-84e8-\
+420bfebc1187"]
+}, Open  ]],
+
+Cell[BoxData[
+ FormBox[
+  RowBox[{"{", 
+   RowBox[{
+   "1", ",", "1", ",", "1", ",", "0", ",", "0", ",", "0", ",", "0", ",", "0", 
+    ",", "0", ",", "1"}], "}"}], TraditionalForm]], "Output",ExpressionUUID->\
+"c48c235c-5623-4f8f-b694-2198348b9773"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["IBPReduce", "Section",ExpressionUUID->"a00b7505-537e-41de-abb4-f53c036207c7"],
+
+Cell["\<\
+Numeric results shows the un-IBPReduce j[t1,1,1,1,0,1,1,1] has only 1/ep, \
+while the IBPReduced result shows it has 1/ep^3\
+\>", "Text",ExpressionUUID->"5c915804-d1b6-4015-99ce-3933779e669b"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"IBPReduce", "[", 
+  RowBox[{"j", "[", 
+   RowBox[{
+   "t1", ",", "1", ",", "1", ",", "1", ",", "0", ",", "1", ",", "1", ",", 
+    "1"}], "]"}], "]"}]], "Input",ExpressionUUID->"2bcc57c4-2b50-43a3-9db7-\
+2505e6e5625f"],
+
+Cell[BoxData[
+ FormBox[
+  RowBox[{
+   FractionBox[
+    RowBox[{
+     SuperscriptBox[
+      RowBox[{"(", 
+       RowBox[{"d", "-", "3"}], ")"}], "2"], " ", "z", " ", 
+     RowBox[{"j", "(", 
+      RowBox[{
+      "t1", ",", "1", ",", "1", ",", "1", ",", "0", ",", "0", ",", "1", ",", 
+       "0"}], ")"}]}], 
+    RowBox[{"4", " ", 
+     SuperscriptBox[
+      RowBox[{"(", 
+       RowBox[{"d", "-", "4"}], ")"}], "2"], " ", 
+     RowBox[{"(", 
+      RowBox[{"z", "-", "1"}], ")"}]}]], "+", 
+   RowBox[{
+    FractionBox["1", "4"], " ", 
+    RowBox[{"j", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "0", ",", "0", ",", "1", ",", 
+      "1"}], ")"}]}], "+", 
+   RowBox[{
+    FractionBox["1", "4"], " ", 
+    RowBox[{"j", "(", 
+     RowBox[{
+     "t1", ",", "1", ",", "1", ",", "1", ",", "0", ",", "1", ",", "0", ",", 
+      "1"}], ")"}]}]}], TraditionalForm]], "Output",ExpressionUUID->"0a45b66c-\
+533d-417a-a6bc-ef352599cb4e"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{1132, 594},
+WindowMargins->{{38, Automatic}, {Automatic, 0}},
+FrontEndVersion->"11.2 for Mac OS X x86 (32-bit, 64-bit Kernel) (September \
+10, 2017)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 78, 0, 67, "Section",ExpressionUUID->"66458211-6516-4d8f-9b50-0221fe5faab7"],
+Cell[CellGroupData[{
+Cell[683, 26, 107, 1, 30, "Input",ExpressionUUID->"24a8b9c2-b88c-4e28-84a7-6b303200f8d1"],
+Cell[793, 29, 1613, 39, 96, "Print",ExpressionUUID->"d365a259-abb7-4296-adbe-934f7dd4c4b4"]
+}, Open  ]],
+Cell[2421, 71, 180, 4, 30, "Input",ExpressionUUID->"26faf61d-83f1-41a3-9118-0acf4414e1fb"],
+Cell[2604, 77, 367, 9, 52, "Input",ExpressionUUID->"3d97c69f-2bcf-45b8-8fd9-90e6068cd72e"],
+Cell[2974, 88, 455, 15, 73, "Input",ExpressionUUID->"762cbb05-4288-4829-9c19-1d17333c8c71"],
+Cell[3432, 105, 288, 8, 73, "Input",ExpressionUUID->"24387d07-d058-4543-b7c1-6a7dbe428ecb"],
+Cell[3723, 115, 649, 18, 73, "Input",ExpressionUUID->"29e4ed67-6eef-49f0-97c9-58077f2b1a79"],
+Cell[CellGroupData[{
+Cell[4397, 137, 1551, 42, 136, "Input",ExpressionUUID->"425e9951-7512-4d25-9ff9-be41735cbe3f"],
+Cell[5951, 181, 457, 6, 111, "Print",ExpressionUUID->"0b52e331-e504-47fd-9a13-61ac6b8d718f"],
+Cell[6411, 189, 349, 8, 24, "Message",ExpressionUUID->"f0965a1c-a0a6-4730-9487-67cb5c353425"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6797, 202, 120, 1, 30, "Input",ExpressionUUID->"5c788f4d-7407-47d5-af76-2657f2396cd2"],
+Cell[6920, 205, 304, 5, 51, "Print",ExpressionUUID->"9bdfada8-471d-4177-8898-2f6027f70767"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[7261, 215, 295, 8, 30, "Input",ExpressionUUID->"4d90cf7d-d79b-4752-8199-bb13e7935cc4"],
+Cell[7559, 225, 583, 8, 111, "Print",ExpressionUUID->"2db0a669-0fb4-4bc2-949f-1198439b31c9"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8179, 238, 123, 1, 30, "Input",ExpressionUUID->"83cd963d-f5f8-4a92-ade1-7617bc40aed1"],
+Cell[8305, 241, 603, 8, 96, "Print",ExpressionUUID->"4d731049-1b30-4737-a805-c25eb0f24454"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8945, 254, 159, 3, 30, "Input",ExpressionUUID->"81631c3c-ec8b-409c-a564-d0f4d1d6855c"],
+Cell[CellGroupData[{
+Cell[9129, 261, 422, 11, 20, "Print",ExpressionUUID->"6b9be3fb-7750-4366-89ac-e56a9a35ce19"],
+Cell[9554, 274, 322, 5, 66, "Print",ExpressionUUID->"7a713aaa-7b5b-4cad-9afb-6016e7869f52"],
+Cell[9879, 281, 422, 11, 20, "Print",ExpressionUUID->"8f01e07a-6b85-48ac-a026-c89d26617ce2"],
+Cell[10304, 294, 322, 5, 66, "Print",ExpressionUUID->"cd04460c-f75c-4e3b-8a1a-efb22821e01f"],
+Cell[10629, 301, 422, 11, 20, "Print",ExpressionUUID->"0c1c07c7-3c8a-46f2-a900-467a3b0880de"],
+Cell[11054, 314, 322, 5, 66, "Print",ExpressionUUID->"5afb0081-6e85-4f5f-9e9c-2d5c59daf66a"],
+Cell[11379, 321, 422, 11, 20, "Print",ExpressionUUID->"a9701e95-b87e-438c-887a-ce66b3922476"],
+Cell[11804, 334, 289, 4, 51, "Print",ExpressionUUID->"07da9b24-43fe-4640-a291-03062f9f9434"],
+Cell[12096, 340, 422, 11, 20, "Print",ExpressionUUID->"a699f633-9ba7-42fa-bd69-ca9a23485ecd"],
+Cell[12521, 353, 289, 4, 51, "Print",ExpressionUUID->"5fc2b32b-840a-4087-be05-8d428c6e4fee"],
+Cell[12813, 359, 422, 11, 20, "Print",ExpressionUUID->"3dda8d62-039a-42b3-a004-77b60608d53b"],
+Cell[13238, 372, 289, 4, 51, "Print",ExpressionUUID->"65f0444c-143f-4bfd-a6de-fb7105e55e0a"],
+Cell[13530, 378, 422, 11, 20, "Print",ExpressionUUID->"55747564-fe54-431a-a8b8-ebd49b33f911"],
+Cell[13955, 391, 289, 4, 51, "Print",ExpressionUUID->"7d9b3c06-4446-4d55-bd79-f806c4aeb5c5"],
+Cell[14247, 397, 422, 11, 20, "Print",ExpressionUUID->"386fde01-a1b5-4088-8aef-e55164cb2b4c"],
+Cell[14672, 410, 289, 4, 51, "Print",ExpressionUUID->"ab9dfbb2-26a6-4917-8a78-ada30dd78714"],
+Cell[14964, 416, 422, 11, 20, "Print",ExpressionUUID->"fb34ffb6-bbcc-4b82-b4b4-99fc3d07646c"],
+Cell[15389, 429, 289, 4, 51, "Print",ExpressionUUID->"36c5447e-90f5-4bcb-9cea-6875209df603"],
+Cell[15681, 435, 422, 11, 20, "Print",ExpressionUUID->"595574ea-2882-4b07-9533-424d66e532c5"],
+Cell[16106, 448, 322, 5, 66, "Print",ExpressionUUID->"89e2f918-04dd-446d-84e8-420bfebc1187"]
+}, Open  ]],
+Cell[16443, 456, 249, 6, 30, "Output",ExpressionUUID->"c48c235c-5623-4f8f-b694-2198348b9773"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[16741, 468, 83, 0, 67, "Section",ExpressionUUID->"a00b7505-537e-41de-abb4-f53c036207c7"],
+Cell[16827, 470, 202, 3, 35, "Text",ExpressionUUID->"5c915804-d1b6-4015-99ce-3933779e669b"],
+Cell[CellGroupData[{
+Cell[17054, 477, 241, 6, 30, "Input",ExpressionUUID->"2bcc57c4-2b50-43a3-9db7-2505e6e5625f"],
+Cell[17298, 485, 943, 30, 58, "Output",ExpressionUUID->"0a45b66c-533d-417a-a6bc-ef352599cb4e"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+

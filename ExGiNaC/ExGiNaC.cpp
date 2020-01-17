@@ -287,7 +287,7 @@ ex mma_series(ex expr_in, symbol s0, int sn0) {
 }
 
 /*-----------------------------------------------------*/
-// mma_collect
+// mma_diff
 /*-----------------------------------------------------*/
 ex mma_diff(ex expr, ex xp, unsigned nth, bool expand) {
     symbol s;

@@ -319,7 +319,7 @@ public:
     void XReOrders();
     void XTogethers();
     void XExpands();
-    void KillPowers(bool repeat=true);
+    void KillPowers(int bits=1+2);
     bool IsBad(ex f, vector<exmap> vmap);
     vector<pair<lst, lst>> AutoEnd(pair<lst, lst> po_ex);
     void CIPrepares(const char* key = NULL);
@@ -327,6 +327,9 @@ public:
     void Integrates(const char* key = NULL, const char *pkey = NULL, int kid=0);
     void Evaluate(FeynmanParameter fpi, const char *key = NULL);
     void Evaluate(XIntegrand xint, const char *key = NULL);
+    void MB();
+    void XEnd();
+    void ChengWu();
     
     static ex PrefactorFIESTA(int nLoop);
     ex VEResult();
@@ -343,6 +346,8 @@ private:
     static int epsRank(ex);
     static int vsRank(ex);
     void DoAsy();
+    void KillPowersWithDelta();
+    void KillPowersWithoutDelta(int bits);
 
     void CompileMatDet();
     vector<lst> ciResult;
@@ -374,6 +379,6 @@ DECLARE_FUNCTION_1P(CT)
 DECLARE_FUNCTION_2P(FTX)
 DECLARE_FUNCTION_2P(VE)
 DECLARE_FUNCTION_2P(VEO)
-
+DECLARE_FUNCTION_1P(WF)
 }
 
