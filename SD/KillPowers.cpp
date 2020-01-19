@@ -3,6 +3,44 @@
 
 namespace HepLib {
 
+void SD::Projectivize(pair<lst, lst> &kv, lst delta, ex xsum) {
+    symbol s;
+    lst sRepl;
+    for(int j=0; j<delta.nops(); j++) sRepl.append(delta.op(j)==delta.op(j)*s);
+    if(xsum.is_zero()) {
+        for(auto xi : delta) xsum += xi;
+    }
+    
+    ex over_all_sn = 0;
+    int nnn = kv.first.nops();
+    for(int i=0; i<nnn; i++) {
+        if(!kv.first.op(i).has(x(wild()))) continue;
+        auto tmp = expand(kv.first.op(i));
+        auto sn = tmp.subs(sRepl).degree(s);
+        over_all_sn += sn*kv.second.op(i);
+        lst items;
+        if(is_a<add>(tmp)) {
+            for(auto ii : tmp) items.append(ii);
+        } else {
+            items.append(tmp);
+        }
+        tmp = 0;
+        for(auto ii : items) {
+            auto sni = ii.subs(sRepl).degree(s);
+            if(sni!=sn) tmp += ii * pow(xsum, sn-sni);
+            else tmp += ii;
+        }
+        kv.first.let_op(i) = tmp;
+    }
+
+    over_all_sn = normal(over_all_sn+delta.nops());
+    if(!over_all_sn.is_zero()) {
+        kv.first.append(xsum);
+        kv.second.append(ex(0)-over_all_sn);
+    }
+    
+}
+
 bool Partilize(ex f0, ex xs, lst &ret0) {
     ex f = f0;
     for(auto xi : xs) {
@@ -26,14 +64,7 @@ void SD::ChengWu() {
     
     for(auto &fe : FunExp) {
     for(auto delta : Deltas) {
-        symbol s;
-        lst sRepl;
-        ex xsum = 0;
-        for(int j=0; j<delta.nops(); j++) {
-            sRepl.append(delta.op(j)==delta.op(j)*s);
-            xsum += delta.op(j);
-        }
-        
+        Projectivize(fe, delta);
         auto ft = fe.first.op(1);
         if(xPositive(ft)) continue;
         ft = Factor(ft);
@@ -55,39 +86,8 @@ void SD::ChengWu() {
         
         lst ret;
         if(Partilize(ft, delta, ret)) {
-        
-            if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu: "  << ret << RESET << endl;
-            
-            if(true) {
-                ex over_all_sn = 0;
-                auto nnn = fe.first.nops();
-                for(int i=0; i<nnn; i++) {
-                    if(!fe.first.op(i).has(x(wild()))) continue;
-                    auto tmp = expand(fe.first.op(i));
-                    auto sn = tmp.subs(sRepl).degree(s);
-                    over_all_sn += sn*fe.second.op(i);
-                    lst items;
-                    if(is_a<add>(tmp)) {
-                        for(auto ii : tmp) items.append(ii);
-                    } else {
-                        items.append(tmp);
-                    }
-                    tmp = 0;
-                    for(auto ii : items) {
-                        auto sni = ii.subs(sRepl).degree(s);
-                        if(sni!=sn) tmp += ii * pow(xsum, sn-sni);
-                        else tmp += ii;
-                    }
-                    fe.first.let_op(i) = tmp;
-                }
-                over_all_sn = normal(over_all_sn+delta.nops());
-
-                if(!over_all_sn.is_zero()) {
-                    fe.first.append(xsum);
-                    fe.second.append(ex(0)-over_all_sn);
-                }
-            }
-            
+            if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu size = "  << ret.nops() << RESET << endl;
+                        
             lst rm_xs;
             ex inv_det = 1;
             for(int i=ret.nops()-1; i>=0; i--) {
@@ -145,34 +145,7 @@ void SD::ChengWu() {
                     break;
                 }
             }
-            ex over_all_sn = 0;
-            nnn = fe.first.nops();
-            for(int i=0; i<nnn; i++) {
-                if(!fe.first.op(i).has(x(wild()))) continue;
-                auto tmp = expand(fe.first.op(i));
-                auto sn = tmp.subs(sRepl).degree(s);
-                over_all_sn += sn*fe.second.op(i);
-                lst items;
-                if(is_a<add>(tmp)) {
-                    for(auto ii : tmp) items.append(ii);
-                } else {
-                    items.append(tmp);
-                }
-                tmp = 0;
-                for(auto ii : items) {
-                    auto sni = ii.subs(sRepl).degree(s);
-                    if(sni!=sn) tmp += ii * pow(re_xi, sn-sni);
-                    else tmp += ii;
-                }
-                fe.first.let_op(i) = tmp;
-            }
-
-            over_all_sn = normal(over_all_sn+delta.nops());
-
-            if(!over_all_sn.is_zero()) {
-                fe.first.append(re_xi);
-                fe.second.append(ex(0)-over_all_sn);
-            }
+            Projectivize(fe, delta, re_xi);
         }
     }}
 

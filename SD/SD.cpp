@@ -13,10 +13,59 @@ realsymbol const SD::NaN("NaN");
 bool SD::use_dlclose = true;
 bool SD::debug = false;
 
-vector<exmap> SecDecBase::x2y(const lst &xpols) {
-    ex xpol = 1;
-    for(int i=0; i<xpols.nops(); i++) xpol *= xpols.op(i);
-    return x2y(xpol);
+vector<exmap> SecDecBase::x2y(const lst &xpols, bool all_in_one) {
+    if(all_in_one) {
+        ex xpol = 1;
+        for(auto item : xpols) xpol *= item;
+        return x2y(xpol);
+    }
+    
+    vector<exmap> vec_map;
+    exmap map0;
+    map0[x(-1)] = 1;
+    auto xs = get_x_from(xpols);
+    for(auto xi : xs) map0[xi] = xi.subs(x(wild())==y(wild()));
+    vec_map.push_back(map0);
+    
+    for(int i=0; i<xpols.nops(); i++) {
+        auto xpol = xpols.op(i);
+        vector<exmap> vec_map2;
+        for(auto map : vec_map) {
+            auto cxpol = xpol.subs(map).subs(y(wild())==x(wild()));
+            auto vec_map3 = x2y(cxpol);
+            for(auto map3 : vec_map3) {
+                exmap new_map;
+                lst xy_lst;
+                for(auto kv : map) {
+                    auto tmp = kv.second.subs(y(wild())==x(wild())).subs(map3);
+                    if(kv.first==x(-1)) {
+                        tmp *= map3[x(-1)];
+                    }
+                    new_map[kv.first] = tmp;
+                    xy_lst.append(tmp);
+                }
+                
+                // handle remaining x's
+                if(xy_lst.has(x(wild()))) {
+                    vector<int> y_free_index;
+                    for(int j=0; j<xs.size(); j++) {
+                        if(!xy_lst.has(y(j))) y_free_index.push_back(j);
+                    }
+                    auto xs = get_x_from(xy_lst);
+                    lst xRepl;
+                    assert(xs.size()<=y_free_index.size());
+                    for(int j=0; j<xs.size(); j++) {
+                        xRepl.append(xs[j]==y(y_free_index[j]));
+                    }
+                    for(auto kv : new_map) new_map[kv.first] = kv.second.subs(xRepl);
+                }
+                
+                vec_map2.push_back(new_map);
+            }
+        }
+        vec_map = vec_map2;
+    }
+    return vec_map;
 }
 
 /*-----------------------------------------------------*/
@@ -28,8 +77,13 @@ bool SD::IsBad(ex f, vector<exmap> vmap) {
         auto xs_tmp = get_x_from(ft);
         auto ys_tmp = get_y_from(ft);
         int ysn = ys_tmp.size();
+        vector<int> y_free_index;
+        for(int j=0; j<xs_tmp.size()+ys_tmp.size(); j++) {
+            if(!ft.has(y(j))) y_free_index.push_back(j);
+        }
+        assert(y_free_index.size()==xs_tmp.size());
         for(int i=0; i<xs_tmp.size(); i++) {
-            vi[xs_tmp[i]] = y(ysn+i);
+            vi[xs_tmp[i]] = y(y_free_index[i]);
         }
         if(xs_tmp.size()>0) ft = ft.subs(vi);
 
@@ -110,9 +164,6 @@ vector<pair<lst, lst>> SD::AutoEnd(pair<lst, lst> po_ex) {
                 auto ntmp = exlist.op(i);
                 if(!tmp.subs(lst{x(wild())==0, y(wild())==0}).normal().is_zero()) continue;
                 if( (!tmp.has(x(wild())) && !tmp.has(y(wild()))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
-                
-                if( (is_a<numeric>(ntmp.subs(ep==0)) && ntmp.subs(ep==0).evalf()>0) ) continue;
-                
                 sdList.append(tmp);
             }
             vector<exmap> vmap = SecDec->x2y(sdList);
@@ -169,10 +220,16 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
         auto xs_tmp = get_x_from(ypolist);
         auto ys_tmp = get_y_from(ypolist);
         int ysn = ys_tmp.size();
-        for(int i=0; i<xs_tmp.size(); i++) {
-            vi[xs_tmp[i]] = y(ysn+i);
+        vector<int> y_free_index;
+        for(int j=0; j<xs_tmp.size()+ys_tmp.size(); j++) {
+            if(!ypolist.has(y(j))) y_free_index.push_back(j);
         }
-        if(xs_tmp.size()>0) ypolist = polist.subs(vi);
+        assert(y_free_index.size()==xs_tmp.size());
+        for(int i=0; i<xs_tmp.size(); i++) {
+            vi[xs_tmp[i]] = y(y_free_index[i]);
+        }
+        if(xs_tmp.size()>0) ypolist = ypolist.subs(vi);
+        assert(!ypolist.has(x(wild())));
 
         // need collect_common_factors
         auto ft = collect_common_factors(ypolist.op(1).expand());
@@ -299,7 +356,7 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
                     if(nchk && item.subs(y(wild())==0).subs(iEpsilon==0).normal().is_zero()) {
                         cerr << "zero - item: " << item << endl;
                         cerr << "exlist.op(i) = " << exlist.op(i) << endl;
-                        //assert(false);
+                        assert(false);
                     }
                     rem *= item;
                 }
@@ -321,7 +378,7 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
             if(is_a<numeric>(v)) {
                 auto nv = ex_to<numeric>(v);
                 if(nv<=-1) {
-                    cerr << endl << "nv: " << nv << ", NOT larger than -1." << endl;
+                    cerr << endl << RED << k << "^(" << nv << ") Found, Other regularization needed!" << RESET << endl;
                     assert(false);
                 }
             }
