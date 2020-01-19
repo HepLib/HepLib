@@ -1,6 +1,6 @@
 (* ::Package:: *)
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*M2C*)
 
 
@@ -12,8 +12,8 @@ Protect[pow];
 
 Clear[M2C];
 M2C[exp_]:=Module[{ret},
-ret=exp/.Rule->List/.Power->pow;
-ret=ret/.{"EulerGamma"->"Euler","Zeta"->"zeta","Gamma"->"tgamma","Power"->"pow"};
+ret=exp/.Rule->List;
+ret=ret/.{EulerGamma->Euler,Zeta->zeta,Gamma->tgamma,Power->pow,Log->log,Sqrt->sqrt};
 ret=ToString[InputForm[ret],PageWidth->Infinity];
 ret=StringReplace[ret,{"["->"(", "]"->")"}];
 ret

@@ -60,9 +60,10 @@ void SD::ChengWu() {
             
             if(true) {
                 ex over_all_sn = 0;
-                for(int i=0; i<fe.first.nops(); i++) {
+                auto nnn = fe.first.nops();
+                for(int i=0; i<nnn; i++) {
                     if(!fe.first.op(i).has(x(wild()))) continue;
-                    auto tmp = mma_collect(fe.first.op(i), x(wild()));
+                    auto tmp = expand(fe.first.op(i));
                     auto sn = tmp.subs(sRepl).degree(s);
                     over_all_sn += sn*fe.second.op(i);
                     lst items;
@@ -80,6 +81,7 @@ void SD::ChengWu() {
                     fe.first.let_op(i) = tmp;
                 }
                 over_all_sn = normal(over_all_sn+delta.nops());
+
                 if(!over_all_sn.is_zero()) {
                     fe.first.append(xsum);
                     fe.second.append(ex(0)-over_all_sn);
@@ -103,6 +105,7 @@ void SD::ChengWu() {
             for(auto ss : ret) {
                 rep.append(ss.op(0)==ss.op(1));
             }
+
             auto nnn = fe.first.nops();
             for(int i=0; i<nnn; i++) {
                 if(!fe.first.op(i).has(x(wild()))) continue;
@@ -134,7 +137,7 @@ void SD::ChengWu() {
                 fe.first.append(idet_num_den.op(1));
                 fe.second.append(1);
             }
-            
+
             ex re_xi;
             for(auto xi : delta) {
                 if(!rm_xs.has(xi)) {
@@ -143,9 +146,10 @@ void SD::ChengWu() {
                 }
             }
             ex over_all_sn = 0;
-            for(int i=0; i<fe.first.nops(); i++) {
+            nnn = fe.first.nops();
+            for(int i=0; i<nnn; i++) {
                 if(!fe.first.op(i).has(x(wild()))) continue;
-                auto tmp = mma_collect(fe.first.op(i), x(wild()));
+                auto tmp = expand(fe.first.op(i));
                 auto sn = tmp.subs(sRepl).degree(s);
                 over_all_sn += sn*fe.second.op(i);
                 lst items;
@@ -162,14 +166,24 @@ void SD::ChengWu() {
                 }
                 fe.first.let_op(i) = tmp;
             }
+
             over_all_sn = normal(over_all_sn+delta.nops());
+
             if(!over_all_sn.is_zero()) {
                 fe.first.append(re_xi);
                 fe.second.append(ex(0)-over_all_sn);
             }
         }
     }}
+
     KillPowersWithDelta();
+    for(auto &fe : FunExp) {
+        auto nn = fe.first.nops()-1;
+        if(fe.first.op(nn)==WF(1) && fe.second.op(nn)==0) {
+            fe.first.let_op(nn) = 1;
+        }
+    }
+    Normalizes();
 }
 
 void SD::KillPowersWithDelta() {
@@ -259,7 +273,7 @@ while(true) {
             
             // handle eqn==ci xi - cj xj
             if((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0) {
-                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers with Delta: "  << eqn << RESET << endl;
                 ret = true;
                 ci = abs(ci);
                 cj = abs(cj);
@@ -422,7 +436,7 @@ while(true) {
             
             // handle eqn==ci xi - cj xj
             if((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0) {
-                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers without Delta: "  << eqn << RESET << endl;
                 ret = true;
                 ci = abs(ci);
                 cj = abs(cj);
@@ -481,7 +495,7 @@ while(true) {
                     FunExp.push_back(make_pair(f3,e3));
                 }
             } else if( (eqn-(xi+xj-1)).is_zero() || (eqn+(xi+xj-1)).is_zero() ) {
-                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers without Delta: "  << eqn << RESET << endl;
                 ret = true;
                 symbol xx, yy, zz;
                 // Part I: xi+xj-1>0
@@ -583,7 +597,7 @@ while(true) {
             ex c0 = eqn.subs(lst{xi==0});
             // handle eqn==ci xi - c0
             if((ci*xi+c0-eqn).is_zero() && is_a<numeric>(ci*c0) && (ci*c0)<0 && abs(c0)<abs(ci)) {
-                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers without Delta: "  << eqn << RESET << endl;
                 ret = true;
                 ci = abs(ci);
                 c0 = abs(c0);

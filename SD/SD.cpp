@@ -110,6 +110,9 @@ vector<pair<lst, lst>> SD::AutoEnd(pair<lst, lst> po_ex) {
                 auto ntmp = exlist.op(i);
                 if(!tmp.subs(lst{x(wild())==0, y(wild())==0}).normal().is_zero()) continue;
                 if( (!tmp.has(x(wild())) && !tmp.has(y(wild()))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
+                
+                if( (is_a<numeric>(ntmp.subs(ep==0)) && ntmp.subs(ep==0).evalf()>0) ) continue;
+                
                 sdList.append(tmp);
             }
             vector<exmap> vmap = SecDec->x2y(sdList);
@@ -160,7 +163,6 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
     }
 
     vector<exmap> vmap = SecDec->x2y(sdList);
-
     vector<lst> sd;
     for(auto &vi : vmap) {
         auto ypolist = polist.subs(vi);
@@ -297,7 +299,7 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
                     if(nchk && item.subs(y(wild())==0).subs(iEpsilon==0).normal().is_zero()) {
                         cerr << "zero - item: " << item << endl;
                         cerr << "exlist.op(i) = " << exlist.op(i) << endl;
-                        assert(false);
+                        //assert(false);
                     }
                     rem *= item;
                 }
@@ -1110,7 +1112,7 @@ void SD::RemoveDeltas() {
                         cerr << "fun is NOT polynormial of xj." << endl;
                         assert(false);
                     }
-                    auto expn = mma_collect(fun, xj).degree(xj);
+                    auto expn = expand(fun).degree(xj);
                     fun = pow(xj, -expn) * fun;
                     fun = normal(fun.subs(xj==1/xj));
                     fun = fun.subs(xj==jInv);
