@@ -265,7 +265,7 @@ public:
     int epsN = 0;
     int sN = 0;
     int Verbose = 1;
-    int PoleRequested = -100;
+    int PoleRequested = -2;
     exmap nReplacements;
     vector<pair<lst, lst>> FunExp;
     vector<lst> Deltas;
@@ -339,6 +339,8 @@ public:
     static ex PExpand(ex xpol, bool delta=true);
     static int PRank(matrix m);
     static void Projectivize(pair<lst,lst> &kv, lst delta, ex xsum=0);
+    static void Scalelize(pair<lst,lst> &kv, ex xi, ex cyi);
+    static vector<pair<lst,lst>> Binarize(pair<lst,lst> &kv, ex eqn);
         
 private:
     vector<lst> DS(const pair<lst, lst> po_ex);

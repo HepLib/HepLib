@@ -48,7 +48,7 @@ vector<exmap> SecDecBase::x2y(const lst &xpols, bool all_in_one) {
                 // handle remaining x's
                 if(xy_lst.has(x(wild()))) {
                     vector<int> y_free_index;
-                    for(int j=0; j<xs.size(); j++) {
+                    for(int j=0; j<xs.size()+10; j++) {
                         if(!xy_lst.has(y(j))) y_free_index.push_back(j);
                     }
                     auto xs = get_x_from(xy_lst);
@@ -78,10 +78,10 @@ bool SD::IsBad(ex f, vector<exmap> vmap) {
         auto ys_tmp = get_y_from(ft);
         int ysn = ys_tmp.size();
         vector<int> y_free_index;
-        for(int j=0; j<xs_tmp.size()+ys_tmp.size(); j++) {
+        for(int j=0; j<ys_tmp.size()+10; j++) {
             if(!ft.has(y(j))) y_free_index.push_back(j);
         }
-        assert(y_free_index.size()==xs_tmp.size());
+        assert(xs_tmp.size()<=y_free_index.size());
         for(int i=0; i<xs_tmp.size(); i++) {
             vi[xs_tmp[i]] = y(y_free_index[i]);
         }
@@ -221,10 +221,10 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
         auto ys_tmp = get_y_from(ypolist);
         int ysn = ys_tmp.size();
         vector<int> y_free_index;
-        for(int j=0; j<xs_tmp.size()+ys_tmp.size(); j++) {
+        for(int j=0; j<xs_tmp.size()+ys_tmp.size()+10; j++) {
             if(!ypolist.has(y(j))) y_free_index.push_back(j);
         }
-        assert(y_free_index.size()==xs_tmp.size());
+        assert(xs_tmp.size()<=y_free_index.size());
         for(int i=0; i<xs_tmp.size(); i++) {
             vi[xs_tmp[i]] = y(y_free_index[i]);
         }
@@ -1406,7 +1406,7 @@ void SD::SDPrepares() {
             ibp_in_vec.push_back(lst{xns, pns});
         }
     }
-    if(Verbose > 1) cout << "  \\--" << WHITE << "Maximum x^n: " << ex(0)-min_expn << "+1" << RESET << endl << flush;
+    if(Verbose > 1) cout << "  \\--" << WHITE << "Maximum x^n: " << ex(0)-min_expn << " + 1" << RESET << endl << flush;
 
     int pn = 0;
     vector<ex> ibp_res_vec;
