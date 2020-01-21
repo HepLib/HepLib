@@ -57,7 +57,7 @@ vector<ex> get_pl_from(ex pol);
 class SecDecBase {
 public:
     virtual vector<exmap> x2y(const ex &xpol) =0;
-    vector<exmap> x2y(const lst &xpols, bool all_in_one = 0);
+    vector<exmap> x2y(const lst &xpols, bool all_in_one = false);
 };
 
 class SecDecG : public SecDecBase {
@@ -340,7 +340,7 @@ public:
     static int PRank(matrix m);
     static void Projectivize(pair<lst,lst> &kv, lst delta, ex xsum=0);
     static void Scalelize(pair<lst,lst> &kv, ex xi, ex cyi);
-    static vector<pair<lst,lst>> Binarize(pair<lst,lst> &kv, ex eqn);
+    static vector<pair<lst,lst>> Binarize(pair<lst,lst> kv, ex eqn);
         
 private:
     vector<lst> DS(const pair<lst, lst> po_ex);

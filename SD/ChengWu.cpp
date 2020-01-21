@@ -75,7 +75,7 @@ void SD::Scalelize(pair<lst,lst> &kv, ex xi, ex cyi) {
     }
 }
 
-vector<pair<lst,lst>> SD::Binarize(pair<lst,lst> &kv, ex eqn) {
+vector<pair<lst,lst>> SD::Binarize(pair<lst,lst> kv, ex eqn) {
     auto xij = get_x_from(eqn);
     assert(xij.size()==2);
     ex xi = xij[0];

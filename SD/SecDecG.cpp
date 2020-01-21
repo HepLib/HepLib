@@ -301,7 +301,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     ex pol = xpol.expand();
     auto xs = get_xy_from(pol);
     int nx = xs.size();
-    
+ 
     lst lxs;
     for(auto item : xs) lxs.append(item);
     pol = pol.expand().collect(lxs, true);
@@ -323,7 +323,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
             deg_mat(n, ix) = mma_collect(tmp, xs[ix]).degree(xs[ix]);
         }
     }
-    
+ 
     vector<matrix> vmat;
     for(int r=0; r<deg_mat.rows(); r++) {
         matrix tmp(deg_mat.rows()+xs.size(), deg_mat.cols());

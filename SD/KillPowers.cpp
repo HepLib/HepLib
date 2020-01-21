@@ -7,7 +7,7 @@ void SD::KillPowersWithDelta() {
 int kpi = 0;
 while(kpi<30) {
     kpi++;
-    if(kpi>10) {
+    if(kpi>10 && (kpi % 0)==0) {
         cout << "Warning: kip>10, (kpi=" << kpi << ") maybe a dead loop!" << endl;
     }
     
@@ -90,7 +90,7 @@ while(kpi<30) {
             
             // handle eqn==ci xi - cj xj
             if((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0) {
-                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers with Delta ["<<kpi<<"]: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers-δ ["<<kpi<<"]: "  << eqn << RESET << endl;
                 ret = true;
                 ci = abs(ci);
                 cj = abs(cj);
@@ -131,7 +131,7 @@ void SD::KillPowersWithoutDelta(int bits) {
 int kpi = 0;
 while(kpi<30) {
     kpi++;
-    if(kpi>10) {
+    if(kpi>10 && (kpi % 10)==0) {
         cout << "Warning: kip>10, (kpi=" << kpi << ") maybe a dead loop!" << endl;
     }
     
@@ -253,7 +253,7 @@ while(kpi<30) {
             
             // handle eqn==ci xi - cj xj
             if((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0) {
-                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers without Delta ["<<kpi<<"]: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers ["<<kpi<<"]: "  << eqn << RESET << endl;
                 ret = true;
                 ci = abs(ci);
                 cj = abs(cj);
@@ -312,7 +312,7 @@ while(kpi<30) {
                     FunExp.push_back(make_pair(f3,e3));
                 }
             } else if( (eqn-(xi+xj-1)).is_zero() || (eqn+(xi+xj-1)).is_zero() ) {
-                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers without Delta ["<<kpi<<"]: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers ["<<kpi<<"]: "  << eqn << RESET << endl;
                 ret = true;
                 symbol xx, yy, zz;
                 // Part I: xi+xj-1>0
@@ -414,7 +414,7 @@ while(kpi<30) {
             ex c0 = eqn.subs(lst{xi==0});
             // handle eqn==ci xi - c0
             if((ci*xi+c0-eqn).is_zero() && is_a<numeric>(ci*c0) && (ci*c0)<0 && abs(c0)<abs(ci)) {
-                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers without Delta ["<<kpi<<"]: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers ["<<kpi<<"]: "  << eqn << RESET << endl;
                 ret = true;
                 ci = abs(ci);
                 c0 = abs(c0);
