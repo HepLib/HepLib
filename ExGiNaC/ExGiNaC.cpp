@@ -216,6 +216,14 @@ ex garResult(const char *garfn, lst syms) {
     return res;
 }
 
+/*-----------------------------------------------------*/
+// garResult Function
+/*-----------------------------------------------------*/
+ex toExpression(const char *expr, symtab stab) {
+    parser reader(stab);
+    ex ret = reader(expr);
+    return ret;
+}
 
 /*-----------------------------------------------------*/
 // Series at s=0 similar to Mathematica
