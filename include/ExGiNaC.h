@@ -240,7 +240,8 @@ ex GiNaC_Replace(ex expr, const ex &pat, FUN f) {
 
 string RunOS(const char * cmd);
 ex garResult(const char *garfn, lst syms);
-ex toExpression(const char *expr, symtab stab);
+ex str2ex(const char *expr, symtab stab);
+lst str2lst(const char *expr, symtab stab);
 
 /*-----------------------------------------------------*/
 // Series at s=0 similar to Mathematica

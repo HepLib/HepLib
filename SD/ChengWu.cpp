@@ -111,8 +111,7 @@ vector<pair<lst,lst>> SD::Binarize(pair<lst,lst> kv, ex eqn) {
     return ret;
 }
 
-
-bool Partilize(ex f0, ex xs, lst &ret0) {
+bool SD::Partilize(ex f0, ex xs, lst &ret0) {
     ex f = f0;
     for(auto xi : xs) {
         lst ret;
@@ -134,7 +133,7 @@ void SD::ChengWu() {
     if((Deltas.size()<1)) return;
     
     for(auto &fe : FunExp) {
-    for(auto delta : Deltas) {
+    for(auto &delta : Deltas) {
         Projectivize(fe, delta);
         auto ft = fe.first.op(1);
         if(xPositive(ft)) continue;
@@ -157,8 +156,9 @@ void SD::ChengWu() {
         }
 
         lst ret;
-        if(Partilize(ft, delta, ret)) {
-            if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu size = "  << ret.nops() << RESET << endl;
+        bool ok = Partilize(ft, delta, ret);
+        if(ok) {
+            if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu @ size="  << ret.nops() << RESET << endl;
                         
             lst rm_xs;
             ex inv_det = 1;
@@ -218,9 +218,41 @@ void SD::ChengWu() {
                 }
             }
             Projectivize(fe, delta, re_xi);
+        } else { // TODO: add more cases
+            for(auto xi : delta) {
+                if(ft.degree(xi)!=1) continue;
+                auto cxi = ft.coeff(xi);
+                if(!xPositive(cxi) && !xPositive(ex(0)-cxi)) continue;
+                auto cft = ft.subs(xi==0);
+                if(!xPositive(cft) && !xPositive(ex(0)-cft)) continue;
+                
+                if( (FunExp.size()==1) && (Deltas.size()==1) ) {
+                    ex xi1 = 0, xi2 = 0;
+                    for(int i=0; i<=delta.nops(); i++) {
+                        if(!(xi-x(i)).is_zero() && xi2.is_zero()) xi2 = x(i);
+                        else if(!delta.has(x(i)) && xi1.is_zero()) xi1 = x(i);
+                        if(!xi1.is_zero() && !xi2.is_zero()) break;
+                    }
+                    if(xi1.is_zero() || xi2.is_zero()) continue;
+                    
+                    delta.append(xi1);
+                    fe.first.append(xi);
+                    fe.first.append(xi1+xi);
+                    fe.second.append(1);
+                    fe.second.append(-2);
+                    
+                    Scalelize(fe, xi, 1/xi1);
+                    Projectivize(fe, delta, xi2);
+                    ChengWu();
+                    return;
+                } else {
+                    cout << "No effect, Still under working ..." << endl;
+                }
+                
+            }
         }
     }}
-
+    
     KillPowersWithDelta();
     for(auto &fe : FunExp) {
         auto nn = fe.first.nops()-1;

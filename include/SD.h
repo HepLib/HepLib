@@ -338,6 +338,7 @@ public:
     static ex Factor(const ex expr);
     static ex PExpand(ex xpol, bool delta=true);
     static int PRank(matrix m);
+    static bool Partilize(ex f0, ex xs, lst &ret0);
     static void Projectivize(pair<lst,lst> &kv, lst delta, ex xsum=0);
     static void Scalelize(pair<lst,lst> &kv, ex xi, ex cyi);
     static vector<pair<lst,lst>> Binarize(pair<lst,lst> kv, ex eqn);

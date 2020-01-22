@@ -217,12 +217,21 @@ ex garResult(const char *garfn, lst syms) {
 }
 
 /*-----------------------------------------------------*/
-// garResult Function
+// str2ex Function
 /*-----------------------------------------------------*/
-ex toExpression(const char *expr, symtab stab) {
+ex str2ex(const char *expr, symtab stab) {
     parser reader(stab);
     ex ret = reader(expr);
     return ret;
+}
+
+/*-----------------------------------------------------*/
+// str2lst Function
+/*-----------------------------------------------------*/
+lst str2lst(const char *expr, symtab stab) {
+    parser reader(stab);
+    ex ret = reader(expr);
+    return ex_to<lst>(ret);
 }
 
 /*-----------------------------------------------------*/
