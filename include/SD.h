@@ -265,7 +265,7 @@ public:
     int epsN = 0;
     int sN = 0;
     int Verbose = 1;
-    int PoleRequested = -2;
+    int PoleRequested = -3;
     exmap nReplacements;
     vector<lst> FunExp;
     vector<ex> Integrands;

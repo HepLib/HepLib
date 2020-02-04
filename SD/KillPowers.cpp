@@ -337,8 +337,9 @@ bool SD::KillPowersWithoutDelta(lst fe, int kpi, int bits) {
                 
                 int NN = 100;
                 for(auto item : fts2) {
-                    if(item.match(pow(wild(1),wild(2))) && item.has(xi)) {
-                        eqn = item.op(0);
+                    if((item.degree(xi)==1 || item.match(pow(wild(1),wild(2)))) && item.has(xi)) {
+                        if(item.match(pow(wild(1),wild(2)))) eqn = item.op(0);
+                        else eqn = item;
                         auto t1 = eqn.subs(lst{xi==1/ex(11)});
                         if(t1.is_zero()) t1 = eqn.subs(lst{xi==1/ex(3)});
                         if(t1.is_zero()) t1 = eqn.subs(lst{xi==1/ex(13)});
@@ -385,7 +386,7 @@ bool SD::KillPowersWithoutDelta(lst fe, int kpi, int bits) {
             // Part I: xi<cc
             auto f1 = fe.op(0);
             auto e1 = fe.op(1);
-            for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xi==xx*cc).subs(xx==xi);
+            for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xi==xx*cc).subs(xx==1-xi);
             f1.let_op(0) = f1.op(0)*cc; // Jaccobi
             FunExp.push_back(lst{f1,e1});
             // Part II: xi>cc

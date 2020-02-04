@@ -400,7 +400,7 @@ lst SD::Normalize(const lst &input) {
     lst in_nlst = ex_to<lst>(input.op(1));
     for(int i=0; i<in_plst.nops(); i++) {
         if(i!=1 && (in_nlst.op(i).is_zero() || in_plst.op(i)==ex(1))) continue;
-        if(i!=1 && in_plst.op(i).has(x(wild())) && !in_plst.op(i).has(y(wild()))) {
+        if(i!=1 && !in_plst.op(i).has(x(wild())) && !in_plst.op(i).has(y(wild()))) {
             const_term *= pow(in_plst.op(i), in_nlst.op(i));
         } else {
             auto ptmp = in_plst.op(i);
@@ -477,7 +477,7 @@ lst SD::Normalize(const lst &input) {
         }
     }
     
-    return lst{plst_comb, nlst_comb};
+    return (input.nops()>2) ? lst{plst_comb, nlst_comb, input.op(2)} : lst{plst_comb, nlst_comb};
 }
 
 void Replacements2(exmap &repl) {
@@ -836,7 +836,7 @@ void SD::Initialize(FeynmanParameter fp) {
         if(is_a<numeric>(ns.op(i)) && ns.op(i)<=0) continue;
         delta.append(x(i));
     }
-    for(auto &fe : ret) fe.append(delta);
+    for(auto &fe : ret) fe.append(lst{delta});
     FunExp = ret;
     
     Normalizes();
@@ -846,8 +846,9 @@ void SD::Initialize(FeynmanParameter fp) {
 }
 
 /*-----------------------------------------------------*/
-/*               's Funtions in SD                       */
+/*               's Funtions in SD                     */
 /*-----------------------------------------------------*/
+// working with or without Deltas
 void SD::XReOrders() {
     if(IsZero) return;
     if(Integrands.size()<1) {
@@ -889,6 +890,7 @@ void SD::XReOrders() {
     }
 }
 
+// working with or without Deltas
 void SD::Normalizes() {
     if(IsZero) return;
 
@@ -926,6 +928,7 @@ void SD::Normalizes() {
     }
 }
 
+// working with or without Deltas
 void SD::XTogethers() {
     vector<lst> funexp;
     for(auto fe : FunExp) {
@@ -945,7 +948,7 @@ void SD::XTogethers() {
         for(int i=0; i<fe.op(1).nops(); i++) {
             if(i==1) continue;
             auto expi = fe.op(1).op(i);
-            if(!expi.has(ep) && !expi.has(eps) && is_a<numeric>(expi) && ex_to<numeric>(expi).is_nonneg_integer()) {
+            if(is_a<numeric>(expi) && ex_to<numeric>(expi).is_nonneg_integer()) {
                 rem *= pow(fe.op(0).op(i), fe.op(1).op(i));
             } else {
                 fun.append(fe.op(0).op(i));
@@ -966,6 +969,7 @@ void SD::XTogethers() {
     }
 }
 
+// working with or without Deltas
 void SD::XExpands() {
     vector<lst> funexp;
     for(auto fe : FunExp) {
@@ -980,7 +984,7 @@ void SD::XExpands() {
         ex rem = 1;
         for(int i=2; i<fe.op(1).nops(); i++) {
             auto expi = fe.op(1).op(i);
-            if(!expi.has(ep) && !expi.has(eps) && is_a<numeric>(expi) && ex_to<numeric>(expi).is_nonneg_integer()) {
+            if(is_a<numeric>(expi) && ex_to<numeric>(expi).is_nonneg_integer()) {
                 rem *= pow(fe.op(0).op(i), fe.op(1).op(i));
             } else {
                 fun.append(fe.op(0).op(i));
@@ -999,8 +1003,10 @@ void SD::XExpands() {
         
         for(auto item : rem_lst) {
             auto fe2 = fe;
+            fe2.let_op(0) = fun;
+            fe2.let_op(1) = exp;
             let_op_append(fe2, 0, item);
-            let_op_append(fe2, 1, item);
+            let_op_append(fe2, 1, 1);
             FunExp.push_back(fe2);
         }
     }
@@ -3553,7 +3559,6 @@ void SD::Initialize(XIntegrand xint) {
     Digits = 50;
     IsZero = false;
     Replacements2(xint.nReplacements);
-    
     nReplacements = xint.nReplacements;
 
     FunExp.clear();
