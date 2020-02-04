@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
         XIntegrand xint;
         xint.Functions = lst{ 1, pow(x(1)-2*x(2),2)};
         xint.Exponents = lst{ 1, -1+ep };
-        xint.Deltas.push_back(lst{x(1),x(2)});
+        xint.Deltas = lst{lst{x(1),x(2)}};
         SD work;
         char *CFLAGS = getenv("SD_CFLAGS");
         work.CFLAGS = CFLAGS;
@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
         XIntegrand xint;
         xint.Functions = lst{ 1, pow(x(1)-x(2)+x(3),2)};
         xint.Exponents = lst{ 1, -1+ep };
-        xint.Deltas.push_back(lst{x(1),x(2),x(3)});
+        xint.Deltas = lst{lst{x(1),x(2),x(3)}};
         SD work;
         char *CFLAGS = getenv("SD_CFLAGS");
         work.CFLAGS = CFLAGS;
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
         cout << "ep^2*(I*(-0.27735894763144603 +- 3.356E-6)+(0.23800256594336502 +- 3.4734E-7))+(0.07812500057646682 +- 2.843E-7)+ep*((0.2098138728313142 +- 1.06695E-6)+I*(-0.11453723397370566 +- 8.94135E-7))+ep^3*((0.3100030883895008 +- 2.80026E-7)+I*(-0.28367076724864015 +- 2.74675E-7))+I*(4.43946E-14 +- 9.0829E-11)" << endl << endl;
     }
     
-    if(false) { // with delta
+    if(true) { // with delta
         XIntegrand xint;
         xint.Functions = lst{ 1, x(1)-2*x(2)};
         xint.Exponents = lst{ 1, -1+ep};
@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
         work.CFLAGS = CFLAGS;
         work.Verbose = 100;
         work.epN = 3;
-        xint.Deltas.push_back(lst{x(1),x(2)});
+        xint.Deltas = lst{lst{x(1),x(2)}};
         work.Evaluate(xint);
         cout << work.VEResult() << endl;
         cout << "check with:" << endl;
@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
         work.Evaluate(xint);
         cout << work.VEResult() << endl;
         cout << "check with:" << endl;
-        cout << "I*(1.5707963267945655 +- 1.84498E-6)+(2.888894917E-34 +- 1.228299845E-06)+ep*((2.4674011002723395 +- 1.4424E-10)+I*(1.06383E-17 +- 8.39734E-10))+ep^3*((-2.0293560632083842 +- 5.01876E-9)+I*(4.75046E-17 +- 7.7206E-9))+ep^2*((1.67107E-17 +- 1.62754E-9)+I*(-2.583856390024985 +- 3.4349E-9))" << endl << endl;
+        cout << "I*(1.570796327 +- 0)+I*ep^2*(-2.58385639 +- 0)+(-2.029356063 +- 0)*ep^3+(2.4674011 +- 0)*ep" << endl << endl;
     }
     
     if(false) { // without delta
@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
         work.Evaluate(xint);
         cout << work.VEResult() << endl;
         cout << "check with:" << endl;
-        cout << "ep^3*(I*(4.75046E-17 +- 7.7206E-9)+(-2.0293560632083842 +- 5.01876E-9))+(2.888894917E-34 +- 1.228299845E-06)+ep^2*(I*(-2.583856390024985 +- 3.4349E-9)+(1.67107E-17 +- 1.62754E-9))+(I*(1.06383E-17 +- 8.39734E-10)+(2.4674011002723395 +- 1.4424E-10))*ep+I*(1.5707963267945655 +- 1.84498E-6)" << endl << endl;
+        cout << "ep*(2.4674011 +- 0)+I*ep^2*(-2.58385639 +- 0)+I*(1.570796327 +- 0)+ep^3*(-2.029356063 +- 0)" << endl << endl;
     }
     
     if(false) { // without delta
@@ -179,10 +179,11 @@ int main(int argc, char** argv) {
         work.CFLAGS = CFLAGS;
         work.Verbose = 100;
         work.epN = 3;
+        work.CT_method = 1;
         work.Evaluate(xint);
         cout << work.VEResult() << endl;
         cout << "check with:" << endl;
-        cout << "(-2.996264821E-36 +- 2.146501408E-34)+((-0.7710628438 +- 4.869955915E-31)+I*(0.03237178235 +- 1.664824146E-33))*ep^3+((-0.6168502751 +- 5.296862617E-32)+I*(-0.4908738521 +- 7.354290341E-35))*ep^2+I*(0 +- 1.605965375E-38)+(I*(-0.3926990817 +- 1.589979186E-36)+(6.483586029E-37 +- 3.795654524E-33))*ep" << endl << endl;
+        cout << "((-0.7710628438 +- 0)+I*(0.03237178235 +- 0))*ep^3+I*ep*(-0.3926990817 +- 0)+(I*(-0.4908738521 +- 0)+(-0.6168502751 +- 0))*ep^2" << endl << endl;
     }
     
     
@@ -198,7 +199,7 @@ int main(int argc, char** argv) {
         work.Evaluate(xint);
         cout << work.VEResult() << endl;
         cout << "check with:" << endl;
-        cout << "(1.39333E-28 +- 1.19694E-11)+(I*(-1.9634954084936207 +- 3.47274E-10)+(-1.16233E-20 +- 3.1221E-10))*ep+ep^2*((-15.421256876702122 +- 4.07687E-9)+I*(-2.454369260617026 +- 4.48597E-9))+I*(-1.47993E-21 +- 1.30842E-11)+ep^3*(I*(77.6775506125095 +- 3.56385E-8)+(-19.276571095877653 +- 3.91E-8))" << endl << endl;
+        cout << "ep^3*((-19.2765711 +- 0)+I*(77.67755061 +- 0))+I*ep*(-1.963495408 +- 0)+ep^2*(I*(-2.454369261 +- 0)+(-15.42125688 +- 0))" << endl << endl;
     }
     
     if(false) { // without delta
@@ -213,10 +214,10 @@ int main(int argc, char** argv) {
         work.Evaluate(xint);
         cout << work.VEResult() << endl;
         cout << "check with:" << endl;
-        cout << "ep^3*((-0.7901234568 +- 4.365732098E-32)+I*(1.412853787E-41 +- 6.79405539E-34))+ep^2*((-0.5925925926 +- 4.971404441E-33)+I*(0 +- 3.56600453E-35))+(-0.3333333333 +- 2.394812699E-35)+ep*((-0.4444444444 +- 3.72948807E-34)+I*(1.808452847E-39 +- 1.103138152E-36))+I*(0 +- 1.145611015E-38)" << endl << endl;
+        cout << "ep^3*(-0.7901234568 +- 0)+ep^2*(-0.5925925926 +- 0)+(-0.3333333333 +- 0)+ep*(-0.4444444444 +- 0)" << endl << endl;
     }
     
-    if(true) { // without delta
+    if(false) { // without delta
         XIntegrand xint;
         xint.Functions = lst{ 1, pow(1-2*x(2),1)};
         xint.Exponents = lst{ 1, 4*(-1+ep)};
@@ -228,7 +229,7 @@ int main(int argc, char** argv) {
         work.Evaluate(xint);
         cout << work.VEResult() << endl;
         cout << "check with:" << endl;
-        cout << "((12.56687994219322 +- 1.40373E-11)+I*(2.792526803190927 +- 1.47529E-11))*ep^2+ep*(I*(2.094395102393195 +- 1.82328E-6)+(-0.4444444444444465 +- 5.2678E-7))+I*(1.32119E-30 +- 7.1761E-8)+ep^3*(I*(-51.39890058294511 +- 9.77645E-11)+(16.75583992292429 +- 1.13734E-10))+(-0.33333333333333326 +- 2.06924E-8)" << endl << endl;
+        cout << "(I*(2.792526803 +- 0)+(12.56687994 +- 0))*ep^2+ep^3*((16.75583992 +- 0)+I*(-51.39890058 +- 0))+ep*(I*(2.094395102 +- 0)+(-0.4444444444 +- 0))+(-0.3333333333 +- 0)" << endl << endl;
     }
     
     return 0;

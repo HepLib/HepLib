@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
         
     SD work;
     work.epN = 0;
-    work.Verbose = 12;
+    work.Verbose = 100;
     //work.ParallelProcess = 0;
     
     //work.use_cpp = false;

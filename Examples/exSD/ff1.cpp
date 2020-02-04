@@ -5,6 +5,7 @@ using namespace HepLib;
 int main(int argc, char** argv) {
     
     auto ep = SD::ep;
+    auto eps = SD::eps;
     auto iep = SD::iEpsilon;
     
     symbol p("p"), n("n");
@@ -71,57 +72,56 @@ int main(int argc, char** argv) {
     
     SD work;
     work.epN = 0;
-    work.Verbose = 2;
+    work.Verbose = 100;
     
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
     
     work.Initialize(fp);
-    
-    if(work.SecDec==NULL) work.SecDec = new SecDecG();
-    if(work.Integrator==NULL) work.Integrator = new HCubature();
-    if(work.Minimizer==NULL) work.Minimizer = new MinUit();
-    
-    int xn = work.Deltas[0].nops();
-    exmap z2x;
-    for(int i=1; i<=3; i++) z2x[z(i)] = x(xn+i-1);
-    work.Deltas.push_back(lstHelper::subs(lst{z(1),z(2),z(3)}, z2x));
-    
+
     for(auto &kv : work.FunExp) {
-        kv.first.append(z(1));
-        kv.second.append(7-1);
-        kv.first.append(z(2));
-        kv.second.append(3-1);
-        kv.first.append(z(3));
-        kv.second.append(2-1);
-        kv.first = lstHelper::subs(kv.first, z2x);
+        int xn = kv.op(2).op(0).nops();
+        exmap z2x;
+        for(int i=1; i<=3; i++) z2x[z(i)] = x(xn+i-1);
+        let_op_append(kv, 2, lstHelper::subs(lst{z(1),z(2),z(3)}, z2x));
+    
+        let_op_append(kv, 0, z(1));
+        let_op_append(kv, 1, 7-1);
+        let_op_append(kv, 0, z(2));
+        let_op_append(kv, 1, 3-1);
+        let_op_append(kv, 0, z(3));
+        let_op_append(kv, 1, 2-1);
+        kv.let_op(0) = lstHelper::subs(ex_to<lst>(kv.op(0)), z2x);
         
-        auto tmp = collect_common_factors(kv.first.op(0));
+        auto tmp = collect_common_factors(kv.op(0).op(0));
         if(tmp.has(x(wild())) && is_a<mul>(tmp)) {
             ex rem = 1;
             for(auto item : tmp) {
                 if(!item.has(x(wild()))) {
                     rem *= item;
                 } else if(item.match(pow(wild(0), wild(1)))) {
-                    kv.first.append(item.op(0));
-                    kv.second.append(item.op(1));
+                    let_op_append(kv, 0, item.op(0));
+                    let_op_append(kv, 1, item.op(1));
                 } else {
-                    kv.first.append(item);
-                    kv.second.append(1);
+                    let_op_append(kv, 0, item);
+                    let_op_append(kv, 1, 1);
                 }
             }
-            kv.first.let_op(0) = rem;
+            kv.let_op(0).let_op(0) = rem;
         } else if(tmp.has(x(wild())) && tmp.match(pow(wild(0), wild(1)))) {
-            kv.first.let_op(0) = 1;
-            kv.first.append(tmp.op(0));
-            kv.second.append(tmp.op(1));
+            kv.let_op(0).let_op(0) = 1;
+            let_op_append(kv, 0, tmp.op(0));
+            let_op_append(kv, 1, tmp.op(1));
         }
     }
+        
     work.Normalizes();
     work.XReOrders();
     work.Normalizes();
-    
+    work.Scalelesses();
     work.RemoveDeltas();
+
+    
     work.SDPrepares();
     work.EpsEpExpands();
     work.CIPrepares();
@@ -131,7 +131,13 @@ int main(int argc, char** argv) {
     delete work.SecDec;
     delete work.Integrator;
     delete work.Minimizer;
+    
     cout << "Finished @ " << now() << endl << endl;
+    
+    
+    cout << work.VEResult() << endl;
+    cout << "check with:" << endl;
+    cout << "(0.14767674 +- 2.28225E-5)+(-0.009214684934588489 +- 4.86776E-7)*ep^(-1)" << endl;
     
     return 0;
 }

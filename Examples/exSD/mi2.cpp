@@ -56,16 +56,11 @@ int main(int argc, char** argv) {
     x(2)*x(3) + x(0)*x(4) + x(1)*x(4) + x(2)*x(4) + x(0)*x(5) + x(1)*x(5)
     + x(2)*x(5) + x(3)*x(5) + x(4)*x(5) + x(0)*x(6) + x(1)*x(6) +
     x(2)*x(6) + x(3)*x(6) + x(4)*x(6)};
-    lst exp = lst{1,-3-2*ep,1+3*ep};q
+    lst exp = lst{1,-3-2*ep,1+3*ep};
     work.FunExp.push_back(make_pair(fun, exp));
     
-work.Deltas.push_back(lst{x(0),x(1),x(2),x(3),x(4),x(5),x(6),x(7)});
+work.Deltas.push_back(lst{x(0),x(1),x(2),x(3),x(4),x(5),x(6)});
 for(auto & kv : work.FunExp) {
-    kv.first.append(x(1));
-    kv.first.append(x(7)+x(1));
-    kv.second.append(1+ep);
-    kv.second.append(-2+ep);
-    
     
     for(int i=0; i<kv.first.nops(); i++) {
         kv.first.let_op(i) = kv.first.op(i).subs(x(4)==y(4)*x(5)/x(6)).subs(y(4)==x(4));
@@ -74,7 +69,7 @@ for(auto & kv : work.FunExp) {
     kv.first.append(x(6));
     kv.second.append(1);
     kv.second.append(-1);
-    //--- ---
+    
     {//projective
         auto delta = work.Deltas[0];
         symbol s;
@@ -113,14 +108,14 @@ for(auto & kv : work.FunExp) {
             kv.first.append(xsum);
             kv.second.append(ex(0)-over_all_sn);
         }
-        cout << "osn3=" << over_all_sn << endl;
+        cout << "osn1=" << over_all_sn << endl;
     }
     
     //其中一部分
-    //x4==(y4+5*y5)/5, x5==4*y4/5
+    //x4==y4/5, x5==(4*y4+5*y5)/5
     auto nnn = kv.first.nops();
     for(int i=0; i<nnn; i++) {
-        auto tmp = kv.first.op(i).subs(lst{x(4)==(y(4)+5*y(5))/5, x(5)==4*y(4)/5}).subs(y(wild())==x(wild()));
+        auto tmp = kv.first.op(i).subs(lst{x(4)==y(4)/5, x(5)==(4*y(4)+5*y(5))/5}).subs(y(wild())==x(wild()));
         auto nd = normal(tmp).numer_denom();
         kv.first.let_op(i) = nd.op(0);
         if(nd.op(1)!=1) {
@@ -128,8 +123,8 @@ for(auto & kv : work.FunExp) {
             kv.second.append(ex(0)-kv.second.op(i));
         }
     }
-    kv.first.let_op(0) = 4*kv.first.op(0)/5;
-    //--- ---
+    kv.first.let_op(0) = kv.first.op(0)/5;
+    
     {//projective
         auto delta = work.Deltas[0];
         symbol s;
@@ -168,68 +163,10 @@ for(auto & kv : work.FunExp) {
             kv.first.append(xsum);
             kv.second.append(ex(0)-over_all_sn);
         }
-        cout << "osn3=" << over_all_sn << endl;
+        cout << "osn2=" << over_all_sn << endl;
     }
         
-    //x0-rescale
-    nnn = kv.first.nops();
-    for(int i=0; i<nnn; i++) {
-        auto tmp = kv.first.op(i).subs(x(0)==y(0)/x(7)).subs(y(wild())==x(wild()));
-        auto nd = normal(tmp).numer_denom();
-        kv.first.let_op(i) = nd.op(0);
-        if(nd.op(1)!=1) {
-            kv.first.append(nd.op(1));
-            kv.second.append(ex(0)-kv.second.op(i));
-        }
-    }
-    kv.first.append(x(7));
-    kv.second.append(-1);
-    //--- ---
-    {//projective
-        auto delta = work.Deltas[0];
-        symbol s;
-        lst sRepl;
-        ex xsum = 0;
-        for(int j=0; j<delta.nops(); j++) {
-            sRepl.append(delta.op(j)==delta.op(j)*s);
-            xsum += delta.op(j);
-        }
-        xsum = x(4); //here
-        
-        ex over_all_sn = 0;
-        int nnn = kv.first.nops();
-        for(int i=0; i<nnn; i++) {
-            if(!kv.first.op(i).has(x(wild()))) continue;
-            auto tmp = expand(kv.first.op(i));
-            auto sn = tmp.subs(sRepl).degree(s);
-            over_all_sn += sn*kv.second.op(i);
-            lst items;
-            if(is_a<add>(tmp)) {
-                for(auto ii : tmp) items.append(ii);
-            } else {
-                items.append(tmp);
-            }
-            tmp = 0;
-            for(auto ii : items) {
-                auto sni = ii.subs(sRepl).degree(s);
-                if(sni-sn!=0) cout << "sn-sni=" << sn-sni << endl;
-                if(sni!=sn) tmp += ii * pow(xsum, sn-sni);
-                else tmp += ii;
-            }
-            kv.first.let_op(i) = tmp;
-        }
-
-        over_all_sn = normal(over_all_sn+delta.nops());
-        if(!over_all_sn.is_zero()) {
-            kv.first.append(xsum);
-            kv.second.append(ex(0)-over_all_sn);
-        }
-        cout << "osn3=" << over_all_sn << endl;
-    }
-    
-    
-//    cout << kv.second << endl;
-//    cout << endl;
+//    cout << kv.first.op(1) << endl;
 //    exit(0);
     
     
@@ -237,14 +174,9 @@ for(auto & kv : work.FunExp) {
 }
     work.ChengWu();
 //exit(0);
-
-    work.Normalizes();
     work.RemoveDeltas();
-    //work.KillPowers();
-    work.Normalizes();
-
+    work.KillPowers();
     work.SDPrepares();
-//exit(0);
     work.EpsEpExpands();
     work.CIPrepares();
     auto pps = work.ParallelProcess;
