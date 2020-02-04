@@ -39,7 +39,7 @@ struct XIntegrand {
     lst Functions;
     lst Exponents;
     exmap nReplacements;
-    vector<lst> Deltas;
+    lst Deltas;
     bool isAsy = false;
 };
 
@@ -267,8 +267,7 @@ public:
     int Verbose = 1;
     int PoleRequested = -2;
     exmap nReplacements;
-    vector<pair<lst, lst>> FunExp;
-    vector<lst> Deltas;
+    vector<lst> FunExp;
     vector<ex> Integrands;
     vector<pair<ex, ex>> expResult;
     SecDecBase *SecDec = NULL;
@@ -321,7 +320,7 @@ public:
     void XExpands();
     void KillPowers(int bits=1+2);
     bool IsBad(ex f, vector<exmap> vmap);
-    vector<pair<lst, lst>> AutoEnd(pair<lst, lst> po_ex);
+    vector<lst> AutoEnd(lst po_ex);
     void CIPrepares(const char* key = NULL);
     void Contours(const char * key = NULL, const char *pkey = NULL);
     void Integrates(const char* key = NULL, const char *pkey = NULL, int kid=0);
@@ -339,19 +338,19 @@ public:
     static ex PExpand(ex xpol, bool delta=true);
     static int PRank(matrix m);
     static bool Partilize(ex f0, ex xs, lst &ret0);
-    static void Projectivize(pair<lst,lst> &kv, lst delta, ex xsum=0);
-    static void Scalelize(pair<lst,lst> &kv, ex xi, ex cyi);
-    static vector<pair<lst,lst>> Binarize(pair<lst,lst> kv, ex eqn);
+    static void Projectivize(lst &fe, lst delta, ex xsum=0);
+    static void Scalelize(lst &fe, ex xi, ex cyi);
+    static vector<lst> Binarize(lst fe, ex eqn);
         
 private:
-    vector<lst> DS(const pair<lst, lst> po_ex);
-    pair<lst, lst> Normalize(const pair<lst, lst> &input);
+    vector<lst> DS(const lst po_ex);
+    lst Normalize(const lst &input);
     static int epRank(ex);
     static int epsRank(ex);
     static int vsRank(ex);
     void DoAsy();
-    void KillPowersWithDelta();
-    void KillPowersWithoutDelta(int bits);
+    bool KillPowersWithDelta(lst fe, int kpi);
+    bool KillPowersWithoutDelta(lst fe, int kpi, int bits);
 
     void CompileMatDet();
     vector<lst> ciResult;

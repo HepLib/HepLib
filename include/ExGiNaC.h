@@ -113,8 +113,6 @@ lst lstHelper::map(const lst &m, F f) {
 string now(bool use_date = true);
 lst gather_symbols(const ex & e);
 lst gather_symbols(const vector<ex> & ve);
-lst gather_symbols(const vector<pair<lst,lst>> & ve);
-lst gather_symbols(const vector<pair<ex,ex>> & ve);
 
 inline bool file_exists(const char* fn) {
     return (access(fn,F_OK)!=-1);
@@ -242,6 +240,15 @@ string RunOS(const char * cmd);
 ex garResult(const char *garfn, lst syms);
 ex str2ex(const char *expr, symtab stab);
 lst str2lst(const char *expr, symtab stab);
+void let_op_append(ex & ex_in, int index, const ex item);
+void let_op_prepend(ex & ex_in, int index, const ex item);
+void let_op_remove_last(ex & ex_in, int index);
+void let_op_remove_first(ex & ex_in, int index);
+
+void let_op_append(lst & ex_in, int index, const ex item);
+void let_op_prepend(lst & ex_in, int index, const ex item);
+void let_op_remove_last(lst & ex_in, int index);
+void let_op_remove_first(lst & ex_in, int index);
 
 /*-----------------------------------------------------*/
 // Series at s=0 similar to Mathematica

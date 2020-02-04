@@ -65,8 +65,8 @@ int main(int argc, char** argv) {
     cout << "{";
     int tot = work.FunExp.size();
     int cur = 1;
-    for(auto kv : work.FunExp) {
-        cout << "{" << kv.first << ", " << kv.second << "}";
+    for(auto fe : work.FunExp) {
+        cout << "{" << fe.op(0) << ", " << fe.op(1) << "}";
         if(cur<tot) cout << ", ";
         cur++;
     }

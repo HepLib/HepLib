@@ -158,28 +158,6 @@ lst gather_symbols(const vector<ex> & ve) {
     return l;
 }
 
-lst gather_symbols(const vector<pair<lst,lst>> & ve) {
-    lst l;
-    for(auto const & kv : ve) {
-        gather_symbols_inner(kv.first, l);
-        gather_symbols_inner(kv.second, l);
-    }
-    l.sort();
-    l.unique();
-    return l;
-}
-
-lst gather_symbols(const vector<pair<ex,ex>> & ve) {
-    lst l;
-    for(auto const & kv : ve) {
-        gather_symbols_inner(kv.first, l);
-        gather_symbols_inner(kv.second, l);
-    }
-    l.sort();
-    l.unique();
-    return l;
-}
-
 /*-----------------------------------------------------*/
 // RunOS Command
 /*-----------------------------------------------------*/
@@ -444,6 +422,53 @@ bool xPositive(ex expr) {
         ret = (is_a<numeric>(ntmp) && ex_to<numeric>(ntmp).is_positive());
     }
     return ret;
+}
+
+/*-----------------------------------------------------*/
+// let_op extension
+/*-----------------------------------------------------*/
+void let_op_append(ex & ex_in, int index, ex const item) {
+    auto tmp = ex_to<lst>(ex_in.op(index));
+    tmp.append(item);
+    ex_in.let_op(index) = tmp;
+}
+void let_op_append(lst & ex_in, int index, ex const item) {
+    auto tmp = ex_to<lst>(ex_in.op(index));
+    tmp.append(item);
+    ex_in.let_op(index) = tmp;
+}
+
+void let_op_prepend(ex & ex_in, int index, ex const item) {
+    auto tmp = ex_to<lst>(ex_in.op(index));
+    tmp.prepend(item);
+    ex_in.let_op(index) = tmp;
+}
+void let_op_prepend(lst & ex_in, int index, ex const item) {
+    auto tmp = ex_to<lst>(ex_in.op(index));
+    tmp.prepend(item);
+    ex_in.let_op(index) = tmp;
+}
+
+void let_op_remove_last(ex & ex_in, int index) {
+    auto tmp = ex_to<lst>(ex_in.op(index));
+    tmp.remove_last();
+    ex_in.let_op(index) = tmp;
+}
+void let_op_remove_last(lst & ex_in, int index) {
+    auto tmp = ex_to<lst>(ex_in.op(index));
+    tmp.remove_last();
+    ex_in.let_op(index) = tmp;
+}
+
+void let_op_remove_first(ex & ex_in, int index) {
+    auto tmp = ex_to<lst>(ex_in.op(index));
+    tmp.remove_first();
+    ex_in.let_op(index) = tmp;
+}
+void let_op_remove_first(lst & ex_in, int index) {
+    auto tmp = ex_to<lst>(ex_in.op(index));
+    tmp.remove_first();
+    ex_in.let_op(index) = tmp;
 }
 
 /*-----------------------------------------------------*/

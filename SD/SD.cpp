@@ -117,12 +117,12 @@ bool SD::IsBad(ex f, vector<exmap> vmap) {
     return false;
 }
 
-vector<pair<lst, lst>> SD::AutoEnd(pair<lst, lst> po_ex) {
-    assert(Deltas.size()<1);
-    lst const exlist = po_ex.second;
+vector<lst> SD::AutoEnd(lst po_ex) {
+    assert(po_ex.nops()<3);
+    lst const exlist = ex_to<lst>(po_ex.op(1));
     assert((exlist.op(0)-1).is_zero());
-    auto xs = get_x_from(po_ex.first);
-    if(xs.size()<1) xs = get_y_from(po_ex.first);
+    auto xs = get_x_from(po_ex.op(0));
+    if(xs.size()<1) xs = get_y_from(po_ex.op(0));
     int nx = xs.size();
     for(int nn=0; nn<=nx; nn++) {
     for(int pi=0; pi<std::pow(2, nx); pi++) {
@@ -133,7 +133,7 @@ vector<pair<lst, lst>> SD::AutoEnd(pair<lst, lst> po_ex) {
         }
         if(cn1 != nn) continue;
         
-        lst polists = lst{ po_ex.first };
+        lst polists = lst{ po_ex.op(0) };
         int bi = 0, bs = BisectionPoints.nops();
         cpi = pi;
         for(int i=0; i<nx; i++) {
@@ -181,16 +181,16 @@ vector<pair<lst, lst>> SD::AutoEnd(pair<lst, lst> po_ex) {
         }
 
         if(OK) {
-            vector<pair<lst, lst>> res;
-            for(auto item : polists) res.push_back(make_pair(ex_to<lst>(item), exlist));
+            vector<lst> res;
+            for(auto item : polists) res.push_back(lst{ex_to<lst>(item), exlist});
             return res;
         }
     }}
     
-    cerr << RED << "polynormial list: " << po_ex.first << RESET << endl;
+    cerr << RED << "polynormial list: " << po_ex.op(0) << RESET << endl;
     cerr << RED << "AutoEnd Failed @ ALL possible bisections!" << RESET << endl;
     assert(false);
-    return vector<pair<lst, lst>>();
+    return vector<lst>();
 }
 
 /*-----------------------------------------------------*/
@@ -198,11 +198,11 @@ vector<pair<lst, lst>> SD::AutoEnd(pair<lst, lst> po_ex) {
 /*-----------------------------------------------------*/
 //return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }
 //e1 is a const term, e2 still the F-term
-vector<lst> SD::DS(pair<lst, lst> po_ex) {
+vector<lst> SD::DS(lst po_ex) {
     // 1st element in input polist is the constant term, guess NOT necessary
     // 2nd element in input polist is the F-term, required!
-    lst const polist = po_ex.first;
-    lst const exlist = po_ex.second;
+    lst const polist = ex_to<lst>(po_ex.op(0));
+    lst const exlist = ex_to<lst>(po_ex.op(1));
     lst sdList;
     for(int i=0; i<polist.nops(); i++) {
         auto tmp = polist.op(i);
@@ -391,18 +391,20 @@ vector<lst> SD::DS(pair<lst, lst> po_ex) {
     return sd;
 }
 
-// 1st element in returned lst1 is the constant term
-// 2nd element in both returned and inputed lst1 is the F-term
-pair<lst, lst> SD::Normalize(const pair<lst, lst> &input) {
+// 1st element in [output 1st] is the constant term
+// 2nd element in both [input 1st] and [output 1st] is the F-term
+lst SD::Normalize(const lst &input) {
     ex const_term = 1;
     lst plst, nlst;
-    for(int i=0; i<input.first.nops(); i++) {
-        if(i!=1 && (input.second[i].is_zero() || input.first[i]==ex(1))) continue;
-        if(i!=1 && !input.first[i].has(x(wild())) && !input.first[i].has(y(wild()))) {
-            const_term *= pow(input.first[i], input.second[i]);
+    lst in_plst = ex_to<lst>(input.op(0));
+    lst in_nlst = ex_to<lst>(input.op(1));
+    for(int i=0; i<in_plst.nops(); i++) {
+        if(i!=1 && (in_nlst.op(i).is_zero() || in_plst.op(i)==ex(1))) continue;
+        if(i!=1 && in_plst.op(i).has(x(wild())) && !in_plst.op(i).has(y(wild()))) {
+            const_term *= pow(in_plst.op(i), in_nlst.op(i));
         } else {
-            auto ptmp = input.first[i];
-            auto ntmp = input.second[i];
+            auto ptmp = in_plst.op(i);
+            auto ntmp = in_nlst.op(i);
             if(is_exactly_a<mul>(ptmp)) {
                 ex tmul = 1;
                 for(int j=0; j<ptmp.nops(); j++) {
@@ -435,17 +437,16 @@ pair<lst, lst> SD::Normalize(const pair<lst, lst> &input) {
                         tmul *= tmp;
                     }
                 }
-                if(tmul != 1) {
-                    if(i==1) {
-                        plst.prepend(tmul);
-                        nlst.prepend(ntmp);
-                    } else {
-                        plst.append(tmul);
-                        nlst.append(ntmp);
-                    }
+                
+                if(i==1) {
+                    plst.prepend(tmul);
+                    nlst.prepend(ntmp);
+                } else if(tmul != 1) {
+                    plst.append(tmul);
+                    nlst.append(ntmp);
                 }
             } else {
-                if(i == 1) {
+                if(i==1) {
                     plst.prepend(ptmp);
                     nlst.prepend(ntmp);
                 } else {
@@ -476,7 +477,7 @@ pair<lst, lst> SD::Normalize(const pair<lst, lst> &input) {
         }
     }
     
-    return make_pair(plst_comb, nlst_comb);
+    return lst{plst_comb, nlst_comb};
 }
 
 void Replacements2(exmap &repl) {
@@ -758,18 +759,18 @@ void SD::Initialize(FeynmanParameter fp) {
         fList2.append(uList2[i]);
     }
 
-    vector<pair<lst, lst>> ret;
-    ret.push_back(make_pair(fList1, fList2));
+    vector<lst> ret;
+    ret.push_back(lst{fList1, fList2});
 
     // negative index
     for(int i=0; i<xn; i++) {
     if(is_a<numeric>(ns.op(i)) && ns.op(i)<0) {
         assert(ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer());
         for(int j=0; j<-ns.op(i); j++) {
-            vector<pair<lst, lst>> nret;
-            for(auto kv : ret) {
-                auto plst = kv.first;
-                auto nlst = kv.second;
+            vector<lst> nret;
+            for(auto fe : ret) {
+                auto plst = ex_to<lst>(fe.op(0));
+                auto nlst = ex_to<lst>(fe.op(1));
                 for(int ij=0; ij<nlst.nops(); ij++) {
                     auto dtmp = nlst.op(ij) * mma_diff(plst.op(ij),x(i),1,false);
                     if(dtmp.is_zero()) continue;
@@ -785,15 +786,14 @@ void SD::Initialize(FeynmanParameter fp) {
                             nlst2.append(1);
                         } else plst2.let_op(nn-1) = plst.op(nn-1) * dtmp;
                     }
-                    nret.push_back(make_pair(plst2, nlst2));
+                    nret.push_back(lst{plst2, nlst2});
                 }
             }
             ret = nret;
         }
         
-        for(auto &kv : ret) {
-            lstHelper::map_inplace(kv.first, [&](auto &&e) { return e.subs(x(i)==0); });
-            lstHelper::map_inplace(kv.second, [&](auto &&e) { return e.subs(x(i)==0); });
+        for(auto &fe : ret) {
+            fe = ex_to<lst>(subs(fe, x(i)==0));
         }
     }}
 
@@ -810,22 +810,25 @@ void SD::Initialize(FeynmanParameter fp) {
     for(int i=0; i<ns.nops(); i++) {
         if(is_a<numeric>(ns.op(i)) && ns.op(i)<=1) continue;
         else {
-            for(auto &kv : ret) {
-                kv.first.append(x(i));
-                kv.second.append(ns.op(i)-1);
+            for(auto &fe : ret) {
+                let_op_append(fe, 0, x(i));
+                let_op_append(fe, 1, ns.op(i)-1);
              }
         }
     }
 
-    for(auto &kv : ret) {
-        kv.first.append(pre);
-        kv.second.append(1);
+    for(auto &fe : ret) {
+        let_op_append(fe, 0, pre);
+        let_op_append(fe, 1, 1);
         if(xpre != 1) {
-            kv.first.append(xpre);
-            kv.second.append(1);
+            let_op_append(fe, 0, xpre);
+            let_op_append(fe, 1, 1);
         }
-        lstHelper::map_inplace(kv.first, [&](auto &&e) { return collect_common_factors(e); });
-        lstHelper::map_inplace(kv.second, [&](auto &&e) { return collect_common_factors(e); });
+        auto nnn = fe.op(0).nops();
+        for(int j=0; j<nnn; j++) {
+            fe.let_op(0).let_op(j) = collect_common_factors(fe.op(0).op(j));
+            fe.let_op(1).let_op(j) = collect_common_factors(fe.op(1).op(j));
+        }
     }
 
     lst delta;
@@ -833,7 +836,7 @@ void SD::Initialize(FeynmanParameter fp) {
         if(is_a<numeric>(ns.op(i)) && ns.op(i)<=0) continue;
         delta.append(x(i));
     }
-    Deltas.push_back(delta);
+    for(auto &fe : ret) fe.append(delta);
     FunExp = ret;
     
     Normalizes();
@@ -846,134 +849,85 @@ void SD::Initialize(FeynmanParameter fp) {
 /*               's Funtions in SD                       */
 /*-----------------------------------------------------*/
 void SD::XReOrders() {
-if(IsZero) return;
-if(Deltas.size()>0) {
-    
-    exmap xmap;
-    for(auto kv : FunExp) {
-        lst xExplst;
-        for(auto kvf : kv.first) xExplst.append(kvf);
-        for(auto kvs : kv.second) xExplst.append(kvs);
-        exset xset;
-        for(int i=0; i<xExplst.nops(); i++) {
-            auto pol = xExplst.op(i);
-            pol.find(x(wild()), xset);
-            for(auto it=xset.begin(); it!=xset.end(); it++) xmap[*it]++;
+    if(IsZero) return;
+    if(Integrands.size()<1) {
+        for(auto &fe : FunExp) {
+            exset xset;
+            find(fe, x(wild()), xset);
+            
+            vector<ex> xs;
+            for(auto ii : xset) xs.push_back(ii);
+            sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
+                return ex_to<numeric>(normal((b-a)).subs(lst{x(wild())==wild()})).is_positive();
+            });
+            
+            lst x2y;
+            for(int i=0; i<xs.size(); i++) {
+                x2y.append(xs[i]==y(i));
+            }
+            
+            fe = ex_to<lst>(subs(fe, x2y).subs(y(wild())==x(wild())));
+        }
+    } else {
+        for(auto &vint : Integrands) {
+            exset xset;
+            find(vint, x(wild()), xset);
+            
+            vector<ex> xs;
+            for(auto ii : xset) xs.push_back(ii);
+            sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
+                return ex_to<numeric>(normal((b-a)).subs(lst{x(wild())==wild()})).is_positive();
+            });
+            
+            lst x2y;
+            for(int i=0; i<xs.size(); i++) {
+                x2y.append(xs[i]==y(i));
+            }
+            
+            vint = vint.subs(x2y).subs(y(wild())==x(wild()));
         }
     }
-    for(auto delta : Deltas) {
-        lst xExplst;
-        for(auto di : delta) xExplst.append(di);
-        exset xset;
-        for(int i=0; i<xExplst.nops(); i++) {
-            auto pol = xExplst.op(i);
-            pol.find(x(wild()), xset);
-            for(auto it=xset.begin(); it!=xset.end(); it++) xmap[*it]++;
-        }
-    }
-
-    vector<ex> xs;
-    for(auto kv : xmap) xs.push_back(kv.first);
-    sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>(normal((b-a)).subs(lst{x(wild())==wild()})).is_positive();
-    });
-    
-    lst x2y;
-    for(int i=0; i<xs.size(); i++) {
-        x2y.append(xs[i]==y(i));
-    }
-    
-    for(auto &kv : FunExp) {
-        lstHelper::map_inplace(kv.first, [&](auto &&e) { return e.subs(x2y).subs(y(wild())==x(wild())); });
-        lstHelper::map_inplace(kv.second, [&](auto &&e) { return e.subs(x2y).subs(y(wild())==x(wild())); });
-    }
-    
-    for(auto &delta : Deltas) {
-        lstHelper::map_inplace(delta, [&](auto &&e) { return e.subs(x2y).subs(y(wild())==x(wild())); });
-    }
-} else if(Integrands.size()<1) {
-    for(auto &kv : FunExp) {
-        lst xExplst;
-        for(auto kvf : kv.first) xExplst.append(kvf);
-        for(auto kvs : kv.second) xExplst.append(kvs);
-        exmap xmap;
-        exset xset;
-        for(int i=0; i<xExplst.nops(); i++) {
-            auto pol = xExplst.op(i);
-            pol.find(x(wild()), xset);
-            for(auto it=xset.begin(); it!=xset.end(); it++) xmap[*it]++;
-        }
-        
-        vector<ex> xs;
-        for(auto kv : xmap) xs.push_back(kv.first);
-        sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
-            return ex_to<numeric>(normal((b-a)).subs(lst{x(wild())==wild()})).is_positive();
-        });
-        
-        lst x2y;
-        for(int i=0; i<xs.size(); i++) {
-            x2y.append(xs[i]==y(i));
-        }
-        
-        lstHelper::map_inplace(kv.first, [&](auto &&e) { return e.subs(x2y).subs(y(wild())==x(wild())); });
-        lstHelper::map_inplace(kv.second, [&](auto &&e) { return e.subs(x2y).subs(y(wild())==x(wild())); });
-    
-    }
-} else {
-    for(auto & vint : Integrands) {
-        exset xset;
-        vint.find(x(wild()), xset);
-        map<ex, int, ex_is_less> xmap;
-        for(auto it=xset.begin(); it!=xset.end(); it++) xmap[*it]++;
-        
-        vector<ex> xs;
-        for(auto kv : xmap) xs.push_back(kv.first);
-        sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
-            return ex_to<numeric>(normal((b-a)).subs(lst{x(wild())==wild()})).is_positive();
-        });
-        
-        lst x2y;
-        for(int i=0; i<xs.size(); i++) {
-            x2y.append(xs[i]==y(i));
-        }
-        
-        vint = vint.subs(x2y).subs(y(wild())==x(wild()));
-    }
-}
 }
 
 void SD::Normalizes() {
     if(IsZero) return;
 
-    vector<pair<lst, lst>> funexp;
+    vector<lst> funexp;
     for(auto fe : FunExp) {
         funexp.push_back(Normalize(fe));
     }
     FunExp.clear();
     FunExp.shrink_to_fit();
     
-    exmap fn, ifn;
+    exmap fn;
     for(auto fe : funexp) {
         ex key = 1;
-        for(int i=1; i<fe.first.nops(); i++) key *= pow(fe.first, fe.second);
-        fn[key] += fe.first.op(0);
+        if(fe.nops()>2) key = WF(fe.op(2));
+        for(int i=1; i<fe.op(0).nops(); i++) key *= pow(fe.op(0).op(i), fe.op(1).op(i));
+        fn[key] += fe.op(0).op(0);
     }
     
+    exmap ifn;
     for(auto fe : funexp) {
         ex key = 1;
-        for(int i=1; i<fe.first.nops(); i++) key *= pow(fe.first, fe.second);
+        if(fe.nops()>2) key = WF(fe.op(2));
+        for(int i=1; i<fe.op(0).nops(); i++) key *= pow(fe.op(0).op(i), fe.op(1).op(i));
         if(ifn[key]>0) continue;
-        auto kv = make_pair(lstHelper::sub(fe.first,1,-1),lstHelper::sub(fe.second,1,-1));
-        kv.first.prepend(fn[key]);
-        kv.second.prepend(1);
-        FunExp.push_back(kv);
+        lst fun, exp;
+        fun.append(fn[key]);
+        exp.append(1);
+        for(int i=1; i<fe.op(0).nops(); i++) {
+            fun.append(fe.op(0).op(i));
+            exp.append(fe.op(1).op(i));
+        }
+        if(fe.nops()>2) FunExp.push_back(lst{fun, exp, fe.op(2)});
+        else FunExp.push_back(lst{fun, exp});
         ifn[key] = 1;
     }
 }
 
 void SD::XTogethers() {
-
-    vector<pair<lst, lst>> funexp;
+    vector<lst> funexp;
     for(auto fe : FunExp) {
         funexp.push_back(fe);
     }
@@ -982,40 +936,38 @@ void SD::XTogethers() {
     
     map<ex, ex, ex_is_less> fe_cc;
     for(auto fe : funexp) {
-        lst key;
-        key.append(lst {fe.first.op(1), fe.second.op(1)});
+        lst fun, exp;
+        fun.append(1);
+        exp.append(1);
+        fun.append(fe.op(0).op(1));
+        exp.append(fe.op(1).op(1));
         ex rem = 1;
-        for(int i=0; i<fe.second.nops(); i++) {
+        for(int i=0; i<fe.op(1).nops(); i++) {
             if(i==1) continue;
-            if(!fe.second.op(i).has(ep) && !fe.second.op(i).has(eps)) {
-                if(is_a<numeric>(fe.second.op(i)) && ex_to<numeric>(fe.second.op(i)).is_nonneg_integer()) {
-                    rem *= pow(fe.first.op(i), fe.second.op(i));
-                    continue;
-                }
+            auto expi = fe.op(1).op(i);
+            if(!expi.has(ep) && !expi.has(eps) && is_a<numeric>(expi) && ex_to<numeric>(expi).is_nonneg_integer()) {
+                rem *= pow(fe.op(0).op(i), fe.op(1).op(i));
+            } else {
+                fun.append(fe.op(0).op(i));
+                exp.append(fe.op(1).op(i));
             }
-            key.append(lst{ fe.first.op(i), fe.second.op(i) });
         }
+        auto key = fe;
+        key.let_op(0) = fun;
+        key.let_op(1) = exp;
         fe_cc[key] += rem;
     }
     
     for(auto kv : fe_cc) {
-        lst klst = lst{1};
-        lst vlst = lst{1};
-        for(auto fe : kv.first) {
-            klst.append(fe.op(0));
-            vlst.append(fe.op(1));
-        }
-        klst.append(kv.second);
-        vlst.append(1);
-
-        FunExp.push_back(make_pair(klst, vlst));
+        lst fe = ex_to<lst>(kv.first);
+        let_op_append(fe, 0, kv.second);
+        let_op_append(fe, 1, 1);
+        FunExp.push_back(fe);
     }
-    
 }
 
 void SD::XExpands() {
-
-    vector<pair<lst, lst>> funexp;
+    vector<lst> funexp;
     for(auto fe : FunExp) {
         funexp.push_back(fe);
     }
@@ -1023,18 +975,17 @@ void SD::XExpands() {
     FunExp.shrink_to_fit();
     
     for(auto fe : funexp) {
-        lst klst = lst{fe.first.op(0), fe.first.op(1)};
-        lst vlst = lst{fe.second.op(0), fe.second.op(1)};
+        lst fun = lst{fe.op(0).op(0), fe.op(0).op(1)};
+        lst exp = lst{fe.op(1).op(0), fe.op(1).op(1)};
         ex rem = 1;
-        for(int i=2; i<fe.second.nops(); i++) {
-            if(!fe.second.op(i).has(ep) && !fe.second.op(i).has(eps)) {
-                if(is_a<numeric>(fe.second.op(i)) && ex_to<numeric>(fe.second.op(i)).is_nonneg_integer()) {
-                    rem *= pow(fe.first.op(i), fe.second.op(i));
-                    continue;
-                }
+        for(int i=2; i<fe.op(1).nops(); i++) {
+            auto expi = fe.op(1).op(i);
+            if(!expi.has(ep) && !expi.has(eps) && is_a<numeric>(expi) && ex_to<numeric>(expi).is_nonneg_integer()) {
+                rem *= pow(fe.op(0).op(i), fe.op(1).op(i));
+            } else {
+                fun.append(fe.op(0).op(i));
+                exp.append(fe.op(1).op(i));
             }
-            klst.append(fe.first.op(i));
-            vlst.append(fe.second.op(i));
         }
         
         rem = mma_collect(rem, x(wild()));
@@ -1046,12 +997,11 @@ void SD::XExpands() {
             rem_lst.append(rem);
         }
         
-        lst vlst2 = vlst;
-        vlst2.append(1);
         for(auto item : rem_lst) {
-            lst klst2 = klst;
-            klst2.append(item);
-            FunExp.push_back(make_pair(klst2, vlst2));
+            auto fe2 = fe;
+            let_op_append(fe2, 0, item);
+            let_op_append(fe2, 1, item);
+            FunExp.push_back(fe2);
         }
     }
     
@@ -1061,16 +1011,18 @@ void SD::XExpands() {
 // also refers to Feng/Thinking.pdf
 void SD::Scalelesses(bool verb) {
     if(IsZero) return;
-    if(Deltas.size()<1) return;
     if(verb) cout << now() << " - Scaleless: " << FunExp.size() << " :> " << flush;
 
     vector<ex> sl_res =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &funexp, auto rid) {
+        if(funexp.nops()<3) return funexp;
         symbol s;
-        auto fun = funexp.first;
-        auto exp = funexp.second;
+        auto fun = funexp.op(0);
+        auto exp = funexp.op(1);
+        auto deltas = funexp.op(2);
         bool is0;
-        for(auto delta : Deltas) {
+        for(int di=0; di<deltas.nops(); di++) {
+            auto delta = ex_to<lst>(deltas.op(di));
             is0 = false;
             if(delta.nops()<2) continue;
             // to make sure the integrand is projective
@@ -1123,16 +1075,16 @@ void SD::Scalelesses(bool verb) {
             }
             if(is0) break;
         }
-        if(!is0) return lst{fun, exp};
+        if(!is0) return lst{fun, exp, deltas};
         else return lst{};
     }, "SL", 0, true);
     
     FunExp.clear();
     FunExp.shrink_to_fit();
     for(auto item : sl_res) {
-        lst kv = ex_to<lst>(item);
-        if(kv.nops()<1) continue;
-        FunExp.push_back(make_pair(ex_to<lst>(kv.op(0)), ex_to<lst>(kv.op(1))));
+        lst fed = ex_to<lst>(item);
+        if(fed.nops()<1) continue;
+        FunExp.push_back(fed);
     }
     
     if(verb) cout << FunExp.size() << endl;
@@ -1141,96 +1093,112 @@ void SD::Scalelesses(bool verb) {
 
 void SD::RemoveDeltas() {
     if(IsZero) return;
-    if(Deltas.size()<1) return;
     
-    vector<pair<lst,lst>> funexp = FunExp;
-    for(auto xs : Deltas) {
-        vector<pair<lst,lst>> tmp;
-        for(int i=0; i<xs.nops(); i++) {
-            auto xj = xs.op(i);
-            auto jInv = lstHelper::sum(xs).subs(xj==1);
-            
-            exmap repl;
-            for(int j=0; j<xs.nops(); j++) {
-                auto xxj = xs.op(j);
-                if(xxj != xj) repl[xxj] = xj*xxj;
+    while(true) {
+        bool exit = true;
+        vector<lst> funexp = FunExp;
+        FunExp.clear();
+        FunExp.shrink_to_fit();
+        for(auto fe : funexp) {
+            if(fe.nops()<3) {
+                FunExp.push_back(fe);
+                continue;
             }
+            auto xs = ex_to<lst>(fe.op(2).op(0));
+            lst re_deltas;
+            for(int i=1; i<fe.op(2).nops(); i++) {
+                re_deltas.append(fe.op(2).op(i));
+            }
+            if(re_deltas.nops()>0) exit = false;
             
-            for(auto fe : funexp) {
-                lst funs;
-                lst exps = fe.second;
-                ex expns = 0;
-                for(int j=0; j<fe.first.nops(); j++) {
-                    auto fun = fe.first.op(j);
-                    fun = fun.subs(repl).normal();
-                    if(!fun.is_polynomial(xj)) {
-                        cerr << "xj: " << xj << endl;
-                        cerr << "fun: " << fun << endl;
-                        cerr << "fun is NOT polynormial of xj." << endl;
-                        assert(false);
+            if(xs.nops()<1) {
+                FunExp.push_back(lst{fe.op(0), fe.op(1), re_deltas});
+            } else {
+                for(int i=0; i<xs.nops(); i++) {
+                    auto xj = xs.op(i);
+                    auto jInv = lstHelper::sum(xs).subs(xj==1);
+                    
+                    exmap repl;
+                    for(int j=0; j<xs.nops(); j++) {
+                        auto xxj = xs.op(j);
+                        if(xxj != xj) repl[xxj] = xj*xxj;
                     }
-                    auto expn = expand(fun).degree(xj);
-                    fun = pow(xj, -expn) * fun;
-                    fun = normal(fun.subs(xj==1/xj));
-                    fun = fun.subs(xj==jInv);
-                    funs.append(fun);
-                    expns += expn * exps.op(j);
+                    
+                    lst funs;
+                    lst exps = ex_to<lst>(fe.op(1));
+                    ex expns = 0;
+                    for(int j=0; j<fe.op(0).nops(); j++) {
+                        auto fun = fe.op(0).op(j);
+                        fun = fun.subs(repl).normal();
+                        if(!fun.is_polynomial(xj)) {
+                            cerr << "xj: " << xj << endl;
+                            cerr << "fun: " << fun << endl;
+                            cerr << "fun is NOT polynormial of xj." << endl;
+                            assert(false);
+                        }
+                        auto expn = expand(fun).degree(xj);
+                        fun = pow(xj, -expn) * fun;
+                        fun = normal(fun.subs(xj==1/xj));
+                        fun = fun.subs(xj==jInv);
+                        funs.append(fun);
+                        expns += expn * exps.op(j);
+                    }
+                    
+                    funs.append(jInv);
+                    exps.append(ex(0)-xs.nops()-expns);
+                    if(re_deltas.nops()>0) FunExp.push_back(lst{funs, exps, re_deltas});
+                    else FunExp.push_back(lst{funs, exps});
                 }
-                
-                funs.append(jInv);
-                exps.append(ex(0)-xs.nops()-expns);
-                tmp.push_back(make_pair(funs, exps));
             }
         }
-        funexp = tmp;
+        if(exit) break;
     }
-    FunExp = funexp;
-    Deltas.clear();
+    
     XReOrders();
     Normalizes();
 }
 
 void SD::MB() {
-    for(auto &kv : FunExp) {
+    for(auto &fe : FunExp) {
         // check variables besides x or PL
         // CV should only appear at kv.first.op(0), i.e., the prefactor
-        for(int i=1; i<kv.first.nops(); i++) {
+        for(int i=1; i<fe.op(0).nops(); i++) {
             // make sure only Constant/F terms can contain small variable: vs
-            if(i!=1 && kv.first.op(i).has(vz)) {
-                cout << "vz Found @ " << i << " of " << kv.first << endl;
+            if(i!=1 && fe.op(0).op(i).has(vz)) {
+                cout << "vz Found @ " << i << " of " << fe.op(0) << endl;
                 assert(false);
             }
             
-            auto tmp = kv.first.op(i).subs(lst{x(wild())==1,PL(wild())==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
+            auto tmp = fe.op(0).op(i).subs(lst{x(wild())==1,PL(wild())==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
             if(!is_a<numeric>(tmp.evalf())) {
-                cout << RED << "Extra Variable(^[ep,eps,PL,x]) Found: " << RESET << kv.first.op(i) << endl;
+                cout << RED << "Extra Variable(^[ep,eps,PL,x]) Found: " << RESET << fe.op(0).op(i) << endl;
                 assert(false);
             }
         }
     
-        ex ft = kv.first.op(1);
+        ex ft = fe.op(0).op(1);
         if(ft.has(vs)) {
             ft = mma_collect(ft, vs);
             if(!ft.is_polynomial(vs) || (ft.degree(vs)-1)!=0) {
                 cout << RED << "Not supported F-term with s: " << ft << RESET << endl;
                 assert(false);
             }
-            ex expn = -kv.second.op(1);
+            ex expn = -fe.op(1).op(1);
             // (2*Pi*I) dropped out, since we will take residue later.
-            kv.first.let_op(0) = kv.first.op(0) * tgamma(expn+vz)*tgamma(-vz)/tgamma(expn)*pow(vs,vz);
+            fe.let_op(0).let_op(0) = fe.op(0).op(0) * tgamma(expn+vz)*tgamma(-vz)/tgamma(expn)*pow(vs,vz);
             ex w1 = ft.coeff(vs);
             ex w2 = ft.subs(vs==0);
             if(!w2.is_zero()) {
                 if(xPositive(w1)) {
-                    kv.first.let_op(1) = w2;
-                    kv.first.append(w1);
-                    kv.second.let_op(1) = kv.second.op(1)-vz;
-                    kv.second.append(vz);
+                    fe.let_op(0).let_op(1) = w2;
+                    let_op_append(fe, 0, w1);
+                    fe.let_op(1).let_op(1) = fe.op(1).op(1)-vz;
+                    let_op_append(fe, 1, vz);
                 } else if(xPositive(w2)) {
-                    kv.first.let_op(1) = w1;
-                    kv.first.append(w2);
-                    kv.second.let_op(1) = vz;
-                    kv.second.append(kv.second.op(1)-vz);
+                    fe.let_op(0).let_op(1) = w1;
+                    let_op_append(fe, 0, w2);
+                    fe.let_op(1).let_op(1) = vz;
+                    let_op_append(fe, 1, fe.op(1).op(1)-vz);
                 } else {
                     cout << RED << "Neither w1 nor w2 is xPositive!" << RESET << endl;
                     cout << "w1=" << w1 << endl;
@@ -1245,24 +1213,21 @@ void SD::MB() {
 void SD::XEnd() {
     if(Verbose > 0) cout << now() << " - BiSection: " << FunExp.size() << " :> " << flush;
     vector<ex> funexps =
-    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &kv, auto rid) {
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &fe, auto rid) {
         lst para_res_lst;
-        if(!xPositive(kv.first.op(1))) {
-            auto kvs = AutoEnd(kv);
-            for(auto item : kvs) {
-                para_res_lst.append(lst{item.first, item.second});
-            }
+        if(!xPositive(fe.op(0).op(1))) {
+            auto fes = AutoEnd(fe);
+            for(auto fei : fes) para_res_lst.append(fei);
         } else {
-            para_res_lst.append(lst{kv.first, kv.second});
+            para_res_lst.append(fe);
         }
         return para_res_lst;
     }, "f1", 0, !debug);
 
     FunExp.clear();
+    FunExp.shrink_to_fit();
     for(auto &item : funexps) {
-        for(auto &it : ex_to<lst>(item)) {
-            FunExp.push_back(make_pair(ex_to<lst>(it.op(0)), ex_to<lst>(it.op(1))));
-        }
+        for(auto &it : ex_to<lst>(item)) FunExp.push_back(ex_to<lst>(it));
     }
     if(Verbose > 0) cout << FunExp.size() << endl;
 }
@@ -1288,18 +1253,18 @@ void SD::SDPrepares() {
     Integrands.clear();
     Integrands.shrink_to_fit();
     
-    auto kvs = FunExp;
+    auto fes = FunExp;
     FunExp.clear();
     FunExp.shrink_to_fit();
-    for(auto &kv : kvs) {
+    for(auto &fe : fes) {
         bool to_add = true;
-        for(auto item : kv.first) {
+        for(auto item : fe.op(0)) {
             if(item.is_zero()) {
                 to_add = false;
                 break;
             }
         }
-        if(to_add) FunExp.push_back(kv);
+        if(to_add) FunExp.push_back(fe);
     }
     if(FunExp.size()<1) {
         IsZero = true;
@@ -1309,10 +1274,10 @@ void SD::SDPrepares() {
     if(Verbose > 0) cout << now() << " - SDPrepares: ..." << endl << flush;
     
     vector<ex> sd_res =
-    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &kv, auto rid) {
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &fe, auto rid) {
         // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
         lst para_res_lst;
-        auto xns_pns = DS(kv);
+        auto xns_pns = DS(fe);
         for(auto const &item : xns_pns) {
 
             // take z-poles
@@ -3590,10 +3555,11 @@ void SD::Initialize(XIntegrand xint) {
     Replacements2(xint.nReplacements);
     
     nReplacements = xint.nReplacements;
-    Deltas = xint.Deltas;
 
     FunExp.clear();
-    FunExp.push_back(make_pair(xint.Functions, xint.Exponents));
+    FunExp.shrink_to_fit();
+    if(xint.Deltas.nops()>0) FunExp.push_back(lst{xint.Functions, xint.Exponents, xint.Deltas});
+    else FunExp.push_back(lst{xint.Functions, xint.Exponents});
     
     Normalizes();
     if(xint.isAsy) DoAsy();
@@ -3952,7 +3918,7 @@ ex SD::PExpand(ex xpol, bool delta) {
 void SD::DoAsy() {
     
     while(true) {
-        vector<pair<lst, lst>> funexp;
+        vector<lst> funexp;
         for(auto fe : FunExp) {
             funexp.push_back(fe);
         }
@@ -3961,12 +3927,22 @@ void SD::DoAsy() {
         
         bool ret = false;
         for(auto fe : funexp) {
-            ex ft = fe.first.op(1).subs(vs==0);
+            assert(fe.nops()>2);
+            ex ft = fe.op(0).op(1).subs(vs==0);
             ex eqn;
             bool ok2 = true;
             auto xs = get_x_from(ft);
             for(int i=0; i<xs.size(); i++) { // keep only 2 xi's
                 for(int j=i+1; j<xs.size(); j++) { // keep only 2 xi's
+                    bool delta_ij = false;
+                    for(int di=0; di<fe.op(2).nops(); di++) {
+                        if(fe.op(2).op(di).has(xs[i]) && fe.op(2).op(di).has(xs[j])) {
+                            delta_ij = true;
+                            break;
+                        }
+                    }
+                    if(!delta_ij) continue;
+                    
                     symbol xi("xi"), xj("xj");
                     auto ftt = ft.subs(lst{xs[i]==xi, xs[j]==xj});
                     ftt = Factor(ftt);
@@ -4018,23 +3994,23 @@ void SD::DoAsy() {
                 cj = abs(cj);
                 symbol yi,yj;
                 // Part I: ci xi-cj xj>0, i.e., xi>cj/ci xj
-                auto f1 = fe.first;
-                auto e1 = fe.second;
+                auto f1 = fe.op(0);
+                auto e1 = fe.op(1);
                 ex c1 = cj/ci;
                 for(int i=0; i<f1.nops(); i++) {
                     f1.let_op(i) = f1.op(i).subs(lst{xi==c1*yj/(1+c1)+yi,xj==yj/(1+c1)}).subs(lst{yi==xi,yj==xj});
                 }
                 f1.let_op(0) = f1.op(0)/(1+c1); // Jaccobi
-                FunExp.push_back(make_pair(f1,e1));
+                FunExp.push_back(lst{f1,e1,fe.op(2)});
                 // Part II: ci xi-cj xj<0, i.e., i.e., xj>ci/cj xi
-                auto f2 = fe.first;
-                auto e2 = fe.second;
+                auto f2 = fe.op(0);
+                auto e2 = fe.op(1);
                 ex c2 = ci/cj;
                 for(int i=0; i<f2.nops(); i++) {
                     f2.let_op(i) = f2.op(i).subs(lst{xj==c2*yi/(1+c2)+yj,xi==yi/(1+c2)}).subs(lst{yi==xi,yj==xj});
                 }
                 f2.let_op(0) = f2.op(0)/(1+c2); // Jaccobi
-                FunExp.push_back(make_pair(f2,e2));
+                FunExp.push_back(lst{f2,e2,fe.op(2)});
             } else {
                 FunExp.push_back(fe);
             }
@@ -4042,27 +4018,24 @@ void SD::DoAsy() {
         if(!ret) break;
     }
     
-    // check to make sure when delta is there
-    bool has_delta = Deltas.size()>0;
-    if(has_delta) assert(Deltas.size()==1);
-    if(has_delta) {
-        for(auto fe : FunExp) {
-            ex expn = 0;
-            symbol s;
-            for(int i=0; i<fe.first.nops(); i++) {
-                auto item = fe.first.op(i).subs(x(wild())==s*y(wild())).subs(y(wild())==x(wild()));
-                if(!item.has(s)) continue;
-                item = mma_collect(item, s);
-                assert(item.ldegree(s)==item.degree(s));
-                expn += item.degree(s) * fe.second.op(i);
-            }
-            auto xsize = get_x_from(fe.first).size();
-            if(!normal(expn+xsize).is_zero()) {
-                cout << RED << "expn=" << expn << ", xsize=" << xsize << RESET << endl;
-                assert(false);
-            }
+    
+    for(auto fe : FunExp) {
+        ex expn = 0;
+        symbol s;
+        for(int i=0; i<fe.op(0).nops(); i++) {
+            auto item = fe.op(0).op(i).subs(x(wild())==s*y(wild())).subs(y(wild())==x(wild()));
+            if(!item.has(s)) continue;
+            item = mma_collect(item, s);
+            assert(item.ldegree(s)==item.degree(s));
+            expn += item.degree(s) * fe.op(1).op(i);
+        }
+        auto xsize = get_x_from(fe.op(0)).size();
+        if(!normal(expn+xsize).is_zero()) {
+            cout << RED << "expn=" << expn << ", xsize=" << xsize << RESET << endl;
+            assert(false);
         }
     }
+    
     
     auto fes = FunExp;
     FunExp.clear();
@@ -4071,9 +4044,9 @@ void SD::DoAsy() {
     for(auto fe : fes) {
         ex xpol = 1;
         lst uf;
-        for(int i=0; i<fe.first.nops(); i++) {
-            if(is_a<numeric>(fe.second.op(i)) && ex_to<numeric>(fe.second.op(i)).is_nonneg_integer()) continue;
-            uf.append(fe.first.op(i));
+        for(int i=0; i<fe.op(0).nops(); i++) {
+            if(is_a<numeric>(fe.op(1).op(i)) && ex_to<numeric>(fe.op(1).op(i)).is_nonneg_integer()) continue;
+            uf.append(fe.op(0).op(i));
         }
         uf.sort();
         uf.unique();
@@ -4083,6 +4056,7 @@ void SD::DoAsy() {
             continue;
         }
         
+        bool has_delta = true;
         auto rs = PExpand(xpol, has_delta);
         if(rs.nops()<1) {
             cout << RED << "PExpand returned with nothing, even without hard region!" << RESET <<endl;
@@ -4106,9 +4080,9 @@ void SD::DoAsy() {
                 vs_pow += ri.op(j);
             }
 
-            auto fs = subs(fe.first, srepl);
+            auto fs = subs(fe.op(0), srepl);
             fs = subs(fs, y(wild())==x(wild()));
-            auto es = fe.second;
+            auto es = fe.op(1);
             ex fpre = fs.op(0);
             assert((es.op(0)-1).is_zero());
             
@@ -4161,7 +4135,7 @@ void SD::DoAsy() {
                     fs3 = ex_to<lst>(subs(fs3,vs==0));
                     fs3.prepend(fpre/factorial(di) * pow(vs,di+vs_pow));
                     es3.prepend(1);
-                    FunExp.push_back(make_pair(fs3,es3));
+                    FunExp.push_back(lst{fs3,es3,fe.op(2)});
                 }
                 fss = fss2;
                 ess = ess2;
