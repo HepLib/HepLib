@@ -225,6 +225,20 @@ static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context 
     }
 }
 
+int SD::x_free_index(ex expr) {
+    auto xs = get_x_from(expr);
+    for(int i=0; i<=xs.size(); i++) {
+        bool ok = true;
+        for(auto xi : xs) {
+            if(xi.is_equal(x(i))) {
+                ok = false;
+                break;
+            }
+        }
+        if(ok) return i;
+    }
+}
+
 REGISTER_FUNCTION(fabs, dummy())
 REGISTER_FUNCTION(PL, dummy())
 REGISTER_FUNCTION(FTX, derivative_func(NoDiff_2P))

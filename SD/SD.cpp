@@ -3024,7 +3024,8 @@ void SD::Contours(const char *key, const char *pkey) {
             else laBegin = min;
             
             if(laEnd < 1E-10) {
-                cout << RED << "too small lambda!" << RESET << endl;
+                cout << "\r                                                    \r";
+                cout << "     λ: " << RED << "too small lambda!" << RESET << endl;
                 break;
             }
             
@@ -3274,7 +3275,7 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
             fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             assert(fpMP!=NULL);
         }
-        if(use_FT && is_a<lst>(las)) {
+        if(is_a<lst>(las)) {
             fname.clear();
             fname.str("");
             fname << "FT_" << rid;
@@ -3560,6 +3561,14 @@ void SD::Initialize(XIntegrand xint) {
     IsZero = false;
     Replacements2(xint.nReplacements);
     nReplacements = xint.nReplacements;
+    
+    for(int di=0; di<xint.Deltas.nops(); di++) {
+        auto delta = xint.Deltas.op(di);
+        if(!is_a<lst>(delta) || delta.nops()<1) {
+            cout << RED << "Deltas is NOT valide: " << xint.Deltas << RESET << endl;
+            assert(false);
+        }
+    }
 
     FunExp.clear();
     FunExp.shrink_to_fit();

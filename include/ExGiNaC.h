@@ -240,15 +240,36 @@ string RunOS(const char * cmd);
 ex garResult(const char *garfn, lst syms);
 ex str2ex(const char *expr, symtab stab);
 lst str2lst(const char *expr, symtab stab);
+lst xlst(int ei);
+lst xlst(int bi, int ei);
+
 void let_op_append(ex & ex_in, int index, const ex item);
 void let_op_prepend(ex & ex_in, int index, const ex item);
 void let_op_remove_last(ex & ex_in, int index);
 void let_op_remove_first(ex & ex_in, int index);
-
 void let_op_append(lst & ex_in, int index, const ex item);
 void let_op_prepend(lst & ex_in, int index, const ex item);
 void let_op_remove_last(lst & ex_in, int index);
 void let_op_remove_first(lst & ex_in, int index);
+
+void let_op_append(ex & ex_in, int index1, int index2, const ex item);
+void let_op_prepend(ex & ex_in, int index1, int index2, const ex item);
+void let_op_remove_last(ex & ex_in, int index1, int index2);
+void let_op_remove_first(ex & ex_in, int index1, int index2);
+void let_op_append(lst & ex_in, int index1, int index2, const ex item);
+void let_op_prepend(lst & ex_in, int index1, int index2, const ex item);
+void let_op_remove_last(lst & ex_in, int index1, int index2);
+void let_op_remove_first(lst & ex_in, int index1, int index2);
+
+void let_op(ex &ex_in, int index1, int index2, const ex item);
+void let_op(lst &ex_in, int index1, int index2, const ex item);
+void let_op(ex &ex_in, int index1, int index2, int index3, const ex item);
+void let_op(lst &ex_in, int index1, int index2, int index3, const ex item);
+
+ex get_op(const ex ex_in, int index1, int index2);
+ex get_op(const lst ex_in, int index1, int index2);
+ex get_op(const ex ex_in, int index1, int index2, int index3);
+ex get_op(const lst ex_in, int index1, int index2, int index3);
 
 /*-----------------------------------------------------*/
 // Series at s=0 similar to Mathematica

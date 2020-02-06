@@ -213,6 +213,18 @@ lst str2lst(const char *expr, symtab stab) {
 }
 
 /*-----------------------------------------------------*/
+// str2lst Function
+/*-----------------------------------------------------*/
+lst xlst(int bi, int ei) {
+    lst ret;
+    for(int i=bi; i<=ei; i++) ret.append(x(i));
+    return ret;
+}
+lst xlst(int ei) {
+    return xlst(0, ei);
+}
+
+/*-----------------------------------------------------*/
 // Series at s=0 similar to Mathematica
 /*-----------------------------------------------------*/
 ex mma_series(ex expr_in, symbol s0, int sn0) {
@@ -437,6 +449,11 @@ void let_op_append(lst & ex_in, int index, ex const item) {
     tmp.append(item);
     ex_in.let_op(index) = tmp;
 }
+void let_op_append(lst & ex_in, int index1, int index2, ex const item) {
+    auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
+    tmp.append(item);
+    ex_in.let_op(index1).let_op(index2) = tmp;
+}
 
 void let_op_prepend(ex & ex_in, int index, ex const item) {
     auto tmp = ex_to<lst>(ex_in.op(index));
@@ -447,6 +464,16 @@ void let_op_prepend(lst & ex_in, int index, ex const item) {
     auto tmp = ex_to<lst>(ex_in.op(index));
     tmp.prepend(item);
     ex_in.let_op(index) = tmp;
+}
+void let_op_prepend(ex & ex_in, int index1, int index2, ex const item) {
+    auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
+    tmp.prepend(item);
+    ex_in.let_op(index1).let_op(index2) = tmp;
+}
+void let_op_prepend(lst & ex_in, int index1, int index2, ex const item) {
+    auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
+    tmp.prepend(item);
+    ex_in.let_op(index1).let_op(index2) = tmp;
 }
 
 void let_op_remove_last(ex & ex_in, int index) {
@@ -459,6 +486,16 @@ void let_op_remove_last(lst & ex_in, int index) {
     tmp.remove_last();
     ex_in.let_op(index) = tmp;
 }
+void let_op_remove_last(ex & ex_in, int index1, int index2) {
+    auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
+    tmp.remove_last();
+    ex_in.let_op(index1).let_op(index2) = tmp;
+}
+void let_op_remove_last(lst & ex_in, int index1, int index2) {
+    auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
+    tmp.remove_last();
+    ex_in.let_op(index1).let_op(index2) = tmp;
+}
 
 void let_op_remove_first(ex & ex_in, int index) {
     auto tmp = ex_to<lst>(ex_in.op(index));
@@ -470,6 +507,43 @@ void let_op_remove_first(lst & ex_in, int index) {
     tmp.remove_first();
     ex_in.let_op(index) = tmp;
 }
+void let_op_remove_first(ex & ex_in, int index1, int index2) {
+    auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
+    tmp.remove_first();
+    ex_in.let_op(index1).let_op(index2) = tmp;
+}
+void let_op_remove_first(lst & ex_in, int index1, int index2) {
+    auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
+    tmp.remove_first();
+    ex_in.let_op(index1).let_op(index2) = tmp;
+}
+
+void let_op(ex &ex_in, int index1, int index2, const ex item) {
+    ex_in.let_op(index1).let_op(index2) = item;
+}
+void let_op(lst &ex_in, int index1, int index2, const ex item) {
+    ex_in.let_op(index1).let_op(index2) = item;
+}
+void let_op(ex &ex_in, int index1, int index2, int index3, const ex item) {
+    ex_in.let_op(index1).let_op(index2).let_op(index3) = item;
+}
+void let_op(lst &ex_in, int index1, int index2, int index3, const ex item) {
+    ex_in.let_op(index1).let_op(index2).let_op(index3) = item;
+}
+
+ex get_op(const ex ex_in, int index1, int index2) {
+    return ex_in.op(index1).op(index2);
+}
+ex get_op(const lst ex_in, int index1, int index2) {
+    return ex_in.op(index1).op(index2);
+}
+ex get_op(const ex ex_in, int index1, int index2, int index3) {
+    return ex_in.op(index1).op(index2).op(index3);
+}
+ex get_op(const lst ex_in, int index1, int index2, int index3) {
+    return ex_in.op(index1).op(index2).op(index3);
+}
+
 
 /*-----------------------------------------------------*/
 // Customized GiNaC Function

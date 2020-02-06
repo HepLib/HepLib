@@ -339,7 +339,8 @@ bool SD::KillPowersWithoutDelta(lst fe, int kpi, int bits) {
                 for(auto item : fts2) {
                     if((item.degree(xi)==1 || item.match(pow(wild(1),wild(2)))) && item.has(xi)) {
                         if(item.match(pow(wild(1),wild(2)))) eqn = item.op(0);
-                        else eqn = item;
+                        else if(xs2.size()<1) eqn = item;
+                        else continue;
                         auto t1 = eqn.subs(lst{xi==1/ex(11)});
                         if(t1.is_zero()) t1 = eqn.subs(lst{xi==1/ex(3)});
                         if(t1.is_zero()) t1 = eqn.subs(lst{xi==1/ex(13)});

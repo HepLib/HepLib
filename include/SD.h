@@ -107,8 +107,8 @@ public:
     int DQMP = 0;
     int QXDim = 2;
     int MPXDim = 1;
-    qREAL QXLimit = 1.Q-4;
-    qREAL MPXLimit = 1.Q-8;
+    qREAL QXLimit = 1.Q-3;
+    qREAL MPXLimit = 1.Q-5;
     qREAL QFLimit = 1.Q-3;
     qREAL MPFLimit = 1.Q-5;
     
@@ -284,7 +284,6 @@ public:
     bool use_IBF = false;
     int CT_method = 1; // 0: original, 1: rescaled
     bool use_MP = true;
-    bool use_FT = true;
     int MPDigits = 50; // digits in mpREAL for MP
     lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
     
@@ -329,6 +328,7 @@ public:
     void MB();
     void XEnd();
     void ChengWu();
+    bool ChengWu_xsum = false;
     
     static ex PrefactorFIESTA(int nLoop);
     ex VEResult();
@@ -337,11 +337,13 @@ public:
     static ex Factor(const ex expr);
     static ex PExpand(ex xpol, bool delta=true);
     static int PRank(matrix m);
-    static bool Partilize(ex f0, ex xs, lst &ret0);
+    static bool Partilize(ex f0, lst xs, lst &ret0, bool ext=false);
     static void Projectivize(lst &fe, lst delta, ex xsum=0);
+    static void Projectivize(lst &fe, ex delta, ex xsum=0);
     static void Scalelize(lst &fe, ex xi, ex cyi);
     static vector<lst> Binarize(lst fe, ex eqn);
-        
+    static int x_free_index(ex expr);
+            
 private:
     vector<lst> DS(const lst po_ex);
     lst Normalize(const lst &input);
