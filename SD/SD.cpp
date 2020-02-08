@@ -1221,7 +1221,7 @@ void SD::XEnd() {
     vector<ex> funexps =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &fe, auto rid) {
         lst para_res_lst;
-        if(!xPositive(fe.op(0).op(1))) {
+        if(!xPositive(fe.op(0).op(1)) && !xPositive(0-fe.op(0).op(1))) {
             auto fes = AutoEnd(fe);
             for(auto fei : fes) para_res_lst.append(fei);
         } else {
@@ -1715,162 +1715,6 @@ void SD::EpsEpExpands() {
     if(Verbose > 1) cout << expResult.size() << endl;
 }
 
-void SD::CompileMatDet() {
-    auto pid = getpid();
-    std::ofstream ofs;
-    ostringstream cppfn, cmd;
-    cppfn << pid << "/MatDet.cpp";
-    ofs.open(cppfn.str(), ios::out);
-    if (!ofs) throw runtime_error("failed to open *.cpp file!");
-/*----------------------------------------------*/
-ofs << R"EOF(
-#include <math.h>
-#include <complex>
-extern "C" {
-#include <quadmath.h>
-}
-#include "mpreal.h"
-
-#define Pi 3.1415926535897932384626433832795028841971693993751L
-#define Euler 0.57721566490153286060651209008240243104215933593992L
-
-using namespace std;
-typedef __float128 qREAL;
-typedef __complex128 qCOMPLEX;
-typedef long double dREAL;
-typedef complex<long double> dCOMPLEX;
-typedef mpfr::mpreal mpREAL;
-typedef complex<mpREAL> mpCOMPLEX;
-
-dREAL expt(dREAL a, dREAL b) { return pow(a,b); }
-dCOMPLEX expt(dCOMPLEX a, dREAL b) { return pow(a,b); }
-dREAL recip(dREAL a) { return 1.L/a; }
-dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
-
-qREAL expt(qREAL a, qREAL b) { return powq(a,b); }
-qCOMPLEX expt(qCOMPLEX a, qREAL b) { return cpowq(a,b); }
-qREAL recip(qREAL a) { return 1.Q/a; }
-qCOMPLEX recip(qCOMPLEX a) { return 1.Q/a; }
-
-mpREAL expt(mpREAL a, mpREAL b) { return pow(a,b); }
-mpCOMPLEX expt(mpCOMPLEX a, mpREAL b) { return pow(a,b); }
-mpREAL recip(mpREAL a) { return mpREAL(1)/a; }
-mpCOMPLEX recip(mpCOMPLEX a) { return mpREAL(1)/a; }
-
-qREAL pow(qREAL x, qREAL y) { return powq(x, y); }
-qREAL log(qREAL x) { return logq(x); }
-qCOMPLEX pow(qCOMPLEX x, qREAL y) { return cpowq(x, y); }
-qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
-
-dCOMPLEX MatDetL(dCOMPLEX mat[], int n) {
-    bool is_zero = false;
-    int s=1;
-    for(int i=0; i<n-1; i++) {
-        if(fabs(mat[i*n+i])<1.0E-15) {
-            bool is_zero = true;
-            for(int j=i+1; j<n; j++) {
-                if(fabs(mat[i*n+j])>1.0E-15) {
-                    for(int k=0; k<n; k++) {
-                        auto tmp = mat[k*n+j];
-                        mat[k*n+j] = mat[k*n+i];
-                        mat[k*n+i] = tmp;
-                    }
-                    is_zero = false;
-                    s=-s;
-                    break;
-                }
-            }
-            if(is_zero) return 0;
-        }
-        for(int k=i+1; k<n; k++) {
-            auto m = mat[k*n+i]/mat[i*n+i];
-            for(int j=0; j<n; j++) mat[k*n+j] = mat[k*n+j] - m*mat[i*n+j];
-        }
-    }
-    dCOMPLEX ret = s;
-    for(int k=0; k<n; k++) ret *= mat[k*n+k];
-    return ret;
-}
-
-#undef Pi
-#undef Euler
-#define Pi 3.1415926535897932384626433832795028841971693993751Q
-#define Euler 0.57721566490153286060651209008240243104215933593992Q
-
-qCOMPLEX MatDetQ(qCOMPLEX mat[], int n) {
-    bool is_zero = false;
-    int s=1;
-    for(int i=0; i<n-1; i++) {
-        if(cabsq(mat[i*n+i])<1.0E-25) {
-            bool is_zero = true;
-            for(int j=i+1; j<n; j++) {
-                if(cabsq(mat[i*n+j])>1.0E-25) {
-                    for(int k=0; k<n; k++) {
-                        auto tmp = mat[k*n+j];
-                        mat[k*n+j] = mat[k*n+i];
-                        mat[k*n+i] = tmp;
-                    }
-                    is_zero = false;
-                    s=-s;
-                    break;
-                }
-            }
-            if(is_zero) return 0;
-        }
-        for(int k=i+1; k<n; k++) {
-            auto m = mat[k*n+i]/mat[i*n+i];
-            for(int j=0; j<n; j++) mat[k*n+j] = mat[k*n+j] - m*mat[i*n+j];
-        }
-    }
-    qCOMPLEX ret = s;
-    for(int k=0; k<n; k++) ret *= mat[k*n+k];
-    return ret;
-}
-
-#undef Pi
-#undef Euler
-#define Pi mpREAL("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
-#define Euler mpREAL("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
-
-mpCOMPLEX MatDetMP(mpCOMPLEX mat[], int n) {
-    bool is_zero = false;
-    int s=1;
-    for(int i=0; i<n-1; i++) {
-        if(abs(mat[i*n+i])<1.0E-35) {
-            bool is_zero = true;
-            for(int j=i+1; j<n; j++) {
-                if(abs(mat[i*n+j])>1.0E-35) {
-                    for(int k=0; k<n; k++) {
-                        auto tmp = mat[k*n+j];
-                        mat[k*n+j] = mat[k*n+i];
-                        mat[k*n+i] = tmp;
-                    }
-                    is_zero = false;
-                    s=-s;
-                    break;
-                }
-            }
-            if(is_zero) return mpREAL(0);
-        }
-        for(int k=i+1; k<n; k++) {
-            auto m = mat[k*n+i]/mat[i*n+i];
-            for(int j=0; j<n; j++) mat[k*n+j] = mat[k*n+j] - m*mat[i*n+j];
-        }
-    }
-    mpCOMPLEX ret = mpREAL(s);
-    for(int k=0; k<n; k++) ret *= mat[k*n+k];
-    return ret;
-}
-
-)EOF" << endl;
-/*----------------------------------------------*/
-    ofs.close();
-    cmd.clear();
-    cmd.str("");
-    cmd << "g++ -fPIC " << CFLAGS << " -c -o " << pid << "/MatDet.o " << pid << "/MatDet.cpp";
-    system(cmd.str().c_str());
-}
-
 void SD::CIPrepares(const char *key) {
     if(expResult.size()<1) {
         IsZero = true;
@@ -2117,15 +1961,13 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << endl;
         
         // FMP_fid
-        if(use_MP) {
-            ofs << "mpREAL FMP_" << ft_n << "(const mpREAL* x, const mpREAL *pl) {" << endl;
-            ofs << "mpREAL yy = ";
-            ft.subs(plRepl).subs(cxRepl).print(cppMP);
-            ofs << ";" << endl;
-            ofs << "return yy;" << endl;
-            ofs << "}" << endl;
-            ofs << endl;
-        }
+        ofs << "mpREAL FMP_" << ft_n << "(const mpREAL* x, const mpREAL *pl) {" << endl;
+        ofs << "mpREAL yy = ";
+        ft.subs(plRepl).subs(cxRepl).print(cppMP);
+        ofs << ";" << endl;
+        ofs << "return yy;" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
         
         // D's FL_fid
         ofs << "dREAL FL_" << ft_n << "(const int i, const dREAL* x, const dREAL *pl) {" << endl;
@@ -2150,17 +1992,15 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << endl;
         
         // D's FMP_fid
-        if(use_MP) {
-            ofs << "mpREAL FMP_" << ft_n << "(const int i, const mpREAL* x, const mpREAL *pl) {" << endl;
-            for(int i=0; i<fxs.size(); i++) {
-                ofs << "if("<<i<<"==i) return ";
-                DFs[i].subs(plRepl).subs(cxRepl).print(cppMP);
-                ofs << ";" << endl;
-            }
-            ofs << "return 0;" << endl;
-            ofs << "}" << endl;
-            ofs << endl;
+        ofs << "mpREAL FMP_" << ft_n << "(const int i, const mpREAL* x, const mpREAL *pl) {" << endl;
+        for(int i=0; i<fxs.size(); i++) {
+            ofs << "if("<<i<<"==i) return ";
+            DFs[i].subs(plRepl).subs(cxRepl).print(cppMP);
+            ofs << ";" << endl;
         }
+        ofs << "return 0;" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
         
         // DD's FL_fid
         ofs << "dREAL FL_" << ft_n << "(const int i, const int j, const dREAL* x, const dREAL *pl) {" << endl;
@@ -2187,18 +2027,16 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << endl;
         
         // DD's FMP_fid
-        if(use_MP) {
-            ofs << "mpREAL FMP_" << ft_n << "(const int i, const int j, const mpREAL* x, const mpREAL *pl) {" << endl;
-            for(int i=0; i<fxs.size(); i++) {
-            for(int j=0; j<fxs.size(); j++) {
-                ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
-                DDFs[i*fxs.size()+j].subs(plRepl).subs(cxRepl).print(cppMP);
-                ofs << ";" << endl;
-            }}
-            ofs << "return 0;" << endl;
-            ofs << "}" << endl;
-            ofs << endl;
-        }
+        ofs << "mpREAL FMP_" << ft_n << "(const int i, const int j, const mpREAL* x, const mpREAL *pl) {" << endl;
+        for(int i=0; i<fxs.size(); i++) {
+        for(int j=0; j<fxs.size(); j++) {
+            ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
+            DDFs[i*fxs.size()+j].subs(plRepl).subs(cxRepl).print(cppMP);
+            ofs << ";" << endl;
+        }}
+        ofs << "return 0;" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
         
         // X2ZL_fid
         ofs << "void X2ZL_" << ft_n << "(const dREAL* x, dCOMPLEX* z, dCOMPLEX* r, dREAL* dff, const dREAL* pl, const dREAL* las) {" << endl;
@@ -2239,25 +2077,23 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << endl;
         
         // X2ZMP_fid
-        if(use_MP) {
-            ofs << "void X2ZMP_" << ft_n << "(const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {" << endl;
-            ofs << "int nfxs="<<fxs.size()<<";" << endl;
-            ofs << "mpCOMPLEX ilas[nfxs];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
-            ofs << "dff[nfxs] = FMP_"<<ft_n<<"(x,pl);" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) dff[i] = FMP_"<<ft_n<<"(i,x,pl);" << endl;
-            ofs << "mpREAL fscale=0;" << endl;
-            if(CT_method==1) {
-                ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
-                ofs << "fscale += dff[nfxs]*dff[nfxs];" << endl;
-            } else {
-                ofs << "fscale=1;" << endl;
-            }
-            ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]/fscale;" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1-x[i])*r[i];" << endl;
-            ofs << "}" << endl;
-            ofs << endl;
+        ofs << "void X2ZMP_" << ft_n << "(const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {" << endl;
+        ofs << "int nfxs="<<fxs.size()<<";" << endl;
+        ofs << "mpCOMPLEX ilas[nfxs];" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
+        ofs << "dff[nfxs] = FMP_"<<ft_n<<"(x,pl);" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) dff[i] = FMP_"<<ft_n<<"(i,x,pl);" << endl;
+        ofs << "mpREAL fscale=0;" << endl;
+        if(CT_method==1) {
+            ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
+            ofs << "fscale += dff[nfxs]*dff[nfxs];" << endl;
+        } else {
+            ofs << "fscale=1;" << endl;
         }
+        ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]/fscale;" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1-x[i])*r[i];" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
         
         // MatL_id
         ofs << "void MatL_"<<ft_n<<"(dCOMPLEX* mat, const dREAL* x, const dREAL* dff, const dREAL* pl, const dREAL* las) {" << endl;
@@ -2328,40 +2164,38 @@ qCOMPLEX log(qCOMPLEX x);
         ofs << endl;
         
         // MatMP_fid
-        if(use_MP) {
-            ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX *mat, const mpREAL* x, const mpREAL* dff, const mpREAL *pl, const mpREAL *las) {" << endl;
-            ofs << "int nfxs="<<fxs.size()<<";" << endl;
-            ofs << "mpCOMPLEX ilas[nfxs];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
-            ofs << "mpREAL fscale=0;" << endl;
-            if(CT_method==1) {
-                ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
-                ofs << "fscale += dff[nfxs]*dff[nfxs];" << endl;
-            } else {
-                ofs << "fscale=1;" << endl;
-            }
-            ofs << "mpREAL dff2[nfxs][nfxs];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) {" << endl;
-            ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-            ofs << "dff2[i][j] = FMP_"<<ft_n<<"(i,j,x,pl);" << endl;
-            ofs << "}}" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) {" << endl;
-            ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-            ofs << "int ij = i*nfxs+j;" << endl;
-            ofs << "if(i!=j) mat[ij] = 0;" << endl;
-            ofs << "else mat[ij] = mpREAL(1)-(1-2*x[i])*dff[i]*ilas[i]/fscale;" << endl;
-            ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff2[i][j]*ilas[i]/fscale;" << endl;
-            if(CT_method==1) {
-                ofs << "mpREAL dfscale = 0;" << endl;
-                ofs << "for(int ii=0; ii<nfxs; ii++) dfscale -= 2*dff[ii]*dff2[ii][j];" << endl;
-                ofs << "dfscale -= 2*dff[nfxs]*dff[j];" << endl;
-                ofs << "dfscale = dfscale / (fscale*fscale);" << endl;
-                ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff[i]*ilas[i]*dfscale;" << endl;
-            }
-            ofs << "}}" << endl;
-            ofs << "}" << endl;
-            ofs << endl;
+        ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX *mat, const mpREAL* x, const mpREAL* dff, const mpREAL *pl, const mpREAL *las) {" << endl;
+        ofs << "int nfxs="<<fxs.size()<<";" << endl;
+        ofs << "mpCOMPLEX ilas[nfxs];" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
+        ofs << "mpREAL fscale=0;" << endl;
+        if(CT_method==1) {
+            ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
+            ofs << "fscale += dff[nfxs]*dff[nfxs];" << endl;
+        } else {
+            ofs << "fscale=1;" << endl;
         }
+        ofs << "mpREAL dff2[nfxs][nfxs];" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) {" << endl;
+        ofs << "for(int j=0; j<nfxs; j++) {" << endl;
+        ofs << "dff2[i][j] = FMP_"<<ft_n<<"(i,j,x,pl);" << endl;
+        ofs << "}}" << endl;
+        ofs << "for(int i=0; i<nfxs; i++) {" << endl;
+        ofs << "for(int j=0; j<nfxs; j++) {" << endl;
+        ofs << "int ij = i*nfxs+j;" << endl;
+        ofs << "if(i!=j) mat[ij] = 0;" << endl;
+        ofs << "else mat[ij] = mpREAL(1)-(1-2*x[i])*dff[i]*ilas[i]/fscale;" << endl;
+        ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff2[i][j]*ilas[i]/fscale;" << endl;
+        if(CT_method==1) {
+            ofs << "mpREAL dfscale = 0;" << endl;
+            ofs << "for(int ii=0; ii<nfxs; ii++) dfscale -= 2*dff[ii]*dff2[ii][j];" << endl;
+            ofs << "dfscale -= 2*dff[nfxs]*dff[j];" << endl;
+            ofs << "dfscale = dfscale / (fscale*fscale);" << endl;
+            ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff[i]*ilas[i]*dfscale;" << endl;
+        }
+        ofs << "}}" << endl;
+        ofs << "}" << endl;
+        ofs << endl;
         
         // for Minimization of F(z)-image, x[xn-1] is the lambda
         ofs << "extern \"C\" " << endl;
@@ -2402,9 +2236,34 @@ qCOMPLEX log(qCOMPLEX x);
         return 0;
     
     }, "CI-C", Verbose, false);
+    
+    bool hasF = (ftnvec.size()>0);
+    if(hasF) {
+        ostringstream sofn, cmd;
+        if(key != NULL) {
+            sofn << key << "F.so";
+        } else {
+            sofn << pid << "F.so";
+        }
+        cmd << "g++ -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << CFLAGS << " -o " << sofn.str() << " " << pid << "/F*.o";
+        system(cmd.str().c_str());
+        
+        cmd.clear();
+        cmd.str("");
+        cmd << "rm -rf " << pid;
+        if(!debug) system(cmd.str().c_str());
+    }
 
 
 //============================================================================================================
+    // Compile the null.o
+    if(true) {
+        ostringstream cmd;
+        cmd << "mkdir -p " << pid << ";";
+        cmd << "echo ''>" << pid << "/null.cpp;";
+        cmd << "g++ -fPIC -c -o " << pid << "/null.o " << pid << "/null.cpp";
+        system(cmd.str().c_str());
+    }
 
     // Prepare Integrand
     vector<ex> res =
@@ -2418,6 +2277,10 @@ qCOMPLEX log(qCOMPLEX x);
         bool hasF = (ft_n>0);
         
         if(xs.size()<1) {
+            ostringstream cmd;
+            cmd << "cp " << pid << "/null.o " << pid << "/" << rid << ".o";
+            system(cmd.str().c_str());
+            
             return lst{
                 expr.subs(FTX(wild(1),wild(2))==1).subs(iEpsilon==I*power(10,-50)),
                 xs.size(), kvf.op(0), -1
@@ -2748,7 +2611,6 @@ ofs << R"EOF(
 /*----------------------------------------------*/
 // Multiple Precision
 /*----------------------------------------------*/
-if(use_MP) {
 ofs << R"EOF(
 #undef Pi
 #undef Euler
@@ -2848,11 +2710,7 @@ ofs << R"EOF(
             ofs << endl;
         }
         
-// -----------------------
-} // end of if(use_MP)
-// -----------------------
         ofs.close();
-        
         ostringstream ofn, cmd;
         ofn << pid << "/" << rid << ".o";
         cmd << "g++ -fPIC " << CFLAGS << " -c -o " << ofn.str() << " " << cppfn.str();
@@ -2864,8 +2722,9 @@ ofs << R"EOF(
 
 //============================================================================================================
 
-    ostringstream sofn, garfn, cmd;
+    ostringstream fsofn, sofn, garfn, cmd;
     if(key != NULL) {
+        fsofn << key << "F.so";
         sofn << key << ".so";
         garfn << key << ".ci.gar";
         lst gar_res;
@@ -2877,15 +2736,52 @@ ofs << R"EOF(
         ofstream out(garfn.str());
         out << ar;
         out.close();
+        cmd.clear();
+        cmd.str("");
+        cmd << "rm -f " << key << "X*.so";
+        system(cmd.str().c_str());
     } else {
+        fsofn << pid << "F.so";
         sofn << pid << ".so";
         for(auto &item : res) ciResult.push_back(ex_to<lst>(item));
+        cmd.clear();
+        cmd.str("");
+        cmd << "rm -f " << pid << "X*.so";
+        system(cmd.str().c_str());
     }
     
-    CompileMatDet();
-    if(use_MP) cmd << "g++ -rdynamic -fPIC -shared -lquadmath -lmpfr -lgmp " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
-    else cmd << "g++ -rdynamic -fPIC -shared -lquadmath " << CFLAGS << " -o " << sofn.str() << " " << pid << "/*.o";
-    system(cmd.str().c_str());
+    int res_size = res.size();
+    if(res_size>GccLimit) {
+        cmd.clear();
+        cmd.str("");
+        cmd << "g++ -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << CFLAGS;
+        if(hasF) cmd << " " << fsofn.str();
+        cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 1 " << GccLimit << ")";
+        system(cmd.str().c_str());
+        for(int n=1; true; n++) {
+            int start = n * GccLimit+1;
+            int end = (n+1) * GccLimit;
+            if(end>res_size) end = res_size;
+            sofn.clear();
+            sofn.str("");
+            if(key != NULL) sofn << key << "X" << n << ".so";
+            else sofn << pid << "X" << n << ".so";
+            cmd.clear();
+            cmd.str("");
+            cmd << "g++ -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << CFLAGS;
+            if(hasF) cmd << " " << fsofn.str();
+            cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' " << start << " " << end << ")";
+            system(cmd.str().c_str());
+            if(end>=res_size) break;
+        }
+    } else {
+        cmd.clear();
+        cmd.str("");
+        cmd << "g++ -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << CFLAGS;
+        if(hasF) cmd << " " << fsofn.str();
+        cmd << " -o " << sofn.str() << " " << pid << "/*.o";
+        system(cmd.str().c_str());
+    }
     cmd.clear();
     cmd.str("");
     cmd << "rm -rf " << pid;
@@ -2928,6 +2824,15 @@ void SD::Contours(const char *key, const char *pkey) {
     cmd << "mkdir -p " << pid;
     system(cmd.str().c_str());
     
+    ostringstream fsofn;
+    if(key != NULL) {
+        fsofn << key << "F.so";
+    } else {
+        fsofn << pid << "F.so";
+    }
+    void* module = dlopen(fsofn.str().c_str(), RTLD_NOW);
+    if (module == nullptr) throw std::runtime_error("could not open compiled module!");
+    
     vector<ex> res =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnxn_vec, [&](auto & ftnxn, auto rid) {
         // return lst{ ft_n, lst{lambda-i, lambda-max} }
@@ -2952,20 +2857,8 @@ void SD::Contours(const char *key, const char *pkey) {
             return lst{ ftnxn.op(1), 1979 }; // ft_id, las
         }
         
-        int nvars = 0;
+        int nvars = ex_to<numeric>(ftnxn.op(2)).to_int();;
         ostringstream fname;
-        void* module = nullptr;
-
-        nvars = ex_to<numeric>(ftnxn.op(2)).to_int();
-        ostringstream sofn;
-        if(key != NULL) {
-            sofn << key << ".so";
-        } else {
-            sofn << pid << ".so";
-        }
-        module = dlopen(sofn.str().c_str(), RTLD_NOW);
-        if (module == nullptr) throw std::runtime_error("could not open compiled module!");
-        
         dREAL nlas[nvars];
         if(CT_method==0 || CT_method==1) {
             dREAL max_df = -1, max_f;
@@ -3033,9 +2926,7 @@ void SD::Contours(const char *key, const char *pkey) {
             min = (laBegin + laEnd) / 2.0;
         }
         min = laBegin;
-        
-        if(use_dlclose) dlclose(module);
-        
+    
         las.append(CppFormat::q2ex(min));
         if(Verbose>5) {
             auto oDigits = Digits;
@@ -3048,6 +2939,8 @@ void SD::Contours(const char *key, const char *pkey) {
         return lst{ ftnxn.op(1), las }; // ft_id, las
     
     }, "las", Verbose, !debug);
+    
+    if(use_dlclose) dlclose(module);
     
     ostringstream garfn;
     if(key != NULL) {
@@ -3140,9 +3033,23 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         }
     }
     
-    void* module = dlopen(sofn.str().c_str(), RTLD_NOW);
-    if (module == nullptr) throw std::runtime_error("could not open compiled module!");
+    void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW);
+    if(main_module == nullptr) throw std::runtime_error("could not open compiled main-module!");
     if(!debug && key == NULL) remove(sofn.str().c_str());
+    vector<void*> ex_modules;
+    for(int n=1; true; n++) {
+        ostringstream ex_sofn;
+        if(key == NULL) {
+            ex_sofn << pid << "X" << n << ".so";
+        } else {
+            ex_sofn << key << "X" << n << ".so";
+        }
+        if(file_exists(ex_sofn.str().c_str())) {
+            void* module = dlopen(ex_sofn.str().c_str(), RTLD_NOW);
+            if(module == nullptr) throw std::runtime_error("could not open compiled ex-module!");
+            ex_modules.push_back(module);
+        } else break;
+    }
     
     int npara = 0;
     lst plRepl;
@@ -3256,6 +3163,8 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr, fpMP = nullptr;
         IntegratorBase::FT_Type ftp = nullptr;
         int rid = ex_to<numeric>(item.op(0)).to_int();
+        auto module = main_module;
+        if(rid>GccLimit) module = ex_modules[(rid-1)/GccLimit-1];
         ostringstream fname;
         if(hasF) fname << "C";
         fname << "SDD_" << rid;
@@ -3267,14 +3176,13 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         fname << "SDQ_" << rid;
         fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
         assert(fpQ!=NULL);
-        if(use_MP) {
-            fname.clear();
-            fname.str("");
-            if(hasF) fname << "C";
-            fname << "SDMP_" << rid;
-            fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-            assert(fpMP!=NULL);
-        }
+        fname.clear();
+        fname.str("");
+        if(hasF) fname << "C";
+        fname << "SDMP_" << rid;
+        fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+        assert(fpMP!=NULL);
+        
         if(is_a<lst>(las)) {
             fname.clear();
             fname.str("");
@@ -3527,7 +3435,10 @@ void SD::Integrates(const char *key, const char *pkey, int kid) {
         }
     }
     
-    if(use_dlclose) dlclose(module);
+    if(use_dlclose) {
+        dlclose(main_module);
+        for(auto module : ex_modules) dlclose(module);
+    }
     if(total>0 && Verbose > 1) cout << "@" << now(false) << endl;
     
     if(kid>0) {

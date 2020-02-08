@@ -283,7 +283,6 @@ public:
     bool save_las = false;
     bool use_IBF = false;
     int CT_method = 1; // 0: original, 1: rescaled
-    bool use_MP = true;
     int MPDigits = 50; // digits in mpREAL for MP
     lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
     
@@ -300,7 +299,8 @@ public:
     int CTry = 2;
     int CTryLeft = 1;
     int CTryRight = 1;
-    dREAL CTryRightRatio = 1.5; 
+    dREAL CTryRightRatio = 1.5;
+    int GccLimit = 10000;
     
     long long RunMAX = 20;
     long long RunPTS = 500000;
