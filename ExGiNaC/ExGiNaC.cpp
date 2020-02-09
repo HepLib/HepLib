@@ -415,9 +415,9 @@ ex Evalf(ex expr) {
 }
 
 /*-----------------------------------------------------*/
-// xPositive
+// xPositive & xSign
 /*-----------------------------------------------------*/
-bool xPositive(ex expr) {
+bool xPositive(ex const expr) {
     auto tmp = expr.expand();
     if(tmp.is_zero()) return true;
     bool ret = false;
@@ -434,6 +434,12 @@ bool xPositive(ex expr) {
         ret = (is_a<numeric>(ntmp) && ex_to<numeric>(ntmp).is_positive());
     }
     return ret;
+}
+
+int xSign(ex const expr) {
+    if(xPositive(expr)) return 1;
+    else if(xPositive(ex(0)-expr)) return -1;
+    else return 0;
 }
 
 /*-----------------------------------------------------*/

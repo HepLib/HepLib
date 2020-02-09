@@ -1,6 +1,6 @@
 include ../opt.mk
 
-all: SD.o SecDecG.o Helpers.o ErrMin.o cseParser.o CppFormat.o HCubature.o CUBA.o MinUit.o HookeJeeves.o Lib3/HCubature.o KillPowers.o ChengWu.o MatDet.o
+all: SD.o SecDecG.o Helpers.o ErrMin.o cseParser.o CppFormat.o HCubature.o CUBA.o MinUit.o HookeJeeves.o Lib3/HCubature.o KillPowers.o ChengWu.o MatDet.o CIPrepares.o Contours.o Integrates.o AsyMB.o InitEval.o
 
 %.o : %.cpp
 	g++ $(opt) -c -o $@ $^

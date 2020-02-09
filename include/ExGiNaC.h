@@ -286,7 +286,8 @@ ex Evalf(ex);
 /*-----------------------------------------------------*/
 // xPositive
 /*-----------------------------------------------------*/
-bool xPositive(ex expr);
+bool xPositive(ex const expr);
+int xSign(ex const expr);
 
 /*-----------------------------------------------------*/
 // Customized GiNaC Function

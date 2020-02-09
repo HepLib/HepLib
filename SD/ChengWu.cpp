@@ -77,7 +77,8 @@ void SD::Scalelize(lst &fe, ex xi, ex cyi) {
     }
 }
 
-vector<lst> SD::Binarize(lst fe, ex eqn) {
+vector<lst> SD::Binarize(lst const fe, ex const eqn) {
+    vector<lst> add_to;
     auto xij = get_x_from(eqn);
     assert(xij.size()==2);
     ex xi = xij[0];
@@ -86,7 +87,6 @@ vector<lst> SD::Binarize(lst fe, ex eqn) {
     ex cj = eqn.coeff(xj);
     assert((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0);
     
-    vector<lst> ret;
     ci = abs(ci);
     cj = abs(cj);
     symbol yi,yj;
@@ -101,7 +101,7 @@ vector<lst> SD::Binarize(lst fe, ex eqn) {
     auto fe1 = fe;
     fe1.let_op(0) = f1;
     fe1.let_op(1) = e1;
-    ret.push_back(fe1);
+    add_to.push_back(fe1);
     
     // Part II: ci xi-cj xj<0, i.e., i.e., xj>ci/cj xi
     auto f2 = fe.op(0);
@@ -114,49 +114,89 @@ vector<lst> SD::Binarize(lst fe, ex eqn) {
     auto fe2 = fe;
     fe2.let_op(0) = f2;
     fe2.let_op(1) = e2;
-    ret.push_back(fe2);
-    
-    return ret;
+    add_to.push_back(fe2);
+    return add_to;
 }
 
-bool SD::Partilize(ex f0, lst xs, lst &ret0, bool ext) {
+// Binarized to 2 items, one replace the input, one append to add_to
+void SD::Binarize(lst &fe, ex const eqn, vector<lst> &add_to) {
+    auto ret = Binarize(fe, eqn);
+    auto fe1 = ret[0];
+    auto fe2 = ret[1];
+    fe.let_op(0) = fe1.op(0);
+    fe.let_op(1) = fe1.op(1);
+    add_to.push_back(fe2);
+}
+
+/*
+mode=0: x_i P_i, with P_i positive
+mode=1: x_i P_i + G_i, with P_i and G_i positive
+mode=2: x_i P_i + G_i, with P-i positive, G_i ~ (xm-xn)^n
+*/
+bool SD::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
     ex f = f0;
-    for(auto xi : xs) {
+    for(auto xi : delta) {
         if(!f.has(xi) || f.degree(xi)!=1) continue;
         auto cxi = f.coeff(xi);
-        if(!xPositive(cxi) && !xPositive(ex(0)-cxi)) continue;
-        if(cxi.subs(x(wild())==1)<0) cxi = ex(0)-cxi;
+        int cxi_sgn = xSign(cxi);
         
-        lst ret;
-        ret.append(lst{xi, cxi});
-        f = f.subs(xi==0);
-        if(f.is_zero() || Partilize(f, xs, ret, ext)) {
-            for(int i=0; i<ret.nops(); i++) ret0.append(ret.op(i));
-            return true;
+        if(cxi_sgn!=0) {
+            if(cxi_sgn<0) cxi = ex(0)-cxi;
+        
+            lst ret;
+            ret.append(lst{xi, cxi});
+            f = f.subs(xi==0);
+            if(f.is_zero() || Partilize(f, delta, ret, mode)) {
+                for(int i=0; i<ret.nops(); i++) in_ret.append(ret.op(i));
+                return true;
+            }
+            
+            if((mode>0) && (xSign(f)!=0)) {
+                in_ret.append(lst{xi, cxi});
+                if(f.subs(x(wild())==1)<0) f = ex(0)-f;
+                in_ret.append(lst{0, f});
+                return true;
+            } else if(mode>1) {
+                auto ff = Factor(f);
+                lst bilst;
+                if(is_a<mul>(ff)) {
+                    for(auto item : ff) {
+                        if(xSign(item)!=0) continue;
+                        if(item.match(pow(wild(1), wild(2)))) bilst.append(item.op(0));
+                        else bilst.append(item);
+                    }
+                } else {
+                    bilst.append(ff);
+                }
+                
+                if(bilst.nops()==1) {
+                    symbol s;
+                    ff = bilst.op(0).subs(x(wild())==s*x(wild()));
+                    if(get_x_from(ff).size()==2 && ff.degree(s)==1 && ff.ldegree(s)==1) {
+                        in_ret.append(lst{xi, cxi});
+                        in_ret.append(lst{0, bilst.op(0)});
+                        return true;
+                    }
+                }
+            }
         }
         
-        if(ext && (xPositive(f) || xPositive(ex(0)-f))) {
-            ret0.append(lst{xi, cxi});
-            if(f.subs(x(wild())==1)<0) f = ex(0)-f;
-            ret0.append(lst{0, f});
-            return true;
-        }
+        // TODO: other modes
     }
     return false;
 }
 
 void SD::ChengWu() {
-
+    
+    vector<lst> add_lst;
+ChengWu_loop:
+    for(auto item : add_lst) FunExp.push_back(item);
+    add_lst.clear();
+    add_lst.shrink_to_fit();
     for(auto &fe : FunExp) {
-        if(fe.nops()<3 || xPositive(fe.op(0).op(1)) || xPositive(0-fe.op(0).op(1))) continue;
-
-        lst xs;
-        for(int di=0; di<fe.op(2).nops(); di++) {
-            auto delta = ex_to<lst>(fe.op(2).op(di));
-            Projectivize(fe, delta);
-            for(auto xi : delta) xs.append(xi);
-        }
+        if(fe.nops()<3 || xSign(fe.op(0).op(1))!=0) continue;
         
+        for(int di=0; di<fe.op(2).nops(); di++) Projectivize(fe, fe.op(2).op(di));
         auto ft = fe.op(0).op(1);
         ft = Factor(ft);
         while(true) {
@@ -166,8 +206,10 @@ void SD::ChengWu() {
             } else if(is_a<mul>(ft)) {
                 ex tmp = 1;
                 for(auto fti : ft) {
-                    if(xPositive(fti)) continue;
-                    tmp = tmp * fti;
+                    auto s = xSign(fti);
+                    if(s>0) continue;
+                    else if(s<0) tmp = ex(0)-tmp;
+                    else tmp = tmp * fti;
                 }
                 ft = tmp;
                 if((ft-ft0).is_zero()) break;
@@ -175,16 +217,37 @@ void SD::ChengWu() {
             }
             break;
         }
+        
+        lst ret, delta;
+        bool ok = false;
+        for(int di=0; di<fe.op(2).nops(); di++) {
+            delta = ex_to<lst>(fe.op(2).op(di));
+            ok = Partilize(ft, delta, ret, 0);
+            if(!ok) {
+                ret.remove_all();
+                ok = Partilize(ft, delta, ret, 1);
+            } else {
+                if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu @mode=0 and @size="  << ret.nops() << RESET << endl;
+                goto ok_label;
+            }
 
-        lst ret;
-        bool ok = Partilize(ft, xs, ret, false);
-        if(!ok) {
-            ret.remove_all();
-            ok = Partilize(ft, xs, ret, true);
+            if(!ok) {
+                ret.remove_all();
+                ok = Partilize(ft, delta, ret, 2);
+                if(ok) {
+                    Binarize(fe, get_op(ret, ret.nops()-1, 1), add_lst);
+                    ok = false;
+                    if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu @mode=2 and @size="  << ret.nops() << RESET << endl;
+                    goto ok_label;
+                }
+            } else {
+                if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu @mode=1 and @size="  << ret.nops() << RESET << endl;
+                goto ok_label;
+            }
         }
         
+        ok_label:
         if(ok) {
-            if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu @ size="  << ret.nops() << RESET << endl;
             auto ilast = ret.nops()-1;
             lst rm_xs;
             ex inv_det = 1;
@@ -194,18 +257,18 @@ void SD::ChengWu() {
                 for(int i=ilast-1; i>=0; i--) {
                     let_op(ret, i, 1, get_op(ret,i,1)*xfi);
                 }
-                
-                auto xs = get_op(fe,2,0,0);
+                auto xs0 = delta.op(0);
                 if(ChengWu_xsum) {
-                    xs = 0;
-                    for(auto xi : get_op(fe,2,0)) xs += xi;
+                    xs0 = 0;
+                    for(auto xi : delta) xs0 += xi;
                 }
+                delta.append(xfi);
                 let_op_append(fe, 2, 0, xfi);
-                let_op_append(fe, 0, xs);
-                let_op_append(fe, 0, xfi+xs);
+                let_op_append(fe, 0, xs0);
+                let_op_append(fe, 0, xfi+xs0);
                 let_op_append(fe, 1, 1);
                 let_op_append(fe, 1, -2);
-                if(Verbose>10) cout << "    \\--" << WHITE << "Added xi1 = " << xfi << RESET << endl;
+                if(Verbose>10) cout << "    \\--" << WHITE << "Added " << xfi << " to " << delta << RESET << endl;
             }
             for(int i=ilast; i>=0; i--) {
                 auto xi = ret.op(i).op(0);
@@ -218,39 +281,9 @@ void SD::ChengWu() {
                     ret.let_op(j) = ret.op(j).subs(xi==yi/s);
                 }
             }
-            lst x2y, num_xi_lst;
-            for(auto ss : ret) {
-                x2y.append(ss.op(0)==ss.op(1));
-                if(!ss.op(1).has(x(wild()))) num_xi_lst.append(ss.op(0));
-            }
-                        
-            lst re_xi_lst;
-            for(int di=0; di<fe.op(2).nops(); di++) {
-                auto delta = ex_to<lst>(fe.op(2).op(di));
-                ex re_xi = 0;
-                for(auto xi : delta) {
-                    if(!rm_xs.has(xi) || num_xi_lst.has(xi)) {
-                        re_xi = xi;
-                        break;
-                    }
-                }
-                if(re_xi.is_zero()) {
-                    re_xi = x(x_free_index(fe));
-                    auto xs = get_op(fe,2,di,0);
-                    if(ChengWu_xsum) {
-                        xs = 0;
-                        for(auto xi : get_op(fe,2,di)) xs += xi;
-                    }
-                    let_op_append(fe, 2, di, re_xi);
-                    let_op_append(fe, 0, xs);
-                    let_op_append(fe, 0, re_xi+xs);
-                    let_op_append(fe, 1, 1);
-                    let_op_append(fe, 1, -2);
-                    if(Verbose>10) cout << "    \\--" << WHITE << "Added xi2 = " << re_xi << RESET << endl;
-                }
-                re_xi_lst.append(re_xi);
-            }
-
+            lst x2y;
+            for(auto ss : ret) x2y.append(ss.op(0)==ss.op(1));
+            
             auto nnn = fe.op(0).nops();
             for(int i=0; i<nnn; i++) {
                 if(!fe.op(0).op(i).has(x(wild()))) continue;
@@ -282,12 +315,25 @@ void SD::ChengWu() {
                 let_op_append(fe, 0, idet_num_den.op(1));
                 let_op_append(fe, 1, 1);
             }
-
-            for(int di=0; di<fe.op(2).nops(); di++) Projectivize(fe, fe.op(2).op(di), re_xi_lst.op(di));
+            
+            ex re_xi = 0;
+            for(auto xi : delta) {
+                if(!rm_xs.has(xi)) {
+                    re_xi = xi;
+                    break;
+                }
+            }
+            if(re_xi.is_zero()) {
+                re_xi = rm_xs.op(0);
+                cout << "ret = " << ret << endl;
+                cout << RED <<  "use re_xi = " << re_xi << RESET << endl;
+            }
+            Projectivize(fe, delta, re_xi);
         } else {
             // TODO: add more cases
         }
     }
+    if(add_lst.size()>0) goto ChengWu_loop;
     
     KillPowers();
 }

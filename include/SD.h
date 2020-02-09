@@ -337,11 +337,12 @@ public:
     static ex Factor(const ex expr);
     static ex PExpand(ex xpol, bool delta=true);
     static int PRank(matrix m);
-    static bool Partilize(ex f0, lst xs, lst &ret0, bool ext=false);
+    static bool Partilize(ex f0, lst delta, lst &in_ret, int mode=0);
     static void Projectivize(lst &fe, lst delta, ex xsum=0);
     static void Projectivize(lst &fe, ex delta, ex xsum=0);
     static void Scalelize(lst &fe, ex xi, ex cyi);
-    static vector<lst> Binarize(lst fe, ex eqn);
+    static void Binarize(lst &fe, ex const eqn, vector<lst> &add_to);
+    static vector<lst> Binarize(lst const fe, ex const eqn);
     static int x_free_index(ex expr);
             
 private:

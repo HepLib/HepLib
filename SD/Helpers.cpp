@@ -180,11 +180,6 @@ ex VEResult(ex expr) {
 /*-----------------------------------------------------*/
 // Functions used in GiNaC
 /*-----------------------------------------------------*/
-static ex NoDiff_1P(const ex & x, unsigned diff_param) {return 0;}
-static ex NoDiff_2P(const ex & x, const ex & y, unsigned diff_param) {return 0;}
-static ex VE_Conjugate(const ex & x, const ex & y) { return VE(x,y).hold(); }
-static ex Diff_ID(const ex & x, unsigned diff_param) {return 1;}
-
 static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context & c) {
     ex ex1 = ex1_in, ex2 = ex2_in;
     if(abs(ex1) < numeric("1E-30")) ex1 = 0;
@@ -225,6 +220,9 @@ static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context 
     }
 }
 
+/*-----------------------------------------------------*/
+// Heplers used in SD
+/*-----------------------------------------------------*/
 int SD::x_free_index(ex expr) {
     auto xs = get_x_from(expr);
     for(int i=0; i<=xs.size(); i++) {
@@ -239,6 +237,180 @@ int SD::x_free_index(ex expr) {
     }
 }
 
+int SD::epRank(ex expr_in) {
+    if(!expr_in.has(ep)) return 0;
+    int p = -5;
+    auto expr = mma_collect(expr_in, ep);
+    while(true) {
+        auto tmp = normal(series_to_poly(expr.series(ep, p)));
+        if(!tmp.is_zero()) {
+            tmp = mma_collect(tmp, ep);
+            return tmp.ldegree(ep);
+        } else p++;
+    }
+    throw runtime_error("epRank error!");
+}
+
+int SD::epsRank(ex expr_in) {
+    if(!expr_in.has(eps)) return 0;
+    int p = -5;
+    auto expr = mma_collect(expr_in, eps);
+    while(true) {
+        auto tmp = normal(series_to_poly(expr.series(eps, p)));
+        if(!tmp.is_zero()) {
+            tmp = mma_collect(tmp, eps);
+            return tmp.ldegree(eps);
+        } else p++;
+    }
+    throw runtime_error("epsRank error!");
+}
+
+int SD::vsRank(ex expr_in) {
+    if(!expr_in.has(vs)) return 0;
+    int p = -5;
+    auto expr = mma_collect(expr_in, vs);
+    while(true) {
+        auto tmp = normal(series_to_poly(expr.series(vs, p)));
+        if(!tmp.is_zero()) {
+            tmp = mma_collect(tmp, vs);
+            return tmp.ldegree(vs);
+        } else p++;
+    }
+    throw runtime_error("vsRank error!");
+}
+
+ex SD::VEResult() {
+    return HepLib::VEResult(ResultError);
+}
+
+void SD::VEPrint(bool endlQ) {
+    ex expr = HepLib::VEResult(ResultError);
+    for(int i=expr.ldegree(eps); i<=expr.degree(eps); i++) {
+        ex exp1 = expr.coeff(eps, i);
+        for(int j=expr.ldegree(ep); j<=expr.degree(ep); j++) {
+            cout << WHITE <<"(" << RESET;
+            cout << exp1.coeff(ep, j);
+            cout << WHITE << ")" << RESET;
+            if(j!=0 || i!=0) cout << "*" << WHITE << pow(ep,j)*pow(eps,i) << RESET;
+            if(j<expr.degree(ep)) cout << " + ";
+        }
+    }
+    if(endlQ) cout << endl;
+}
+
+ex SD::Factor(const ex expr) {
+    exset xyset;
+    expr.find(x(wild()), xyset);
+    expr.find(y(wild()), xyset);
+    expr.find(z(wild()), xyset);
+    expr.find(PL(wild()), xyset);
+    lst xy2s, s2xy;
+    for(auto xyi : xyset) {
+        symbol txy;
+        xy2s.append(xyi==txy);
+        s2xy.append(txy==xyi);
+    }
+    ex expr2 = expr.subs(xy2s);
+    expr2 = factor(expr2);
+    expr2 = expr2.subs(s2xy);
+    return expr2;
+}
+
+ex SD::PrefactorFIESTA(int nLoop) {
+    return  pow(I*pow(Pi,2-ep)*exp(-ep*Euler), -ex(nLoop));
+}
+
+double SD::FindMinimum(ex expr, bool compare0) {
+    static long long fid = 0;
+    fid++;
+    ostringstream cppfn, sofn, cmd;
+    auto pid = getpid();
+    cppfn << "/tmp/" << pid << "-" << fid << "-min.cpp";
+    sofn << "/tmp/" << pid << "-" << fid << "-min.so";
+    std::ofstream ofs;
+    ofs.open(cppfn.str(), ios::out);
+    if (!ofs) throw runtime_error("failed to open *.cpp file!");
+    
+    auto xs = get_xy_from(expr);
+    dREAL UB[xs.size()], LB[xs.size()];
+    lst cxRepl;
+    int count = 0;
+    for (auto xi : xs) {
+        ostringstream xs;
+        xs << "x[" << count << "]";
+        cxRepl.append(xi == symbol(xs.str()));
+        UB[count] = 1;
+        LB[count] = 0;
+        count++;
+    }
+    
+/*----------------------------------------------*/
+ofs << R"EOF(
+#include <stddef.h>
+#include <stdlib.h>
+#include <math.h>
+#include <complex>
+#include <iostream>
+using namespace std;
+
+typedef long double dREAL;
+typedef complex<long double> dCOMPLEX;
+
+#define Pi 3.1415926535897932384626433832795028841971693993751L
+#define Euler 0.57721566490153286060651209008240243104215933593992L
+
+//#define expt(a,b) pow(a,b)
+//#define recip(a) pow(a,-1)
+dREAL expt(dREAL a, dREAL b) { return pow(a,b); }
+dCOMPLEX expt(dCOMPLEX a, dREAL b) { return pow(a,b); }
+dREAL recip(dREAL a) { return 1.L/a; }
+dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
+
+)EOF" << endl;
+/*----------------------------------------------*/
+
+    auto cppL = CppFormat(ofs, "L");
+    ofs << "extern \"C\" " << endl;
+    ofs << "dREAL minFunc(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
+    auto tmp = expr.subs(cxRepl);
+    assert(!tmp.has(PL(wild())));
+    ofs << "dREAL yy = ";
+    tmp.print(cppL);
+    ofs << ";" << endl;
+    ofs << "return yy;" << endl;
+    ofs << "}" << endl;
+    
+    cmd.clear();
+    cmd.str("");
+    cmd << "g++ -fPIC -shared " << CFLAGS << " -o " << sofn.str() << " " << cppfn.str();
+    system(cmd.str().c_str());
+    
+    void* module = nullptr;
+    module = dlopen(sofn.str().c_str(), RTLD_NOW);
+    if(module == nullptr) throw std::runtime_error("could not open compiled module!");
+    
+    auto fp = (MinimizeBase::FunctionType)dlsym(module, "minFunc");
+    assert(fp!=NULL);
+    
+    double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0);
+    
+    if(use_dlclose) dlclose(module);
+    cmd.clear();
+    cmd.str("");
+    cmd << "rm " << cppfn.str() << " " << sofn.str();
+    system(cmd.str().c_str());
+    return min;
+}
+
+
+/*-----------------------------------------------------*/
+// Functions used in GiNaC
+/*-----------------------------------------------------*/
+static ex NoDiff_1P(const ex & x, unsigned diff_param) {return 0;}
+static ex NoDiff_2P(const ex & x, const ex & y, unsigned diff_param) {return 0;}
+static ex VE_Conjugate(const ex & x, const ex & y) { return VE(x,y).hold(); }
+static ex Diff_ID(const ex & x, unsigned diff_param) {return 1;}
+
 REGISTER_FUNCTION(fabs, dummy())
 REGISTER_FUNCTION(PL, dummy())
 REGISTER_FUNCTION(FTX, derivative_func(NoDiff_2P))
@@ -246,4 +418,6 @@ REGISTER_FUNCTION(CT, derivative_func(Diff_ID))
 REGISTER_FUNCTION(VE, conjugate_func(VE_Conjugate))
 REGISTER_FUNCTION(VEO, print_func<print_dflt>(print_VEO))
 REGISTER_FUNCTION(WF, dummy())
+
+
 }

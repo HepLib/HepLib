@@ -12,7 +12,10 @@ bool SD::KillPowersWithDelta(lst fe, int kpi) {
     ft = Factor(ft);
     lst fts;
     if(is_a<mul>(ft)) {
-        for(auto item : ft) fts.append(item);
+        for(auto item : ft) {
+            if(xSign(item)!=0) continue;
+            fts.append(item);
+        }
     } else {
         fts.append(ft);
     }
@@ -43,7 +46,7 @@ bool SD::KillPowersWithDelta(lst fe, int kpi) {
                 } else {
                     fts2.append(ftt);
                 }
-                
+
                 for(auto item : fts2) {
                     if(!item.has(xi) || !item.has(xj)) continue;
                     if(item.has(xi) && item.has(xj)) {
