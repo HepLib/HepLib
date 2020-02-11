@@ -23,7 +23,12 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
     sprintf(opts, "qhull Fv");
     
     int exit_code = qh_new_qhull(dim, npts, cpts, 0, opts, NULL, NULL);
-    assert(!exit_code);
+    if(exit_code) {
+        cout << RED << "qhull return code : " << exit_code << RESET << endl;
+        cout << "pts: " << endl <<  pts << endl;
+        //throw new std::exception ("qhull error");
+        assert(false);
+    }
     facetT *facet;
     vertexT *vertex, **vertexp;
     FORALLfacets {
@@ -298,6 +303,7 @@ vector<matrix> SecDecG::SimplexCones(matrix pts) {
 
 // return a replacement/transformation, using x(-1) as key for determinant
 vector<exmap> SecDecG::x2y(const ex &xpol) {
+    assert(!xpol.has(y(wild())));
     ex pol = xpol.expand();
     auto xs = get_xy_from(pol);
     int nx = xs.size();
@@ -312,7 +318,8 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
         vector<exmap> vmap;
         exmap nmap;
         nmap[x(-1)] = 1;
-        nmap[x(wild())] = y(wild());
+        int i=0;
+        for(auto xi : xs) nmap[xi] = y(i++);
         vmap.push_back(nmap);
         return vmap;
     }

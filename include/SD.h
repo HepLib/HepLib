@@ -57,7 +57,7 @@ vector<ex> get_pl_from(ex pol);
 class SecDecBase {
 public:
     virtual vector<exmap> x2y(const ex &xpol) =0;
-    vector<exmap> x2y(const lst &xpols, bool all_in_one = false);
+    vector<exmap> x2y(const lst &xpols, bool all_in_one);
 };
 
 class SecDecG : public SecDecBase {
@@ -282,6 +282,7 @@ public:
     bool use_las = false;
     bool save_las = false;
     bool use_IBF = false;
+    bool all_in_one = false;
     int CT_method = 1; // 0: original, 1: rescaled
     int MPDigits = 50; // digits in mpREAL for MP
     lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
@@ -335,6 +336,7 @@ public:
     void VEPrint(bool endlQ=true);
     double FindMinimum(ex expr, bool compare0 = false);
     static ex Factor(const ex expr);
+    static ex PowerExpand(const ex expr);
     static ex PExpand(ex xpol, bool delta=true);
     static int PRank(matrix m);
     static bool Partilize(ex f0, lst delta, lst &in_ret, int mode=0);
@@ -344,6 +346,7 @@ public:
     static void Binarize(lst &fe, ex const eqn, vector<lst> &add_to);
     static vector<lst> Binarize(lst const fe, ex const eqn);
     static int x_free_index(ex expr);
+    static int y_free_index(ex expr);
             
 private:
     vector<lst> DS(const lst po_ex);

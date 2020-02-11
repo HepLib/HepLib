@@ -13,57 +13,134 @@ realsymbol const SD::NaN("NaN");
 bool SD::use_dlclose = true;
 bool SD::debug = false;
 
-vector<exmap> SecDecBase::x2y(const lst &xpols, bool all_in_one) {
+vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
+    assert(!in_xpols.has(y(wild())));
+    ex xpol_all = 1;
+    for(auto item : in_xpols) xpol_all *= item;
+    xpol_all = collect_common_factors(xpol_all);
+    
+    lst xpols;
+    if(is_a<mul>(xpol_all)) {
+        for(auto item : xpol_all) {
+            if(is_a<numeric>(item)) continue;
+            else if(item.match(x(wild())) || item.match(y(wild()))) continue;
+            else if(item.match(pow(x(wild(1)),wild(2))) || item.match(pow(y(wild(1)),wild(2)))) continue;
+            else if(item.match(pow(wild(1),wild(2)))) {
+                xpols.append(item.op(0));
+            } else {
+                xpols.append(item);
+            }
+        }
+    } else if(xpol_all.match(pow(wild(1),wild(2)))) {
+        xpols.append(xpol_all.op(0));
+    } else {
+        xpols.append(xpol_all);
+    }
+    xpols.sort();
+    xpols.unique();
+    
     if(all_in_one) {
         ex xpol = 1;
         for(auto item : xpols) xpol *= item;
         return x2y(xpol);
     }
     
+    vector<ex> xpol_vec;
+    for(auto item : xpols) xpol_vec.push_back(item);
+    sort(xpol_vec.begin(), xpol_vec.end(), [&](const auto &a, const auto &b){
+        return ex_to<numeric>(ex(0)+a.nops()-b.nops()).is_positive(); // > > >
+        //return ex_to<numeric>(ex(0)+b.nops()-a.nops()).is_positive(); // < < <
+    });
+    xpols.remove_all();
+    for(auto item : xpol_vec) xpols.append(item);
+    xpol_vec.clear();
+cout << "use order > " << endl;
+
     vector<exmap> vec_map;
     exmap map0;
     map0[x(-1)] = 1;
     auto xs = get_x_from(xpols);
-    for(auto xi : xs) map0[xi] = xi.subs(x(wild())==y(wild()));
+    int yi=0;
+    for(auto xi : xs) map0[xi] = y(yi++);
     vec_map.push_back(map0);
-    
     for(int i=0; i<xpols.nops(); i++) {
         auto xpol = xpols.op(i);
         vector<exmap> vec_map2;
         for(auto map : vec_map) {
-            auto cxpol = xpol.subs(map).subs(y(wild())==x(wild()));
+            auto cxpol = xpol.subs(map);
+            cxpol = cxpol.subs(y(wild())==x(wild()));
+            if(!cxpol.subs(x(wild())==0).normal().is_zero()) cxpol=1;
+            else {
+                cxpol = collect_common_factors(cxpol);
+                if(is_a<mul>(cxpol)) {
+                    ex ret_mul = 1;
+                    for(auto item : cxpol) {
+                        if(is_a<numeric>(item)) continue;
+                        else if(item.match(x(wild())) || item.match(y(wild()))) continue;
+                        else if(item.match(pow(x(wild(1)),wild(2))) || item.match(pow(y(wild(1)),wild(2)))) continue;
+                        else if(item.match(pow(wild(1),wild(2)))) {
+                            ret_mul *= item.op(0);
+                        } else {
+                            ret_mul *= item;
+                        }
+                    }
+                    cxpol = ret_mul;
+                } else if(cxpol.match(pow(wild(1),wild(2)))) {
+                    cxpol = cxpol.op(0);
+                }
+            }
+            
             auto vec_map3 = x2y(cxpol);
+            // naive check
+            ex total = 0;
+            for(auto map3 : vec_map3) {
+if((cxpol-1).is_zero()) cout << vec_map3.size() << ", " << map3 << endl;
+                total += map3[x(-1)].subs(pow(y(wild(1)), wild(2))==1/(wild(2)+1)).subs(y(wild())==1/ex(2));
+            }
+            if(!(total-1).is_zero()) {
+                cout << RED << "total = " << total << ", NOT 1." << RESET << endl;
+                assert(false);
+            }
+            
             for(auto map3 : vec_map3) {
                 exmap new_map;
                 lst xy_lst;
                 for(auto kv : map) {
-                    auto tmp = kv.second.subs(y(wild())==x(wild())).subs(map3);
-                    if(kv.first==x(-1)) {
-                        tmp *= map3[x(-1)];
-                    }
+                    auto tmp = kv.second.subs(y(wild())==x(wild()));
+                    tmp = tmp.subs(map3);
+                    if(is_zero(kv.first-x(-1))) tmp *= map3[x(-1)];
                     new_map[kv.first] = tmp;
                     xy_lst.append(tmp);
                 }
                 
                 // handle remaining x's
                 if(xy_lst.has(x(wild()))) {
-                    vector<int> y_free_index;
+                    vector<int> y_free_indexs;
                     for(int j=0; j<xs.size()+10; j++) {
-                        if(!xy_lst.has(y(j))) y_free_index.push_back(j);
+                        if(!xy_lst.has(y(j))) y_free_indexs.push_back(j);
                     }
                     auto xs = get_x_from(xy_lst);
                     lst xRepl;
-                    assert(xs.size()<=y_free_index.size());
+                    assert(xs.size()<=y_free_indexs.size());
                     for(int j=0; j<xs.size(); j++) {
-                        xRepl.append(xs[j]==y(y_free_index[j]));
+                        xRepl.append(xs[j]==y(y_free_indexs[j]));
                     }
                     for(auto kv : new_map) new_map[kv.first] = kv.second.subs(xRepl);
                 }
-                
                 vec_map2.push_back(new_map);
             }
         }
         vec_map = vec_map2;
+    }
+    
+    // naive check
+    ex total = 0;
+    for(auto map : vec_map) {
+        total += map[x(-1)].subs(pow(y(wild(1)), wild(2))==1/(wild(2)+1)).subs(y(wild())==1/ex(2));
+    }
+    if(!(total-1).is_zero()) {
+        cout << RED << "total = " << total << ", NOT 1." << RESET << endl;
+        assert(false);
     }
     return vec_map;
 }
@@ -77,13 +154,13 @@ bool SD::IsBad(ex f, vector<exmap> vmap) {
         auto xs_tmp = get_x_from(ft);
         auto ys_tmp = get_y_from(ft);
         int ysn = ys_tmp.size();
-        vector<int> y_free_index;
+        vector<int> y_free_indexs;
         for(int j=0; j<ys_tmp.size()+10; j++) {
-            if(!ft.has(y(j))) y_free_index.push_back(j);
+            if(!ft.has(y(j))) y_free_indexs.push_back(j);
         }
-        assert(xs_tmp.size()<=y_free_index.size());
+        assert(xs_tmp.size()<=y_free_indexs.size());
         for(int i=0; i<xs_tmp.size(); i++) {
-            vi[xs_tmp[i]] = y(y_free_index[i]);
+            vi[xs_tmp[i]] = y(y_free_indexs[i]);
         }
         if(xs_tmp.size()>0) ft = ft.subs(vi);
 
@@ -166,7 +243,7 @@ vector<lst> SD::AutoEnd(lst po_ex) {
                 if( (!tmp.has(x(wild())) && !tmp.has(y(wild()))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
                 sdList.append(tmp);
             }
-            vector<exmap> vmap = SecDec->x2y(sdList);
+            vector<exmap> vmap = SecDec->x2y(sdList, all_in_one);
             
             for(int ni=0; ni<polist.nops(); ni++) {
                 auto po = polist.op(ni);
@@ -213,20 +290,20 @@ vector<lst> SD::DS(lst po_ex) {
         sdList.append(tmp);
     }
 
-    vector<exmap> vmap = SecDec->x2y(sdList);
+    vector<exmap> vmap = SecDec->x2y(sdList, all_in_one);
     vector<lst> sd;
-    for(auto &vi : vmap) {
+    for(auto vi : vmap) {
         auto ypolist = polist.subs(vi);
         auto xs_tmp = get_x_from(ypolist);
         auto ys_tmp = get_y_from(ypolist);
         int ysn = ys_tmp.size();
-        vector<int> y_free_index;
+        vector<int> y_free_indexs;
         for(int j=0; j<xs_tmp.size()+ys_tmp.size()+10; j++) {
-            if(!ypolist.has(y(j))) y_free_index.push_back(j);
+            if(!ypolist.has(y(j))) y_free_indexs.push_back(j);
         }
-        assert(xs_tmp.size()<=y_free_index.size());
+        assert(xs_tmp.size()<=y_free_indexs.size());
         for(int i=0; i<xs_tmp.size(); i++) {
-            vi[xs_tmp[i]] = y(y_free_index[i]);
+            vi[xs_tmp[i]] = y(y_free_indexs[i]);
         }
         if(xs_tmp.size()>0) ypolist = ypolist.subs(vi);
         assert(!ypolist.has(x(wild())));
@@ -403,13 +480,13 @@ lst SD::Normalize(const lst &input) {
         if(i!=1 && !in_plst.op(i).has(x(wild())) && !in_plst.op(i).has(y(wild()))) {
             const_term *= pow(in_plst.op(i), in_nlst.op(i));
         } else {
-            auto ptmp = in_plst.op(i);
+            auto ptmp = collect_common_factors(in_plst.op(i));
             auto ntmp = in_nlst.op(i);
-            if(is_exactly_a<mul>(ptmp)) {
+            if(is_a<mul>(ptmp)) {
                 ex tmul = 1;
                 for(int j=0; j<ptmp.nops(); j++) {
                     auto tmp = ptmp.op(j);
-                    if(!tmp.has(x(wild())) && !tmp.has(y(wild()))) {
+                    if(!tmp.has(x(wild())) && !tmp.has(y(wild()))) { // constant terms
                         if(is_a<numeric>(ntmp) && ex_to<numeric>(ntmp).is_integer()) {
                             const_term *=  pow(tmp,ntmp);
                         } else if((tmp-vs).is_zero() || tmp.match(pow(vs,wild()))) {
@@ -432,6 +509,18 @@ lst SD::Normalize(const lst &input) {
                             }
                         } else {
                             tmul *= tmp;
+                        }
+                    } else if(tmp.match(pow(wild(1),wild(2))) && xPositive(tmp.op(0))) {
+                        plst.append(tmp.op(0));
+                        nlst.append(ntmp * tmp.op(1));
+                    } else if(xSign(tmp)!=0 || xSign(tmp.subs(y(wild())==x(wild())))!=0) {
+                        if(tmp.subs(lst{x(wild())==1, y(wild())==1})>0) {
+                            plst.append(tmp);
+                            nlst.append(ntmp);
+                        } else {
+                            plst.append(ex(0)-tmp);
+                            nlst.append(ntmp);
+                            tmul = ex(0) - tmul;
                         }
                     } else {
                         tmul *= tmp;
@@ -655,7 +744,7 @@ void SD::Scalelesses(bool verb) {
     if(verb) cout << now() << " - Scaleless: " << FunExp.size() << " :> " << flush;
 
     vector<ex> sl_res =
-    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &funexp, auto rid) {
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &funexp, auto idx) {
         if(funexp.nops()<3) return funexp;
         symbol s;
         auto fun = funexp.op(0);
@@ -802,7 +891,7 @@ void SD::RemoveDeltas() {
 void SD::XEnd() {
     if(Verbose > 0) cout << now() << " - BiSection: " << FunExp.size() << " :> " << flush;
     vector<ex> funexps =
-    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &fe, auto rid) {
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &fe, auto idx) {
         lst para_res_lst;
         if(xSign(fe.op(0).op(1))==0) {
             auto fes = AutoEnd(fe);
@@ -863,7 +952,7 @@ void SD::SDPrepares() {
     if(Verbose > 0) cout << now() << " - SDPrepares: ..." << endl << flush;
     
     vector<ex> sd_res =
-    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &fe, auto rid) {
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &fe, auto idx) {
         // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
         lst para_res_lst;
         auto xns_pns = DS(fe);
@@ -921,7 +1010,7 @@ void SD::SDPrepares() {
         return para_res_lst;
     }, "SD", Verbose, true);
     
-    ex min_expn = 1;
+    ex min_expn = 1, min_expn2 = 10;
     vector<ex> ibp_in_vec;
     for(auto &item : sd_res) {
         for(auto &it : ex_to<lst>(item)) {
@@ -929,11 +1018,12 @@ void SD::SDPrepares() {
             for(auto xn : it.op(0)) {
                 ex nxn = xn.op(1).subs(lst{ep==0, eps==0, vz==0});
                 if(nxn<-1) expn += nxn+1;
+                if(min_expn2>nxn) min_expn2 = nxn+1;
             }
             if(expn < min_expn) min_expn = expn;
             
             int sim_max;
-            if((ex(0)-expn)>=10) sim_max = 1;
+            if((ex(0)-expn)>=10) sim_max = 2;
             else if((ex(0)-expn)>=8) sim_max = 3;
             else if((ex(0)-expn)>=6) sim_max = 5;
             else if((ex(0)-expn)>=4) sim_max = 10;
@@ -961,7 +1051,7 @@ void SD::SDPrepares() {
             ibp_in_vec.push_back(lst{xns, pns});
         }
     }
-    if(Verbose > 1) cout << "  \\--" << WHITE << "Maximum x^n: " << ex(0)-min_expn << " + 1" << RESET << endl << flush;
+    if(Verbose > 1) cout << "  \\--" << WHITE << "Maximum x^n: (" << ex(0)-min_expn << "+1) / " << (ex(0)-min_expn2) << RESET << endl << flush;
 
     int pn = 0;
     vector<ex> ibp_res_vec;
@@ -970,7 +1060,7 @@ void SD::SDPrepares() {
         ostringstream spn;
         spn << "IBP-" << pn;
         vector<ex> ibp_res =
-        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ibp_in_vec, [&](auto &xns_pns, auto rid) {
+        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ibp_in_vec, [&](auto &xns_pns, auto idx) {
             // return lst
             // {0, element} for input with pole reached and doing nothing
             // {1, {element, ...}} for input whth pole NOT reached
@@ -981,7 +1071,7 @@ void SD::SDPrepares() {
             
             exset fts;
             pns.op(0).find(FTX(wild(1),wild(2)), fts);
-            bool noFT = (fts.size()==1) && ( (*(fts.begin())).op(0) == 1 );
+            bool noFT = (fts.size()==1) && ( is_zero((*(fts.begin())).op(0)-1) );
             
             ex pole_requested = -1;
             if(noFT || PoleRequested > -1) pole_requested = PoleRequested;
@@ -1060,7 +1150,7 @@ void SD::SDPrepares() {
                         }
                         
                         lst pns3 = ex_to<lst>(pns);
-                        if(pns.op(i).op(1)==1) {
+                        if(is_zero(pns.op(i).op(1)-1)) {
                             pns3.let_op(i).let_op(0) = tmp;
                         } else {
                             pns3.let_op(i).let_op(1) = pns.op(i).op(1)-1;
@@ -1094,7 +1184,7 @@ void SD::SDPrepares() {
     }
     
     vector<ex> res =
-    GiNaC_Parallel(ParallelProcess, ParallelSymbols, ibp_res_vec, [&](auto &xns_expr, auto rid) {
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, ibp_res_vec, [&](auto &xns_expr, auto idx) {
 
         // return single element in which ep/eps can be expanded safely.
         lst para_res_lst;
@@ -1160,7 +1250,7 @@ void SD::SDPrepares() {
     
     if(zResides) {
         Integrands =
-        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ints, [&](auto &item, auto rid) {
+        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ints, [&](auto &item, auto idx) {
             ex it = item;
             if(it.has(vz)) {
                 exset cts;
@@ -1202,17 +1292,41 @@ void SD::EpsEpExpands() {
     
     if(Verbose > 0) cout << now() << " - EpsEpExpands ..." << endl << flush;
     
+    if(Verbose > 1) cout << "  \\--Collecting: " << Integrands.size() << " :> " << flush;
+    map<ex, ex, ex_is_less> int_map;
+    for(auto &item : Integrands) {
+        if(item.is_zero()) continue;
+        exset cts;
+        item.find(CT(wild()), cts);
+        if(cts.size() != 1) {
+            cerr << "item: " << item << endl;
+            cerr << "CT size is NOT 1: " << cts << endl;
+            assert(false);
+        }
+        ex ct = (*(cts.begin())).subs(CT(wild())==wild()).subs(iEpsilon==0);
+        auto it = item.subs(CT(wild())==1);
+        int_map[it] = int_map[it]+ct;
+    }
+    
+    Integrands.clear();
+    Integrands.shrink_to_fit();
+    for(auto kv : int_map) {
+        if(kv.second.is_zero()) continue;
+        Integrands.push_back(CT(kv.second) * kv.first);
+    }
+    if(Verbose > 1) cout << Integrands.size() << endl;
+    
     lst isyms = { ep, eps, vs, vz, iEpsilon };
     for(auto is : isyms) ParallelSymbols.append(is);
     ParallelSymbols.sort();
     ParallelSymbols.unique();
     
     vector<ex> res =
-    GiNaC_Parallel(ParallelProcess, ParallelSymbols, Integrands, [&](auto &item, auto rid) {
+    GiNaC_Parallel(ParallelProcess, ParallelSymbols, Integrands, [&](auto &item, auto idx) {
         // return { {two elements}, {two elements}, ...},
         // 1st: x-independent coefficient, expanded in ep/eps
         // 2nd: x-integrand
-        if(item.is_zero()) return lst{ lst{0, 0} };
+        if(item.is_zero()) return lst{ lst{ 0, 0} };
         exset cts;
         item.find(CT(wild()), cts);
         if(cts.size() != 1) {
@@ -1292,7 +1406,7 @@ void SD::EpsEpExpands() {
     expResult.clear();
     expResult.shrink_to_fit();
     for(auto kv : int_pref) {
-        if(kv.second.normal().is_zero()) continue;
+        if(kv.second.is_zero()) continue;
         expResult.push_back(make_pair(kv.second, kv.first));
     }
     if(Verbose > 1) cout << expResult.size() << endl;

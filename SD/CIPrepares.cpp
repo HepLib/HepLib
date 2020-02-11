@@ -20,7 +20,7 @@ namespace HepLib {
         ParallelSymbols.unique();
         
         vector<ex> resf =
-        GiNaC_Parallel(ParallelProcess, ParallelSymbols, expResult, [&](auto &kv, auto rid) {
+        GiNaC_Parallel(ParallelProcess, ParallelSymbols, expResult, [&](auto &kv, auto idx) {
             // return lst{ kv.first, kv.second, ft};
             auto expr = kv.second;
             auto xs = get_xy_from(expr);
@@ -135,7 +135,7 @@ namespace HepLib {
     //============================================================================================================
 
         // Prepare FT-lambda
-        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnvec, [&](auto &kv, auto rid) {
+        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnvec, [&](auto &kv, auto idx) {
             // return nothing
             ex ft = kv.first;
             ex ft_n = kv.second;
@@ -556,7 +556,7 @@ namespace HepLib {
 
         // Prepare Integrand
         vector<ex> res =
-        GiNaC_Parallel(ParallelProcess, ParallelSymbols, res_vec, [&](auto &kvf, auto rid) {
+        GiNaC_Parallel(ParallelProcess, ParallelSymbols, res_vec, [&](auto &kvf, auto idx) {
             // return lst{ no-x-result, xn, x-indepent prefactor, ft_n }
             // or     lst{ id(SD(D|Q)_id in .so), xn, x-indepent prefactor, ft_n }
             
@@ -567,7 +567,7 @@ namespace HepLib {
             
             if(xs.size()<1) {
                 ostringstream cmd;
-                cmd << "cp " << pid << "/null.o " << pid << "/" << rid << ".o";
+                cmd << "cp " << pid << "/null.o " << pid << "/" << idx << ".o";
                 system(cmd.str().c_str());
                 
                 return lst{
@@ -600,7 +600,7 @@ namespace HepLib {
             int count = fxs.size();
             for(auto xi : xs) {
                 auto xii = xi.subs(czRepl);
-                if(xii == xi) {
+                if(is_zero(xii-xi)) {
                     ostringstream xs, zs;
                     xs << "x[" << count << "]";
                     cxRepl.append(xi == symbol(xs.str()));
@@ -618,7 +618,7 @@ namespace HepLib {
             }
             
             ostringstream cppfn;
-            cppfn << pid << "/" << rid << ".cpp";
+            cppfn << pid << "/" << idx << ".cpp";
             std::ofstream ofs;
             ofs.open(cppfn.str(), ios::out);
             if (!ofs) throw runtime_error("failed to open *.cpp file!");
@@ -704,7 +704,7 @@ namespace HepLib {
             // alwasy export non-complex function
             if(true) {
                 ofs << "extern \"C\" " << endl;
-                ofs << "int SDD_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+                ofs << "int SDD_"<<idx<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
                 ofs << "dREAL x[xn], x0[xn];" << endl;
                 ofs << "for(int i=0; i<xn; i++) x[i] = qx[i];" << endl;
                 ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
@@ -738,7 +738,7 @@ namespace HepLib {
             
             if(hasF) {
                 ofs << "extern \"C\" " << endl;
-                ofs << "int CSDD_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+                ofs << "int CSDD_"<<idx<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
                 ofs << "dREAL x[xn], x0[xn];" << endl;
                 ofs << "for(int i=0; i<xn; i++) x[i] = qx[i];" << endl;
                 ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
@@ -813,7 +813,7 @@ namespace HepLib {
             // always export non-complex function
             if(true) {
                 ofs << "extern \"C\" " << endl;
-                ofs << "int SDQ_"<<rid<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
+                ofs << "int SDQ_"<<idx<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
                 
                 auto intg = expr.subs(FTX(wild(1),wild(2))==1);
                 cseParser cse;
@@ -838,7 +838,7 @@ namespace HepLib {
             
             if(hasF) {
                 ofs << "extern \"C\" " << endl;
-                ofs << "int CSDQ_"<<rid<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
+                ofs << "int CSDQ_"<<idx<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
                 
                 ofs << "qREAL x0[xn];" << endl;
                 ofs << "qCOMPLEX z[xn],r[xn];" << endl;
@@ -889,7 +889,7 @@ namespace HepLib {
                 
                 // Export the F-term, only Quadruple-type
                 ofs << "extern \"C\" " << endl;
-                ofs << "qREAL FT_"<<rid<<"(const qREAL x[], const qREAL pl[]) {" << endl;
+                ofs << "qREAL FT_"<<idx<<"(const qREAL x[], const qREAL pl[]) {" << endl;
                 ofs << "qREAL yy = FQ_" << ft_n << "(x, pl);" << endl;
                 ofs << "return yy;" << endl;
                 ofs << "}" << endl;
@@ -914,7 +914,7 @@ namespace HepLib {
             // always export non-complex function
             if(true) {
                 ofs << "extern \"C\" " << endl;
-                ofs << "int SDMP_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+                ofs << "int SDMP_"<<idx<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
                 ofs << "mpREAL x[xn], x0[xn];" << endl;
                 ofs << "for(int i=0; i<xn; i++) x[i] = mpREAL(qx[i]);" << endl;
                 ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
@@ -943,7 +943,7 @@ namespace HepLib {
             
             if(hasF) {
                 ofs << "extern \"C\" " << endl;
-                ofs << "int CSDMP_"<<rid<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
+                ofs << "int CSDMP_"<<idx<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
                 ofs << "mpREAL x[xn], x0[xn];" << endl;
                 ofs << "for(int i=0; i<xn; i++) x[i] = mpREAL(qx[i]);" << endl;
                 ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
@@ -1001,11 +1001,11 @@ namespace HepLib {
             
             ofs.close();
             ostringstream ofn, cmd;
-            ofn << pid << "/" << rid << ".o";
+            ofn << pid << "/" << idx << ".o";
             cmd << "g++ -fPIC " << CFLAGS << " -c -o " << ofn.str() << " " << cppfn.str();
             system(cmd.str().c_str());
             if(!debug) remove(cppfn.str().c_str());
-            return lst{ rid, xs.size(), kvf.op(0), ft_n };
+            return lst{ idx, xs.size(), kvf.op(0), ft_n };
         }, "CI-I", Verbose, false);
         
 
@@ -1040,17 +1040,19 @@ namespace HepLib {
         }
         
         int res_size = res.size();
+        if(GccLimit<100) GccLimit = 100;
         if(res_size>GccLimit) {
             cmd.clear();
             cmd.str("");
             cmd << "g++ -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << CFLAGS;
             if(hasF) cmd << " " << fsofn.str();
-            cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 1 " << GccLimit << ")";
+            cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 0 " << (GccLimit-1) << ")";
             system(cmd.str().c_str());
+            
             for(int n=1; true; n++) {
-                int start = n * GccLimit+1;
-                int end = (n+1) * GccLimit;
-                if(end>res_size) end = res_size;
+                int start = n*GccLimit;
+                int end = (n+1)*GccLimit-1;
+                if(end>res_size-1) end = res_size-1;
                 sofn.clear();
                 sofn.str("");
                 if(key != NULL) sofn << key << "X" << n << ".so";
@@ -1061,7 +1063,7 @@ namespace HepLib {
                 if(hasF) cmd << " " << fsofn.str();
                 cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' " << start << " " << end << ")";
                 system(cmd.str().c_str());
-                if(end>=res_size) break;
+                if(end>=res_size-1) break;
             }
         } else {
             cmd.clear();

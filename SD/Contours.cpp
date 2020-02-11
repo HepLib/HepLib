@@ -49,7 +49,7 @@ namespace HepLib {
         if (module == nullptr) throw std::runtime_error("could not open compiled module!");
         
         vector<ex> res =
-        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnxn_vec, [&](auto & ftnxn, auto rid) {
+        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnxn_vec, [&](auto & ftnxn, auto idx) {
             // return lst{ ft_n, lst{lambda-i, lambda-max} }
             // with I*[lambda-i]*lambda, lambda < lambda-max
             // note that lambda sequence only matches to x sequence in F-term

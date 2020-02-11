@@ -113,7 +113,7 @@ bool SD::KillPowersWithDelta(lst fe, int kpi) {
 }
 
 bool SD::KillPowersWithoutDelta(lst fe, int kpi, int bits) {
-    if(fe.op(0).op(fe.op(0).nops()-1)==WF(1) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
+    if(is_zero(fe.op(0).op(fe.op(0).nops()-1)-WF(1)) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
         FunExp.push_back(fe);
         return false;
     }
@@ -224,7 +224,7 @@ bool SD::KillPowersWithoutDelta(lst fe, int kpi, int bits) {
             if(Verbose>10) cout << "  \\--" << WHITE << "KillPowers ["<<kpi<<"]: "  << eqn << RESET << endl;
             ci = abs(ci);
             cj = abs(cj);
-            if(ci==cj) {
+            if(is_zero(ci-cj)) {
                 symbol xx;
                 // Part I: xi<xj
                 auto f1 = ex_to<lst>(fe.op(0));
@@ -440,7 +440,7 @@ void SD::KillPowers(int bits) {
         
     for(auto &fe : FunExp) {
         auto nn = fe.op(0).nops()-1;
-        if(fe.op(0).op(nn)==WF(1) && fe.op(1).op(nn)==0) {
+        if(is_zero(fe.op(0).op(nn)-WF(1)) && fe.op(1).op(nn).is_zero()) {
             let_op_remove_last(fe, 0);
             let_op_remove_last(fe, 1);
         }

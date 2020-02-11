@@ -237,6 +237,20 @@ int SD::x_free_index(ex expr) {
     }
 }
 
+int SD::y_free_index(ex expr) {
+    auto ys = get_y_from(expr);
+    for(int i=0; i<=ys.size(); i++) {
+        bool ok = true;
+        for(auto yi : ys) {
+            if(yi.is_equal(y(i))) {
+                ok = false;
+                break;
+            }
+        }
+        if(ok) return i;
+    }
+}
+
 int SD::epRank(ex expr_in) {
     if(!expr_in.has(ep)) return 0;
     int p = -5;
@@ -310,9 +324,19 @@ ex SD::Factor(const ex expr) {
         xy2s.append(xyi==txy);
         s2xy.append(txy==xyi);
     }
-    ex expr2 = expr.subs(xy2s);
+    ex expr2 = PowerExpand(expr);
+    expr2 = collect_common_factors(expr2);
+    expr2 = expr2.subs(xy2s);
     expr2 = factor(expr2);
     expr2 = expr2.subs(s2xy);
+    return PowerExpand(expr2);
+}
+
+ex SD::PowerExpand(const ex expr) {
+    ex expr2 = expr;
+    expr2 = expr2.subs(pow(pow(x(wild(1)), wild(2)), wild(3))==pow(x(wild(1)), wild(2)*wild(3)), subs_options::algebraic);
+    expr2 = expr2.subs(pow(pow(y(wild(1)), wild(2)), wild(3))==pow(y(wild(1)), wild(2)*wild(3)), subs_options::algebraic);
+    expr2 = expr2.subs(pow(pow(z(wild(1)), wild(2)), wild(3))==pow(z(wild(1)), wild(2)*wild(3)), subs_options::algebraic);
     return expr2;
 }
 

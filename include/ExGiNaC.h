@@ -124,45 +124,50 @@ inline bool file_exists(const char* fn) {
 template <typename F, typename T>
 vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, const char* key = NULL, int verb = 0, bool rm = true, int prtlvl = 0) {
     auto ppid = getpid();
-    int para_run = 0;
     int para_max_run = nproc<0 ? omp_get_num_procs() : nproc;
     ostringstream cmd;
     cmd << "mkdir -p " << ppid;
     system(cmd.str().c_str());
     
     int total = invec.size();
-    
-    for(int i=0; i<invec.size(); i++) {
-        auto item = invec[i];
-        para_run++;
+    int batch = total/para_max_run/10;
+    if(batch<1) batch = 1;
+    int btotal = total/batch + ((total%batch)==0 ? 0 : 1);
+    for(int bi=0; bi<btotal; bi++) {
         if(verb > 1) {
             cout << "\r  ";
             for(int pi=0;pi<prtlvl;pi++) cout << "   ";
             cout << "\\--Evaluating ";
             if(key != NULL) cout << WHITE << key << RESET << " ";
-            cout << "["<<para_run<<"/"<<total<<"] ... "<< flush;
+            cout << WHITE << batch << "x" << RESET << "[" << bi << "/" << (btotal-1) << "] ... " << flush;
         }
-
+        
         if(para_max_run>0) {
             auto pid = fork();
             if (pid < 0) perror("fork() error");
             else if (pid != 0) {
-                if(para_run >= para_max_run) wait(NULL);
+                if(bi >= para_max_run) wait(NULL);
                 continue;
             }
         }
         
         try {
-            auto res = f(item, para_run);
-            archive ar;
-            ar.archive_ex(res, "res");
-            ar.archive_ex(19790923, "c");
-            ostringstream garfn;
-            if(key == NULL) garfn << ppid << "/" << para_run << ".gar";
-            else garfn << ppid << "/" << para_run << "." << key << ".gar";
-            ofstream outs(garfn.str().c_str());
-            outs << ar;
-            outs.close();
+            for(int ri=0; ri<batch; ri++) {
+                int i = bi*batch + ri;
+                if(i<total) {
+                    auto item = invec[i];
+                    auto res = f(item, i);
+                    archive ar;
+                    ar.archive_ex(res, "res");
+                    ar.archive_ex(19790923, "c");
+                    ostringstream garfn;
+                    if(key == NULL) garfn << ppid << "/" << i << ".gar";
+                    else garfn << ppid << "/" << i << "." << key << ".gar";
+                    ofstream outs(garfn.str().c_str());
+                    outs << ar;
+                    outs.close();
+                }
+            }
         } catch(exception &p) {
             cout << RED << "Failed in GiNaC_Parallel!" << RESET << endl;
             cout << RED << p.what() << RESET << endl;
@@ -175,19 +180,19 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
     auto cpid = getpid();
     if(cpid!=ppid) exit(0); // make sure
     if(para_max_run>0) while (wait(NULL) != -1) { }
-    if(verb > 1 && para_run > 0) cout << "@" << now(false) << endl;
+    if(verb > 1 && total > 0) cout << "@" << now(false) << endl;
 
     vector<ex> ovec;
-    for(int i=1; i<=para_run; i++) {
+    for(int i=0; i<total; i++) {
         if(verb > 1) {
             if(key == NULL) {
                 cout << "\r  ";
                 for(int pi=0; pi<prtlvl; pi++) cout << "   ";
-                cout << "\\--Reading *.gar ["<<i<<"/"<<para_run<<"] ... "<< flush;
+                cout << "\\--Reading *.gar [" << i << "/" << (total-1) << "] ... " << flush;
             } else {
                 cout << "\r  ";
                 for(int pi=0;pi<prtlvl;pi++) cout << "   ";
-                cout << "\\--Reading *."<<WHITE<<key<<RESET<<".gar ["<<i<<"/"<<para_run<<"] ... "<< flush;
+                cout << "\\--Reading *." << WHITE << key << RESET << ".gar [" << i << "/" << (total-1) << "] ... " << flush;
             }
         }
 
@@ -216,7 +221,7 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
         system(cmd.str().c_str());
         system(cmd.str().c_str());
     }
-    if(verb > 1 && para_run > 0) cout << "@" << now(false) << endl;
+    if(verb > 1 && total > 0) cout << "@" << now(false) << endl;
     return ovec;
 }
 
