@@ -23,8 +23,8 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
     if(is_a<mul>(xpol_all)) {
         for(auto item : xpol_all) {
             if(is_a<numeric>(item)) continue;
-            else if(item.match(x(wild())) || item.match(y(wild()))) continue;
-            else if(item.match(pow(x(wild(1)),wild(2))) || item.match(pow(y(wild(1)),wild(2)))) continue;
+            else if(item.match(x(wild()))) continue;
+            else if(item.match(pow(x(wild(1)),wild(2)))) continue;
             else if(item.match(pow(wild(1),wild(2)))) {
                 xpols.append(item.op(0));
             } else {
@@ -45,16 +45,16 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
         return x2y(xpol);
     }
     
-    vector<ex> xpol_vec;
-    for(auto item : xpols) xpol_vec.push_back(item);
-    sort(xpol_vec.begin(), xpol_vec.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>(ex(0)+a.nops()-b.nops()).is_positive(); // > > >
-        //return ex_to<numeric>(ex(0)+b.nops()-a.nops()).is_positive(); // < < <
-    });
-    xpols.remove_all();
-    for(auto item : xpol_vec) xpols.append(item);
-    xpol_vec.clear();
-cout << "use order > " << endl;
+//    vector<ex> xpol_vec;
+//    for(auto item : xpols) xpol_vec.push_back(item);
+//    sort(xpol_vec.begin(), xpol_vec.end(), [&](const auto &a, const auto &b){
+//        return ex_to<numeric>(ex(0)+a.nops()-b.nops()).is_positive(); // > > >
+//        //return ex_to<numeric>(ex(0)+b.nops()-a.nops()).is_positive(); // < < <
+//    });
+//    xpols.remove_all();
+//    for(auto item : xpol_vec) xpols.append(item);
+//    xpol_vec.clear();
+//cout << "use order > " << endl;
 
     vector<exmap> vec_map;
     exmap map0;
@@ -68,6 +68,7 @@ cout << "use order > " << endl;
         vector<exmap> vec_map2;
         for(auto map : vec_map) {
             auto cxpol = xpol.subs(map);
+            assert(!cxpol.has(x(wild())));
             cxpol = cxpol.subs(y(wild())==x(wild()));
             if(!cxpol.subs(x(wild())==0).normal().is_zero()) cxpol=1;
             else {
@@ -76,8 +77,8 @@ cout << "use order > " << endl;
                     ex ret_mul = 1;
                     for(auto item : cxpol) {
                         if(is_a<numeric>(item)) continue;
-                        else if(item.match(x(wild())) || item.match(y(wild()))) continue;
-                        else if(item.match(pow(x(wild(1)),wild(2))) || item.match(pow(y(wild(1)),wild(2)))) continue;
+                        else if(item.match(x(wild()))) continue;
+                        else if(item.match(pow(x(wild(1)),wild(2)))) continue;
                         else if(item.match(pow(wild(1),wild(2)))) {
                             ret_mul *= item.op(0);
                         } else {
@@ -94,7 +95,6 @@ cout << "use order > " << endl;
             // naive check
             ex total = 0;
             for(auto map3 : vec_map3) {
-if((cxpol-1).is_zero()) cout << vec_map3.size() << ", " << map3 << endl;
                 total += map3[x(-1)].subs(pow(y(wild(1)), wild(2))==1/(wild(2)+1)).subs(y(wild())==1/ex(2));
             }
             if(!(total-1).is_zero()) {
@@ -125,7 +125,7 @@ if((cxpol-1).is_zero()) cout << vec_map3.size() << ", " << map3 << endl;
                     for(int j=0; j<xs.size(); j++) {
                         xRepl.append(xs[j]==y(y_free_indexs[j]));
                     }
-                    for(auto kv : new_map) new_map[kv.first] = kv.second.subs(xRepl);
+                    for(auto &kv : new_map) kv.second = kv.second.subs(xRepl);
                 }
                 vec_map2.push_back(new_map);
             }

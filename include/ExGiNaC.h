@@ -139,7 +139,7 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
             for(int pi=0;pi<prtlvl;pi++) cout << "   ";
             cout << "\\--Evaluating ";
             if(key != NULL) cout << WHITE << key << RESET << " ";
-            cout << WHITE << batch << "x" << RESET << "[" << bi << "/" << (btotal-1) << "] ... " << flush;
+            cout << WHITE << batch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] ... " << flush;
         }
         
         if(para_max_run>0) {
@@ -188,11 +188,11 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
             if(key == NULL) {
                 cout << "\r  ";
                 for(int pi=0; pi<prtlvl; pi++) cout << "   ";
-                cout << "\\--Reading *.gar [" << i << "/" << (total-1) << "] ... " << flush;
+                cout << "\\--Reading *.gar [" << (i+1) << "/" << total << "] ... " << flush;
             } else {
                 cout << "\r  ";
                 for(int pi=0;pi<prtlvl;pi++) cout << "   ";
-                cout << "\\--Reading *." << WHITE << key << RESET << ".gar [" << i << "/" << (total-1) << "] ... " << flush;
+                cout << "\\--Reading *." << WHITE << key << RESET << ".gar [" << (i+1) << "/" << total << "] ... " << flush;
             }
         }
 

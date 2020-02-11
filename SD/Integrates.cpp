@@ -205,31 +205,31 @@ namespace HepLib {
             
             IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr, fpMP = nullptr;
             IntegratorBase::FT_Type ftp = nullptr;
-            int rid = ex_to<numeric>(item.op(0)).to_int();
+            int idx = ex_to<numeric>(item.op(0)).to_int();
             auto module = main_module;
-            if(rid>GccLimit) module = ex_modules[(rid-1)/GccLimit-1];
+            if(idx>GccLimit) module = ex_modules[(idx-1)/GccLimit-1];
             ostringstream fname;
             if(hasF) fname << "C";
-            fname << "SDD_" << rid;
+            fname << "SDD_" << idx;
             fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             assert(fp!=NULL);
             fname.clear();
             fname.str("");
             if(hasF) fname << "C";
-            fname << "SDQ_" << rid;
+            fname << "SDQ_" << idx;
             fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             assert(fpQ!=NULL);
             fname.clear();
             fname.str("");
             if(hasF) fname << "C";
-            fname << "SDMP_" << rid;
+            fname << "SDMP_" << idx;
             fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             assert(fpMP!=NULL);
             
             if(is_a<lst>(las)) {
                 fname.clear();
                 fname.str("");
-                fname << "FT_" << rid;
+                fname << "FT_" << idx;
                 ftp = (IntegratorBase::FT_Type)dlsym(module, fname.str().c_str());
                 assert(ftp!=NULL);
             }
