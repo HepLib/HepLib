@@ -337,24 +337,37 @@ ChengWu_loop:
             auto ilast = ret.nops()-1;
             lst rm_xs;
             ex inv_det = 1;
-            if(get_op(ret, ilast, 0).is_zero()) {
-                ex xfi = x(x_free_index(fe));
+            if(get_op(ret,ilast,0).is_zero()) {
+                lst rep_xs;
+                for(int i=ilast-1; i>=0; i--) rep_xs.append(get_op(ret,i,0));
+                ex xfi=0;
+                for(auto xi : delta) {
+                    if(!rep_xs.has(xi) && !get_op(ret,ilast,1).has(xi)) {
+                        xfi = xi;
+                        break;
+                    }
+                }
+                if(is_zero(xfi)) {
+                    ex xs0=0;
+                    xfi = x(x_free_index(fe));
+                    for(auto xi : delta) {
+                        if(!rep_xs.has(xi)) {
+                            xs0 = xi;
+                            break;
+                        }
+                    }
+                    assert(!xs0.is_zero());
+                    if(Verbose>10) cout << "    \\--" << WHITE << "Added " << xfi << " to " << delta << RESET << endl;
+                    delta.append(xfi);
+                    let_op_append(fe, 2, 0, xfi);
+                    let_op_append(fe, 0, xs0);
+                    let_op_append(fe, 0, xfi+xs0);
+                    let_op_append(fe, 1, 1);
+                    let_op_append(fe, 1, -2);
+                }
+                
                 let_op(ret, ilast, 0, xfi);
-                for(int i=ilast-1; i>=0; i--) {
-                    let_op(ret, i, 1, get_op(ret,i,1)*xfi);
-                }
-                auto xs0 = delta.op(0);
-                if(ChengWu_xsum) {
-                    xs0 = 0;
-                    for(auto xi : delta) xs0 += xi;
-                }
-                delta.append(xfi);
-                let_op_append(fe, 2, 0, xfi);
-                let_op_append(fe, 0, xs0);
-                let_op_append(fe, 0, xfi+xs0);
-                let_op_append(fe, 1, 1);
-                let_op_append(fe, 1, -2);
-                if(Verbose>10) cout << "    \\--" << WHITE << "Added " << xfi << " to " << delta << RESET << endl;
+                for(int i=ilast-1; i>=0; i--) let_op(ret, i, 1, get_op(ret,i,1)*xfi);
             }
             for(int i=ilast; i>=0; i--) {
                 auto xi = ret.op(i).op(0);
@@ -409,7 +422,10 @@ ChengWu_loop:
                     break;
                 }
             }
-            if(re_xi.is_zero()) re_xi = rm_xs.op(0);
+            if(re_xi.is_zero()) {
+                assert(re_xi.nops()==delta.nops());
+                re_xi = rm_xs.op(0);
+            }
             Projectivize(fe, delta, re_xi);
         } else {
             // TODO: add more cases

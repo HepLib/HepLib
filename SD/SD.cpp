@@ -90,8 +90,8 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
     vector<ex> xpol_vec;
     for(auto item : xpols) xpol_vec.push_back(item);
     sort(xpol_vec.begin(), xpol_vec.end(), [&](const auto &a, const auto &b){
-        //return ex_to<numeric>(ex(0)+a.nops()-b.nops()).is_positive(); // > > >
-        return ex_to<numeric>(ex(0)+b.nops()-a.nops()).is_positive(); // < < <
+        return ex_to<numeric>(ex(0)+a.nops()-b.nops()).is_positive(); // > > >
+        //return ex_to<numeric>(ex(0)+b.nops()-a.nops()).is_positive(); // < < <
     });
     xpols.remove_all();
     for(auto item : xpol_vec) xpols.append(item);

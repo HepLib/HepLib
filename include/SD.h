@@ -330,7 +330,6 @@ public:
     void MB();
     void XEnd();
     void ChengWu();
-    bool ChengWu_xsum = false;
     
     static ex PrefactorFIESTA(int nLoop);
     ex VEResult();
