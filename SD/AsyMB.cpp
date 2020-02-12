@@ -28,10 +28,10 @@ namespace HepLib {
             ex tmp = 1;
             for(int i=0; i<pol.nops(); i++) {
                 if(is_a<numeric>(pol.op(i))) continue;
-                if(pol.op(i).match(x(wild(1)))) continue;
-                if(pol.op(i).match(pow(x(wild(1)),wild(2)))) continue;
-                if(pol.op(i).match(pow(y(wild(1)),wild(2)))) continue;
-                if(pol.op(i).match(pow(vs,wild(2)))) continue;
+                if(pol.op(i).match(x(w))) continue;
+                if(pol.op(i).match(pow(x(w1),w2))) continue;
+                if(pol.op(i).match(pow(y(w1),w2))) continue;
+                if(pol.op(i).match(pow(vs,w))) continue;
                 tmp *= pol.op(i);
             }
             pol = tmp;
@@ -163,7 +163,7 @@ namespace HepLib {
                         }
                         lst tmp_lst;
                         for(auto item : fts2) {
-                            auto tmp = Factor(item.subs(x(wild())==0));
+                            auto tmp = Factor(item.subs(x(w)==0));
                             if(is_a<mul>(tmp)) {
                                 for(auto it : tmp) tmp_lst.append(it);
                             } else {
@@ -174,7 +174,7 @@ namespace HepLib {
                                             
                         for(auto item : fts2) {
                             auto tmp = item;
-                            if(item.match(pow(wild(1),wild(2)))) tmp = item.op(0);
+                            if(item.match(pow(w1,w2))) tmp = item.op(0);
                             if(tmp.degree(xi)==1 && tmp.degree(xj)==1) {
                                 ex ci = tmp.coeff(xi);
                                 ex cj = tmp.coeff(xj);
@@ -232,7 +232,7 @@ namespace HepLib {
             ex expn = 0;
             symbol s;
             for(int i=0; i<fe.op(0).nops(); i++) {
-                auto item = fe.op(0).op(i).subs(x(wild())==s*y(wild())).subs(y(wild())==x(wild()));
+                auto item = fe.op(0).op(i).subs(x(w)==s*y(w)).subs(y(w)==x(w));
                 if(!item.has(s)) continue;
                 item = mma_collect(item, s);
                 assert(item.ldegree(s)==item.degree(s));
@@ -279,7 +279,7 @@ namespace HepLib {
             }
             
             auto r0 = rs.op(0);
-            auto r0y = subs(r0,x(wild())==y(wild()));
+            auto r0y = subs(r0,x(w)==y(w));
             for(int i=1; i<rs.nops(); i++) {
                 lst srepl;
                 auto ri = rs.op(i);
@@ -290,7 +290,7 @@ namespace HepLib {
                 }
 
                 auto fs = subs(fe.op(0), srepl);
-                fs = subs(fs, y(wild())==x(wild()));
+                fs = subs(fs, y(w)==x(w));
                 auto es = fe.op(1);
                 ex fpre = fs.op(0);
                 assert((es.op(0)-1).is_zero());
@@ -365,7 +365,7 @@ namespace HepLib {
                     assert(false);
                 }
                 
-                auto tmp = fe.op(0).op(i).subs(lst{x(wild())==1,PL(wild())==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
+                auto tmp = fe.op(0).op(i).subs(lst{x(w)==1,PL(w)==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
                 if(!is_a<numeric>(tmp.evalf())) {
                     cout << RED << "Extra Variable(^[ep,eps,PL,x]) Found: " << RESET << fe.op(0).op(i) << endl;
                     assert(false);

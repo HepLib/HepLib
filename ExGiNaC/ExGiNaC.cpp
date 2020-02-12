@@ -3,6 +3,17 @@
 namespace HepLib {
 
 /*-----------------------------------------------------*/
+// Global wildcard
+/*-----------------------------------------------------*/
+ex w = wild();
+ex w0 = wild(0);
+ex w1 = wild(1);
+ex w2 = wild(2);
+ex w3 = wild(3);
+ex w4 = wild(4);
+ex w5 = wild(5);
+
+/*-----------------------------------------------------*/
 // Global Symbol
 /*-----------------------------------------------------*/
 const symbol & get_symbol(const string & s) {
@@ -232,7 +243,7 @@ ex mma_series(ex expr_in, symbol s0, int sn0) {
     if(!expr.has(s0)) return expr;
     
     exset sset;
-    expr.find(pow(s0, wild()), sset);
+    expr.find(pow(s0, w), sset);
     numeric sn_lcm = 1;
     for(auto pi : sset) {
         auto sn = pi.op(1);
@@ -243,14 +254,14 @@ ex mma_series(ex expr_in, symbol s0, int sn0) {
     assert(sn_lcm.is_integer());
     if(sn_lcm<0) sn_lcm = numeric(0)-sn_lcm;
     int sn = sn0 * sn_lcm.to_int();
-    expr = expr.subs(pow(s0,wild())==pow(s,wild()*sn_lcm)).subs(s0==pow(s, sn_lcm));
+    expr = expr.subs(pow(s0,w)==pow(s,w*sn_lcm)).subs(s0==pow(s, sn_lcm));
     
     int exN = 1;
     ex expr_input = mma_collect(expr,s,true);
     
     // make sure CCF has no s
     exset cset;
-    expr_input.find(CCF(wild()), cset);
+    expr_input.find(CCF(w), cset);
     for(auto ccf : cset) {
         if(ccf.has(s)) {
             cerr << "ccf = " << ccf << endl;
@@ -262,7 +273,7 @@ ex mma_series(ex expr_in, symbol s0, int sn0) {
     while(exN<10) {
         expr = expr_input + pow(s,sn+exN+2)+pow(s,sn+exN+3);
         ex res = expr.series(s, sn+exN);
-        res = res.subs(CCF(wild())==wild()); // remove CCF
+        res = res.subs(CCF(w)==w); // remove CCF
         ex ot = 0;
         for(int i=0; i<res.nops(); i++) {
             if(is_order_function(res.op(i))) {
@@ -283,7 +294,7 @@ ex mma_series(ex expr_in, symbol s0, int sn0) {
             for(int i=res.ldegree(s); (i<=res.degree(s) && i<=sn); i++) {
                 ret += res.coeff(s,i) * pow(s, i);
             }
-            ret = ret.subs(pow(s,wild())==pow(s0,wild()/sn_lcm)).subs(s==pow(s0,1/sn_lcm));
+            ret = ret.subs(pow(s,w)==pow(s0,w/sn_lcm)).subs(s==pow(s0,1/sn_lcm));
             return ret;
         }
         exN++;
@@ -305,7 +316,7 @@ ex mma_diff(ex expr, ex xp, unsigned nth, bool expand) {
         
         // make sure CCF has no s
         exset cset;
-        res.find(CCF(wild()), cset);
+        res.find(CCF(w), cset);
         for(auto ccf : cset) {
             if(ccf.has(s)) {
                 cerr << "ccf = " << ccf << endl;
@@ -316,7 +327,7 @@ ex mma_diff(ex expr, ex xp, unsigned nth, bool expand) {
     }
     
     res = res.diff(s, nth);
-    res = res.subs(CCF(wild())==wild()); // remove CCF
+    res = res.subs(CCF(w)==w); // remove CCF
     res = res.subs(s==xp);
     
     return res;
@@ -327,9 +338,9 @@ ex mma_diff(ex expr, ex xp, unsigned nth, bool expand) {
 // mma_collect
 /*-----------------------------------------------------*/
 ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
-    lst cv_repl = lst{ CCF(wild(0))==wild(0), CVF(wild(1))==wild(1) };
-    lst c_repl = lst{ CCF(wild())==wild() };
-    lst v_repl = lst{ CVF(wild())==wild() };
+    lst cv_repl = lst{ CCF(w0)==w0, CVF(w1)==w1 };
+    lst c_repl = lst{ CCF(w)==w };
+    lst v_repl = lst{ CVF(w)==w };
     
     auto expr = expr_in.subs(cv_repl); // remove CCF & CVF
     
@@ -353,7 +364,7 @@ ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
     
     res = res.expand(); // expand internally
     exset vfset;
-    res.find(CVF(wild()), vfset);
+    res.find(CVF(w), vfset);
     lst vflst;
     for(auto vf : vfset) vflst.append(vf);
     res = collect(res, vflst, true); // collect internally
@@ -384,7 +395,7 @@ ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
     }
     ret += CCF(cf);
     
-    ret.find(CVF(wild()), vfset);
+    ret.find(CVF(w), vfset);
     vflst.remove_all();
     for(auto vf : vfset) vflst.append(vf);
     ret = collect(ret, vflst, true); // collect internally
@@ -401,8 +412,8 @@ ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
 ex Evalf(ex expr) {
     exset zs;
     //patterns needing evalf()
-    expr.find(zeta(wild()), zs);
-    expr.find(zeta(wild(),wild()), zs);
+    expr.find(zeta(w), zs);
+    expr.find(zeta(w,w), zs);
     
     lst repl;
     auto dd = Digits;
@@ -423,14 +434,14 @@ bool xPositive(ex const expr) {
     bool ret = false;
     if(is_a<add>(tmp)) {
         for(auto item : tmp) {
-            auto nit = item.subs(x(wild())==1).normal();
+            auto nit = item.subs(x(w)==1).normal();
             if(!(is_a<numeric>(nit) && ex_to<numeric>(nit).is_positive())) {
                 return false;
             }
         }
         ret = true;
     } else {
-        auto ntmp = tmp.subs(x(wild())==1).normal();
+        auto ntmp = tmp.subs(x(w)==1).normal();
         ret = (is_a<numeric>(ntmp) && ex_to<numeric>(ntmp).is_positive());
     }
     return ret;

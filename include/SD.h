@@ -58,6 +58,7 @@ class SecDecBase {
 public:
     virtual vector<exmap> x2y(const ex &xpol) =0;
     vector<exmap> x2y(const lst &xpols, bool all_in_one);
+    static bool VerifySD(vector<exmap> vmap, bool quick = true);
 };
 
 class SecDecG : public SecDecBase {
@@ -347,6 +348,7 @@ public:
     static vector<lst> Binarize(lst const fe, ex const eqn);
     static int x_free_index(ex expr);
     static int y_free_index(ex expr);
+    static bool VerifySD(vector<exmap> vmap, bool quick = true);
             
 private:
     vector<lst> DS(const lst po_ex);

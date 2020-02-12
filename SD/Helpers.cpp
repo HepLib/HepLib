@@ -38,9 +38,9 @@ int IntegratorBase::inDQMP(qREAL const *x) {
 
 vector<ex> get_xy_from(ex pol) {
     exset xyset;
-    bool ok = pol.find(x(wild()), xyset);
+    bool ok = pol.find(x(w), xyset);
     if(!ok) {
-        ok = pol.find(y(wild()), xyset);
+        ok = pol.find(y(w), xyset);
         if(!ok) {
             vector<ex> xys(0);
             return xys;
@@ -49,14 +49,14 @@ vector<ex> get_xy_from(ex pol) {
     vector<ex> xys(xyset.size());
     copy(xyset.begin(), xyset.end(), xys.begin());
     sort(xys.begin(), xys.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>(normal((b-a)).subs(lst{ x(wild())==wild(), y(wild())==wild() })).is_positive();
+        return ex_to<numeric>(normal((b-a)).subs(lst{ x(w)==w, y(w)==w })).is_positive();
     });
     return xys;
 }
 
 vector<ex> get_x_from(ex pol) {
     exset xset;
-    bool ok = pol.find(x(wild()), xset);
+    bool ok = pol.find(x(w), xset);
     if(!ok) {
         vector<ex> xs(0);
         return xs;
@@ -64,14 +64,14 @@ vector<ex> get_x_from(ex pol) {
     vector<ex> xs(xset.size());
     copy(xset.begin(), xset.end(), xs.begin());
     sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>(normal((b-a)).subs(lst{ x(wild())==wild() })).is_positive();
+        return ex_to<numeric>(normal((b-a)).subs(lst{ x(w)==w })).is_positive();
     });
     return xs;
 }
 
 vector<ex> get_y_from(ex pol) {
     exset yset;
-    bool ok = pol.find(y(wild()), yset);
+    bool ok = pol.find(y(w), yset);
     if(!ok) {
         vector<ex> ys(0);
         return ys;
@@ -79,14 +79,14 @@ vector<ex> get_y_from(ex pol) {
     vector<ex> ys(yset.size());
     copy(yset.begin(), yset.end(), ys.begin());
     sort(ys.begin(), ys.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>(normal((b-a)).subs(lst{ y(wild())==wild() })).is_positive();
+        return ex_to<numeric>(normal((b-a)).subs(lst{ y(w)==w })).is_positive();
     });
     return ys;
 }
 
 vector<ex> get_pl_from(ex pol) {
     exset plset;
-    bool ok = pol.find(PL(wild()), plset);
+    bool ok = pol.find(PL(w), plset);
     if(!ok) {
         vector<ex> pls(0);
         return pls;
@@ -94,7 +94,7 @@ vector<ex> get_pl_from(ex pol) {
     vector<ex> pls(plset.size());
     copy(plset.begin(), plset.end(), pls.begin());
     sort(pls.begin(), pls.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>(normal((b-a)).subs(lst{ PL(wild())==wild() })).is_positive();
+        return ex_to<numeric>(normal((b-a)).subs(lst{ PL(w)==w })).is_positive();
     });
     return pls;
 }
@@ -127,14 +127,14 @@ ex VESimplify(ex expr, int epN, int epsN) {
             if(is_a<mul>(item)) {
                 ex cc = 1, cf = 1;
                 for(auto ii : item) {
-                    if(is_a<numeric>(ii) || ii.match(VE(wild(1), wild(2)))) {
+                    if(is_a<numeric>(ii) || ii.match(VE(w1, w2))) {
                         cc *= ii;
                     } else {
                         cf *= ii;
                     }
                 }
                 ccRes += cc * VF(cf);
-            } else if(is_a<numeric>(item) || item.match(VE(wild(1), wild(2)))) {
+            } else if(is_a<numeric>(item) || item.match(VE(w1, w2))) {
                 ccRes += item*VF(1);
             } else {
                 ccRes += VF(item);
@@ -143,13 +143,13 @@ ex VESimplify(ex expr, int epN, int epsN) {
     
         
         exset vfs;
-        find(ccRes, VF(wild()),vfs);
+        find(ccRes, VF(w),vfs);
         
         for(auto vf : vfs) {
             auto tmpIR = ccRes.coeff(vf).expand();
             exset ves;
-            tmpIR.find(VE(wild(1), wild(2)), ves);
-            auto ntmp = tmpIR.subs(lst{VE(wild(1), wild(2))==0});
+            tmpIR.find(VE(w1, w2), ves);
+            auto ntmp = tmpIR.subs(lst{VE(w1, w2)==0});
             assert(is_a<numeric>(ntmp));
             if(abs(ntmp.evalf())>numeric("1E300")) return SD::NaN;
             ex vIR = ntmp;
@@ -168,13 +168,13 @@ ex VESimplify(ex expr, int epN, int epsN) {
         }
     }}
     
-    ret = ret.subs(lst{VF(wild())==wild()});
+    ret = ret.subs(lst{VF(w)==w});
     ret = ret.subs(lst{VE(0,0)==0});
     return ret.collect(lst{eps,ep}, true);
 }
 
 ex VEResult(ex expr) {
-    return expr.subs(VE(wild(1),wild(2))==VEO(wild(1),wild(2)));
+    return expr.subs(VE(w1,w2)==VEO(w1,w2));
 }
 
 /*-----------------------------------------------------*/
@@ -314,10 +314,10 @@ void SD::VEPrint(bool endlQ) {
 
 ex SD::Factor(const ex expr) {
     exset xyset;
-    expr.find(x(wild()), xyset);
-    expr.find(y(wild()), xyset);
-    expr.find(z(wild()), xyset);
-    expr.find(PL(wild()), xyset);
+    expr.find(x(w), xyset);
+    expr.find(y(w), xyset);
+    expr.find(z(w), xyset);
+    expr.find(PL(w), xyset);
     lst xy2s, s2xy;
     for(auto xyi : xyset) {
         symbol txy;
@@ -334,9 +334,9 @@ ex SD::Factor(const ex expr) {
 
 ex SD::PowerExpand(const ex expr) {
     ex expr2 = expr;
-    expr2 = expr2.subs(pow(pow(x(wild(1)), wild(2)), wild(3))==pow(x(wild(1)), wild(2)*wild(3)), subs_options::algebraic);
-    expr2 = expr2.subs(pow(pow(y(wild(1)), wild(2)), wild(3))==pow(y(wild(1)), wild(2)*wild(3)), subs_options::algebraic);
-    expr2 = expr2.subs(pow(pow(z(wild(1)), wild(2)), wild(3))==pow(z(wild(1)), wild(2)*wild(3)), subs_options::algebraic);
+    expr2 = expr2.subs(pow(pow(x(w1), w2), w3)==pow(x(w1), w2*w3), subs_options::algebraic);
+    expr2 = expr2.subs(pow(pow(y(w1), w2), w3)==pow(y(w1), w2*w3), subs_options::algebraic);
+    expr2 = expr2.subs(pow(pow(z(w1), w2), w3)==pow(z(w1), w2*w3), subs_options::algebraic);
     return expr2;
 }
 
@@ -397,7 +397,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     ofs << "extern \"C\" " << endl;
     ofs << "dREAL minFunc(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
     auto tmp = expr.subs(cxRepl);
-    assert(!tmp.has(PL(wild())));
+    assert(!tmp.has(PL(w)));
     ofs << "dREAL yy = ";
     tmp.print(cppL);
     ofs << ";" << endl;

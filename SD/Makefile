@@ -1,20 +1,14 @@
 include ../opt.mk
 
-all: SD.o SecDecG.o Helpers.o ErrMin.o cseParser.o CppFormat.o HCubature.o CUBA.o MinUit.o HookeJeeves.o Lib3/HCubature.o KillPowers.o ChengWu.o MatDet.o CIPrepares.o Contours.o Integrates.o AsyMB.o InitEval.o
+all: SD.o SecDecG.o Helpers.o ErrMin.o cseParser.o CppFormat.o HCubature.o CUBA.o MinUit.o HookeJeeves.o Lib3_HCubature.o KillPowers.o ChengWu.o MatDet.o CIPrepares.o Contours.o Integrates.o AsyMB.o InitEval.o
 
 %.o : %.cpp
 	g++ $(opt) -c -o $@ $^
 
-Lib3/HCubature.o : Lib3/HCubature.c
+Lib3_HCubature.o : Lib3_HCubature.c
 	gcc $(opt) -c -o $@ $^
 
 HCubature.o : HCubature.cpp
-	g++ $(opt) -I Lib3 -fopenmp -c -o $@ $^
-
-CUBA.o : CUBA.cpp
-	g++ $(opt) -I Lib3 -fopenmp -c -o $@ $^
-
-MinUit.o : MinUit.cpp
 	g++ $(opt) -fopenmp -c -o $@ $^
 
 clean:

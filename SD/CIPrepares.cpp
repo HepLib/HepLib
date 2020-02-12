@@ -29,7 +29,7 @@ namespace HepLib {
             }
 
             exset ftxset;
-            expr.find(FTX(wild(1),wild(2)), ftxset);
+            expr.find(FTX(w1,w2), ftxset);
             ex ft;
             int ftxsize = -1;
             for(auto item : ftxset) {
@@ -41,24 +41,24 @@ namespace HepLib {
             }
             
             bool need_contour_deformation = false;
-            if(ft.has(x(wild())) && !ft.has(PL(wild()))) {
+            if(ft.has(x(w)) && !ft.has(PL(w))) {
                 auto tmp = ft.subs(nReplacements).subs(lst{
-                    CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }).expand();
                 if(is_a<add>(tmp)) {
                     for(auto item : tmp) {
-                        assert(is_a<numeric>(item.subs(x(wild())==1)));
-                        if(item.subs(x(wild())==1) < 0) {
+                        assert(is_a<numeric>(item.subs(x(w)==1)));
+                        if(item.subs(x(w)==1) < 0) {
                             need_contour_deformation = true;
                             break;
                         }
                     }
                 } else {
-                    assert(is_a<numeric>(tmp.subs(x(wild())==1)));
-                    if(tmp.subs(x(wild())==1) < 0) need_contour_deformation = true;
+                    assert(is_a<numeric>(tmp.subs(x(w)==1)));
+                    if(tmp.subs(x(w)==1) < 0) need_contour_deformation = true;
                 }
                 if(!need_contour_deformation) ft = 1; //note the difference with SDPrepare
-            } else if(!ft.has(x(wild()))){
+            } else if(!ft.has(x(w))){
                 ft = 1;
             }
             
@@ -71,7 +71,7 @@ namespace HepLib {
     //============================================================================================================
         lst fts;
         for(auto item : resf) {
-            if(item.op(2).has(x(wild()))) {
+            if(item.op(2).has(x(w))) {
                 fts.append(item.op(2));
             }
         }
@@ -109,7 +109,7 @@ namespace HepLib {
                 }
                 ii.append(ft_n);
             }
-            if(ii.op(0).is_zero() || ii.op(1).subs(FTX(wild(1),wild(2))==1).is_zero()) continue;
+            if(ii.op(0).is_zero() || ii.op(1).subs(FTX(w1,w2)==1).is_zero()) continue;
             if(!use_IBF) res_vec.push_back(ii);
             else {
                 ex key = ii;
@@ -143,7 +143,7 @@ namespace HepLib {
             lst las;
             
             auto pls = get_pl_from(ft);
-            int npls = pls.size()>0 ? ex_to<numeric>(pls[pls.size()-1].subs(lst{PL(wild())==wild()})).to_int() : -1;
+            int npls = pls.size()>0 ? ex_to<numeric>(pls[pls.size()-1].subs(lst{PL(w)==w})).to_int() : -1;
             lst plRepl;
             for(int i=0; i<npls+1; i++) {
                 ostringstream pl;
@@ -571,7 +571,7 @@ namespace HepLib {
                 system(cmd.str().c_str());
                 
                 return lst{
-                    expr.subs(FTX(wild(1),wild(2))==1).subs(iEpsilon==I*power(10,-50)),
+                    expr.subs(FTX(w1,w2)==1).subs(iEpsilon==I*power(10,-50)),
                     xs.size(), kvf.op(0), -1
                 };
             }
@@ -580,10 +580,10 @@ namespace HepLib {
             auto fxs = get_xy_from(ft);
             
             exset ftxset;
-            expr.find(FTX(wild(1),wild(2)), ftxset);
+            expr.find(FTX(w1,w2), ftxset);
             lst ftxlst;
             for(auto it : ftxset) ftxlst.append(it);
-            expr = mma_collect(expr, FTX(wild(1),wild(2)));
+            expr = mma_collect(expr, FTX(w1,w2));
             vector<pair<ex,ex>> ft_expr;
             for(auto item : ftxlst) {
                 ft_expr.push_back(make_pair(item.op(1), expr.coeff(item)));
@@ -610,7 +610,7 @@ namespace HepLib {
             }
             assert(count==xs.size());
             auto pls = get_pl_from(expr);
-            int npls = pls.size()>0 ? ex_to<numeric>(pls[pls.size()-1].subs(lst{PL(wild())==wild()})).to_int() : -1;
+            int npls = pls.size()>0 ? ex_to<numeric>(pls[pls.size()-1].subs(lst{PL(w)==w})).to_int() : -1;
             for(int i=0; i<npls+1; i++) {
                 ostringstream pl;
                 pl << "pl[" << i << "]";
@@ -711,11 +711,11 @@ namespace HepLib {
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
                 
                 if(SD::debug) {
-                    auto tmp = expr.subs(FTX(wild(1),wild(2))==1).subs(cxRepl).subs(plRepl);
+                    auto tmp = expr.subs(FTX(w1,w2)==1).subs(cxRepl).subs(plRepl);
                     ofs << "//debug-int: " << tmp << endl;
                 }
                 
-                auto intg = expr.subs(FTX(wild(1),wild(2))==1);
+                auto intg = expr.subs(FTX(w1,w2)==1);
                 cseParser cse;
                 intg = cse.Parse(intg);
                 ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
@@ -815,7 +815,7 @@ namespace HepLib {
                 ofs << "extern \"C\" " << endl;
                 ofs << "int SDQ_"<<idx<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
                 
-                auto intg = expr.subs(FTX(wild(1),wild(2))==1);
+                auto intg = expr.subs(FTX(w1,w2)==1);
                 cseParser cse;
                 intg = cse.Parse(intg);
                 ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
@@ -920,7 +920,7 @@ namespace HepLib {
                 ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
                 
-                auto intg = expr.subs(FTX(wild(1),wild(2))==1);
+                auto intg = expr.subs(FTX(w1,w2)==1);
                 cseParser cse;
                 intg = cse.Parse(intg);
                 ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;

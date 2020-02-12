@@ -21,7 +21,7 @@ ex cseParser::Parse(ex expr, bool reset) {
         for(auto item : expr) ret *= Parse(item,false);
     } else if(is_a<power>(expr)) {
         ret = power(Parse(expr.op(0),false), expr.op(1));
-    } else if(expr.match(log(wild()))) {
+    } else if(expr.match(log(w))) {
         ret = log(Parse(expr.op(0),false));
     }
     stringstream ss;

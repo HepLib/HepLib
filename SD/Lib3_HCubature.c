@@ -4,7 +4,7 @@
 #include <math.h>
 #include <limits.h>
 #include <float.h>
-#include "HCubature.h"
+#include "Lib3_HCubature.h"
 
 /* error return codes */
 #define SUCCESS 0
@@ -794,7 +794,7 @@ static int rulecubature(rule *r, unsigned fdim,
                 }
                 
                 int toExit = 1;
-                for (j = 0; j < fdim; ++j) toExit = toExit && (err[j]*3 <= reqAbsError);
+                for (j = 0; j < fdim; ++j) toExit = toExit && (err[j]*3 <= reqAbsError && numEval>minEval/25);
                 if(toExit) {
                     runs = numEval;
                     if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);

@@ -170,24 +170,24 @@ namespace HepLib {
             
             cu *= u;
             auto u_nd = numer_denom(u);
-            ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs);
-            if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/3).subs(nsubs);
+            ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
+            if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
             assert(!usgn.is_zero());
             usgn = normal(usgn)>0 ? 1 : -1;
             
             if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
-                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
                 cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
-                    CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << endl;
                 assert(false);
             }
             if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
-                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
                 cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
-                    CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << endl;
                 assert(false);
             }
@@ -222,24 +222,24 @@ namespace HepLib {
             
             cu *= u;
             auto u_nd = numer_denom(u);
-            ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs);
-            if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/3).subs(nsubs);
+            ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
+            if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
             assert(!usgn.is_zero());
             usgn = normal(usgn)>0 ? 1 : -1;
             
             if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
-                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
                 cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
-                    CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << endl;
                 assert(false);
             }
             if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
-                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
                 cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
-                    CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << endl;
                 assert(false);
             }
@@ -259,9 +259,9 @@ namespace HepLib {
         rem = normal(rem * u);
         auto rem_nd = numer_denom(rem);
         
-        ex usgn = u_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs);
+        ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
         usgn = normal(usgn)>0 ? 1 : -1;
-        ex fsgn = rem_nd.op(1).subs(xtNeg).subs(x(wild())==ex(1)/2).subs(nsubs);
+        ex fsgn = rem_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
         fsgn = normal(fsgn)>0 ? 1 : -1;
         
         lst fList1, fList2;

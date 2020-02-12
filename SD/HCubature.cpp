@@ -6,7 +6,7 @@ namespace HepLib {
 /*-----------------------------------------------------*/
 // HCubature Classes
 /*-----------------------------------------------------*/
-#include "HCubature.h"
+#include "Lib3_HCubature.h"
 
 int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y) {
     auto self = (HCubature*)fdata;

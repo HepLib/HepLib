@@ -14,7 +14,7 @@ void SD::Projectivize(lst &fe, lst delta, ex xsum) {
     ex over_all_sn = 0;
     int nnn = fe.op(0).nops();
     for(int i=0; i<nnn; i++) {
-        if(!fe.op(0).op(i).has(x(wild()))) continue;
+        if(!fe.op(0).op(i).has(x(w))) continue;
         auto tmp = expand(fe.op(0).op(i));
         auto sn = tmp.subs(sRepl).degree(s);
         over_all_sn += sn*fe.op(1).op(i);
@@ -45,13 +45,13 @@ void SD::Projectivize(lst &fe, ex delta, ex xsum) {
 
 void SD::Scalelize(lst &fe, ex xi, ex cyi) {
     auto nnn = fe.op(0).nops();
-    auto yi = xi.subs(x(wild())==y(wild()));
+    auto yi = xi.subs(x(w)==y(w));
     for(int i=0; i<nnn; i++) {
-        if(!fe.op(0).op(i).has(x(wild()))) continue;
+        if(!fe.op(0).op(i).has(x(w))) continue;
         auto tmp = fe.op(0).op(i).subs(xi==cyi*yi).subs(yi==xi);
         tmp = tmp.normal();
         tmp = tmp.numer_denom();
-        if(tmp.op(1).subs(x(wild())==1)<0) {
+        if(tmp.op(1).subs(x(w)==1)<0) {
             tmp.let_op(0) = ex(0)-tmp.op(0);
             tmp.let_op(1) = ex(0)-tmp.op(1);
         }
@@ -63,7 +63,7 @@ void SD::Scalelize(lst &fe, ex xi, ex cyi) {
     }
     ex det = cyi.normal();
     det = det.numer_denom();
-    if(det.op(1).subs(x(wild())==1)<0) {
+    if(det.op(1).subs(x(w)==1)<0) {
         det.let_op(0) = ex(0)-det.op(0);
         det.let_op(1) = ex(0)-det.op(1);
     }
@@ -156,7 +156,7 @@ bool SD::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
             
             if((mode>0) && (xSign(f)!=0)) { // mode=1
                 in_ret.append(lst{xi, cxi});
-                if(f.subs(x(wild())==1)<0) f = ex(0)-f;
+                if(f.subs(x(w)==1)<0) f = ex(0)-f;
                 in_ret.append(lst{0, f});
                 return true;
             } else if(mode>1) { // mode=2
@@ -165,14 +165,14 @@ bool SD::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
                 if(is_a<mul>(ff)) {
                     for(auto item : ff) {
                         if(xSign(item)!=0) continue;
-                        if(item.match(pow(wild(1), wild(2)))) fflst.append(item.op(0));
+                        if(item.match(pow(w1, w2))) fflst.append(item.op(0));
                         else fflst.append(item);
                     }
                 } else fflst.append(ff);
                 
                 if(fflst.nops()==1) {
                     symbol s;
-                    ff = fflst.op(0).subs(x(wild())==s*x(wild()));
+                    ff = fflst.op(0).subs(x(w)==s*x(w));
                     if(get_x_from(ff).size()==2 && ff.degree(s)==1 && ff.ldegree(s)==1) {
                         in_ret.append(lst{xi, cxi});
                         in_ret.append(lst{0, fflst.op(0)});
@@ -187,13 +187,13 @@ bool SD::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
             if(is_a<mul>(cc)) {
                 for(auto item : cc) {
                     if(xSign(item)!=0) continue;
-                    if(item.match(pow(wild(1), wild(2)))) cclst.append(item.op(0));
+                    if(item.match(pow(w1, w2))) cclst.append(item.op(0));
                     else cclst.append(item);
                 }
             } else cclst.append(cc);
             if(cclst.nops()==1) {
                 symbol s;
-                cc = cclst.op(0).subs(x(wild())==s*x(wild()));
+                cc = cclst.op(0).subs(x(w)==s*x(w));
                 if(get_x_from(cc).size()==2 && cc.degree(s)==1 && cc.ldegree(s)==1) {
                     bilst.append(lst{0, cclst.op(0)});
                 }
@@ -211,13 +211,13 @@ bool SD::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
                 if(is_a<mul>(ff)) {
                     for(auto item : ff) {
                         if(xSign(item)!=0) continue;
-                        if(item.match(pow(wild(1), wild(2)))) fflst.append(item.op(0));
+                        if(item.match(pow(w1, w2))) fflst.append(item.op(0));
                         else fflst.append(item);
                     }
                 } else fflst.append(ff);
                 if(fflst.nops()==1) {
                     symbol s;
-                    ff = fflst.op(0).subs(x(wild())==s*x(wild()));
+                    ff = fflst.op(0).subs(x(w)==s*x(w));
                     if(get_x_from(ff).size()==2 && ff.degree(s)==1 && ff.ldegree(s)==1) {
                         bilst.append(lst{0, fflst.op(0)});
                     }
@@ -259,7 +259,7 @@ ChengWu_loop:
         ft = Factor(ft);
         while(true) {
             auto ft0 = ft;
-            if(ft.match(pow(wild(1), wild(2)))) {
+            if(ft.match(pow(w1, w2))) {
                 ft = ft.op(0);
             } else if(is_a<mul>(ft)) {
                 ex tmp = 1;
@@ -359,7 +359,7 @@ ChengWu_loop:
             for(int i=ilast; i>=0; i--) {
                 auto xi = ret.op(i).op(0);
                 rm_xs.append(xi);
-                auto yi = xi.subs(x(wild())==y(wild()));
+                auto yi = xi.subs(x(w)==y(w));
                 auto s = ret.op(i).op(1);
                 inv_det *= s;
                 ret.let_op(i).let_op(1) = yi/s;
@@ -372,11 +372,11 @@ ChengWu_loop:
             
             auto nnn = fe.op(0).nops();
             for(int i=0; i<nnn; i++) {
-                if(!fe.op(0).op(i).has(x(wild()))) continue;
+                if(!fe.op(0).op(i).has(x(w))) continue;
                 auto tmp = normal(fe.op(0).op(i).subs(x2y));
-                tmp = tmp.subs(y(wild())==x(wild()));
+                tmp = tmp.subs(y(w)==x(w));
                 auto num_den = numer_denom(tmp);
-                if(num_den.op(1).subs(x(wild())==1)<0) {
+                if(num_den.op(1).subs(x(w)==1)<0) {
                     num_den.let_op(0) = ex(0)-num_den.op(0);
                     num_den.let_op(1) = ex(0)-num_den.op(1);
                 }
@@ -387,9 +387,9 @@ ChengWu_loop:
                 }
             }
 
-            inv_det = normal(inv_det.subs(y(wild())==x(wild())));
+            inv_det = normal(inv_det.subs(y(w)==x(w)));
             auto idet_num_den = numer_denom(inv_det);
-            if(idet_num_den.op(1).subs(x(wild())==1)<0) {
+            if(idet_num_den.op(1).subs(x(w)==1)<0) {
                 idet_num_den.let_op(0) = ex(0)-idet_num_den.op(0);
                 idet_num_den.let_op(1) = ex(0)-idet_num_den.op(1);
             }

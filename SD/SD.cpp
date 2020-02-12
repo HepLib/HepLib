@@ -13,8 +13,50 @@ realsymbol const SD::NaN("NaN");
 bool SD::use_dlclose = true;
 bool SD::debug = false;
 
+bool SecDecBase::VerifySD(vector<exmap> map_vec, bool quick) {
+    lst xs;
+    exmap nxs;
+    for(auto kv : map_vec[0]) {
+        auto xi = kv.first;
+        if(is_zero(xi-x(-1))) continue;
+        xs.append(xi);
+        if(quick) nxs[xi] = xi.subs(x(w)==ex(w+1)/ex(w+13));
+        else nxs[xi];
+    }
+    ex chk_total = 1;
+    for(auto xi : xs) chk_total *= 1/(nxs[xi]+1);
+    
+    ex int_total = 0;
+    auto sop = subs_options::algebraic;
+    for(auto imap : map_vec) {
+        ex intg = 1;
+        for(auto kv : imap) {
+            auto xi = kv.first;
+            auto nxi = kv.first.subs(x(w)==(13+w));
+            if(is_zero(xi-x(-1))) intg *= kv.second;
+            else intg *= pow(kv.second, nxs[kv.first]);
+        }
+        while(true) {
+            auto tmp = intg;
+            tmp = tmp.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3),sop);
+            tmp = tmp.subs(pow(w1*w2,w3)==pow(w1,w3)*pow(w2,w3),sop);
+            tmp = tmp.subs(pow(w1,w2)*pow(w1,w3)==pow(w1,w2+w3),sop);
+            tmp = tmp.subs(w1*pow(w1,w2)==pow(w1,1+w2),sop);
+            if(is_zero(tmp-intg)) break;
+            intg = tmp;
+        }
+        intg = intg.subs(pow(y(w1),w2)==1/(w2+1)).subs(y(w)==1/ex(2));
+        int_total += intg;
+    }
+    int_total = int_total.normal();
+    return normal(chk_total-int_total).is_zero();
+}
+bool SD::VerifySD(vector<exmap> map_vec, bool quick) {
+    return SecDecBase::VerifySD(map_vec, quick);
+}
+
 vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
-    assert(!in_xpols.has(y(wild())));
+    assert(!in_xpols.has(y(w)));
     ex xpol_all = 1;
     for(auto item : in_xpols) xpol_all *= item;
     xpol_all = collect_common_factors(xpol_all);
@@ -23,15 +65,15 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
     if(is_a<mul>(xpol_all)) {
         for(auto item : xpol_all) {
             if(is_a<numeric>(item)) continue;
-            else if(item.match(x(wild()))) continue;
-            else if(item.match(pow(x(wild(1)),wild(2)))) continue;
-            else if(item.match(pow(wild(1),wild(2)))) {
+            else if(item.match(x(w))) continue;
+            else if(item.match(pow(x(w1),w2))) continue;
+            else if(item.match(pow(w1,w2))) {
                 xpols.append(item.op(0));
             } else {
                 xpols.append(item);
             }
         }
-    } else if(xpol_all.match(pow(wild(1),wild(2)))) {
+    } else if(xpol_all.match(pow(w1,w2))) {
         xpols.append(xpol_all.op(0));
     } else {
         xpols.append(xpol_all);
@@ -45,16 +87,15 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
         return x2y(xpol);
     }
     
-//    vector<ex> xpol_vec;
-//    for(auto item : xpols) xpol_vec.push_back(item);
-//    sort(xpol_vec.begin(), xpol_vec.end(), [&](const auto &a, const auto &b){
-//        return ex_to<numeric>(ex(0)+a.nops()-b.nops()).is_positive(); // > > >
-//        //return ex_to<numeric>(ex(0)+b.nops()-a.nops()).is_positive(); // < < <
-//    });
-//    xpols.remove_all();
-//    for(auto item : xpol_vec) xpols.append(item);
-//    xpol_vec.clear();
-//cout << "use order > " << endl;
+    vector<ex> xpol_vec;
+    for(auto item : xpols) xpol_vec.push_back(item);
+    sort(xpol_vec.begin(), xpol_vec.end(), [&](const auto &a, const auto &b){
+        //return ex_to<numeric>(ex(0)+a.nops()-b.nops()).is_positive(); // > > >
+        return ex_to<numeric>(ex(0)+b.nops()-a.nops()).is_positive(); // < < <
+    });
+    xpols.remove_all();
+    for(auto item : xpol_vec) xpols.append(item);
+    xpol_vec.clear();
 
     vector<exmap> vec_map;
     exmap map0;
@@ -68,45 +109,35 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
         vector<exmap> vec_map2;
         for(auto map : vec_map) {
             auto cxpol = xpol.subs(map);
-            assert(!cxpol.has(x(wild())));
-            cxpol = cxpol.subs(y(wild())==x(wild()));
-            if(!cxpol.subs(x(wild())==0).normal().is_zero()) cxpol=1;
+            assert(!cxpol.has(x(w)));
+            cxpol = cxpol.subs(y(w)==x(w));
+            if(!cxpol.subs(x(w)==0).normal().is_zero()) cxpol=1;
             else {
                 cxpol = collect_common_factors(cxpol);
                 if(is_a<mul>(cxpol)) {
                     ex ret_mul = 1;
                     for(auto item : cxpol) {
                         if(is_a<numeric>(item)) continue;
-                        else if(item.match(x(wild()))) continue;
-                        else if(item.match(pow(x(wild(1)),wild(2)))) continue;
-                        else if(item.match(pow(wild(1),wild(2)))) {
+                        else if(item.match(x(w))) continue;
+                        else if(item.match(pow(x(w1),w2))) continue;
+                        else if(item.match(pow(w1,w2))) {
                             ret_mul *= item.op(0);
                         } else {
                             ret_mul *= item;
                         }
                     }
                     cxpol = ret_mul;
-                } else if(cxpol.match(pow(wild(1),wild(2)))) {
+                } else if(cxpol.match(pow(w1,w2))) {
                     cxpol = cxpol.op(0);
                 }
             }
             
             auto vec_map3 = x2y(cxpol);
-            // naive check
-            ex total = 0;
-            for(auto map3 : vec_map3) {
-                total += map3[x(-1)].subs(pow(y(wild(1)), wild(2))==1/(wild(2)+1)).subs(y(wild())==1/ex(2));
-            }
-            if(!(total-1).is_zero()) {
-                cout << RED << "total = " << total << ", NOT 1." << RESET << endl;
-                assert(false);
-            }
-            
             for(auto map3 : vec_map3) {
                 exmap new_map;
                 lst xy_lst;
                 for(auto kv : map) {
-                    auto tmp = kv.second.subs(y(wild())==x(wild()));
+                    auto tmp = kv.second.subs(y(w)==x(w));
                     tmp = tmp.subs(map3);
                     if(is_zero(kv.first-x(-1))) tmp *= map3[x(-1)];
                     new_map[kv.first] = tmp;
@@ -114,7 +145,7 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
                 }
                 
                 // handle remaining x's
-                if(xy_lst.has(x(wild()))) {
+                if(xy_lst.has(x(w))) {
                     vector<int> y_free_indexs;
                     for(int j=0; j<xs.size()+10; j++) {
                         if(!xy_lst.has(y(j))) y_free_indexs.push_back(j);
@@ -133,15 +164,6 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
         vec_map = vec_map2;
     }
     
-    // naive check
-    ex total = 0;
-    for(auto map : vec_map) {
-        total += map[x(-1)].subs(pow(y(wild(1)), wild(2))==1/(wild(2)+1)).subs(y(wild())==1/ex(2));
-    }
-    if(!(total-1).is_zero()) {
-        cout << RED << "total = " << total << ", NOT 1." << RESET << endl;
-        assert(false);
-    }
     return vec_map;
 }
 
@@ -169,12 +191,12 @@ bool SD::IsBad(ex f, vector<exmap> vmap) {
         if(is_exactly_a<mul>(ft)) {
             ex ret = 1;
             for (auto item : ft) {
-                if( !(item.match(y(wild())) || item.match(pow(y(wild()), wild(1)))) ) {
+                if( !(item.match(y(w)) || item.match(pow(y(w), w1))) ) {
                     ret *= item;
                 }
             }
             ft = ret;
-        } else if ( ft.match(y(wild())) || ft.match(pow(y(wild()), wild(1))) ) {
+        } else if ( ft.match(y(w)) || ft.match(pow(y(w), w1)) ) {
             ft = 1;
         }
 
@@ -239,8 +261,8 @@ vector<lst> SD::AutoEnd(lst po_ex) {
             for(int i=0; i<polist.nops(); i++) {
                 auto tmp = polist.op(i);
                 auto ntmp = exlist.op(i);
-                if(!tmp.subs(lst{x(wild())==0, y(wild())==0}).normal().is_zero()) continue;
-                if( (!tmp.has(x(wild())) && !tmp.has(y(wild()))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
+                if(!tmp.subs(lst{x(w)==0, y(w)==0}).normal().is_zero()) continue;
+                if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
                 sdList.append(tmp);
             }
             vector<exmap> vmap = SecDec->x2y(sdList, all_in_one);
@@ -284,13 +306,18 @@ vector<lst> SD::DS(lst po_ex) {
     for(int i=0; i<polist.nops(); i++) {
         auto tmp = polist.op(i);
         auto ntmp = exlist.op(i);
-        if(!tmp.subs(lst{x(wild())==0, y(wild())==0}).normal().is_zero()) continue;
+        if(!tmp.subs(lst{x(w)==0, y(w)==0}).normal().is_zero()) continue;
         Digits = 50;
-        if( (!tmp.has(x(wild())) && !tmp.has(y(wild()))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
+        if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
         sdList.append(tmp);
     }
 
     vector<exmap> vmap = SecDec->x2y(sdList, all_in_one);
+    if(!VerifySD(vmap)) {
+        cerr << RED << "VerifySD Failed!" << RESET << endl;
+        assert(false);
+    }
+    
     vector<lst> sd;
     for(auto vi : vmap) {
         auto ypolist = polist.subs(vi);
@@ -306,7 +333,7 @@ vector<lst> SD::DS(lst po_ex) {
             vi[xs_tmp[i]] = y(y_free_indexs[i]);
         }
         if(xs_tmp.size()>0) ypolist = ypolist.subs(vi);
-        assert(!ypolist.has(x(wild())));
+        assert(!ypolist.has(x(w)));
 
         // need collect_common_factors
         auto ft = collect_common_factors(ypolist.op(1).expand());
@@ -315,26 +342,26 @@ vector<lst> SD::DS(lst po_ex) {
         if(is_a<mul>(ft)) {
             ex ret = 1;
             for (auto item : ft) {
-                if( !(item.match(y(wild())) || item.match(pow(y(wild()), wild(1)))) ) {
+                if( !(item.match(y(w)) || item.match(pow(y(w), w1))) ) {
                     ret *= item;
                 }
             }
             ft = ret;
-        } else if ( ft.match(y(wild())) || ft.match(pow(y(wild()), wild(1))) ) {
+        } else if ( ft.match(y(w)) || ft.match(pow(y(w), w1)) ) {
             ft = 1;
         }
         
-        bool need_contour_deformation = ft.has(PL(wild()));
-        if(ft.has(y(wild())) && !need_contour_deformation) {
+        bool need_contour_deformation = ft.has(PL(w));
+        if(ft.has(y(w)) && !need_contour_deformation) {
             auto tmp = ft.subs(nReplacements).subs(lst{
-                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }).expand();
             if(is_a<add>(tmp)) {
                 need_contour_deformation = false;
-                auto first = tmp.op(0).subs(y(wild())==1);
+                auto first = tmp.op(0).subs(y(w)==1);
                 for(auto item : tmp) {
-                    assert(is_a<numeric>(item.subs(y(wild())==1)*first));
-                    if(item.subs(y(wild())==1)*first<0) {
+                    assert(is_a<numeric>(item.subs(y(w)==1)*first));
+                    if(item.subs(y(w)==1)*first<0) {
                         need_contour_deformation = true;
                         break;
                     }
@@ -343,8 +370,8 @@ vector<lst> SD::DS(lst po_ex) {
         }
 
         if(!need_contour_deformation) {
-            auto tmp = ft.subs(y(wild())==1).subs(nReplacements).subs(lst{
-                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+            auto tmp = ft.subs(y(w)==1).subs(nReplacements).subs(lst{
+                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             });
             if(!is_a<numeric>(tmp)) {
                 cerr << "tmp = " << tmp << endl;
@@ -376,7 +403,7 @@ vector<lst> SD::DS(lst po_ex) {
         for(auto xi : get_xy_from(ft)) ftxlst.append(xi);
         
         lst pol_exp_lst;
-        pol_exp_lst.append(lst{ subs(FTX(ft,ftxlst)*CT(ct*det/det1), y(wild())==x(wild())), 1 });
+        pol_exp_lst.append(lst{ subs(FTX(ft,ftxlst)*CT(ct*det/det1), y(w)==x(w)), 1 });
 
         for(int i=0; i<ypolist.nops(); i++) {
             auto tmp = ypolist.op(i);
@@ -386,13 +413,13 @@ vector<lst> SD::DS(lst po_ex) {
             if(i==1 && fsgin<0) tmp = -tmp; // check complete negtive F-term
             auto tmp1 = tmp;
             while(true) {
-                tmp=tmp1.subs(pow(y(wild(1))*wild(2), wild(3))==pow(y(wild(1)),wild(3)) * pow(wild(2), wild(3)));
+                tmp=tmp1.subs(pow(y(w1)*w2, w3)==pow(y(w1),w3) * pow(w2, w3));
                 if((tmp1-tmp).is_zero()) break;
                 tmp1 = tmp;
             }
             
             // need collect_common_factors
-            if(tmp.has(y(wild()))) tmp = collect_common_factors(tmp.expand());
+            if(tmp.has(y(w))) tmp = collect_common_factors(tmp.expand());
 
             lst tmps;
             if(is_exactly_a<mul>(tmp)) {
@@ -404,15 +431,15 @@ vector<lst> SD::DS(lst po_ex) {
             ex rem = 1;
             ex ct = 1;
             for (auto item : tmps) { 
-                if( item.match(y(wild())) || item.match(pow(y(wild()), wild(1))) ) {
+                if( item.match(y(w)) || item.match(pow(y(w), w1)) ) {
                     auto yi = get_xy_from(item)[0];
                     ymol[yi] = ymol[yi] + (item.nops()<2 ? 1 : item.op(1)) * exlist.op(i);
-                } else if(!item.has(y(wild())) && !item.has(x(wild()))) {
+                } else if(!item.has(y(w)) && !item.has(x(w))) {
                     if(is_a<numeric>(exlist.op(i)) && ex_to<numeric>(exlist.op(i)).is_integer()) {
                         ct *= item;
-                    } else if(!item.has(PL(wild()))) {
+                    } else if(!item.has(PL(w))) {
                         auto tr = item.subs(nReplacements).subs(lst{
-                            CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                            CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                         });
                         Digits = 50;
                         if(!is_a<numeric>(tr.evalf())) {
@@ -430,7 +457,7 @@ vector<lst> SD::DS(lst po_ex) {
                         rem *= item;
                     }
                 } else {
-                    if(nchk && item.subs(y(wild())==0).subs(iEpsilon==0).normal().is_zero()) {
+                    if(nchk && item.subs(y(w)==0).subs(iEpsilon==0).normal().is_zero()) {
                         cerr << "zero - item: " << item << endl;
                         cerr << "exlist.op(i) = " << exlist.op(i) << endl;
                         assert(false);
@@ -440,18 +467,18 @@ vector<lst> SD::DS(lst po_ex) {
             }
 
             ex pnp = rem-(i==1 && ft!=1 ? iEpsilon : ex(0));
-            pnp = pnp.subs(y(wild())==x(wild()));
+            pnp = pnp.subs(y(w)==x(w));
             ex pnn = exlist.op(i);
-            pnn = pnn.subs(y(wild())==x(wild()));
+            pnn = pnn.subs(y(w)==x(w));
             
             pol_exp_lst.append(lst{pnp, pnn});
-            pol_exp_lst.let_op(0) = pol_exp_lst.op(0).subs(CT(wild()) == CT(wild()*pow(ct, exlist.op(i)))).subs(CT(0)==0);
+            pol_exp_lst.let_op(0) = pol_exp_lst.op(0).subs(CT(w) == CT(w*pow(ct, exlist.op(i)))).subs(CT(0)==0);
         }
 
         lst x_n_lst;
         for(auto & kv : ymol) {
-            auto k = kv.first.subs(y(wild())==x(wild()));
-            auto v = kv.second.subs(y(wild())==x(wild()));
+            auto k = kv.first.subs(y(w)==x(w));
+            auto v = kv.second.subs(y(w)==x(w));
             if(is_a<numeric>(v)) {
                 auto nv = ex_to<numeric>(v);
                 if(nv<=-1) {
@@ -477,7 +504,7 @@ lst SD::Normalize(const lst &input) {
     lst in_nlst = ex_to<lst>(input.op(1));
     for(int i=0; i<in_plst.nops(); i++) {
         if(i!=1 && (in_nlst.op(i).is_zero() || in_plst.op(i)==ex(1))) continue;
-        if(i!=1 && !in_plst.op(i).has(x(wild())) && !in_plst.op(i).has(y(wild()))) {
+        if(i!=1 && !in_plst.op(i).has(x(w)) && !in_plst.op(i).has(y(w))) {
             const_term *= pow(in_plst.op(i), in_nlst.op(i));
         } else {
             auto ptmp = collect_common_factors(in_plst.op(i));
@@ -486,14 +513,14 @@ lst SD::Normalize(const lst &input) {
                 ex tmul = 1;
                 for(int j=0; j<ptmp.nops(); j++) {
                     auto tmp = ptmp.op(j);
-                    if(!tmp.has(x(wild())) && !tmp.has(y(wild()))) { // constant terms
+                    if(!tmp.has(x(w)) && !tmp.has(y(w))) { // constant terms
                         if(is_a<numeric>(ntmp) && ex_to<numeric>(ntmp).is_integer()) {
                             const_term *=  pow(tmp,ntmp);
-                        } else if((tmp-vs).is_zero() || tmp.match(pow(vs,wild()))) {
+                        } else if((tmp-vs).is_zero() || tmp.match(pow(vs,w))) {
                             const_term *=  pow(tmp,ntmp);
-                        } else if(!tmp.has(PL(wild())) && !tmp.has(vs)) {
+                        } else if(!tmp.has(PL(w)) && !tmp.has(vs)) {
                             auto tr = tmp.subs(nReplacements).subs(lst{
-                                CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                             });
                             if(!is_a<numeric>(tr)) {
                                 cerr << "tmp: " << tmp << endl;
@@ -510,11 +537,11 @@ lst SD::Normalize(const lst &input) {
                         } else {
                             tmul *= tmp;
                         }
-                    } else if(tmp.match(pow(wild(1),wild(2))) && xPositive(tmp.op(0))) {
+                    } else if(tmp.match(pow(w1,w2)) && xPositive(tmp.op(0))) {
                         plst.append(tmp.op(0));
                         nlst.append(ntmp * tmp.op(1));
-                    } else if(xSign(tmp)!=0 || xSign(tmp.subs(y(wild())==x(wild())))!=0) {
-                        if(tmp.subs(lst{x(wild())==1, y(wild())==1})>0) {
+                    } else if(xSign(tmp)!=0 || xSign(tmp.subs(y(w)==x(w)))!=0) {
+                        if(tmp.subs(lst{x(w)==1, y(w)==1})>0) {
                             plst.append(tmp);
                             nlst.append(ntmp);
                         } else {
@@ -578,12 +605,12 @@ void SD::XReOrders() {
     if(Integrands.size()<1) {
         for(auto &fe : FunExp) {
             exset xset;
-            find(fe, x(wild()), xset);
+            find(fe, x(w), xset);
             
             vector<ex> xs;
             for(auto ii : xset) xs.push_back(ii);
             sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
-                return ex_to<numeric>(normal((b-a)).subs(lst{x(wild())==wild()})).is_positive();
+                return ex_to<numeric>(normal((b-a)).subs(lst{x(w)==w})).is_positive();
             });
             
             lst x2y;
@@ -591,17 +618,17 @@ void SD::XReOrders() {
                 x2y.append(xs[i]==y(i));
             }
             
-            fe = ex_to<lst>(subs(fe, x2y).subs(y(wild())==x(wild())));
+            fe = ex_to<lst>(subs(fe, x2y).subs(y(w)==x(w)));
         }
     } else {
         for(auto &vint : Integrands) {
             exset xset;
-            find(vint, x(wild()), xset);
+            find(vint, x(w), xset);
             
             vector<ex> xs;
             for(auto ii : xset) xs.push_back(ii);
             sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
-                return ex_to<numeric>(normal((b-a)).subs(lst{x(wild())==wild()})).is_positive();
+                return ex_to<numeric>(normal((b-a)).subs(lst{x(w)==w})).is_positive();
             });
             
             lst x2y;
@@ -609,7 +636,7 @@ void SD::XReOrders() {
                 x2y.append(xs[i]==y(i));
             }
             
-            vint = vint.subs(x2y).subs(y(wild())==x(wild()));
+            vint = vint.subs(x2y).subs(y(w)==x(w));
         }
     }
 }
@@ -716,7 +743,7 @@ void SD::XExpands() {
             }
         }
         
-        rem = mma_collect(rem, x(wild()));
+        rem = mma_collect(rem, x(w));
         
         lst rem_lst;
         if(is_a<add>(rem)) {
@@ -961,7 +988,7 @@ void SD::SDPrepares() {
             // take z-poles
             if(item.has(vz)) {
                 auto ct = item.op(1).op(0).op(0);
-                ct = ct.subs(lst{ CT(wild())==wild(),FTX(wild(1),wild(2))==1 }).subs(pow(vs,vz)==1);
+                ct = ct.subs(lst{ CT(w)==w,FTX(w1,w2)==1 }).subs(pow(vs,vz)==1);
                 int sNN = sN - vsRank(ct.subs(pow(vs,vz)==1));
             
                 lst zpols;
@@ -1058,7 +1085,7 @@ void SD::SDPrepares() {
     while(ibp_in_vec.size()>0) {
         pn++;
         ostringstream spn;
-        spn << "IBP-" << pn;
+        spn << "IBP-" << (pn-1);
         vector<ex> ibp_res =
         GiNaC_Parallel(ParallelProcess, ParallelSymbols, ibp_in_vec, [&](auto &xns_pns, auto idx) {
             // return lst
@@ -1070,7 +1097,7 @@ void SD::SDPrepares() {
             auto pns = xns_pns.op(1);
             
             exset fts;
-            pns.op(0).find(FTX(wild(1),wild(2)), fts);
+            pns.op(0).find(FTX(w1,w2), fts);
             bool noFT = (fts.size()==1) && ( is_zero((*(fts.begin())).op(0)-1) );
             
             ex pole_requested = -1;
@@ -1122,7 +1149,7 @@ void SD::SDPrepares() {
                         if(tz && is_a<mul>(tmp)) {
                             ex rem = 1;
                             for(auto ii : tmp) {
-                                if(ii.match(pow(x(wild()), wild(2)))) {
+                                if(ii.match(pow(x(w), w2))) {
                                     bool t = true;
                                     for(int ij=0; ij<xns3.nops(); ij++) {
                                         if(xns3.op(ij).op(0)==ii.op(0)) {
@@ -1132,7 +1159,7 @@ void SD::SDPrepares() {
                                         }
                                     }
                                     if(t) xns3.append(lst{ii.op(0), ii.op(1)});
-                                } else if(ii.match(x(wild()))) {
+                                } else if(ii.match(x(w))) {
                                     bool t = true;
                                     for(int ij=0; ij<xns3.nops(); ij++) {
                                         if(xns3.op(ij).op(0)==ii) {
@@ -1230,7 +1257,7 @@ void SD::SDPrepares() {
                 x2y.append(xs[i]==y(i));
             }
             
-            para_res_lst.let_op(i) = para_res_lst.op(i).subs(x2y).subs(y(wild())==x(wild()));
+            para_res_lst.let_op(i) = para_res_lst.op(i).subs(x2y).subs(y(w)==x(w));
         }
 
         //deleted from GiNaC 1.7.7
@@ -1254,7 +1281,7 @@ void SD::SDPrepares() {
             ex it = item;
             if(it.has(vz)) {
                 exset cts;
-                it.find(CT(wild()),cts);
+                it.find(CT(w),cts);
                 lst repl;
                 for(auto ct : cts) {
                     ex cc = 1;
@@ -1297,14 +1324,14 @@ void SD::EpsEpExpands() {
     for(auto &item : Integrands) {
         if(item.is_zero()) continue;
         exset cts;
-        item.find(CT(wild()), cts);
+        item.find(CT(w), cts);
         if(cts.size() != 1) {
             cerr << "item: " << item << endl;
             cerr << "CT size is NOT 1: " << cts << endl;
             assert(false);
         }
-        ex ct = (*(cts.begin())).subs(CT(wild())==wild()).subs(iEpsilon==0);
-        auto it = item.subs(CT(wild())==1);
+        ex ct = (*(cts.begin())).subs(CT(w)==w).subs(iEpsilon==0);
+        auto it = item.subs(CT(w)==1);
         int_map[it] = int_map[it]+ct;
     }
     
@@ -1328,14 +1355,14 @@ void SD::EpsEpExpands() {
         // 2nd: x-integrand
         if(item.is_zero()) return lst{ lst{ 0, 0} };
         exset cts;
-        item.find(CT(wild()), cts);
+        item.find(CT(w), cts);
         if(cts.size() != 1) {
             cerr << "item: " << item << endl;
             cerr << "CT size is NOT 1: " << cts << endl;
             assert(false);
         }
-        ex ct = (*(cts.begin())).subs(CT(wild())==wild()).subs(iEpsilon==0);
-        auto it = item.subs(CT(wild())==1);
+        ex ct = (*(cts.begin())).subs(CT(w)==w).subs(iEpsilon==0);
+        auto it = item.subs(CT(w)==1);
         it = mma_collect(it, vs, true);
         lst its;
         if(is_a<add>(it)) {
@@ -1347,9 +1374,9 @@ void SD::EpsEpExpands() {
         lst para_res_lst;
         for(int i=0; i<its.nops();i++) {
             auto tmp = its.op(i);
-            auto vc = tmp.subs(CCF(wild())==1);
+            auto vc = tmp.subs(CCF(w)==1);
             tmp = tmp / vc;
-            tmp = tmp.subs(CCF(wild())==wild());
+            tmp = tmp.subs(CCF(w)==w);
             //if(use_CCF) tmp = collect_common_factors(tmp);
             if(!tmp.has(eps) && !ct.has(eps)) {
                 auto ct2 = vc * ct;

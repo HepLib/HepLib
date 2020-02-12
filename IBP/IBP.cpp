@@ -7,7 +7,7 @@ symbol const IBP::eps("eps");
 symbol const IBP::d("d");
 
 lst IBP::formatF(ex f,  FormatCache &cache) {
-    assert(f.match(F(wild())));
+    assert(f.match(F(w)));
     if(cache.F2fmt[f].nops()>0) return cache.F2fmt[f];
     
     auto al = f.op(0);
@@ -44,7 +44,7 @@ lst IBP::formatI(ex ibp, FormatCache &cache) {
     
     lst fis;
     exset fiset;
-    ibp.find(F(wild()), fiset);
+    ibp.find(F(w), fiset);
     for(auto &item : fiset) {
         fis.append(formatF(item, cache));
     }
@@ -90,9 +90,9 @@ bool IBP::less(lst nls1, lst nls2) {
 }
 
 ex IBP::collectF(ex expr) {
-    assert(expr.subs(F(wild())==0).is_zero());
+    assert(expr.subs(F(w)==0).is_zero());
     exset fs;
-    expr.find(F(wild()), fs);
+    expr.find(F(w), fs);
     ex ret = 0;
     for(auto item : fs) {
         ret += normal(expr.coeff(item, 1)) * item;
@@ -151,14 +151,14 @@ void IBP::Prepare(lst loop, lst ext, lst prop, lst repl) {
             ex res = 0;
             for(int i=0; i<prop.nops(); i++) {
                 auto ci = ibp_tmp.coeff(P(i), 1);
-                ci = GiNaC_Replace(ci, F(wild()), [&](auto fi) {
+                ci = GiNaC_Replace(ci, F(w), [&](auto fi) {
                     auto tmp = fi.op(0);
                     tmp.let_op(i) = tmp.op(i)-1;
                     return F(tmp);
                 });
                 res += ci;
             }
-            res += ibp_tmp.subs(lst{P(wild())==0});
+            res += ibp_tmp.subs(lst{P(w)==0});
             preIBPs.append(res);
         }
         
@@ -171,14 +171,14 @@ void IBP::Prepare(lst loop, lst ext, lst prop, lst repl) {
             ex res = 0;
             for(int i=0; i<prop.nops(); i++) {
                 auto ci = ibp_tmp.coeff(P(i), 1);
-                ci = GiNaC_Replace(ci, F(wild()), [&](auto fi) {
+                ci = GiNaC_Replace(ci, F(w), [&](auto fi) {
                     auto tmp = fi.op(0);
                     tmp.let_op(i) = tmp.op(i)-1;
                     return F(tmp);
                 });
                 res += ci;
             }
-            res += ibp_tmp.subs(lst{P(wild())==0});
+            res += ibp_tmp.subs(lst{P(w)==0});
             if(ii==l) res += d*F(ns);
             preIBPs.append(res);
         }
@@ -205,7 +205,7 @@ void IBP::Generate(vector<lst> seeds) {
         for(int i=0; i<IBPs.nops(); i++) {
             auto tmp = IBPs.op(i);
             exset fs;
-            find(tmp, F(wild()), fs);
+            find(tmp, F(w), fs);
             exmap repl;
             for(auto fi : fs){
                 for(auto ic : Cuts) {
@@ -240,7 +240,7 @@ void IBP::Reduce() {
         if(!item.is_zero()) ibps.push_back(item);
     }
     exset fs;
-    find(IBPs, F(wild()), fs);
+    find(IBPs, F(w), fs);
     vector<ex> fvec;
     for(auto item : fs) fvec.push_back(item);
     
@@ -293,7 +293,7 @@ void IBP::Reduce() {
     for(int r=0; r<rows; r++) {
         auto ibp = ibps[r];
         exset fs;
-        find(ibp, F(wild()), fs);
+        find(ibp, F(w), fs);
         for(auto f : fs) {
             ofs << "fM["<<(r+1)<<","<<(f2idx[f]+1)<<"] := " << ibp.coeff(f, 1) << ";" << endl;
         }

@@ -123,7 +123,7 @@ void Prepare(int idx) {
     fp.tReplacements[p*p] = m2;
     fp.tReplacements[n*n] = 0;
     fp.tReplacements[p*n] = pp;
-    fp.nReplacements[z(wild())] = ex(1)/(1+nts);
+    fp.nReplacements[z(w)] = ex(1)/(1+nts);
     fp.nReplacements[ep] = ex(1)/11;
     fp.nReplacements[eps] = ex(1)/111;
     
@@ -167,12 +167,12 @@ void Prepare(int idx) {
         fe.let_op(0) = lstHelper::subs(ex_to<lst>(fe.op(0)), z2x);
         
         auto tmp = SD::Factor(fe.op(0).op(0));
-        if(tmp.has(x(wild())) && is_a<mul>(tmp)) {
+        if(tmp.has(x(w)) && is_a<mul>(tmp)) {
             ex rem = 1;
             for(auto item : tmp) {
-                if(!item.has(x(wild()))) {
+                if(!item.has(x(w))) {
                     rem *= item;
-                } else if(item.match(pow(wild(0), wild(1)))) {
+                } else if(item.match(pow(w0, w1))) {
                     let_op_append(fe, 0, item.op(0));
                     let_op_append(fe, 1, item.op(1));
                 } else {
@@ -181,7 +181,7 @@ void Prepare(int idx) {
                 }
             }
             fe.op(0).let_op(0) = rem;
-        } else if(tmp.has(x(wild())) && tmp.match(pow(wild(0), wild(1)))) {
+        } else if(tmp.has(x(w)) && tmp.match(pow(w0, w1))) {
             fe.let_op(0).let_op(0) = 1;
             let_op_append(fe, 0, tmp.op(0));
             let_op_append(fe, 1, tmp.op(1));
@@ -392,10 +392,10 @@ int main(int argc, char** argv) {
             cout << endl;
             if(res.has(SD::NaN)) nid.push_back(i);
             
-            auto err = res.subs(lst{VE(wild(1),wild(2))==wild(2), CV(wild(1),wild(2))==wild(2)});
+            auto err = res.subs(lst{VE(w1,w2)==w2, CV(w1,w2)==w2});
             if(abs(err.coeff(ep,epN).coeff(eps,0))>ee) {
                 cout << "n = " << i << endl;
-                cout << res.subs(I*wild()==0, subs_options::algebraic) << endl << endl;
+                cout << res.subs(I*w==0, subs_options::algebraic) << endl << endl;
             }
         }
         
@@ -432,10 +432,10 @@ int main(int argc, char** argv) {
             fRes += res;
             if(res.has(SD::NaN)) nid.push_back(i);
             
-            auto err = res.subs(lst{VE(wild(1),wild(2))==wild(2), CV(wild(1),wild(2))==wild(2)});
+            auto err = res.subs(lst{VE(w1,w2)==w2, CV(w1,w2)==w2});
             if(abs(err.coeff(ep,epN).coeff(eps,0))>ee) {
                 cout << "n = " << i << endl;
-                cout << res.subs(I*wild()==0, subs_options::algebraic) << endl << endl;
+                cout << res.subs(I*w==0, subs_options::algebraic) << endl << endl;
             }
         }
         
@@ -449,9 +449,9 @@ int main(int argc, char** argv) {
         fRes = VESimplify(fRes, 0);
         cout << endl << "Final Result: " << endl;
         cout << "------" << endl;
-        cout << fRes.subs(I*wild()==0, subs_options::algebraic) << endl;
+        cout << fRes.subs(I*w==0, subs_options::algebraic) << endl;
         cout << "------" << endl;
-        cout << VEResult(fRes.subs(I*wild()==0, subs_options::algebraic)) << endl << endl << endl;
+        cout << VEResult(fRes.subs(I*w==0, subs_options::algebraic)) << endl << endl << endl;
         
         if(is_o) {
             ofstream ofs;
@@ -485,8 +485,8 @@ int main(int argc, char** argv) {
         int max_index;
         ex max_re = -1;
         for(int i=0; i<relst.nops(); i++) {
-            auto tmp = relst.op(i).subs(lst{VE(wild(1),wild(2))==wild(2), CV(wild(1),wild(2))==wild(2)});
-            tmp = tmp.subs(VE(wild(1), wild(2))==wild(2));
+            auto tmp = relst.op(i).subs(lst{VE(w1,w2)==w2, CV(w1,w2)==w2});
+            tmp = tmp.subs(VE(w1, w2)==w2);
             tmp = tmp.expand().coeff(ep, epN).coeff(eps,0).evalf();
             if(abs(tmp)>max_re) {
                 max_re = abs(tmp);

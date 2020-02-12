@@ -26,7 +26,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
         Digits = digits;
         return 1.E100;
     }
-    auto err = res.subs(VE(wild(0), wild(1))==wild(1));
+    auto err = res.subs(VE(w0, w1)==w1);
     numeric nerr = numeric(1.E100);
     try {
         nerr = ex_to<numeric>(abs(err).evalf());
@@ -35,7 +35,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
             auto diff = VESimplify(lastResErr - res);
             diff = diff.subs(VE(0,0)==0);
             exset ves;
-            diff.find(VE(wild(0), wild(1)), ves);
+            diff.find(VE(w0, w1), ves);
             for(auto ve : ves) {
                 if(abs(ve.op(0)) > ve.op(1)) {
                     Digits = digits;
@@ -46,7 +46,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
                 cout << "\r                             \r";
                 cout << WHITE << "     " << RunRND << ": " << RESET;
                 for(int i=0; i<nvars; i++) cout << las[i] << " ";
-                cout << endl << "     " << res.subs(VE(0,0)==0).subs(VE(wild(1),wild(2))==VEO(wild(1),wild(2))) << endl;
+                cout << endl << "     " << res.subs(VE(0,0)==0).subs(VE(w1,w2)==VEO(w1,w2)) << endl;
             }
             err_max = nerr.to_double();
             for(int i=0; i<nvars; i++) lambda[i] = las[i];

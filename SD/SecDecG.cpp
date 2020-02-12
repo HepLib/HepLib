@@ -12,22 +12,30 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
     
     int npts = pts.rows();
     int dim = pts.cols();
+    ex imax = -1;
+    for(int r=0; r<npts; r++) {
+        for(int c=0; c<dim; c++) {
+            if(imax<abs(pts(r,c))) imax = abs(pts(r,c));
+        }
+    }
+    
     coordT cpts[npts * dim];
     for(int r=0; r<npts; r++) {
         for(int c=0; c<dim; c++) {
-            cpts[r*dim + c] = ex_to<numeric>(pts(r,c)).to_int();
+            if(imax<10000) cpts[r*dim + c] = ex_to<numeric>(pts(r,c)).to_int();
+            else cpts[r*dim + c] = ex_to<numeric>(pts(r,c)).to_double();
         }
     }
     
     char opts[32];
-    sprintf(opts, "qhull Fv");
+    if(imax<10000) sprintf(opts, "qhull Fv");
+    else sprintf(opts, "qhull QbB Fv");
     
     int exit_code = qh_new_qhull(dim, npts, cpts, 0, opts, NULL, NULL);
     if(exit_code) {
         cout << RED << "qhull return code : " << exit_code << RESET << endl;
         cout << "pts: " << endl <<  pts << endl;
-        //throw new std::exception ("qhull error");
-        assert(false);
+        throw "qhull error";
     }
     facetT *facet;
     vertexT *vertex, **vertexp;
@@ -143,7 +151,6 @@ matrix SecDecG::NormalVectors(const vector<matrix> &zfs) {
             ret(ii,r) = vec(r,0);
         }
     }
-    
     return ret;
 }
 
@@ -303,7 +310,7 @@ vector<matrix> SecDecG::SimplexCones(matrix pts) {
 
 // return a replacement/transformation, using x(-1) as key for determinant
 vector<exmap> SecDecG::x2y(const ex &xpol) {
-    assert(!xpol.has(y(wild())));
+    assert(!xpol.has(y(w)));
     ex pol = xpol.expand();
     auto xs = get_xy_from(pol);
     int nx = xs.size();
@@ -341,7 +348,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
         for(int rr=0; rr<tmp.cols(); rr++) {
             tmp(rr+deg_mat.rows(),rr) = 1;
         }
-        
+
         auto sc = SimplexCones(tmp);
         for(auto isc : sc) vmat.push_back(isc);
     }

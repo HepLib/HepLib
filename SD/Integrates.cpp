@@ -131,7 +131,7 @@ namespace HepLib {
             co = item.op(2).subs(plRepl).subs(iEpsilon==0);
             
             if(co.is_zero()) continue;
-            assert(!co.has(PL(wild())));
+            assert(!co.has(PL(w)));
             qREAL cmax = -1;
             int reim = 0;
             if(ReIm==3) reim = 3;
@@ -151,7 +151,7 @@ namespace HepLib {
 
                     for(int ci=0; ci<css.nops(); ci++) {
                         auto nt = css.op(ci).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{
-                            CV(wild(1),wild(2))==wild(2), ep==ex(1)/111, eps==ex(1)/1111
+                            CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                         }).evalf();
                         if(!is_a<numeric>(nt)) {
                             cerr << "nt: " << nt << endl;
@@ -207,7 +207,7 @@ namespace HepLib {
             IntegratorBase::FT_Type ftp = nullptr;
             int idx = ex_to<numeric>(item.op(0)).to_int();
             auto module = main_module;
-            if(idx>GccLimit) module = ex_modules[(idx-1)/GccLimit-1];
+            if(idx>=GccLimit) module = ex_modules[idx/GccLimit];
             ostringstream fname;
             if(hasF) fname << "C";
             fname << "SDD_" << idx;
@@ -280,7 +280,7 @@ namespace HepLib {
                     }
                     las_ifs.close();
                     auto res = Integrator->Integrate();
-                    auto res_tmp = res.subs(VE(wild(1), wild(2))==wild(2));
+                    auto res_tmp = res.subs(VE(w1, w2)==w2);
                     auto err = real_part(res_tmp);
                     if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
                     ErrMin::lastResErr = res;
@@ -319,7 +319,7 @@ namespace HepLib {
                         auto diff = VESimplify(lastResErr - res);
                         diff = diff.subs(VE(0,0)==0);
                         exset ves;
-                        diff.find(VE(wild(0), wild(1)), ves);
+                        diff.find(VE(w0, w1), ves);
                         bool err_break = false;
                         for(auto ve : ves) {
                             if(abs(ve.op(0)) > ve.op(1)) {
@@ -333,7 +333,7 @@ namespace HepLib {
                         }
                         lastResErr = res;
                         
-                        auto res_tmp = res.subs(VE(wild(1), wild(2))==wild(2));
+                        auto res_tmp = res.subs(VE(w1, w2)==w2);
                         auto err = real_part(res_tmp);
                         if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
                         if(smin<0 || err < emin) {

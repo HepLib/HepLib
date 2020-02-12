@@ -39,7 +39,7 @@ bool SD::KillPowersWithDelta(lst fe, int kpi) {
                 symbol xi("xi"), xj("xj");
                 auto ftij = ftitem.subs(lst{xs[i]==xi, xs[j]==xj});
                 auto xs2 = get_x_from(ftij);
-                auto ftt = Factor(ftij.subs(x(wild())==0));
+                auto ftt = Factor(ftij.subs(x(w)==0));
                 lst fts2;
                 if(is_a<mul>(ftt)) {
                     for(auto item : ftt) fts2.append(item);
@@ -50,7 +50,7 @@ bool SD::KillPowersWithDelta(lst fe, int kpi) {
                 for(auto item : fts2) {
                     if(!item.has(xi) || !item.has(xj)) continue;
                     if(item.has(xi) && item.has(xj)) {
-                        if(item.match(pow(wild(1),wild(2)))) eqn = item.op(0).expand();
+                        if(item.match(pow(w1,w2))) eqn = item.op(0).expand();
                         else eqn = item;
                         if(eqn.degree(xi)==1 && eqn.degree(xj)==1) {
                             ex ci = eqn.coeff(xi);
@@ -156,7 +156,7 @@ bool SD::KillPowersWithoutDelta(lst fe, int kpi, int bits) {
                     int NN = 100;
                     for(auto item : fts2) {
                         if(!item.has(xi) || !item.has(xj)) continue;
-                        if(item.match(pow(wild(1),wild(2))) && (item.has(xi) || item.has(xj))) {
+                        if(item.match(pow(w1,w2)) && (item.has(xi) || item.has(xj))) {
                             eqn = item.op(0);
                             auto t1 = eqn.subs(lst{xi==1/ex(11), xj==1/ex(19)});
                             if(t1.is_zero()) t1 = eqn.subs(lst{xi==1/ex(3), xj==1/ex(23)});
@@ -340,8 +340,8 @@ bool SD::KillPowersWithoutDelta(lst fe, int kpi, int bits) {
                 
                 int NN = 100;
                 for(auto item : fts2) {
-                    if((item.degree(xi)==1 || item.match(pow(wild(1),wild(2)))) && item.has(xi)) {
-                        if(item.match(pow(wild(1),wild(2)))) eqn = item.op(0);
+                    if((item.degree(xi)==1 || item.match(pow(w1,w2))) && item.has(xi)) {
+                        if(item.match(pow(w1,w2))) eqn = item.op(0);
                         else if(xs2.size()<1) eqn = item;
                         else continue;
                         auto t1 = eqn.subs(lst{xi==1/ex(11)});

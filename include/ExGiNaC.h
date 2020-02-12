@@ -295,6 +295,11 @@ bool xPositive(ex const expr);
 int xSign(ex const expr);
 
 /*-----------------------------------------------------*/
+// Global object wildcard
+/*-----------------------------------------------------*/
+extern ex w, w0, w1, w2, w3, w4, w5;
+
+/*-----------------------------------------------------*/
 // Customized GiNaC Function
 /*-----------------------------------------------------*/
 DECLARE_FUNCTION_1P(CCF)
