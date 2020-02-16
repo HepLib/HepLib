@@ -207,7 +207,7 @@ namespace HepLib {
             IntegratorBase::FT_Type ftp = nullptr;
             int idx = ex_to<numeric>(item.op(0)).to_int();
             auto module = main_module;
-            if(idx>=GccLimit) module = ex_modules[idx/GccLimit];
+            if(idx>=GccLimit) module = ex_modules[idx/GccLimit-1];
             ostringstream fname;
             if(hasF) fname << "C";
             fname << "SDD_" << idx;
@@ -219,12 +219,14 @@ namespace HepLib {
             fname << "SDQ_" << idx;
             fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             assert(fpQ!=NULL);
-            fname.clear();
-            fname.str("");
-            if(hasF) fname << "C";
-            fname << "SDMP_" << idx;
-            fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-            assert(fpMP!=NULL);
+            if(use_MP) {
+                fname.clear();
+                fname.str("");
+                if(hasF) fname << "C";
+                fname << "SDMP_" << idx;
+                fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+                assert(fpMP!=NULL);
+            }
             
             if(is_a<lst>(las)) {
                 fname.clear();
@@ -259,6 +261,10 @@ namespace HepLib {
                 Integrator->EpsAbs = EpsAbs/cmax/2/stot;
                 Integrator->EpsRel = 0;
                 
+                if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
+                else if(MinPTS[0]>0) Integrator->MinPTS = MinPTS[0];
+                else Integrator->MinPTS = RunPTS/10;
+                                
                 int smin = -1;
                 int ctryR = 0, ctry = 0, ctryL = 0;
                 ex cerr;
@@ -453,6 +459,11 @@ namespace HepLib {
             Integrator->RunPTS = RunPTS;
             Integrator->EpsAbs = EpsAbs/cmax/stot;
             Integrator->EpsRel = 0;
+            
+            if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
+            else if(MinPTS[0]>0) Integrator->MinPTS = MinPTS[0];
+            else Integrator->MinPTS = RunPTS/10;
+            
             auto res = Integrator->Integrate();
             if(Verbose>5) {
                 cout << WHITE;

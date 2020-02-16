@@ -719,6 +719,7 @@ static int rulecubature(rule *r, unsigned fdim,
 			integrand_v f, void *fdata, 
 			const hypercube *h, 
 			long long minEval,
+            long long runEval,
             long long maxEval,
 			REAL reqAbsError, REAL reqRelError,
 			REAL *val, REAL *err, int parallel, PrintHookerType PrintHooker) {
@@ -774,7 +775,7 @@ static int rulecubature(rule *r, unsigned fdim,
                 nR += 2;
                 
                 // Feng : check break
-                int ok = (regions.n<=0) || (numEval2 >= minEval/10 && numEval2 > 100) || (numEval >= maxEval);
+                int ok = (regions.n<=0) || (numEval2 >= runEval/10 && numEval2 > 100) || (numEval >= maxEval);
                 if(ok) break;
                 REAL err_left = 0;
                 for (j = 0; j < fdim; ++j) err_left += ee[j].err;
@@ -793,15 +794,15 @@ static int rulecubature(rule *r, unsigned fdim,
                     }
                 }
                 
-                int toExit = 1;
-                for (j = 0; j < fdim; ++j) toExit = toExit && (err[j]*3 <= reqAbsError && numEval>minEval/25);
+                int toExit = (numEval>minEval);
+                for (j = 0; j < fdim; ++j) toExit = toExit && (err[j] <= reqAbsError);
                 if(toExit) {
                     runs = numEval;
                     if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);
                     return SUCCESS;
                 }
-                if(PrintHooker != NULL && (xmin<1E-8 || numEval - runs > minEval)) {
-                    runs = numEval;
+                if(PrintHooker!=NULL && (xmin<1E-8 || (numEval-runs)>runEval)) {
+                    if((numEval-runs)>runEval) runs = numEval;
                     PrintHooker(val, err, &numEval, fdata);
                 }
             }
@@ -848,7 +849,7 @@ bad:
 
 static int cubature(unsigned fdim, integrand_v f, void *fdata, 
 		    unsigned dim, const REAL *xmin, const REAL *xmax,
-		    long long minEval, long long maxEval, REAL reqAbsError, REAL reqRelError,
+		    long long minEval, long long runEval, long long maxEval, REAL reqAbsError, REAL reqRelError,
 		    REAL *val, REAL *err, int parallel, PrintHookerType PrintHooker) {
     rule *r;
     hypercube h;
@@ -872,7 +873,7 @@ static int cubature(unsigned fdim, integrand_v f, void *fdata,
     }
     
     h = make_hypercube_range(dim, xmin, xmax);
-    status = !h.data ? FAILURE : rulecubature(r, fdim, f, fdata, &h, minEval, maxEval, reqAbsError, reqRelError, val, err, parallel, PrintHooker);
+    status = !h.data ? FAILURE : rulecubature(r, fdim, f, fdata, &h, minEval, runEval, maxEval, reqAbsError, reqRelError, val, err, parallel, PrintHooker);
     destroy_hypercube(&h);
     destroy_rule(r);
     return status;
@@ -880,9 +881,9 @@ static int cubature(unsigned fdim, integrand_v f, void *fdata,
 
 int hcubature_v(unsigned fdim, integrand_v f, void *fdata, 
                 unsigned dim, const REAL *xmin, const REAL *xmax,
-                long long minEval, long long maxEval, REAL reqAbsError, REAL reqRelError,
+                long long minEval, long long runEval, long long maxEval, REAL reqAbsError, REAL reqRelError,
                 REAL *val, REAL *err, PrintHookerType PrintHooker) {
-    return cubature(fdim, f, fdata, dim, xmin, xmax, minEval, maxEval, reqAbsError, reqRelError, val, err, 1, PrintHooker);
+    return cubature(fdim, f, fdata, dim, xmin, xmax, minEval, runEval, maxEval, reqAbsError, reqRelError, val, err, 1, PrintHooker);
 }
 
 /* vectorized wrapper around non-vectorized integrands */
@@ -902,7 +903,7 @@ static int fv(unsigned ndim, long long npt, const REAL *x, void *d_, unsigned fd
 
 int hcubature(unsigned fdim, integrand f, void *fdata, 
 	      unsigned dim, const REAL *xmin, const REAL *xmax,
-	      long long maxEval, REAL reqAbsError, REAL reqRelError,
+	      long long minEval, long long runEval, long long maxEval, REAL reqAbsError, REAL reqRelError,
 	      REAL *val, REAL *err) {
     int ret;
     fv_data d;
@@ -911,7 +912,7 @@ int hcubature(unsigned fdim, integrand f, void *fdata,
      
     d.f = f;
     d.fdata = fdata;
-    ret = cubature(fdim, fv, &d, dim, xmin, xmax, 0, maxEval, reqAbsError, reqRelError, val, err, 0, NULL);
+    ret = cubature(fdim, fv, &d, dim, xmin, xmax, minEval, runEval, maxEval, reqAbsError, reqRelError, val, err, 0, NULL);
     return ret;
 }
 

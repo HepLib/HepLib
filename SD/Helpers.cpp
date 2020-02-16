@@ -406,7 +406,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     
     cmd.clear();
     cmd.str("");
-    cmd << "g++ -fPIC -shared " << CFLAGS << " -o " << sofn.str() << " " << cppfn.str();
+    cmd << cpp << " -fPIC -shared " << CFLAGS << " -o " << sofn.str() << " " << cppfn.str();
     system(cmd.str().c_str());
     
     void* module = nullptr;
@@ -426,6 +426,32 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     return min;
 }
 
+
+/*-----------------------------------------------------*/
+// Refined F-Term
+/*-----------------------------------------------------*/
+ex SD::RefinedFT(ex in_ft) {
+    auto ft = Factor(in_ft);
+    while(true) {
+        auto ft0 = ft;
+        if(ft.match(pow(w1, w2))) {
+            ft = ft.op(0);
+        } else if(is_a<mul>(ft)) {
+            ex tmp = 1;
+            for(auto fti : ft) {
+                auto s = xSign(fti);
+                if(s>0) continue;
+                else if(s<0) tmp = ex(0)-tmp;
+                else tmp = tmp * fti;
+            }
+            ft = tmp;
+            if((ft-ft0).is_zero()) break;
+            continue;
+        }
+        break;
+    }
+    return ft;
+}
 
 /*-----------------------------------------------------*/
 // Functions used in GiNaC

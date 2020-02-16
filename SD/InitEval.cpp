@@ -369,7 +369,6 @@ namespace HepLib {
         Normalizes();
     }
     
-    
     void SD::Initialize(XIntegrand xint) {
         lst isyms = { ep, eps, vs, vz, iEpsilon };
         for(auto is : isyms) ParallelSymbols.append(is);
@@ -464,5 +463,36 @@ namespace HepLib {
         cout << "Finished @ " << now() << endl << endl;
     }
     
+    void SD::Evaluate(vector<lst> funexp, const char *key) {
+        lst isyms = { ep, eps, vs, vz, iEpsilon };
+        for(auto is : isyms) ParallelSymbols.append(is);
+        ParallelSymbols.sort();
+        ParallelSymbols.unique();
+        
+        cout << endl << "Starting @ " << now() << endl;
+        if(SecDec==NULL) SecDec = new SecDecG();
+        if(Integrator==NULL) Integrator = new HCubature();
+        if(Minimizer==NULL) Minimizer = new MinUit();
+        if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");
+        
+        FunExp = funexp;
+        if(FunExp.size()<1) return;
+        Scalelesses();
+        ChengWu();
+        RemoveDeltas();
+        KillPowers();
+        SDPrepares();
+        EpsEpExpands();
+        CIPrepares(key);
+        auto pps = ParallelProcess;
+        ParallelProcess = 0;
+        Contours(key);
+        Integrates(key);
+        ParallelProcess = pps;
+        delete SecDec;
+        delete Integrator;
+        delete Minimizer;
+        cout << "Finished @ " << now() << endl << endl;
+    }
     
 }

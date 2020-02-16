@@ -67,12 +67,12 @@ typedef int (*integrand_v) (unsigned ndim, long long npt, const REAL *x, void *,
 /* adapative integration by partitioning the integration domain ("h-adaptive")
    and using the same fixed-degree quadrature in each subdomain, recursively,
    until convergence is achieved. */
-int hcubature(unsigned fdim, integrand f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, long long maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err);
+int hcubature(unsigned fdim, integrand f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, long long minEval, long long runEval, long long maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err);
 
 typedef void (* PrintHookerType) (REAL*, REAL*, long long int*, void *);
 
 /* as hcubature, but vectorized integrand */
-int hcubature_v(unsigned fdim, integrand_v f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, long long minEval, long long maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err, PrintHookerType PrintHooker);
+int hcubature_v(unsigned fdim, integrand_v f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, long long minEval, long long runEval, long long maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err, PrintHookerType PrintHooker);
 
 #ifdef __cplusplus
 }  /* extern "C" */

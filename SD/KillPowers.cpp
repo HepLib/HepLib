@@ -82,22 +82,32 @@ bool SD::KillPowersWithDelta(lst fe, int kpi) {
             cj = abs(cj);
             symbol yi,yj;
             // Part I: ci xi-cj xj>0, i.e., xi>cj/ci xj
-            auto f1 = fe.op(0);
-            auto e1 = fe.op(1);
+            auto f1 = ex_to<lst>(fe.op(0));
+            auto e1 = ex_to<lst>(fe.op(1));
             ex c1 = cj/ci;
             for(int i=0; i<f1.nops(); i++) {
                 f1.let_op(i) = f1.op(i).subs(lst{xi==c1*yj/(1+c1)+yi,xj==yj/(1+c1)}).subs(lst{yi==xi,yj==xj});
             }
-            f1.let_op(0) = f1.op(0)/(1+c1); // Jaccobi
+            if(e1.op(0)==1) f1.let_op(0) = f1.op(0)/(1+c1); // Jaccobi
+            else if(e1.op(1)==1) f1.let_op(1) = f1.op(1)/(1+c1);
+            else {
+                f1.append(1/(1+c1));
+                e1.append(1);
+            }
             FunExp.push_back(lst{f1,e1,fe.op(2)});
             // Part II: ci xi-cj xj<0, i.e., i.e., xj>ci/cj xi
-            auto f2 = fe.op(0);
-            auto e2 = fe.op(1);
+            auto f2 = ex_to<lst>(fe.op(0));
+            auto e2 = ex_to<lst>(fe.op(1));
             ex c2 = ci/cj;
             for(int i=0; i<f2.nops(); i++) {
                 f2.let_op(i) = f2.op(i).subs(lst{xj==c2*yi/(1+c2)+yj,xi==yi/(1+c2)}).subs(lst{yi==xi,yj==xj});
             }
-            f2.let_op(0) = f2.op(0)/(1+c2); // Jaccobi
+            if(e2.op(0)==1) f2.let_op(0) = f2.op(0)/(1+c2); // Jaccobi
+            else if(e2.op(1)==1) f2.let_op(1) = f2.op(1)/(1+c2);
+            else {
+                f2.append(1/(1+c2));
+                e2.append(1);
+            }
             FunExp.push_back(lst{f2,e2,fe.op(2)});
         } else {
             assert(false);
@@ -257,13 +267,23 @@ bool SD::KillPowersWithoutDelta(lst fe, int kpi, int bits) {
                 auto f1 = ex_to<lst>(fe.op(0));
                 auto e1 = ex_to<lst>(fe.op(1));
                 for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(x1==xx*(c1-c2)/c1+c2/c1).subs(xx==x1);
-                f1.let_op(0) = f1.op(0)*(c1-c2)/c1; // Jaccobi
+                if(e1.op(0)==1) f1.let_op(0) = f1.op(0)*(c1-c2)/c1; // Jaccobi
+                else if(e1.op(1)==1) f1.let_op(1) = f1.op(1)*(c1-c2)/c1;
+                else {
+                    f1.append((c1-c2)/c1);
+                    e1.append(1);
+                }
                 FunExp.push_back(lst{f1,e1});
                 // Part II: x1>c2/c1 x2, i.e., x2<c1/c2 x1, 0<x1<c2/c1
                 auto f2 = ex_to<lst>(fe.op(0));
                 auto e2 = ex_to<lst>(fe.op(1));
                 for(int i=0; i<f2.nops(); i++) f2.let_op(i) = f2.op(i).subs(x1==xx*c2/c1).subs(xx==x1);
-                f2.let_op(0) = f2.op(0)*c2/c1;
+                if(e2.op(0)==1) f2.let_op(0) = f2.op(0)*c2/c1; // Jaccobi
+                else if(e2.op(1)==1) f2.let_op(1) = f2.op(1)*c2/c1;
+                else {
+                    f2.append(c2/c1);
+                    e2.append(1);
+                }
                 // now x2<x1, 0<x1<1
                 for(int i=0; i<f2.nops(); i++) f2.let_op(i) = f2.op(i).subs(x2==xx*x1).subs(xx==x2);
                 f2.append(x1); // Jaccobi
@@ -273,7 +293,12 @@ bool SD::KillPowersWithoutDelta(lst fe, int kpi, int bits) {
                 auto f3 = ex_to<lst>(fe.op(0));
                 auto e3 = ex_to<lst>(fe.op(1));
                 for(int i=0; i<f3.nops(); i++) f3.let_op(i) = f3.op(i).subs(x1==xx*x2*c2/c1).subs(xx==x1);
-                f3.let_op(0) = f3.op(0)*c2/c1; // Jaccobi
+                if(e3.op(0)==1) f3.let_op(0) = f3.op(0)*c2/c1; // Jaccobi
+                else if(e3.op(1)==1) f3.let_op(1) = f3.op(1)*c2/c1;
+                else {
+                    f3.append(c2/c1);
+                    e3.append(1);
+                }
                 f3.append(x2);
                 e3.append(1);
                 FunExp.push_back(lst{f3,e3});
@@ -388,16 +413,26 @@ bool SD::KillPowersWithoutDelta(lst fe, int kpi, int bits) {
             ex cc = c0/ci;
             symbol xx;
             // Part I: xi<cc
-            auto f1 = fe.op(0);
-            auto e1 = fe.op(1);
+            auto f1 = ex_to<lst>(fe.op(0));
+            auto e1 = ex_to<lst>(fe.op(1));
             for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xi==xx*cc).subs(xx==1-xi);
-            f1.let_op(0) = f1.op(0)*cc; // Jaccobi
+            if(e1.op(0)==1) f1.let_op(0) = f1.op(0)*cc; // Jaccobi
+            else if(e1.op(1)==1) f1.let_op(1) = f1.op(1)*cc;
+            else {
+                f1.append(cc);
+                e1.append(1);
+            }
             FunExp.push_back(lst{f1,e1});
             // Part II: xi>cc
-            auto f2 = fe.op(0);
-            auto e2 = fe.op(1);
+            auto f2 = ex_to<lst>(fe.op(0));
+            auto e2 = ex_to<lst>(fe.op(1));
             for(int i=0; i<f2.nops(); i++) f2.let_op(i) = f2.op(i).subs(xi==(1-cc)*xx+cc).subs(xx==xi);
-            f2.let_op(0) = f2.op(0)*(1-cc); // Jaccobi
+            if(e2.op(0)==1) f2.let_op(0) = f2.op(0)*(1-cc); // Jaccobi
+            else if(e2.op(1)==1) f2.let_op(1) = f2.op(1)*(1-cc);
+            else {
+                f2.append(1-cc);
+                e2.append(1);
+            }
             FunExp.push_back(lst{f2,e2});
         } else {
             cout << MAGENTA << "Warning: Not handled with eqn4=" << eqn << RESET << endl;

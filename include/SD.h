@@ -97,7 +97,8 @@ public:
     int XDim;
     
     long long RunMAX = 100;
-    long long RunPTS = 10000;
+    long long RunPTS = 100000;
+    long long MinPTS = 100000;
     qREAL EpsAbs = 1E-5;
     qREAL EpsRel = 0;
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
@@ -129,11 +130,9 @@ public:
     PrintHookerType PrintHooker = DefaultPrintHooker;
     long long MaxPTS;
     bool use_last = false;
-    
-private:
+    long long lastNRUN = 0;
     qREAL LastResult[2];
     qREAL LastAbsErr[2];
-    long long lastNRUN = 0;
     int lastnNAN = 0;
     int LastState = 0;
 };
@@ -258,6 +257,7 @@ public:
     static const realsymbol NaN;
     static bool use_dlclose;
     static bool debug;
+    static const char* cpp;
     
     int ParallelProcess = -1;
     lst ParallelSymbols = lst{ ep, eps, vs, vz, iEpsilon };
@@ -283,7 +283,8 @@ public:
     bool use_las = false;
     bool save_las = false;
     bool use_IBF = false;
-    bool all_in_one = false;
+    bool use_MP = false;
+    bool all_in_one = true;
     int CT_method = 1; // 0: original, 1: rescaled
     int MPDigits = 50; // digits in mpREAL for MP
     lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
@@ -306,6 +307,7 @@ public:
     
     long long RunMAX = 20;
     long long RunPTS = 500000;
+    map<int, long long> MinPTS = { {0,100000}, {1,5000}, {2,10000}};
     qREAL EpsAbs = 1E-4;
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     
@@ -327,6 +329,7 @@ public:
     void Integrates(const char* key = NULL, const char *pkey = NULL, int kid=0);
     void Evaluate(FeynmanParameter fpi, const char *key = NULL);
     void Evaluate(XIntegrand xint, const char *key = NULL);
+    void Evaluate(vector<lst> FunExp, const char *key = NULL);
     void MB();
     void XEnd();
     void ChengWu();
@@ -342,12 +345,17 @@ public:
     static bool Partilize(ex f0, lst delta, lst &in_ret, int mode=0);
     static void Projectivize(lst &fe, lst delta, ex xsum=0);
     static void Projectivize(lst &fe, ex delta, ex xsum=0);
-    static void Scalelize(lst &fe, ex xi, ex cyi);
-    static void Binarize(lst &fe, ex const eqn, vector<lst> &add_to);
+    static void Scalelize(lst &fe, lst xs, ex cy);
+    static void Scalelize(lst &fe, ex xi, ex cy);
+    //static void Binarize(lst &fe, ex const eqn, vector<lst> &add_to);
     static vector<lst> Binarize(lst const fe, ex const eqn);
     static int x_free_index(ex expr);
     static int y_free_index(ex expr);
     static bool VerifySD(vector<exmap> vmap, bool quick = true);
+    static ex RefinedFT(ex ft);
+    
+    static void ChengWu(vector<lst> &FunExp, int verb=0);
+    static vector<lst> ChengWu_Internal(lst fe, int verb=0);
             
 private:
     vector<lst> DS(const lst po_ex);

@@ -22,21 +22,39 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
     coordT cpts[npts * dim];
     for(int r=0; r<npts; r++) {
         for(int c=0; c<dim; c++) {
-            if(imax<10000) cpts[r*dim + c] = ex_to<numeric>(pts(r,c)).to_int();
+            if(imax<1000) cpts[r*dim + c] = ex_to<numeric>(pts(r,c)).to_int();
             else cpts[r*dim + c] = ex_to<numeric>(pts(r,c)).to_double();
         }
     }
     
     char opts[32];
-    if(imax<10000) sprintf(opts, "qhull Fv");
-    else sprintf(opts, "qhull QbB Fv");
-    
-    int exit_code = qh_new_qhull(dim, npts, cpts, 0, opts, NULL, NULL);
+    sprintf(opts, "qhull Fv");
+    FILE* dev_null = fopen("/dev/null", "w");
+    int curlong, totlong;
+    int exit_code = qh_new_qhull(dim, npts, cpts, 0, opts, NULL, dev_null);
     if(exit_code) {
-        cout << RED << "qhull return code : " << exit_code << RESET << endl;
-        cout << "pts: " << endl <<  pts << endl;
-        throw "qhull error";
+        qh_freeqhull(!qh_ALL);
+        qh_memfreeshort(&curlong, &totlong);
+        char opts[32];
+        sprintf(opts, "qhull QbB Fv");
+        exit_code = qh_new_qhull(dim, npts, cpts, 0, opts, NULL, dev_null);
+        if(exit_code) {
+            cout << RED << "qhull return code : " << exit_code << RESET << endl;
+            cout << "input for qhull Fv:" << endl;
+            cout << dim << endl;
+            cout << npts << endl;
+            for(int r=0; r<npts; r++) {
+                for(int c=0; c<dim; c++) cout << pts(r,c) << " ";
+                cout << endl;
+            }
+            fclose(dev_null);
+            qh_freeqhull(!qh_ALL);
+            qh_memfreeshort(&curlong, &totlong);
+            throw "Qhull Error!";
+        }
     }
+    fclose(dev_null);
+    
     facetT *facet;
     vertexT *vertex, **vertexp;
     FORALLfacets {
@@ -47,11 +65,10 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
         ret.push_back(lvec);
     }
 
-    int curlong, totlong;
     qh_freeqhull(!qh_ALL);
     qh_memfreeshort(&curlong, &totlong);
     if (curlong || totlong) {
-        cout << "qhull internal warning (main): did not free " << totlong << " bytes of long memory(" << curlong << " pieces)" << endl;
+        cout << "Qhull: Non-freed " << totlong << " bytes of long memory(" << curlong << " pieces)" << endl;
     }
     //qh_freeqhull(qh_ALL);
     
@@ -319,7 +336,6 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     for(auto item : xs) lxs.append(item);
     pol = pol.expand().collect(lxs, true);
     int np = is_a<add>(pol) ? pol.nops() : 1;
-    matrix deg_mat(np, nx);
     
     if(nx<2 || np<2) {
         vector<exmap> vmap;
@@ -331,6 +347,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
         return vmap;
     }
     
+    matrix deg_mat(np, nx);
     for(int n=0; n<np; n++) {
         ex tmp = pol.op(n);
         for(int ix=0; ix<nx; ix++) {

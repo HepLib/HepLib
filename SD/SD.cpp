@@ -1,6 +1,7 @@
 #include "SD.h"
 #include <math.h>
 #include <cmath>
+#include<algorithm>
 
 namespace HepLib {
 
@@ -12,6 +13,7 @@ symbol const SD::iEpsilon("iEpsilon");
 realsymbol const SD::NaN("NaN");
 bool SD::use_dlclose = true;
 bool SD::debug = false;
+const char* SD::cpp = "g++";
 
 bool SecDecBase::VerifySD(vector<exmap> map_vec, bool quick) {
     lst xs;
@@ -58,8 +60,7 @@ bool SD::VerifySD(vector<exmap> map_vec, bool quick) {
 vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
     assert(!in_xpols.has(y(w)));
     ex xpol_all = 1;
-    for(auto item : in_xpols) xpol_all *= item;
-    xpol_all = collect_common_factors(xpol_all);
+    for(auto item : in_xpols) xpol_all *= SD::Factor(item);
     
     lst xpols;
     if(is_a<mul>(xpol_all)) {
@@ -80,6 +81,13 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
     }
     xpols.sort();
     xpols.unique();
+    // doule sort/unique
+    for(int i=0; i<xpols.nops(); i++) {
+        auto item = mma_collect(xpols.op(i), x(w), true);
+        xpols.let_op(i) = item.subs(CCF(0)==0).subs(CCF(w)==1);
+    }
+    xpols.sort();
+    xpols.unique();
     
     if(all_in_one) {
         ex xpol = 1;
@@ -90,8 +98,10 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
     vector<ex> xpol_vec;
     for(auto item : xpols) xpol_vec.push_back(item);
     sort(xpol_vec.begin(), xpol_vec.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>(ex(0)+a.nops()-b.nops()).is_positive(); // > > >
-        //return ex_to<numeric>(ex(0)+b.nops()-a.nops()).is_positive(); // < < <
+        bool iz = (b.nops()-a.nops())==0;
+        auto ab =  ex_to<numeric>((a-b).subs(x(w)==w));
+        auto nab = ex_to<numeric>(ex(0)+b.nops()-a.nops());
+        return iz ? ab.is_positive() : nab.is_positive(); // < < <
     });
     xpols.remove_all();
     for(auto item : xpol_vec) xpols.append(item);
@@ -317,7 +327,7 @@ vector<lst> SD::DS(lst po_ex) {
         cerr << RED << "VerifySD Failed!" << RESET << endl;
         assert(false);
     }
-    
+
     vector<lst> sd;
     for(auto vi : vmap) {
         auto ypolist = polist.subs(vi);
@@ -617,8 +627,32 @@ void SD::XReOrders() {
             for(int i=0; i<xs.size(); i++) {
                 x2y.append(xs[i]==y(i));
             }
+            fe = ex_to<lst>(subs(fe, x2y));
             
-            fe = ex_to<lst>(subs(fe, x2y).subs(y(w)==x(w)));
+            // y's permutations
+            ex keyN0 = 1;
+            for(int k=1; k<fe.op(0).nops(); k++) keyN0 *= pow(fe.op(0).op(k), fe.op(1).op(k));
+            keyN0 = keyN0.subs(lst{ep==ex(1)/3, eps==ex(1)/5, vs==ex(1)/7, PL(w)==ex(1)/11, CV(w1,w2)==w2});
+            int n = xs.size();
+            int pis[n], fpis[n];
+            int pns[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79};
+            for(int i=0; i<n; i++) pis[i] = i;
+            ex keyN = 0;
+            do {
+                lst yRepls;
+                for(int i=0; i<n; i++) yRepls.append(y(pis[i])==pns[i]);
+                auto keyN2 = keyN0.subs(yRepls);
+                ex chk = real_part(keyN-keyN2);
+                if(is_zero(chk)) chk = imag_part(keyN-keyN2);
+                chk = chk.evalf();
+                if(keyN.is_zero() || chk>0) {
+                    keyN = keyN2;
+                    for(int i=0; i<n; i++) fpis[i] = pis[i];
+                }
+            } while(next_permutation(pis,pis+n));
+            lst x2y_Repl;
+            for(int i=0; i<n; i++) x2y_Repl.append(y(i)==x(fpis[i]));
+            fe = ex_to<lst>(subs(fe, x2y_Repl));
         }
     } else {
         for(auto &vint : Integrands) {
@@ -636,7 +670,31 @@ void SD::XReOrders() {
                 x2y.append(xs[i]==y(i));
             }
             
-            vint = vint.subs(x2y).subs(y(w)==x(w));
+            vint = vint.subs(x2y);
+            
+            // y's permutations
+            ex keyN0 = vint;
+            keyN0 = keyN0.subs(lst{ep==ex(1)/3, eps==ex(1)/5, vs==ex(1)/7, PL(w)==ex(1)/11, CV(w1,w2)==w2});
+            int n = xs.size();
+            int pis[n], fpis[n];
+            int pns[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79};
+            for(int i=0; i<n; i++) pis[i] = i;
+            ex keyN = 0;
+            do {
+                lst yRepls;
+                for(int i=0; i<n; i++) yRepls.append(y(pis[i])==pns[i]);
+                auto keyN2 = keyN0.subs(yRepls);
+                ex chk = real_part(keyN-keyN2);
+                if(is_zero(chk)) chk = imag_part(keyN-keyN2);
+                chk = chk.evalf();
+                if(keyN.is_zero() || chk>0) {
+                    keyN = keyN2;
+                    for(int i=0; i<n; i++) fpis[i] = pis[i];
+                }
+            } while(next_permutation(pis,pis+n));
+            lst x2y_Repl;
+            for(int i=0; i<n; i++) x2y_Repl.append(y(i)==x(fpis[i]));
+            vint = subs(vint, x2y_Repl);
         }
     }
 }
@@ -977,7 +1035,7 @@ void SD::SDPrepares() {
     }
     
     if(Verbose > 0) cout << now() << " - SDPrepares: ..." << endl << flush;
-    
+        
     vector<ex> sd_res =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, FunExp, [&](auto &fe, auto idx) {
         // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.

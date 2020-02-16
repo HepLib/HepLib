@@ -203,22 +203,33 @@ namespace HepLib {
                     cj = abs(cj);
                     symbol yi,yj;
                     // Part I: ci xi-cj xj>0, i.e., xi>cj/ci xj
-                    auto f1 = fe.op(0);
-                    auto e1 = fe.op(1);
+                    auto f1 = ex_to<lst>(fe.op(0));
+                    auto e1 = ex_to<lst>(fe.op(1));
                     ex c1 = cj/ci;
                     for(int i=0; i<f1.nops(); i++) {
                         f1.let_op(i) = f1.op(i).subs(lst{xi==c1*yj/(1+c1)+yi,xj==yj/(1+c1)}).subs(lst{yi==xi,yj==xj});
                     }
-                    f1.let_op(0) = f1.op(0)/(1+c1); // Jaccobi
+                    if(e1.op(0)==1) f1.let_op(0) = f1.op(0)/(1+c1); // Jaccobi
+                    else if(e1.op(1)==1) f1.let_op(1) = f1.op(1)/(1+c1);
+                    else {
+                        f1.append(1/(1+c1));
+                        e1.append(1);
+                    }
+                    
                     FunExp.push_back(lst{f1,e1,fe.op(2)});
                     // Part II: ci xi-cj xj<0, i.e., i.e., xj>ci/cj xi
-                    auto f2 = fe.op(0);
-                    auto e2 = fe.op(1);
+                    auto f2 = ex_to<lst>(fe.op(0));
+                    auto e2 = ex_to<lst>(fe.op(1));
                     ex c2 = ci/cj;
                     for(int i=0; i<f2.nops(); i++) {
                         f2.let_op(i) = f2.op(i).subs(lst{xj==c2*yi/(1+c2)+yj,xi==yi/(1+c2)}).subs(lst{yi==xi,yj==xj});
                     }
-                    f2.let_op(0) = f2.op(0)/(1+c2); // Jaccobi
+                    if(e2.op(0)==1) f2.let_op(0) = f2.op(0)/(1+c2); // Jaccobi
+                    else if(e2.op(1)==1) f2.let_op(1) = f2.op(1)/(1+c2);
+                    else {
+                        f2.append(1/(1+c2));
+                        e2.append(1);
+                    }
                     FunExp.push_back(lst{f2,e2,fe.op(2)});
                 } else {
                     FunExp.push_back(fe);

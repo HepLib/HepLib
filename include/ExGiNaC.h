@@ -128,11 +128,13 @@ vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, cons
     ostringstream cmd;
     cmd << "mkdir -p " << ppid;
     system(cmd.str().c_str());
-    
+
     int total = invec.size();
-    int batch = total/para_max_run/10;
+    int batch = 1;
+    if(para_max_run>0) batch = total/para_max_run/10;
     if(batch<1) batch = 1;
     int btotal = total/batch + ((total%batch)==0 ? 0 : 1);
+
     for(int bi=0; bi<btotal; bi++) {
         if(verb > 1) {
             cout << "\r  ";

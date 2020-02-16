@@ -13,7 +13,7 @@ namespace HepLib {
         for(auto is : isyms) ParallelSymbols.append(is);
         ParallelSymbols.sort();
         ParallelSymbols.unique();
-        
+
         if(key != NULL) {
             ostringstream garfn;
             garfn << key << ".ci.gar";
@@ -47,7 +47,7 @@ namespace HepLib {
         }
         void* module = dlopen(fsofn.str().c_str(), RTLD_NOW);
         if (module == nullptr) throw std::runtime_error("could not open compiled module!");
-        
+
         vector<ex> res =
         GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnxn_vec, [&](auto & ftnxn, auto idx) {
             // return lst{ ft_n, lst{lambda-i, lambda-max} }
