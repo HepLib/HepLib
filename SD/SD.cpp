@@ -628,17 +628,22 @@ void SD::XReOrders() {
                 x2y.append(xs[i]==y(i));
             }
             fe = ex_to<lst>(subs(fe, x2y));
-            
+
             // y's permutations
             ex keyN0 = 1;
-            for(int k=1; k<fe.op(0).nops(); k++) keyN0 *= pow(fe.op(0).op(k), fe.op(1).op(k));
-            keyN0 = keyN0.subs(lst{ep==ex(1)/3, eps==ex(1)/5, vs==ex(1)/7, PL(w)==ex(1)/11, CV(w1,w2)==w2});
+            for(int k=1; k<fe.op(0).nops(); k++) keyN0 *= pow(abs(fe.op(0).op(k)), fe.op(1).op(k));
+            lst sRepl = lst{PL(w)==ex(1)/11, CV(w1,w2)==w2};
+            for(auto s : ParallelSymbols) sRepl.append(s==1/ex(13));
+            keyN0 = keyN0.subs(sRepl);
             int n = xs.size();
             int pis[n], fpis[n];
-            int pns[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79};
-            for(int i=0; i<n; i++) pis[i] = i;
+            int pns[] = {19,23,29,31,37,41,43,47,53,59,61,67,71,73,79};
+            for(int i=0; i<n; i++) {
+                pis[i] = i;
+                fpis[i] = i;
+            }
             ex keyN = 0;
-            do {
+            do {try{
                 lst yRepls;
                 for(int i=0; i<n; i++) yRepls.append(y(pis[i])==pns[i]);
                 auto keyN2 = keyN0.subs(yRepls);
@@ -649,7 +654,7 @@ void SD::XReOrders() {
                     keyN = keyN2;
                     for(int i=0; i<n; i++) fpis[i] = pis[i];
                 }
-            } while(next_permutation(pis,pis+n));
+            }catch(...){}} while(next_permutation(pis,pis+n));
             lst x2y_Repl;
             for(int i=0; i<n; i++) x2y_Repl.append(y(i)==x(fpis[i]));
             fe = ex_to<lst>(subs(fe, x2y_Repl));
@@ -674,13 +679,18 @@ void SD::XReOrders() {
             
             // y's permutations
             ex keyN0 = vint;
-            keyN0 = keyN0.subs(lst{ep==ex(1)/3, eps==ex(1)/5, vs==ex(1)/7, PL(w)==ex(1)/11, CV(w1,w2)==w2});
+            lst sRepl = lst{PL(w)==ex(1)/11, CV(w1,w2)==w2};
+            for(auto s : ParallelSymbols) sRepl.append(s==1/ex(13));
+            keyN0 = keyN0.subs(sRepl);
             int n = xs.size();
             int pis[n], fpis[n];
-            int pns[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79};
-            for(int i=0; i<n; i++) pis[i] = i;
+            int pns[] = {19,23,29,31,37,41,43,47,53,59,61,67,71,73,79};
+            for(int i=0; i<n; i++) {
+                pis[i] = i;
+                fpis[i] = i;
+            }
             ex keyN = 0;
-            do {
+            do {try{
                 lst yRepls;
                 for(int i=0; i<n; i++) yRepls.append(y(pis[i])==pns[i]);
                 auto keyN2 = keyN0.subs(yRepls);
@@ -691,7 +701,7 @@ void SD::XReOrders() {
                     keyN = keyN2;
                     for(int i=0; i<n; i++) fpis[i] = pis[i];
                 }
-            } while(next_permutation(pis,pis+n));
+            }catch(...){}} while(next_permutation(pis,pis+n));
             lst x2y_Repl;
             for(int i=0; i<n; i++) x2y_Repl.append(y(i)==x(fpis[i]));
             vint = subs(vint, x2y_Repl);
@@ -968,7 +978,7 @@ void SD::RemoveDeltas() {
         }
         if(exit) break;
     }
-    
+
     XReOrders();
     Normalizes();
 }
@@ -1005,17 +1015,19 @@ void SD::SDPrepares() {
     if(SecDec==NULL) SecDec = new SecDecG();
     
     lst isyms = { ep, eps, vs, vz, iEpsilon };
-    for(auto is : isyms) ParallelSymbols.append(is);
-    ParallelSymbols.sort();
-    ParallelSymbols.unique();
-    
+    for(auto is : ParallelSymbols) isyms.append(is);
+    isyms.sort();
+    isyms.unique();
+    ParallelSymbols.remove_all();
+    for(auto is : isyms) {
+        if(is_a<symbol>(is)) ParallelSymbols.append(is);
+    }
     MB();
     RemoveDeltas();
     if(CheckEnd) XEnd();
     
     Integrands.clear();
     Integrands.shrink_to_fit();
-    
     auto fes = FunExp;
     FunExp.clear();
     FunExp.shrink_to_fit();
@@ -1402,9 +1414,13 @@ void SD::EpsEpExpands() {
     if(Verbose > 1) cout << Integrands.size() << endl;
     
     lst isyms = { ep, eps, vs, vz, iEpsilon };
-    for(auto is : isyms) ParallelSymbols.append(is);
-    ParallelSymbols.sort();
-    ParallelSymbols.unique();
+    for(auto is : ParallelSymbols) isyms.append(is);
+    isyms.sort();
+    isyms.unique();
+    ParallelSymbols.remove_all();
+    for(auto is : isyms) {
+        if(is_a<symbol>(is)) ParallelSymbols.append(is);
+    }
     
     vector<ex> res =
     GiNaC_Parallel(ParallelProcess, ParallelSymbols, Integrands, [&](auto &item, auto idx) {

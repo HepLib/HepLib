@@ -10,9 +10,13 @@ namespace HepLib {
         if(Minimizer==NULL) Minimizer = new MinUit();
         
         lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : isyms) ParallelSymbols.append(is);
-        ParallelSymbols.sort();
-        ParallelSymbols.unique();
+        for(auto is : ParallelSymbols) isyms.append(is);
+        isyms.sort();
+        isyms.unique();
+        ParallelSymbols.remove_all();
+        for(auto is : isyms) {
+            if(is_a<symbol>(is)) ParallelSymbols.append(is);
+        }
 
         if(key != NULL) {
             ostringstream garfn;

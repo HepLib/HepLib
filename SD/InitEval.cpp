@@ -13,9 +13,13 @@ namespace HepLib {
 
     void SD::Initialize(FeynmanParameter fp) {
         lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : isyms) ParallelSymbols.append(is);
-        ParallelSymbols.sort();
-        ParallelSymbols.unique();
+        for(auto is : ParallelSymbols) isyms.append(is);
+        isyms.sort();
+        isyms.unique();
+        ParallelSymbols.remove_all();
+        for(auto is : isyms) {
+            if(is_a<symbol>(is)) ParallelSymbols.append(is);
+        }
         
         if(fp.Propagators.nops() != fp.Exponents.nops()) {
             cerr << "the length of Propagators and Exponents are NOT equal." << endl;
@@ -371,9 +375,13 @@ namespace HepLib {
     
     void SD::Initialize(XIntegrand xint) {
         lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : isyms) ParallelSymbols.append(is);
-        ParallelSymbols.sort();
-        ParallelSymbols.unique();
+        for(auto is : ParallelSymbols) isyms.append(is);
+        isyms.sort();
+        isyms.unique();
+        ParallelSymbols.remove_all();
+        for(auto is : isyms) {
+            if(is_a<symbol>(is)) ParallelSymbols.append(is);
+        }
         
         Digits = 50;
         IsZero = false;
@@ -401,9 +409,13 @@ namespace HepLib {
     
     void SD::Evaluate(FeynmanParameter fp, const char* key) {
         lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : isyms) ParallelSymbols.append(is);
-        ParallelSymbols.sort();
-        ParallelSymbols.unique();
+        for(auto is : ParallelSymbols) isyms.append(is);
+        isyms.sort();
+        isyms.unique();
+        ParallelSymbols.remove_all();
+        for(auto is : isyms) {
+            if(is_a<symbol>(is)) ParallelSymbols.append(is);
+        }
         
         cout << endl << "Starting @ " << now() << endl;
         if(SecDec==NULL) SecDec = new SecDecG();
@@ -433,9 +445,13 @@ namespace HepLib {
 
     void SD::Evaluate(XIntegrand xint, const char *key) {
         lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : isyms) ParallelSymbols.append(is);
-        ParallelSymbols.sort();
-        ParallelSymbols.unique();
+        for(auto is : ParallelSymbols) isyms.append(is);
+        isyms.sort();
+        isyms.unique();
+        ParallelSymbols.remove_all();
+        for(auto is : isyms) {
+            if(is_a<symbol>(is)) ParallelSymbols.append(is);
+        }
         
         cout << endl << "Starting @ " << now() << endl;
         if(SecDec==NULL) SecDec = new SecDecG();
@@ -465,9 +481,13 @@ namespace HepLib {
     
     void SD::Evaluate(vector<lst> funexp, const char *key) {
         lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : isyms) ParallelSymbols.append(is);
-        ParallelSymbols.sort();
-        ParallelSymbols.unique();
+        for(auto is : ParallelSymbols) isyms.append(is);
+        isyms.sort();
+        isyms.unique();
+        ParallelSymbols.remove_all();
+        for(auto is : isyms) {
+            if(is_a<symbol>(is)) ParallelSymbols.append(is);
+        }
         
         cout << endl << "Starting @ " << now() << endl;
         if(SecDec==NULL) SecDec = new SecDecG();
