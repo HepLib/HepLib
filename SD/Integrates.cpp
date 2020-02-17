@@ -95,6 +95,7 @@ namespace HepLib {
                 void* module = dlopen(ex_sofn.str().c_str(), RTLD_NOW);
                 if(module == nullptr) throw std::runtime_error("could not open compiled ex-module!");
                 ex_modules.push_back(module);
+                if(!debug && key == NULL) remove(ex_sofn.str().c_str());
             } else break;
         }
         

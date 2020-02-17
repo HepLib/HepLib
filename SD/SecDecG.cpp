@@ -328,14 +328,10 @@ vector<matrix> SecDecG::SimplexCones(matrix pts) {
 // return a replacement/transformation, using x(-1) as key for determinant
 vector<exmap> SecDecG::x2y(const ex &xpol) {
     assert(!xpol.has(y(w)));
-    ex pol = xpol.expand();
-    auto xs = get_xy_from(pol);
+    auto xs = get_xy_from(xpol);
     int nx = xs.size();
- 
-    lst lxs;
-    for(auto item : xs) lxs.append(item);
-    pol = pol.expand().collect(lxs, true);
-    int np = is_a<add>(pol) ? pol.nops() : 1;
+    auto pol = mma_collect(xpol, x(w));
+    long long int np = is_a<add>(pol) ? pol.nops() : 1;
     
     if(nx<2 || np<2) {
         vector<exmap> vmap;
@@ -348,10 +344,10 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     }
     
     matrix deg_mat(np, nx);
-    for(int n=0; n<np; n++) {
-        ex tmp = pol.op(n);
-        for(int ix=0; ix<nx; ix++) {
-            deg_mat(n, ix) = mma_collect(tmp, xs[ix]).degree(xs[ix]);
+    for(int r=0; r<np; r++) {
+        auto tmp = pol.op(r);
+        for(int c=0; c<nx; c++) {
+            deg_mat(r, c) = tmp.degree(xs[c]);
         }
     }
  
@@ -365,7 +361,6 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
         for(int rr=0; rr<tmp.cols(); rr++) {
             tmp(rr+deg_mat.rows(),rr) = 1;
         }
-
         auto sc = SimplexCones(tmp);
         for(auto isc : sc) vmat.push_back(isc);
     }

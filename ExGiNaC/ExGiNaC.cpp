@@ -333,51 +333,18 @@ ex mma_diff(ex expr, ex xp, unsigned nth, bool expand) {
     return res;
 }
 
-
 /*-----------------------------------------------------*/
 // mma_collect
 /*-----------------------------------------------------*/
 ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
-    lst cv_repl = lst{ CCF(w0)==w0, CVF(w1)==w1 };
-    lst c_repl = lst{ CCF(w)==w };
-    lst v_repl = lst{ CVF(w)==w };
-    
-    auto expr = expr_in.subs(cv_repl); // remove CCF & CVF
-    
-    if(!expr.has(pat)) return ccf ? CCF(expr) : expr;
-    ex res;
-    if(is_a<add>(expr)) {
-        res = 0;
-        for(auto item : expr) {
-            res += mma_collect(item, pat, true, true);
-        }
-    } else if(is_a<mul>(expr)) {
-        res = 1;
-        for(auto item : expr) {
-            res *= mma_collect(item, pat, true, true);
-        }
-    } else if(is_a<power>(expr) && is_a<numeric>(expr.op(1)) && ex_to<numeric>(expr.op(1)).is_nonneg_integer()) {
-        res = pow(mma_collect(expr.op(0), pat, true, true), expr.op(1));
-    } else {
-        return cvf ? CVF(expr) : expr;
-    }
-    
-    res = res.expand(); // expand internally
-    exset vfset;
-    res.find(CVF(w), vfset);
-    lst vflst;
-    for(auto vf : vfset) vflst.append(vf);
-    res = collect(res, vflst, true); // collect internally
-    
-    res = res.subs(cv_repl); // remove CCF & CVF
+    auto res = expand(expr_in);
     lst items;
     if(is_a<add>(res)) {
         for(auto item : res) items.append(item);
-    } else {
-        items.append(res);
-    }
+    } else items.append(res);
     
-    ex ret = 0, cf = 0;
+    ex cf = 0;
+    map<ex, ex, ex_is_less> vc_map;
     for(auto item : items) {
         if(!item.has(pat)) cf += item;
         else {
@@ -387,23 +354,21 @@ ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
                     if(!ii.has(pat)) tc *= ii;
                     else tf *= ii;
                 }
-                ret += CVF(tf) * CCF(tc);
+                vc_map[tf] += tc;
             } else {
-                ret += CVF(item);
+                vc_map[item] += 1;
             }
         }
     }
-    ret += CCF(cf);
+    res = 0;
+    if(!is_zero(cf)) res += CCF(cf);
+    for(auto vc : vc_map) {
+        res += CVF(vc.first) * CCF(vc.second);
+    }
     
-    ret.find(CVF(w), vfset);
-    vflst.remove_all();
-    for(auto vf : vfset) vflst.append(vf);
-    ret = collect(ret, vflst, true); // collect internally
-    
-    if(!ccf) ret = ret.subs(c_repl);
-    if(!cvf) ret = ret.subs(v_repl);
-    
-    return ret;
+    if(!ccf) res = res.subs(CCF(w)==w);
+    if(!cvf) res = res.subs(CVF(w)==w);
+    return res;
 }
 
 /*-----------------------------------------------------*/

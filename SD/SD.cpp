@@ -60,7 +60,7 @@ bool SD::VerifySD(vector<exmap> map_vec, bool quick) {
 vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
     assert(!in_xpols.has(y(w)));
     ex xpol_all = 1;
-    for(auto item : in_xpols) xpol_all *= SD::Factor(item);
+    for(auto item : in_xpols) xpol_all *= collect_common_factors(item);
     
     lst xpols;
     if(is_a<mul>(xpol_all)) {
@@ -81,13 +81,6 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
     }
     xpols.sort();
     xpols.unique();
-    // doule sort/unique
-    for(int i=0; i<xpols.nops(); i++) {
-        auto item = mma_collect(xpols.op(i), x(w), true);
-        xpols.let_op(i) = item.subs(CCF(0)==0).subs(CCF(w)==1);
-    }
-    xpols.sort();
-    xpols.unique();
     
     if(all_in_one) {
         ex xpol = 1;
@@ -103,8 +96,12 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
         auto nab = ex_to<numeric>(ex(0)+b.nops()-a.nops());
         return iz ? ab.is_positive() : nab.is_positive(); // < < <
     });
+    
     xpols.remove_all();
-    for(auto item : xpol_vec) xpols.append(item);
+    xpols.append(xpol_vec[xpol_vec.size()-1]);
+    ex mul_xpol = 1;
+    for(int i=0; i<xpol_vec.size()-1; i++) mul_xpol *= xpol_vec[i];
+    if(!is_zero(mul_xpol-1)) xpols.append(mul_xpol);
     xpol_vec.clear();
 
     vector<exmap> vec_map;
@@ -173,7 +170,6 @@ vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
         }
         vec_map = vec_map2;
     }
-    
     return vec_map;
 }
 
@@ -321,7 +317,7 @@ vector<lst> SD::DS(lst po_ex) {
         if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
         sdList.append(tmp);
     }
-
+    
     vector<exmap> vmap = SecDec->x2y(sdList, all_in_one);
     if(!VerifySD(vmap)) {
         cerr << RED << "VerifySD Failed!" << RESET << endl;
@@ -614,97 +610,17 @@ void SD::XReOrders() {
     if(IsZero) return;
     if(Integrands.size()<1) {
         for(auto &fe : FunExp) {
-            exset xset;
-            find(fe, x(w), xset);
-            
-            vector<ex> xs;
-            for(auto ii : xset) xs.push_back(ii);
-            sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
-                return ex_to<numeric>(normal((b-a)).subs(lst{x(w)==w})).is_positive();
-            });
-            
+            auto xs = get_x_from(fe);
             lst x2y;
-            for(int i=0; i<xs.size(); i++) {
-                x2y.append(xs[i]==y(i));
-            }
-            fe = ex_to<lst>(subs(fe, x2y));
-
-            // y's permutations
-            ex keyN0 = 1;
-            for(int k=1; k<fe.op(0).nops(); k++) keyN0 *= pow(abs(fe.op(0).op(k)), fe.op(1).op(k));
-            lst sRepl = lst{PL(w)==ex(1)/11, CV(w1,w2)==w2};
-            for(auto s : ParallelSymbols) sRepl.append(s==1/ex(13));
-            keyN0 = keyN0.subs(sRepl);
-            int n = xs.size();
-            int pis[n], fpis[n];
-            int pns[] = {19,23,29,31,37,41,43,47,53,59,61,67,71,73,79};
-            for(int i=0; i<n; i++) {
-                pis[i] = i;
-                fpis[i] = i;
-            }
-            ex keyN = 0;
-            do {try{
-                lst yRepls;
-                for(int i=0; i<n; i++) yRepls.append(y(pis[i])==pns[i]);
-                auto keyN2 = keyN0.subs(yRepls);
-                ex chk = real_part(keyN-keyN2);
-                if(is_zero(chk)) chk = imag_part(keyN-keyN2);
-                chk = chk.evalf();
-                if(keyN.is_zero() || chk>0) {
-                    keyN = keyN2;
-                    for(int i=0; i<n; i++) fpis[i] = pis[i];
-                }
-            }catch(...){}} while(next_permutation(pis,pis+n));
-            lst x2y_Repl;
-            for(int i=0; i<n; i++) x2y_Repl.append(y(i)==x(fpis[i]));
-            fe = ex_to<lst>(subs(fe, x2y_Repl));
+            for(int i=0; i<xs.size(); i++) x2y.append(xs[i]==y(i));
+            fe = ex_to<lst>(subs(fe, x2y).subs(y(w)==x(w)));
         }
     } else {
         for(auto &vint : Integrands) {
-            exset xset;
-            find(vint, x(w), xset);
-            
-            vector<ex> xs;
-            for(auto ii : xset) xs.push_back(ii);
-            sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
-                return ex_to<numeric>(normal((b-a)).subs(lst{x(w)==w})).is_positive();
-            });
-            
+            auto xs = get_x_from(vint);
             lst x2y;
-            for(int i=0; i<xs.size(); i++) {
-                x2y.append(xs[i]==y(i));
-            }
-            
-            vint = vint.subs(x2y);
-            
-            // y's permutations
-            ex keyN0 = vint;
-            lst sRepl = lst{PL(w)==ex(1)/11, CV(w1,w2)==w2};
-            for(auto s : ParallelSymbols) sRepl.append(s==1/ex(13));
-            keyN0 = keyN0.subs(sRepl);
-            int n = xs.size();
-            int pis[n], fpis[n];
-            int pns[] = {19,23,29,31,37,41,43,47,53,59,61,67,71,73,79};
-            for(int i=0; i<n; i++) {
-                pis[i] = i;
-                fpis[i] = i;
-            }
-            ex keyN = 0;
-            do {try{
-                lst yRepls;
-                for(int i=0; i<n; i++) yRepls.append(y(pis[i])==pns[i]);
-                auto keyN2 = keyN0.subs(yRepls);
-                ex chk = real_part(keyN-keyN2);
-                if(is_zero(chk)) chk = imag_part(keyN-keyN2);
-                chk = chk.evalf();
-                if(keyN.is_zero() || chk>0) {
-                    keyN = keyN2;
-                    for(int i=0; i<n; i++) fpis[i] = pis[i];
-                }
-            }catch(...){}} while(next_permutation(pis,pis+n));
-            lst x2y_Repl;
-            for(int i=0; i<n; i++) x2y_Repl.append(y(i)==x(fpis[i]));
-            vint = subs(vint, x2y_Repl);
+            for(int i=0; i<xs.size(); i++) x2y.append(xs[i]==y(i));
+            vint = vint.subs(x2y).subs(y(w)==x(w));
         }
     }
 }
@@ -941,7 +857,9 @@ void SD::RemoveDeltas() {
             } else {
                 for(int i=0; i<xs.nops(); i++) {
                     auto xj = xs.op(i);
-                    auto jInv = lstHelper::sum(xs).subs(xj==1);
+                    ex jInv = 0;
+                    for(auto xi : xs) jInv += xi;
+                    jInv = jInv.subs(xj==1);
                     
                     exmap repl;
                     for(int j=0; j<xs.nops(); j++) {
@@ -978,7 +896,6 @@ void SD::RemoveDeltas() {
         }
         if(exit) break;
     }
-
     XReOrders();
     Normalizes();
 }
