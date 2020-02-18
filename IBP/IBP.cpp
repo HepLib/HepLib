@@ -2,12 +2,30 @@
 
 namespace HepLib {
 
+/*-----------------------------------------------------*/
+// GiNaC_Replace
+/*-----------------------------------------------------*/
+template <typename FUN>
+ex GiNaC_Replace(ex expr, const ex &pat, FUN f) {
+    exset ps;
+    expr.find(pat, ps);
+    lst repl;
+    for(auto pi : ps) {
+        auto pif = f(pi);
+        repl.append(pi==pif);
+    }
+    return expr.subs(repl);
+}
+
 symbol const IBP::ep("ep");
 symbol const IBP::eps("eps");
 symbol const IBP::d("d");
 
 lst IBP::formatF(ex f,  FormatCache &cache) {
-    assert(f.match(F(w)));
+    if(!f.match(F(w))) {
+        cerr << RED << "Not F(w) form: " << f << RESET << endl;
+        exit(1);
+    }
     if(cache.F2fmt[f].nops()>0) return cache.F2fmt[f];
     
     auto al = f.op(0);
@@ -79,7 +97,10 @@ bool IBP::less(lst nls1, lst nls2) {
         auto b = ls2.op(i);
         if(a.is_equal(b)) continue;
         if(is_a<lst>(a)) {
-            assert(is_a<lst>(b));
+            if(!is_a<lst>(b)) {
+                cerr << RED << "Not lst: " << b << RESET << endl;
+                exit(1);
+            }
             return less(ex_to<lst>(a), ex_to<lst>(b));
         } else {
             return a < b;
@@ -90,7 +111,10 @@ bool IBP::less(lst nls1, lst nls2) {
 }
 
 ex IBP::collectF(ex expr) {
-    assert(expr.subs(F(w)==0).is_zero());
+    if(!expr.subs(F(w)==0).is_zero()) {
+        cerr << RED << "expr is NOT zero with F(w)==0: " << expr << RESET << endl;
+        exit(1);
+    }
     exset fs;
     expr.find(F(w), fs);
     ex ret = 0;

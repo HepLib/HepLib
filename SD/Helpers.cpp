@@ -150,14 +150,20 @@ ex VESimplify(ex expr, int epN, int epsN) {
             exset ves;
             tmpIR.find(VE(w1, w2), ves);
             auto ntmp = tmpIR.subs(lst{VE(w1, w2)==0});
-            assert(is_a<numeric>(ntmp));
+            if(!is_a<numeric>(ntmp)) {
+                cerr << RED << "VESimplify: (!is_a<numeric>(ntmp))" << RESET << endl;
+                exit(1);
+            }
             if(abs(ntmp.evalf())>numeric("1E300")) return SD::NaN;
             ex vIR = ntmp;
             ex eI2 = 0, eR2 = 0;
             for(auto ve : ves) {
                 auto co = tmpIR.coeff(ve);
                 vIR += co * ve.op(0);
-                assert(is_a<numeric>(co));
+                if(!is_a<numeric>(co)) {
+                    cerr << RED << "VESimplify: (!is_a<numeric>(co))" << RESET << endl;
+                    exit(1);
+                }
                 numeric nco = ex_to<numeric>(co);
                 ex ee = ve.op(1) * ve.op(1);
                 eR2 += nco.real_part() * nco.real_part() * ee;
@@ -397,7 +403,10 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     ofs << "extern \"C\" " << endl;
     ofs << "dREAL minFunc(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
     auto tmp = expr.subs(cxRepl);
-    assert(!tmp.has(PL(w)));
+    if(tmp.has(PL(w))) {
+        cerr << RED << "FindMinimum: PL found @ " << tmp << RESET << endl;
+        exit(1);
+    }
     ofs << "dREAL yy = ";
     tmp.print(cppL);
     ofs << ";" << endl;
@@ -414,7 +423,10 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     if(module == nullptr) throw std::runtime_error("could not open compiled module!");
     
     auto fp = (MinimizeBase::FunctionType)dlsym(module, "minFunc");
-    assert(fp!=NULL);
+    if(fp==NULL) {
+        cerr << RED << "FindMinimum: fp==NULL" << RESET << endl;
+        exit(1);
+    }
     
     double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0);
     

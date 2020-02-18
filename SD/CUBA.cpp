@@ -95,7 +95,10 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
 
 ex CUBA::Integrate() {
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
-    assert(mpfr_buildopt_tls_p()>0);
+    if(mpfr_buildopt_tls_p()<=0) {
+        cerr << RED << "Integrate: mpfr_buildopt_tls_p()<=0" << RESET << endl;
+        exit(1);
+    }
         
     unsigned int xdim = XDim;
     unsigned int ydim = 2;

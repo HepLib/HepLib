@@ -13,23 +13,14 @@ namespace HepLib {
         
         if(Verbose > 0) cout << now() << " - CIPrepares ..." << endl << flush;
         auto pid = getpid();
-        
-        lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : ParallelSymbols) isyms.append(is);
-        isyms.sort();
-        isyms.unique();
-        ParallelSymbols.remove_all();
-        for(auto is : isyms) {
-            if(is_a<symbol>(is)) ParallelSymbols.append(is);
-        }
-        
+                
         vector<ex> resf =
-        GiNaC_Parallel(ParallelProcess, ParallelSymbols, expResult, [&](auto &kv, auto idx) {
-            // return lst{ kv.first, kv.second, ft};
-            auto expr = kv.second;
+        GiNaC_Parallel(ParallelProcess, expResult, [&](ex const &kv, int idx)->ex {
+            // return lst{ kv.op(0), kv.op(1), ft};
+            auto expr = kv.op(1);
             auto xs = get_xy_from(expr);
             if(xs.size()<1) {
-                return lst{kv.first, kv.second, 1};
+                return lst{kv.op(0), kv.op(1), 1};
             }
 
             exset ftxset;
@@ -51,14 +42,20 @@ namespace HepLib {
                 }).expand();
                 if(is_a<add>(tmp)) {
                     for(auto item : tmp) {
-                        assert(is_a<numeric>(item.subs(x(w)==1)));
+                        if(!is_a<numeric>(item.subs(x(w)==1))) {
+                            cerr << RED << "CIPrepares: (!is_a<numeric>(item.subs(x(w)==1)))" << RESET << endl;
+                            exit(1);
+                        }
                         if(item.subs(x(w)==1) < 0) {
                             need_contour_deformation = true;
                             break;
                         }
                     }
                 } else {
-                    assert(is_a<numeric>(tmp.subs(x(w)==1)));
+                    if(!is_a<numeric>(tmp.subs(x(w)==1))) {
+                        cerr << RED << "CIPrepares: (!is_a<numeric>(tmp.subs(x(w)==1)))" << RESET << endl;
+                        exit(1);
+                    }
                     if(tmp.subs(x(w)==1) < 0) need_contour_deformation = true;
                 }
                 if(!need_contour_deformation) ft = 1; //note the difference with SDPrepare
@@ -67,7 +64,7 @@ namespace HepLib {
             }
             
             ft = collect_common_factors(ft);
-            return lst{ kv.first, kv.second, ft};
+            return lst{ kv.op(0), kv.op(1), ft};
             
         }, "CI-F", Verbose, false);
         
@@ -82,7 +79,7 @@ namespace HepLib {
         fts.sort();
         fts.unique();
         
-        vector<pair<ex,int>> ftnvec;
+        vector<ex> ftnvec;
         map<ex,int,ex_is_less> ftnmap;
         int ft_n = 1;
         FT_N_XN.remove_all();
@@ -91,14 +88,14 @@ namespace HepLib {
         //FT_N_XN.append(lst{0, 0});
         
         for(auto item : fts) {
-            ftnvec.push_back(make_pair(item, ft_n));
+            ftnvec.push_back(lst{item, ft_n});
             ftnmap[item] = ft_n;
             FT_N_XN.append(lst{item, ft_n, get_xy_from(item).size()});
             ft_n++;
         }
         //ftnvec item: lst { ft, ft-id }
         
-        vector<lst> res_vec;
+        vector<ex> res_vec;
         map<ex, ex, ex_is_less> cf_int;
         
         for(auto &item : resf) {
@@ -108,8 +105,8 @@ namespace HepLib {
             } else {
                 int ft_n = ftnmap[item.op(2)];
                 if(ft_n==0) {
-                    cerr << item.op(2) << endl;
-                    assert(false);
+                    cerr << RED << "CIPrepares: ft_n==0, " << item.op(2) << RESET << endl;
+                    exit(1);
                 }
                 ii.append(ft_n);
             }
@@ -139,10 +136,10 @@ namespace HepLib {
     //============================================================================================================
 
         // Prepare FT-lambda
-        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnvec, [&](auto &kv, auto idx) {
+        GiNaC_Parallel(ParallelProcess, ftnvec, [&](ex const &kv, int idx)->ex {
             // return nothing
-            ex ft = kv.first;
-            ex ft_n = kv.second;
+            ex ft = kv.op(0);
+            ex ft_n = kv.op(1);
             auto fxs = get_xy_from(ft);
             lst las;
             
@@ -568,7 +565,7 @@ namespace HepLib {
 
         // Prepare Integrand
         vector<ex> res =
-        GiNaC_Parallel(ParallelProcess, ParallelSymbols, res_vec, [&](auto &kvf, auto idx) {
+        GiNaC_Parallel(ParallelProcess, res_vec, [&](ex const &kvf, int idx)->ex {
             // return lst{ no-x-result, xn, x-indepent prefactor, ft_n }
             // or     lst{ id(SD(D|Q)_id in .so), xn, x-indepent prefactor, ft_n }
             
@@ -620,7 +617,10 @@ namespace HepLib {
                     count++;
                 }
             }
-            assert(count==xs.size());
+            if(count!=xs.size()) {
+                cerr << RED << "CIPrepares: (count!=xs.size())" << RESET << endl;
+                exit(1);
+            }
             auto pls = get_pl_from(expr);
             int npls = pls.size()>0 ? ex_to<numeric>(pls[pls.size()-1].subs(lst{PL(w)==w})).to_int() : -1;
             for(int i=0; i<npls+1; i++) {

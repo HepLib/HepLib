@@ -8,16 +8,7 @@ namespace HepLib {
     void SD::Integrates(const char *key, const char *pkey, int kid) {
         if(IsZero) return;
         if(Integrator==NULL) Integrator = new HCubature();
-        
-        lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : ParallelSymbols) isyms.append(is);
-        isyms.sort();
-        isyms.unique();
-        ParallelSymbols.remove_all();
-        for(auto is : isyms) {
-            if(is_a<symbol>(is)) ParallelSymbols.append(is);
-        }
-        
+                
         if(Verbose > 0) cout << now() << " - Integrates ..." << endl << flush;
         
         lst lstRE;
@@ -34,9 +25,9 @@ namespace HepLib {
             ifstream in(garfn.str());
             in >> ar;
             in.close();
-            auto c = ar.unarchive_ex(ParallelSymbols, "c");
+            auto c = ar.unarchive_ex(archiveSymbols, "c");
             if(c!=19790923) throw runtime_error("*.ci.gar error!");
-            auto res = ar.unarchive_ex(ParallelSymbols, "res");
+            auto res = ar.unarchive_ex(archiveSymbols, "res");
             ciResult.clear();
             for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
             
@@ -50,8 +41,8 @@ namespace HepLib {
                 ifstream la_in(garfn.str());
                 la_in >> la_ar;
                 la_in.close();
-                auto la_c = la_ar.unarchive_ex(ParallelSymbols, "c");
-                auto la_res = la_ar.unarchive_ex(ParallelSymbols, "res");
+                auto la_c = la_ar.unarchive_ex(archiveSymbols, "c");
+                auto la_res = la_ar.unarchive_ex(archiveSymbols, "res");
                 if(la_c!=19790923) throw runtime_error("*.ci.gar error!");
                 for(auto item : ex_to<lst>(la_res)) {
                     LambdaMap[item.op(0)] = item.op(1);
@@ -64,14 +55,17 @@ namespace HepLib {
                 garfn << key;
                 if(pkey != NULL) garfn << "-" << pkey;
                 garfn << ".res.gar";
-                assert(file_exists(garfn.str().c_str()));
+                if(!file_exists(garfn.str().c_str())) {
+                    cerr << RED << "Integrates: File Not Found: " << garfn.str() << RESET << endl;
+                    exit(1);
+                }
                 
                 archive res_ar;
                 ifstream res_in(garfn.str());
                 res_in >> res_ar;
                 res_in.close();
-                auto res_c = res_ar.unarchive_ex(ParallelSymbols, "c");
-                auto relst = res_ar.unarchive_ex(ParallelSymbols, "relst");
+                auto res_c = res_ar.unarchive_ex(archiveSymbols, "c");
+                auto relst = res_ar.unarchive_ex(archiveSymbols, "relst");
                 if(res_c!=19790923) throw runtime_error("*.res.gar error with kid!");
                 lstRE = ex_to<lst>(relst);
             }
@@ -136,14 +130,20 @@ namespace HepLib {
             co = item.op(2).subs(plRepl).subs(iEpsilon==0);
             
             if(co.is_zero()) continue;
-            assert(!co.has(PL(w)));
+            if(co.has(PL(w))) {
+                cerr << RED << "Integrates: PL found @ " << co << RESET << endl;
+                exit(1);
+            }
             qREAL cmax = -1;
             int reim = 0;
             if(ReIm==3) reim = 3;
             co = mma_collect(co, eps);
             for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
                 auto tmp = co.coeff(eps, si);
-                assert(!tmp.has(eps));
+                if(tmp.has(eps)) {
+                    cerr << RED << "Integrates: eps found @ " << tmp << RESET << endl;
+                    exit(1);
+                }
                 tmp = mma_collect(tmp, ep);
                 for(int i=tmp.ldegree(ep); i<=tmp.degree(ep); i++) {
                     Digits = 50;
@@ -159,10 +159,14 @@ namespace HepLib {
                             CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                         }).evalf();
                         if(!is_a<numeric>(nt)) {
-                            cerr << "nt: " << nt << endl;
-                            assert(false);
+                            cerr << RED << "Integrates: Not a number with nt = " << nt << RESET << endl;
+                            exit(1);
                         }
-                        assert(!nt.has(ep));
+                        if(nt.has(ep)) {
+                            cerr << RED << "Integrates: ep found @ nt = " << nt << RESET << endl;
+                            exit(1);
+                        }
+                        
                         if(ReIm!=3 && reim!=3) {
                             if(ex_to<numeric>(nt).imag()==0) {
                                 if(reim==2) reim = 3;
@@ -182,8 +186,8 @@ namespace HepLib {
                 }
             }
             if(cmax<=0) {
-                cerr << "cmax<=0 with co = " << co <<endl;
-                assert(false);
+                cerr << RED << "Integrates: cmax<=0 with co = " << co << RESET <<endl;
+                exit(1);
             }
             if(reim!=3 && ReIm!=3) {
                 if(reim==1 && ReIm==2) reim=2;
@@ -195,14 +199,14 @@ namespace HepLib {
             auto las = LambdaMap[item.op(3)];
             bool hasF = item.op(3)>0;
             if(hasF && las.is_zero()) {
-                cerr << RED << "lambda with the key(ft_n=" << item.op(3) << ") is NOT found!" << RESET << endl;
-                assert(false);
+                cerr << RED << "Integrates: lambda with the key(ft_n=" << item.op(3) << ") is NOT found!" << RESET << endl;
+                exit(1);
             }
             
             if(hasF && !is_a<lst>(las)) {
                 if(!is_zero(las-ex(1979))) {
-                    cerr << RED << "something is wrong with the F-term @ ft_n = " << item.op(3) << ", las=" << las << RESET << endl;
-                    assert(false);
+                    cerr << RED << "Integrates: something is wrong with the F-term @ ft_n = " << item.op(3) << ", las=" << las << RESET << endl;
+                    exit(1);
                 } else {
                     hasF = false;
                 }
@@ -217,20 +221,29 @@ namespace HepLib {
             if(hasF) fname << "C";
             fname << "SDD_" << idx;
             fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-            assert(fp!=NULL);
+            if(fp==NULL) {
+                cerr << RED << "Integrates: fp==NULL" << RESET << endl;
+                exit(1);
+            }
             fname.clear();
             fname.str("");
             if(hasF) fname << "C";
             fname << "SDQ_" << idx;
             fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-            assert(fpQ!=NULL);
+            if(fpQ==NULL) {
+                cerr << RED << "Integrates: fpQ==NULL" << RESET << endl;
+                exit(1);
+            }
             if(use_MP) {
                 fname.clear();
                 fname.str("");
                 if(hasF) fname << "C";
                 fname << "SDMP_" << idx;
                 fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-                assert(fpMP!=NULL);
+                if(fpMP==NULL) {
+                    cerr << RED << "Integrates: fpMP==NULL" << RESET << endl;
+                    exit(1);
+                }
             }
             
             if(is_a<lst>(las)) {
@@ -238,7 +251,10 @@ namespace HepLib {
                 fname.str("");
                 fname << "FT_" << idx;
                 ftp = (IntegratorBase::FT_Type)dlsym(module, fname.str().c_str());
-                assert(ftp!=NULL);
+                if(ftp==NULL) {
+                    cerr << RED << "Integrates: ftp==NULL" << RESET << endl;
+                    exit(1);
+                }
             }
             
             qREAL lambda[las.nops()];
@@ -373,8 +389,8 @@ namespace HepLib {
                     }
                     if(smin == -2) break;
                     if(smin == -1) {
-                        std::cerr << "smin = -1, optimized lambda NOT found!" << endl;
-                        assert(false);
+                        std::cerr << RED << "Integrates: smin = -1, optimized lambda NOT found!" << RESET << endl;
+                        exit(1);
                     }
                     
                     if(smin <= 0) {

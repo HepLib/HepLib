@@ -16,8 +16,8 @@ void Replacements2(exmap &repl) {
 void MB::Initialize(FeynmanParameter fp) {
 
     if(fp.Propagators.nops() != fp.Exponents.nops()) {
-        cerr << "the length of Propagators and Exponents are NOT equal." << endl;
-        assert(false);
+        cerr << RED << "the length of Propagators and Exponents are NOT equal." << RESET << endl;
+        exit(1);
     }
     
     Digits = 50;
@@ -77,9 +77,9 @@ void MB::Initialize(FeynmanParameter fp) {
         // check loop^2
         for(auto m : ls) {
             if(!is_a<numeric>(p.coeff(m,2))) {
-                cout << "not numeric: " << p.coeff(m,2) << endl;
-                cout << "nsubs = " << nsubs << endl;
-                assert(false);
+                cout << RED << "not numeric: " << p.coeff(m,2) << endl;
+                cout << "nsubs = " << nsubs << RESET << endl;
+                exit(1);
             }
             numeric nm = ex_to<numeric>(p.coeff(m,2));
             if(nm.is_zero()) continue;
@@ -125,24 +125,27 @@ void MB::Initialize(FeynmanParameter fp) {
         auto u_nd = numer_denom(u);
         ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
         if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
-        assert(!usgn.is_zero());
+        if(usgn.is_zero()) {
+            cerr << RED << "usgn is zero!" << RESET << endl;
+            exit(1);
+        }
         usgn = normal(usgn)>0 ? 1 : -1;
         
         if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
             CV(w1,w2)==w2, ep==ex(1)/111
         }))) {
-            cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+            cerr <<RED << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111
-            }) << endl;
-            assert(false);
+            }) << RESET << endl;
+            exit(1);
         }
         if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
             CV(w1,w2)==w2, ep==ex(1)/111
         }))) {
-            cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+            cerr << RED << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111
-            }) << endl;
-            assert(false);
+            }) << RESET << endl;
+            exit(1);
         }
         
         uList1.append(usgn*u_nd.op(0));
@@ -190,7 +193,10 @@ void MB::Initialize(FeynmanParameter fp) {
     // negative index
     for(int i=0; i<xn; i++) {
     if(is_a<numeric>(ns.op(i)) && ns.op(i)<0) {
-        assert(ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer());
+        if(!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer()) {
+            cerr << RED << "Not positive integer: " << (ex(0)-ns.op(i)) << RESET << endl;
+            exit(1);
+        }
         for(int j=0; j<-ns.op(i); j++) {
             vector<pair<lst, lst>> nret;
             for(auto kv : ret) {

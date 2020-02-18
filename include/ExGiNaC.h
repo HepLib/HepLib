@@ -2,7 +2,6 @@
 
 #include <ginac/ginac.h>
 #include <ginac/parser.h>
-#include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -15,307 +14,199 @@
 
 namespace HepLib {
 
-using namespace GiNaC;
-using namespace std;
+    using namespace GiNaC;
+    using namespace std;
 
-/*-----------------------------------------------------*/
-// Terminal Color
-/*-----------------------------------------------------*/
-#define RESET   "\033[0m"
-#define BLACK   "\033[30m"      /* Black */
-#define RED     "\033[31m"      /* Red */
-#define GREEN   "\033[32m"      /* Green */
-#define YELLOW  "\033[33m"      /* Yellow */
-#define BLUE    "\033[34m"      /* Blue */
-#define MAGENTA "\033[35m"      /* Magenta */
-#define CYAN    "\033[36m"      /* Cyan */
-#define WHITE   "\033[37m"      /* White */
-#define BOLDBLACK   "\033[1m\033[30m"      /* Bold Black */
-#define BOLDRED     "\033[1m\033[31m"      /* Bold Red */
-#define BOLDGREEN   "\033[1m\033[32m"      /* Bold Green */
-#define BOLDYELLOW  "\033[1m\033[33m"      /* Bold Yellow */
-#define BOLDBLUE    "\033[1m\033[34m"      /* Bold Blue */
-#define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
-#define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
-#define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
+    /*-----------------------------------------------------*/
+    // Terminal Color
+    /*-----------------------------------------------------*/
+    #define RESET   "\033[0m"
+    #define BLACK   "\033[30m"      /* Black */
+    #define RED     "\033[31m"      /* Red */
+    #define GREEN   "\033[32m"      /* Green */
+    #define YELLOW  "\033[33m"      /* Yellow */
+    #define BLUE    "\033[34m"      /* Blue */
+    #define MAGENTA "\033[35m"      /* Magenta */
+    #define CYAN    "\033[36m"      /* Cyan */
+    #define WHITE   "\033[37m"      /* White */
+    #define BOLDBLACK   "\033[1m\033[30m"      /* Bold Black */
+    #define BOLDRED     "\033[1m\033[31m"      /* Bold Red */
+    #define BOLDGREEN   "\033[1m\033[32m"      /* Bold Green */
+    #define BOLDYELLOW  "\033[1m\033[33m"      /* Bold Yellow */
+    #define BOLDBLUE    "\033[1m\033[34m"      /* Bold Blue */
+    #define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
+    #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
+    #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
 
-/*-----------------------------------------------------*/
-// Global Symbol
-/*-----------------------------------------------------*/
-const symbol & get_symbol(const string & s);
+    /*-----------------------------------------------------*/
+    // Global Symbol
+    /*-----------------------------------------------------*/
+    const symbol & get_symbol(const string & s);
 
-/*-----------------------------------------------------*/
-// split
-/*-----------------------------------------------------*/
-vector<std::string> split(const string& s, char delimiter);
+    /*-----------------------------------------------------*/
+    // split
+    /*-----------------------------------------------------*/
+    vector<std::string> split(const string& s, char delimiter);
 
-/*-----------------------------------------------------*/
-// Helper Classes
-/*-----------------------------------------------------*/
-class MatHelper {
-public:
-    static bool has_zero_row(const matrix &mat);
-    static bool is_zero_row(const matrix &mat, int r);
-    static vector<int> zero_row_index(const matrix &mat);
-    static matrix remove_zero_rows(const matrix &mat);
-    static matrix sub(matrix mat, int r, int nr, int c, int nc);
-    template <typename F> static void map_inplace(matrix &m, F f);
-    template <typename F> static matrix map(const matrix &m, F f);
-};
+    /*-----------------------------------------------------*/
+    // Helper Classes
+    /*-----------------------------------------------------*/
+    class MatHelper {
+    public:
+        static bool has_zero_row(const matrix &mat);
+        static bool is_zero_row(const matrix &mat, int r);
+        static vector<int> zero_row_index(const matrix &mat);
+        static matrix remove_zero_rows(const matrix &mat);
+        static matrix sub(matrix mat, int r, int nr, int c, int nc);
+        template <typename F> static void map_inplace(matrix &m, F f);
+        template <typename F> static matrix map(const matrix &m, F f);
+    };
 
-template <typename F>
-void MatHelper::map_inplace(matrix &m, F f) {
-    for (unsigned i = 0; i < m.nops(); i++) {
-        m.let_op(i) = f(m.op(i));
-    }
-}
-
-template <typename F>
-matrix MatHelper::map(const matrix &m, F f) {
-    matrix r(m.rows(), m.cols());
-    for (unsigned i = 0; i < m.nops(); i++) {
-        r.let_op(i) = f(m.op(i));
-    }
-    return r;
-}
-
-class lstHelper {
-public:
-    template <typename F> static void map_inplace(lst &m, F f);
-    template <typename F> static lst map(const lst &m, F f);
-    static lst sub(lst m, int s, int n);
-    static ex sum(lst m);
-    static lst subs(lst m, ex r);
-    static lst subs(lst m, exmap r);
-};
-
-template <typename F>
-void lstHelper::map_inplace(lst &m, F f) {
-    for (unsigned i = 0; i < m.nops(); i++) {
-        m.let_op(i) = f(m.op(i));
-    }
-}
-
-template <typename F>
-lst lstHelper::map(const lst &m, F f) {
-    lst r = m;
-    for (unsigned i = 0; i < m.nops(); i++) {
-        r.let_op(i) = f(m.op(i));
-    }
-    return r;
-}
-
-
-
-/*-----------------------------------------------------*/
-// Global Functions
-/*-----------------------------------------------------*/
-string now(bool use_date = true);
-lst gather_symbols(const ex & e);
-lst gather_symbols(const vector<ex> & ve);
-
-inline bool file_exists(const char* fn) {
-    return (access(fn,F_OK)!=-1);
-}
-
-/*-----------------------------------------------------*/
-// vector : GiNaC_Parallel
-/*-----------------------------------------------------*/
-template <typename F, typename T>
-vector<ex> GiNaC_Parallel(int nproc, lst syms, vector<T> const &invec, F f, const char* key = NULL, int verb = 0, bool rm = true, int prtlvl = 0) {
-    auto ppid = getpid();
-    int para_max_run = nproc<0 ? omp_get_num_procs() : nproc;
-    ostringstream cmd;
-    cmd << "mkdir -p " << ppid;
-    system(cmd.str().c_str());
-
-    int total = invec.size();
-    int batch = 1;
-    if(para_max_run>0) batch = total/para_max_run/10;
-    if(batch<1) batch = 1;
-    int btotal = total/batch + ((total%batch)==0 ? 0 : 1);
-
-    for(int bi=0; bi<btotal; bi++) {
-        if(verb > 1) {
-            cout << "\r  ";
-            for(int pi=0;pi<prtlvl;pi++) cout << "   ";
-            cout << "\\--Evaluating ";
-            if(key != NULL) cout << WHITE << key << RESET << " ";
-            cout << WHITE << batch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] ... " << flush;
+    template <typename F>
+    void MatHelper::map_inplace(matrix &m, F f) {
+        for (unsigned i = 0; i < m.nops(); i++) {
+            m.let_op(i) = f(m.op(i));
         }
-        
-        if(para_max_run>0) {
-            auto pid = fork();
-            if (pid < 0) perror("fork() error");
-            else if (pid != 0) {
-                if(bi >= para_max_run) wait(NULL);
-                continue;
-            }
-        }
-        
-        try {
-            for(int ri=0; ri<batch; ri++) {
-                int i = bi*batch + ri;
-                if(i<total) {
-                    auto item = invec[i];
-                    auto res = f(item, i);
-                    archive ar;
-                    ar.archive_ex(res, "res");
-                    ar.archive_ex(19790923, "c");
-                    ostringstream garfn;
-                    if(key == NULL) garfn << ppid << "/" << i << ".gar";
-                    else garfn << ppid << "/" << i << "." << key << ".gar";
-                    ofstream outs(garfn.str().c_str());
-                    outs << ar;
-                    outs.close();
-                }
-            }
-        } catch(exception &p) {
-            cout << RED << "Failed in GiNaC_Parallel!" << RESET << endl;
-            cout << RED << p.what() << RESET << endl;
-            if(para_max_run>0) exit(0);
-            throw p;
-        }
-        if(para_max_run>0) exit(0);
     }
+
+    template <typename F>
+    matrix MatHelper::map(const matrix &m, F f) {
+        matrix r(m.rows(), m.cols());
+        for (unsigned i = 0; i < m.nops(); i++) {
+            r.let_op(i) = f(m.op(i));
+        }
+        return r;
+    }
+
+    class lstHelper {
+    public:
+        template <typename F> static void map_inplace(lst &m, F f);
+        template <typename F> static lst map(const lst &m, F f);
+        static ex sum(lst m);
+    };
+
+    template <typename F>
+    void lstHelper::map_inplace(lst &m, F f) {
+        for (unsigned i = 0; i < m.nops(); i++) {
+            m.let_op(i) = f(m.op(i));
+        }
+    }
+
+    template <typename F>
+    lst lstHelper::map(const lst &m, F f) {
+        lst r = m;
+        for (unsigned i = 0; i < m.nops(); i++) {
+            r.let_op(i) = f(m.op(i));
+        }
+        return r;
+    }
+
+    /*-----------------------------------------------------*/
+    // Global Functions
+    /*-----------------------------------------------------*/
+    string now(bool use_date = true);
+    lst gather_symbols(const ex & e);
+    lst gather_symbols(const vector<ex> & ve);
+
+    inline bool file_exists(const char* fn) {
+        return (access(fn,F_OK)!=-1);
+    }
+
+    /*-----------------------------------------------------*/
+    // vector : GiNaC_Parallel
+    /*-----------------------------------------------------*/
+    vector<ex> GiNaC_Parallel(
+        int nproc,
+        vector<ex> const &invec,
+        std::function<ex(ex const &, int)> f,
+        const char* key = NULL,
+        int verb = 0,
+        bool rm = true,
+        int prtlvl = 0
+    );
     
-    auto cpid = getpid();
-    if(cpid!=ppid) exit(0); // make sure
-    if(para_max_run>0) while (wait(NULL) != -1) { }
-    if(verb > 1 && total > 0) cout << "@" << now(false) << endl;
-
-    vector<ex> ovec;
-    for(int i=0; i<total; i++) {
-        if(verb > 1) {
-            if(key == NULL) {
-                cout << "\r  ";
-                for(int pi=0; pi<prtlvl; pi++) cout << "   ";
-                cout << "\\--Reading *.gar [" << (i+1) << "/" << total << "] ... " << flush;
-            } else {
-                cout << "\r  ";
-                for(int pi=0;pi<prtlvl;pi++) cout << "   ";
-                cout << "\\--Reading *." << WHITE << key << RESET << ".gar [" << (i+1) << "/" << total << "] ... " << flush;
-            }
-        }
-
-        int oDigits = Digits;
-        Digits = 50; // a fix to float overflow
-        
-        archive ar;
-        ostringstream garfn;
-        if(key == NULL) garfn << ppid << "/" << i << ".gar";
-        else garfn << ppid << "/" << i << "." << key << ".gar";
-        ifstream ins(garfn.str().c_str());
-        ins >> ar;
-        ins.close();
-        remove(garfn.str().c_str());
-        auto c = ar.unarchive_ex(syms, "c");
-        if(c!=19790923) throw runtime_error("*.gar error!");
-        auto res = ar.unarchive_ex(syms, "res");
-        ovec.push_back(res);
-        Digits = oDigits;
-    }
+    /*-----------------------------------------------------*/
+    // Helpers
+    /*-----------------------------------------------------*/
+    string RunOS(const char * cmd);
+    ex garResult(const char *garfn, lst syms);
+    ex str2ex(const char *expr, symtab stab);
+    lst str2lst(const char *expr, symtab stab);
+    lst xlst(int ei);
+    lst xlst(int bi, int ei);
     
-    if(rm) {
-        cmd.clear();
-        cmd.str("");
-        cmd << "rm -fr " << ppid;
-        system(cmd.str().c_str());
-        system(cmd.str().c_str());
-    }
-    if(verb > 1 && total > 0) cout << "@" << now(false) << endl;
-    return ovec;
-}
+     void let_op_append(ex & ex_in, const ex item);
+     void let_op_prepend(ex & ex_in, const ex item);
+     void let_op_remove_last(ex & ex_in);
+     void let_op_remove_first(ex & ex_in);
 
+    void let_op_append(ex & ex_in, int index, const ex item);
+    void let_op_prepend(ex & ex_in, int index, const ex item);
+    void let_op_remove_last(ex & ex_in, int index);
+    void let_op_remove_first(ex & ex_in, int index);
+    void let_op_append(lst & ex_in, int index, const ex item);
+    void let_op_prepend(lst & ex_in, int index, const ex item);
+    void let_op_remove_last(lst & ex_in, int index);
+    void let_op_remove_first(lst & ex_in, int index);
 
-/*-----------------------------------------------------*/
-// GiNaC_Replace
-/*-----------------------------------------------------*/
-template <typename FUN>
-ex GiNaC_Replace(ex expr, const ex &pat, FUN f) {
-    exset ps;
-    expr.find(pat, ps);
-    lst repl;
-    for(auto pi : ps) {
-        auto pif = f(pi);
-        repl.append(pi==pif);
-    }
-    return expr.subs(repl);
-}
+    void let_op_append(ex & ex_in, int index1, int index2, const ex item);
+    void let_op_prepend(ex & ex_in, int index1, int index2, const ex item);
+    void let_op_remove_last(ex & ex_in, int index1, int index2);
+    void let_op_remove_first(ex & ex_in, int index1, int index2);
+    void let_op_append(lst & ex_in, int index1, int index2, const ex item);
+    void let_op_prepend(lst & ex_in, int index1, int index2, const ex item);
+    void let_op_remove_last(lst & ex_in, int index1, int index2);
+    void let_op_remove_first(lst & ex_in, int index1, int index2);
 
-string RunOS(const char * cmd);
-ex garResult(const char *garfn, lst syms);
-ex str2ex(const char *expr, symtab stab);
-lst str2lst(const char *expr, symtab stab);
-lst xlst(int ei);
-lst xlst(int bi, int ei);
+    void let_op(ex &ex_in, int index1, int index2, const ex item);
+    void let_op(lst &ex_in, int index1, int index2, const ex item);
+    void let_op(ex &ex_in, int index1, int index2, int index3, const ex item);
+    void let_op(lst &ex_in, int index1, int index2, int index3, const ex item);
 
-void let_op_append(ex & ex_in, int index, const ex item);
-void let_op_prepend(ex & ex_in, int index, const ex item);
-void let_op_remove_last(ex & ex_in, int index);
-void let_op_remove_first(ex & ex_in, int index);
-void let_op_append(lst & ex_in, int index, const ex item);
-void let_op_prepend(lst & ex_in, int index, const ex item);
-void let_op_remove_last(lst & ex_in, int index);
-void let_op_remove_first(lst & ex_in, int index);
+    ex get_op(const ex ex_in, int index1, int index2);
+    ex get_op(const lst ex_in, int index1, int index2);
+    ex get_op(const ex ex_in, int index1, int index2, int index3);
+    ex get_op(const lst ex_in, int index1, int index2, int index3);
 
-void let_op_append(ex & ex_in, int index1, int index2, const ex item);
-void let_op_prepend(ex & ex_in, int index1, int index2, const ex item);
-void let_op_remove_last(ex & ex_in, int index1, int index2);
-void let_op_remove_first(ex & ex_in, int index1, int index2);
-void let_op_append(lst & ex_in, int index1, int index2, const ex item);
-void let_op_prepend(lst & ex_in, int index1, int index2, const ex item);
-void let_op_remove_last(lst & ex_in, int index1, int index2);
-void let_op_remove_first(lst & ex_in, int index1, int index2);
+    /*-----------------------------------------------------*/
+    // Series at s=0 similar to Mathematica
+    /*-----------------------------------------------------*/
+    ex mma_series(ex expr, symbol s, int sn);
+    ex mma_expand(ex expr, ex pat);
+    ex mma_collect(ex expr, ex pat, bool ccf=false, bool cvf=false);
+    ex mma_diff(ex expr, ex xp, unsigned nth=1, bool expand=true);
 
-void let_op(ex &ex_in, int index1, int index2, const ex item);
-void let_op(lst &ex_in, int index1, int index2, const ex item);
-void let_op(ex &ex_in, int index1, int index2, int index3, const ex item);
-void let_op(lst &ex_in, int index1, int index2, int index3, const ex item);
+    /*-----------------------------------------------------*/
+    // Evalf
+    /*-----------------------------------------------------*/
+    ex Evalf(ex);
 
-ex get_op(const ex ex_in, int index1, int index2);
-ex get_op(const lst ex_in, int index1, int index2);
-ex get_op(const ex ex_in, int index1, int index2, int index3);
-ex get_op(const lst ex_in, int index1, int index2, int index3);
+    /*-----------------------------------------------------*/
+    // xPositive
+    /*-----------------------------------------------------*/
+    bool xPositive(ex const expr);
+    int xSign(ex const expr);
 
-/*-----------------------------------------------------*/
-// Series at s=0 similar to Mathematica
-/*-----------------------------------------------------*/
-ex mma_series(ex expr, symbol s, int sn);
-ex mma_collect(ex expr, ex pat, bool ccf=false, bool cvf=false);
-ex mma_diff(ex expr, ex xp, unsigned nth=1, bool expand=true);
+    /*-----------------------------------------------------*/
+    // Global object wildcard
+    /*-----------------------------------------------------*/
+    extern ex w, w0, w1, w2, w3, w4, w5;
 
-/*-----------------------------------------------------*/
-// Evalf
-/*-----------------------------------------------------*/
-ex Evalf(ex);
+    /*-----------------------------------------------------*/
+    // Customized GiNaC Function
+    /*-----------------------------------------------------*/
+    DECLARE_FUNCTION_1P(CCF)
+    DECLARE_FUNCTION_1P(CVF)
 
-/*-----------------------------------------------------*/
-// xPositive
-/*-----------------------------------------------------*/
-bool xPositive(ex const expr);
-int xSign(ex const expr);
+    DECLARE_FUNCTION_1P(VF)
+    DECLARE_FUNCTION_1P(VF1)
+    DECLARE_FUNCTION_2P(VF2)
+    DECLARE_FUNCTION_3P(VF3)
 
-/*-----------------------------------------------------*/
-// Global object wildcard
-/*-----------------------------------------------------*/
-extern ex w, w0, w1, w2, w3, w4, w5;
+    DECLARE_FUNCTION_1P(FF) // not used internally, for user use only
+    DECLARE_FUNCTION_2P(CV) // not used internally, for user use only
 
-/*-----------------------------------------------------*/
-// Customized GiNaC Function
-/*-----------------------------------------------------*/
-DECLARE_FUNCTION_1P(CCF)
-DECLARE_FUNCTION_1P(CVF)
-
-DECLARE_FUNCTION_1P(VF)
-DECLARE_FUNCTION_1P(VF1)
-DECLARE_FUNCTION_2P(VF2)
-DECLARE_FUNCTION_3P(VF3)
-
-DECLARE_FUNCTION_1P(FF) // not used internally, for user use only
-DECLARE_FUNCTION_2P(CV) // not used internally, for user use only
-
-DECLARE_FUNCTION_1P(x)
-DECLARE_FUNCTION_1P(y)
-DECLARE_FUNCTION_1P(z)
+    DECLARE_FUNCTION_1P(x)
+    DECLARE_FUNCTION_1P(y)
+    DECLARE_FUNCTION_1P(z)
 }

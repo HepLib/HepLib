@@ -84,8 +84,8 @@ void CppFormat::print_numeric(const numeric & p, const CppFormat & c, unsigned l
             print_real(c, cln::imagpart(p.to_cl_N()));
             c.s << ")";
         } else {
-            cout << "suffix is Wrong, Abort!" << endl;
-            assert(false);
+            cerr << RED << "CppFormat: suffix is Wrong, Abort!" << RESET << endl;
+            exit(1);
         }
     }
 }

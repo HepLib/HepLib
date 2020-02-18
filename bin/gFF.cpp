@@ -132,7 +132,7 @@ void Prepare(int idx) {
     SD work;
     work.epN = epN;
     work.Verbose = verb;
-    work.ParallelSymbols = para_sym;
+    work.archiveSymbols = para_sym;
     
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
@@ -223,7 +223,7 @@ void Contour(int idx, numeric zz) {
     SD work;
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
-    work.ParallelSymbols = para_sym;
+    work.archiveSymbols = para_sym;
     work.Verbose = verb;
     work.Parameter[0] = zz;
     work.ParallelProcess = 0;
@@ -244,7 +244,7 @@ ex Integrate(int idx, numeric zz, int ii = -1) {
     SD work;
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
-    work.ParallelSymbols = para_sym;
+    work.archiveSymbols = para_sym;
     work.Verbose = verb;
     work.Parameter[0] = zz;
     work.epN = epN;
@@ -430,7 +430,7 @@ int main(int argc, char** argv) {
                 ifn << SD_path << "/" << i << ".null";
                 if(!file_exists(ifn.str().c_str())) {
                     cout << RED << "File NOT Found: " << ifn.str() << RESET << endl;
-                    assert(false);
+                    exit(1);
                 }
                 continue;
             }
@@ -440,7 +440,7 @@ int main(int argc, char** argv) {
             ss << SD_path << "/" << i << "-" << skey.str().c_str() << ".res.gar";
             if(!file_exists(ss.str().c_str())) {
                 cout << RED << "File NOT Found: " << ss.str() << RESET << endl;
-                assert(false);
+                exit(1);
             }
             auto res = garResult(ss.str().c_str(), para_sym);
             fRes += res;
@@ -493,7 +493,7 @@ int main(int argc, char** argv) {
         if(c!=19790923) {
             cout << "gar file: " << ss.str() << endl;
             cout << "c=" << c << ", different from 19790923!" << endl;
-            assert(false);
+            exit(1);
         }
         auto relst = ex_to<lst>(ar.unarchive_ex(para_sym, "relst"));
         int max_index;

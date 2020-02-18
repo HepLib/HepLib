@@ -260,7 +260,7 @@ public:
     static const char* cpp;
     
     int ParallelProcess = -1;
-    lst ParallelSymbols = lst{ ep, eps, vs, vz, iEpsilon };
+    lst archiveSymbols = lst{ ep, eps, vs, vz, iEpsilon };
     
     int epN = 0;
     int epsN = 0;
@@ -268,9 +268,9 @@ public:
     int Verbose = 1;
     int PoleRequested = -3;
     exmap nReplacements;
-    vector<lst> FunExp;
+    vector<ex> FunExp;
     vector<ex> Integrands;
-    vector<pair<ex, ex>> expResult;
+    vector<ex> expResult;
     SecDecBase *SecDec = NULL;
     IntegratorBase *Integrator = NULL;
     MinimizeBase *Minimizer = NULL;
@@ -323,13 +323,13 @@ public:
     void XExpands();
     void KillPowers(int bits=1+2);
     bool IsBad(ex f, vector<exmap> vmap);
-    vector<lst> AutoEnd(lst po_ex);
+    vector<ex> AutoEnd(ex po_ex);
     void CIPrepares(const char* key = NULL);
     void Contours(const char * key = NULL, const char *pkey = NULL);
     void Integrates(const char* key = NULL, const char *pkey = NULL, int kid=0);
     void Evaluate(FeynmanParameter fpi, const char *key = NULL);
     void Evaluate(XIntegrand xint, const char *key = NULL);
-    void Evaluate(vector<lst> FunExp, const char *key = NULL);
+    void Evaluate(vector<ex> FunExp, const char *key = NULL);
     void MB();
     void XEnd();
     void ChengWu();
@@ -343,29 +343,27 @@ public:
     static ex PExpand(ex xpol, bool delta=true);
     static int PRank(matrix m);
     static bool Partilize(ex f0, lst delta, lst &in_ret, int mode=0);
-    static void Projectivize(lst &fe, lst delta, ex xsum=0);
-    static void Projectivize(lst &fe, ex delta, ex xsum=0);
-    static void Scalelize(lst &fe, lst xs, ex cy);
-    static void Scalelize(lst &fe, ex xi, ex cy);
-    //static void Binarize(lst &fe, ex const eqn, vector<lst> &add_to);
-    static vector<lst> Binarize(lst const fe, ex const eqn);
+    static void Projectivize(ex &fe, ex delta, ex xsum=0);
+    static void Scalelize(ex &fe, lst xs, ex cy);
+    static void Scalelize(ex &fe, ex xi, ex cy);
+    static vector<ex> Binarize(ex const fe, ex const eqn);
     static int x_free_index(ex expr);
     static int y_free_index(ex expr);
     static bool VerifySD(vector<exmap> vmap, bool quick = true);
     static ex RefinedFT(ex ft);
     
-    static void ChengWu(vector<lst> &FunExp, int verb=0);
-    static vector<lst> ChengWu_Internal(lst fe, int verb=0);
+    static void ChengWu(vector<ex> &FunExp, int verb=0);
+    static vector<ex> ChengWu_Internal(ex fe, int verb=0);
             
 private:
-    vector<lst> DS(const lst po_ex);
-    lst Normalize(const lst &input);
+    vector<ex> DS(const ex po_ex);
+    lst Normalize(const ex &input);
     static int epRank(ex);
     static int epsRank(ex);
     static int vsRank(ex);
     void DoAsy();
-    bool KillPowersWithDelta(lst fe, int kpi);
-    bool KillPowersWithoutDelta(lst fe, int kpi, int bits);
+    bool KillPowersWithDelta(ex fe, int kpi);
+    bool KillPowersWithoutDelta(ex fe, int kpi, int bits);
 
     void CompileMatDet();
     vector<lst> ciResult;

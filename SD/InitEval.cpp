@@ -12,18 +12,10 @@ namespace HepLib {
     }
 
     void SD::Initialize(FeynmanParameter fp) {
-        lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : ParallelSymbols) isyms.append(is);
-        isyms.sort();
-        isyms.unique();
-        ParallelSymbols.remove_all();
-        for(auto is : isyms) {
-            if(is_a<symbol>(is)) ParallelSymbols.append(is);
-        }
         
         if(fp.Propagators.nops() != fp.Exponents.nops()) {
-            cerr << "the length of Propagators and Exponents are NOT equal." << endl;
-            assert(false);
+            cerr << RED << "Initialize: the length of Propagators and Exponents are NOT equal." << RESET << endl;
+            exit(1);
         }
         
         if(fp.Prefactor.is_zero()) {
@@ -34,9 +26,24 @@ namespace HepLib {
         Digits = 50;
         IsZero = false;
         
-        for(auto kv: fp.lReplacements) assert(!(lst{kv.first, kv.second}).has(iEpsilon));
-        for(auto kv: fp.tReplacements) assert(!(lst{kv.first, kv.second}).has(iEpsilon));
-        for(auto kv: fp.nReplacements) assert(!(lst{kv.first, kv.second}).has(iEpsilon));
+        for(auto kv: fp.lReplacements) {
+            if((lst{kv.first, kv.second}).has(iEpsilon)) {
+                cerr << RED << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /1" << RESET << endl;
+                exit(1);
+            }
+        }
+        for(auto kv: fp.tReplacements) {
+            if((lst{kv.first, kv.second}).has(iEpsilon)) {
+                cerr << RED << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /2" << RESET << endl;
+                exit(1);
+            }
+        }
+        for(auto kv: fp.nReplacements) {
+            if((lst{kv.first, kv.second}).has(iEpsilon)) {
+                cerr << RED << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /3" << RESET << endl;
+                exit(1);
+            }
+        }
         
         auto sop = subs_options::algebraic;
         
@@ -109,9 +116,9 @@ namespace HepLib {
             // check loop^2
             for(auto m : ls) {
                 if(!is_a<numeric>(p.coeff(m,2))) {
-                    cout << "not numeric: " << p.coeff(m,2) << endl;
-                    cout << "nsubs = " << nsubs << endl;
-                    assert(false);
+                    cout << RED << "not numeric: " << p.coeff(m,2) << endl;
+                    cout << "nsubs = " << nsubs << RESET << endl;
+                    exit(1);
                 }
                 numeric nm = ex_to<numeric>(p.coeff(m,2));
                 if(nm.is_zero()) continue;
@@ -120,7 +127,10 @@ namespace HepLib {
             }
             // check iEpsilon
             if(sgn.is_zero()) {
-                assert(is_a<numeric>(p.coeff(iEpsilon)));
+                if(!is_a<numeric>(p.coeff(iEpsilon))) {
+                    cerr << RED << "Initialize: (!is_a<numeric>(p.coeff(iEpsilon)))" << RESET << endl;
+                    exit(1);
+                }
                 numeric nm = ex_to<numeric>(p.coeff(iEpsilon));
                 if(!nm.is_zero()) sgn = nm>0 ? -1 : 1;
             }
@@ -128,8 +138,8 @@ namespace HepLib {
             if(sgn.is_zero()) {
                 for(auto m : tls) {
                     if(!is_a<numeric>(p.coeff(m,2))) {
-                        cerr << "not numeric: " << p.coeff(m,2) << endl;
-                        assert(false);
+                        cerr << RED << "not numeric: " << p.coeff(m,2) << RESET << endl;
+                        exit(1);
                     }
                     numeric nm = ex_to<numeric>(p.coeff(m,2));
                     if(nm.is_zero()) continue;
@@ -170,30 +180,38 @@ namespace HepLib {
             }
             rem = normal(rem.subs(lsubs,sop).subs(lsubs,sop));
             u = normal(u.subs(lsubs,sop));
-            for(auto m: tls) assert(!u.has(m));
+            for(auto m: tls) {
+                if(u.has(m)) {
+                    cerr << RED << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
+                    exit(1);
+                }
+            }
             
             cu *= u;
             auto u_nd = numer_denom(u);
             ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
             if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
-            assert(!usgn.is_zero());
+            if(usgn.is_zero()) {
+                cerr << RED << "Initialize: (usgn.is_zero())" << RESET << endl;
+                exit(1);
+            }
             usgn = normal(usgn)>0 ? 1 : -1;
             
             if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << RED << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }) << endl;
-                assert(false);
+                }) << RESET << endl;
+                exit(1);
             }
             if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << RED << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }) << endl;
-                assert(false);
+                }) << RESET << endl;
+                exit(1);
             }
             
             uList1.append(usgn*u_nd.op(0));
@@ -222,30 +240,38 @@ namespace HepLib {
             }
             rem = normal(rem.subs(tsubs,sop));
             u = normal(u.subs(lsubs,sop));
-            for(auto m: tls) assert(!u.has(m));
+            for(auto m: tls) {
+                if(u.has(m)) {
+                    cerr << RED << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
+                    exit(1);
+                }
+            }
             
             cu *= u;
             auto u_nd = numer_denom(u);
             ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
             if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
-            assert(!usgn.is_zero());
+            if(usgn.is_zero()) {
+                cerr << RED << "Initialize: (usgn.is_zero())" << RESET << endl;
+                exit(1);
+            }
             usgn = normal(usgn)>0 ? 1 : -1;
             
             if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << RED << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }) << endl;
-                assert(false);
+                }) << RESET << endl;
+                exit(1);
             }
             if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << RED << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }) << endl;
-                assert(false);
+                }) << RESET << endl;
+                exit(1);
             }
             
             uList1.append(usgn*u_nd.op(0));
@@ -287,15 +313,18 @@ namespace HepLib {
             fList2.append(uList2[i]);
         }
 
-        vector<lst> ret;
+        vector<ex> ret;
         ret.push_back(lst{fList1, fList2});
 
         // negative index
         for(int i=0; i<xn; i++) {
         if(is_a<numeric>(ns.op(i)) && ns.op(i)<0) {
-            assert(ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer());
+            if(!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer()) {
+                cerr << RED << "Initialize: (!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer())" << RESET << endl;
+                exit(1);
+            }
             for(int j=0; j<-ns.op(i); j++) {
-                vector<lst> nret;
+                vector<ex> nret;
                 for(auto fe : ret) {
                     auto plst = ex_to<lst>(fe.op(0));
                     auto nlst = ex_to<lst>(fe.op(1));
@@ -364,7 +393,7 @@ namespace HepLib {
             if(is_a<numeric>(ns.op(i)) && ns.op(i)<=0) continue;
             delta.append(x(i));
         }
-        for(auto &fe : ret) fe.append(lst{delta});
+        for(auto &fe : ret) let_op_append(fe, lst{delta});
         FunExp = ret;
         
         Normalizes();
@@ -374,14 +403,6 @@ namespace HepLib {
     }
     
     void SD::Initialize(XIntegrand xint) {
-        lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : ParallelSymbols) isyms.append(is);
-        isyms.sort();
-        isyms.unique();
-        ParallelSymbols.remove_all();
-        for(auto is : isyms) {
-            if(is_a<symbol>(is)) ParallelSymbols.append(is);
-        }
         
         Digits = 50;
         IsZero = false;
@@ -392,7 +413,7 @@ namespace HepLib {
             auto delta = xint.Deltas.op(di);
             if(!is_a<lst>(delta) || delta.nops()<1) {
                 cout << RED << "Deltas is NOT valide: " << xint.Deltas << RESET << endl;
-                assert(false);
+                exit(1);
             }
         }
 
@@ -408,14 +429,6 @@ namespace HepLib {
     }
     
     void SD::Evaluate(FeynmanParameter fp, const char* key) {
-        lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : ParallelSymbols) isyms.append(is);
-        isyms.sort();
-        isyms.unique();
-        ParallelSymbols.remove_all();
-        for(auto is : isyms) {
-            if(is_a<symbol>(is)) ParallelSymbols.append(is);
-        }
         
         cout << endl << "Starting @ " << now() << endl;
         if(SecDec==NULL) SecDec = new SecDecG();
@@ -444,14 +457,6 @@ namespace HepLib {
     }
 
     void SD::Evaluate(XIntegrand xint, const char *key) {
-        lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : ParallelSymbols) isyms.append(is);
-        isyms.sort();
-        isyms.unique();
-        ParallelSymbols.remove_all();
-        for(auto is : isyms) {
-            if(is_a<symbol>(is)) ParallelSymbols.append(is);
-        }
         
         cout << endl << "Starting @ " << now() << endl;
         if(SecDec==NULL) SecDec = new SecDecG();
@@ -479,15 +484,7 @@ namespace HepLib {
         cout << "Finished @ " << now() << endl << endl;
     }
     
-    void SD::Evaluate(vector<lst> funexp, const char *key) {
-        lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : ParallelSymbols) isyms.append(is);
-        isyms.sort();
-        isyms.unique();
-        ParallelSymbols.remove_all();
-        for(auto is : isyms) {
-            if(is_a<symbol>(is)) ParallelSymbols.append(is);
-        }
+    void SD::Evaluate(vector<ex> funexp, const char *key) {
         
         cout << endl << "Starting @ " << now() << endl;
         if(SecDec==NULL) SecDec = new SecDecG();

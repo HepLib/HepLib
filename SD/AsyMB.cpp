@@ -70,7 +70,7 @@ namespace HepLib {
         if(pr != rp) {
             cout << "pr=" << pr << ", rp=" << rp << endl;
             cout << RED << "projection method does not work!" << RESET << endl;
-            assert(false);
+            exit(1);
         }
         
         auto fs = SecDecG::RunQHull(rp_mat);
@@ -99,7 +99,10 @@ namespace HepLib {
                         eqn += vs2.op(i) * rs_mat(r,i+1);
                     }
                     ex chk = eqn-vs2.op(id);
-                    assert(is_a<numeric>(chk));
+                    if(!is_a<numeric>(chk)) {
+                        cerr << RED << "chk is NOT a number: " << chk << RESET << endl;
+                        exit(1);
+                    }
                     if(chk<0) {
                         bf = false;
                         break;
@@ -127,7 +130,7 @@ namespace HepLib {
     void SD::DoAsy() {
         
         while(true) {
-            vector<lst> funexp;
+            vector<ex> funexp;
             for(auto fe : FunExp) {
                 funexp.push_back(fe);
             }
@@ -136,7 +139,10 @@ namespace HepLib {
             
             bool ret = false;
             for(auto fe : funexp) {
-                assert(fe.nops()>2);
+                if(fe.nops()<=2) {
+                    cerr << RED << "needs 3 elements: " << fe << RESET << endl;
+                    exit(1);
+                }
                 ex ft = fe.op(0).op(1).subs(vs==0);
                 ex eqn;
                 bool ok2 = true;
@@ -246,13 +252,16 @@ namespace HepLib {
                 auto item = fe.op(0).op(i).subs(x(w)==s*y(w)).subs(y(w)==x(w));
                 if(!item.has(s)) continue;
                 item = mma_collect(item, s);
-                assert(item.ldegree(s)==item.degree(s));
+                if(item.ldegree(s)!=item.degree(s)) {
+                    cerr << RED << "Not Homogeneous: " << s << RESET << endl;
+                    exit(1);
+                }
                 expn += item.degree(s) * fe.op(1).op(i);
             }
             auto xsize = get_x_from(fe.op(0)).size();
             if(!normal(expn+xsize).is_zero()) {
                 cout << RED << "expn=" << expn << ", xsize=" << xsize << RESET << endl;
-                assert(false);
+                exit(1);
             }
         }
         
@@ -265,7 +274,7 @@ namespace HepLib {
             ex xpol = 1;
             lst uf;
             for(int i=0; i<fe.op(0).nops(); i++) {
-                if(is_a<numeric>(fe.op(1).op(i)) && ex_to<numeric>(fe.op(1).op(i)).is_nonneg_integer()) continue;
+                if(fe.op(1).op(i).info(info_flags::nonnegint)) continue;
                 uf.append(fe.op(0).op(i));
             }
             uf.sort();
@@ -280,7 +289,7 @@ namespace HepLib {
             auto rs = PExpand(xpol, has_delta);
             if(rs.nops()<1) {
                 cout << RED << "PExpand returned with nothing, even without hard region!" << RESET <<endl;
-                assert(false);
+                exit(1);
             }
             if(Verbose>10) {
                 cout << "  \\--Asy Regions:" << (rs.nops()-1) << endl;
@@ -304,7 +313,10 @@ namespace HepLib {
                 fs = subs(fs, y(w)==x(w));
                 auto es = fe.op(1);
                 ex fpre = fs.op(0);
-                assert((es.op(0)-1).is_zero());
+                if(!(es.op(0)-1).is_zero()) {
+                    cerr << RED << "op(0) is Not 1: " << es << RESET << endl;
+                    exit(1);
+                }
                 
                 lst fs2, es2;
                 for(int j=1; j<fs.nops(); j++) {
@@ -316,7 +328,7 @@ namespace HepLib {
                     } catch(exception &e) {
                         cout << e.what() << endl;
                         cout << WHITE << "non-integer exponent" << RESET << endl;
-                        assert(false);
+                        exit(1);
                     }
                     vs_pow += vsp * es.op(j);
                     tmp = collect_common_factors(tmp)/pow(vs,vsp);
@@ -368,18 +380,18 @@ namespace HepLib {
     void SD::MB() {
         for(auto &fe : FunExp) {
             // check variables besides x or PL
-            // CV should only appear at kv.first.op(0), i.e., the prefactor
+            // CV should only appear at kv.op(0).op(0), i.e., the prefactor
             for(int i=1; i<fe.op(0).nops(); i++) {
                 // make sure only Constant/F terms can contain small variable: vs
                 if(i!=1 && fe.op(0).op(i).has(vz)) {
                     cout << "vz Found @ " << i << " of " << fe.op(0) << endl;
-                    assert(false);
+                    exit(1);
                 }
                 
                 auto tmp = fe.op(0).op(i).subs(lst{x(w)==1,PL(w)==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
                 if(!is_a<numeric>(tmp.evalf())) {
                     cout << RED << "Extra Variable(^[ep,eps,PL,x]) Found: " << RESET << fe.op(0).op(i) << endl;
-                    assert(false);
+                    exit(1);
                 }
             }
         
@@ -388,7 +400,7 @@ namespace HepLib {
                 ft = mma_collect(ft, vs);
                 if(!ft.is_polynomial(vs) || (ft.degree(vs)-1)!=0) {
                     cout << RED << "Not supported F-term with s: " << ft << RESET << endl;
-                    assert(false);
+                    exit(1);
                 }
                 ex expn = -fe.op(1).op(1);
                 // (2*Pi*I) dropped out, since we will take residue later.
@@ -410,7 +422,7 @@ namespace HepLib {
                         cout << RED << "Neither w1 nor w2 is xPositive!" << RESET << endl;
                         cout << "w1=" << w1 << endl;
                         cout << "w2=" << w2 << endl;
-                        assert(false);
+                        exit(1);
                     }
                 }
             }

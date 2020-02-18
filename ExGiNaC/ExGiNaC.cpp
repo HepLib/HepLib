@@ -14,6 +14,118 @@ ex w4 = wild(4);
 ex w5 = wild(5);
 
 /*-----------------------------------------------------*/
+// GiNaC_Parallel
+/*-----------------------------------------------------*/
+vector<ex> GiNaC_Parallel(
+    int nproc, vector<ex> const &invec, std::function<ex(ex const &, int)> f,
+    const char* key, int verb, bool rm, int prtlvl) {
+    
+    auto ppid = getpid();
+    int para_max_run = nproc<0 ? omp_get_num_procs() : nproc;
+    ostringstream cmd;
+    cmd << "mkdir -p " << ppid;
+    system(cmd.str().c_str());
+
+    int total = invec.size();
+    int batch = 1;
+    if(para_max_run>0) batch = total/para_max_run/10;
+    if(batch<1) batch = 1;
+    int btotal = total/batch + ((total%batch)==0 ? 0 : 1);
+
+    for(int bi=0; bi<btotal; bi++) {
+        if(verb > 1) {
+            cout << "\r  ";
+            for(int pi=0;pi<prtlvl;pi++) cout << "   ";
+            cout << "\\--Evaluating ";
+            if(key != NULL) cout << WHITE << key << RESET << " ";
+            cout << WHITE << batch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] ... " << flush;
+        }
+        
+        if(para_max_run>0) {
+            auto pid = fork();
+            if (pid < 0) perror("fork() error");
+            else if (pid != 0) {
+                if(bi >= para_max_run) wait(NULL);
+                continue;
+            }
+        }
+        
+        try {
+            for(int ri=0; ri<batch; ri++) {
+                int i = bi*batch + ri;
+                if(i<total) {
+                    auto item = invec[i];
+                    auto res = f(item, i);
+                    archive ar;
+                    ar.archive_ex(res, "res");
+                    ar.archive_ex(19790923, "c");
+                    ostringstream garfn;
+                    if(key == NULL) garfn << ppid << "/" << i << ".gar";
+                    else garfn << ppid << "/" << i << "." << key << ".gar";
+                    ofstream outs(garfn.str().c_str());
+                    outs << ar;
+                    outs.close();
+                }
+            }
+        } catch(exception &p) {
+            cout << RED << "Failed in GiNaC_Parallel!" << RESET << endl;
+            cout << RED << p.what() << RESET << endl;
+            if(para_max_run>0) exit(0);
+            throw p;
+        }
+        if(para_max_run>0) exit(0);
+    }
+    
+    auto cpid = getpid();
+    if(cpid!=ppid) exit(0); // make sure
+    if(para_max_run>0) while (wait(NULL) != -1) { }
+    if(verb > 1 && total > 0) cout << "@" << now(false) << endl;
+
+    auto syms = gather_symbols(invec);
+    vector<ex> ovec;
+    for(int i=0; i<total; i++) {
+        if(verb > 1) {
+            if(key == NULL) {
+                cout << "\r  ";
+                for(int pi=0; pi<prtlvl; pi++) cout << "   ";
+                cout << "\\--Reading *.gar [" << (i+1) << "/" << total << "] ... " << flush;
+            } else {
+                cout << "\r  ";
+                for(int pi=0;pi<prtlvl;pi++) cout << "   ";
+                cout << "\\--Reading *." << WHITE << key << RESET << ".gar [" << (i+1) << "/" << total << "] ... " << flush;
+            }
+        }
+
+        int oDigits = Digits;
+        Digits = 50; // a fix to float overflow
+        
+        archive ar;
+        ostringstream garfn;
+        if(key == NULL) garfn << ppid << "/" << i << ".gar";
+        else garfn << ppid << "/" << i << "." << key << ".gar";
+        ifstream ins(garfn.str().c_str());
+        ins >> ar;
+        ins.close();
+        remove(garfn.str().c_str());
+        auto c = ar.unarchive_ex(syms, "c");
+        if(c!=19790923) throw runtime_error("*.gar error!");
+        auto res = ar.unarchive_ex(syms, "res");
+        ovec.push_back(res);
+        Digits = oDigits;
+    }
+    
+    if(rm) {
+        cmd.clear();
+        cmd.str("");
+        cmd << "rm -fr " << ppid;
+        system(cmd.str().c_str());
+        system(cmd.str().c_str());
+    }
+    if(verb > 1 && total > 0) cout << "@" << now(false) << endl;
+    return ovec;
+}
+
+/*-----------------------------------------------------*/
 // Global Symbol
 /*-----------------------------------------------------*/
 const symbol & get_symbol(const string & s) {
@@ -56,7 +168,10 @@ bool MatHelper::has_zero_row(const matrix &mat) {
 }
 
 bool MatHelper::is_zero_row(const matrix &mat, int r) {
-    assert(r<mat.rows());
+    if(r>=mat.rows()) {
+        cerr << RED << "r>=mat.rows()" << RESET << endl;
+        exit(1);
+    }
     for(int c=0; c<mat.cols(); c++) {
         if(mat(r, c) !=0 ) return false;
     }
@@ -110,24 +225,10 @@ matrix MatHelper::sub(matrix mat, int r, int nr, int c, int nc) {
 /*-----------------------------------------------------*/
 // lstHelper
 /*-----------------------------------------------------*/
-lst lstHelper::sub(lst m, int s, int n) {
-    lst ret;
-    for(int i=0; (i<=n || n<0) && i+s<m.nops(); i++) ret.append(m.op(s+i));
-    return ret;
-}
-
 ex lstHelper::sum(lst m) {
     ex ret = 0;
     for(int i=0; i<m.nops(); i++) ret += m.op(i);
     return ret;
-}
-
-lst lstHelper::subs(lst m, ex r) {
-    return map(m, [&](auto &&e){return e.subs(r);});
-}
-
-lst lstHelper::subs(lst m, exmap r) {
-    return map(m, [&](auto &&e){return e.subs(r);});
 }
 
 /*-----------------------------------------------------*/
@@ -145,28 +246,26 @@ string now(bool use_date) {
 /*-----------------------------------------------------*/
 // Symbols
 /*-----------------------------------------------------*/
-void gather_symbols_inner(const ex & e, lst & l) {
-    if (is_a<symbol>(e)) {
-        l.append(e);
-    } else {
-        for(auto const &i : e) gather_symbols_inner(i, l);
-    }
-}
-
 lst gather_symbols(const ex & e) {
-    lst l;
-    gather_symbols_inner(e, l);
-    l.sort();
-    l.unique();
-    return l;
+    lst sym_lst;
+    for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
+        if(is_a<symbol>(*i)) sym_lst.append(*i);
+    }
+    sym_lst.sort();
+    sym_lst.unique();
+    return sym_lst;
 }
 
 lst gather_symbols(const vector<ex> & ve) {
-    lst l;
-    for(auto const & e : ve) gather_symbols_inner(e, l);
-    l.sort();
-    l.unique();
-    return l;
+    lst sym_lst;
+    for(auto e : ve) {
+        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
+            if(is_a<symbol>(*i)) sym_lst.append(*i);
+        }
+    }
+    sym_lst.sort();
+    sym_lst.unique();
+    return sym_lst;
 }
 
 /*-----------------------------------------------------*/
@@ -198,9 +297,9 @@ ex garResult(const char *garfn, lst syms) {
     auto c = ar.unarchive_ex(syms, "c");
     auto res = ar.unarchive_ex(syms, "res");
     if(c!=19790923) {
-        cerr << "gar file: " << garfn << endl;
-        cerr << "c=" << c << ", different from 19790923!" << endl;
-        assert(false);
+        cerr << RED << "gar file: " << garfn << endl;
+        cerr << "c=" << c << ", different from 19790923!" << RESET << endl;
+        exit(1);
     }
     return res;
 }
@@ -247,29 +346,24 @@ ex mma_series(ex expr_in, symbol s0, int sn0) {
     numeric sn_lcm = 1;
     for(auto pi : sset) {
         auto sn = pi.op(1);
-        assert(is_a<numeric>(sn) && ex_to<numeric>(sn).is_rational());
+        if(!(is_a<numeric>(sn) && ex_to<numeric>(sn).is_rational())) {
+            cerr << RED << "Not rational sn = " << sn << RESET << endl;
+            exit(1);
+        }
         sn_lcm = lcm(sn_lcm, ex_to<numeric>(sn).denom());
     }
     symbol s;
-    assert(sn_lcm.is_integer());
+    if(!sn_lcm.is_integer()) {
+        cerr << RED << "Not integer: " << sn_lcm << RESET << endl;
+        exit(1);
+    }
     if(sn_lcm<0) sn_lcm = numeric(0)-sn_lcm;
     int sn = sn0 * sn_lcm.to_int();
     expr = expr.subs(pow(s0,w)==pow(s,w*sn_lcm)).subs(s0==pow(s, sn_lcm));
     
     int exN = 1;
     ex expr_input = mma_collect(expr,s,true);
-    
-    // make sure CCF has no s
-    exset cset;
-    expr_input.find(CCF(w), cset);
-    for(auto ccf : cset) {
-        if(ccf.has(s)) {
-            cerr << "ccf = " << ccf << endl;
-            assert(false);
-            break;
-        }
-    }
-    
+        
     while(exN<10) {
         expr = expr_input + pow(s,sn+exN+2)+pow(s,sn+exN+3);
         ex res = expr.series(s, sn+exN);
@@ -285,7 +379,7 @@ ex mma_series(ex expr_in, symbol s0, int sn0) {
             cerr << RED << "Not an Order term: " << ot << RESET << endl;
             cerr << "expr = " << expr << endl;
             cerr << "res = " << res << endl;
-            assert(false);
+            exit(1);
         }
         if(ot.op(0).degree(s)>sn) {
             res = series_to_poly(res);
@@ -300,7 +394,7 @@ ex mma_series(ex expr_in, symbol s0, int sn0) {
         exN++;
     }
     cerr << RED << "mma_series seems not working!" << RESET << endl;
-    assert(false);
+    exit(1);
     return 0;
 }
 
@@ -310,34 +404,72 @@ ex mma_series(ex expr_in, symbol s0, int sn0) {
 ex mma_diff(ex expr, ex xp, unsigned nth, bool expand) {
     symbol s;
     ex res = expr.subs(xp==s);
-    
-    if(expand) {
-        res = mma_collect(res, s, true);
-        
-        // make sure CCF has no s
-        exset cset;
-        res.find(CCF(w), cset);
-        for(auto ccf : cset) {
-            if(ccf.has(s)) {
-                cerr << "ccf = " << ccf << endl;
-                assert(false);
-                break;
-            }
-        }
-    }
-    
+    if(expand) res = mma_collect(res, s, true);
     res = res.diff(s, nth);
     res = res.subs(CCF(w)==w); // remove CCF
     res = res.subs(s==xp);
-    
     return res;
+}
+
+/*-----------------------------------------------------*/
+// mma_expand
+/*-----------------------------------------------------*/
+struct map_CCF : public map_function {
+    ex pat;
+    map_CCF(const ex & pat_) : pat(pat_) {}
+    
+    ex operator()(const ex &e) {
+        if(is_a<add>(e)) {
+            ex res=0, npat=0;
+            for(auto item : e) {
+                if(!item.has(pat)) npat += item;
+                else res += item;
+            }
+            if(is_zero(res)) {
+                if(!is_zero(npat)) return CCF(npat);
+                else return 0;
+            }
+            if(!is_zero(npat)) res += CCF(npat);
+            if(!is_a<add>(res)) {
+                cerr << RED << "res is NOT add: " << res << RESET << endl;
+                exit(1);
+            }
+            return res.map(*this);
+        } else if (is_a<mul>(e)) {
+            ex res=1, npat=1;
+            for(auto item : e) {
+                if(!item.has(pat)) npat *= item;
+                else res *= item;
+            }
+            if(is_zero(res-1)) {
+                if(!is_zero(npat-1)) return CCF(npat);
+                else return 1;
+            }
+            if(!is_zero(npat-1)) res *= CCF(npat);
+            if(!is_a<mul>(res)) {
+                cerr << RED << "res is NOT mul: " << res << RESET << endl;
+                exit(1);
+            }
+            return res.map(*this).expand();
+        } else if(is_a<power>(e) && e.op(1).info(info_flags::nonnegint)) {
+            return e.map(*this).expand();
+        }
+        return e;
+    }
+};
+
+ex mma_expand(ex expr_in, ex pat) {
+    map_CCF ccf(pat);
+    auto expr = ccf(expr_in);
+    expr = expr.subs(CCF(w)==w);
+    return expr;
 }
 
 /*-----------------------------------------------------*/
 // mma_collect
 /*-----------------------------------------------------*/
 ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
-    auto res = expand(expr_in);
+    auto res = mma_expand(expr_in, pat);
     lst items;
     if(is_a<add>(res)) {
         for(auto item : res) items.append(item);
@@ -421,6 +553,27 @@ int xSign(ex const expr) {
 /*-----------------------------------------------------*/
 // let_op extension
 /*-----------------------------------------------------*/
+void let_op_append(ex & ex_in, const ex item) {
+    auto tmp = ex_to<lst>(ex_in);
+    tmp.append(item);
+    ex_in = tmp;
+}
+void let_op_prepend(ex & ex_in, const ex item) {
+    auto tmp = ex_to<lst>(ex_in);
+    tmp.prepend(item);
+    ex_in = tmp;
+}
+void let_op_remove_last(ex & ex_in) {
+    auto tmp = ex_to<lst>(ex_in);
+    tmp.remove_last();
+    ex_in = tmp;
+}
+void let_op_remove_first(ex & ex_in) {
+    auto tmp = ex_to<lst>(ex_in);
+    tmp.remove_first();
+    ex_in = tmp;
+}
+
 void let_op_append(ex & ex_in, int index, ex const item) {
     auto tmp = ex_to<lst>(ex_in.op(index));
     tmp.append(item);
@@ -430,6 +583,11 @@ void let_op_append(lst & ex_in, int index, ex const item) {
     auto tmp = ex_to<lst>(ex_in.op(index));
     tmp.append(item);
     ex_in.let_op(index) = tmp;
+}
+void let_op_append(ex & ex_in, int index1, int index2, ex const item) {
+    auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
+    tmp.append(item);
+    ex_in.let_op(index1).let_op(index2) = tmp;
 }
 void let_op_append(lst & ex_in, int index1, int index2, ex const item) {
     auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));

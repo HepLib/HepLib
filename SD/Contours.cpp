@@ -8,15 +8,6 @@ namespace HepLib {
     void SD::Contours(const char *key, const char *pkey) {
         if(IsZero) return;
         if(Minimizer==NULL) Minimizer = new MinUit();
-        
-        lst isyms = { ep, eps, vs, vz, iEpsilon };
-        for(auto is : ParallelSymbols) isyms.append(is);
-        isyms.sort();
-        isyms.unique();
-        ParallelSymbols.remove_all();
-        for(auto is : isyms) {
-            if(is_a<symbol>(is)) ParallelSymbols.append(is);
-        }
 
         if(key != NULL) {
             ostringstream garfn;
@@ -25,9 +16,9 @@ namespace HepLib {
             ifstream in(garfn.str());
             in >> ar;
             in.close();
-            auto c = ar.unarchive_ex(ParallelSymbols, "c");
+            auto c = ar.unarchive_ex(archiveSymbols, "c");
             if(c!=19790923) throw runtime_error("*.ci.gar error!");
-            FT_N_XN = ex_to<lst>(ar.unarchive_ex(ParallelSymbols, "ftnxn"));
+            FT_N_XN = ex_to<lst>(ar.unarchive_ex(archiveSymbols, "ftnxn"));
         }
         
         //change 2->1 from GiNaC 1.7.7
@@ -53,7 +44,7 @@ namespace HepLib {
         if (module == nullptr) throw std::runtime_error("could not open compiled module!");
 
         vector<ex> res =
-        GiNaC_Parallel(ParallelProcess, ParallelSymbols, ftnxn_vec, [&](auto & ftnxn, auto idx) {
+        GiNaC_Parallel(ParallelProcess, ftnxn_vec, [&](ex const & ftnxn, int idx)->ex {
             // return lst{ ft_n, lst{lambda-i, lambda-max} }
             // with I*[lambda-i]*lambda, lambda < lambda-max
             // note that lambda sequence only matches to x sequence in F-term
@@ -87,7 +78,10 @@ namespace HepLib {
                     fname.str("");
                     fname << "dirF_"<<ftnxn.op(1)<<"_"<<i;
                     dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
-                    assert(dfp!=NULL);
+                    if(dfp==NULL) {
+                        cerr << RED << "Contours: dfp==NULL" << RESET << endl;
+                        exit(1);
+                    }
                     
                     dREAL maxdf = Minimizer->FindMinimum(nvars, dfp, paras);
                     maxdf = -maxdf;
@@ -122,7 +116,10 @@ namespace HepLib {
             fname.str("");
             fname << "imgF_"<<ftnxn.op(1);
             fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
-            assert(fp!=NULL);
+            if(fp==NULL) {
+                cerr << RED << "Contours: fp==NULL" << RESET << endl;
+                exit(1);
+            }
             
             dREAL laBegin = 0, laEnd = CTMax, min;
             dREAL UB[nvars+1];

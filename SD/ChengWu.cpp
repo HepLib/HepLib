@@ -3,7 +3,7 @@
 
 namespace HepLib {
 
-void SD::Projectivize(lst &fe, lst delta, ex xsum) {
+void SD::Projectivize(ex &fe, ex delta, ex xsum) {
     symbol s;
     lst sRepl;
     for(int j=0; j<delta.nops(); j++) sRepl.append(delta.op(j)==delta.op(j)*s);
@@ -39,17 +39,17 @@ void SD::Projectivize(lst &fe, lst delta, ex xsum) {
         let_op_append(fe, 1, ex(0)-over_all_sn);
     }
 }
-void SD::Projectivize(lst &fe, ex delta, ex xsum) {
-    Projectivize(fe, ex_to<lst>(delta), xsum);
-}
 
-void SD::Scalelize(lst &fe, ex xi, ex cy) {
+void SD::Scalelize(ex &fe, ex xi, ex cy) {
     Scalelize(fe, lst{xi}, cy);
 }
-void SD::Scalelize(lst &fe, lst xs, ex cy) {
+void SD::Scalelize(ex &fe, lst xs, ex cy) {
     lst x2y, y2x;
     for(auto xi : xs) {
-        assert(!cy.has(xi));
+        if(cy.has(xi)) {
+            cerr << RED << "Scalelize: cy has xi: " << cy << "/" << xi << RESET << endl;
+            exit(1);
+        }
         auto yi = xi.subs(x(w)==y(w));
         x2y.append(xi==cy*yi);
         y2x.append(yi==xi);
@@ -88,15 +88,21 @@ void SD::Scalelize(lst &fe, lst xs, ex cy) {
     }
 }
 
-vector<lst> SD::Binarize(lst const fe, ex const eqn) {
-    vector<lst> add_to;
+vector<ex> SD::Binarize(ex const fe, ex const eqn) {
+    vector<ex> add_to;
     auto xij = get_x_from(eqn);
-    assert(xij.size()==2);
+    if(xij.size()!=2) {
+        cerr << RED << "Binarize: xij.size()!=2, " << xij << RESET << endl;
+        exit(1);
+    }
     ex xi = xij[0];
     ex xj = xij[1];
     ex ci = eqn.coeff(xi);
     ex cj = eqn.coeff(xj);
-    assert((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0);
+    if(!((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0)) {
+        cerr << RED << "Binarize: ((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0)" << RESET << endl;
+        exit(1);
+    }
     
     ci = abs(ci);
     cj = abs(cj);
@@ -260,8 +266,8 @@ void SD::ChengWu() {
 }
 
 // FunExp & Verbose are local
-void SD::ChengWu(vector<lst> &FunExp, int Verbose) {
-    vector<lst> FunExp2;
+void SD::ChengWu(vector<ex> &FunExp, int Verbose) {
+    vector<ex> FunExp2;
     for(auto fe : FunExp) {
         if(fe.nops()<3 || xSign(fe.op(0).op(1))!=0) {
             let_op_prepend(fe, 0, fe.op(0).op(1));
@@ -290,19 +296,22 @@ void SD::ChengWu(vector<lst> &FunExp, int Verbose) {
 // make sure ft in the first term ONLY appear in ChengWu.cpp
 // input: ft = in_fe.op(0).op(0)
 // ouput: in_op(0).op(0) replaced by 1-ok, 2-nok
-vector<lst> SD::ChengWu_Internal(lst in_fe, int Verbose) {
-    vector<lst> fe_lst, ret_lst;
+vector<ex> SD::ChengWu_Internal(ex in_fe, int Verbose) {
+    vector<ex> fe_lst, ret_lst;
     fe_lst.push_back(in_fe);
     while(true) {
-        vector<lst> fe_lst2;
+        vector<ex> fe_lst2;
         for(int i=0; i<fe_lst.size(); i++) {
             auto fe = fe_lst[i];
             lst ret, delta;
             bool ok = false;
             
             auto ft = get_op(fe, 0, 0);
-            // make sure this assert, otherwise Projectivise may change things
-            assert(get_op(fe, 1, 0).is_zero()); 
+            // make sure, otherwise Projectivise may change things
+            if(!get_op(fe, 1, 0).is_zero()) {
+                cerr << RED << "ChengWu_Internal: (!get_op(fe, 1, 0).is_zero())" << RESET << endl;
+                exit(1);
+            }
             ft = RefinedFT(ft);
             for(int di=0; di<fe.op(2).nops(); di++) {
                 delta = ex_to<lst>(fe.op(2).op(di));
@@ -382,7 +391,10 @@ vector<lst> SD::ChengWu_Internal(lst in_fe, int Verbose) {
                                 break;
                             }
                         }
-                        assert(!xs0.is_zero());
+                        if(xs0.is_zero()) {
+                            cerr << RED << "ChengWu_Internal: (xs0.is_zero())" << RESET << endl;
+                            exit(1);
+                        }
                         delta.append(xfi);
                         let_op_append(fe, 2, 0, xfi);
                         let_op_append(fe, 0, xs0);
@@ -449,9 +461,8 @@ vector<lst> SD::ChengWu_Internal(lst in_fe, int Verbose) {
                 }
                 if(re_xi.is_zero()) {
                     if(rm_xs.nops()!=delta.nops()) {
-                        cout << "rm_xs = " << rm_xs << endl;
-                        cout << "delta = " << delta << endl;
-                        assert(false);
+                        cerr << RED << "rm_xs = " << rm_xs << endl << "delta = " << delta << RESET << endl;
+                        exit(1);
                     }
                     re_xi = rm_xs.op(0);
                 }
@@ -465,8 +476,8 @@ vector<lst> SD::ChengWu_Internal(lst in_fe, int Verbose) {
                     else xNeg.append(xi);
                 }
                 if(!is_zero(new_ft.subs(x(w)==1)-xPos.nops()+xNeg.nops()) && abs(new_ft)!=1) {
-                    cout << new_ft << endl;
-                    assert(false);
+                    cerr << RED << "ChengWu_Internal: new_ft = " << new_ft << RESET << endl;
+                    exit(1);
                 }
                 
                 if((xPos.nops()==1 && xNeg.nops()>1) || (xNeg.nops()==1 && xPos.nops()>1)) {

@@ -72,14 +72,23 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
     }
     //qh_freeqhull(qh_ALL);
     
-    assert(ret.size()>0);
+    if(ret.size()<=0) {
+        cerr << RED << "RunQHull: (ret.size()<=0)" << RESET << endl;
+        exit(1);
+    }
     return ret;
 }
 
 vector<matrix> SecDecG::ZeroFaces(const matrix &pts) {
-    assert(pts.rows()>0);
+    if(pts.rows()<=0) {
+        cerr << RED << "ZeroFaces: (pts.rows()<=0)" << RESET << endl;
+        exit(1);
+    }
     auto zri = MatHelper::zero_row_index(pts);
-    assert(zri.size() > 0);
+    if(zri.size() <= 0) {
+        cerr << RED << "ZeroFaces: (zri.size() <= 0)" << RESET << endl;
+        exit(1);
+    }
     int zpos = zri[0];
     auto QH = RunQHull(pts);
     vector<matrix> ret;
@@ -113,7 +122,10 @@ matrix SecDecG::NormalVectors(const vector<matrix> &zfs) {
         }
         
         matrix tmat = MatHelper::remove_zero_rows(zfs[ii]);
-        assert(tmat.rows() < zfs[ii].rows());
+        if(tmat.rows() >= zfs[ii].rows()) {
+            cerr << RED << "NormalVectors: (tmat.rows() >= zfs[ii].rows())" << RESET << endl;
+            exit(1);
+        }
         
         for(int ti=0; ti<tmat.rows(); ti++) {
             int pos = -1;
@@ -136,7 +148,10 @@ matrix SecDecG::NormalVectors(const vector<matrix> &zfs) {
         }
         
         tmat = MatHelper::remove_zero_rows(tmat);
-        assert(tmat.rows()==tmat.cols()-1);
+        if(tmat.rows()!=tmat.cols()-1) {
+            cerr << RED << "NormalVectors: (tmat.rows()!=tmat.cols()-1)" << RESET << endl;
+            exit(1);
+        }
         matrix tmat2(tmat.cols(), tmat.cols());
         for(int r=0; r<tmat.rows(); r++) {
             for(int c=0; c<tmat.cols(); c++) {
@@ -245,7 +260,10 @@ vector<vector<int>> SecDecG::QHull(const matrix &dc, int dim) {
 }
 
 vector<matrix> SecDecG::Simplexify(const matrix &dc, int dim) {
-    assert(dc.rows()-dim>0);
+    if(dc.rows()-dim<=0) {
+        cerr << RED << "Simplexify: (dc.rows()-dim<=0)" << RESET << endl;
+        exit(1);
+    }
     vector<matrix> ret;
     if(dc.rows() == dim+1) {
         ret.push_back(dc);
@@ -320,14 +338,20 @@ vector<matrix> SecDecG::SimplexCones(matrix pts) {
     auto ds = DualCone(pts);
     if(ds.rows() == 0) return vector<matrix>();
     
-    assert(ds.rows() >= ds.cols());
+    if(ds.rows() < ds.cols()) {
+        cerr << RED << "SimplexCones: (ds.rows() < ds.cols())" << RESET << endl;
+        exit(1);
+    }
     if(ds.rank()<ds.cols()) return vector<matrix>();
     return SimplexifyR(ds, ds.cols()-1);
 }
 
 // return a replacement/transformation, using x(-1) as key for determinant
 vector<exmap> SecDecG::x2y(const ex &xpol) {
-    assert(!xpol.has(y(w)));
+    if(xpol.has(y(w))) {
+        cerr << RED << "SecDecG::x2y, y(w) found @ " << xpol << RESET << endl;
+        exit(1);
+    }
     auto xs = get_xy_from(xpol);
     int nx = xs.size();
     auto pol = mma_collect(xpol, x(w));
@@ -364,7 +388,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
         auto sc = SimplexCones(tmp);
         for(auto isc : sc) vmat.push_back(isc);
     }
-    
+
     vector<map<ex,ex,ex_is_less>> ret;
     for(int vi=0; vi<vmat.size(); vi++) {
         matrix &tmp = vmat[vi];
@@ -391,12 +415,8 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
                 tt = tt*pow(y(m), tmp(n,m));
             }
             transmap[xs[n]] = tt;
-            for(int m=0; m<nx; m++) {
-                symbol s;
-                Dxy(n, m) = mma_diff(tt, y(m));
-            }
+            for(int m=0; m<nx; m++) Dxy(n, m) = mma_diff(tt, y(m));
         }
-        
         transmap[x(-1)] = Dxy.determinant();
         ret.push_back(transmap);
     }

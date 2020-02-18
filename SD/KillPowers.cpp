@@ -3,7 +3,7 @@
 
 namespace HepLib {
 
-bool SD::KillPowersWithDelta(lst fe, int kpi) {
+bool SD::KillPowersWithDelta(ex fe, int kpi) {
     if(fe.op(0).op(fe.op(0).nops()-1)==WF(1) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
         FunExp.push_back(fe);
         return false;
@@ -110,7 +110,8 @@ bool SD::KillPowersWithDelta(lst fe, int kpi) {
             }
             FunExp.push_back(lst{f2,e2,fe.op(2)});
         } else {
-            assert(false);
+            cerr << RED << "KillPowerWithDelta: Not Expected Region." << RESET << endl;
+            exit(1);
         }
         return true;
     }
@@ -122,7 +123,7 @@ bool SD::KillPowersWithDelta(lst fe, int kpi) {
     return false;
 }
 
-bool SD::KillPowersWithoutDelta(lst fe, int kpi, int bits) {
+bool SD::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
     if(is_zero(fe.op(0).op(fe.op(0).nops()-1)-WF(1)) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
         FunExp.push_back(fe);
         return false;
@@ -456,7 +457,7 @@ void SD::KillPowers(int bits) {
             cout << "Warning: kip>10, (kpi=" << kpi << ") maybe a dead loop!" << endl;
         }
         
-        vector<lst> funexp;
+        vector<ex> funexp;
         for(auto fe : FunExp) {
             funexp.push_back(fe);
         }
