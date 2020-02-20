@@ -254,10 +254,12 @@ public:
     static const symbol eps;
     static const symbol vs;
     static const symbol vz;
+    static const symbol epz;
     static const realsymbol NaN;
     static bool use_dlclose;
     static bool debug;
     static const char* cpp;
+    SD();
     
     int ParallelProcess = -1;
     lst archiveSymbols = lst{ ep, eps, vs, vz, iEpsilon };

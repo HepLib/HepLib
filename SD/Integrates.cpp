@@ -30,7 +30,6 @@ namespace HepLib {
             auto res = ar.unarchive_ex(archiveSymbols, "res");
             ciResult.clear();
             for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
-            
             garfn.clear();
             garfn.str("");
             garfn << key;
@@ -105,7 +104,7 @@ namespace HepLib {
         int total = ciResult.size(), current = 0;
         qREAL stot = sqrtq(total*1.Q);
         ResultError = 0;
-        
+
         for(auto &item : ciResult) {
             current++;
             if(kid>0 && current != kid) continue;

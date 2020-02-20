@@ -402,22 +402,22 @@ namespace HepLib {
                     cout << RED << "Not supported F-term with s: " << ft << RESET << endl;
                     exit(1);
                 }
-                ex expn = -fe.op(1).op(1);
+                ex expn = ex(0)-fe.op(1).op(1);
                 // (2*Pi*I) dropped out, since we will take residue later.
-                fe.let_op(0).let_op(0) = fe.op(0).op(0) * tgamma(expn+vz)*tgamma(-vz)/tgamma(expn)*pow(vs,vz);
+                fe.let_op(0).let_op(0) = fe.op(0).op(0) * tgamma(expn+vz)*tgamma(ex(0)-vz)/tgamma(expn)*pow(vs,vz);
                 ex w1 = ft.coeff(vs);
                 ex w2 = ft.subs(vs==0);
                 if(!w2.is_zero()) {
                     if(xPositive(w1)) {
                         fe.let_op(0).let_op(1) = w2;
+                        fe.let_op(1).let_op(1) = fe.op(1).op(1)-vz-epz;
                         let_op_append(fe, 0, w1);
-                        fe.let_op(1).let_op(1) = fe.op(1).op(1)-vz;
                         let_op_append(fe, 1, vz);
                     } else if(xPositive(w2)) {
                         fe.let_op(0).let_op(1) = w1;
-                        let_op_append(fe, 0, w2);
                         fe.let_op(1).let_op(1) = vz;
-                        let_op_append(fe, 1, fe.op(1).op(1)-vz);
+                        let_op_append(fe, 0, w2);
+                        let_op_append(fe, 1, fe.op(1).op(1)-vz-epz);
                     } else {
                         cout << RED << "Neither w1 nor w2 is xPositive!" << RESET << endl;
                         cout << "w1=" << w1 << endl;

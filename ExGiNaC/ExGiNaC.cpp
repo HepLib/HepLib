@@ -1,4 +1,4 @@
-#include "SD.h"
+#include "ExGiNaC.h"
 
 namespace HepLib {
 
@@ -12,6 +12,7 @@ ex w2 = wild(2);
 ex w3 = wild(3);
 ex w4 = wild(4);
 ex w5 = wild(5);
+lst GiNaC_Parallel_Symbols = lst{};
 
 /*-----------------------------------------------------*/
 // GiNaC_Parallel
@@ -82,6 +83,9 @@ vector<ex> GiNaC_Parallel(
     if(verb > 1 && total > 0) cout << "@" << now(false) << endl;
 
     auto syms = gather_symbols(invec);
+    for(auto si : GiNaC_Parallel_Symbols) syms.append(si);
+    syms.sort();
+    syms.unique();
     vector<ex> ovec;
     for(int i=0; i<total; i++) {
         if(verb > 1) {
@@ -112,6 +116,11 @@ vector<ex> GiNaC_Parallel(
         auto res = ar.unarchive_ex(syms, "res");
         ovec.push_back(res);
         Digits = oDigits;
+    }
+    auto syms2 = gather_symbols(ovec);
+    if(syms2.nops()>syms.nops()) {
+        cerr << RED << "GiNaC_Parallel: new symbol found: " << syms << " :> " << syms2 << RESET << endl;
+        exit(1);
     }
     
     if(rm) {
@@ -337,7 +346,7 @@ lst xlst(int ei) {
 /*-----------------------------------------------------*/
 // Series at s=0 similar to Mathematica
 /*-----------------------------------------------------*/
-ex mma_series(ex expr_in, symbol s0, int sn0) {
+ex mma_series(ex const expr_in, symbol const s0, int sn0) {
     ex expr = expr_in;
     if(!expr.has(s0)) return expr;
     
@@ -347,7 +356,9 @@ ex mma_series(ex expr_in, symbol s0, int sn0) {
     for(auto pi : sset) {
         auto sn = pi.op(1);
         if(!(is_a<numeric>(sn) && ex_to<numeric>(sn).is_rational())) {
-            cerr << RED << "Not rational sn = " << sn << RESET << endl;
+            cerr << RED << "mma_series: Not rational sn = " << sn << RESET << endl;
+            cerr << "s = " << s0 << endl;
+            cerr << "expr_in = " << expr_in << endl;
             exit(1);
         }
         sn_lcm = lcm(sn_lcm, ex_to<numeric>(sn).denom());
@@ -401,7 +412,7 @@ ex mma_series(ex expr_in, symbol s0, int sn0) {
 /*-----------------------------------------------------*/
 // mma_diff
 /*-----------------------------------------------------*/
-ex mma_diff(ex expr, ex xp, unsigned nth, bool expand) {
+ex mma_diff(ex const expr, ex const xp, unsigned nth, bool expand) {
     symbol s;
     ex res = expr.subs(xp==s);
     if(expand) res = mma_collect(res, s, true);
@@ -415,15 +426,22 @@ ex mma_diff(ex expr, ex xp, unsigned nth, bool expand) {
 // mma_expand
 /*-----------------------------------------------------*/
 struct map_CCF : public map_function {
-    ex pat;
-    map_CCF(const ex & pat_) : pat(pat_) {}
+    lst pats;
+    map_CCF(lst const & pats_) : pats(pats_) {}
     
     ex operator()(const ex &e) {
         if(is_a<add>(e)) {
             ex res=0, npat=0;
             for(auto item : e) {
-                if(!item.has(pat)) npat += item;
-                else res += item;
+                bool has_pat = false;
+                for(auto pat : pats) {
+                    if(item.has(pat)) {
+                        has_pat = true;
+                        break;
+                    }
+                }
+                if(has_pat) res += item;
+                else npat += item;
             }
             if(is_zero(res)) {
                 if(!is_zero(npat)) return CCF(npat);
@@ -438,8 +456,15 @@ struct map_CCF : public map_function {
         } else if (is_a<mul>(e)) {
             ex res=1, npat=1;
             for(auto item : e) {
-                if(!item.has(pat)) npat *= item;
-                else res *= item;
+                bool has_pat = false;
+                for(auto pat : pats) {
+                    if(item.has(pat)) {
+                        has_pat = true;
+                        break;
+                    }
+                }
+                if(has_pat) res *= item;
+                else npat *= item;
             }
             if(is_zero(res-1)) {
                 if(!is_zero(npat-1)) return CCF(npat);
@@ -458,18 +483,22 @@ struct map_CCF : public map_function {
     }
 };
 
-ex mma_expand(ex expr_in, ex pat) {
-    map_CCF ccf(pat);
+ex mma_expand(ex const expr_in, lst const pats) {
+    map_CCF ccf(pats);
     auto expr = ccf(expr_in);
     expr = expr.subs(CCF(w)==w);
     return expr;
+}
+ex mma_expand(ex const expr_in, const ex pat) {
+    if(is_a<lst>(pat)) return mma_expand(expr_in, ex_to<lst>(pat));
+    else return mma_expand(expr_in, lst{pat});
 }
 
 /*-----------------------------------------------------*/
 // mma_collect
 /*-----------------------------------------------------*/
-ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
-    auto res = mma_expand(expr_in, pat);
+ex mma_collect(ex const expr_in, lst const pats, bool ccf, bool cvf) {
+    auto res = mma_expand(expr_in, pats);
     lst items;
     if(is_a<add>(res)) {
         for(auto item : res) items.append(item);
@@ -478,18 +507,30 @@ ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
     ex cf = 0;
     map<ex, ex, ex_is_less> vc_map;
     for(auto item : items) {
-        if(!item.has(pat)) cf += item;
-        else {
-            if(is_a<mul>(item)) {
-                ex tc = 1, tf = 1;
-                for(auto ii : item) {
-                    if(!ii.has(pat)) tc *= ii;
-                    else tf *= ii;
-                }
-                vc_map[tf] += tc;
-            } else {
-                vc_map[item] += 1;
+        bool has_pat = false;
+        for(auto pat : pats) {
+            if(item.has(pat)) {
+                has_pat = true;
+                break;
             }
+        }
+        if(!has_pat) cf += item;
+        else if(is_a<mul>(item)) {
+            ex tc = 1, tf = 1;
+            for(auto ii : item) {
+                bool has_pat2 = false;
+                for(auto pat : pats) {
+                    if(ii.has(pat)) {
+                        has_pat2 = true;
+                        break;
+                    }
+                }
+                if(!has_pat2) tc *= ii;
+                else tf *= ii;
+            }
+            vc_map[tf] += tc;
+        } else {
+            vc_map[item] += 1;
         }
     }
     res = 0;
@@ -501,6 +542,10 @@ ex mma_collect(ex expr_in, ex pat, bool ccf, bool cvf) {
     if(!ccf) res = res.subs(CCF(w)==w);
     if(!cvf) res = res.subs(CVF(w)==w);
     return res;
+}
+ex mma_collect(ex const expr_in, ex const pat, bool ccf, bool cvf) {
+    if(is_a<lst>(pat)) return mma_collect(expr_in, ex_to<lst>(pat), ccf, cvf);
+    else return mma_collect(expr_in, lst{pat}, ccf, cvf);
 }
 
 /*-----------------------------------------------------*/

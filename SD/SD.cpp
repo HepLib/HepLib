@@ -5,10 +5,23 @@
 
 namespace HepLib {
 
+    SD::SD() {
+        GiNaC_Parallel_Symbols.append(ep);
+        GiNaC_Parallel_Symbols.append(eps);
+        GiNaC_Parallel_Symbols.append(vs);
+        GiNaC_Parallel_Symbols.append(vz);
+        GiNaC_Parallel_Symbols.append(epz);
+        GiNaC_Parallel_Symbols.append(iEpsilon);
+        GiNaC_Parallel_Symbols.append(NaN);
+        GiNaC_Parallel_Symbols.sort();
+        GiNaC_Parallel_Symbols.unique();
+    }
+
     symbol const SD::ep("ep");
     symbol const SD::eps("eps");
     symbol const SD::vs("s");
-    symbol const SD::vz("z");
+    symbol const SD::vz("vz");
+    symbol const SD::epz("epz");
     symbol const SD::iEpsilon("iEpsilon");
     realsymbol const SD::NaN("NaN");
     bool SD::use_dlclose = true;
@@ -339,6 +352,7 @@ namespace HepLib {
         vector<exmap> vmap = SecDec->x2y(sdList, all_in_one);
         if(!VerifySD(vmap)) {
             cerr << RED << "VerifySD Failed!" << RESET << endl;
+            for(auto vi : vmap) cout << vi << endl;
             exit(1);
         }
 
@@ -560,7 +574,7 @@ namespace HepLib {
                                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                                 });
                                 if(!is_a<numeric>(tr)) {
-                                    cerr << RED << "DS: tr is NOT numeric with nReplacements." << RESET << endl;
+                                    cerr << RED << "Normalize: tr is NOT numeric with nReplacements." << RESET << endl;
                                     cerr << "tmp: " << tmp << endl;
                                     cerr << "nReplacements: " << nReplacements << endl;
                                     exit(1);
@@ -638,6 +652,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // working with or without Deltas
     void SD::XReOrders() {
+return; //TODO: delete
         if(IsZero) return;
         if(Integrands.size()<1) {
             for(auto &fe : FunExp) {
@@ -904,7 +919,7 @@ namespace HepLib {
                             auto fun = fe.op(0).op(j);
                             fun = fun.subs(repl).normal();
                             if(!fun.is_polynomial(xj)) {
-                                cerr << RED << "DS: fun is NOT polynormial of xj." << RED << endl;
+                                cerr << RED << "RemoveDeltas: fun is NOT polynormial of xj." << RED << endl;
                                 cerr << "xj: " << xj << endl;
                                 cerr << "fun: " << fun << endl;
                                 std::exit(1);
@@ -986,41 +1001,42 @@ namespace HepLib {
         }
         
         if(Verbose > 0) cout << now() << " - SDPrepares: ..." << endl << flush;
-            
         vector<ex> sd_res =
         GiNaC_Parallel(ParallelProcess, FunExp, [&](ex const &fe, int idx)->ex {
             // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
             lst para_res_lst;
-            vector<ex> xns_pns = DS(fe);
+            auto xns_pns = DS(fe);
 
             for(auto const &item : xns_pns) {
-
+        
                 // take z-poles
                 if(item.has(vz)) {
                     auto ct = item.op(1).op(0).op(0);
                     ct = ct.subs(lst{ CT(w)==w,FTX(w1,w2)==1 }).subs(pow(vs,vz)==1);
                     int sNN = sN - vsRank(ct.subs(pow(vs,vz)==1));
-                
+
                     lst zpols;
                     // poles from Gamma(-z)
-                    for(int vn=0; vn<=sNN; vn++) {
-                        zpols.append(vn);
-                    }
-                    // poles from xi^{c1*z+c0}
+                    for(int vn=0; vn<=sNN; vn++) zpols.append(vn);
+
+                    // poles from xi^{c1*z+c0} with c1<0
                     for(auto xn : item.op(0)) {
-                        if(!is_a<numeric>(xn.op(1).coeff(vz))) {
-                            cerr << RED << "DS: (!is_a<numeric>(xn.op(1).coeff(vz)))" << RESET << endl;
+                        auto xn_op1 = xn.op(1).normal().expand();
+                        ex c1 = xn_op1.coeff(vz);
+                        ex c0 = xn_op1.subs(vz==0);
+                        
+                        if(!is_a<numeric>(c1)) {
+                            cerr << RED << "SDPrepares: c1 is not a number: " << c1 << RESET << endl;
                             exit(1);
                         }
-                        if(xn.op(1).coeff(vz)<0) {
-                            ex c0 = xn.op(1).coeff(vz, 0);
-                            ex c1 = xn.op(1).coeff(vz, 1);
+                        
+                        if(c1<0) {
                             int pxn = -1;
                             while(true) {
                                 ex zp = (pxn-c0)/c1;
-                                ex zpn = zp.subs(lst{eps==0,ep==0});
+                                ex zpn = zp.subs(lst{eps==0,ep==0,epz==0});
                                 if(!is_a<numeric>(zpn)) {
-                                    cerr << RED << "DS: Not a number " << zpn << RESET << endl;
+                                    cerr << RED << "SDPrepares: zpn is not a number: " << zpn << RESET << endl;
                                     exit(1);
                                 }
                                 if(zpn>sNN) break;
@@ -1031,20 +1047,11 @@ namespace HepLib {
                     }
                     zpols.sort();
                     zpols.unique();
-                    
+
                     symbol ss;
                     for(auto zp : zpols) {
-                        auto xn = item.op(0);
-                        auto pn = item.op(1);
-                        for(int i=0; i<xn.nops(); i++) {
-                            xn.let_op(i).let_op(0) = xn.op(i).op(0).subs(vz==ss+zp).subs(ss==vz);
-                            xn.let_op(i).let_op(1) = xn.op(i).op(1).subs(vz==ss+zp).subs(ss==vz);
-                        }
-                        for(int i=0; i<pn.nops(); i++) {
-                            pn.let_op(i).let_op(0) = pn.op(i).op(0).subs(vz==ss+zp).subs(ss==vz);
-                            pn.let_op(i).let_op(1) = pn.op(i).op(1).subs(vz==ss+zp).subs(ss==vz);
-                        }
-                        para_res_lst.append(lst{xn, pn});
+                        auto item2 = item.subs(vz==ss+zp).subs(ss==vz);
+                        para_res_lst.append(item2);
                     }
                 } else {
                     para_res_lst.append(item);
@@ -1073,7 +1080,8 @@ namespace HepLib {
                 else if((ex(0)-expn)>=2) sim_max = 50;
                 else sim_max = 100;
                 
-                //sim_max = 0; //disable sim
+                //sim_max = 1000000; // disable expand
+                //sim_max = 0; // all expand
                             
                 lst xns = ex_to<lst>(it.op(0));
                 lst pns;
@@ -1087,7 +1095,7 @@ namespace HepLib {
                     } else if(i<2 || pn.op(0)!=1) {
                         pns.append(pn);
                     } else {
-                        cerr << RED << "DS: UnExpected Region!" << RESET << endl;
+                        cerr << RED << "SDPrepares: UnExpected Region!" << RESET << endl;
                         exit(1);
                     }
                 }
@@ -1095,6 +1103,7 @@ namespace HepLib {
                 ibp_in_vec.push_back(lst{xns, pns});
             }
         }
+
         if(Verbose > 1) cout << "  \\--" << WHITE << "Maximum x^n: (" << ex(0)-min_expn << "+1) / " << (ex(0)-min_expn2) << RESET << endl << flush;
 
         int pn = 0;
@@ -1122,9 +1131,9 @@ namespace HepLib {
                 
                 for(int n=0; n<xns.nops(); n++) {
                     ex xn = xns.op(n);
-                    auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0}).normal();
+                    auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0,epz==0}).normal();
                     if(!is_a<numeric>(expn)) {
-                        cout << RED << "DS: expn NOT numeric: " << expn << RESET << endl;
+                        cout << RED << "SDPrepares: expn NOT numeric: " << expn << RESET << endl;
                         exit(1);
                     }
 
@@ -1237,9 +1246,9 @@ namespace HepLib {
             lst exprs = { expr };
             symbol dx;
             for(auto xn : xns) {
-                auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0}).normal();
+                auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0,epz==0}).normal();
                 if(!is_a<numeric>(expn)) {
-                    cerr << RED << "DS: Not a number with expn = " << expn << RESET << endl;
+                    cerr << RED << "SDPrepares: Not a number with expn = " << expn << RESET << endl;
                     exit(1);
                 }
                 
@@ -1266,18 +1275,11 @@ namespace HepLib {
             }
 
             for(auto const &it : exprs) {
-                if(!it.is_zero()) para_res_lst.append(it);
-            }
-         
-            for(int i=0; i<para_res_lst.nops(); i++) {
-                auto xs = get_x_from(para_res_lst.op(i));
-                
+                if(it.is_zero()) continue;
+                auto xs = get_x_from(it);
                 lst x2y;
-                for(int i=0; i<xs.size(); i++) {
-                    x2y.append(xs[i]==y(i));
-                }
-                
-                para_res_lst.let_op(i) = para_res_lst.op(i).subs(x2y).subs(y(w)==x(w));
+                for(int i=0; i<xs.size(); i++) x2y.append(xs[i]==y(i));
+                para_res_lst.append(it.subs(x2y).subs(y(w)==x(w)));
             }
 
             //deleted from GiNaC 1.7.7
@@ -1346,7 +1348,7 @@ namespace HepLib {
             exset cts;
             item.find(CT(w), cts);
             if(cts.size() != 1) {
-                cerr << RED << "DS: CT size is NOT 1: " RESET << endl;
+                cerr << RED << "EpsEpExpands: CT size is NOT 1: " RESET << endl;
                 cerr << "cts: " << cts << endl;
                 cerr << "item: " << item << endl;
                 exit(1);
@@ -1373,14 +1375,24 @@ namespace HepLib {
             exset cts;
             item.find(CT(w), cts);
             if(cts.size() != 1) {
-                cerr << RED << "DS: CT size is NOT 1: " << RESET << endl;
+                cerr << RED << "EpsEpExpands: CT size is NOT 1: " << RESET << endl;
                 cerr << "cts: " << cts << endl;
                 cerr << "item: " << item << endl;
                 exit(1);
             }
             ex ct = (*(cts.begin())).subs(CT(w)==w).subs(iEpsilon==0);
+            if(ct.has(epz)) {
+                cerr << RED << "EpsEpExpands: ct has epz: " << ct << RESET << endl;
+                exit(1);
+            }
+            
             auto it = item.subs(CT(w)==1);
-            it = mma_collect(it, vs, true);
+            if(it.has(epz)) {
+                it = mma_series(it,epz,0);
+if(!is_zero(it.coeff(epz,-1))) cout << GREEN <<  it.coeff(epz,-1) << RESET << endl;
+            }
+            
+            it = mma_collect(it, lst{epz, vs}, true);
             lst its;
             if(is_a<add>(it)) {
                 for(auto ii : it) its.append(ii);
@@ -1402,7 +1414,7 @@ namespace HepLib {
                     for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                         auto intg = tmp.coeff(ep, di);
                         if(intg.has(ep)) {
-                            cerr << RED << "DS: ep found @ intg = " << intg << RESET << endl;
+                            cerr << RED << "EpsEpExpands: ep found @ intg = " << intg << RESET << endl;
                             exit(1);
                         }
                         auto pref = mma_series(ct2, ep, epN-di);
@@ -1418,7 +1430,7 @@ namespace HepLib {
                         tmp = stmp.coeff(eps, sdi);
                         //if(use_CCF) tmp = collect_common_factors(tmp);
                         if(tmp.has(eps)) {
-                            cerr << RED << "DS: eps found @ tmp = " << tmp << RESET << endl;
+                            cerr << RED << "EpsEpExpands: eps found @ tmp = " << tmp << RESET << endl;
                             exit(1);
                         }
                         auto ct2 = mma_series(sct, eps, epsN-sdi);
@@ -1427,7 +1439,7 @@ namespace HepLib {
                         for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                             auto intg = tmp.coeff(ep, di);
                             if(intg.has(ep)) {
-                                cerr << RED << "DS: ep found @ intg = " << intg << RESET << endl;
+                                cerr << RED << "EpsEpExpands: ep found @ intg = " << intg << RESET << endl;
                                 exit(1);
                             }
                             auto pref = mma_series(ct2, ep, epN-di);

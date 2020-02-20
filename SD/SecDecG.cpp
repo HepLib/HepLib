@@ -355,7 +355,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     auto xs = get_xy_from(xpol);
     int nx = xs.size();
     auto pol = mma_collect(xpol, x(w));
-    long long int np = is_a<add>(pol) ? pol.nops() : 1;
+    int np = is_a<add>(pol) ? pol.nops() : 1;
     
     if(nx<2 || np<2) {
         vector<exmap> vmap;

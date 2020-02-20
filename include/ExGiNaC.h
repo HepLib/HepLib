@@ -115,6 +115,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // vector : GiNaC_Parallel
     /*-----------------------------------------------------*/
+    extern lst GiNaC_Parallel_Symbols;
     vector<ex> GiNaC_Parallel(
         int nproc,
         vector<ex> const &invec,
@@ -171,10 +172,12 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Series at s=0 similar to Mathematica
     /*-----------------------------------------------------*/
-    ex mma_series(ex expr, symbol s, int sn);
-    ex mma_expand(ex expr, ex pat);
-    ex mma_collect(ex expr, ex pat, bool ccf=false, bool cvf=false);
-    ex mma_diff(ex expr, ex xp, unsigned nth=1, bool expand=true);
+    ex mma_series(ex const expr, symbol const s, int sn);
+    ex mma_expand(ex const expr, lst const pats);
+    ex mma_expand(ex const expr, ex const pat);
+    ex mma_collect(ex const expr, lst const pat, bool ccf=false, bool cvf=false);
+    ex mma_collect(ex const expr, ex const pat, bool ccf=false, bool cvf=false);
+    ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=true);
 
     /*-----------------------------------------------------*/
     // Evalf
