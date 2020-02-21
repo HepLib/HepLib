@@ -115,7 +115,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // vector : GiNaC_Parallel
     /*-----------------------------------------------------*/
-    extern lst GiNaC_Parallel_Symbols;
+    extern lst GiNaC_archive_Symbols;
     vector<ex> GiNaC_Parallel(
         int nproc,
         vector<ex> const &invec,
@@ -130,7 +130,9 @@ namespace HepLib {
     // Helpers
     /*-----------------------------------------------------*/
     string RunOS(const char * cmd);
-    ex garResult(const char *garfn, lst syms);
+    void garRead(const char *garfn, map<string, ex> &resMap);
+    ex garRead(const char *garfn, const char* key);
+    ex garResult(const char *garfn);
     ex str2ex(const char *expr, symtab stab);
     lst str2lst(const char *expr, symtab stab);
     lst xlst(int ei);
@@ -173,8 +175,9 @@ namespace HepLib {
     // Series at s=0 similar to Mathematica
     /*-----------------------------------------------------*/
     ex mma_series(ex const expr, symbol const s, int sn);
-    ex mma_expand(ex const expr, lst const pats);
-    ex mma_expand(ex const expr, ex const pat);
+    bool has_pats(ex const &item, lst const &pats);
+    ex mma_expand(ex const &expr, lst const &pats, int depth=0);
+    ex mma_expand(ex const &expr, ex const &pat, int depth=0);
     ex mma_collect(ex const expr, lst const pat, bool ccf=false, bool cvf=false);
     ex mma_collect(ex const expr, ex const pat, bool ccf=false, bool cvf=false);
     ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=true);

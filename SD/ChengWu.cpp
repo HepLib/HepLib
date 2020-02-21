@@ -40,10 +40,11 @@ void SD::Projectivize(ex &fe, ex delta, ex xsum) {
     }
 }
 
-void SD::Scalelize(ex &fe, ex xi, ex cy) {
-    Scalelize(fe, lst{xi}, cy);
+void SD::Scalelize(ex &fe, const ex xi, const ex cy) {
+    if(is_a<lst>(xi)) Scalelize(fe, ex_to<lst>(xi), cy);
+    else Scalelize(fe, lst{xi}, cy);
 }
-void SD::Scalelize(ex &fe, lst xs, ex cy) {
+void SD::Scalelize(ex &fe, const lst xs, const ex cy) {
     lst x2y, y2x;
     for(auto xi : xs) {
         if(cy.has(xi)) {

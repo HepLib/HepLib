@@ -379,6 +379,14 @@ namespace HepLib {
     
     void SD::MB() {
         for(auto &fe : FunExp) {
+            if(fe.has(vz)) continue; // 2nd entrance
+            
+            // check epz
+            if(fe.has(epz)) {
+                cout << RED << "MB: epz found at fe = " << fe << RESET << endl;
+                exit(1);
+            }
+            
             // check variables besides x or PL
             // CV should only appear at kv.op(0).op(0), i.e., the prefactor
             for(int i=1; i<fe.op(0).nops(); i++) {

@@ -25,9 +25,9 @@ namespace HepLib {
             ifstream in(garfn.str());
             in >> ar;
             in.close();
-            auto c = ar.unarchive_ex(archiveSymbols, "c");
+            auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
             if(c!=19790923) throw runtime_error("*.ci.gar error!");
-            auto res = ar.unarchive_ex(archiveSymbols, "res");
+            auto res = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
             ciResult.clear();
             for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
             garfn.clear();
@@ -40,8 +40,8 @@ namespace HepLib {
                 ifstream la_in(garfn.str());
                 la_in >> la_ar;
                 la_in.close();
-                auto la_c = la_ar.unarchive_ex(archiveSymbols, "c");
-                auto la_res = la_ar.unarchive_ex(archiveSymbols, "res");
+                auto la_c = la_ar.unarchive_ex(GiNaC_archive_Symbols, "c");
+                auto la_res = la_ar.unarchive_ex(GiNaC_archive_Symbols, "res");
                 if(la_c!=19790923) throw runtime_error("*.ci.gar error!");
                 for(auto item : ex_to<lst>(la_res)) {
                     LambdaMap[item.op(0)] = item.op(1);
@@ -63,8 +63,8 @@ namespace HepLib {
                 ifstream res_in(garfn.str());
                 res_in >> res_ar;
                 res_in.close();
-                auto res_c = res_ar.unarchive_ex(archiveSymbols, "c");
-                auto relst = res_ar.unarchive_ex(archiveSymbols, "relst");
+                auto res_c = res_ar.unarchive_ex(GiNaC_archive_Symbols, "c");
+                auto relst = res_ar.unarchive_ex(GiNaC_archive_Symbols, "relst");
                 if(res_c!=19790923) throw runtime_error("*.res.gar error with kid!");
                 lstRE = ex_to<lst>(relst);
             }
@@ -154,7 +154,7 @@ namespace HepLib {
                     }
 
                     for(int ci=0; ci<css.nops(); ci++) {
-                        auto nt = css.op(ci).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{
+                        auto nt = css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{
                             CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                         }).evalf();
                         if(!is_a<numeric>(nt)) {

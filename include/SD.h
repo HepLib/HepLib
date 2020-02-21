@@ -261,9 +261,7 @@ public:
     static const char* cpp;
     SD();
     
-    int ParallelProcess = -1;
-    lst archiveSymbols = lst{ ep, eps, vs, vz, iEpsilon };
-    
+    int ParallelProcess = -1;    
     int epN = 0;
     int epsN = 0;
     int sN = 0;
@@ -346,8 +344,8 @@ public:
     static int PRank(matrix m);
     static bool Partilize(ex f0, lst delta, lst &in_ret, int mode=0);
     static void Projectivize(ex &fe, ex delta, ex xsum=0);
-    static void Scalelize(ex &fe, lst xs, ex cy);
-    static void Scalelize(ex &fe, ex xi, ex cy);
+    static void Scalelize(ex &fe, const lst xs, const ex cy);
+    static void Scalelize(ex &fe, const ex xi, const ex cy);
     static vector<ex> Binarize(ex const fe, ex const eqn);
     static int x_free_index(ex expr);
     static int y_free_index(ex expr);

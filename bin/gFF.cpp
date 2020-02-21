@@ -17,7 +17,6 @@ int nl = 0; // number of loops
 const char* cm_path = "cm";
 const char* SD_path = "SD";
 
-lst para_sym = lst { ep, eps, vs, vz, iEpsilon };
 int verb = 0;
 int epN = 0;
 
@@ -132,7 +131,6 @@ void Prepare(int idx) {
     SD work;
     work.epN = epN;
     work.Verbose = verb;
-    work.archiveSymbols = para_sym;
     
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
@@ -223,7 +221,6 @@ void Contour(int idx, numeric zz) {
     SD work;
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
-    work.archiveSymbols = para_sym;
     work.Verbose = verb;
     work.Parameter[0] = zz;
     work.ParallelProcess = 0;
@@ -244,7 +241,6 @@ ex Integrate(int idx, numeric zz, int ii = -1) {
     SD work;
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
-    work.archiveSymbols = para_sym;
     work.Verbose = verb;
     work.Parameter[0] = zz;
     work.epN = epN;
@@ -442,7 +438,7 @@ int main(int argc, char** argv) {
                 cout << RED << "File NOT Found: " << ss.str() << RESET << endl;
                 exit(1);
             }
-            auto res = garResult(ss.str().c_str(), para_sym);
+            auto res = garResult(ss.str().c_str());
             fRes += res;
             if(res.has(SD::NaN)) nid.push_back(i);
             
@@ -489,13 +485,13 @@ int main(int argc, char** argv) {
         ifstream ins(ss.str().c_str());
         ins >> ar;
         ins.close();
-        auto c = ar.unarchive_ex(para_sym, "c");
+        auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
         if(c!=19790923) {
             cout << "gar file: " << ss.str() << endl;
             cout << "c=" << c << ", different from 19790923!" << endl;
             exit(1);
         }
-        auto relst = ex_to<lst>(ar.unarchive_ex(para_sym, "relst"));
+        auto relst = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "relst"));
         int max_index;
         ex max_re = -1;
         for(int i=0; i<relst.nops(); i++) {

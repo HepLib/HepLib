@@ -374,7 +374,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
             deg_mat(r, c) = tmp.degree(xs[c]);
         }
     }
- 
+
     vector<matrix> vmat;
     for(int r=0; r<deg_mat.rows(); r++) {
         matrix tmp(deg_mat.rows()+xs.size(), deg_mat.cols());

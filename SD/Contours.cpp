@@ -16,9 +16,9 @@ namespace HepLib {
             ifstream in(garfn.str());
             in >> ar;
             in.close();
-            auto c = ar.unarchive_ex(archiveSymbols, "c");
+            auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
             if(c!=19790923) throw runtime_error("*.ci.gar error!");
-            FT_N_XN = ex_to<lst>(ar.unarchive_ex(archiveSymbols, "ftnxn"));
+            FT_N_XN = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "ftnxn"));
         }
         
         //change 2->1 from GiNaC 1.7.7

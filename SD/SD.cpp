@@ -6,15 +6,15 @@
 namespace HepLib {
 
     SD::SD() {
-        GiNaC_Parallel_Symbols.append(ep);
-        GiNaC_Parallel_Symbols.append(eps);
-        GiNaC_Parallel_Symbols.append(vs);
-        GiNaC_Parallel_Symbols.append(vz);
-        GiNaC_Parallel_Symbols.append(epz);
-        GiNaC_Parallel_Symbols.append(iEpsilon);
-        GiNaC_Parallel_Symbols.append(NaN);
-        GiNaC_Parallel_Symbols.sort();
-        GiNaC_Parallel_Symbols.unique();
+        GiNaC_archive_Symbols.append(ep);
+        GiNaC_archive_Symbols.append(eps);
+        GiNaC_archive_Symbols.append(vs);
+        GiNaC_archive_Symbols.append(vz);
+        GiNaC_archive_Symbols.append(epz);
+        GiNaC_archive_Symbols.append(iEpsilon);
+        GiNaC_archive_Symbols.append(NaN);
+        GiNaC_archive_Symbols.sort();
+        GiNaC_archive_Symbols.unique();
     }
 
     symbol const SD::ep("ep");
@@ -76,7 +76,7 @@ namespace HepLib {
             exit(1);
         }
         ex xpol_all = 1;
-        for(auto item : in_xpols) xpol_all *= collect_common_factors(item);
+        for(auto item : in_xpols) xpol_all *= SD::Factor(item);
         
         lst xpols;
         if(is_a<mul>(xpol_all)) {
@@ -334,7 +334,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     //return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }
     //e1 is a const term, e2 still the F-term
-    vector<ex> SD::DS(ex po_ex) {
+    vector<ex> SD::DS(const ex po_ex) {
         // 1st element in input polist is the constant term, guess NOT necessary
         // 2nd element in input polist is the F-term, required!
         lst const polist = ex_to<lst>(po_ex.op(0));
@@ -652,7 +652,6 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // working with or without Deltas
     void SD::XReOrders() {
-return; //TODO: delete
         if(IsZero) return;
         if(Integrands.size()<1) {
             for(auto &fe : FunExp) {
@@ -1004,9 +1003,8 @@ return; //TODO: delete
         vector<ex> sd_res =
         GiNaC_Parallel(ParallelProcess, FunExp, [&](ex const &fe, int idx)->ex {
             // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
-            lst para_res_lst;
             auto xns_pns = DS(fe);
-
+            lst para_res_lst;
             for(auto const &item : xns_pns) {
         
                 // take z-poles
@@ -1381,18 +1379,27 @@ return; //TODO: delete
                 exit(1);
             }
             ex ct = (*(cts.begin())).subs(CT(w)==w).subs(iEpsilon==0);
-            if(ct.has(epz)) {
-                cerr << RED << "EpsEpExpands: ct has epz: " << ct << RESET << endl;
-                exit(1);
-            }
-            
             auto it = item.subs(CT(w)==1);
-            if(it.has(epz)) {
-                it = mma_series(it,epz,0);
-if(!is_zero(it.coeff(epz,-1))) cout << GREEN <<  it.coeff(epz,-1) << RESET << endl;
+            
+            if(ct.has(epz)) {
+                if(is_a<mul>(ct)) {
+                    ex ct0 = 1, ct1 = 1;
+                    for(auto ci : ct) {
+                        if(ci.has(epz)) ct1 *= ci;
+                        else ct0 *= ci;
+                    }
+                    ct = ct0;
+                    it *= ct1;
+                } else {
+                    it *= ct;
+                    ct = 1;
+                }
             }
             
+            if(it.has(epz)) it = mma_series(it,epz,0);
             it = mma_collect(it, lst{epz, vs}, true);
+            if(it.is_zero()) return lst{ lst{ 0, 0} };
+            
             lst its;
             if(is_a<add>(it)) {
                 for(auto ii : it) its.append(ii);

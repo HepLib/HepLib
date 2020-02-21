@@ -12,7 +12,7 @@ ex w2 = wild(2);
 ex w3 = wild(3);
 ex w4 = wild(4);
 ex w5 = wild(5);
-lst GiNaC_Parallel_Symbols = lst{};
+lst GiNaC_archive_Symbols = lst{};
 
 /*-----------------------------------------------------*/
 // GiNaC_Parallel
@@ -83,7 +83,7 @@ vector<ex> GiNaC_Parallel(
     if(verb > 1 && total > 0) cout << "@" << now(false) << endl;
 
     auto syms = gather_symbols(invec);
-    for(auto si : GiNaC_Parallel_Symbols) syms.append(si);
+    for(auto si : GiNaC_archive_Symbols) syms.append(si);
     syms.sort();
     syms.unique();
     vector<ex> ovec;
@@ -298,13 +298,34 @@ string RunOS(const char * cmd) {
 /*-----------------------------------------------------*/
 // garResult Function
 /*-----------------------------------------------------*/
-ex garResult(const char *garfn, lst syms) {
+void garRead(const char *garfn, map<string, ex> &resMap) {
     archive ar;
     ifstream in(garfn);
     in >> ar;
     in.close();
-    auto c = ar.unarchive_ex(syms, "c");
-    auto res = ar.unarchive_ex(syms, "res");
+    for(int i=0; i<ar.num_expressions(); i++) {
+        string name;
+        ex res = ar.unarchive_ex(GiNaC_archive_Symbols, name, i);
+        resMap[name] = res;
+    }
+}
+
+ex garRead(const char *garfn, const char* key) {
+    archive ar;
+    ifstream in(garfn);
+    in >> ar;
+    in.close();
+    auto res = ar.unarchive_ex(GiNaC_archive_Symbols, key);
+    return res;
+}
+
+ex garResult(const char *garfn) {
+    archive ar;
+    ifstream in(garfn);
+    in >> ar;
+    in.close();
+    auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
+    auto res = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
     if(c!=19790923) {
         cerr << RED << "gar file: " << garfn << endl;
         cerr << "c=" << c << ", different from 19790923!" << RESET << endl;
@@ -423,75 +444,59 @@ ex mma_diff(ex const expr, ex const xp, unsigned nth, bool expand) {
 }
 
 /*-----------------------------------------------------*/
-// mma_expand
+// has_pats & mma_expand
 /*-----------------------------------------------------*/
-struct map_CCF : public map_function {
-    lst pats;
-    map_CCF(lst const & pats_) : pats(pats_) {}
-    
-    ex operator()(const ex &e) {
-        if(is_a<add>(e)) {
-            ex res=0, npat=0;
-            for(auto item : e) {
-                bool has_pat = false;
-                for(auto pat : pats) {
-                    if(item.has(pat)) {
-                        has_pat = true;
-                        break;
-                    }
-                }
-                if(has_pat) res += item;
-                else npat += item;
-            }
-            if(is_zero(res)) {
-                if(!is_zero(npat)) return CCF(npat);
-                else return 0;
-            }
-            if(!is_zero(npat)) res += CCF(npat);
-            if(!is_a<add>(res)) {
-                cerr << RED << "res is NOT add: " << res << RESET << endl;
-                exit(1);
-            }
-            return res.map(*this);
-        } else if (is_a<mul>(e)) {
-            ex res=1, npat=1;
-            for(auto item : e) {
-                bool has_pat = false;
-                for(auto pat : pats) {
-                    if(item.has(pat)) {
-                        has_pat = true;
-                        break;
-                    }
-                }
-                if(has_pat) res *= item;
-                else npat *= item;
-            }
-            if(is_zero(res-1)) {
-                if(!is_zero(npat-1)) return CCF(npat);
-                else return 1;
-            }
-            if(!is_zero(npat-1)) res *= CCF(npat);
-            if(!is_a<mul>(res)) {
-                cerr << RED << "res is NOT mul: " << res << RESET << endl;
-                exit(1);
-            }
-            return res.map(*this).expand();
-        } else if(is_a<power>(e) && e.op(1).info(info_flags::nonnegint)) {
-            return e.map(*this).expand();
-        }
-        return e;
+bool has_pats(ex const &item, lst const &pats) {
+    for(auto pat : pats) {
+        if(item.has(pat)) return true;
     }
-};
-
-ex mma_expand(ex const expr_in, lst const pats) {
-    map_CCF ccf(pats);
-    auto expr = ccf(expr_in);
-    expr = expr.subs(CCF(w)==w);
-    return expr;
+    return false;
 }
-ex mma_expand(ex const expr_in, const ex pat) {
-    if(is_a<lst>(pat)) return mma_expand(expr_in, ex_to<lst>(pat));
-    else return mma_expand(expr_in, lst{pat});
+
+ex mma_expand(ex const &expr_in, lst const &pats, int depth) {
+    if(depth>10) return expr_in.expand();
+    ex expr;
+    if(is_a<add>(expr_in)) {
+        expr = 0;
+        for(auto item : expr_in) {
+            if(has_pats(item, pats)) expr += mma_expand(item, pats, depth+1);
+            else expr += item;
+        }
+    } else if (is_a<mul>(expr_in)) {
+        expr=1;
+        for(auto item : expr_in) {
+            if(has_pats(item, pats)) expr *= mma_expand(item, pats, depth+1);
+            else if(is_a<numeric>(item)) expr *= item;
+            else expr *= CCF(item.subs(CCF(w)==w));
+        }
+    } else if(is_a<power>(expr_in) && expr_in.op(1).info(info_flags::nonnegint)) {
+        auto item = expr_in.op(0);
+        auto ni = expr_in.op(1);
+        if(has_pats(item, pats)) expr = pow(mma_expand(item, pats, depth+1), ni).expand();
+        else if(is_a<numeric>(item)) expr = expr_in;
+        else expr = CCF(expr_in.subs(CCF(w)==w));
+    } else {
+        if(has_pats(expr_in, pats) || is_a<numeric>(expr_in)) expr = expr_in;
+        else expr = CCF(expr_in.subs(CCF(w)==w));
+    }
+    
+    expr = expr.expand();
+    ex res = expr;
+    if(is_a<add>(expr)) {
+        res = 0;
+        ex ccf_expr=0;
+        for(auto item : expr) {
+            if(has_pats(item, pats)) res += item;
+            else ccf_expr += item;
+        }
+        if(!is_zero(ccf_expr)) res += CCF(ccf_expr.subs(CCF(w)==w));
+    }
+    if(depth==0) res = res.subs(CCF(w)==w);
+    return res;
+}
+ex mma_expand(ex const &expr_in, const ex &pat, int depth) {
+    if(is_a<lst>(pat)) return mma_expand(expr_in, ex_to<lst>(pat), depth);
+    else return mma_expand(expr_in, lst{pat}, depth);
 }
 
 /*-----------------------------------------------------*/
@@ -507,35 +512,25 @@ ex mma_collect(ex const expr_in, lst const pats, bool ccf, bool cvf) {
     ex cf = 0;
     map<ex, ex, ex_is_less> vc_map;
     for(auto item : items) {
-        bool has_pat = false;
-        for(auto pat : pats) {
-            if(item.has(pat)) {
-                has_pat = true;
-                break;
-            }
-        }
-        if(!has_pat) cf += item;
+        if(!has_pats(item, pats)) cf += item;
         else if(is_a<mul>(item)) {
-            ex tc = 1, tf = 1;
+            ex tc = 1, tv = 1;
             for(auto ii : item) {
-                bool has_pat2 = false;
-                for(auto pat : pats) {
-                    if(ii.has(pat)) {
-                        has_pat2 = true;
-                        break;
-                    }
-                }
-                if(!has_pat2) tc *= ii;
-                else tf *= ii;
+                if(!has_pats(ii, pats)) tc *= ii;
+                else tv *= ii;
             }
-            vc_map[tf] += tc;
+            vc_map[tv] += tc;
         } else {
             vc_map[item] += 1;
         }
     }
     res = 0;
-    if(!is_zero(cf)) res += CCF(cf);
+    if(!is_zero(cf)) res += CCF(cf)*CVF(1);
     for(auto vc : vc_map) {
+        if(has_pats(vc.second, pats)) {
+            cerr << RED << "mma_collect: pats founds @ " << vc.second << RESET << endl;
+            exit(1);
+        }
         res += CVF(vc.first) * CCF(vc.second);
     }
     
@@ -733,13 +728,15 @@ ex get_op(const lst ex_in, int index1, int index2, int index3) {
 /*-----------------------------------------------------*/
 // Customized GiNaC Function
 /*-----------------------------------------------------*/
-static ex CCF_Diff(const ex & x, unsigned diff_param) {return 0;}
+
 REGISTER_FUNCTION(VF, dummy())
 REGISTER_FUNCTION(VF1, dummy())
 REGISTER_FUNCTION(VF2, dummy())
 REGISTER_FUNCTION(VF3, dummy())
 
-REGISTER_FUNCTION(CCF, derivative_func(CCF_Diff))
+static ex CCF_Diff(const ex & x, unsigned diff_param) {return 0;}
+static ex CCF_Expand(const ex & x, unsigned expand_options) {return CCF(x).hold();}
+REGISTER_FUNCTION(CCF, derivative_func(CCF_Diff).expand_func(CCF_Expand))
 REGISTER_FUNCTION(CVF, dummy())
 
 REGISTER_FUNCTION(FF, dummy())

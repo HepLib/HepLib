@@ -10,7 +10,6 @@ auto eps = SD::eps;
 auto iEpsilon = SD::iEpsilon;
 auto vs = SD::vs;
 auto vz = SD::vz;
-lst para_sym = lst { ep, eps, vs, vz, iEpsilon };
 
 int sf = 1; // symetry factor
 int nt = 0; // number of final state, exclude Quarkonium itself
@@ -130,7 +129,6 @@ void Prepare(int idx) {
     SD work;
     work.epN = epN;
     work.Verbose = verb;
-    work.archiveSymbols = para_sym;
     
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
@@ -225,7 +223,6 @@ void Contour(int idx) {
     SD work;
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
-    work.archiveSymbols = para_sym;
     work.Verbose = verb;
     work.ParallelProcess = 0;
     
@@ -242,7 +239,6 @@ ex Integrate(int idx, int ii = -1) {
     SD work;
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
-    work.archiveSymbols = para_sym;
     work.Verbose = verb;
     work.epN = epN;
     
@@ -428,7 +424,7 @@ int main(int argc, char** argv) {
             ss.clear();
             ss.str("");
             ss << SD_path << "/" << i << ".res.gar";
-            auto res = garResult(ss.str().c_str(), para_sym);
+            auto res = garResult(ss.str().c_str());
             fRes += res;
             if(res.has(SD::NaN)) nid.push_back(i);
             
@@ -475,13 +471,13 @@ int main(int argc, char** argv) {
         ifstream ins(ss.str().c_str());
         ins >> ar;
         ins.close();
-        auto c = ar.unarchive_ex(para_sym, "c");
+        auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
         if(c!=19790923) {
             cout << "gar file: " << ss.str() << endl;
             cout << "c=" << c << ", different from 19790923!" << endl;
             exit(1);
         }
-        auto relst = ex_to<lst>(ar.unarchive_ex(para_sym, "relst"));
+        auto relst = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "relst"));
         int max_index;
         ex max_re = -1;
         for(int i=0; i<relst.nops(); i++) {
