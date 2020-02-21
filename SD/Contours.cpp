@@ -41,7 +41,11 @@ namespace HepLib {
             fsofn << pid << "F.so";
         }
         void* module = dlopen(fsofn.str().c_str(), RTLD_NOW);
-        if (module == nullptr) throw std::runtime_error("could not open compiled module!");
+        if (module == nullptr) {
+            cerr << RED << "Contours: could not open compiled module!" << RESET << endl;
+            cout << "dlerror(): " << dlerror() << endl;
+            exit(1);
+        }
 
         vector<ex> res =
         GiNaC_Parallel(ParallelProcess, ftnxn_vec, [&](ex const & ftnxn, int idx)->ex {
@@ -80,6 +84,7 @@ namespace HepLib {
                     dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
                     if(dfp==NULL) {
                         cerr << RED << "Contours: dfp==NULL" << RESET << endl;
+                        cout << "dlerror(): " << dlerror() << endl;
                         exit(1);
                     }
                     
@@ -118,6 +123,7 @@ namespace HepLib {
             fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
             if(fp==NULL) {
                 cerr << RED << "Contours: fp==NULL" << RESET << endl;
+                cout << "dlerror(): " << dlerror() << endl;
                 exit(1);
             }
             

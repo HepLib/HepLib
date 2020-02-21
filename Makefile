@@ -10,7 +10,7 @@ dep:
 lib: libHepLib.so
 	
 libHepLib.so: ExGiNaC/*.o SD/*.o
-	g++ $(opt) -shared -lgomp -lquadmath -ldl -lqhullstatic -lMinuit2 -lginac -lcln -lcubaq -lmpfr -lgmp -o $@ $^
+	g++ $(opt) -rdynamic -shared -lgomp -lquadmath -ldl -lqhullstatic -lMinuit2 -lginac -lcln -lcubaq -lmpfr -lgmp -o $@ $^
 
 install: libHepLib.so
 	make -j -C bin

@@ -415,16 +415,21 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     
     cmd.clear();
     cmd.str("");
-    cmd << cpp << " -fPIC -shared " << CFLAGS << " -o " << sofn.str() << " " << cppfn.str();
+    cmd << cpp << " -rdynamic -fPIC -shared " << CFLAGS << " -o " << sofn.str() << " " << cppfn.str();
     system(cmd.str().c_str());
     
     void* module = nullptr;
     module = dlopen(sofn.str().c_str(), RTLD_NOW);
-    if(module == nullptr) throw std::runtime_error("could not open compiled module!");
+    if(module == nullptr) {
+        cerr << RED << "FindMinimum: could not open compiled module!" << RESET << endl;
+        cout << "dlerror(): " << dlerror() << endl;
+        exit(1);
+    }
     
     auto fp = (MinimizeBase::FunctionType)dlsym(module, "minFunc");
     if(fp==NULL) {
         cerr << RED << "FindMinimum: fp==NULL" << RESET << endl;
+        cout << "dlerror(): " << dlerror() << endl;
         exit(1);
     }
     

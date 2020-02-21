@@ -354,7 +354,8 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     }
     auto xs = get_xy_from(xpol);
     int nx = xs.size();
-    auto pol = mma_collect(xpol, x(w));
+    auto pol = mma_collect(xpol, x(w), true);
+    pol = pol.subs(CCF(w)==1);
     int np = is_a<add>(pol) ? pol.nops() : 1;
     
     if(nx<2 || np<2) {
@@ -367,9 +368,15 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
         return vmap;
     }
     
+    vector<ex> vpols;
+    for(auto item : pol) vpols.push_back(item);
+    sort(vpols.begin(), vpols.end(), [&](const auto &a, const auto &b){
+        return ex_to<numeric>((a-b).subs(x(w)==pow(2,w))).is_positive();
+    });
+    
     matrix deg_mat(np, nx);
     for(int r=0; r<np; r++) {
-        auto tmp = pol.op(r);
+        auto tmp = vpols[r];
         for(int c=0; c<nx; c++) {
             deg_mat(r, c) = tmp.degree(xs[c]);
         }

@@ -71,7 +71,12 @@ namespace HepLib {
         }
         
         void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW);
-        if(main_module == nullptr) throw std::runtime_error("could not open compiled main-module!");
+        if(main_module == nullptr) {
+            cerr << RED << "Integrates: could not open main module!" << RESET << endl;
+            cout << "dlerror(): " << dlerror() << endl;
+            exit(1);
+        }
+        
         if(!debug && key == NULL) {
             if(file_exists(fsofn.str().c_str())) remove(fsofn.str().c_str());
             remove(sofn.str().c_str());
@@ -86,7 +91,11 @@ namespace HepLib {
             }
             if(file_exists(ex_sofn.str().c_str())) {
                 void* module = dlopen(ex_sofn.str().c_str(), RTLD_NOW);
-                if(module == nullptr) throw std::runtime_error("could not open compiled ex-module!");
+                if(module == nullptr) {
+                    cerr << RED << "Integrates: could not open ex-module!" << RESET << endl;
+                    cout << "dlerror(): " << dlerror() << endl;
+                    exit(1);
+                }
                 ex_modules.push_back(module);
                 if(!debug && key == NULL) remove(ex_sofn.str().c_str());
             } else break;
@@ -222,6 +231,7 @@ namespace HepLib {
             fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             if(fp==NULL) {
                 cerr << RED << "Integrates: fp==NULL" << RESET << endl;
+                cout << "dlerror(): " << dlerror() << endl;
                 exit(1);
             }
             fname.clear();
@@ -231,6 +241,7 @@ namespace HepLib {
             fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             if(fpQ==NULL) {
                 cerr << RED << "Integrates: fpQ==NULL" << RESET << endl;
+                cout << "dlerror(): " << dlerror() << endl;
                 exit(1);
             }
             if(use_MP) {
@@ -241,6 +252,7 @@ namespace HepLib {
                 fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
                 if(fpMP==NULL) {
                     cerr << RED << "Integrates: fpMP==NULL" << RESET << endl;
+                    cout << "dlerror(): " << dlerror() << endl;
                     exit(1);
                 }
             }
@@ -252,6 +264,7 @@ namespace HepLib {
                 ftp = (IntegratorBase::FT_Type)dlsym(module, fname.str().c_str());
                 if(ftp==NULL) {
                     cerr << RED << "Integrates: ftp==NULL" << RESET << endl;
+                    cout << "dlerror(): " << dlerror() << endl;
                     exit(1);
                 }
             }
