@@ -259,7 +259,6 @@ public:
     static bool use_dlclose;
     static bool debug;
     static const char* cpp;
-    SD();
     
     int ParallelProcess = -1;    
     int epN = 0;
@@ -354,6 +353,11 @@ public:
     
     static void ChengWu(vector<ex> &FunExp, int verb=0);
     static vector<ex> ChengWu_Internal(ex fe, int verb=0);
+    
+    // static initialization
+    class _init {
+        public: _init();
+    };
             
 private:
     vector<ex> DS(const ex po_ex);
@@ -369,6 +373,8 @@ private:
     vector<lst> ciResult;
     lst FT_N_XN; // list of { ft, n, xn }
     exmap LambdaMap;
+    
+    static _init SD_init;
 };
 
 /*-----------------------------------------------------*/

@@ -370,10 +370,21 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     
     vector<ex> vpols;
     for(auto item : pol) vpols.push_back(item);
-    sort(vpols.begin(), vpols.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>((a-b).subs(x(w)==pow(2,w))).is_positive();
+    sort(vpols.begin(), vpols.end(), [&](const auto &ain, const auto &bin){
+        //auto a=ain; auto b=bin; // < < <
+        auto a=bin; auto b=ain; // > > >
+        int tai=0, tbi=0;
+        int ab = 0;
+        for(auto xi : xs) {
+            tai += a.degree(xi);
+            tbi += b.degree(xi);
+            if(ab==0 && tai!=tbi) ab = (tai<tbi) ? 1 : -1;
+        }
+        if(tai!=tbi) return (tai<tbi);
+        if(ab!=0) return (ab>0);
+        return ex_is_less()(a,b);
     });
-    
+        
     matrix deg_mat(np, nx);
     for(int r=0; r<np; r++) {
         auto tmp = vpols[r];

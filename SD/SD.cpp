@@ -5,7 +5,15 @@
 
 namespace HepLib {
 
-    SD::SD() {
+    symbol const SD::ep("ep");
+    symbol const SD::eps("eps");
+    symbol const SD::vs("s");
+    symbol const SD::vz("vz");
+    symbol const SD::epz("epz");
+    symbol const SD::iEpsilon("iEpsilon");
+    realsymbol const SD::NaN("NaN");
+
+    SD::_init::_init() {
         GiNaC_archive_Symbols.append(ep);
         GiNaC_archive_Symbols.append(eps);
         GiNaC_archive_Symbols.append(vs);
@@ -16,14 +24,8 @@ namespace HepLib {
         GiNaC_archive_Symbols.sort();
         GiNaC_archive_Symbols.unique();
     }
+    SD::_init SD::SD_init;
 
-    symbol const SD::ep("ep");
-    symbol const SD::eps("eps");
-    symbol const SD::vs("s");
-    symbol const SD::vz("vz");
-    symbol const SD::epz("epz");
-    symbol const SD::iEpsilon("iEpsilon");
-    realsymbol const SD::NaN("NaN");
     bool SD::use_dlclose = true;
     bool SD::debug = false;
     const char* SD::cpp = "g++";
@@ -105,12 +107,18 @@ namespace HepLib {
         }
         
         vector<ex> xpol_vec;
+        auto xs = get_x_from(xpols);
         for(auto item : xpols) xpol_vec.push_back(item);
-        sort(xpol_vec.begin(), xpol_vec.end(), [&](const auto &a, const auto &b){
-            bool iz = (b.nops()-a.nops())==0;
-            auto ab =  ex_to<numeric>((a-b).subs(x(w)==w));
-            auto nab = ex_to<numeric>(ex(0)+b.nops()-a.nops());
-            return iz ? ab.is_positive() : nab.is_positive(); // < < <
+        sort(xpol_vec.begin(), xpol_vec.end(), [&](const auto &a, const auto &b){            
+            bool iz = (a.nops() != a.nops());
+            if(iz) return (a.nops() < a.nops());
+            int na=0, nb=0;
+            for(auto xi : xs) {
+                na += a.degree(xi);
+                nb += b.degree(xi);
+            }
+            if(na!=nb) return na<nb;
+            return ex_is_less()(a,b);
         });
         
         xpols.remove_all();
@@ -123,7 +131,6 @@ namespace HepLib {
         vector<exmap> vec_map;
         exmap map0;
         map0[x(-1)] = 1;
-        auto xs = get_x_from(xpols);
         int yi=0;
         for(auto xi : xs) map0[xi] = y(yi++);
         vec_map.push_back(map0);
@@ -1102,7 +1109,7 @@ namespace HepLib {
             }
         }
 
-        if(Verbose > 1) cout << "  \\--" << WHITE << "Maximum x^n: (" << ex(0)-min_expn << "+1) / " << (ex(0)-min_expn2) << RESET << endl << flush;
+        if(Verbose > 1) cout << "  \\--" << WHITE << "Maximum x^-n: (" << ex(0)-min_expn << "+1) / " << (ex(0)-min_expn2) << RESET << endl << flush;
 
         int pn = 0;
         vector<ex> ibp_res_vec;
