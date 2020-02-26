@@ -23,7 +23,7 @@ symbol const IBP::d("d");
 
 lst IBP::formatF(ex f,  FormatCache &cache) {
     if(!f.match(F(w))) {
-        cerr << RED << "Not F(w) form: " << f << RESET << endl;
+        cerr << Color_Error << "Not F(w) form: " << f << RESET << endl;
         exit(1);
     }
     if(cache.F2fmt[f].nops()>0) return cache.F2fmt[f];
@@ -98,7 +98,7 @@ bool IBP::less(lst nls1, lst nls2) {
         if(a.is_equal(b)) continue;
         if(is_a<lst>(a)) {
             if(!is_a<lst>(b)) {
-                cerr << RED << "Not lst: " << b << RESET << endl;
+                cerr << Color_Error << "Not lst: " << b << RESET << endl;
                 exit(1);
             }
             return less(ex_to<lst>(a), ex_to<lst>(b));
@@ -112,7 +112,7 @@ bool IBP::less(lst nls1, lst nls2) {
 
 ex IBP::collectF(ex expr) {
     if(!expr.subs(F(w)==0).is_zero()) {
-        cerr << RED << "expr is NOT zero with F(w)==0: " << expr << RESET << endl;
+        cerr << Color_Error << "expr is NOT zero with F(w)==0: " << expr << RESET << endl;
         exit(1);
     }
     exset fs;

@@ -14,7 +14,7 @@ namespace HepLib {
     void SD::Initialize(FeynmanParameter fp) {
         
         if(fp.Propagators.nops() != fp.Exponents.nops()) {
-            cerr << RED << "Initialize: the length of Propagators and Exponents are NOT equal." << RESET << endl;
+            cerr << Color_Error << "Initialize: the length of Propagators and Exponents are NOT equal." << RESET << endl;
             exit(1);
         }
         
@@ -28,19 +28,19 @@ namespace HepLib {
         
         for(auto kv: fp.lReplacements) {
             if((lst{kv.first, kv.second}).has(iEpsilon)) {
-                cerr << RED << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /1" << RESET << endl;
+                cerr << Color_Error << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /1" << RESET << endl;
                 exit(1);
             }
         }
         for(auto kv: fp.tReplacements) {
             if((lst{kv.first, kv.second}).has(iEpsilon)) {
-                cerr << RED << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /2" << RESET << endl;
+                cerr << Color_Error << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /2" << RESET << endl;
                 exit(1);
             }
         }
         for(auto kv: fp.nReplacements) {
             if((lst{kv.first, kv.second}).has(iEpsilon)) {
-                cerr << RED << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /3" << RESET << endl;
+                cerr << Color_Error << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /3" << RESET << endl;
                 exit(1);
             }
         }
@@ -116,7 +116,7 @@ namespace HepLib {
             // check loop^2
             for(auto m : ls) {
                 if(!is_a<numeric>(p.coeff(m,2))) {
-                    cout << RED << "not numeric: " << p.coeff(m,2) << endl;
+                    cout << Color_Error << "not numeric: " << p.coeff(m,2) << endl;
                     cout << "nsubs = " << nsubs << RESET << endl;
                     exit(1);
                 }
@@ -128,7 +128,7 @@ namespace HepLib {
             // check iEpsilon
             if(sgn.is_zero()) {
                 if(!is_a<numeric>(p.coeff(iEpsilon))) {
-                    cerr << RED << "Initialize: (!is_a<numeric>(p.coeff(iEpsilon)))" << RESET << endl;
+                    cerr << Color_Error << "Initialize: (!is_a<numeric>(p.coeff(iEpsilon)))" << RESET << endl;
                     exit(1);
                 }
                 numeric nm = ex_to<numeric>(p.coeff(iEpsilon));
@@ -138,7 +138,7 @@ namespace HepLib {
             if(sgn.is_zero()) {
                 for(auto m : tls) {
                     if(!is_a<numeric>(p.coeff(m,2))) {
-                        cerr << RED << "not numeric: " << p.coeff(m,2) << RESET << endl;
+                        cerr << Color_Error << "not numeric: " << p.coeff(m,2) << RESET << endl;
                         exit(1);
                     }
                     numeric nm = ex_to<numeric>(p.coeff(m,2));
@@ -151,7 +151,7 @@ namespace HepLib {
             if(sgn.is_zero()) {
                 sgn = 1;
                 if(is_a<numeric>(p) && ex_to<numeric>(p)>0) sgn = -1;
-                cout << " - Warning: Can NOT determine the iEpsilon sign." << endl;
+                cout << Color_Warn << " - Warning: Can NOT determine the iEpsilon sign." << RESET << endl;
                 cout << " - " << p << " from " << ps.op(i) << endl;
             }
             
@@ -182,7 +182,7 @@ namespace HepLib {
             u = normal(u.subs(lsubs,sop));
             for(auto m: tls) {
                 if(u.has(m)) {
-                    cerr << RED << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
+                    cerr << Color_Error << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
                     exit(1);
                 }
             }
@@ -192,7 +192,7 @@ namespace HepLib {
             ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
             if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
             if(usgn.is_zero()) {
-                cerr << RED << "Initialize: (usgn.is_zero())" << RESET << endl;
+                cerr << Color_Error << "Initialize: (usgn.is_zero())" << RESET << endl;
                 exit(1);
             }
             usgn = normal(usgn)>0 ? 1 : -1;
@@ -200,7 +200,7 @@ namespace HepLib {
             if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << RED << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << Color_Error << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << RESET << endl;
                 exit(1);
@@ -208,7 +208,7 @@ namespace HepLib {
             if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << RED << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << Color_Error << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << RESET << endl;
                 exit(1);
@@ -242,7 +242,7 @@ namespace HepLib {
             u = normal(u.subs(lsubs,sop));
             for(auto m: tls) {
                 if(u.has(m)) {
-                    cerr << RED << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
+                    cerr << Color_Error << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
                     exit(1);
                 }
             }
@@ -252,7 +252,7 @@ namespace HepLib {
             ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
             if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
             if(usgn.is_zero()) {
-                cerr << RED << "Initialize: (usgn.is_zero())" << RESET << endl;
+                cerr << Color_Error << "Initialize: (usgn.is_zero())" << RESET << endl;
                 exit(1);
             }
             usgn = normal(usgn)>0 ? 1 : -1;
@@ -260,7 +260,7 @@ namespace HepLib {
             if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << RED << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << Color_Error << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << RESET << endl;
                 exit(1);
@@ -268,7 +268,7 @@ namespace HepLib {
             if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << RED << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << Color_Error << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << RESET << endl;
                 exit(1);
@@ -320,7 +320,7 @@ namespace HepLib {
         for(int i=0; i<xn; i++) {
         if(is_a<numeric>(ns.op(i)) && ns.op(i)<0) {
             if(!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer()) {
-                cerr << RED << "Initialize: (!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer())" << RESET << endl;
+                cerr << Color_Error << "Initialize: (!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer())" << RESET << endl;
                 exit(1);
             }
             for(int j=0; j<-ns.op(i); j++) {
@@ -412,7 +412,7 @@ namespace HepLib {
         for(int di=0; di<xint.Deltas.nops(); di++) {
             auto delta = xint.Deltas.op(di);
             if(!is_a<lst>(delta) || delta.nops()<1) {
-                cout << RED << "Deltas is NOT valide: " << xint.Deltas << RESET << endl;
+                cout << Color_Error << "Deltas is NOT valide: " << xint.Deltas << RESET << endl;
                 exit(1);
             }
         }
@@ -431,9 +431,6 @@ namespace HepLib {
     void SD::Evaluate(FeynmanParameter fp, const char* key) {
         
         cout << endl << "Starting @ " << now() << endl;
-        if(SecDec==NULL) SecDec = new SecDecG();
-        if(Integrator==NULL) Integrator = new HCubature();
-        if(Minimizer==NULL) Minimizer = new MinUit();
         if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");
         
         Initialize(fp);
@@ -459,9 +456,6 @@ namespace HepLib {
     void SD::Evaluate(XIntegrand xint, const char *key) {
         
         cout << endl << "Starting @ " << now() << endl;
-        if(SecDec==NULL) SecDec = new SecDecG();
-        if(Integrator==NULL) Integrator = new HCubature();
-        if(Minimizer==NULL) Minimizer = new MinUit();
         if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");
         
         Initialize(xint);
@@ -487,9 +481,6 @@ namespace HepLib {
     void SD::Evaluate(vector<ex> funexp, const char *key) {
         
         cout << endl << "Starting @ " << now() << endl;
-        if(SecDec==NULL) SecDec = new SecDecG();
-        if(Integrator==NULL) Integrator = new HCubature();
-        if(Minimizer==NULL) Minimizer = new MinUit();
         if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");
         
         FunExp = funexp;

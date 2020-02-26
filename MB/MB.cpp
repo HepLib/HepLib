@@ -16,7 +16,7 @@ void Replacements2(exmap &repl) {
 void MB::Initialize(FeynmanParameter fp) {
 
     if(fp.Propagators.nops() != fp.Exponents.nops()) {
-        cerr << RED << "the length of Propagators and Exponents are NOT equal." << RESET << endl;
+        cerr << Color_Error << "the length of Propagators and Exponents are NOT equal." << RESET << endl;
         exit(1);
     }
     
@@ -77,7 +77,7 @@ void MB::Initialize(FeynmanParameter fp) {
         // check loop^2
         for(auto m : ls) {
             if(!is_a<numeric>(p.coeff(m,2))) {
-                cout << RED << "not numeric: " << p.coeff(m,2) << endl;
+                cout << Color_Error << "not numeric: " << p.coeff(m,2) << endl;
                 cout << "nsubs = " << nsubs << RESET << endl;
                 exit(1);
             }
@@ -126,7 +126,7 @@ void MB::Initialize(FeynmanParameter fp) {
         ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
         if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
         if(usgn.is_zero()) {
-            cerr << RED << "usgn is zero!" << RESET << endl;
+            cerr << Color_Error << "usgn is zero!" << RESET << endl;
             exit(1);
         }
         usgn = normal(usgn)>0 ? 1 : -1;
@@ -134,7 +134,7 @@ void MB::Initialize(FeynmanParameter fp) {
         if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
             CV(w1,w2)==w2, ep==ex(1)/111
         }))) {
-            cerr <<RED << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+            cerr <<Color_Error << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111
             }) << RESET << endl;
             exit(1);
@@ -142,7 +142,7 @@ void MB::Initialize(FeynmanParameter fp) {
         if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
             CV(w1,w2)==w2, ep==ex(1)/111
         }))) {
-            cerr << RED << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+            cerr << Color_Error << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111
             }) << RESET << endl;
             exit(1);
@@ -194,7 +194,7 @@ void MB::Initialize(FeynmanParameter fp) {
     for(int i=0; i<xn; i++) {
     if(is_a<numeric>(ns.op(i)) && ns.op(i)<0) {
         if(!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer()) {
-            cerr << RED << "Not positive integer: " << (ex(0)-ns.op(i)) << RESET << endl;
+            cerr << Color_Error << "Not positive integer: " << (ex(0)-ns.op(i)) << RESET << endl;
             exit(1);
         }
         for(int j=0; j<-ns.op(i); j++) {

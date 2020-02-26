@@ -151,7 +151,7 @@ ex VESimplify(ex expr, int epN, int epsN) {
             tmpIR.find(VE(w1, w2), ves);
             auto ntmp = tmpIR.subs(lst{VE(w1, w2)==0});
             if(!is_a<numeric>(ntmp)) {
-                cerr << RED << "VESimplify: (!is_a<numeric>(ntmp))" << RESET << endl;
+                cerr << Color_Error << "VESimplify: (!is_a<numeric>(ntmp))" << RESET << endl;
                 exit(1);
             }
             if(abs(ntmp.evalf())>numeric("1E300")) return SD::NaN;
@@ -161,7 +161,7 @@ ex VESimplify(ex expr, int epN, int epsN) {
                 auto co = tmpIR.coeff(ve);
                 vIR += co * ve.op(0);
                 if(!is_a<numeric>(co)) {
-                    cerr << RED << "VESimplify: (!is_a<numeric>(co))" << RESET << endl;
+                    cerr << Color_Error << "VESimplify: (!is_a<numeric>(co))" << RESET << endl;
                     exit(1);
                 }
                 numeric nco = ex_to<numeric>(co);
@@ -221,7 +221,7 @@ static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context 
             quadmath_snprintf(bf2, sizeof bf2, "%.10QG", CppFormat::ex2q(ex2_in));
             c.s << "(" << bf1 << " +- " << bf2 << ")";
         } catch(...) {
-            c.s << RED << "[-NaN-]" << RESET;
+            c.s << Color_Error << "[-NaN-]" << RESET;
         }
     }
 }
@@ -308,10 +308,10 @@ void SD::VEPrint(bool endlQ) {
     for(int i=expr.ldegree(eps); i<=expr.degree(eps); i++) {
         ex exp1 = expr.coeff(eps, i);
         for(int j=expr.ldegree(ep); j<=expr.degree(ep); j++) {
-            cout << WHITE <<"(" << RESET;
+            cout << Color_HighLight <<"(" << RESET;
             cout << exp1.coeff(ep, j);
-            cout << WHITE << ")" << RESET;
-            if(j!=0 || i!=0) cout << "*" << WHITE << pow(ep,j)*pow(eps,i) << RESET;
+            cout << Color_HighLight << ")" << RESET;
+            if(j!=0 || i!=0) cout << "*" << Color_HighLight << pow(ep,j)*pow(eps,i) << RESET;
             if(j<expr.degree(ep)) cout << " + ";
         }
     }
@@ -404,7 +404,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     ofs << "dREAL minFunc(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
     auto tmp = expr.subs(cxRepl);
     if(tmp.has(PL(w))) {
-        cerr << RED << "FindMinimum: PL found @ " << tmp << RESET << endl;
+        cerr << Color_Error << "FindMinimum: PL found @ " << tmp << RESET << endl;
         exit(1);
     }
     ofs << "dREAL yy = ";
@@ -421,14 +421,14 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     void* module = nullptr;
     module = dlopen(sofn.str().c_str(), RTLD_NOW);
     if(module == nullptr) {
-        cerr << RED << "FindMinimum: could not open compiled module!" << RESET << endl;
+        cerr << Color_Error << "FindMinimum: could not open compiled module!" << RESET << endl;
         cout << "dlerror(): " << dlerror() << endl;
         exit(1);
     }
     
     auto fp = (MinimizeBase::FunctionType)dlsym(module, "minFunc");
     if(fp==NULL) {
-        cerr << RED << "FindMinimum: fp==NULL" << RESET << endl;
+        cerr << Color_Error << "FindMinimum: fp==NULL" << RESET << endl;
         cout << "dlerror(): " << dlerror() << endl;
         exit(1);
     }
@@ -485,6 +485,6 @@ REGISTER_FUNCTION(CT, derivative_func(Diff_ID))
 REGISTER_FUNCTION(VE, conjugate_func(VE_Conjugate))
 REGISTER_FUNCTION(VEO, print_func<print_dflt>(print_VEO))
 REGISTER_FUNCTION(WF, dummy())
-
+REGISTER_FUNCTION(epsID, do_not_evalf_params().derivative_func(NoDiff_1P))
 
 }

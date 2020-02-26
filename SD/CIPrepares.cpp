@@ -43,7 +43,7 @@ namespace HepLib {
                 if(is_a<add>(tmp)) {
                     for(auto item : tmp) {
                         if(!is_a<numeric>(item.subs(x(w)==1))) {
-                            cerr << RED << "CIPrepares: (!is_a<numeric>(item.subs(x(w)==1)))" << RESET << endl;
+                            cerr << Color_Error << "CIPrepares: (!is_a<numeric>(item.subs(x(w)==1)))" << RESET << endl;
                             exit(1);
                         }
                         if(item.subs(x(w)==1) < 0) {
@@ -53,7 +53,7 @@ namespace HepLib {
                     }
                 } else {
                     if(!is_a<numeric>(tmp.subs(x(w)==1))) {
-                        cerr << RED << "CIPrepares: (!is_a<numeric>(tmp.subs(x(w)==1)))" << RESET << endl;
+                        cerr << Color_Error << "CIPrepares: (!is_a<numeric>(tmp.subs(x(w)==1)))" << RESET << endl;
                         exit(1);
                     }
                     if(tmp.subs(x(w)==1) < 0) need_contour_deformation = true;
@@ -105,7 +105,7 @@ namespace HepLib {
             } else {
                 int ft_n = ftnmap[item.op(2)];
                 if(ft_n==0) {
-                    cerr << RED << "CIPrepares: ft_n==0, " << item.op(2) << RESET << endl;
+                    cerr << Color_Error << "CIPrepares: ft_n==0, " << item.op(2) << RESET << endl;
                     exit(1);
                 }
                 ii.append(ft_n);
@@ -618,7 +618,7 @@ namespace HepLib {
                 }
             }
             if(count!=xs.size()) {
-                cerr << RED << "CIPrepares: (count!=xs.size())" << RESET << endl;
+                cerr << Color_Error << "CIPrepares: (count!=xs.size())" << RESET << endl;
                 exit(1);
             }
             auto pls = get_pl_from(expr);
@@ -728,9 +728,11 @@ namespace HepLib {
                 }
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
+                bool hasF2 = intg.has(iEpsilon);
                 cseParser cse;
                 intg = cse.Parse(intg);
-                ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                if(hasF || hasF2) ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                else ofs << "dREAL "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
                     Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppL);
@@ -828,9 +830,11 @@ namespace HepLib {
                 ofs << "int SDQ_"<<idx<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
+                bool hasF2 = intg.has(iEpsilon);
                 cseParser cse;
                 intg = cse.Parse(intg);
-                ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                if(hasF || hasF2) ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                else ofs << "qREAL "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
                     Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppQ);
@@ -934,9 +938,11 @@ namespace HepLib {
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
+                bool hasF2 = intg.has(iEpsilon);
                 cseParser cse;
                 intg = cse.Parse(intg);
-                ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                if(hasF || hasF2) ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                else ofs << "mpREAL "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
                     Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppMP);

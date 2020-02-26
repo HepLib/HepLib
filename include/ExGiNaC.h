@@ -197,6 +197,13 @@ namespace HepLib {
     // Global object wildcard
     /*-----------------------------------------------------*/
     extern ex w, w0, w1, w2, w3, w4, w5;
+    
+    /*-----------------------------------------------------*/
+    // Global Colors
+    /*-----------------------------------------------------*/
+    extern const char* Color_Error;
+    extern const char* Color_Warn;
+    extern const char* Color_HighLight;
 
     /*-----------------------------------------------------*/
     // Customized GiNaC Function

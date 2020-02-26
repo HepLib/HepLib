@@ -44,7 +44,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
             }
             if(Verbose > 3) {
                 cout << "\r                             \r";
-                cout << WHITE << "     " << RunRND << ": " << RESET;
+                cout << Color_HighLight << "     " << RunRND << ": " << RESET;
                 for(int i=0; i<nvars; i++) cout << las[i] << " ";
                 cout << endl << "     " << res.subs(VE(0,0)==0).subs(VE(w1,w2)==VEO(w1,w2)) << endl;
             }
@@ -60,7 +60,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
         } else {
             if(Verbose > 3) {
                 cout << "\r                             \r";
-                cout << WHITE << "     [ " << RunRND << " / " << MaxRND << " ] ..." << RESET << flush;
+                cout << Color_HighLight << "     [ " << RunRND << " / " << MaxRND << " ] ..." << RESET << flush;
             }
         }
     } catch(domain_error &ex) {

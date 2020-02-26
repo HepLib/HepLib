@@ -55,7 +55,7 @@ namespace HepLib {
                 if(pkey != NULL) garfn << "-" << pkey;
                 garfn << ".res.gar";
                 if(!file_exists(garfn.str().c_str())) {
-                    cerr << RED << "Integrates: File Not Found: " << garfn.str() << RESET << endl;
+                    cerr << Color_Error << "Integrates: File Not Found: " << garfn.str() << RESET << endl;
                     exit(1);
                 }
                 
@@ -72,7 +72,7 @@ namespace HepLib {
         
         void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW);
         if(main_module == nullptr) {
-            cerr << RED << "Integrates: could not open main module!" << RESET << endl;
+            cerr << Color_Error << "Integrates: could not open main module!" << RESET << endl;
             cout << "dlerror(): " << dlerror() << endl;
             exit(1);
         }
@@ -92,7 +92,7 @@ namespace HepLib {
             if(file_exists(ex_sofn.str().c_str())) {
                 void* module = dlopen(ex_sofn.str().c_str(), RTLD_NOW);
                 if(module == nullptr) {
-                    cerr << RED << "Integrates: could not open ex-module!" << RESET << endl;
+                    cerr << Color_Error << "Integrates: could not open ex-module!" << RESET << endl;
                     cout << "dlerror(): " << dlerror() << endl;
                     exit(1);
                 }
@@ -139,7 +139,7 @@ namespace HepLib {
             
             if(co.is_zero()) continue;
             if(co.has(PL(w))) {
-                cerr << RED << "Integrates: PL found @ " << co << RESET << endl;
+                cerr << Color_Error << "Integrates: PL found @ " << co << RESET << endl;
                 exit(1);
             }
             qREAL cmax = -1;
@@ -149,7 +149,7 @@ namespace HepLib {
             for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
                 auto tmp = co.coeff(eps, si);
                 if(tmp.has(eps)) {
-                    cerr << RED << "Integrates: eps found @ " << tmp << RESET << endl;
+                    cerr << Color_Error << "Integrates: eps found @ " << tmp << RESET << endl;
                     exit(1);
                 }
                 tmp = mma_collect(tmp, ep);
@@ -164,14 +164,14 @@ namespace HepLib {
 
                     for(int ci=0; ci<css.nops(); ci++) {
                         auto nt = css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{
-                            CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
+                            epsID(w)==1, CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                         }).evalf();
                         if(!is_a<numeric>(nt)) {
-                            cerr << RED << "Integrates: Not a number with nt = " << nt << RESET << endl;
+                            cerr << Color_Error << "Integrates: Not a number with nt = " << nt << RESET << endl;
                             exit(1);
                         }
                         if(nt.has(ep)) {
-                            cerr << RED << "Integrates: ep found @ nt = " << nt << RESET << endl;
+                            cerr << Color_Error << "Integrates: ep found @ nt = " << nt << RESET << endl;
                             exit(1);
                         }
                         
@@ -194,7 +194,7 @@ namespace HepLib {
                 }
             }
             if(cmax<=0) {
-                cerr << RED << "Integrates: cmax<=0 with co = " << co << RESET <<endl;
+                cerr << Color_Error << "Integrates: cmax<=0 with co = " << co << RESET <<endl;
                 exit(1);
             }
             if(reim!=3 && ReIm!=3) {
@@ -207,13 +207,13 @@ namespace HepLib {
             auto las = LambdaMap[item.op(3)];
             bool hasF = item.op(3)>0;
             if(hasF && las.is_zero()) {
-                cerr << RED << "Integrates: lambda with the key(ft_n=" << item.op(3) << ") is NOT found!" << RESET << endl;
+                cerr << Color_Error << "Integrates: lambda with the key(ft_n=" << item.op(3) << ") is NOT found!" << RESET << endl;
                 exit(1);
             }
             
             if(hasF && !is_a<lst>(las)) {
                 if(!is_zero(las-ex(1979))) {
-                    cerr << RED << "Integrates: something is wrong with the F-term @ ft_n = " << item.op(3) << ", las=" << las << RESET << endl;
+                    cerr << Color_Error << "Integrates: something is wrong with the F-term @ ft_n = " << item.op(3) << ", las=" << las << RESET << endl;
                     exit(1);
                 } else {
                     hasF = false;
@@ -230,7 +230,7 @@ namespace HepLib {
             fname << "SDD_" << idx;
             fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             if(fp==NULL) {
-                cerr << RED << "Integrates: fp==NULL" << RESET << endl;
+                cerr << Color_Error << "Integrates: fp==NULL" << RESET << endl;
                 cout << "dlerror(): " << dlerror() << endl;
                 exit(1);
             }
@@ -240,7 +240,7 @@ namespace HepLib {
             fname << "SDQ_" << idx;
             fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             if(fpQ==NULL) {
-                cerr << RED << "Integrates: fpQ==NULL" << RESET << endl;
+                cerr << Color_Error << "Integrates: fpQ==NULL" << RESET << endl;
                 cout << "dlerror(): " << dlerror() << endl;
                 exit(1);
             }
@@ -251,7 +251,7 @@ namespace HepLib {
                 fname << "SDMP_" << idx;
                 fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
                 if(fpMP==NULL) {
-                    cerr << RED << "Integrates: fpMP==NULL" << RESET << endl;
+                    cerr << Color_Error << "Integrates: fpMP==NULL" << RESET << endl;
                     cout << "dlerror(): " << dlerror() << endl;
                     exit(1);
                 }
@@ -263,7 +263,7 @@ namespace HepLib {
                 fname << "FT_" << idx;
                 ftp = (IntegratorBase::FT_Type)dlsym(module, fname.str().c_str());
                 if(ftp==NULL) {
-                    cerr << RED << "Integrates: ftp==NULL" << RESET << endl;
+                    cerr << Color_Error << "Integrates: ftp==NULL" << RESET << endl;
                     cout << "dlerror(): " << dlerror() << endl;
                     exit(1);
                 }
@@ -367,7 +367,7 @@ namespace HepLib {
                             }
                         }
                         if(err_break) {
-                            if(Verbose>10) cout << WHITE << "     Error Break ..." << RESET << endl;
+                            if(Verbose>10) cout << Color_HighLight << "     Error Break ..." << RESET << endl;
                             break;
                         }
                         lastResErr = res;
@@ -389,7 +389,7 @@ namespace HepLib {
                                 ResultError += co * res;
                                 lstRE.append(co * res);
                                 if(Verbose>5) {
-                                    cout << WHITE;
+                                    cout << Color_HighLight;
                                     cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::VEResult(VESimplify(res)) << endl;
                                     cout << RESET;
                                 }
@@ -401,7 +401,7 @@ namespace HepLib {
                     }
                     if(smin == -2) break;
                     if(smin == -1) {
-                        std::cerr << RED << "Integrates: smin = -1, optimized lambda NOT found!" << RESET << endl;
+                        std::cerr << Color_Error << "Integrates: smin = -1, optimized lambda NOT found!" << RESET << endl;
                         exit(1);
                     }
                     
@@ -432,7 +432,7 @@ namespace HepLib {
                 
                 auto log_cla = (log_lamin + smin * (log_lamax-log_lamin) / LambdaSplit);
                 auto cla = powq(10.Q, log_cla);
-                if(Verbose > 7) cout << WHITE << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
+                if(Verbose > 7) cout << Color_HighLight << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
                 for(int i=0; i<las.nops()-1; i++) {
                     lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
                 }
@@ -463,7 +463,7 @@ namespace HepLib {
                     
                     Integrator->Lambda = lambda; // Integrator->Lambda changed in ErrMin
                     if(Verbose > 7) {
-                        cout << WHITE << "     Final λs: " << RESET;
+                        cout << Color_HighLight << "     Final λs: " << RESET;
                         for(int i=0; i<xsize; i++) {
                             char buffer[128];
                             quadmath_snprintf(buffer, sizeof buffer, "%.6QG", lambda[i]);
@@ -499,7 +499,7 @@ namespace HepLib {
             
             auto res = Integrator->Integrate();
             if(Verbose>5) {
-                cout << WHITE;
+                cout << Color_HighLight;
                 cout << "     Res = "<< HepLib::VEResult(VESimplify(res)) << endl;
                 cout << RESET;
             }

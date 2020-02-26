@@ -139,6 +139,9 @@ void Prepare(int idx) {
         ostringstream ifn;
         ifn << SD_path << "/" << idx << ".null";
         ExportNull(ifn.str().c_str());
+        ostringstream cmd;
+        cmd << "rm " << SD_path << "/" << idx << "[-.]*";
+        system(cmd.str().c_str());
         return;
     }
     
@@ -344,7 +347,11 @@ int main(int argc, char** argv) {
             try {
                 cout << "Preparing " << i << "/" << nmi << endl;
                 Prepare(i);
+            } catch(exception& e) {
+                cout << e.what() << endl;
+                fid.push_back(i);
             } catch(...) {
+                cout << "other uncatch error" << endl;
                 fid.push_back(i);
             }
             cout << endl;
@@ -415,7 +422,7 @@ int main(int argc, char** argv) {
                 ostringstream ifn;
                 ifn << SD_path << "/" << i << ".null";
                 if(!file_exists(ifn.str().c_str())) {
-                    cout << RED << "File NOT Found: " << ifn.str() << RESET << endl;
+                    cout << Color_Error << "File NOT Found: " << ifn.str() << RESET << endl;
                     exit(1);
                 }
                 continue;

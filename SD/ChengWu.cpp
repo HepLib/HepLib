@@ -48,7 +48,7 @@ void SD::Scalelize(ex &fe, const lst xs, const ex cy) {
     lst x2y, y2x;
     for(auto xi : xs) {
         if(cy.has(xi)) {
-            cerr << RED << "Scalelize: cy has xi: " << cy << "/" << xi << RESET << endl;
+            cerr << Color_Error << "Scalelize: cy has xi: " << cy << "/" << xi << RESET << endl;
             exit(1);
         }
         auto yi = xi.subs(x(w)==y(w));
@@ -93,7 +93,7 @@ vector<ex> SD::Binarize(ex const fe, ex const eqn) {
     vector<ex> add_to;
     auto xij = get_x_from(eqn);
     if(xij.size()!=2) {
-        cerr << RED << "Binarize: xij.size()!=2, " << xij << RESET << endl;
+        cerr << Color_Error << "Binarize: xij.size()!=2, " << xij << RESET << endl;
         exit(1);
     }
     ex xi = xij[0];
@@ -101,7 +101,7 @@ vector<ex> SD::Binarize(ex const fe, ex const eqn) {
     ex ci = eqn.coeff(xi);
     ex cj = eqn.coeff(xj);
     if(!((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0)) {
-        cerr << RED << "Binarize: ((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0)" << RESET << endl;
+        cerr << Color_Error << "Binarize: ((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0)" << RESET << endl;
         exit(1);
     }
     
@@ -271,7 +271,7 @@ void SD::ChengWu(vector<ex> &FunExp, int Verbose) {
     vector<ex> FunExp2;
     for(auto fe : FunExp) {
         if(fe.nops()<3 || xSign(fe.op(0).op(1))!=0) {
-            let_op_prepend(fe, 0, fe.op(0).op(1));
+            let_op_prepend(fe, 0, 1);
             let_op_prepend(fe, 1, 0);
             FunExp2.push_back(fe);
             continue;
@@ -283,9 +283,50 @@ void SD::ChengWu(vector<ex> &FunExp, int Verbose) {
         auto ret = ChengWu_Internal(fe, Verbose);
         for(auto item : ret) FunExp2.push_back(item);
     }
-    FunExp = FunExp2;
     
-    // TODO: check fe.op(0).op(0) : 1-ok, 2-nok
+    // fe.op(0).op(0) : 1-ok, 2-nok
+    // handle x_i P + Q, with Q: positive, P will apply Cheng-Wu 1st.
+    FunExp.clear();
+    for(auto fe : FunExp2) {
+        if(is_zero(get_op(fe,0,0)-1)) {
+            FunExp.push_back(fe);
+            continue;
+        }
+
+        auto ft = RefinedFT(get_op(fe,0,2)).expand();
+        auto xs = get_x_from(ft);
+
+        for(auto xi : xs) {
+            if(ft.degree(xi)==1 && xSign(ft.subs(xi==0))!=0) {
+                auto fe2 = fe;
+                let_op(fe2, 0, 0, ft.coeff(xi));
+                auto ret1 = ChengWu_Internal(fe2, Verbose);
+                for(auto item : ret1) {
+                    if(get_op(item,0,0)!=1) goto inner_loop_end;
+                }
+                
+                for(auto item : ret1) {
+                    auto ft0 = get_op(item,0,2); // actual F-term
+                    if(xSign(ft0)!=0) {
+                        let_op(item, 0, 0, 1);
+                        FunExp.push_back(item);
+                        continue;
+                    }
+                    let_op(item, 0, 0, ft0); // actual F-term
+                    if(Verbose>10) cout << "  \\--Cheng-Wu Subsection" << endl;
+                    auto ret2 = ChengWu_Internal(item, Verbose);
+                    for(auto item2 : ret2) FunExp.push_back(item2);
+                }
+                goto loop_end;
+            }
+            inner_loop_end: ;
+        }
+        FunExp.push_back(fe);
+        loop_end: ;
+    }
+    
+    // TODO: add more cases
+    
     
     //remove the first item in op.(0) and op(1)
     for(auto &fe : FunExp) {
@@ -310,22 +351,30 @@ vector<ex> SD::ChengWu_Internal(ex in_fe, int Verbose) {
             auto ft = get_op(fe, 0, 0);
             // make sure, otherwise Projectivise may change things
             if(!get_op(fe, 1, 0).is_zero()) {
-                cerr << RED << "ChengWu_Internal: (!get_op(fe, 1, 0).is_zero())" << RESET << endl;
+                cerr << Color_Error << "ChengWu_Internal: (!get_op(fe, 1, 0).is_zero())" << RESET << endl;
                 exit(1);
             }
             ft = RefinedFT(ft);
+            
+            if(fe.nops()<3 || xSign(ft)!=0) {
+                let_op(fe, 0, 0, 1);
+                ret_lst.push_back(fe);
+                ok = false; // so will not process following ok block
+                goto ok_label;
+            }
+            
             for(int di=0; di<fe.op(2).nops(); di++) {
                 delta = ex_to<lst>(fe.op(2).op(di));
                 ok = Partilize(ft, delta, ret, 0);
                 if(ok) {
-                    if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu @mode=0 and @size="  << ret.nops() << RESET << endl;
+                    if(Verbose>10) cout << "  \\--" << Color_HighLight << "Cheng-Wu @mode=0 and @size="  << ret.nops() << RESET << endl;
                     goto ok_label;
                 }
                 
                 ret.remove_all();
                 ok = Partilize(ft, delta, ret, 1);
                 if(ok) {
-                    if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu @mode=1 and @size="  << ret.nops() << RESET << endl;
+                    if(Verbose>10) cout << "  \\--" << Color_HighLight << "Cheng-Wu @mode=1 and @size="  << ret.nops() << RESET << endl;
                     goto ok_label;
                 }
                 
@@ -335,7 +384,7 @@ vector<ex> SD::ChengWu_Internal(ex in_fe, int Verbose) {
                     auto bilst = Binarize(fe, get_op(ret, ret.nops()-1, 1));
                     for(auto item : bilst) fe_lst2.push_back(item);
                     ok = false;
-                    if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu @mode=2 and @size="  << ret.nops() << RESET << endl;
+                    if(Verbose>10) cout << "  \\--" << Color_HighLight << "Cheng-Wu @mode=2 and @size="  << ret.nops() << RESET << endl;
                     goto ok_label;
                 }
                 
@@ -345,7 +394,7 @@ vector<ex> SD::ChengWu_Internal(ex in_fe, int Verbose) {
                     auto bilst = Binarize(fe, get_op(ret, ret.nops()-1, 1));
                     for(auto item : bilst) fe_lst2.push_back(item);
                     ok = false;
-                    if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu @mode=3 and @size="  << ret.nops() << RESET << endl;
+                    if(Verbose>10) cout << "  \\--" << Color_HighLight << "Cheng-Wu @mode=3 and @size="  << ret.nops() << RESET << endl;
                     goto ok_label;
                 }
 
@@ -358,7 +407,7 @@ vector<ex> SD::ChengWu_Internal(ex in_fe, int Verbose) {
                         for(auto ii : Binarize(item, eq2)) fe_lst2.push_back(ii);
                     }
                     ok = false;
-                    if(Verbose>10) cout << "  \\--" << WHITE << "Cheng-Wu @mode=4 and @size="  << ret.nops() << RESET << endl;
+                    if(Verbose>10) cout << "  \\--" << Color_HighLight << "Cheng-Wu @mode=4 and @size="  << ret.nops() << RESET << endl;
                     goto ok_label;
                 }
                 
@@ -393,7 +442,7 @@ vector<ex> SD::ChengWu_Internal(ex in_fe, int Verbose) {
                             }
                         }
                         if(xs0.is_zero()) {
-                            cerr << RED << "ChengWu_Internal: (xs0.is_zero())" << RESET << endl;
+                            cerr << Color_Error << "ChengWu_Internal: (xs0.is_zero())" << RESET << endl;
                             exit(1);
                         }
                         delta.append(xfi);
@@ -462,7 +511,7 @@ vector<ex> SD::ChengWu_Internal(ex in_fe, int Verbose) {
                 }
                 if(re_xi.is_zero()) {
                     if(rm_xs.nops()!=delta.nops()) {
-                        cerr << RED << "rm_xs = " << rm_xs << endl << "delta = " << delta << RESET << endl;
+                        cerr << Color_Error << "rm_xs = " << rm_xs << endl << "delta = " << delta << RESET << endl;
                         exit(1);
                     }
                     re_xi = rm_xs.op(0);
@@ -477,7 +526,7 @@ vector<ex> SD::ChengWu_Internal(ex in_fe, int Verbose) {
                     else xNeg.append(xi);
                 }
                 if(!is_zero(new_ft.subs(x(w)==1)-xPos.nops()+xNeg.nops()) && abs(new_ft)!=1) {
-                    cerr << RED << "ChengWu_Internal: new_ft = " << new_ft << RESET << endl;
+                    cerr << Color_Error << "ChengWu_Internal: new_ft = " << new_ft << RESET << endl;
                     exit(1);
                 }
                 

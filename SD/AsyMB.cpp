@@ -69,7 +69,7 @@ namespace HepLib {
         
         if(pr != rp) {
             cout << "pr=" << pr << ", rp=" << rp << endl;
-            cout << RED << "projection method does not work!" << RESET << endl;
+            cout << Color_Error << "projection method does not work!" << RESET << endl;
             exit(1);
         }
         
@@ -100,7 +100,7 @@ namespace HepLib {
                     }
                     ex chk = eqn-vs2.op(id);
                     if(!is_a<numeric>(chk)) {
-                        cerr << RED << "chk is NOT a number: " << chk << RESET << endl;
+                        cerr << Color_Error << "chk is NOT a number: " << chk << RESET << endl;
                         exit(1);
                     }
                     if(chk<0) {
@@ -140,7 +140,7 @@ namespace HepLib {
             bool ret = false;
             for(auto fe : funexp) {
                 if(fe.nops()<=2) {
-                    cerr << RED << "needs 3 elements: " << fe << RESET << endl;
+                    cerr << Color_Error << "needs 3 elements: " << fe << RESET << endl;
                     exit(1);
                 }
                 ex ft = fe.op(0).op(1).subs(vs==0);
@@ -253,14 +253,14 @@ namespace HepLib {
                 if(!item.has(s)) continue;
                 item = mma_collect(item, s);
                 if(item.ldegree(s)!=item.degree(s)) {
-                    cerr << RED << "Not Homogeneous: " << s << RESET << endl;
+                    cerr << Color_Error << "Not Homogeneous: " << s << RESET << endl;
                     exit(1);
                 }
                 expn += item.degree(s) * fe.op(1).op(i);
             }
             auto xsize = get_x_from(fe.op(0)).size();
             if(!normal(expn+xsize).is_zero()) {
-                cout << RED << "expn=" << expn << ", xsize=" << xsize << RESET << endl;
+                cout << Color_Error << "expn=" << expn << ", xsize=" << xsize << RESET << endl;
                 exit(1);
             }
         }
@@ -288,7 +288,7 @@ namespace HepLib {
             bool has_delta = true;
             auto rs = PExpand(xpol, has_delta);
             if(rs.nops()<1) {
-                cout << RED << "PExpand returned with nothing, even without hard region!" << RESET <<endl;
+                cout << Color_Error << "PExpand returned with nothing, even without hard region!" << RESET <<endl;
                 exit(1);
             }
             if(Verbose>10) {
@@ -314,7 +314,7 @@ namespace HepLib {
                 auto es = fe.op(1);
                 ex fpre = fs.op(0);
                 if(!(es.op(0)-1).is_zero()) {
-                    cerr << RED << "op(0) is Not 1: " << es << RESET << endl;
+                    cerr << Color_Error << "op(0) is Not 1: " << es << RESET << endl;
                     exit(1);
                 }
                 
@@ -327,7 +327,7 @@ namespace HepLib {
                         vsp = tmp.ldegree(vs);
                     } catch(exception &e) {
                         cout << e.what() << endl;
-                        cout << WHITE << "non-integer exponent" << RESET << endl;
+                        cout << Color_HighLight << "non-integer exponent" << RESET << endl;
                         exit(1);
                     }
                     vs_pow += vsp * es.op(j);
@@ -383,7 +383,7 @@ namespace HepLib {
             
             // check epz
             if(fe.has(epz)) {
-                cout << RED << "MB: epz found at fe = " << fe << RESET << endl;
+                cout << Color_Error << "MB: epz found at fe = " << fe << RESET << endl;
                 exit(1);
             }
             
@@ -398,7 +398,7 @@ namespace HepLib {
                 
                 auto tmp = fe.op(0).op(i).subs(lst{x(w)==1,PL(w)==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
                 if(!is_a<numeric>(tmp.evalf())) {
-                    cout << RED << "Extra Variable(^[ep,eps,PL,x]) Found: " << RESET << fe.op(0).op(i) << endl;
+                    cout << Color_Error << "Extra Variable(^[ep,eps,PL,x]) Found: " << RESET << fe.op(0).op(i) << endl;
                     exit(1);
                 }
             }
@@ -407,7 +407,7 @@ namespace HepLib {
             if(ft.has(vs)) {
                 ft = mma_collect(ft, vs);
                 if(!ft.is_polynomial(vs) || (ft.degree(vs)-1)!=0) {
-                    cout << RED << "Not supported F-term with s: " << ft << RESET << endl;
+                    cout << Color_Error << "Not supported F-term with s: " << ft << RESET << endl;
                     exit(1);
                 }
                 ex expn = ex(0)-fe.op(1).op(1);
@@ -417,17 +417,17 @@ namespace HepLib {
                 ex w2 = ft.subs(vs==0);
                 if(!w2.is_zero()) {
                     if(xPositive(w1)) {
-                        fe.let_op(0).let_op(1) = w2;
-                        fe.let_op(1).let_op(1) = fe.op(1).op(1)-vz-epz;
                         let_op_append(fe, 0, w1);
                         let_op_append(fe, 1, vz);
+                        fe.let_op(0).let_op(1) = w2;
+                        fe.let_op(1).let_op(1) = fe.op(1).op(1)-vz-epz;
                     } else if(xPositive(w2)) {
-                        fe.let_op(0).let_op(1) = w1;
-                        fe.let_op(1).let_op(1) = vz;
                         let_op_append(fe, 0, w2);
                         let_op_append(fe, 1, fe.op(1).op(1)-vz-epz);
+                        fe.let_op(0).let_op(1) = w1;
+                        fe.let_op(1).let_op(1) = vz;
                     } else {
-                        cout << RED << "Neither w1 nor w2 is xPositive!" << RESET << endl;
+                        cout << Color_Error << "Neither w1 nor w2 is xPositive!" << RESET << endl;
                         cout << "w1=" << w1 << endl;
                         cout << "w2=" << w2 << endl;
                         exit(1);

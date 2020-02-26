@@ -58,9 +58,9 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
     else for(int i=0; i<nvars; i++) lb[i] = 0;
     
     double step[nvars];
-    for(int i=0; i<nvars; i++) step[i] = 1E-3 * (ub[i]-lb[i]);
+    for(int i=0; i<nvars; i++) step[i] = 5E-3 * (ub[i]-lb[i]);
     
-    if(SavePTS<=0) SavePTS = 5;
+    if(SavePTS<=0) SavePTS = 3;
     if(TryPTS<=0) TryPTS= 3;
     
     double minPoints[SavePTS][nvars], maxPoints[SavePTS][nvars], minValue[SavePTS], maxValue[SavePTS];
@@ -174,7 +174,11 @@ void MinUit::Minimize(int nvars, FunctionType func, dREAL *ip) {
 
         ROOT::Minuit2::MnMigrad minizer(fcn, upar);
         minizer();
-    } catch(...) { }
+    } catch(exception& e) {
+        cerr << Color_Error << e.what() << RESET << endl;
+    } catch(...) {
+        cerr << Color_Error << "other uncatch error" << RESET << endl;
+    }
 }
 
 }

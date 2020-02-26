@@ -3,7 +3,7 @@
 namespace HepLib {
 
 /*-----------------------------------------------------*/
-// Global wildcard
+// Global varibales
 /*-----------------------------------------------------*/
 ex w = wild();
 ex w0 = wild(0);
@@ -13,6 +13,10 @@ ex w3 = wild(3);
 ex w4 = wild(4);
 ex w5 = wild(5);
 lst GiNaC_archive_Symbols = lst{};
+
+const char* Color_Error = RED;
+const char* Color_Warn = MAGENTA;
+const char* Color_HighLight = WHITE;
 
 /*-----------------------------------------------------*/
 // GiNaC_Parallel
@@ -38,8 +42,8 @@ vector<ex> GiNaC_Parallel(
             cout << "\r  ";
             for(int pi=0;pi<prtlvl;pi++) cout << "   ";
             cout << "\\--Evaluating ";
-            if(key != NULL) cout << WHITE << key << RESET << " ";
-            cout << WHITE << batch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] ... " << flush;
+            if(key != NULL) cout << Color_HighLight << key << RESET << " ";
+            cout << Color_HighLight << batch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] ... " << flush;
         }
         
         if(para_max_run>0) {
@@ -69,8 +73,8 @@ vector<ex> GiNaC_Parallel(
                 }
             }
         } catch(exception &p) {
-            cout << RED << "Failed in GiNaC_Parallel!" << RESET << endl;
-            cout << RED << p.what() << RESET << endl;
+            cout << Color_Error << "Failed in GiNaC_Parallel!" << RESET << endl;
+            cout << Color_Error << p.what() << RESET << endl;
             if(para_max_run>0) exit(0);
             throw p;
         }
@@ -96,7 +100,7 @@ vector<ex> GiNaC_Parallel(
             } else {
                 cout << "\r  ";
                 for(int pi=0;pi<prtlvl;pi++) cout << "   ";
-                cout << "\\--Reading *." << WHITE << key << RESET << ".gar [" << (i+1) << "/" << total << "] ... " << flush;
+                cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (i+1) << "/" << total << "] ... " << flush;
             }
         }
 
@@ -107,6 +111,10 @@ vector<ex> GiNaC_Parallel(
         ostringstream garfn;
         if(key == NULL) garfn << ppid << "/" << i << ".gar";
         else garfn << ppid << "/" << i << "." << key << ".gar";
+        if(!file_exists(garfn.str().c_str())) {
+            cerr << Color_Error << "GiNaC_Parallel: Check the error message above." << RESET << endl;
+            exit(0);
+        }
         ifstream ins(garfn.str().c_str());
         ins >> ar;
         ins.close();
@@ -119,7 +127,7 @@ vector<ex> GiNaC_Parallel(
     }
     auto syms2 = gather_symbols(ovec);
     if(syms2.nops()>syms.nops()) {
-        cerr << RED << "GiNaC_Parallel: new symbol found: " << syms << " :> " << syms2 << RESET << endl;
+        cerr << Color_Error << "GiNaC_Parallel: new symbol found: " << syms << " :> " << syms2 << RESET << endl;
         exit(1);
     }
     
@@ -178,7 +186,7 @@ bool MatHelper::has_zero_row(const matrix &mat) {
 
 bool MatHelper::is_zero_row(const matrix &mat, int r) {
     if(r>=mat.rows()) {
-        cerr << RED << "r>=mat.rows()" << RESET << endl;
+        cerr << Color_Error << "r>=mat.rows()" << RESET << endl;
         exit(1);
     }
     for(int c=0; c<mat.cols(); c++) {
@@ -327,7 +335,7 @@ ex garResult(const char *garfn) {
     auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
     auto res = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
     if(c!=19790923) {
-        cerr << RED << "gar file: " << garfn << endl;
+        cerr << Color_Error << "gar file: " << garfn << endl;
         cerr << "c=" << c << ", different from 19790923!" << RESET << endl;
         exit(1);
     }
@@ -377,7 +385,7 @@ ex mma_series(ex const expr_in, symbol const s0, int sn0) {
     for(auto pi : sset) {
         auto sn = pi.op(1);
         if(!(is_a<numeric>(sn) && ex_to<numeric>(sn).is_rational())) {
-            cerr << RED << "mma_series: Not rational sn = " << sn << RESET << endl;
+            cerr << Color_Error << "mma_series: Not rational sn = " << sn << RESET << endl;
             cerr << "s = " << s0 << endl;
             cerr << "expr_in = " << expr_in << endl;
             exit(1);
@@ -386,7 +394,7 @@ ex mma_series(ex const expr_in, symbol const s0, int sn0) {
     }
     symbol s;
     if(!sn_lcm.is_integer()) {
-        cerr << RED << "Not integer: " << sn_lcm << RESET << endl;
+        cerr << Color_Error << "Not integer: " << sn_lcm << RESET << endl;
         exit(1);
     }
     if(sn_lcm<0) sn_lcm = numeric(0)-sn_lcm;
@@ -408,7 +416,7 @@ ex mma_series(ex const expr_in, symbol const s0, int sn0) {
             }
         }
         if(!is_order_function(ot)) {
-            cerr << RED << "Not an Order term: " << ot << RESET << endl;
+            cerr << Color_Error << "Not an Order term: " << ot << RESET << endl;
             cerr << "expr = " << expr << endl;
             cerr << "res = " << res << endl;
             exit(1);
@@ -425,7 +433,7 @@ ex mma_series(ex const expr_in, symbol const s0, int sn0) {
         }
         exN++;
     }
-    cerr << RED << "mma_series seems not working!" << RESET << endl;
+    cerr << Color_Error << "mma_series seems not working!" << RESET << endl;
     exit(1);
     return 0;
 }
@@ -528,7 +536,7 @@ ex mma_collect(ex const expr_in, lst const pats, bool ccf, bool cvf) {
     if(!is_zero(cf)) res += CCF(cf)*CVF(1);
     for(auto vc : vc_map) {
         if(has_pats(vc.second, pats)) {
-            cerr << RED << "mma_collect: pats founds @ " << vc.second << RESET << endl;
+            cerr << Color_Error << "mma_collect: pats founds @ " << vc.second << RESET << endl;
             exit(1);
         }
         res += CVF(vc.first) * CCF(vc.second);

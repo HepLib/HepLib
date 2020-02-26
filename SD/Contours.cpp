@@ -42,7 +42,7 @@ namespace HepLib {
         }
         void* module = dlopen(fsofn.str().c_str(), RTLD_NOW);
         if (module == nullptr) {
-            cerr << RED << "Contours: could not open compiled module!" << RESET << endl;
+            cerr << Color_Error << "Contours: could not open compiled module!" << RESET << endl;
             cout << "dlerror(): " << dlerror() << endl;
             exit(1);
         }
@@ -83,7 +83,7 @@ namespace HepLib {
                     fname << "dirF_"<<ftnxn.op(1)<<"_"<<i;
                     dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
                     if(dfp==NULL) {
-                        cerr << RED << "Contours: dfp==NULL" << RESET << endl;
+                        cerr << Color_Error << "Contours: dfp==NULL" << RESET << endl;
                         cout << "dlerror(): " << dlerror() << endl;
                         exit(1);
                     }
@@ -122,7 +122,7 @@ namespace HepLib {
             fname << "imgF_"<<ftnxn.op(1);
             fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
             if(fp==NULL) {
-                cerr << RED << "Contours: fp==NULL" << RESET << endl;
+                cerr << Color_Error << "Contours: fp==NULL" << RESET << endl;
                 cout << "dlerror(): " << dlerror() << endl;
                 exit(1);
             }
@@ -140,7 +140,7 @@ namespace HepLib {
                 
                 if(laEnd < 1E-10) {
                     cout << "\r                                                    \r";
-                    cout << "     λ: " << RED << "too small lambda!" << RESET << endl;
+                    cout << "     λ: " << Color_Error << "too small lambda!" << RESET << endl;
                     break;
                 }
                 

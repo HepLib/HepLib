@@ -74,7 +74,7 @@ namespace HepLib {
 
     vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
         if(in_xpols.has(y(w))) {
-            cerr << RED << "SecDecBase::x2y: y(w) found @ " << in_xpols << RESET << endl;
+            cerr << Color_Error << "SecDecBase::x2y: y(w) found @ " << in_xpols << RESET << endl;
             exit(1);
         }
         ex xpol_all = 1;
@@ -140,13 +140,15 @@ namespace HepLib {
             for(auto map : vec_map) {
                 auto cxpol = xpol.subs(map);
                 if(cxpol.has(x(w))) {
-                    cerr << RED << "SecDecBase::x2y: x(w) found @ " << cxpol << RESET << endl;
+                    cerr << Color_Error << "SecDecBase::x2y: x(w) found @ " << cxpol << RESET << endl;
                     exit(1);
                 }
                 cxpol = cxpol.subs(y(w)==x(w));
                 if(!cxpol.subs(x(w)==0).normal().is_zero()) cxpol=1;
                 else {
-                    cxpol = collect_common_factors(cxpol);
+cout << "Factor begin" << endl;
+                    cxpol = SD::Factor(cxpol);
+cout << "Factor end" << endl;
                     if(is_a<mul>(cxpol)) {
                         ex ret_mul = 1;
                         for(auto item : cxpol) {
@@ -166,6 +168,7 @@ namespace HepLib {
                 }
                 
                 auto vec_map3 = x2y(cxpol);
+cout << "vec_map3.size = " << vec_map3.size() << endl;
                 for(auto map3 : vec_map3) {
                     exmap new_map;
                     lst xy_lst;
@@ -186,7 +189,7 @@ namespace HepLib {
                         auto xs = get_x_from(xy_lst);
                         lst xRepl;
                         if(xs.size()>y_free_indexs.size()) {
-                            cerr << RED << "SecDecBase::x2y: xsize > ysize" << cxpol << RESET << endl;
+                            cerr << Color_Error << "SecDecBase::x2y: xsize > ysize" << cxpol << RESET << endl;
                             exit(1);
                         }
                         for(int j=0; j<xs.size(); j++) {
@@ -216,7 +219,7 @@ namespace HepLib {
                 if(!ft.has(y(j))) y_free_indexs.push_back(j);
             }
             if(xs_tmp.size()>y_free_indexs.size()) {
-                cerr << RED << "IsBad: xsize>ysize" << RESET << endl;
+                cerr << Color_Error << "IsBad: xsize>ysize" << RESET << endl;
                 exit(1);
             }
             for(int i=0; i<xs_tmp.size(); i++) {
@@ -256,12 +259,12 @@ namespace HepLib {
 
     vector<ex> SD::AutoEnd(ex po_ex) {
         if(po_ex.nops()>2) {
-            cerr << RED << "AutoEnd: Deltas found @ " << po_ex << RESET << endl;
+            cerr << Color_Error << "AutoEnd: Deltas found @ " << po_ex << RESET << endl;
             exit(1);
         }
         lst const exlist = ex_to<lst>(po_ex.op(1));
         if(!(exlist.op(0)-1).is_zero()) {
-            cerr << RED << "AutoEnd: (!(exlist.op(0)-1).is_zero())" << RESET << endl;
+            cerr << Color_Error << "AutoEnd: (!(exlist.op(0)-1).is_zero())" << RESET << endl;
             exit(1);
         }
         auto xs = get_x_from(po_ex.op(0));
@@ -330,8 +333,8 @@ namespace HepLib {
             }
         }}
         
-        cerr << RED << "polynormial list: " << po_ex.op(0) << RESET << endl;
-        cerr << RED << "AutoEnd Failed @ ALL possible bisections!" << RESET << endl;
+        cerr << Color_Error << "polynormial list: " << po_ex.op(0) << RESET << endl;
+        cerr << Color_Error << "AutoEnd Failed @ ALL possible bisections!" << RESET << endl;
         exit(1);
         return vector<ex>();
     }
@@ -358,7 +361,7 @@ namespace HepLib {
 
         vector<exmap> vmap = SecDec->x2y(sdList, all_in_one);
         if(!VerifySD(vmap)) {
-            cerr << RED << "VerifySD Failed!" << RESET << endl;
+            cerr << Color_Error << "VerifySD Failed!" << RESET << endl;
             for(auto vi : vmap) cout << vi << endl;
             exit(1);
         }
@@ -374,7 +377,7 @@ namespace HepLib {
                 if(!ypolist.has(y(j))) y_free_indexs.push_back(j);
             }
             if(xs_tmp.size()>y_free_indexs.size()) {
-                cerr << RED << "DS: xsize>ysize" << RESET << endl;
+                cerr << Color_Error << "DS: xsize>ysize" << RESET << endl;
                 exit(1);
             }
             for(int i=0; i<xs_tmp.size(); i++) {
@@ -382,7 +385,7 @@ namespace HepLib {
             }
             if(xs_tmp.size()>0) ypolist = ypolist.subs(vi);
             if(ypolist.has(x(w))) {
-                cerr << RED << "DS: x(w) found @ " << ypolist << RESET << endl;
+                cerr << Color_Error << "DS: x(w) found @ " << ypolist << RESET << endl;
                 exit(1);
             }
 
@@ -412,7 +415,7 @@ namespace HepLib {
                     auto first = tmp.op(0).subs(y(w)==1);
                     for(auto item : tmp) {
                         if(!is_a<numeric>(item.subs(y(w)==1)*first)) {
-                            cerr << RED << "DS: Not a number: " << (item.subs(y(w)==1)*first) << RESET << endl;
+                            cerr << Color_Error << "DS: Not a number: " << (item.subs(y(w)==1)*first) << RESET << endl;
                             exit(1);
                         }
                         if(item.subs(y(w)==1)*first<0) {
@@ -428,7 +431,7 @@ namespace HepLib {
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 });
                 if(!is_a<numeric>(tmp)) {
-                    cerr << RED << "DS: tmp = " << tmp << "tmp is NOT a numeric." << RESET << endl;
+                    cerr << Color_Error << "DS: tmp = " << tmp << "tmp is NOT a numeric." << RESET << endl;
                     exit(1);
                 }
                 Digits = 50;
@@ -444,7 +447,7 @@ namespace HepLib {
             // need collect_common_factors
             auto det = collect_common_factors(vi[x(-1)]);
             if(is_a<add>(det)) {
-                cerr << RED << "DS: det is add " << det << RESET << endl;
+                cerr << Color_Error << "DS: det is add " << det << RESET << endl;
                 exit(1);
             }
             auto ys = get_xy_from(det);
@@ -454,7 +457,7 @@ namespace HepLib {
                 det1 *= pow(ys[i], det.degree(ys[i]));
             }
             if(!(is_a<numeric>(det/det1) && ex_to<numeric>(det/det1).is_integer())) {
-                cerr << RED << "DS: det=" << det << ", det1=" << det1 << RESET << endl;
+                cerr << Color_Error << "DS: det=" << det << ", det1=" << det1 << RESET << endl;
                 exit(1);
             }
             
@@ -502,7 +505,7 @@ namespace HepLib {
                             });
                             Digits = 50;
                             if(!is_a<numeric>(tr.evalf())) {
-                                cerr << RED << "DS: not numeric - item: " << tr << " ; " << item << RESET << endl;
+                                cerr << Color_Error << "DS: not numeric - item: " << tr << " ; " << item << RESET << endl;
                                 exit(1);
                             }
                             auto nitem = ex_to<numeric>(tr.evalf());
@@ -517,7 +520,7 @@ namespace HepLib {
                         }
                     } else {
                         if(nchk && item.subs(y(w)==0).subs(iEpsilon==0).normal().is_zero()) {
-                            cerr << RED << "DS: zero item: " << item << endl << "and exlist.op(i) = " << exlist.op(i) << RESET << endl;
+                            cerr << Color_Error << "DS: zero item: " << item << endl << "and exlist.op(i) = " << exlist.op(i) << RESET << endl;
                             exit(1);
                         }
                         rem *= item;
@@ -540,7 +543,7 @@ namespace HepLib {
                 if(is_a<numeric>(v)) {
                     auto nv = ex_to<numeric>(v);
                     if(nv<=-1) {
-                        cerr << RED << "DS: " << k << "^(" << nv << ") found, more regularization needed!" << RESET << endl;
+                        cerr << Color_Error << "DS: " << k << "^(" << nv << ") found, more regularization needed!" << RESET << endl;
                         exit(1);
                     }
                 }
@@ -581,7 +584,7 @@ namespace HepLib {
                                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                                 });
                                 if(!is_a<numeric>(tr)) {
-                                    cerr << RED << "Normalize: tr is NOT numeric with nReplacements." << RESET << endl;
+                                    cerr << Color_Error << "Normalize: tr is NOT numeric with nReplacements." << RESET << endl;
                                     cerr << "tmp: " << tmp << endl;
                                     cerr << "nReplacements: " << nReplacements << endl;
                                     exit(1);
@@ -790,10 +793,10 @@ namespace HepLib {
             
             for(auto item : rem_lst) {
                 auto fe2 = fe;
-                fe2.let_op(0) = fun;
-                fe2.let_op(1) = exp;
                 let_op_append(fe2, 0, item);
                 let_op_append(fe2, 1, 1);
+                fe2.let_op(0) = fun;
+                fe2.let_op(1) = exp;
                 FunExp.push_back(fe2);
             }
         }
@@ -925,7 +928,7 @@ namespace HepLib {
                             auto fun = fe.op(0).op(j);
                             fun = fun.subs(repl).normal();
                             if(!fun.is_polynomial(xj)) {
-                                cerr << RED << "RemoveDeltas: fun is NOT polynormial of xj." << RED << endl;
+                                cerr << Color_Error << "RemoveDeltas: fun is NOT polynormial of xj." << Color_Error << endl;
                                 cerr << "xj: " << xj << endl;
                                 cerr << "fun: " << fun << endl;
                                 std::exit(1);
@@ -1031,7 +1034,7 @@ namespace HepLib {
                         ex c0 = xn_op1.subs(vz==0);
                         
                         if(!is_a<numeric>(c1)) {
-                            cerr << RED << "SDPrepares: c1 is not a number: " << c1 << RESET << endl;
+                            cerr << Color_Error << "SDPrepares: c1 is not a number: " << c1 << RESET << endl;
                             exit(1);
                         }
                         
@@ -1041,7 +1044,7 @@ namespace HepLib {
                                 ex zp = (pxn-c0)/c1;
                                 ex zpn = zp.subs(lst{eps==0,ep==0,epz==0});
                                 if(!is_a<numeric>(zpn)) {
-                                    cerr << RED << "SDPrepares: zpn is not a number: " << zpn << RESET << endl;
+                                    cerr << Color_Error << "SDPrepares: zpn is not a number: " << zpn << RESET << endl;
                                     exit(1);
                                 }
                                 if(zpn>sNN) break;
@@ -1100,7 +1103,7 @@ namespace HepLib {
                     } else if(i<2 || pn.op(0)!=1) {
                         pns.append(pn);
                     } else {
-                        cerr << RED << "SDPrepares: UnExpected Region!" << RESET << endl;
+                        cerr << Color_Error << "SDPrepares: UnExpected Region!" << RESET << endl;
                         exit(1);
                     }
                 }
@@ -1109,7 +1112,7 @@ namespace HepLib {
             }
         }
 
-        if(Verbose > 1) cout << "  \\--" << WHITE << "Maximum x^-n: (" << ex(0)-min_expn << "+1) / " << (ex(0)-min_expn2) << RESET << endl << flush;
+        if(Verbose > 1) cout << "  \\--" << Color_HighLight << "Maximum x^-n: (" << ex(0)-min_expn << "+1) / " << (ex(0)-min_expn2) << RESET << endl << flush;
 
         int pn = 0;
         vector<ex> ibp_res_vec;
@@ -1138,7 +1141,7 @@ namespace HepLib {
                     ex xn = xns.op(n);
                     auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0,epz==0}).normal();
                     if(!is_a<numeric>(expn)) {
-                        cout << RED << "SDPrepares: expn NOT numeric: " << expn << RESET << endl;
+                        cout << Color_Error << "SDPrepares: expn NOT numeric: " << expn << RESET << endl;
                         exit(1);
                     }
 
@@ -1253,7 +1256,7 @@ namespace HepLib {
             for(auto xn : xns) {
                 auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0,epz==0}).normal();
                 if(!is_a<numeric>(expn)) {
-                    cerr << RED << "SDPrepares: Not a number with expn = " << expn << RESET << endl;
+                    cerr << Color_Error << "SDPrepares: Not a number with expn = " << expn << RESET << endl;
                     exit(1);
                 }
                 
@@ -1353,7 +1356,7 @@ namespace HepLib {
             exset cts;
             item.find(CT(w), cts);
             if(cts.size() != 1) {
-                cerr << RED << "EpsEpExpands: CT size is NOT 1: " RESET << endl;
+                cerr << Color_Error << "EpsEpExpands: CT size is NOT 1: " RESET << endl;
                 cerr << "cts: " << cts << endl;
                 cerr << "item: " << item << endl;
                 exit(1);
@@ -1380,7 +1383,7 @@ namespace HepLib {
             exset cts;
             item.find(CT(w), cts);
             if(cts.size() != 1) {
-                cerr << RED << "EpsEpExpands: CT size is NOT 1: " << RESET << endl;
+                cerr << Color_Error << "EpsEpExpands: CT size is NOT 1: " << RESET << endl;
                 cerr << "cts: " << cts << endl;
                 cerr << "item: " << item << endl;
                 exit(1);
@@ -1422,13 +1425,17 @@ namespace HepLib {
                 tmp = tmp.subs(CCF(w)==w);
                 //if(use_CCF) tmp = collect_common_factors(tmp);
                 if(!tmp.has(eps) && !ct.has(eps)) {
+                    if(tmp.has(epsID(w)) || ct.has(epsID(w))) {
+                        cerr << Color_Error << "EpsEpExpands: epsID should be always multipled by eps!" << RESET << endl;
+                        exit(1);
+                    }
                     auto ct2 = vc * ct;
                     int ctN = epRank(ct2);
                     tmp = mma_series(tmp, ep, epN-ctN);
                     for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                         auto intg = tmp.coeff(ep, di);
                         if(intg.has(ep)) {
-                            cerr << RED << "EpsEpExpands: ep found @ intg = " << intg << RESET << endl;
+                            cerr << Color_Error << "EpsEpExpands: ep found @ intg = " << intg << RESET << endl;
                             exit(1);
                         }
                         auto pref = mma_series(ct2, ep, epN-di);
@@ -1444,22 +1451,35 @@ namespace HepLib {
                         tmp = stmp.coeff(eps, sdi);
                         //if(use_CCF) tmp = collect_common_factors(tmp);
                         if(tmp.has(eps)) {
-                            cerr << RED << "EpsEpExpands: eps found @ tmp = " << tmp << RESET << endl;
+                            cerr << Color_Error << "EpsEpExpands: eps found @ tmp = " << tmp << RESET << endl;
                             exit(1);
                         }
+                        
+                        tmp = mma_collect(tmp, epsID(w), true, true);
+                        lst tmp_lst;
+                        if(is_a<add>(tmp)) {
+                            for(auto item : tmp) tmp_lst.append(item);
+                        } else {
+                            tmp_lst.append(tmp);
+                        }
+                        
                         auto ct2 = mma_series(sct, eps, epsN-sdi);
                         int ctN = epRank(ct2);
-                        tmp = mma_series(tmp, ep, epN-ctN);
-                        for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
-                            auto intg = tmp.coeff(ep, di);
-                            if(intg.has(ep)) {
-                                cerr << RED << "EpsEpExpands: ep found @ intg = " << intg << RESET << endl;
-                                exit(1);
+                        for(auto ti : tmp_lst) { // Note: tmp is local
+                            auto tmp = ti.subs(lst{CCF(w)==w,CVF(w)==1});
+                            auto eps_ci = ti.subs(lst{CCF(w)==1,CVF(w)==w});
+                            tmp = mma_series(tmp, ep, epN-ctN);
+                            for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
+                                auto intg = tmp.coeff(ep, di);
+                                if(intg.has(ep)) {
+                                    cerr << Color_Error << "EpsEpExpands: ep found @ intg = " << intg << RESET << endl;
+                                    exit(1);
+                                }
+                                auto pref = mma_series(ct2, ep, epN-di);
+                                if(pref.has(vs)) pref = mma_series(pref, vs, sN);
+                                //if(use_CCF) intg = collect_common_factors(intg);
+                                para_res_lst.append(lst{eps_ci * pref * pow(eps, sdi) * pow(ep, di), intg});
                             }
-                            auto pref = mma_series(ct2, ep, epN-di);
-                            if(pref.has(vs)) pref = mma_series(pref, vs, sN);
-                            //if(use_CCF) intg = collect_common_factors(intg);
-                            para_res_lst.append(lst{pref * pow(eps, sdi) * pow(ep, di), intg});
                         }
                     }
                 }

@@ -265,7 +265,7 @@ public:
     int epsN = 0;
     int sN = 0;
     int Verbose = 1;
-    int PoleRequested = -3;
+    int PoleRequested = -5;
     exmap nReplacements;
     vector<ex> FunExp;
     vector<ex> Integrands;
@@ -293,7 +293,7 @@ public:
     // used in Contours
     dREAL CTMax = 50;
     int CTTryPTS = 3;
-    int CTSavePTS = 5;
+    int CTSavePTS = 3;
     
     long long TryPTS = 500000;
     long long LambdaSplit = 5;
@@ -402,5 +402,6 @@ DECLARE_FUNCTION_2P(FTX)
 DECLARE_FUNCTION_2P(VE)
 DECLARE_FUNCTION_2P(VEO)
 DECLARE_FUNCTION_1P(WF)
+DECLARE_FUNCTION_1P(epsID)
 }
 
