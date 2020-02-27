@@ -1270,7 +1270,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                         rem -= pow(xn.op(0), xn.op(1)) * dit0 / ifact;
                         exprs2.append(dit0/(xn.op(1)+1)/ifact);
                         for(int i=1; i+expn<0; i++) {
-                            dit = mma_diff(dit, xn.op(0));
+                            dit = mma_diff(dit, xn.op(0), 1, false);
                             dit0 = dit.subs(xn.op(0)==0);
                             ifact *= i;
                             rem -= pow(xn.op(0), xn.op(1)+i) * dit0 / ifact;

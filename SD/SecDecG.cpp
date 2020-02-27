@@ -433,7 +433,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
                 tt = tt*pow(y(m), tmp(n,m));
             }
             transmap[xs[n]] = tt;
-            for(int m=0; m<nx; m++) Dxy(n, m) = mma_diff(tt, y(m));
+            for(int m=0; m<nx; m++) Dxy(n, m) = mma_diff(tt, y(m), 1, false);
         }
         transmap[x(-1)] = Dxy.determinant();
         ret.push_back(transmap);

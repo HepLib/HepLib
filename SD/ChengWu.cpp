@@ -262,12 +262,12 @@ bool SD::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
     return false;
 }
 
-void SD::ChengWu() {
-    ChengWu(FunExp, Verbose);
+void SD::ChengWu(bool sub_cw) {
+    ChengWu(FunExp, Verbose, sub_cw);
 }
 
 // FunExp & Verbose are local
-void SD::ChengWu(vector<ex> &FunExp, int Verbose) {
+void SD::ChengWu(vector<ex> &FunExp, int Verbose, bool sub_cw) {
     vector<ex> FunExp2;
     for(auto fe : FunExp) {
         if(fe.nops()<3 || xSign(fe.op(0).op(1))!=0) {
@@ -288,7 +288,7 @@ void SD::ChengWu(vector<ex> &FunExp, int Verbose) {
     // handle x_i P + Q, with Q: positive, P will apply Cheng-Wu 1st.
     FunExp.clear();
     for(auto fe : FunExp2) {
-        if(is_zero(get_op(fe,0,0)-1)) {
+        if(sub_cw || is_zero(get_op(fe,0,0)-1)) {
             FunExp.push_back(fe);
             continue;
         }
@@ -326,7 +326,6 @@ void SD::ChengWu(vector<ex> &FunExp, int Verbose) {
     }
     
     // TODO: add more cases
-    
     
     //remove the first item in op.(0) and op(1)
     for(auto &fe : FunExp) {

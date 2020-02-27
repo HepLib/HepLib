@@ -116,6 +116,8 @@ namespace HepLib {
     // vector : GiNaC_Parallel
     /*-----------------------------------------------------*/
     extern lst GiNaC_archive_Symbols;
+    void GiNaC_archive_Symbols_from(ex);
+    void GiNaC_archive_Symbols_from(vector<ex>);
     vector<ex> GiNaC_Parallel(
         int nproc,
         vector<ex> const &invec,
@@ -180,7 +182,7 @@ namespace HepLib {
     ex mma_expand(ex const &expr, ex const &pat, int depth=0);
     ex mma_collect(ex const expr, lst const pat, bool ccf=false, bool cvf=false);
     ex mma_collect(ex const expr, ex const pat, bool ccf=false, bool cvf=false);
-    ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=true);
+    ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
 
     /*-----------------------------------------------------*/
     // Evalf

@@ -21,6 +21,19 @@ const char* Color_HighLight = WHITE;
 /*-----------------------------------------------------*/
 // GiNaC_Parallel
 /*-----------------------------------------------------*/
+void GiNaC_archive_Symbols_from(ex expr) {
+    auto syms = gather_symbols(expr);
+    for(auto si : syms) GiNaC_archive_Symbols.append(si);
+    GiNaC_archive_Symbols.sort();
+    GiNaC_archive_Symbols.unique();
+}
+
+void GiNaC_archive_Symbols_from(vector<ex> invec) {
+    auto syms = gather_symbols(invec);
+    for(auto si : syms) GiNaC_archive_Symbols.append(si);
+    GiNaC_archive_Symbols.sort();
+    GiNaC_archive_Symbols.unique();
+}
 vector<ex> GiNaC_Parallel(
     int nproc, vector<ex> const &invec, std::function<ex(ex const &, int)> f,
     const char* key, int verb, bool rm, int prtlvl) {
@@ -86,10 +99,6 @@ vector<ex> GiNaC_Parallel(
     if(para_max_run>0) while (wait(NULL) != -1) { }
     if(verb > 1 && total > 0) cout << "@" << now(false) << endl;
 
-    auto syms = gather_symbols(invec);
-    for(auto si : GiNaC_archive_Symbols) syms.append(si);
-    syms.sort();
-    syms.unique();
     vector<ex> ovec;
     for(int i=0; i<total; i++) {
         if(verb > 1) {
@@ -119,16 +128,11 @@ vector<ex> GiNaC_Parallel(
         ins >> ar;
         ins.close();
         remove(garfn.str().c_str());
-        auto c = ar.unarchive_ex(syms, "c");
+        auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
         if(c!=19790923) throw runtime_error("*.gar error!");
-        auto res = ar.unarchive_ex(syms, "res");
+        auto res = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
         ovec.push_back(res);
         Digits = oDigits;
-    }
-    auto syms2 = gather_symbols(ovec);
-    if(syms2.nops()>syms.nops()) {
-        cerr << Color_Error << "GiNaC_Parallel: new symbol found: " << syms << " :> " << syms2 << RESET << endl;
-        exit(1);
     }
     
     if(rm) {
@@ -446,7 +450,7 @@ ex mma_diff(ex const expr, ex const xp, unsigned nth, bool expand) {
     ex res = expr.subs(xp==s);
     if(expand) res = mma_collect(res, s, true);
     res = res.diff(s, nth);
-    res = res.subs(CCF(w)==w); // remove CCF
+    if(expand) res = res.subs(CCF(w)==w); // remove CCF
     res = res.subs(s==xp);
     return res;
 }

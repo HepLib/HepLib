@@ -396,6 +396,7 @@ namespace HepLib {
         for(auto &fe : ret) let_op_append(fe, lst{delta});
         FunExp = ret;
         
+        GiNaC_archive_Symbols_from(FunExp);
         Normalizes();
         if(fp.isAsy) DoAsy();
         XReOrders();
@@ -422,6 +423,7 @@ namespace HepLib {
         if(xint.Deltas.nops()>0) FunExp.push_back(lst{xint.Functions, xint.Exponents, xint.Deltas});
         else FunExp.push_back(lst{xint.Functions, xint.Exponents});
         
+        GiNaC_archive_Symbols_from(FunExp);
         Normalizes();
         if(xint.isAsy) DoAsy();
         XReOrders();
@@ -435,6 +437,7 @@ namespace HepLib {
         
         Initialize(fp);
         if(FunExp.size()<1) return;
+        GiNaC_archive_Symbols_from(FunExp);
         Scalelesses();
         ChengWu();
         RemoveDeltas();
@@ -460,6 +463,7 @@ namespace HepLib {
         
         Initialize(xint);
         if(FunExp.size()<1) return;
+        GiNaC_archive_Symbols_from(FunExp);
         Scalelesses();
         ChengWu();
         RemoveDeltas();
@@ -485,6 +489,7 @@ namespace HepLib {
         
         FunExp = funexp;
         if(FunExp.size()<1) return;
+        GiNaC_archive_Symbols_from(FunExp);
         Scalelesses();
         ChengWu();
         RemoveDeltas();

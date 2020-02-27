@@ -331,7 +331,7 @@ public:
     void Evaluate(vector<ex> FunExp, const char *key = NULL);
     void MB();
     void XEnd();
-    void ChengWu();
+    void ChengWu(bool sub_cw=false);
     
     static ex PrefactorFIESTA(int nLoop);
     ex VEResult();
@@ -351,7 +351,7 @@ public:
     static bool VerifySD(vector<exmap> vmap, bool quick = true);
     static ex RefinedFT(ex ft);
     
-    static void ChengWu(vector<ex> &FunExp, int verb=0);
+    static void ChengWu(vector<ex> &FunExp, int verb=0, bool sub_cw=false);
     static vector<ex> ChengWu_Internal(ex fe, int verb=0);
     
     // static initialization
