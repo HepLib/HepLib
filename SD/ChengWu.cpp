@@ -178,19 +178,10 @@ bool SD::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
                 in_ret.append(lst{0, f});
                 return true;
             } else if(mode>1) { // mode=2
-                auto ff = Factor(f);
-                lst fflst;
-                if(is_a<mul>(ff)) {
-                    for(auto item : ff) {
-                        if(xSign(item)!=0) continue;
-                        if(item.match(pow(w1, w2))) fflst.append(item.op(0));
-                        else fflst.append(item);
-                    }
-                } else fflst.append(ff);
-                
+                auto fflst = RefinedFT_lst(f);
                 if(fflst.nops()==1) {
                     symbol s;
-                    ff = fflst.op(0).subs(x(w)==s*x(w));
+                    auto ff = fflst.op(0).subs(x(w)==s*x(w));
                     if(get_x_from(ff).size()==2 && ff.degree(s)==1 && ff.ldegree(s)==1) {
                         in_ret.append(lst{xi, cxi});
                         in_ret.append(lst{0, fflst.op(0)});
@@ -200,18 +191,10 @@ bool SD::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
             }
         } else if(mode>2) {
             lst bilst;
-            auto cc = Factor(cxi);
-            lst cclst;
-            if(is_a<mul>(cc)) {
-                for(auto item : cc) {
-                    if(xSign(item)!=0) continue;
-                    if(item.match(pow(w1, w2))) cclst.append(item.op(0));
-                    else cclst.append(item);
-                }
-            } else cclst.append(cc);
+            auto cclst = RefinedFT_lst(cxi);
             if(cclst.nops()==1) {
                 symbol s;
-                cc = cclst.op(0).subs(x(w)==s*x(w));
+                auto cc = cclst.op(0).subs(x(w)==s*x(w));
                 if(get_x_from(cc).size()==2 && cc.degree(s)==1 && cc.ldegree(s)==1) {
                     bilst.append(lst{0, cclst.op(0)});
                 }
@@ -224,18 +207,10 @@ bool SD::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
             }
         
             if(mode==4) { // mode=4
-                auto ff = Factor(f);
-                lst fflst;
-                if(is_a<mul>(ff)) {
-                    for(auto item : ff) {
-                        if(xSign(item)!=0) continue;
-                        if(item.match(pow(w1, w2))) fflst.append(item.op(0));
-                        else fflst.append(item);
-                    }
-                } else fflst.append(ff);
+                auto fflst = RefinedFT_lst(f);
                 if(fflst.nops()==1) {
                     symbol s;
-                    ff = fflst.op(0).subs(x(w)==s*x(w));
+                    auto ff = fflst.op(0).subs(x(w)==s*x(w));
                     if(get_x_from(ff).size()==2 && ff.degree(s)==1 && ff.ldegree(s)==1) {
                         bilst.append(lst{0, fflst.op(0)});
                     }

@@ -145,10 +145,7 @@ void Prepare(int idx) {
         system(cmd.str().c_str());
         return;
     }
-    
-    if(work.SecDec==NULL) work.SecDec = new SecDecG();
-    if(work.Minimizer==NULL) work.Minimizer = new MinUit();
-    
+        
     if(nts>0)
     for(auto &fe : work.FunExp) {
         
@@ -233,7 +230,6 @@ void Contour(int idx, numeric zz) {
     ostringstream skey;
     skey << setprecision(2) << zz.to_double();
     
-    if(work.Minimizer==NULL) work.Minimizer = new MinUit();
     work.Contours(ikey.str().c_str(), skey.str().c_str());
     
     delete work.Minimizer;

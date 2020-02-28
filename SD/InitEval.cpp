@@ -4,6 +4,12 @@
 
 namespace HepLib {
 
+    SD::~SD() {
+        if(SecDec!=NULL) delete SecDec;
+        if(Integrator!=NULL) delete Integrator;
+        if(Minimizer!=NULL) delete Minimizer;
+    }
+
     void Replacements2(exmap &repl) {
         auto tmp = repl;
         for(auto &kv : repl) {

@@ -78,7 +78,7 @@ namespace HepLib {
             exit(1);
         }
         ex xpol_all = 1;
-        for(auto item : in_xpols) xpol_all *= SD::Factor(item);
+        for(auto item : in_xpols) xpol_all *= collect_common_factors(item);
         
         lst xpols;
         if(is_a<mul>(xpol_all)) {
@@ -146,7 +146,7 @@ namespace HepLib {
                 cxpol = cxpol.subs(y(w)==x(w));
                 if(!cxpol.subs(x(w)==0).normal().is_zero()) cxpol=1;
                 else {
-                    cxpol = SD::Factor(cxpol);
+                    cxpol = collect_common_factors(cxpol);
                     if(is_a<mul>(cxpol)) {
                         ex ret_mul = 1;
                         for(auto item : cxpol) {

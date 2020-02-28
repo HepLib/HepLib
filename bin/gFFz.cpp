@@ -144,10 +144,7 @@ void Prepare(int idx) {
         system(cmd.str().c_str());
         return;
     }
-    
-    if(work.SecDec==NULL) work.SecDec = new SecDecG();
-    if(work.Minimizer==NULL) work.Minimizer = new MinUit();
-    
+        
     for(auto &fe : work.FunExp) {
     
         int xn = fe.op(2).nops();
@@ -232,7 +229,6 @@ void Contour(int idx) {
     ostringstream ikey;
     ikey << SD_path << "/" << idx;
     
-    if(work.Minimizer==NULL) work.Minimizer = new MinUit();
     work.Contours(ikey.str().c_str());
     
     delete work.Minimizer;

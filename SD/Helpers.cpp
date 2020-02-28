@@ -447,7 +447,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
 /*-----------------------------------------------------*/
 // Refined F-Term
 /*-----------------------------------------------------*/
-ex SD::RefinedFT(ex in_ft) {
+ex SD::RefinedFT(ex const & in_ft) {
     auto ft = Factor(in_ft);
     while(true) {
         auto ft0 = ft;
@@ -468,6 +468,17 @@ ex SD::RefinedFT(ex in_ft) {
         break;
     }
     return ft;
+}
+
+lst SD::RefinedFT_lst(ex const & in_ft) {
+    auto ft = RefinedFT(in_ft);
+    lst ret;
+    if(is_a<mul>(ft)) {
+        for(auto const &item : ft) ret.append(item);
+    } else {
+        ret.append(ft);
+    }
+    return ret;
 }
 
 /*-----------------------------------------------------*/

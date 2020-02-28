@@ -349,7 +349,8 @@ public:
     static int x_free_index(ex expr);
     static int y_free_index(ex expr);
     static bool VerifySD(vector<exmap> vmap, bool quick = true);
-    static ex RefinedFT(ex ft);
+    static ex RefinedFT(ex const & ft);
+    static lst RefinedFT_lst(ex const & ft);
     
     static void ChengWu(vector<ex> &FunExp, int verb=0, bool sub_cw=false);
     static vector<ex> ChengWu_Internal(ex fe, int verb=0);
@@ -358,6 +359,7 @@ public:
     class _init {
         public: _init();
     };
+    ~SD();
             
 private:
     vector<ex> DS(const ex po_ex);

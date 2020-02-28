@@ -9,16 +9,7 @@ bool SD::KillPowersWithDelta(ex fe, int kpi) {
         return false;
     }
     ex ft = fe.op(0).op(1);
-    ft = Factor(ft);
-    lst fts;
-    if(is_a<mul>(ft)) {
-        for(auto item : ft) {
-            if(xSign(item)!=0) continue;
-            fts.append(item);
-        }
-    } else {
-        fts.append(ft);
-    }
+    lst fts = RefinedFT_lst(ft);
     ex eqn;
     
     //-----------------------------------------------------
@@ -39,13 +30,7 @@ bool SD::KillPowersWithDelta(ex fe, int kpi) {
                 symbol xi("xi"), xj("xj");
                 auto ftij = ftitem.subs(lst{xs[i]==xi, xs[j]==xj});
                 auto xs2 = get_x_from(ftij);
-                auto ftt = Factor(ftij.subs(x(w)==0));
-                lst fts2;
-                if(is_a<mul>(ftt)) {
-                    for(auto item : ftt) fts2.append(item);
-                } else {
-                    fts2.append(ftt);
-                }
+                auto fts2 = RefinedFT_lst(ftij.subs(x(w)==0));
 
                 for(auto item : fts2) {
                     if(!item.has(xi) || !item.has(xj)) continue;
@@ -129,13 +114,7 @@ bool SD::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
         return false;
     }
     ex ft = fe.op(0).op(1);
-    ft = Factor(ft);
-    lst fts;
-    if(is_a<mul>(ft)) {
-        for(auto item : ft) fts.append(item);
-    } else {
-        fts.append(ft);
-    }
+    lst fts = RefinedFT_lst(ft);
     ex eqn;
     
     //-----------------------------------------------------
@@ -156,13 +135,7 @@ bool SD::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
                         else xsubs.append(xs2[ni]==0);
                         tnn /= 2;
                     }
-                    auto ftt = Factor(ftij.subs(xsubs));
-                    lst fts2;
-                    if(is_a<mul>(ftt)) {
-                        for(auto item : ftt) fts2.append(item);
-                    } else {
-                        fts2.append(ftt);
-                    }
+                    auto fts2 = RefinedFT_lst(ftij.subs(xsubs));
                     
                     int NN = 100;
                     for(auto item : fts2) {
@@ -356,13 +329,7 @@ bool SD::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
                     else xsubs.append(xs2[ni]==0);
                     tnn /= 2;
                 }
-                auto ftt = Factor(fti.subs(xsubs));
-                lst fts2;
-                if(is_a<mul>(ftt)) {
-                    for(auto item : ftt) fts2.append(item);
-                } else {
-                    fts2.append(ftt);
-                }
+                auto fts2 = RefinedFT_lst(fti.subs(xsubs));
                 
                 int NN = 100;
                 for(auto item : fts2) {
