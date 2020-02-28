@@ -333,7 +333,7 @@ ex SD::Factor(const ex expr) {
     ex expr2 = PowerExpand(expr);
     expr2 = collect_common_factors(expr2);
     expr2 = expr2.subs(xy2s);
-    expr2 = factor(expr2);
+    expr2 = factor_fixed(expr2);
     expr2 = expr2.subs(s2xy);
     return PowerExpand(expr2);
 }
@@ -347,7 +347,7 @@ ex SD::PowerExpand(const ex expr) {
 }
 
 ex SD::PrefactorFIESTA(int nLoop) {
-    return  pow(I*pow(Pi,2-ep)*exp(-ep*Euler), -ex(nLoop));
+    return  pow(I*pow(Pi,2-ep)*exp(ex(0)-ep*Euler), ex(0)-ex(nLoop));
 }
 
 double SD::FindMinimum(ex expr, bool compare0) {

@@ -176,6 +176,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Series at s=0 similar to Mathematica
     /*-----------------------------------------------------*/
+    ex factor_fixed(const ex &e);
     ex mma_series(ex const expr, symbol const s, int sn);
     bool has_pats(ex const &item, lst const &pats);
     ex mma_expand(ex const &expr, lst const &pats, int depth=0);
@@ -224,4 +225,6 @@ namespace HepLib {
     DECLARE_FUNCTION_1P(x)
     DECLARE_FUNCTION_1P(y)
     DECLARE_FUNCTION_1P(z)
+    
+
 }

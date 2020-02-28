@@ -288,7 +288,7 @@ void SD::ChengWu(vector<ex> &FunExp, int Verbose, bool sub_cw) {
     // handle x_i P + Q, with Q: positive, P will apply Cheng-Wu 1st.
     FunExp.clear();
     for(auto fe : FunExp2) {
-        if(sub_cw || is_zero(get_op(fe,0,0)-1)) {
+        if(!sub_cw || is_zero(get_op(fe,0,0)-1)) {
             FunExp.push_back(fe);
             continue;
         }
