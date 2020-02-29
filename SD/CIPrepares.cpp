@@ -282,7 +282,7 @@ namespace HepLib {
             ofs << endl;
             
             // D's FMP_fid
-            if(use_MP) {
+            if(use_MP || fxs.size()<3) {
                 ofs << "mpREAL FMP_" << ft_n << "(const int i, const mpREAL* x, const mpREAL *pl) {" << endl;
                 for(int i=0; i<fxs.size(); i++) {
                     ofs << "if("<<i<<"==i) return ";
@@ -319,7 +319,7 @@ namespace HepLib {
             ofs << endl;
             
             // DD's FMP_fid
-            if(use_MP) {
+            if(use_MP || fxs.size()<3) {
                 ofs << "mpREAL FMP_" << ft_n << "(const int i, const int j, const mpREAL* x, const mpREAL *pl) {" << endl;
                 for(int i=0; i<fxs.size(); i++) {
                 for(int j=0; j<fxs.size(); j++) {
@@ -371,7 +371,7 @@ namespace HepLib {
             ofs << endl;
             
             // X2ZMP_fid
-            if(use_MP) {
+            if(use_MP || fxs.size()<3) {
                 ofs << "void X2ZMP_" << ft_n << "(const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {" << endl;
                 ofs << "int nfxs="<<fxs.size()<<";" << endl;
                 ofs << "mpCOMPLEX ilas[nfxs];" << endl;
@@ -460,7 +460,7 @@ namespace HepLib {
             ofs << endl;
             
             // MatMP_fid
-            if(use_MP) {
+            if(use_MP || fxs.size()<3) {
                 ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX *mat, const mpREAL* x, const mpREAL* dff, const mpREAL *pl, const mpREAL *las) {" << endl;
                 ofs << "int nfxs="<<fxs.size()<<";" << endl;
                 ofs << "mpCOMPLEX ilas[nfxs];" << endl;
@@ -687,16 +687,16 @@ namespace HepLib {
                 ofs << "qREAL FQ_"<<ft_n<<"(const qREAL*, const qREAL*);" << endl; // for FT only
                 ofs << "dREAL FL_"<<ft_n<<"(const int, const dREAL*, const dREAL*);" << endl;
                 ofs << "qREAL FQ_"<<ft_n<<"(const int, const qREAL*, const qREAL*);" << endl;
-                if(use_MP) ofs << "qREAL FMP_"<<ft_n<<"(const int, const mpREAL*, const mpREAL*);" << endl;
+                if(use_MP || xs.size()<3) ofs << "qREAL FMP_"<<ft_n<<"(const int, const mpREAL*, const mpREAL*);" << endl;
                 ofs << "dREAL FL_"<<ft_n<<"(const int, const int, const dREAL*, const dREAL*);" << endl;
                 ofs << "qREAL FQ_"<<ft_n<<"(const int, const int, const qREAL*, const qREAL*);" << endl;
-                if(use_MP) ofs << "qREAL FMP_"<<ft_n<<"(const int, const int, const mpREAL*, const mpREAL*);" << endl;
+                if(use_MP || xs.size()<3) ofs << "qREAL FMP_"<<ft_n<<"(const int, const int, const mpREAL*, const mpREAL*);" << endl;
                 ofs << "void X2ZL_"<<ft_n<<"(const dREAL*, dCOMPLEX*, dCOMPLEX*, dREAL*, const dREAL*, const dREAL*);" << endl;
                 ofs << "void X2ZQ_"<<ft_n<<"(const qREAL*, qCOMPLEX*, qCOMPLEX*, qREAL*, const qREAL*, const qREAL*);" << endl;
-                if(use_MP) ofs << "void X2ZMP_"<<ft_n<<"(const mpREAL*, mpCOMPLEX*, mpCOMPLEX*, mpREAL*, const mpREAL*, const mpREAL*);" << endl;
+                if(use_MP || xs.size()<3) ofs << "void X2ZMP_"<<ft_n<<"(const mpREAL*, mpCOMPLEX*, mpCOMPLEX*, mpREAL*, const mpREAL*, const mpREAL*);" << endl;
                 ofs << "void MatL_"<<ft_n<<"(dCOMPLEX*, const dREAL*, const dREAL*, const dREAL*, const dREAL*);" << endl;
                 ofs << "void MatQ_"<<ft_n<<"(qCOMPLEX*, const qREAL*, const qREAL*, const qREAL*, const qREAL*);" << endl;
-                if(use_MP) ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX*, const mpREAL*, const mpREAL*, const mpREAL*, const mpREAL*);" << endl;
+                if(use_MP || xs.size()<3) ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX*, const mpREAL*, const mpREAL*, const mpREAL*, const mpREAL*);" << endl;
                 ofs << endl << endl;
             }
 
@@ -916,7 +916,7 @@ namespace HepLib {
     /*----------------------------------------------*/
     // Multiple Precision
     /*----------------------------------------------*/
-    if(use_MP) {
+    if(use_MP || xs.size()<3) {
     ofs << R"EOF(
     #undef Pi
     #undef Euler
@@ -1066,8 +1066,7 @@ namespace HepLib {
         if(res_size>GccLimit) {
             cmd.clear();
             cmd.str("");
-            if(use_MP) cmd << cpp << " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << CFLAGS;
-            else cmd << cpp << " -rdynamic -fPIC -shared -lHepLib -lquadmath -lgmp " << CFLAGS;
+            cmd << cpp << " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << CFLAGS;
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 0 " << (GccLimit-1) << ")";
             system(cmd.str().c_str());
@@ -1082,8 +1081,7 @@ namespace HepLib {
                 else sofn << pid << "X" << n << ".so";
                 cmd.clear();
                 cmd.str("");
-                if(use_MP) cmd << cpp << " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << CFLAGS;
-                else cmd << cpp << " -rdynamic -fPIC -shared -lHepLib -lquadmath -lgmp " << CFLAGS;
+                cmd << cpp << " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << CFLAGS;
                 if(hasF) cmd << " " << fsofn.str();
                 cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' " << start << " " << end << ")";
                 system(cmd.str().c_str());
@@ -1092,8 +1090,7 @@ namespace HepLib {
         } else {
             cmd.clear();
             cmd.str("");
-            if(use_MP) cmd << cpp << " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << CFLAGS;
-            else cmd << cpp << " -rdynamic -fPIC -shared -lHepLib -lquadmath -lgmp " << CFLAGS;
+            cmd << cpp << " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << CFLAGS;
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -o " << sofn.str() << " " << pid << "/*.o";
             system(cmd.str().c_str());

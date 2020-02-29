@@ -234,6 +234,7 @@ namespace HepLib {
                 cout << "dlerror(): " << dlerror() << endl;
                 exit(1);
             }
+            
             fname.clear();
             fname.str("");
             if(hasF) fname << "C";
@@ -244,19 +245,13 @@ namespace HepLib {
                 cout << "dlerror(): " << dlerror() << endl;
                 exit(1);
             }
-            if(use_MP) {
-                fname.clear();
-                fname.str("");
-                if(hasF) fname << "C";
-                fname << "SDMP_" << idx;
-                fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-                if(fpMP==NULL) {
-                    cerr << Color_Error << "Integrates: fpMP==NULL" << RESET << endl;
-                    cout << "dlerror(): " << dlerror() << endl;
-                    exit(1);
-                }
-            }
-            
+
+            fname.clear();
+            fname.str("");
+            if(hasF) fname << "C";
+            fname << "SDMP_" << idx;
+            fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+                            
             if(is_a<lst>(las)) {
                 fname.clear();
                 fname.str("");

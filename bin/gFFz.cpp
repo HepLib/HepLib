@@ -207,10 +207,7 @@ void Prepare(int idx) {
     ostringstream ikey;
     ikey << SD_path << "/" << idx;
     work.CIPrepares(ikey.str().c_str());
-    
-    delete work.SecDec;
-    delete work.Minimizer;
-    
+        
     if(work.IsZero) {
         ostringstream ifn;
         ifn << SD_path << "/" << idx << ".null";
@@ -231,7 +228,6 @@ void Contour(int idx) {
     
     work.Contours(ikey.str().c_str());
     
-    delete work.Minimizer;
 }
 
 ex Integrate(int idx, int ii = -1) {
@@ -267,7 +263,6 @@ ex Integrate(int idx, int ii = -1) {
     }
     work.Integrates(ikey.str().c_str(), NULL, ii);
     
-    delete work.Integrator;
     return work.ResultError;
 }
 

@@ -8,6 +8,9 @@ namespace HepLib {
         if(SecDec!=NULL) delete SecDec;
         if(Integrator!=NULL) delete Integrator;
         if(Minimizer!=NULL) delete Minimizer;
+        SecDec = NULL;
+        Integrator = NULL;
+        Minimizer = NULL;
     }
 
     void Replacements2(exmap &repl) {
@@ -456,9 +459,6 @@ namespace HepLib {
         Contours(key);
         Integrates(key);
         ParallelProcess = pps;
-        delete SecDec;
-        delete Integrator;
-        delete Minimizer;
         cout << "Finished @ " << now() << endl << endl;
     }
 
@@ -482,9 +482,6 @@ namespace HepLib {
         Contours(key);
         Integrates(key);
         ParallelProcess = pps;
-        delete SecDec;
-        delete Integrator;
-        delete Minimizer;
         cout << "Finished @ " << now() << endl << endl;
     }
     
@@ -508,9 +505,6 @@ namespace HepLib {
         Contours(key);
         Integrates(key);
         ParallelProcess = pps;
-        delete SecDec;
-        delete Integrator;
-        delete Minimizer;
         cout << "Finished @ " << now() << endl << endl;
     }
     
