@@ -420,7 +420,7 @@ void SD::KillPowers(int bits) {
     int kpi = 0;
     while(kpi<30) {
         kpi++;
-        if(kpi>10 && (kpi % 0)==0) {
+        if(kpi>10 && (kpi % 10)==0) {
             cout << "Warning: kip>10, (kpi=" << kpi << ") maybe a dead loop!" << endl;
         }
         

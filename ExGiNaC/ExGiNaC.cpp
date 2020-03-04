@@ -375,39 +375,6 @@ namespace HepLib {
     lst xlst(int ei) {
         return xlst(0, ei);
     }
-    
-    //----------------------------------------
-    // factor functions
-    //----------------------------------------
-    template <typename F>
-    void inner_factor_iter(const ex &e, F yield) {
-        if (is_a<mul>(e)) {
-            for (const auto &f : e) {
-                if(is_a<power>(f)) yield(f.op(0), f.op(1));
-                else yield(f, 1);
-            }
-        } else {
-            if (is_a<power>(e)) yield(e.op(0), e.op(1));
-            else yield(e, 1);
-        }
-    }
-    
-    template<typename F>
-    void inner_factor_and_iter(const ex &e, F yield) {
-        inner_factor_iter(e, [&](const ex &f1, const ex &k1) {
-            inner_factor_iter(factor(f1), [&](const ex &f2, const ex &k2) {
-                yield(f2, k1*k2);
-            });
-        });
-    }
-
-    ex factor_fixed(const ex &e) {
-        ex res = 1;
-        inner_factor_and_iter(e, [&](const ex &f, const ex &k) {
-            res *= pow(f, k);
-        });
-        return res;
-    }
 
     /*-----------------------------------------------------*/
     // Series at s=0 similar to Mathematica

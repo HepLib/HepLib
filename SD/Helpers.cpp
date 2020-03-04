@@ -241,6 +241,7 @@ int SD::x_free_index(ex expr) {
         }
         if(ok) return i;
     }
+    return -1;
 }
 
 int SD::y_free_index(ex expr) {
@@ -255,6 +256,7 @@ int SD::y_free_index(ex expr) {
         }
         if(ok) return i;
     }
+    return -1;
 }
 
 int SD::epRank(ex expr_in) {
@@ -333,7 +335,7 @@ ex SD::Factor(const ex expr) {
     ex expr2 = PowerExpand(expr);
     expr2 = collect_common_factors(expr2);
     expr2 = expr2.subs(xy2s);
-    expr2 = factor_fixed(expr2);
+    expr2 = factor(expr2);
     expr2 = expr2.subs(s2xy);
     return PowerExpand(expr2);
 }

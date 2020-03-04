@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:CMakeLists.txt">
+   </FileRef>
+   <FileRef
       location = "group:MB">
    </FileRef>
    <FileRef
@@ -21,11 +24,5 @@
    </FileRef>
    <FileRef
       location = "group:SD">
-   </FileRef>
-   <FileRef
-      location = "group:Makefile">
-   </FileRef>
-   <FileRef
-      location = "group:/Users/feng/Desktop/HepLib/opt.mk">
    </FileRef>
 </Workspace>
