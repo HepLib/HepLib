@@ -50,7 +50,7 @@ LINK_LIBRARIES(
 )
 
 PROJECT(HepLib VERSION 1.0 LANGUAGES C CXX)
-AUX_SOURCE_DIRECTORY(ExGiNaC ExGiNaC_SRCS)
+AUX_SOURCE_DIRECTORY(Basic BASIC_SRCS)
 AUX_SOURCE_DIRECTORY(SD SD_SRCS)
 
 #-----------------------------------------------
@@ -76,13 +76,13 @@ ENDIF(APPLE)
 # install include/*.h
 #-----------------------------------------------
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include
-    DESTINATION include
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
     FILES_MATCHING PATTERN "*.h")
 
 #-----------------------------------------------
 # install library HepLib
 #-----------------------------------------------
-ADD_LIBRARY(HepLib SHARED ${ExGiNaC_SRCS} ${SD_SRCS})
+ADD_LIBRARY(HepLib SHARED ${BASIC_SRCS} ${SD_SRCS})
 INSTALL(TARGETS HepLib DESTINATION lib)
 
 #-----------------------------------------------
