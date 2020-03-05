@@ -5,27 +5,32 @@ SET(CMAKE_CXX_COMPILER g++)
 #-----------------------------------------------
 # Configuration Here
 #-----------------------------------------------
+# set the install prefix
 IF(APPLE)
-    SET(CMAKE_INSTALL_PREFIX "/usr/local/feng")
+    SET(PREFIX_DIR "/usr/local/feng")
 ELSE()
-    SET(CMAKE_INSTALL_PREFIX "$ENV{HOME}/usr/local")
+    SET(PREFIX_DIR "$ENV{HOME}/usr/local")
 ENDIF()
 
+# set the "-I" information for gcc/g++, ignored while not exists
 SET(INC_DIRS
     "/usr/local/feng/include"
     $ENV{HOME}/usr/local/include
     $ENV{HOME}/usr/include
 )
 
+# set the "-L" information for gcc/g++, ignored while not exists
 SET(LIB_DIRS
     "/usr/local/feng/lib"
     $ENV{HOME}/usr/local/lib
     $ENV{HOME}/usr/lib
+    $ENV{HOME}/glibc/lib
 )
-
 #-----------------------------------------------
 # Configure End
 #-----------------------------------------------
+
+SET(CMAKE_INSTALL_PREFIX "${PREFIX_DIR}" CACHE PATH "install prefix" FORCE)
 
 INCLUDE_DIRECTORIES(BEFORE include)
 FOREACH(dir ${INC_DIRS})
@@ -68,14 +73,14 @@ ELSE()
 ENDIF(APPLE)
 
 #-----------------------------------------------
-# install *.h #
+# install include/*.h
 #-----------------------------------------------
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include
-DESTINATION include
-FILES_MATCHING PATTERN "*.h")
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h")
 
 #-----------------------------------------------
-# install library HepLib #
+# install library HepLib
 #-----------------------------------------------
 ADD_LIBRARY(HepLib SHARED ${ExGiNaC_SRCS} ${SD_SRCS})
 INSTALL(TARGETS HepLib DESTINATION lib)
