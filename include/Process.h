@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <cstring>
+#include <fcntl.h>
 
 namespace HepLib {
     
@@ -27,7 +28,7 @@ namespace HepLib {
     
     class Fermat {
     public:
-        const char * Sentinial = "---EOF---";
+        const char * Sentinel = "---EOF---";
         void Init(const char * fer_path);
         string Execute(string);
         void Exit();
@@ -41,6 +42,27 @@ namespace HepLib {
         
     private:
         Process fermat;
+    };
+    
+    class Form {
+    public:
+        const char * Sentinel = "---EOF---";
+        void Init(const char * form_path, const char * extra_args="");
+        string Execute(string script, const char * out_var="[o]");
+        void Exit();
+        
+        class Error : public exception {
+        public:
+            string msg;
+            const char * what() const throw ();
+            Error(const char * _msg);
+        };
+    
+    private:
+        bool inited = false;
+        int io[2][2];
+        int stdo[2];
+        int pid;
     };
     
 }
