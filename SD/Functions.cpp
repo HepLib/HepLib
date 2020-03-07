@@ -45,15 +45,13 @@ namespace HepLib {
                 }
             }
         }
+        
+        static ex NoDiff_1P(const ex & x, unsigned diff_param) {return 0;}
+        static ex NoDiff_2P(const ex & x, const ex & y, unsigned diff_param) {return 0;}
+        static ex VE_Conjugate(const ex & x, const ex & y) { return VE(x,y).hold(); }
+        static ex Diff_ID(const ex & x, unsigned diff_param) {return 1;}
+        
     }
-
-    /*-----------------------------------------------------*/
-    // Functions used in GiNaC
-    /*-----------------------------------------------------*/
-    static ex NoDiff_1P(const ex & x, unsigned diff_param) {return 0;}
-    static ex NoDiff_2P(const ex & x, const ex & y, unsigned diff_param) {return 0;}
-    static ex VE_Conjugate(const ex & x, const ex & y) { return VE(x,y).hold(); }
-    static ex Diff_ID(const ex & x, unsigned diff_param) {return 1;}
 
     REGISTER_FUNCTION(CV, do_not_evalf_params()) // for use symbol
     REGISTER_FUNCTION(fabs, dummy())

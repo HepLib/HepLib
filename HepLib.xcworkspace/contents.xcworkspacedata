@@ -8,7 +8,7 @@
       location = "group:include">
    </FileRef>
    <FileRef
-      location = "group:/Volumes/DATA/CUMTB/HepLib/Basic">
+      location = "group:Basic">
    </FileRef>
    <FileRef
       location = "group:MB">
