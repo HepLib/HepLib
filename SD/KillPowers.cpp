@@ -4,7 +4,7 @@
 namespace HepLib {
 
 bool SD::KillPowersWithDelta(ex fe, int kpi) {
-    if(fe.op(0).op(fe.op(0).nops()-1)==WF(1) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
+    if(fe.op(0).op(fe.op(0).nops()-1)==iWF(1) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
         FunExp.push_back(fe);
         return false;
     }
@@ -102,14 +102,14 @@ bool SD::KillPowersWithDelta(ex fe, int kpi) {
     }
             
     // when ok2 is true
-    let_op_append(fe, 0, WF(1));
+    let_op_append(fe, 0, iWF(1));
     let_op_append(fe, 1, 0);
     FunExp.push_back(fe);
     return false;
 }
 
 bool SD::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
-    if(is_zero(fe.op(0).op(fe.op(0).nops()-1)-WF(1)) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
+    if(is_zero(fe.op(0).op(fe.op(0).nops()-1)-iWF(1)) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
         FunExp.push_back(fe);
         return false;
     }
@@ -304,7 +304,7 @@ bool SD::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
             e3.append(1);
             FunExp.push_back(lst{f3,e3});
         } else {
-            let_op_append(fe, 0, WF(1));
+            let_op_append(fe, 0, iWF(1));
             let_op_append(fe, 1, 0);
             FunExp.push_back(fe);
             cout << Color_Warn << "Warning: Not handled with eqn2=" << eqn << RESET << endl;
@@ -410,7 +410,7 @@ bool SD::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
     }
     
     // when ok2 && ok1 is true
-    let_op_append(fe, 0, WF(1));
+    let_op_append(fe, 0, iWF(1));
     let_op_append(fe, 1, 0);
     FunExp.push_back(fe);
     return false;
@@ -443,7 +443,7 @@ void SD::KillPowers(int bits) {
         
     for(auto &fe : FunExp) {
         auto nn = fe.op(0).nops()-1;
-        if(is_zero(fe.op(0).op(nn)-WF(1)) && fe.op(1).op(nn).is_zero()) {
+        if(is_zero(fe.op(0).op(nn)-iWF(1)) && fe.op(1).op(nn).is_zero()) {
             let_op_remove_last(fe, 0);
             let_op_remove_last(fe, 1);
         }

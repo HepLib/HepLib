@@ -692,7 +692,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         exmap fn;
         for(auto fe : funexp) {
             ex key = 1;
-            if(fe.nops()>2) key = WF(fe.op(2));
+            if(fe.nops()>2) key = iWF(fe.op(2));
             for(int i=1; i<fe.op(0).nops(); i++) key *= pow(fe.op(0).op(i), fe.op(1).op(i));
             fn[key] += fe.op(0).op(0);
         }
@@ -700,7 +700,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         exmap ifn;
         for(auto fe : funexp) {
             ex key = 1;
-            if(fe.nops()>2) key = WF(fe.op(2));
+            if(fe.nops()>2) key = iWF(fe.op(2));
             for(int i=1; i<fe.op(0).nops(); i++) key *= pow(fe.op(0).op(i), fe.op(1).op(i));
             if(ifn[key]>0) continue;
             lst fun, exp;
@@ -1418,9 +1418,9 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             lst para_res_lst;
             for(int i=0; i<its.nops();i++) {
                 auto tmp = its.op(i);
-                auto vc = tmp.subs(CCF(w)==1);
+                auto vc = tmp.subs(coCF(w)==1);
                 tmp = tmp / vc;
-                tmp = tmp.subs(CCF(w)==w);
+                tmp = tmp.subs(coCF(w)==w);
                 //if(use_CCF) tmp = collect_common_factors(tmp);
                 if(!tmp.has(eps) && !ct.has(eps)) {
                     if(tmp.has(epsID(w)) || ct.has(epsID(w))) {
@@ -1464,8 +1464,8 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                         auto ct2 = mma_series(sct, eps, epsN-sdi);
                         int ctN = epRank(ct2);
                         for(auto ti : tmp_lst) { // Note: tmp is local
-                            auto tmp = ti.subs(lst{CCF(w)==w,CVF(w)==1});
-                            auto eps_ci = ti.subs(lst{CCF(w)==1,CVF(w)==w});
+                            auto tmp = ti.subs(lst{coCF(w)==w,coVF(w)==1});
+                            auto eps_ci = ti.subs(lst{coCF(w)==1,coVF(w)==w});
                             tmp = mma_series(tmp, ep, epN-ctN);
                             for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                                 auto intg = tmp.coeff(ep, di);

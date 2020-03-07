@@ -5,6 +5,9 @@
       location = "group:CMakeLists.txt">
    </FileRef>
    <FileRef
+      location = "group:include">
+   </FileRef>
+   <FileRef
       location = "group:/Volumes/DATA/CUMTB/HepLib/Basic">
    </FileRef>
    <FileRef
@@ -12,9 +15,6 @@
    </FileRef>
    <FileRef
       location = "group:bin">
-   </FileRef>
-   <FileRef
-      location = "group:include">
    </FileRef>
    <FileRef
       location = "group:DE">

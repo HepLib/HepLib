@@ -14,9 +14,9 @@
 
 namespace HepLib {
 
-    using namespace GiNaC;
     using namespace std;
-
+    using namespace GiNaC;
+    
     /*-----------------------------------------------------*/
     // Terminal Color
     /*-----------------------------------------------------*/
@@ -210,20 +210,74 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Customized GiNaC Function
     /*-----------------------------------------------------*/
-    DECLARE_FUNCTION_1P(CCF)
-    DECLARE_FUNCTION_1P(CVF)
-
-    DECLARE_FUNCTION_1P(VF)
-    DECLARE_FUNCTION_1P(VF1)
-    DECLARE_FUNCTION_2P(VF2)
-    DECLARE_FUNCTION_3P(VF3)
-
-    DECLARE_FUNCTION_1P(FF) // not used internally, for user use only
-    DECLARE_FUNCTION_2P(CV) // not used internally, for user use only
-
+    DECLARE_FUNCTION_1P(coCF)
+    DECLARE_FUNCTION_1P(coVF)
+    
     DECLARE_FUNCTION_1P(x)
     DECLARE_FUNCTION_1P(y)
     DECLARE_FUNCTION_1P(z)
     
-
+    // WF wrapper function upto 5 arguments
+    class WF1_SERIAL { public: static unsigned serial; };
+    template<typename T1>
+    inline GiNaC::function WF(const T1 & p1) {
+        return GiNaC::function(WF1_SERIAL::serial, ex(p1));
+    }
+    
+    class WF2_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2>
+    inline GiNaC::function WF(const T1 & p1, const T2 & p2) {
+        return GiNaC::function(WF2_SERIAL::serial, ex(p1), ex(p2));
+    }
+    
+    class WF3_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2, typename T3>
+    inline GiNaC::function WF(const T1 & p1, const T2 & p2, const T3 & p3) {
+        return GiNaC::function(WF3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
+    }
+    
+    class WF4_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2, typename T3, typename T4>
+    inline GiNaC::function WF(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4) {
+        return GiNaC::function(WF4_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4));
+    }
+    
+    class WF5_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2, typename T3, typename T4, typename T5>
+    inline GiNaC::function WF(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5) {
+        return GiNaC::function(WF5_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5));
+    }
+    
+    
+    // iWF internal wrapper function upto 5 arguments
+    class iWF1_SERIAL { public: static unsigned serial; };
+    template<typename T1>
+    inline GiNaC::function iWF(const T1 & p1) {
+        return GiNaC::function(iWF1_SERIAL::serial, ex(p1));
+    }
+    
+    class iWF2_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2>
+    inline GiNaC::function iWF(const T1 & p1, const T2 & p2) {
+        return GiNaC::function(iWF2_SERIAL::serial, ex(p1), ex(p2));
+    }
+    
+    class iWF3_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2, typename T3>
+    inline GiNaC::function iWF(const T1 & p1, const T2 & p2, const T3 & p3) {
+        return GiNaC::function(iWF3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
+    }
+    
+    class iWF4_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2, typename T3, typename T4>
+    inline GiNaC::function iWF(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4) {
+        return GiNaC::function(iWF4_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4));
+    }
+    
+    class iWF5_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2, typename T3, typename T4, typename T5>
+    inline GiNaC::function iWF(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5) {
+        return GiNaC::function(iWF5_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5));
+    }
+    
 }

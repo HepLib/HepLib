@@ -1,4 +1,4 @@
-#include "ExGiNaC.h"
+#include "Basic.h"
 
 namespace HepLib {
 
@@ -411,7 +411,7 @@ namespace HepLib {
         while(exN<10) {
             expr = expr_input + pow(s,sn+exN+2)+pow(s,sn+exN+3);
             ex res = expr.series(s, sn+exN);
-            res = res.subs(CCF(w)==w); // remove CCF
+            res = res.subs(coCF(w)==w); // remove coCF
             ex ot = 0;
             for(int i=0; i<res.nops(); i++) {
                 if(is_order_function(res.op(i))) {
@@ -450,7 +450,7 @@ namespace HepLib {
         ex res = expr.subs(xp==s);
         if(expand) res = mma_collect(res, s, true);
         res = res.diff(s, nth);
-        if(expand) res = res.subs(CCF(w)==w); // remove CCF
+        if(expand) res = res.subs(coCF(w)==w); // remove coCF
         res = res.subs(s==xp);
         return res;
     }
@@ -479,17 +479,17 @@ namespace HepLib {
             for(auto item : expr_in) {
                 if(has_pats(item, pats)) expr *= mma_expand(item, pats, depth+1);
                 else if(is_a<numeric>(item)) expr *= item;
-                else expr *= CCF(item.subs(CCF(w)==w));
+                else expr *= coCF(item.subs(coCF(w)==w));
             }
         } else if(is_a<power>(expr_in) && expr_in.op(1).info(info_flags::nonnegint)) {
             auto item = expr_in.op(0);
             auto ni = expr_in.op(1);
             if(has_pats(item, pats)) expr = pow(mma_expand(item, pats, depth+1), ni).expand();
             else if(is_a<numeric>(item)) expr = expr_in;
-            else expr = CCF(expr_in.subs(CCF(w)==w));
+            else expr = coCF(expr_in.subs(coCF(w)==w));
         } else {
             if(has_pats(expr_in, pats) || is_a<numeric>(expr_in)) expr = expr_in;
-            else expr = CCF(expr_in.subs(CCF(w)==w));
+            else expr = coCF(expr_in.subs(coCF(w)==w));
         }
         
         expr = expr.expand();
@@ -501,9 +501,9 @@ namespace HepLib {
                 if(has_pats(item, pats)) res += item;
                 else ccf_expr += item;
             }
-            if(!is_zero(ccf_expr)) res += CCF(ccf_expr.subs(CCF(w)==w));
+            if(!is_zero(ccf_expr)) res += coCF(ccf_expr.subs(coCF(w)==w));
         }
-        if(depth==0) res = res.subs(CCF(w)==w);
+        if(depth==0) res = res.subs(coCF(w)==w);
         return res;
     }
     ex mma_expand(ex const &expr_in, const ex &pat, int depth) {
@@ -537,17 +537,17 @@ namespace HepLib {
             }
         }
         res = 0;
-        if(!is_zero(cf)) res += CCF(cf)*CVF(1);
+        if(!is_zero(cf)) res += coCF(cf)*coVF(1);
         for(auto vc : vc_map) {
             if(has_pats(vc.second, pats)) {
                 cerr << Color_Error << "mma_collect: pats founds @ " << vc.second << RESET << endl;
                 exit(1);
             }
-            res += CVF(vc.first) * CCF(vc.second);
+            res += coVF(vc.first) * coCF(vc.second);
         }
         
-        if(!ccf) res = res.subs(CCF(w)==w);
-        if(!cvf) res = res.subs(CVF(w)==w);
+        if(!ccf) res = res.subs(coCF(w)==w);
+        if(!cvf) res = res.subs(coVF(w)==w);
         return res;
     }
     ex mma_collect(ex const expr_in, ex const pat, bool ccf, bool cvf) {
@@ -735,28 +735,6 @@ namespace HepLib {
     ex get_op(const lst ex_in, int index1, int index2, int index3) {
         return ex_in.op(index1).op(index2).op(index3);
     }
-
-
-    /*-----------------------------------------------------*/
-    // Customized GiNaC Function
-    /*-----------------------------------------------------*/
-
-    REGISTER_FUNCTION(VF, dummy())
-    REGISTER_FUNCTION(VF1, dummy())
-    REGISTER_FUNCTION(VF2, dummy())
-    REGISTER_FUNCTION(VF3, dummy())
-
-    static ex CCF_Diff(const ex & x, unsigned diff_param) {return 0;}
-    static ex CCF_Expand(const ex & x, unsigned expand_options) {return CCF(x).hold();}
-    REGISTER_FUNCTION(CCF, derivative_func(CCF_Diff).expand_func(CCF_Expand))
-    REGISTER_FUNCTION(CVF, dummy())
-
-    REGISTER_FUNCTION(FF, dummy())
-    REGISTER_FUNCTION(CV, do_not_evalf_params())
-
-    REGISTER_FUNCTION(x, dummy())
-    REGISTER_FUNCTION(y, dummy())
-    REGISTER_FUNCTION(z, dummy())
 
 
 }
