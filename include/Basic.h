@@ -203,12 +203,17 @@ namespace HepLib {
     // Series at s=0 similar to Mathematica
     /*-----------------------------------------------------*/
     ex mma_series(ex const expr, symbol const s, int sn);
-    bool has_pats(ex const &item, lst const &pats);
+    
+    ex mma_expand(const ex &expr, std::function<bool(const ex &)>, int depth=0);
     ex mma_expand(ex const &expr, lst const &pats, int depth=0);
     ex mma_expand(ex const &expr, ex const &pat, int depth=0);
-    ex mma_collect(ex const expr, lst const pat, bool ccf=false, bool cvf=false);
-    ex mma_collect(ex const expr, ex const pat, bool ccf=false, bool cvf=false);
+    
+    ex mma_collect(const ex &expr, std::function<bool(const ex &)>, bool ccf=false, bool cvf=false);
+    ex mma_collect(const ex &expr, lst const &pats, bool ccf=false, bool cvf=false);
+    ex mma_collect(const ex &expr, ex const &pat, bool ccf=false, bool cvf=false);
+    
     ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
+    
 
     /*-----------------------------------------------------*/
     // Evalf
@@ -309,14 +314,11 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // MapFunction Class
     /*-----------------------------------------------------*/
-    struct MapFunction : public map_function {
+    class MapFunction : public map_function {
     public:
-        ex operator()(const ex &e) {
-            return Function(e, this, CustomizedObject);
-        }
-        MapFunction(ex(*)(const ex &, MapFunction *, void *), void * co=NULL);
+        ex operator()(const ex &e);
+        MapFunction(std::function<ex(const ex &, MapFunction &)>);
     private:
-        ex (*Function)(const ex &, MapFunction *, void *);
-        void * CustomizedObject;
+        std::function<ex(const ex &, MapFunction &)> Function;
     };
 }

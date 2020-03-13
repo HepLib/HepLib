@@ -61,11 +61,11 @@ namespace HepLib::FC {
     }
     
     Pair Index::operator() (const Index &i) {
-        return SP(*this, i);
+        return Pair(*this, i);
     }
     
     Pair Index::operator() (const Vector &p) {
-        return SP(p, *this);
+        return Pair(p, *this);
     }
 
     //-----------------------------------------------------------
@@ -86,11 +86,11 @@ namespace HepLib::FC {
     }
     
     Pair Vector::operator() (const Vector &p) {
-        return SP(*this, p);
+        return Pair(*this, p);
     }
     
     Pair Vector::operator() (const Index &i) {
-        return SP(*this, i);
+        return Pair(*this, i);
     }
     
     // cA is the quadratic Casimir of the adjoint rep (2*I2R*NR)

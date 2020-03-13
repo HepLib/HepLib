@@ -448,39 +448,32 @@ namespace HepLib {
     }
 
     /*-----------------------------------------------------*/
-    // has_pats & mma_expand
+    // mma_expand
     /*-----------------------------------------------------*/
-    bool has_pats(ex const &item, lst const &pats) {
-        for(auto pat : pats) {
-            if(item.has(pat)) return true;
-        }
-        return false;
-    }
-
-    ex mma_expand(ex const &expr_in, lst const &pats, int depth) {
+    ex mma_expand(ex const &expr_in, std::function<bool(const ex &)> isOK, int depth) {
         if(depth>5) return expr_in.expand();
         ex expr;
         if(is_a<add>(expr_in)) {
             expr = 0;
             for(auto item : expr_in) {
-                if(has_pats(item, pats)) expr += mma_expand(item, pats, depth+1);
+                if(isOK(item)) expr += mma_expand(item, isOK, depth+1);
                 else expr += item;
             }
         } else if (is_a<mul>(expr_in)) {
             expr=1;
             for(auto item : expr_in) {
-                if(has_pats(item, pats)) expr *= mma_expand(item, pats, depth+1);
+                if(isOK(item)) expr *= mma_expand(item, isOK, depth+1);
                 else if(is_a<numeric>(item)) expr *= item;
                 else expr *= coCF(item.subs(coCF(w)==w));
             }
         } else if(is_a<power>(expr_in) && expr_in.op(1).info(info_flags::nonnegint)) {
             auto item = expr_in.op(0);
             auto ni = expr_in.op(1);
-            if(has_pats(item, pats)) expr = pow(mma_expand(item, pats, depth+1), ni).expand();
+            if(isOK(item)) expr = pow(mma_expand(item, isOK, depth+1), ni).expand();
             else if(is_a<numeric>(item)) expr = expr_in;
             else expr = coCF(expr_in.subs(coCF(w)==w));
         } else {
-            if(has_pats(expr_in, pats) || is_a<numeric>(expr_in)) expr = expr_in;
+            if(isOK(expr_in) || is_a<numeric>(expr_in)) expr = expr_in;
             else expr = coCF(expr_in.subs(coCF(w)==w));
         }
         
@@ -490,7 +483,7 @@ namespace HepLib {
             res = 0;
             ex ccf_expr=0;
             for(auto item : expr) {
-                if(has_pats(item, pats)) res += item;
+                if(isOK(item)) res += item;
                 else ccf_expr += item;
             }
             if(!is_zero(ccf_expr)) res += coCF(ccf_expr.subs(coCF(w)==w));
@@ -498,16 +491,25 @@ namespace HepLib {
         if(depth==0) res = res.subs(coCF(w)==w);
         return res;
     }
+    ex mma_expand(ex const &expr_in, lst const &pats, int depth) {
+        return mma_expand(expr_in, [pats](const ex & e)->bool {
+            for(auto pat : pats) {
+                if(e.has(pat)) return true;
+            }
+            return false;
+        }, depth);
+    }
     ex mma_expand(ex const &expr_in, const ex &pat, int depth) {
-        if(is_a<lst>(pat)) return mma_expand(expr_in, ex_to<lst>(pat), depth);
-        else return mma_expand(expr_in, lst{pat}, depth);
+        return mma_expand(expr_in, [pat](const ex & e)->bool {
+            return e.has(pat);
+        }, depth);
     }
 
     /*-----------------------------------------------------*/
     // mma_collect
     /*-----------------------------------------------------*/
-    ex mma_collect(ex const expr_in, lst const pats, bool ccf, bool cvf) {
-        auto res = mma_expand(expr_in, pats);
+    ex mma_collect(ex const &expr_in, std::function<bool(const ex &)> isOK, bool ccf, bool cvf) {
+        auto res = mma_expand(expr_in, isOK);
         lst items;
         if(is_a<add>(res)) {
             for(auto item : res) items.append(item);
@@ -516,11 +518,11 @@ namespace HepLib {
         ex cf = 0;
         map<ex, ex, ex_is_less> vc_map;
         for(auto item : items) {
-            if(!has_pats(item, pats)) cf += item;
+            if(!isOK(item)) cf += item;
             else if(is_a<mul>(item)) {
                 ex tc = 1, tv = 1;
                 for(auto ii : item) {
-                    if(!has_pats(ii, pats)) tc *= ii;
+                    if(!isOK(ii)) tc *= ii;
                     else tv *= ii;
                 }
                 vc_map[tv] += tc;
@@ -531,7 +533,7 @@ namespace HepLib {
         res = 0;
         if(!is_zero(cf)) res += coCF(cf)*coVF(1);
         for(auto vc : vc_map) {
-            if(has_pats(vc.second, pats)) {
+            if(isOK(vc.second)) {
                 cerr << Color_Error << "mma_collect: pats founds @ " << vc.second << RESET << endl;
                 exit(1);
             }
@@ -542,9 +544,19 @@ namespace HepLib {
         if(!cvf) res = res.subs(coVF(w)==w);
         return res;
     }
-    ex mma_collect(ex const expr_in, ex const pat, bool ccf, bool cvf) {
-        if(is_a<lst>(pat)) return mma_collect(expr_in, ex_to<lst>(pat), ccf, cvf);
-        else return mma_collect(expr_in, lst{pat}, ccf, cvf);
+    
+    ex mma_collect(ex const &expr_in, lst const &pats, bool ccf, bool cvf) {
+        return mma_collect(expr_in, [pats](const ex & e)->bool {
+            for(auto pat : pats) {
+                if(e.has(pat)) return true;
+            }
+            return false;
+        }, ccf, cvf);
+    }
+    ex mma_collect(ex const &expr_in, ex const &pat, bool ccf, bool cvf) {
+        return mma_collect(expr_in, [pat](const ex & e)->bool {
+            return e.has(pat);
+        }, ccf, cvf);
     }
 
     /*-----------------------------------------------------*/

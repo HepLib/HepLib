@@ -50,10 +50,10 @@ namespace HepLib::FC {
     // SP function - ScalarProduct
     //-----------------------------------------------------------
     ex SP(ex a, ex b) {
-        if(is_a<Vector>(a) && is_a<Vector>(b)) return SP(ex_to<Vector>(a), ex_to<Vector>(b));
-        else if(is_a<Vector>(a) && is_a<Index>(b)) return SP(ex_to<Vector>(a), ex_to<Index>(b));
-        else if(is_a<Index>(a) && is_a<Vector>(b)) return SP(ex_to<Index>(a), ex_to<Vector>(b));
-        else if(is_a<Index>(a) && is_a<Index>(b)) return SP(ex_to<Index>(a), ex_to<Index>(b));
+        if(is_a<Vector>(a) && is_a<Vector>(b)) return Pair(ex_to<Vector>(a), ex_to<Vector>(b));
+        else if(is_a<Vector>(a) && is_a<Index>(b)) return Pair(ex_to<Vector>(a), ex_to<Index>(b));
+        else if(is_a<Index>(a) && is_a<Vector>(b)) return Pair(ex_to<Vector>(b), ex_to<Index>(a));
+        else if(is_a<Index>(a) && is_a<Index>(b)) return Pair(ex_to<Index>(a), ex_to<Index>(b));
         
         lst alst, blst;
         a = a.expand();

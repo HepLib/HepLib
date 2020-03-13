@@ -126,23 +126,29 @@ namespace HepLib::FC {
         ex spL;
         ex spR;
     };
-    
-    // SP functions
-    inline Pair SP(const Vector &p1, const Vector &p2) {
-        if(p1.compare(p2)<0) return Pair(p2, p1);
-        else return Pair(p1, p2);
-    }
-    inline Pair SP(const Index &i1, const Index &i2) {
-        if(i1.compare(i2)<0) return Pair(i2, i1);
-        else return Pair(i1, i2);
-    }
-    inline Pair SP(const Vector &p, const Index &i) {
-        return Pair(p, i);
-    }
-    inline Pair SP(const Index &i, const Vector &p) {
-        return Pair(p, i);
-    }
     ex SP(ex a, ex b);
+    
+    //-----------------------------------------------------------
+    // Eps Class
+    //-----------------------------------------------------------
+    class Eps : public basic {
+    GINAC_DECLARE_REGISTERED_CLASS(Eps, basic)
+    public:
+        Eps(const Vector &p1, const Vector &p2, const Vector &p3, const Vector &p4);
+        Eps(const Vector &p1, const Vector &p2, const Vector &p3, const Index &i1);
+        Eps(const Vector &p1, const Vector &p2, const Index &i1, const Index &i2);
+        Eps(const Vector &p1, const Index &i1, const Index &i2, const Index &i3);
+        Eps(const Index &i1, const Index &i2, const Index &i3, const Index &i4);
+        Eps(vector<Vector> vs, vector<Index> is);
+        size_t nops() const override;
+        ex op(size_t i) const override;
+        void print(const print_dflt &c, unsigned level = 0) const;
+        void form_print(const FormFormat &c, unsigned level = 0) const;
+        void fc_print(const FCFormat &c, unsigned level = 0) const;
+    private:
+        ex pis[4];
+    };
+    ex LC(ex pi1, ex pi2, ex pi3, ex pi4);
     
     //-----------------------------------------------------------
     // DiracGamma Class

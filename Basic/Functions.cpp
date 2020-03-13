@@ -30,9 +30,10 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // MapFunction Class
     /*-----------------------------------------------------*/
-    MapFunction::MapFunction(
-        ex (*func)(const ex &, MapFunction *, void *), void *co
-    ) : Function(func), CustomizedObject(co) { }
+    MapFunction::MapFunction(std::function<ex(const ex &, MapFunction &)> func) : Function(func) { }
+    ex MapFunction::operator()(const ex &e) {
+        return Function(e, *this);
+    }
 
 }
 

@@ -3,6 +3,35 @@
 namespace HepLib::FC {
     
     //-----------------------------------------------------------
+    // Extend Parser for form, copied from ginac/parser of GiNaC
+    //-----------------------------------------------------------
+    namespace {
+    
+        auto init_first = get_default_reader(); // IMPORTANT: initialize first
+    
+        ex SP_reader(const exvector& ev) {
+            return SP(ev[0], ev[1]);
+        }
+        
+        ex LC_reader(const exvector& ev) {
+            return LC(ev[0], ev[1], ev[2], ev[3]);
+        }
+        
+        const prototype_table& form_func_reader() {
+            using std::make_pair;
+            static bool initialized = false;
+            static prototype_table dr;
+            if(!initialized) {
+                dr = get_default_reader();
+                dr[make_pair("SP", 2)] = SP_reader;
+                dr[make_pair("LC", 4)] = LC_reader;
+                initialized = true;
+            }
+            return dr;
+        }
+    }
+    
+    //-----------------------------------------------------------
     // Run Form Program
     //-----------------------------------------------------------
     namespace {
@@ -44,6 +73,7 @@ namespace HepLib::FC {
                 start_pos += to.length();
             }
         }
+        
     }
     
     //-----------------------------------------------------------
@@ -178,20 +208,17 @@ namespace HepLib::FC {
             replace_all(ostr, from, to);
         }
         
-        size_t start_pos = 0;
-        while((start_pos = ostr.find("d_(", start_pos)) != string::npos) {
-            ostr.replace(start_pos, 3, "(");
-            start_pos = ostr.find(",", start_pos);
-            ostr.replace(start_pos, 1, "_");
-        }
+        replace_all(ostr, "d_(", "SP(");
+        replace_all(ostr, "e_(", "LC(");
         
         st["I2R"] = ex(1)/2;
         st["cA"] = CA;
         st["cR"] = CF;
         st["NA"] = NA;
         st["NR"] = NF;
-        parser reader(st);
-        ex ret = reader(ostr);
+        
+        parser form_parser(st, false, form_func_reader());
+        ex ret = form_parser(ostr);
         return ret;
     }
 
