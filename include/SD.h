@@ -17,7 +17,49 @@ extern "C" {
     #include <quadmath.h>
 }
 
-namespace HepLib {
+namespace HepLib::SD {
+    
+    using namespace HepLib;
+    
+    /*-----------------------------------------------------*/
+    // Global Variables
+    /*-----------------------------------------------------*/
+    
+    extern const symbol iEpsilon;
+    extern const symbol ep;
+    extern const symbol eps;
+    extern const symbol vs;
+    extern const symbol vz;
+    extern const symbol epz;
+    extern const realsymbol NaN;
+    
+    /*-----------------------------------------------------*/
+    // Global Functions
+    /*-----------------------------------------------------*/
+    vector<ex> get_xy_from(ex pol);
+    vector<ex> get_x_from(ex pol);
+    vector<ex> get_y_from(ex pol);
+    vector<ex> get_pl_from(ex pol);
+    int epRank(ex);
+    int epsRank(ex);
+    int vsRank(ex);
+    int x_free_index(ex expr);
+    int y_free_index(ex expr);
+    ex Factor(const ex expr);
+    ex PowerExpand(const ex expr);
+    
+    
+    /*-----------------------------------------------------*/
+    // Customized GiNaC Function
+    /*-----------------------------------------------------*/
+    DECLARE_FUNCTION_1P(fabs)
+    DECLARE_FUNCTION_1P(PL)
+    DECLARE_FUNCTION_1P(CT)
+    DECLARE_FUNCTION_2P(FTX)
+    DECLARE_FUNCTION_2P(VE)
+    DECLARE_FUNCTION_2P(VEO)
+    DECLARE_FUNCTION_1P(epsID)
+    DECLARE_FUNCTION_2P(CV) // not used internally, for user use only
 
     /*-----------------------------------------------------*/
     // SD Input
@@ -44,15 +86,7 @@ namespace HepLib {
     };
 
     /*-----------------------------------------------------*/
-    // Global Functions
-    /*-----------------------------------------------------*/
-    vector<ex> get_xy_from(ex pol);
-    vector<ex> get_x_from(ex pol);
-    vector<ex> get_y_from(ex pol);
-    vector<ex> get_pl_from(ex pol);
-
-    /*-----------------------------------------------------*/
-    // SecDec Classes
+    // SecDecBase Classes
     /*-----------------------------------------------------*/
     class SecDecBase {
     public:
@@ -212,10 +246,15 @@ namespace HepLib {
         const char* suffix;
         static void QPrint(qREAL qr);
         const char* MQuote = "\"";
+        // static initialization
+        class _init {
+            public: _init();
+        };
     private:
         static void print_integer(const CppFormat & c, const cln::cl_I & x);
         static void print_real(const CppFormat & c, const cln::cl_R & x);
         static void print_numeric(const numeric & p, const CppFormat & c, unsigned level);
+        static _init CppFormat_init;
     };
 
     /*-----------------------------------------------------*/
@@ -244,18 +283,11 @@ namespace HepLib {
     };
 
     /*-----------------------------------------------------*/
-    // SD Class
+    // SecDec Class
     /*-----------------------------------------------------*/
-    class SD {
+    class SecDec {
 
     public:
-        static const symbol iEpsilon;
-        static const symbol ep;
-        static const symbol eps;
-        static const symbol vs;
-        static const symbol vz;
-        static const symbol epz;
-        static const realsymbol NaN;
         static bool use_dlclose;
         static bool debug;
         static const char* cpp;
@@ -337,8 +369,6 @@ namespace HepLib {
         ex VEResult();
         void VEPrint(bool endlQ=true);
         double FindMinimum(ex expr, bool compare0 = false);
-        static ex Factor(const ex expr);
-        static ex PowerExpand(const ex expr);
         static ex PExpand(ex xpol, bool delta=true);
         static int PRank(matrix m);
         static bool Partilize(ex f0, lst delta, lst &in_ret, int mode=0);
@@ -346,8 +376,6 @@ namespace HepLib {
         static void Scalelize(ex &fe, const lst xs, const ex cy);
         static void Scalelize(ex &fe, const ex xi, const ex cy);
         static vector<ex> Binarize(ex const fe, ex const eqn);
-        static int x_free_index(ex expr);
-        static int y_free_index(ex expr);
         static bool VerifySD(vector<exmap> vmap, bool quick = true);
         static ex RefinedFT(ex const & ft);
         static lst RefinedFT_lst(ex const & ft);
@@ -359,14 +387,11 @@ namespace HepLib {
         class _init {
             public: _init();
         };
-        ~SD();
+        ~SecDec();
                 
     private:
         vector<ex> DS(const ex po_ex);
         lst Normalize(const ex &input);
-        static int epRank(ex);
-        static int epsRank(ex);
-        static int vsRank(ex);
         void DoAsy();
         bool KillPowersWithDelta(ex fe, int kpi);
         bool KillPowersWithoutDelta(ex fe, int kpi, int bits);
@@ -393,19 +418,6 @@ namespace HepLib {
         int no = 0;
         vector<pair<int, ex>> o_ex_vec;
     };
-
-    /*-----------------------------------------------------*/
-    // Customized GiNaC Function
-    /*-----------------------------------------------------*/
-    DECLARE_FUNCTION_1P(fabs)
-    DECLARE_FUNCTION_1P(PL)
-    DECLARE_FUNCTION_1P(CT)
-    DECLARE_FUNCTION_2P(FTX)
-    DECLARE_FUNCTION_2P(VE)
-    DECLARE_FUNCTION_2P(VEO)
-    DECLARE_FUNCTION_1P(WF)
-    DECLARE_FUNCTION_1P(epsID)
-    DECLARE_FUNCTION_2P(CV) // not used internally, for user use only
     
 }
 

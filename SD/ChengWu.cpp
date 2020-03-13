@@ -1,9 +1,9 @@
 #include "SD.h"
 #include <cmath>
 
-namespace HepLib {
+namespace HepLib::SD {
 
-void SD::Projectivize(ex &fe, ex delta, ex xsum) {
+void SecDec::Projectivize(ex &fe, ex delta, ex xsum) {
     symbol s;
     lst sRepl;
     for(int j=0; j<delta.nops(); j++) sRepl.append(delta.op(j)==delta.op(j)*s);
@@ -40,11 +40,11 @@ void SD::Projectivize(ex &fe, ex delta, ex xsum) {
     }
 }
 
-void SD::Scalelize(ex &fe, const ex xi, const ex cy) {
+void SecDec::Scalelize(ex &fe, const ex xi, const ex cy) {
     if(is_a<lst>(xi)) Scalelize(fe, ex_to<lst>(xi), cy);
     else Scalelize(fe, lst{xi}, cy);
 }
-void SD::Scalelize(ex &fe, const lst xs, const ex cy) {
+void SecDec::Scalelize(ex &fe, const lst xs, const ex cy) {
     lst x2y, y2x;
     for(auto xi : xs) {
         if(cy.has(xi)) {
@@ -89,7 +89,7 @@ void SD::Scalelize(ex &fe, const lst xs, const ex cy) {
     }
 }
 
-vector<ex> SD::Binarize(ex const fe, ex const eqn) {
+vector<ex> SecDec::Binarize(ex const fe, ex const eqn) {
     vector<ex> add_to;
     auto xij = get_x_from(eqn);
     if(xij.size()!=2) {
@@ -153,7 +153,7 @@ mode=2: x_i P_i + G_0, with P-i positive, G_0 ~ (xm-xn)^n
 mode=3: x_i P_i + x_0 G_0 + Q_0, with P-i positive, G_0 ~ (xm-xn)^n & Q_0 positive
 mode=4: x_i P_i + x_0 G_0 + Q_0, with P-i positive, G_0/Q_0 ~ (xm-xn)^n
 */
-bool SD::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
+bool SecDec::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
     for(auto xi : delta) {
         ex f = f0;
         if(!f.has(xi) || f.degree(xi)!=1) continue;
@@ -237,12 +237,12 @@ bool SD::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
     return false;
 }
 
-void SD::ChengWu(bool sub_cw) {
+void SecDec::ChengWu(bool sub_cw) {
     ChengWu(FunExp, Verbose, sub_cw);
 }
 
 // FunExp & Verbose are local
-void SD::ChengWu(vector<ex> &FunExp, int Verbose, bool sub_cw) {
+void SecDec::ChengWu(vector<ex> &FunExp, int Verbose, bool sub_cw) {
     vector<ex> FunExp2;
     for(auto fe : FunExp) {
         if(fe.nops()<3 || xSign(fe.op(0).op(1))!=0) {
@@ -312,7 +312,7 @@ void SD::ChengWu(vector<ex> &FunExp, int Verbose, bool sub_cw) {
 // make sure ft in the first term ONLY appear in ChengWu.cpp
 // input: ft = in_fe.op(0).op(0)
 // ouput: in_op(0).op(0) replaced by 1-ok, 2-nok
-vector<ex> SD::ChengWu_Internal(ex in_fe, int Verbose) {
+vector<ex> SecDec::ChengWu_Internal(ex in_fe, int Verbose) {
     vector<ex> fe_lst, ret_lst;
     fe_lst.push_back(in_fe);
     while(true) {

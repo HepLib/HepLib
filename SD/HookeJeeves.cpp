@@ -3,7 +3,7 @@
 #include <math.h>
 #include <cmath>
 
-namespace HepLib {
+namespace HepLib::SD {
 
 dREAL HookeJeeves::best_nearby(dREAL* delta, dREAL* point, dREAL prevbest, int nvars) {
     dREAL z[nvars];

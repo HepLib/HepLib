@@ -2,14 +2,8 @@
 
 // Computation for Fragmentation Function of Quark into Quarkonium
 
-using namespace HepLib;
+using namespace HepLib::SD;
 bool use_eps = true;
-
-auto ep = SD::ep;
-auto eps = SD::eps;
-auto iEpsilon = SD::iEpsilon;
-auto vs = SD::vs;
-auto vz = SD::vz;
 
 int sf = 1; // symetry factor
 int nt = 0; // number of final state, exclude Quarkonium itself
@@ -126,7 +120,7 @@ void Prepare(int idx) {
     fp.nReplacements[ep] = ex(1)/11;
     fp.nReplacements[eps] = ex(1)/111;
     
-    SD work;
+    SecDec work;
     work.epN = epN;
     work.Verbose = verb;
     
@@ -164,7 +158,7 @@ void Prepare(int idx) {
         fe.let_op(0).let_op(0) = fe.op(0).op(0) * zFactor;
         fe.let_op(0) = ex_to<lst>(subs(fe.op(0), z2x));
         
-        auto tmp = SD::Factor(fe.op(0).op(0));
+        auto tmp = Factor(fe.op(0).op(0));
         if(tmp.has(x(w)) && is_a<mul>(tmp)) {
             ex rem = 1;
             for(auto item : tmp) {
@@ -217,7 +211,7 @@ void Prepare(int idx) {
 }
 
 void Contour(int idx) {
-    SD work;
+    SecDec work;
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
     work.Verbose = verb;
@@ -230,7 +224,7 @@ void Contour(int idx) {
 }
 
 ex Integrate(int idx, int ii = -1) {
-    SD work;
+    SecDec work;
     char *CFLAGS = getenv("SD_CFLAGS");
     work.CFLAGS = CFLAGS;
     work.Verbose = verb;
@@ -267,7 +261,7 @@ ex Integrate(int idx, int ii = -1) {
 
 int main(int argc, char** argv) {
     char* dc = getenv("SD_DLCLOSE");
-    if(dc!=NULL && !strcmp(dc, "0")) SD::use_dlclose = false;
+    if(dc!=NULL && !strcmp(dc, "0")) SecDec::use_dlclose = false;
     
     const char* arg_a = NULL;
     const char* arg_n = NULL;

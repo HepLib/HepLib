@@ -1,7 +1,7 @@
 #include "SD.h"
 #include "mpreal.h"
 
-namespace HepLib {
+namespace HepLib::SD {
 
 /*-----------------------------------------------------*/
 // HCubature Classes
@@ -180,7 +180,7 @@ ex HCubature::Integrate() {
     if(nok) {
         if( (cabsq(result[0]+result[1]*1.Qi) < FLT128_EPSILON) && (cabsq(estabs[0]+estabs[1]*1.Qi) < FLT128_EPSILON) ) {
             cout << Color_Error << "HCubature Failed with 0 result returned!" << RESET << endl;
-            return SD::NaN;
+            return NaN;
         }
     }
 
@@ -194,13 +194,13 @@ ex HCubature::Integrate() {
     }
     
     ex FResult = 0;
-    if(isnanq(result[0]) || isnanq(result[1])) FResult += SD::NaN;
+    if(isnanq(result[0]) || isnanq(result[1])) FResult += NaN;
     else {
         try{
             FResult += VE(CppFormat::q2ex(result[0]), CppFormat::q2ex(estabs[0]));
             FResult += VE(CppFormat::q2ex(result[1]), CppFormat::q2ex(estabs[1])) * I;
         } catch(...) {
-            FResult += SD::NaN;
+            FResult += NaN;
         }
     }
     

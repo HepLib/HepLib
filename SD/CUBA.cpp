@@ -1,7 +1,7 @@
 #include "SD.h"
 #include "mpreal.h"
 
-namespace HepLib {
+namespace HepLib::SD {
 
 /*-----------------------------------------------------*/
 // CUBA Classes
@@ -133,13 +133,13 @@ ex CUBA::Integrate() {
     NEval = neval;
     
     ex FResult = 0;
-    if(isnanq(result[0]) || isnanq(result[1])) FResult += SD::NaN;
+    if(isnanq(result[0]) || isnanq(result[1])) FResult += NaN;
     else {
         try{
             FResult += VE(CppFormat::q2ex(result[0]), CppFormat::q2ex(estabs[0]));
             FResult += VE(CppFormat::q2ex(result[1]), CppFormat::q2ex(estabs[1])) * I;
         } catch(...) {
-            FResult += SD::NaN;
+            FResult += NaN;
         }
     }
     

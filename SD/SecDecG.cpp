@@ -4,7 +4,7 @@ extern "C" {
     #include <libqhull/qhull_a.h>
 }
 
-namespace HepLib {
+namespace HepLib::SD {
 
 vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
 

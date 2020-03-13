@@ -1,10 +1,6 @@
 #include "SD.h"
 
-using namespace HepLib;
-
-auto ep = SD::ep;
-auto eps = SD::eps;
-auto iEpsilon = SD::iEpsilon;
+using namespace HepLib::SD;
 
 symtab table = { {"ep", ep}, {"eps", eps}, {"iEpsilon", iEpsilon} };
 parser reader(table);
@@ -56,7 +52,7 @@ int main(int argc, char** argv) {
     fp.nReplacements[ep] = ex(1)/11;
     fp.nReplacements[eps] = ex(1)/111;
     
-    SD work;
+    SecDec work;
     work.Verbose = 0;
     //work.CheckEnd = true;
     

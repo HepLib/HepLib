@@ -1,6 +1,231 @@
 #include "SD.h"
 
-namespace HepLib {
+namespace HepLib::SD {
+
+    /*-----------------------------------------------------*/
+    // Global Functions
+    /*-----------------------------------------------------*/
+
+    vector<ex> get_xy_from(ex pol) {
+        exset xyset;
+        bool ok = pol.find(x(w), xyset);
+        if(!ok) {
+            ok = pol.find(y(w), xyset);
+            if(!ok) {
+                vector<ex> xys(0);
+                return xys;
+            }
+        }
+        vector<ex> xys(xyset.size());
+        copy(xyset.begin(), xyset.end(), xys.begin());
+        sort(xys.begin(), xys.end(), [&](const auto &a, const auto &b){
+            return ex_to<numeric>(normal((b-a)).subs(lst{ x(w)==w, y(w)==w })).is_positive();
+        });
+        return xys;
+    }
+
+    vector<ex> get_x_from(ex pol) {
+        exset xset;
+        bool ok = pol.find(x(w), xset);
+        if(!ok) {
+            vector<ex> xs(0);
+            return xs;
+        }
+        vector<ex> xs(xset.size());
+        copy(xset.begin(), xset.end(), xs.begin());
+        sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
+            return ex_to<numeric>(normal((b-a)).subs(lst{ x(w)==w })).is_positive();
+        });
+        return xs;
+    }
+
+    vector<ex> get_y_from(ex pol) {
+        exset yset;
+        bool ok = pol.find(y(w), yset);
+        if(!ok) {
+            vector<ex> ys(0);
+            return ys;
+        }
+        vector<ex> ys(yset.size());
+        copy(yset.begin(), yset.end(), ys.begin());
+        sort(ys.begin(), ys.end(), [&](const auto &a, const auto &b){
+            return ex_to<numeric>(normal((b-a)).subs(lst{ y(w)==w })).is_positive();
+        });
+        return ys;
+    }
+
+    vector<ex> get_pl_from(ex pol) {
+        exset plset;
+        bool ok = pol.find(PL(w), plset);
+        if(!ok) {
+            vector<ex> pls(0);
+            return pls;
+        }
+        vector<ex> pls(plset.size());
+        copy(plset.begin(), plset.end(), pls.begin());
+        sort(pls.begin(), pls.end(), [&](const auto &a, const auto &b){
+            return ex_to<numeric>(normal((b-a)).subs(lst{ PL(w)==w })).is_positive();
+        });
+        return pls;
+    }
+
+    /*-----------------------------------------------------*/
+    // VE
+    /*-----------------------------------------------------*/
+    ex VESimplify(ex expr, int epN, int epsN) {
+        Digits = 50;
+        auto expr1 = expr.evalf();
+        if(expr1.has(eps)) expr1 = mma_series(expr1, eps, epsN);
+        expr1 = mma_series(expr1, ep, epN);
+        expr1 = expr1.expand();
+        ex ret = 0;
+        for(int si=expr1.ldegree(eps); si<=epsN; si++) {
+        for(int i=expr1.ldegree(ep); i<=epN; i++) {
+        
+            auto ccRes = expr1.coeff(eps,si).coeff(ep,i).expand();
+            lst ccResList;
+            if(is_a<add>(ccRes)) {
+                for(auto item : ccRes) ccResList.append(item);
+            } else {
+                ccResList.append(ccRes);
+            }
+            
+            ccRes = 0;
+            for(auto item : ccResList) {
+                if(is_a<mul>(item)) {
+                    ex cc = 1, cf = 1;
+                    for(auto ii : item) {
+                        if(is_a<numeric>(ii) || ii.match(VE(w1, w2))) {
+                            cc *= ii;
+                        } else {
+                            cf *= ii;
+                        }
+                    }
+                    ccRes += cc * iWF(cf);
+                } else if(is_a<numeric>(item) || item.match(VE(w1, w2))) {
+                    ccRes += item*iWF(1);
+                } else {
+                    ccRes += iWF(item);
+                }
+            }
+        
+            
+            exset vfs;
+            find(ccRes, iWF(w),vfs);
+            
+            for(auto vf : vfs) {
+                auto tmpIR = ccRes.coeff(vf).expand();
+                exset ves;
+                tmpIR.find(VE(w1, w2), ves);
+                auto ntmp = tmpIR.subs(lst{VE(w1, w2)==0});
+                if(!is_a<numeric>(ntmp)) {
+                    cerr << Color_Error << "VESimplify: (!is_a<numeric>(ntmp))" << RESET << endl;
+                    exit(1);
+                }
+                if(abs(ntmp.evalf())>numeric("1E300")) return NaN;
+                ex vIR = ntmp;
+                ex eI2 = 0, eR2 = 0;
+                for(auto ve : ves) {
+                    auto co = tmpIR.coeff(ve);
+                    vIR += co * ve.op(0);
+                    if(!is_a<numeric>(co)) {
+                        cerr << Color_Error << "VESimplify: (!is_a<numeric>(co))" << RESET << endl;
+                        exit(1);
+                    }
+                    numeric nco = ex_to<numeric>(co);
+                    ex ee = ve.op(1) * ve.op(1);
+                    eR2 += nco.real_part() * nco.real_part() * ee;
+                    eI2 += nco.imag_part() * nco.imag_part() * ee;
+                }
+                ret += VE(ex_to<numeric>(vIR).real_part(), sqrt(eR2)) * pow(eps,si) * pow(ep,i) * vf;
+                ret += VE(ex_to<numeric>(vIR).imag_part(), sqrt(eI2)) * pow(eps,si) * pow(ep,i) * vf * I;
+            }
+        }}
+        
+        ret = ret.subs(lst{iWF(w)==w});
+        ret = ret.subs(lst{VE(0,0)==0});
+        return ret.collect(lst{eps,ep}, true);
+    }
+
+    ex VEResult(ex expr) {
+        return expr.subs(VE(w1,w2)==VEO(w1,w2));
+    }
+
+
+    /*-----------------------------------------------------*/
+    // Heplers used in SD
+    /*-----------------------------------------------------*/
+    int x_free_index(ex expr) {
+        auto xs = get_x_from(expr);
+        for(int i=0; i<=xs.size(); i++) {
+            bool ok = true;
+            for(auto xi : xs) {
+                if(xi.is_equal(x(i))) {
+                    ok = false;
+                    break;
+                }
+            }
+            if(ok) return i;
+        }
+        return -1;
+    }
+
+    int y_free_index(ex expr) {
+        auto ys = get_y_from(expr);
+        for(int i=0; i<=ys.size(); i++) {
+            bool ok = true;
+            for(auto yi : ys) {
+                if(yi.is_equal(y(i))) {
+                    ok = false;
+                    break;
+                }
+            }
+            if(ok) return i;
+        }
+        return -1;
+    }
+
+    int epRank(ex expr_in) {
+        if(!expr_in.has(ep)) return 0;
+        int p = -5;
+        auto expr = mma_collect(expr_in, ep);
+        while(true) {
+            auto tmp = normal(series_to_poly(expr.series(ep, p)));
+            if(!tmp.is_zero()) {
+                tmp = mma_collect(tmp, ep);
+                return tmp.ldegree(ep);
+            } else p++;
+        }
+        throw runtime_error("epRank error!");
+    }
+
+    int epsRank(ex expr_in) {
+        if(!expr_in.has(eps)) return 0;
+        int p = -5;
+        auto expr = mma_collect(expr_in, eps);
+        while(true) {
+            auto tmp = normal(series_to_poly(expr.series(eps, p)));
+            if(!tmp.is_zero()) {
+                tmp = mma_collect(tmp, eps);
+                return tmp.ldegree(eps);
+            } else p++;
+        }
+        throw runtime_error("epsRank error!");
+    }
+
+    int vsRank(ex expr_in) {
+        if(!expr_in.has(vs)) return 0;
+        int p = -5;
+        auto expr = mma_collect(expr_in, vs);
+        while(true) {
+            auto tmp = normal(series_to_poly(expr.series(vs, p)));
+            if(!tmp.is_zero()) {
+                tmp = mma_collect(tmp, vs);
+                return tmp.ldegree(vs);
+            } else p++;
+        }
+        throw runtime_error("vsRank error!");
+    }
 
 /*-----------------------------------------------------*/
 // IntegratorBase::inDQMP
@@ -32,239 +257,12 @@ int IntegratorBase::inDQMP(qREAL const *x) {
     return 1;
 }
 
-/*-----------------------------------------------------*/
-// Global Functions
-/*-----------------------------------------------------*/
-
-vector<ex> get_xy_from(ex pol) {
-    exset xyset;
-    bool ok = pol.find(x(w), xyset);
-    if(!ok) {
-        ok = pol.find(y(w), xyset);
-        if(!ok) {
-            vector<ex> xys(0);
-            return xys;
-        }
-    }
-    vector<ex> xys(xyset.size());
-    copy(xyset.begin(), xyset.end(), xys.begin());
-    sort(xys.begin(), xys.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>(normal((b-a)).subs(lst{ x(w)==w, y(w)==w })).is_positive();
-    });
-    return xys;
+ex SecDec::VEResult() {
+    return HepLib::SD::VEResult(ResultError);
 }
 
-vector<ex> get_x_from(ex pol) {
-    exset xset;
-    bool ok = pol.find(x(w), xset);
-    if(!ok) {
-        vector<ex> xs(0);
-        return xs;
-    }
-    vector<ex> xs(xset.size());
-    copy(xset.begin(), xset.end(), xs.begin());
-    sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>(normal((b-a)).subs(lst{ x(w)==w })).is_positive();
-    });
-    return xs;
-}
-
-vector<ex> get_y_from(ex pol) {
-    exset yset;
-    bool ok = pol.find(y(w), yset);
-    if(!ok) {
-        vector<ex> ys(0);
-        return ys;
-    }
-    vector<ex> ys(yset.size());
-    copy(yset.begin(), yset.end(), ys.begin());
-    sort(ys.begin(), ys.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>(normal((b-a)).subs(lst{ y(w)==w })).is_positive();
-    });
-    return ys;
-}
-
-vector<ex> get_pl_from(ex pol) {
-    exset plset;
-    bool ok = pol.find(PL(w), plset);
-    if(!ok) {
-        vector<ex> pls(0);
-        return pls;
-    }
-    vector<ex> pls(plset.size());
-    copy(plset.begin(), plset.end(), pls.begin());
-    sort(pls.begin(), pls.end(), [&](const auto &a, const auto &b){
-        return ex_to<numeric>(normal((b-a)).subs(lst{ PL(w)==w })).is_positive();
-    });
-    return pls;
-}
-
-/*-----------------------------------------------------*/
-// VE
-/*-----------------------------------------------------*/
-ex VESimplify(ex expr, int epN, int epsN) {
-    Digits = 50;
-    auto ep = SD::ep;
-    auto eps = SD::eps;
-    auto expr1 = expr.evalf();
-    if(expr1.has(eps)) expr1 = mma_series(expr1, eps, epsN);
-    expr1 = mma_series(expr1, ep, epN);
-    expr1 = expr1.expand();
-    ex ret = 0;
-    for(int si=expr1.ldegree(eps); si<=epsN; si++) {
-    for(int i=expr1.ldegree(ep); i<=epN; i++) {
-    
-        auto ccRes = expr1.coeff(eps,si).coeff(ep,i).expand();
-        lst ccResList;
-        if(is_a<add>(ccRes)) {
-            for(auto item : ccRes) ccResList.append(item);
-        } else {
-            ccResList.append(ccRes);
-        }
-        
-        ccRes = 0;
-        for(auto item : ccResList) {
-            if(is_a<mul>(item)) {
-                ex cc = 1, cf = 1;
-                for(auto ii : item) {
-                    if(is_a<numeric>(ii) || ii.match(VE(w1, w2))) {
-                        cc *= ii;
-                    } else {
-                        cf *= ii;
-                    }
-                }
-                ccRes += cc * iWF(cf);
-            } else if(is_a<numeric>(item) || item.match(VE(w1, w2))) {
-                ccRes += item*iWF(1);
-            } else {
-                ccRes += iWF(item);
-            }
-        }
-    
-        
-        exset vfs;
-        find(ccRes, iWF(w),vfs);
-        
-        for(auto vf : vfs) {
-            auto tmpIR = ccRes.coeff(vf).expand();
-            exset ves;
-            tmpIR.find(VE(w1, w2), ves);
-            auto ntmp = tmpIR.subs(lst{VE(w1, w2)==0});
-            if(!is_a<numeric>(ntmp)) {
-                cerr << Color_Error << "VESimplify: (!is_a<numeric>(ntmp))" << RESET << endl;
-                exit(1);
-            }
-            if(abs(ntmp.evalf())>numeric("1E300")) return SD::NaN;
-            ex vIR = ntmp;
-            ex eI2 = 0, eR2 = 0;
-            for(auto ve : ves) {
-                auto co = tmpIR.coeff(ve);
-                vIR += co * ve.op(0);
-                if(!is_a<numeric>(co)) {
-                    cerr << Color_Error << "VESimplify: (!is_a<numeric>(co))" << RESET << endl;
-                    exit(1);
-                }
-                numeric nco = ex_to<numeric>(co);
-                ex ee = ve.op(1) * ve.op(1);
-                eR2 += nco.real_part() * nco.real_part() * ee;
-                eI2 += nco.imag_part() * nco.imag_part() * ee;
-            }
-            ret += VE(ex_to<numeric>(vIR).real_part(), sqrt(eR2)) * pow(eps,si) * pow(ep,i) * vf;
-            ret += VE(ex_to<numeric>(vIR).imag_part(), sqrt(eI2)) * pow(eps,si) * pow(ep,i) * vf * I;
-        }
-    }}
-    
-    ret = ret.subs(lst{iWF(w)==w});
-    ret = ret.subs(lst{VE(0,0)==0});
-    return ret.collect(lst{eps,ep}, true);
-}
-
-ex VEResult(ex expr) {
-    return expr.subs(VE(w1,w2)==VEO(w1,w2));
-}
-
-
-/*-----------------------------------------------------*/
-// Heplers used in SD
-/*-----------------------------------------------------*/
-int SD::x_free_index(ex expr) {
-    auto xs = get_x_from(expr);
-    for(int i=0; i<=xs.size(); i++) {
-        bool ok = true;
-        for(auto xi : xs) {
-            if(xi.is_equal(x(i))) {
-                ok = false;
-                break;
-            }
-        }
-        if(ok) return i;
-    }
-    return -1;
-}
-
-int SD::y_free_index(ex expr) {
-    auto ys = get_y_from(expr);
-    for(int i=0; i<=ys.size(); i++) {
-        bool ok = true;
-        for(auto yi : ys) {
-            if(yi.is_equal(y(i))) {
-                ok = false;
-                break;
-            }
-        }
-        if(ok) return i;
-    }
-    return -1;
-}
-
-int SD::epRank(ex expr_in) {
-    if(!expr_in.has(ep)) return 0;
-    int p = -5;
-    auto expr = mma_collect(expr_in, ep);
-    while(true) {
-        auto tmp = normal(series_to_poly(expr.series(ep, p)));
-        if(!tmp.is_zero()) {
-            tmp = mma_collect(tmp, ep);
-            return tmp.ldegree(ep);
-        } else p++;
-    }
-    throw runtime_error("epRank error!");
-}
-
-int SD::epsRank(ex expr_in) {
-    if(!expr_in.has(eps)) return 0;
-    int p = -5;
-    auto expr = mma_collect(expr_in, eps);
-    while(true) {
-        auto tmp = normal(series_to_poly(expr.series(eps, p)));
-        if(!tmp.is_zero()) {
-            tmp = mma_collect(tmp, eps);
-            return tmp.ldegree(eps);
-        } else p++;
-    }
-    throw runtime_error("epsRank error!");
-}
-
-int SD::vsRank(ex expr_in) {
-    if(!expr_in.has(vs)) return 0;
-    int p = -5;
-    auto expr = mma_collect(expr_in, vs);
-    while(true) {
-        auto tmp = normal(series_to_poly(expr.series(vs, p)));
-        if(!tmp.is_zero()) {
-            tmp = mma_collect(tmp, vs);
-            return tmp.ldegree(vs);
-        } else p++;
-    }
-    throw runtime_error("vsRank error!");
-}
-
-ex SD::VEResult() {
-    return HepLib::VEResult(ResultError);
-}
-
-void SD::VEPrint(bool endlQ) {
-    ex expr = HepLib::VEResult(ResultError);
+void SecDec::VEPrint(bool endlQ) {
+    ex expr = HepLib::SD::VEResult(ResultError);
     for(int i=expr.ldegree(eps); i<=expr.degree(eps); i++) {
         ex exp1 = expr.coeff(eps, i);
         for(int j=expr.ldegree(ep); j<=expr.degree(ep); j++) {
@@ -278,7 +276,7 @@ void SD::VEPrint(bool endlQ) {
     if(endlQ) cout << endl;
 }
 
-ex SD::Factor(const ex expr) {
+ex Factor(const ex expr) {
     exset xyset;
     expr.find(x(w), xyset);
     expr.find(y(w), xyset);
@@ -298,7 +296,7 @@ ex SD::Factor(const ex expr) {
     return PowerExpand(expr2);
 }
 
-ex SD::PowerExpand(const ex expr) {
+ex PowerExpand(const ex expr) {
     ex expr2 = expr;
     expr2 = expr2.subs(pow(pow(x(w1), w2), w3)==pow(x(w1), w2*w3), subs_options::algebraic);
     expr2 = expr2.subs(pow(pow(y(w1), w2), w3)==pow(y(w1), w2*w3), subs_options::algebraic);
@@ -306,11 +304,11 @@ ex SD::PowerExpand(const ex expr) {
     return expr2;
 }
 
-ex SD::PrefactorFIESTA(int nLoop) {
+ex SecDec::PrefactorFIESTA(int nLoop) {
     return  pow(I*pow(Pi,2-ep)*exp(ex(0)-ep*Euler), ex(0)-ex(nLoop));
 }
 
-double SD::FindMinimum(ex expr, bool compare0) {
+double SecDec::FindMinimum(ex expr, bool compare0) {
     static long long fid = 0;
     fid++;
     ostringstream cppfn, sofn, cmd;
@@ -407,7 +405,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
 /*-----------------------------------------------------*/
 // Refined F-Term
 /*-----------------------------------------------------*/
-ex SD::RefinedFT(ex const & in_ft) {
+ex SecDec::RefinedFT(ex const & in_ft) {
     auto ft = Factor(in_ft);
     while(true) {
         auto ft0 = ft;
@@ -430,7 +428,7 @@ ex SD::RefinedFT(ex const & in_ft) {
     return ft;
 }
 
-lst SD::RefinedFT_lst(ex const & in_ft) {
+lst SecDec::RefinedFT_lst(ex const & in_ft) {
     auto ft = RefinedFT(in_ft);
     lst ret;
     if(is_a<mul>(ft)) {

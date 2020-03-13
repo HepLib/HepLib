@@ -16,7 +16,7 @@ namespace HepLib {
         static const redi::pstreams::pmode pm_out = redi::pstreams::pstdout;
         static const redi::pstreams::pmode pm_err = redi::pstreams::pstderr;
         
-        void Open(const char *cmds, const redi::pstreams::pmode pm=pm_in|pm_out|pm_err);
+        void Open(string cmds, const redi::pstreams::pmode pm=pm_in|pm_out|pm_err);
         string ReadLine();
         string ReadLines(string);
         
@@ -29,7 +29,7 @@ namespace HepLib {
     class Fermat {
     public:
         const char * Sentinel = "---EOF---";
-        void Init(const char * fer_path);
+        void Init(string fer_path);
         string Execute(string);
         void Exit();
         
@@ -47,7 +47,7 @@ namespace HepLib {
     class Form {
     public:
         const char * Sentinel = "---EOF---";
-        void Init(const char * form_path, const char * extra_args="");
+        void Init(string form_path_args);
         string Execute(string script, const char * out_var="[o]");
         void Exit();
         

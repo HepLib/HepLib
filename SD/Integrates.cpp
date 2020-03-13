@@ -2,10 +2,10 @@
 #include <math.h>
 #include <cmath>
 
-namespace HepLib {
+namespace HepLib::SD {
     
     // need Parameter
-    void SD::Integrates(const char *key, const char *pkey, int kid) {
+    void SecDec::Integrates(const char *key, const char *pkey, int kid) {
         if(IsZero) return;
         if(Integrator==NULL) Integrator = new HCubature();
                 
@@ -343,7 +343,7 @@ namespace HepLib {
                             Digits = 3;
                             cout << "\r                                                    \r";
                             if(res.has(NaN)) cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << NaN << endl;
-                            else cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::VEResult(VESimplify(res)) << endl;
+                            else cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::SD::VEResult(VESimplify(res)) << endl;
                             Digits = oDigits;
                         }
                         
@@ -385,7 +385,7 @@ namespace HepLib {
                                 lstRE.append(co * res);
                                 if(Verbose>5) {
                                     cout << Color_HighLight;
-                                    cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::VEResult(VESimplify(res)) << endl;
+                                    cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::SD::VEResult(VESimplify(res)) << endl;
                                     cout << RESET;
                                 }
                                 break;
@@ -495,7 +495,7 @@ namespace HepLib {
             auto res = Integrator->Integrate();
             if(Verbose>5) {
                 cout << Color_HighLight;
-                cout << "     Res = "<< HepLib::VEResult(VESimplify(res)) << endl;
+                cout << "     Res = "<< HepLib::SD::VEResult(VESimplify(res)) << endl;
                 cout << RESET;
             }
             if(res.has(NaN)) {

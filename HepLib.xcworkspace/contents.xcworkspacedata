@@ -25,4 +25,7 @@
    <FileRef
       location = "group:SD">
    </FileRef>
+   <FileRef
+      location = "group:FC">
+   </FileRef>
 </Workspace>

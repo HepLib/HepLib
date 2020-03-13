@@ -1,6 +1,6 @@
 #include "SD.h"
 
-namespace HepLib {
+namespace HepLib::SD {
 
     namespace {
         /*-----------------------------------------------------*/
@@ -55,12 +55,11 @@ namespace HepLib {
 
     REGISTER_FUNCTION(CV, do_not_evalf_params()) // for use symbol
     REGISTER_FUNCTION(fabs, dummy())
-    REGISTER_FUNCTION(PL, dummy())
-    REGISTER_FUNCTION(FTX, derivative_func(NoDiff_2P))
-    REGISTER_FUNCTION(CT, derivative_func(Diff_ID))
+    REGISTER_FUNCTION(PL, do_not_evalf_params())
+    REGISTER_FUNCTION(FTX, do_not_evalf_params().derivative_func(NoDiff_2P))
+    REGISTER_FUNCTION(CT, do_not_evalf_params().derivative_func(Diff_ID))
     REGISTER_FUNCTION(VE, conjugate_func(VE_Conjugate))
     REGISTER_FUNCTION(VEO, print_func<print_dflt>(print_VEO))
     REGISTER_FUNCTION(epsID, do_not_evalf_params().derivative_func(NoDiff_1P))
-    REGISTER_FUNCTION(WF, dummy())
 
 }

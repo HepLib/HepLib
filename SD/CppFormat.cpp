@@ -1,7 +1,7 @@
 #include "SD.h"
 #include <cln/cln.h>
 
-namespace HepLib {
+namespace HepLib::SD {
 
 GINAC_IMPLEMENT_PRINT_CONTEXT(CppFormat, print_csrc_cl_N)
 
@@ -90,10 +90,7 @@ void CppFormat::print_numeric(const numeric & p, const CppFormat & c, unsigned l
     }
 }
 
-CppFormat::CppFormat(ostream &os, const char* s, unsigned opt) : print_csrc_cl_N(os, opt) {
-    set_print_func<numeric, CppFormat>(CppFormat::print_numeric);
-    suffix = s;
-}
+CppFormat::CppFormat(ostream &os, const char* s, unsigned opt) : print_csrc_cl_N(os, opt), suffix(s) { }
 
 }
 

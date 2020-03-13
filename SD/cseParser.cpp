@@ -1,6 +1,6 @@
 #include "SD.h"
 
-namespace HepLib {
+namespace HepLib::SD {
 
 int cseParser::on() { return no; }
 vector<pair<int, ex>> cseParser::os() { return o_ex_vec;}

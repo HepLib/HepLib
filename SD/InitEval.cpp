@@ -2,9 +2,9 @@
 #include <math.h>
 #include <cmath>
 
-namespace HepLib {
+namespace HepLib::SD {
 
-    SD::~SD() {
+    SecDec::~SecDec() {
         if(SecDec!=NULL) delete SecDec;
         if(Integrator!=NULL) delete Integrator;
         if(Minimizer!=NULL) delete Minimizer;
@@ -20,7 +20,7 @@ namespace HepLib {
         }
     }
 
-    void SD::Initialize(FeynmanParameter fp) {
+    void SecDec::Initialize(FeynmanParameter fp) {
         
         if(fp.Propagators.nops() != fp.Exponents.nops()) {
             cerr << Color_Error << "Initialize: the length of Propagators and Exponents are NOT equal." << RESET << endl;
@@ -412,7 +412,7 @@ namespace HepLib {
         Normalizes();
     }
     
-    void SD::Initialize(XIntegrand xint) {
+    void SecDec::Initialize(XIntegrand xint) {
         
         Digits = 50;
         IsZero = false;
@@ -439,7 +439,7 @@ namespace HepLib {
         Normalizes();
     }
     
-    void SD::Evaluate(FeynmanParameter fp, const char* key) {
+    void SecDec::Evaluate(FeynmanParameter fp, const char* key) {
         
         cout << endl << "Starting @ " << now() << endl;
         if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");
@@ -462,7 +462,7 @@ namespace HepLib {
         cout << "Finished @ " << now() << endl << endl;
     }
 
-    void SD::Evaluate(XIntegrand xint, const char *key) {
+    void SecDec::Evaluate(XIntegrand xint, const char *key) {
         
         cout << endl << "Starting @ " << now() << endl;
         if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");
@@ -485,7 +485,7 @@ namespace HepLib {
         cout << "Finished @ " << now() << endl << endl;
     }
     
-    void SD::Evaluate(vector<ex> funexp, const char *key) {
+    void SecDec::Evaluate(vector<ex> funexp, const char *key) {
         
         cout << endl << "Starting @ " << now() << endl;
         if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");

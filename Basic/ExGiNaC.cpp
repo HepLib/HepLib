@@ -5,15 +5,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Global varibales
     /*-----------------------------------------------------*/
-    ex w = wild();
-    ex w0 = wild(0);
-    ex w1 = wild(1);
-    ex w2 = wild(2);
-    ex w3 = wild(3);
-    ex w4 = wild(4);
-    ex w5 = wild(5);
-    lst GiNaC_archive_Symbols = lst{};
-
+    
     const char* Color_Error = RED;
     const char* Color_Warn = MAGENTA;
     const char* Color_HighLight = WHITE;

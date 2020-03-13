@@ -26,6 +26,13 @@ namespace HepLib {
     unsigned iWF3_SERIAL::serial = GiNaC::function::register_new(function_options("iWF",3).do_not_evalf_params().overloaded(5));
     unsigned iWF4_SERIAL::serial = GiNaC::function::register_new(function_options("iWF",4).do_not_evalf_params().overloaded(5));
     unsigned iWF5_SERIAL::serial = GiNaC::function::register_new(function_options("iWF",5).do_not_evalf_params().overloaded(5));
+    
+    /*-----------------------------------------------------*/
+    // MapFunction Class
+    /*-----------------------------------------------------*/
+    MapFunction::MapFunction(
+        ex (*func)(const ex &, MapFunction *, void *), void *co
+    ) : Function(func), CustomizedObject(co) { }
 
 }
 

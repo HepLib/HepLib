@@ -3,32 +3,11 @@
 #include <cmath>
 #include<algorithm>
 
-namespace HepLib {
+namespace HepLib::SD {
 
-    symbol const SD::ep("ep");
-    symbol const SD::eps("eps");
-    symbol const SD::vs("s");
-    symbol const SD::vz("vz");
-    symbol const SD::epz("epz");
-    symbol const SD::iEpsilon("iEpsilon");
-    realsymbol const SD::NaN("NaN");
-
-    SD::_init::_init() {
-        GiNaC_archive_Symbols.append(ep);
-        GiNaC_archive_Symbols.append(eps);
-        GiNaC_archive_Symbols.append(vs);
-        GiNaC_archive_Symbols.append(vz);
-        GiNaC_archive_Symbols.append(epz);
-        GiNaC_archive_Symbols.append(iEpsilon);
-        GiNaC_archive_Symbols.append(NaN);
-        GiNaC_archive_Symbols.sort();
-        GiNaC_archive_Symbols.unique();
-    }
-    SD::_init SD::SD_init;
-
-    bool SD::use_dlclose = true;
-    bool SD::debug = false;
-    const char* SD::cpp = "g++";
+    bool SecDec::use_dlclose = true;
+    bool SecDec::debug = false;
+    const char* SecDec::cpp = "g++";
 
     bool SecDecBase::VerifySD(vector<exmap> map_vec, bool quick) {
         lst xs;
@@ -68,7 +47,7 @@ namespace HepLib {
         int_total = int_total.normal();
         return normal(chk_total-int_total).is_zero();
     }
-    bool SD::VerifySD(vector<exmap> map_vec, bool quick) {
+    bool SecDec::VerifySD(vector<exmap> map_vec, bool quick) {
         return SecDecBase::VerifySD(map_vec, quick);
     }
 
@@ -206,7 +185,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
     /*-----------------------------------------------------*/
     /*                   CheckAtEnd                        */
     /*-----------------------------------------------------*/
-    bool SD::IsBad(ex f, vector<exmap> vmap) {
+    bool SecDec::IsBad(ex f, vector<exmap> vmap) {
         for(auto &vi : vmap) {
             auto ft = f.subs(vi);
             auto xs_tmp = get_x_from(ft);
@@ -255,7 +234,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         return false;
     }
 
-    vector<ex> SD::AutoEnd(ex po_ex) {
+    vector<ex> SecDec::AutoEnd(ex po_ex) {
         if(po_ex.nops()>2) {
             cerr << Color_Error << "AutoEnd: Deltas found @ " << po_ex << RESET << endl;
             exit(1);
@@ -342,7 +321,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
     /*-----------------------------------------------------*/
     //return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }
     //e1 is a const term, e2 still the F-term
-    vector<ex> SD::DS(const ex po_ex) {
+    vector<ex> SecDec::DS(const ex po_ex) {
         // 1st element in input polist is the constant term, guess NOT necessary
         // 2nd element in input polist is the F-term, required!
         lst const polist = ex_to<lst>(po_ex.op(0));
@@ -556,7 +535,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
 
     // 1st element in [output 1st] is the constant term
     // 2nd element in both [input 1st] and [output 1st] is the F-term
-    lst SD::Normalize(const ex &input) {
+    lst SecDec::Normalize(const ex &input) {
         ex const_term = 1;
         lst plst, nlst;
         lst in_plst = ex_to<lst>(input.op(0));
@@ -659,7 +638,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
     /*               's Funtions in SD                     */
     /*-----------------------------------------------------*/
     // working with or without Deltas
-    void SD::XReOrders() {
+    void SecDec::XReOrders() {
         if(IsZero) return;
         if(Integrands.size()<1) {
             for(auto &fe : FunExp) {
@@ -679,7 +658,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
     }
 
     // working with or without Deltas
-    void SD::Normalizes() {
+    void SecDec::Normalizes() {
         if(IsZero) return;
 
         vector<ex> funexp;
@@ -717,7 +696,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
     }
 
     // working with or without Deltas
-    void SD::XTogethers() {
+    void SecDec::XTogethers() {
         vector<ex> funexp;
         for(auto fe : FunExp) {
             funexp.push_back(fe);
@@ -758,7 +737,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
     }
 
     // working with or without Deltas
-    void SD::XExpands() {
+    void SecDec::XExpands() {
         vector<ex> funexp;
         for(auto fe : FunExp) {
             funexp.push_back(fe);
@@ -802,7 +781,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
 
     // Section 2.1 @ https://arxiv.org/pdf/1712.04441.pdf
     // also refers to Feng/Thinking.pdf
-    void SD::Scalelesses(bool verb) {
+    void SecDec::Scalelesses(bool verb) {
         if(IsZero) return;
         if(verb) cout << now() << " - Scaleless: " << FunExp.size() << " :> " << flush;
 
@@ -884,7 +863,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         if(FunExp.size()<1) IsZero = true;
     }
 
-    void SD::RemoveDeltas() {
+    void SecDec::RemoveDeltas() {
         if(IsZero) return;
         
         while(true) {
@@ -952,7 +931,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         Normalizes();
     }
 
-    void SD::XEnd() {
+    void SecDec::XEnd() {
         if(Verbose > 0) cout << now() << " - BiSection: " << FunExp.size() << " :> " << flush;
         vector<ex> funexps =
         GiNaC_Parallel(ParallelProcess, FunExp, [&](ex const &fe, int idx)->ex {
@@ -975,7 +954,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
     }
 
     // after SDPrepares, Integrands can be expanded in ep safely.
-    void SD::SDPrepares() {
+    void SecDec::SDPrepares() {
         if(IsZero) return;
         if(FunExp.size()<1) {
             IsZero = true;
@@ -1338,7 +1317,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
 
     }
 
-    void SD::EpsEpExpands() {
+    void SecDec::EpsEpExpands() {
         if(IsZero) return;
         if(Integrands.size()<1) {
             IsZero = true;

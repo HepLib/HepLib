@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <ctime>
 
-namespace HepLib {
+namespace HepLib::SD {
 
 class FCN : public ROOT::Minuit2::FCNBase {
 private:

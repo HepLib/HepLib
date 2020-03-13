@@ -12,6 +12,32 @@
 #include <omp.h>
 #include <sys/wait.h>
 
+/*-----------------------------------------------------*/
+// operator << Macro for GiNaC Output Format
+/*-----------------------------------------------------*/
+#define OUT_FORMAT_DECLARE(classname) \
+    template<class T> const classname & operator << (const T & v) const { \
+        s << v; \
+        return *this; \
+    }; \
+    const classname & operator << (const basic & v) const; \
+    const classname & operator << (const ex & v) const; \
+    const classname & operator<<(std::ostream& (*v)(std::ostream&)) const;
+
+#define OUT_FORMAT_IMPLEMENT(classname) \
+    const classname & classname::operator << (const basic & v) const { \
+        v.print(*this); \
+        return *this; \
+    } \
+    const classname & classname::operator << (const ex & v) const { \
+        v.print(*this); \
+        return *this; \
+    } \
+    const classname & classname::operator<<(std::ostream& (*v)(std::ostream&)) const { \
+        s << v; \
+        return *this; \
+    }
+
 namespace HepLib {
 
     using namespace std;
@@ -199,6 +225,7 @@ namespace HepLib {
     // Global object wildcard
     /*-----------------------------------------------------*/
     extern ex w, w0, w1, w2, w3, w4, w5;
+    extern string InstallPrefix;
     
     /*-----------------------------------------------------*/
     // Global Colors
@@ -248,7 +275,6 @@ namespace HepLib {
         return GiNaC::function(WF5_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5));
     }
     
-    
     // iWF internal wrapper function upto 5 arguments
     class iWF1_SERIAL { public: static unsigned serial; };
     template<typename T1>
@@ -280,4 +306,17 @@ namespace HepLib {
         return GiNaC::function(iWF5_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5));
     }
     
+    /*-----------------------------------------------------*/
+    // MapFunction Class
+    /*-----------------------------------------------------*/
+    struct MapFunction : public map_function {
+    public:
+        ex operator()(const ex &e) {
+            return Function(e, this, CustomizedObject);
+        }
+        MapFunction(ex(*)(const ex &, MapFunction *, void *), void * co=NULL);
+    private:
+        ex (*Function)(const ex &, MapFunction *, void *);
+        void * CustomizedObject;
+    };
 }

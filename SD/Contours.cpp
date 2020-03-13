@@ -2,10 +2,10 @@
 #include <math.h>
 #include <cmath>
 
-namespace HepLib {
+namespace HepLib::SD {
     
     // need Parameter
-    void SD::Contours(const char *key, const char *pkey) {
+    void SecDec::Contours(const char *key, const char *pkey) {
         if(IsZero) return;
         if(Minimizer==NULL) Minimizer = new MinUit();
 

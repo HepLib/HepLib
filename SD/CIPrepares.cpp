@@ -2,9 +2,9 @@
 #include <math.h>
 #include <cmath>
 
-namespace HepLib {
+namespace HepLib::SD {
 
-    void SD::CIPrepares(const char *key) {
+    void SecDec::CIPrepares(const char *key) {
         if(expResult.size()<1) {
             IsZero = true;
         }
@@ -722,13 +722,13 @@ namespace HepLib {
                 ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
                 
-                if(SD::debug) {
+                if(SecDec::debug) {
                     auto tmp = expr.subs(FTX(w1,w2)==1).subs(cxRepl).subs(plRepl);
                     ofs << "//debug-int: " << tmp << endl;
                 }
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
-                bool hasF2 = intg.has(iEpsilon);
+                bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 cseParser cse;
                 intg = cse.Parse(intg);
                 if(hasF || hasF2) ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
@@ -830,7 +830,7 @@ namespace HepLib {
                 ofs << "int SDQ_"<<idx<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
-                bool hasF2 = intg.has(iEpsilon);
+                bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 cseParser cse;
                 intg = cse.Parse(intg);
                 if(hasF || hasF2) ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
@@ -938,7 +938,7 @@ namespace HepLib {
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
-                bool hasF2 = intg.has(iEpsilon);
+                bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 cseParser cse;
                 intg = cse.Parse(intg);
                 if(hasF || hasF2) ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;

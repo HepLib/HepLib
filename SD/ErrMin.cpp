@@ -1,6 +1,6 @@
 #include "SD.h"
 
-namespace HepLib {
+namespace HepLib::SD {
 
 int ErrMin::Verbose;
 IntegratorBase *ErrMin::Integrator = NULL;
@@ -22,7 +22,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     for(int i=0; i<nvars; i++) qlas[i] = las[i];
     Integrator->Lambda = qlas;
     auto res = Integrator->Integrate();
-    if(res.has(SD::NaN)) {
+    if(res.has(NaN)) {
         Digits = digits;
         return 1.E100;
     }

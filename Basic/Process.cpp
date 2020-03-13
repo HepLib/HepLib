@@ -14,8 +14,10 @@ inline bool file_exists(const char* fn) {
 
 namespace HepLib {
 
+    //-----------------------------------------------------------
     // Process Class
-    void Process::Open(const char *cmds, const redi::pstreams::pmode pm) {
+    //-----------------------------------------------------------
+    void Process::Open(string cmds, const redi::pstreams::pmode pm) {
         pio.open(cmds, pm);
         return;
     }
@@ -41,16 +43,16 @@ namespace HepLib {
         return aLines;
     }
     
+    //-----------------------------------------------------------
     // Fermat Class
-    Fermat::Error::Error(const char * _msg) {
-        msg = _msg;
-    }
+    //-----------------------------------------------------------
+    Fermat::Error::Error(const char * _msg) : msg(_msg) { }
     
     const char * Fermat::Error::what() const throw () {
         return msg.c_str();
     }
     
-    void Fermat::Init(const char* fer_path) {
+    void Fermat::Init(string fer_path) {
         fermat.Open(fer_path);
         fermat.io() << "&M" << endl << endl; // prompt
         fermat.io() << "&(_d=90000)" << endl << endl; // width of the display on the window
@@ -83,10 +85,10 @@ namespace HepLib {
         return ostr;
     }
     
+    //-----------------------------------------------------------
     // Form Class
-    Form::Error::Error(const char * _msg) {
-        msg = _msg;
-    }
+    //-----------------------------------------------------------
+    Form::Error::Error(const char * _msg) : msg(_msg) { }
     
     const char * Form::Error::what() const throw () {
         return msg.c_str();
@@ -107,7 +109,7 @@ namespace HepLib {
         }
     }
     
-    void Form::Init(const char* form_path, const char* extra_args) {
+    void Form::Init(string form_path_args) {
     
         if(inited) {
             close(io[0][0]);
@@ -161,10 +163,10 @@ namespace HepLib {
     
             oss.clear();
             oss.str("");
-            oss << "%s %s -pipe %d,%d -M init-" << pid << endl;
+            oss << "%s -pipe %d,%d -M init-" << pid << endl;
             
             char buffer[256];
-            sprintf(buffer, oss.str().c_str(), form_path, extra_args, io[0][0], io[1][1]);
+            sprintf(buffer, oss.str().c_str(), form_path_args.c_str(), io[0][0], io[1][1]);
             system(buffer);
             exit(0);
         } else {

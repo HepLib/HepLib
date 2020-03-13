@@ -2,9 +2,9 @@
 #include <math.h>
 #include <cmath>
 
-namespace HepLib {
+namespace HepLib::SD {
 
-    int SD::PRank(matrix m) {
+    int SecDec::PRank(matrix m) {
         int nr = m.rows();
         int nc = m.cols();
         int pr = 0;
@@ -21,7 +21,7 @@ namespace HepLib {
     }
 
     // PExpand from asy2.1.1.m
-    ex SD::PExpand(ex xpol, bool delta) {
+    ex SecDec::PExpand(ex xpol, bool delta) {
         lst nlst;
         ex pol = collect_common_factors(xpol.expand());
         if(is_a<mul>(pol)) {
@@ -127,7 +127,7 @@ namespace HepLib {
     }
 
     
-    void SD::DoAsy() {
+    void SecDec::DoAsy() {
         
         while(true) {
             vector<ex> funexp;
@@ -377,7 +377,7 @@ namespace HepLib {
         }
     }
     
-    void SD::MB() {
+    void SecDec::MB() {
         for(auto &fe : FunExp) {
             if(fe.has(vz)) continue; // 2nd entrance
             

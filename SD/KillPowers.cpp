@@ -1,9 +1,9 @@
 #include "SD.h"
 #include <cmath>
 
-namespace HepLib {
+namespace HepLib::SD {
 
-bool SD::KillPowersWithDelta(ex fe, int kpi) {
+bool SecDec::KillPowersWithDelta(ex fe, int kpi) {
     if(fe.op(0).op(fe.op(0).nops()-1)==iWF(1) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
         FunExp.push_back(fe);
         return false;
@@ -108,7 +108,7 @@ bool SD::KillPowersWithDelta(ex fe, int kpi) {
     return false;
 }
 
-bool SD::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
+bool SecDec::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
     if(is_zero(fe.op(0).op(fe.op(0).nops()-1)-iWF(1)) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
         FunExp.push_back(fe);
         return false;
@@ -416,7 +416,7 @@ bool SD::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
     return false;
 }
 
-void SD::KillPowers(int bits) {
+void SecDec::KillPowers(int bits) {
     int kpi = 0;
     while(kpi<30) {
         kpi++;
