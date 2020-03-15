@@ -10,40 +10,55 @@ namespace HepLib::FC {
         print_func<FormFormat>(&Pair::form_print).
         print_func<FCFormat>(&Pair::fc_print)
     )
+    
+    DEFAULT_CTOR(Pair)
+    GINAC_BIND_UNARCHIVER(Pair);
 
-    Pair::Pair(const Vector &p1, const Vector &p2) : spL(p1), spR(p2) { }
-    Pair::Pair(const Index &i1, const Index &i2) : spL(i1), spR(i2) { }
-    Pair::Pair(const Vector &p, const Index &i) : spL(p), spR(i) { }
+    Pair::Pair(const Vector &p1, const Vector &p2) : lr{p1,p2} { }
+    Pair::Pair(const Index &i1, const Index &i2) : lr{i1,i2} { }
+    Pair::Pair(const Vector &p, const Index &i) : lr{p,i} { }
 
     int Pair::compare_same_type(const basic &other) const {
         const Pair &o = static_cast<const Pair &>(other);
-        int c1 = spL.compare(o.spL);
+        int c1 = lr[0].compare(o.lr[0]);
         if(c1!=0) return c1;
-        int c2 = spR.compare(o.spR);
+        int c2 = lr[1].compare(o.lr[1]);
         return c2;
     }
     
     void Pair::print(const print_dflt &c, unsigned level) const {
-        c.s << spL << "." << spR;
+        c.s << lr[0] << "." << lr[1];
     }
     
     void Pair::form_print(const FormFormat &c, unsigned level) const {
-        if(is_a<Vector>(spL) && is_a<Vector>(spR)) c << spL << "." << spR;
-        else if(is_a<Vector>(spL) && is_a<Index>(spR)) c << spL << "(" << spR << ")";
-        else if(is_a<Index>(spL) && is_a<Index>(spR)) c << "d_(" << spL << "," << spR << ")";
+        if(is_a<Vector>(lr[0]) && is_a<Vector>(lr[1])) c << lr[0] << "." << lr[1];
+        else if(is_a<Vector>(lr[0]) && is_a<Index>(lr[1])) c << lr[0] << "(" << lr[1] << ")";
+        else if(is_a<Index>(lr[0]) && is_a<Index>(lr[1])) c << "d_(" << lr[0] << "," << lr[1] << ")";
     }
     
     void Pair::fc_print(const FCFormat &c, unsigned level) const {
-        if(is_a<Vector>(spL) && is_a<Vector>(spR)) c << "SPD[" << spL << "," << spR << "]";
-        else if(is_a<Vector>(spL) && is_a<Index>(spR)) c << "FVD[" << spL << "," << spR << "]";
-        else if(is_a<Index>(spL) && is_a<Index>(spR)) c << "MTD[" << spL << "," << spR << "]";
+        if(is_a<Vector>(lr[0]) && is_a<Vector>(lr[1])) c << "SPD[" << lr[0] << "," << lr[1] << "]";
+        else if(is_a<Vector>(lr[0]) && is_a<Index>(lr[1])) c << "FVD[" << lr[0] << "," << lr[1] << "]";
+        else if(is_a<Index>(lr[0]) && is_a<Index>(lr[1])) c << "MTD[" << lr[0] << "," << lr[1] << "]";
     }
     
     size_t Pair::nops() const { return 2; }
     ex Pair::op(size_t i) const {
-        if(i==0) return spL;
-        else if(i==1) return spR;
+        if(i==0) return lr[0];
+        else if(i==1) return lr[1];
         return 0;
+    }
+    
+    void Pair::archive(archive_node & n) const {
+        inherited::archive(n);
+        for(int i=0; i<2; i++) n.add_ex("lr"+to_string(i), lr[i]);
+    }
+    
+    void Pair::read_archive(const archive_node& n, lst& sym_lst) {
+        inherited::read_archive(n, sym_lst);
+        for(int i=0; i<2; i++) {
+            n.find_ex("lr"+to_string(i), lr[i], sym_lst);
+        }
     }
     
     //-----------------------------------------------------------

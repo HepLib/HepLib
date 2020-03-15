@@ -13,6 +13,10 @@ namespace HepLib::FC {
         ex LC_reader(const exvector& ev) {
             return LC(ev[0], ev[1], ev[2], ev[3]);
         }
+        
+        ex SUNT_reader(const exvector& ev) {
+            return SUNT(ex_to<Index>(ev[0]), ex_to<Index>(ev[1]), ex_to<Index>(ev[2]));
+        }
     }
     
     //-----------------------------------------------------------
@@ -68,9 +72,9 @@ namespace HepLib::FC {
         for(const_preorder_iterator i = expr.preorder_begin(); i != expr.preorder_end(); ++i) {
             if(is_a<Vector>(*i)) vec_lst.append(*i);
             else if(is_a<Index>(*i)) {
-                if(ex_to<Index>(*i).IndexType==Index::Type::VD) VD_lst.append(*i);
-                else if(ex_to<Index>(*i).IndexType==Index::Type::CF) CF_lst.append(*i);
-                else if(ex_to<Index>(*i).IndexType==Index::Type::CA) CA_lst.append(*i);
+                if(ex_to<Index>(*i).type==Index::Type::VD) VD_lst.append(*i);
+                else if(ex_to<Index>(*i).type==Index::Type::CF) CF_lst.append(*i);
+                else if(ex_to<Index>(*i).type==Index::Type::CA) CA_lst.append(*i);
             } else if(is_a<symbol>(*i)) sym_lst.append(*i);
         }
         vec_lst.sort(); vec_lst.unique();
@@ -205,6 +209,7 @@ namespace HepLib::FC {
         Parser fp(st);
         fp.FuncDict[make_pair("SP", 2)] = SP_reader;
         fp.FuncDict[make_pair("LC", 4)] = LC_reader;
+        fp.FuncDict[make_pair("T", 3)] = SUNT_reader;
         ex ret = fp.Read(ostr);
         return ret;
     }

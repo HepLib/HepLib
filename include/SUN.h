@@ -18,6 +18,11 @@ AutoDeclare Index colFi;
         .sort
         id,once,colTp(colFi1?,colFi2?,colFi3?,colFi4?) = I2R*(d_(colFi1,colFi4)*d_(colFi2,colFi3)-d_(colFi1,colFi2)*d_(colFi3,colFi4)/NF);
     #enddo
+    #do colXk = 1,1
+        if ( match(T(colFi1?,colFi1?,colAj1?)) ) redefine colXk "0";
+        .sort
+        id,once,T(colFi1?,colFi1?,colAj1?) = 0;
+    #enddo
 #enddo
 
 #endprocedure

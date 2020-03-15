@@ -3,13 +3,16 @@
 namespace HepLib::FC {
 
     //-----------------------------------------------------------
-    // Pair Class
+    // Eps Class
     //-----------------------------------------------------------
     GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(Eps, basic,
         print_func<print_dflt>(&Eps::print).
         print_func<FormFormat>(&Eps::form_print).
         print_func<FCFormat>(&Eps::fc_print)
     )
+    
+    DEFAULT_CTOR(Eps)
+    GINAC_BIND_UNARCHIVER(Eps);
 
     Eps::Eps(const Vector &x1, const Vector &x2, const Vector &x3, const Vector &x4) : pis{x1,x2,x3,x4} { }
     Eps::Eps(const Vector &x1, const Vector &x2, const Vector &x3, const Index &x4) : pis{x1,x2,x3,x4} { }
@@ -60,6 +63,18 @@ namespace HepLib::FC {
     size_t Eps::nops() const { return 4; }
     ex Eps::op(size_t i) const {
         return pis[i];
+    }
+    
+    void Eps::archive(archive_node & n) const {
+        inherited::archive(n);
+        for(int i=0; i<4; i++) n.add_ex("pis"+to_string(i), pis[i]);
+    }
+    
+    void Eps::read_archive(const archive_node& n, lst& sym_lst) {
+        inherited::read_archive(n, sym_lst);
+        for(int i=0; i<4; i++) {
+            n.find_ex("pis"+to_string(i), pis[i], sym_lst);
+        }
     }
     
     //-----------------------------------------------------------

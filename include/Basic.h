@@ -166,10 +166,10 @@ namespace HepLib {
     lst xlst(int ei);
     lst xlst(int bi, int ei);
     
-     void let_op_append(ex & ex_in, const ex item);
-     void let_op_prepend(ex & ex_in, const ex item);
-     void let_op_remove_last(ex & ex_in);
-     void let_op_remove_first(ex & ex_in);
+    void let_op_append(ex & ex_in, const ex item);
+    void let_op_prepend(ex & ex_in, const ex item);
+    void let_op_remove_last(ex & ex_in);
+    void let_op_remove_first(ex & ex_in);
 
     void let_op_append(ex & ex_in, int index, const ex item);
     void let_op_prepend(ex & ex_in, int index, const ex item);

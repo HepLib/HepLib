@@ -3,9 +3,12 @@
 namespace HepLib::FC {
 
     namespace {
+        string di_("di");
         string li_("li");
-        string ai_("ai");
+        string ti_("ti");
         string fi_("fi");
+        string ci_("ci");
+        string ai_("ai");
         inline string n2s(ex fn) {
             int n = ex_to<numeric>(fn).to_int();
             return (n<0 ? "m" : "") + to_string(abs(n));
@@ -25,12 +28,12 @@ namespace HepLib::FC {
     unsigned Vertex5_SERIAL::serial = GiNaC::function::register_new(function_options("Vertex",5).do_not_evalf_params().overloaded(5));
     unsigned Vertex6_SERIAL::serial = GiNaC::function::register_new(function_options("Vertex",6).do_not_evalf_params().overloaded(5));
 
-    Index Qgraf::LIndex(ex fn) { return Index(li_+n2s(fn),Index::Type::VD); }
-    Index Qgraf::FIndex(ex fn) { return Index(fi_+n2s(fn),Index::Type::CF); }
-    Index Qgraf::AIndex(ex fn) { return Index(ai_+n2s(fn),Index::Type::CA); }
-    ex Qgraf::LDelta(ex fn1, ex fn2) { return SP(LIndex(fn1), LIndex(fn2)); }
-    ex Qgraf::FDelta(ex fn1, ex fn2) { return SP(FIndex(fn1), FIndex(fn2)); }
-    ex Qgraf::ADelta(ex fn1, ex fn2) { return SP(AIndex(fn1), AIndex(fn2)); }
+    Index Qgraf::DI(ex fn) { return Index(di_+n2s(fn),Index::Type::VD); }
+    Index Qgraf::LI(ex fn) { return Index(li_+n2s(fn),Index::Type::VD); }
+    Index Qgraf::TI(ex fn) { return Index(ti_+n2s(fn),Index::Type::CF); }
+    Index Qgraf::FI(ex fn) { return Index(fi_+n2s(fn),Index::Type::CF); }
+    Index Qgraf::CI(ex fn) { return Index(ci_+n2s(fn),Index::Type::CA); }
+    Index Qgraf::AI(ex fn) { return Index(ai_+n2s(fn),Index::Type::CA); }
 
     ex Qgraf::Amps(symtab st) {
         std::ofstream ofs;

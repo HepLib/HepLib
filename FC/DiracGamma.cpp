@@ -10,6 +10,9 @@ namespace HepLib::FC {
         print_func<FormFormat>(&DiracGamma::form_print).
         print_func<FCFormat>(&DiracGamma::fc_print)
     )
+    
+    DEFAULT_CTOR(DiracGamma)
+    GINAC_BIND_UNARCHIVER(DiracGamma);
         
     return_type_t DiracGamma::return_type_tinfo() const {
         return make_return_type_t<DiracGamma>(rl);
@@ -70,6 +73,18 @@ namespace HepLib::FC {
         if(is_a<Vector>(pi)) c << "GSD";
         else c << "GAD";
         c << "[" << pi << "]";
+    }
+    
+    void DiracGamma::archive(archive_node & n) const {
+        inherited::archive(n);
+        n.add_ex("pi", pi);
+        n.add_unsigned("rl", rl);
+    }
+    
+    void DiracGamma::read_archive(const archive_node& n, lst& sym_lst) {
+        inherited::read_archive(n, sym_lst);
+        n.find_unsigned("rl", rl);
+        n.find_ex("pi", pi, sym_lst);
     }
     
     //-----------------------------------------------------------

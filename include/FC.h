@@ -1,5 +1,8 @@
 #pragma once
 
+#define DEFAULT_CTOR(classname) \
+classname::classname() { setflag(status_flags::evaluated | status_flags::expanded); }
+
 #include "Basic.h"
 #include "Process.h"
 
@@ -81,12 +84,12 @@ namespace HepLib::FC {
         vector<string> Others;
         ex Amps(symtab st);
         
-        static Index LIndex(ex fn);
-        static Index FIndex(ex fn);
-        static Index AIndex(ex fn);
-        static ex LDelta(ex fn1, ex fn2);
-        static ex FDelta(ex fn1, ex fn2);
-        static ex ADelta(ex fn1, ex fn2);
+        static Index LI(ex fn);
+        static Index DI(ex fn);
+        static Index TI(ex fn);
+        static Index FI(ex fn);
+        static Index CI(ex fn);
+        static Index AI(ex fn);
         
     };
     
@@ -135,10 +138,13 @@ namespace HepLib::FC {
         Index(const string &s, const Type type=Type::VD);
         Pair operator() (const Index & i);
         Pair operator() (const Vector & p);
-        const symbol name;
-        const Type IndexType;
+        symbol name;
+        Type type;
         void print(const print_context &c, unsigned level = 0) const;
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n, lst& sym_lst) override;
     };
+    GINAC_DECLARE_UNARCHIVER(Index);
     
     //-----------------------------------------------------------
     // Vector Class
@@ -149,9 +155,12 @@ namespace HepLib::FC {
         Vector(const string &s);
         Pair operator() (const Vector & p);
         Pair operator() (const Index & mu);
-        const symbol name;
+        symbol name;
         void print(const print_context &c, unsigned level = 0) const;
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n, lst& sym_lst) override;
     };
+    GINAC_DECLARE_UNARCHIVER(Vector);
     
     //-----------------------------------------------------------
     // SUNT/SUNF Class
@@ -160,24 +169,31 @@ namespace HepLib::FC {
     GINAC_DECLARE_REGISTERED_CLASS(SUNT, basic)
     public:
         SUNT(Index i, Index j, Index a);
-        const Index ija[3];
+        Index ija[3];
         size_t nops() const override;
         ex op(size_t i) const override;
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void print(const print_dflt &c, unsigned level = 0) const;
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n, lst& sym_lst) override;
     };
+    GINAC_DECLARE_UNARCHIVER(SUNT);
     
     class SUNF : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(SUNF, basic)
     public:
         SUNF(Index i, Index j, Index k);
-        const Index ijk[3];
+        Index ijk[3];
         size_t nops() const override;
         ex op(size_t i) const override;
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n, lst& sym_lst) override;
     };
+    GINAC_DECLARE_UNARCHIVER(SUNF);
     
+    ex SUNF4(Index i, Index j, Index k, Index l);
     ex SUNSimplify(const ex & inexpr);
     
     //-----------------------------------------------------------
@@ -194,10 +210,12 @@ namespace HepLib::FC {
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void fc_print(const FCFormat &c, unsigned level = 0) const;
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n, lst& sym_lst) override;
     private:
-        ex spL;
-        ex spR;
+        ex lr[2];
     };
+    GINAC_DECLARE_UNARCHIVER(Pair);
     ex SP(ex a, ex b);
     
     //-----------------------------------------------------------
@@ -217,9 +235,12 @@ namespace HepLib::FC {
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void fc_print(const FCFormat &c, unsigned level = 0) const;
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n, lst& sym_lst) override;
     private:
         ex pis[4];
     };
+    GINAC_DECLARE_UNARCHIVER(Eps);
     ex LC(ex pi1, ex pi2, ex pi3, ex pi4);
     
     //-----------------------------------------------------------
@@ -241,11 +262,13 @@ namespace HepLib::FC {
         unsigned get_rl();
         size_t nops() const override;
         ex op(size_t i) const override;
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n, lst& sym_lst) override;
     private:
         ex pi;
         unsigned rl;
-        
     };
+    GINAC_DECLARE_UNARCHIVER(DiracGamma);
     
     //-----------------------------------------------------------
     // TR/GAS functions
