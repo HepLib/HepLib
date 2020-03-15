@@ -15,6 +15,81 @@ namespace HepLib::FC {
     extern symbol NA;
     extern symbol NF;
     
+    class Index;
+    class Vector;
+    class Pair;
+    
+    //-----------------------------------------------------------
+    // Filed/Propagator/Vertex Function
+    //-----------------------------------------------------------
+    DECLARE_FUNCTION_3P(Propagator)
+    DECLARE_FUNCTION_3P(InField)
+    DECLARE_FUNCTION_3P(OutField)
+    DECLARE_FUNCTION_3P(Matij)
+    
+    // Field function 2-3
+    class Field2_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2>
+    inline GiNaC::function Field(const T1 & p1, const T2 & p2) {
+        return GiNaC::function(Field2_SERIAL::serial, ex(p1), ex(p2));
+    }
+    class Field3_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2, typename T3>
+    inline GiNaC::function Field(const T1 & p1, const T2 & p2, const T3 & p3) {
+        return GiNaC::function(Field3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
+    }
+    
+    // Vertex function 2-6
+    class Vertex2_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2>
+    inline GiNaC::function Vertex(const T1 & p1, const T2 & p2) {
+        return GiNaC::function(Vertex2_SERIAL::serial, ex(p1), ex(p2));
+    }
+    class Vertex3_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2, typename T3>
+    inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3) {
+        return GiNaC::function(Vertex3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
+    }
+    class Vertex4_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2, typename T3, typename T4>
+    inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4) {
+        return GiNaC::function(Vertex4_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4));
+    }
+    class Vertex5_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2, typename T3, typename T4, typename T5>
+    inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5) {
+        return GiNaC::function(Vertex5_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5));
+    }
+    class Vertex6_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
+    inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5, const T6 & p6) {
+        return GiNaC::function(Vertex6_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5), ex(p6));
+    }
+    
+    
+    //-----------------------------------------------------------
+    // Qgraf Class
+    //-----------------------------------------------------------
+    class Qgraf {
+    public:
+        string Output;
+        string Model;
+        string In;
+        string Out;
+        int Loops;
+        string Options;
+        vector<string> Others;
+        ex Amps(symtab st);
+        
+        static Index LIndex(ex fn);
+        static Index FIndex(ex fn);
+        static Index AIndex(ex fn);
+        static ex LDelta(ex fn1, ex fn2);
+        static ex FDelta(ex fn1, ex fn2);
+        static ex ADelta(ex fn1, ex fn2);
+        
+    };
+    
     //-----------------------------------------------------------
     // FormFormat Output
     //-----------------------------------------------------------
@@ -50,10 +125,6 @@ namespace HepLib::FC {
         Error(const char * _msg);
     };
     
-    class Index;
-    class Vector;
-    class Pair;
-    
     //-----------------------------------------------------------
     // Index Class
     //-----------------------------------------------------------
@@ -83,21 +154,19 @@ namespace HepLib::FC {
     };
     
     //-----------------------------------------------------------
-    // SUNT Class
+    // SUNT/SUNF Class
     //-----------------------------------------------------------
     class SUNT : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(SUNT, basic)
     public:
-        SUNT(Index a, Index i, Index j);
+        SUNT(Index i, Index j, Index a);
         const Index ija[3];
         size_t nops() const override;
         ex op(size_t i) const override;
         void form_print(const FormFormat &c, unsigned level = 0) const;
+        void print(const print_dflt &c, unsigned level = 0) const;
     };
     
-    //-----------------------------------------------------------
-    // SUNF Class
-    //-----------------------------------------------------------
     class SUNF : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(SUNF, basic)
     public:
@@ -105,8 +174,11 @@ namespace HepLib::FC {
         const Index ijk[3];
         size_t nops() const override;
         ex op(size_t i) const override;
+        void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
     };
+    
+    ex SUNSimplify(const ex & inexpr);
     
     //-----------------------------------------------------------
     // Pair Class

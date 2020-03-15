@@ -6,28 +6,12 @@ namespace HepLib::FC {
     // Extend Parser for form, copied from ginac/parser of GiNaC
     //-----------------------------------------------------------
     namespace {
-    
-        auto init_first = get_default_reader(); // IMPORTANT: initialize first
-    
         ex SP_reader(const exvector& ev) {
             return SP(ev[0], ev[1]);
         }
         
         ex LC_reader(const exvector& ev) {
             return LC(ev[0], ev[1], ev[2], ev[3]);
-        }
-        
-        const prototype_table& form_func_reader() {
-            using std::make_pair;
-            static bool initialized = false;
-            static prototype_table dr;
-            if(!initialized) {
-                dr = get_default_reader();
-                dr[make_pair("SP", 2)] = SP_reader;
-                dr[make_pair("LC", 4)] = LC_reader;
-                initialized = true;
-            }
-            return dr;
         }
     }
     
@@ -98,8 +82,8 @@ namespace HepLib::FC {
         
         stringstream ss;
         FormFormat ff(ss);
-        ff << "#include- " << InstallPrefix <<  "/include/color.h" << endl;
-        ff << "Symbols D, NR, NA;" << endl;
+        ff << "Symbols D, NF, NA, I;" << endl;
+        ff << "#include- " << InstallPrefix <<  "/include/SUN.h" << endl;
         symtab st;
         if(vec_lst.nops()>0) {
             ff << "Vectors";
@@ -133,7 +117,7 @@ namespace HepLib::FC {
             ff << ";" << endl;
         }
         if(CF_lst.nops()>0) {
-            ff << "Dimension NR;" << endl;
+            ff << "Dimension NF;" << endl;
             ff << "Indices";
             for(auto ix : CF_lst) {
                 auto i = ex_to<Index>(ix);
@@ -175,7 +159,7 @@ namespace HepLib::FC {
         expr = tr(expr);
         ff << "L [o]=" << expr << ";" << endl;
         ff << "contract 0;" << endl;
-        ff << "#call docolor" << endl;
+        ff << "#call SUNTrace" << endl;
         ff << tr.ss.str();
         ff << "contract 0;" << endl;
         
@@ -187,7 +171,7 @@ namespace HepLib::FC {
         }
 
         HepLib::Form form;
-        form.Init(string(InstallPrefix)+string("/bin/form"));
+        form.Init(InstallPrefix+"/bin/form");
         auto ostr = form.Execute(ss.str());
         form.Exit();
         
@@ -198,6 +182,8 @@ namespace HepLib::FC {
             cout << ostr << endl;
         }
 
+        replace_all(ostr, "[", "(");
+        replace_all(ostr, "]", ")");
         for(auto v : vec_lst) {
             string pat(ex_to<Vector>(v).name.get_name());
             string from = pat+"(";
@@ -212,13 +198,14 @@ namespace HepLib::FC {
         replace_all(ostr, "e_(", "LC(");
         
         st["I2R"] = ex(1)/2;
-        st["cA"] = CA;
-        st["cR"] = CF;
         st["NA"] = NA;
-        st["NR"] = NF;
-        
-        parser form_parser(st, false, form_func_reader());
-        ex ret = form_parser(ostr);
+        st["NF"] = NF;
+        st["I"] = I;
+
+        Parser fp(st);
+        fp.FuncDict[make_pair("SP", 2)] = SP_reader;
+        fp.FuncDict[make_pair("LC", 4)] = LC_reader;
+        ex ret = fp.Read(ostr);
         return ret;
     }
 

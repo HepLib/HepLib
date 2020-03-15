@@ -93,6 +93,11 @@ namespace HepLib::FC {
     );
     
     ex GAS(ex expr) {
+        if(is_zero(expr-1)) return DiracGamma(1);
+        else if(is_zero(expr-5)) return DiracGamma(5);
+        else if(is_zero(expr-6)) return DiracGamma(6);
+        else if(is_zero(expr-7)) return DiracGamma(7);
+        
         ex tmp = expand(expr);
         lst ex_lst;
         if(is_a<add>(tmp)) {

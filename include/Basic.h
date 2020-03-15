@@ -321,4 +321,28 @@ namespace HepLib {
     private:
         std::function<ex(const ex &, MapFunction &)> Function;
     };
+    
+    
+    /*-----------------------------------------------------*/
+    // Parser Class
+    /*-----------------------------------------------------*/
+    class Parser {
+    public:
+        prototype_table FuncDict;
+        symtab SymDict;
+        ex Read(string instr);
+        Parser(symtab st, prototype_table ft=get_default_reader());
+        Parser();
+    };
+    
+    /*-----------------------------------------------------*/
+    // isFunction
+    /*-----------------------------------------------------*/
+    inline bool isFunction(ex e, string func_name) {
+        return is_a<GiNaC::function>(e) && ex_to<GiNaC::function>(e).get_name()==func_name;
+    }
+    inline bool isFunction(ex e, string func_name, int nargs) {
+        return is_a<GiNaC::function>(e) && ex_to<GiNaC::function>(e).get_name()==func_name && e.nops()==nargs;
+    }
+    
 }

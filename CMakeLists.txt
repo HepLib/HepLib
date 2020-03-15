@@ -108,6 +108,7 @@ ENDFOREACH()
 
 ADD_EXECUTABLE(qgraf "bin/qgraf-3.1.4.f")
 INSTALL(TARGETS qgraf DESTINATION bin)
+INSTALL(FILES "include/GiNaC.sty" DESTINATION include)
 
 MESSAGE(STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}")
 

@@ -46,7 +46,7 @@ namespace HepLib::FC {
         print_func<print_context>(&Index::print)
     )
     
-    Index::Index(const string &s, const Type type) : name(s), IndexType(type) { }
+    Index::Index(const string &s, const Type type) : name(get_symbol(s)), IndexType(type) { }
     int Index::compare_same_type(const basic &other) const {
         const Index &o = static_cast<const Index &>(other);
         auto c = name.compare(o.name);
@@ -75,7 +75,7 @@ namespace HepLib::FC {
         print_func<print_context>(&Vector::print)
     )
     
-    Vector::Vector(const string &s) : name(s) { }
+    Vector::Vector(const string &s) : name(get_symbol(s)) { }
     int Vector::compare_same_type(const basic &other) const {
         const Vector &o = static_cast<const Vector &>(other);
         return name.compare(o.name);
@@ -93,15 +93,11 @@ namespace HepLib::FC {
         return Pair(*this, i);
     }
     
-    // cA is the quadratic Casimir of the adjoint rep (2*I2R*NR)
-    // cR is the quadratic Casimir of the fundamental rep I2R*(NR^2-1)/NR
-    // cR*NR = I2R*NA e.g. from hep-ph/9701390 (valid for all groups)
-    // NA dimension of adjoin rep, i.e., (NR^2-1)
-    
     //-----------------------------------------------------------
-    // SUNT Class
+    // SUNT/SUNF Class
     //-----------------------------------------------------------
     GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNT, basic,
+        print_func<print_dflt>(&SUNT::print).
         print_func<FormFormat>(&SUNT::form_print)
     )
     
@@ -118,16 +114,17 @@ namespace HepLib::FC {
     void SUNT::form_print(const FormFormat &c, unsigned level) const {
         c << "T(" << ija[0] << "," << ija[1] << "," << ija[2] << ")";
     }
+    void SUNT::print(const print_dflt &c, unsigned level) const {
+        c.s << "T(" << ija[0] << "," << ija[1] << "," << ija[2] << ")";
+    }
     
     size_t SUNT::nops() const { return 3; }
     ex SUNT::op(size_t i) const {
         return ija[i];
     }
     
-    //-----------------------------------------------------------
-    // SUNF Class
-    //-----------------------------------------------------------
     GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNF, basic,
+        print_func<print_dflt>(&SUNF::print).
         print_func<FormFormat>(&SUNF::form_print)
     )
     
@@ -141,6 +138,10 @@ namespace HepLib::FC {
         return 0;
     }
     
+    void SUNF::print(const print_dflt &c, unsigned) const {
+        c.s << "f(" << ijk[0] << "," << ijk[1] << "," << ijk[2] << ")";
+    }
+    
     void SUNF::form_print(const FormFormat &c, unsigned) const {
         c << "f(" << ijk[0] << "," << ijk[1] << "," << ijk[2] << ")";
     }
@@ -148,6 +149,43 @@ namespace HepLib::FC {
     size_t SUNF::nops() const { return 3; }
     ex SUNF::op(size_t i) const {
         return ijk[i];
+    }
+    
+    ex SUNSimplify(const ex & inexpr) {
+        auto ret = inexpr;
+        int i = 0;
+        ret = MapFunction([&](const ex &e, MapFunction &self)->ex {
+            ex I2R = ex(1)/2;
+            if(is_a<SUNF>(e)) {
+                Index colFi1 = Index("ssCOL"+to_string(i++), Index::Type::CF);
+                Index colFi2 = Index("ssCOL"+to_string(i++), Index::Type::CF);
+                Index colFi3 = Index("ssCOL"+to_string(i++), Index::Type::CF);
+                Index colAj1 = ex_to<Index>(e.op(0));
+                Index colAj2 = ex_to<Index>(e.op(1));
+                Index colAj3 = ex_to<Index>(e.op(2));
+                return 1/I2R/I*SUNT(colFi1,colFi2,colAj1)*SUNT(colFi2,colFi3,colAj2)*SUNT(colFi3,colFi1,colAj3) -
+                    1/I2R/I*SUNT(colFi1,colFi2,colAj3)*SUNT(colFi2,colFi3,colAj2)*SUNT(colFi3,colFi1,colAj1);
+            }
+            return e.map(self);
+        })(ret);
+        
+        ret = MapFunction([&](const ex &e, MapFunction &self)->ex {
+            if(is_a<SUNT>(e)) {
+                Index col1 = ex_to<Index>(e.op(0));
+                Index col2 = ex_to<Index>(e.op(1));
+                Index col3 = ex_to<Index>(e.op(2));
+                return iWF(col1, col2, col3);
+            }
+            return e.map(self);
+        })(ret);
+        ret = mma_collect(ret, iWF(w1, w2, w3));
+        
+        while(true) {
+            auto tmp = ret.subs(iWF(w1,w2,w3)*iWF(w4,w5,w3)==iWF(w1,w2,w4,w5), subs_options::algebraic);
+            if(is_zero(tmp-ret)) break;
+            ret = tmp;
+        }
+        return ret;
     }
     
 }

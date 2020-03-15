@@ -157,6 +157,7 @@ namespace HepLib {
             ofs << "#toexternal \"OK\"" << endl;
             ofs << "Local [o]=0;" << endl;
             ofs << ".sort" << endl;
+            ofs << "Format Mathematica;" << endl;
             ofs << "#fromexternal" << endl;
             ofs << ".end" << endl;
             ofs.close();

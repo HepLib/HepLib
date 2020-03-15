@@ -34,6 +34,39 @@ namespace HepLib {
     ex MapFunction::operator()(const ex &e) {
         return Function(e, *this);
     }
+    
+    /*-----------------------------------------------------*/
+    // Parser Class
+    /*-----------------------------------------------------*/
+    namespace {
+        class registered_functions_hack : public GiNaC::function {
+        public:
+            static const std::vector<function_options>& get_registered_functions() {
+                return function::registered_functions();
+            }
+        };
+        
+        static reader_func encode_serial_as_reader_func(unsigned serial) {
+            uintptr_t u = (uintptr_t)serial;
+            u = (u << 1) | (uintptr_t)1;
+            reader_func ptr = (reader_func)((void *)u);
+            return ptr;
+        }
+    }
+    
+    Parser::Parser(symtab st, prototype_table ft) : SymDict(st), FuncDict(ft) { }
+    Parser::Parser() : FuncDict(get_default_reader()) { }
+    ex Parser::Read(string instr) {
+        unsigned serial = 0;
+        for (auto & it : registered_functions_hack::get_registered_functions()) {
+            prototype proto = make_pair(it.get_name(), it.get_nparams());
+            FuncDict[proto] = encode_serial_as_reader_func(serial);
+            ++serial;
+        }
+        parser ginac_parser(SymDict, false, FuncDict);
+        return ginac_parser(instr);
+    }
+    
 
 }
 
