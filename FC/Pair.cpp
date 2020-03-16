@@ -13,6 +13,7 @@ namespace HepLib::FC {
     
     DEFAULT_CTOR(Pair)
     GINAC_BIND_UNARCHIVER(Pair);
+    IMPLEMENT_HAS(Pair)
 
     Pair::Pair(const Vector &p1, const Vector &p2) : lr{p1,p2} { }
     Pair::Pair(const Index &i1, const Index &i2) : lr{i1,i2} { }
@@ -59,6 +60,10 @@ namespace HepLib::FC {
         for(int i=0; i<2; i++) {
             n.find_ex("lr"+to_string(i), lr[i], sym_lst);
         }
+    }
+    
+    ex Pair::derivative(const symbol & s) const {
+        return 0;
     }
     
     //-----------------------------------------------------------

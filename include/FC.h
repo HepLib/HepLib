@@ -3,6 +3,13 @@
 #define DEFAULT_CTOR(classname) \
 classname::classname() { setflag(status_flags::evaluated | status_flags::expanded); }
 
+#define IMPLEMENT_HAS(classname) \
+bool classname::has(const ex &e) { \
+    for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) if(is_a<classname>(*i)) return true; \
+    return false; \
+}
+
+
 #include "Basic.h"
 #include "Process.h"
 
@@ -17,6 +24,7 @@ namespace HepLib::FC {
     extern symbol CF;
     extern symbol NA;
     extern symbol NF;
+    extern symbol gs;
     
     class Index;
     class Vector;
@@ -28,7 +36,7 @@ namespace HepLib::FC {
     DECLARE_FUNCTION_3P(Propagator)
     DECLARE_FUNCTION_3P(InField)
     DECLARE_FUNCTION_3P(OutField)
-    DECLARE_FUNCTION_3P(Matij)
+    DECLARE_FUNCTION_3P(Matrix)
     
     // Field function 2-3
     class Field2_SERIAL { public: static unsigned serial; };
@@ -82,7 +90,7 @@ namespace HepLib::FC {
         int Loops;
         string Options;
         vector<string> Others;
-        ex Amps(symtab st);
+        ex Amplitudes(symtab st);
         
         static Index LI(ex fn);
         static Index DI(ex fn);
@@ -90,6 +98,14 @@ namespace HepLib::FC {
         static Index FI(ex fn);
         static Index CI(ex fn);
         static Index AI(ex fn);
+        
+        static ex QuarkPropagator(ex e, ex m=0);
+        static ex GluonPropagator(ex e);
+        static ex GhostPropagator(ex e);
+        static ex q2gVertex(ex e);
+        static ex g3Vertex(ex e);
+        static ex g4Vertex(ex e);
+        static ex gh2gVertex(ex e);
         
     };
     
@@ -143,6 +159,8 @@ namespace HepLib::FC {
         void print(const print_context &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
+        static bool has(const ex &e);
+        ex derivative(const symbol & s) const override;
     };
     GINAC_DECLARE_UNARCHIVER(Index);
     
@@ -159,6 +177,8 @@ namespace HepLib::FC {
         void print(const print_context &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
+        static bool has(const ex &e);
+        ex derivative(const symbol & s) const override;
     };
     GINAC_DECLARE_UNARCHIVER(Vector);
     
@@ -176,6 +196,8 @@ namespace HepLib::FC {
         void print(const print_dflt &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
+        static bool has(const ex &e);
+        ex derivative(const symbol & s) const override;
     };
     GINAC_DECLARE_UNARCHIVER(SUNT);
     
@@ -190,6 +212,8 @@ namespace HepLib::FC {
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
+        static bool has(const ex &e);
+        ex derivative(const symbol & s) const override;
     };
     GINAC_DECLARE_UNARCHIVER(SUNF);
     
@@ -212,6 +236,8 @@ namespace HepLib::FC {
         void fc_print(const FCFormat &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
+        static bool has(const ex &e);
+        ex derivative(const symbol & s) const override;
     private:
         ex lr[2];
     };
@@ -237,6 +263,8 @@ namespace HepLib::FC {
         void fc_print(const FCFormat &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
+        static bool has(const ex &e);
+        ex derivative(const symbol & s) const override;
     private:
         ex pis[4];
     };
@@ -264,6 +292,8 @@ namespace HepLib::FC {
         ex op(size_t i) const override;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
+        static bool has(const ex &e);
+        ex derivative(const symbol & s) const override;
     private:
         ex pi;
         unsigned rl;
@@ -281,7 +311,16 @@ namespace HepLib::FC {
     
     // Form
     ex form(ex expr, bool verb=false);
-
+    
+    
+    //-----------------------------------------------------------
+    // Quarkonium
+    //-----------------------------------------------------------
+    namespace Quarkonium {
+        enum IO {In, Out};
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu);
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu);
+    }
     
     
 }

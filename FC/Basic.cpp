@@ -4,12 +4,16 @@ namespace HepLib::FC {
 
     DEFAULT_CTOR(Index)
     GINAC_BIND_UNARCHIVER(Index);
+    IMPLEMENT_HAS(Index)
     DEFAULT_CTOR(Vector)
     GINAC_BIND_UNARCHIVER(Vector);
+    IMPLEMENT_HAS(Vector)
     DEFAULT_CTOR(SUNT)
     GINAC_BIND_UNARCHIVER(SUNT);
+    IMPLEMENT_HAS(SUNT)
     DEFAULT_CTOR(SUNF)
     GINAC_BIND_UNARCHIVER(SUNF);
+    IMPLEMENT_HAS(SUNF)
 
     //-----------------------------------------------------------
     // FormFormat Output
@@ -92,6 +96,10 @@ namespace HepLib::FC {
         n.find_unsigned("type", t);
         type = (Type)t;
     }
+    
+    ex Index::derivative(const symbol & s) const {
+        return 0;
+    }
 
     //-----------------------------------------------------------
     // Vector Class
@@ -129,6 +137,10 @@ namespace HepLib::FC {
         unsigned t;
         n.find_string("name", nstr);
         name = get_symbol(nstr);
+    }
+    
+    ex Vector::derivative(const symbol & s) const {
+        return 0;
     }
     
     //-----------------------------------------------------------
@@ -179,6 +191,10 @@ namespace HepLib::FC {
         ija[2] = ex_to<Index>(o);
     }
     
+    ex SUNT::derivative(const symbol & s) const {
+        return 0;
+    }
+    
     GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNF, basic,
         print_func<print_dflt>(&SUNF::print).
         print_func<FormFormat>(&SUNF::form_print)
@@ -223,6 +239,10 @@ namespace HepLib::FC {
         ijk[1] = ex_to<Index>(o);
         n.find_ex("k", o, sym_lst);
         ijk[2] = ex_to<Index>(o);
+    }
+    
+    ex SUNF::derivative(const symbol & s) const {
+        return 0;
     }
     
     //-----------------------------------------------------------

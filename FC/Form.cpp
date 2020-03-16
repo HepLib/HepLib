@@ -86,6 +86,7 @@ namespace HepLib::FC {
         
         stringstream ss;
         FormFormat ff(ss);
+        ff << "CFunction pow,sqrt,Pi,gamma;" << endl;
         ff << "Symbols D, NF, NA, I;" << endl;
         ff << "#include- " << InstallPrefix <<  "/include/SUN.h" << endl;
         symtab st;

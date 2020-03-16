@@ -59,8 +59,15 @@ namespace HepLib {
     symbol FC::CF("CF");
     symbol FC::NA("NA");
     symbol FC::NF("NF");
+    symbol FC::gs("gs");
+    
     FC::FCFormat::_init::_init() {
         GiNaC_archive_Symbols.append(D);
+        GiNaC_archive_Symbols.append(CA);
+        GiNaC_archive_Symbols.append(CF);
+        GiNaC_archive_Symbols.append(NA);
+        GiNaC_archive_Symbols.append(NF);
+        GiNaC_archive_Symbols.append(gs);
         set_print_func<ncmul, FCFormat>(FCFormat::ncmul_print);
     }
     FC::FCFormat::_init FC::FCFormat::FCFormat_init;

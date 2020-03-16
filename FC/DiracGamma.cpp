@@ -1,6 +1,10 @@
 #include "FC.h"
 
 namespace HepLib::FC {
+
+    static ex expl_TR_diff(const ex & arg, const symbol & s) {
+        return TR(arg.diff(s));
+    }
     
     //-----------------------------------------------------------
     // DiracGamma Class
@@ -13,6 +17,7 @@ namespace HepLib::FC {
     
     DEFAULT_CTOR(DiracGamma)
     GINAC_BIND_UNARCHIVER(DiracGamma);
+    IMPLEMENT_HAS(DiracGamma)
         
     return_type_t DiracGamma::return_type_tinfo() const {
         return make_return_type_t<DiracGamma>(rl);
@@ -87,6 +92,10 @@ namespace HepLib::FC {
         n.find_ex("pi", pi, sym_lst);
     }
     
+    ex DiracGamma::derivative(const symbol & s) const {
+        return 0;
+    }
+    
     //-----------------------------------------------------------
     // TR/GAS functions
     //-----------------------------------------------------------
@@ -104,7 +113,8 @@ namespace HepLib::FC {
     REGISTER_FUNCTION(TR, do_not_evalf_params().
         print_func<FormFormat>(&TR_form_print).
         print_func<FCFormat>(&TR_fc_print).
-        set_return_type(return_types::commutative)
+        set_return_type(return_types::commutative).
+        expl_derivative_func(expl_TR_diff)
     );
     
     ex GAS(ex expr) {

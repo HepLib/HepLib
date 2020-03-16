@@ -13,6 +13,7 @@ namespace HepLib::FC {
     
     DEFAULT_CTOR(Eps)
     GINAC_BIND_UNARCHIVER(Eps);
+    IMPLEMENT_HAS(Eps)
 
     Eps::Eps(const Vector &x1, const Vector &x2, const Vector &x3, const Vector &x4) : pis{x1,x2,x3,x4} { }
     Eps::Eps(const Vector &x1, const Vector &x2, const Vector &x3, const Index &x4) : pis{x1,x2,x3,x4} { }
@@ -75,6 +76,10 @@ namespace HepLib::FC {
         for(int i=0; i<4; i++) {
             n.find_ex("pis"+to_string(i), pis[i], sym_lst);
         }
+    }
+    
+    ex Eps::derivative(const symbol & s) const {
+        return 0;
     }
     
     //-----------------------------------------------------------
