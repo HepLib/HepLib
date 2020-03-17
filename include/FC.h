@@ -25,6 +25,7 @@ namespace HepLib::FC {
     extern realsymbol NA;
     extern realsymbol NF;
     extern realsymbol gs;
+    extern exmap sp_map;
     
     class Index;
     class Vector;
@@ -232,6 +233,7 @@ namespace HepLib::FC {
         Pair(const Vector &p, const Index &i);
         size_t nops() const override;
         ex op(size_t i) const override;
+        ex& let_op(size_t i) override;
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void fc_print(const FCFormat &c, unsigned level = 0) const;
@@ -239,12 +241,16 @@ namespace HepLib::FC {
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
         ex derivative(const symbol & s) const override;
+        void operator = (const ex & e);
     private:
         ex lr[2];
     };
     GINAC_DECLARE_UNARCHIVER(Pair);
     ex SP(ex a);
     ex SP(ex a, ex b);
+    void letSP(ex a, ex b, ex ab);
+    void letSP(ex a, ex a2);
+    void resetSP();
     
     //-----------------------------------------------------------
     // Eps Class
@@ -260,6 +266,7 @@ namespace HepLib::FC {
         Eps(vector<Vector> vs, vector<Index> is);
         size_t nops() const override;
         ex op(size_t i) const override;
+        ex & let_op(size_t i) override;
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void fc_print(const FCFormat &c, unsigned level = 0) const;
@@ -314,6 +321,8 @@ namespace HepLib::FC {
     
     // Form
     ex form(ex expr, bool verb=false);
+    // TIR
+    ex TIR(lst vis, lst eps);
     
     
     //-----------------------------------------------------------

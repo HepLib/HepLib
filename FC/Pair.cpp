@@ -45,9 +45,10 @@ namespace HepLib::FC {
     
     size_t Pair::nops() const { return 2; }
     ex Pair::op(size_t i) const {
-        if(i==0) return lr[0];
-        else if(i==1) return lr[1];
-        return 0;
+        return lr[i];
+    }
+    ex & Pair::let_op(size_t i) {
+        return lr[i];
     }
     
     void Pair::archive(archive_node & n) const {
@@ -121,6 +122,21 @@ namespace HepLib::FC {
             for(auto bi : blst) res += ai.op(0) * bi.op(0) * SP(ai.op(1), bi.op(1));
         }
         return res;
+    }
+    
+    void letSP(ex a, ex b, ex ab) {
+        if(!(is_a<Vector>(a) || is_a<Index>(a)) || !(is_a<Vector>(b) || is_a<Index>(b)))
+            throw Error("Invalide arguments for letSP.");
+        sp_map[SP(a,b)]=ab;
+        sp_map[SP(b,a)]=ab;
+    }
+    void letSP(ex a, ex a2) {
+        if(!is_a<Vector>(a))
+            throw Error("Invalide arguments for letSP.");
+        sp_map[SP(a)]=a2;
+    }
+    void resetSP() {
+        sp_map.clear();
     }
 
 }

@@ -345,4 +345,9 @@ namespace HepLib {
         return is_a<GiNaC::function>(e) && ex_to<GiNaC::function>(e).get_name()==func_name && e.nops()==nargs;
     }
     
+    /*-----------------------------------------------------*/
+    // string Functions
+    /*-----------------------------------------------------*/
+    void string_replace_all(string &str, const string &from, const string &to);
+    
 }

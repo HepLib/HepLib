@@ -66,6 +66,9 @@ namespace HepLib::FC {
     ex Eps::op(size_t i) const {
         return pis[i];
     }
+    ex & Eps::let_op(size_t i) {
+        return pis[i];
+    }
     
     void Eps::archive(archive_node & n) const {
         inherited::archive(n);

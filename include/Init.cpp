@@ -60,6 +60,7 @@ namespace HepLib {
     realsymbol FC::NA("NA");
     realsymbol FC::NF("NF");
     realsymbol FC::gs("gs");
+    exmap FC::sp_map;
     
     FC::FCFormat::_init::_init() {
         GiNaC_archive_Symbols.append(D);

@@ -55,11 +55,10 @@ namespace HepLib {
     void Fermat::Init(string fer_path) {
         fermat.Open(fer_path);
         fermat.io() << "&M" << endl << endl; // prompt
-        fermat.io() << "&(_d=90000)" << endl << endl; // width of the display on the window
+        fermat.io() << "&(_d=90000)" << endl; // width of the display on the window
         fermat.io() << "&d" << endl << "0" << endl; // off floating point representation
         fermat.io() << "&(_t=0)" << endl; // off a certain fast probabalistic algorithm
         fermat.io() << "&(t=0)" << endl; // off timing
-        fermat.io() << "&(U=1)" << endl; // ugly printing
         fermat.io() << "&(_s=0)" << endl;
         fermat.io() << "&(_o=1000)" << endl; // http://home.bway.net/lewis/fer64mono.html
         fermat.io() << "!('" << Sentinel << "')" << endl;
@@ -231,7 +230,7 @@ namespace HepLib {
             }
             auto cpos = ostr.find(Sentinel);
             if(cpos!=string::npos) {
-                ostr.replace(cpos, strlen(Sentinel), "");
+                ostr.replace(cpos, Sentinel.length(), "");
                 break;
             }
         }

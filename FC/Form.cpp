@@ -55,7 +55,7 @@ namespace HepLib::FC {
             unsigned gline = 0;
         };
         
-        void replace_all(string &str, const string &from, const string &to) {
+        void string_replace_all(string &str, const string &from, const string &to) {
             size_t start_pos = 0;
             while((start_pos = str.find(from, start_pos)) != string::npos) {
                 str.replace(start_pos, from.length(), to);
@@ -154,8 +154,8 @@ namespace HepLib::FC {
             ff << "Symbols";
             for(auto sx : sym_lst) {
                 auto s = ex_to<symbol>(sx);
-                ff << " " << s;
-                st[s.get_name()] = s;
+                ff << " " << s.get_name();
+                st[s.get_name()] = sx;
             }
             ff << ";" << endl;
         }
@@ -163,22 +163,52 @@ namespace HepLib::FC {
         // trace and contract
         mapTR tr;
         expr = tr(expr);
-        ff << "L [o]=" << expr << ";" << endl;
-        ff << "contract 0;" << endl;
-        ff << "#call SUNTrace" << endl;
-        ff << tr.ss.str();
-        ff << "contract 0;" << endl;
-        
-        if(verb) {
-            cout << "--------------------------------------" << endl;
-            cout << "Form Script:" << endl;
-            cout << "--------------------------------------" << endl;
-            cout << ss.str() << endl;
-        }
-
         HepLib::Form form;
         form.Init(InstallPrefix+"/bin/form");
-        auto ostr = form.Execute(ss.str());
+        string ostr;
+        if(is_a<lst>(expr)) {
+            ostr = "{";
+            int c = 1;
+            for(auto item : expr) {
+                ff << "L [o]=" << item << ";" << endl;
+                ff << "contract 0;" << endl;
+                ff << "#call SUNTrace" << endl;
+                ff << tr.ss.str();
+                ff << "contract 0;" << endl;
+                
+                if(verb) {
+                    cout << "--------------------------------------" << endl;
+                    cout << "Form Script @" << c-1 << " :" << endl;
+                    cout << "--------------------------------------" << endl;
+                    cout << ss.str() << endl;
+                }
+            
+                ostr += form.Execute(ss.str());
+                ss.clear();
+                ss.str("");
+                
+                if(c<expr.nops()) ostr += ",";
+                c++;
+            }
+            ostr += "}";
+        } else {
+            ff << "L [o]=" << expr << ";" << endl;
+            ff << "contract 0;" << endl;
+            ff << "#call SUNTrace" << endl;
+            ff << tr.ss.str();
+            ff << "contract 0;" << endl;
+            
+            if(verb) {
+                cout << "--------------------------------------" << endl;
+                cout << "Form Script:" << endl;
+                cout << "--------------------------------------" << endl;
+                cout << ss.str() << endl;
+            }
+            ostr = form.Execute(ss.str());
+            ss.clear();
+            ss.str("");
+        }
+        
         form.Exit();
         
         if(verb) {
@@ -188,20 +218,20 @@ namespace HepLib::FC {
             cout << ostr << endl;
         }
 
-        replace_all(ostr, "[", "(");
-        replace_all(ostr, "]", ")");
+        string_replace_all(ostr, "[", "(");
+        string_replace_all(ostr, "]", ")");
         for(auto v : vec_lst) {
             string pat(ex_to<Vector>(v).name.get_name());
             string from = pat+"(";
             string to = "("+pat+"_";
-            replace_all(ostr, from, to);
+            string_replace_all(ostr, from, to);
             from = pat+".";
             to = pat+"_";
-            replace_all(ostr, from, to);
+            string_replace_all(ostr, from, to);
         }
         
-        replace_all(ostr, "d_(", "SP(");
-        replace_all(ostr, "e_(", "LC(");
+        string_replace_all(ostr, "d_(", "SP(");
+        string_replace_all(ostr, "e_(", "LC(");
         
         st["I2R"] = ex(1)/2;
         st["NA"] = NA;

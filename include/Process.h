@@ -28,7 +28,7 @@ namespace HepLib {
     
     class Fermat {
     public:
-        const char * Sentinel = "---EOF---";
+        string Sentinel = "---EOF---";
         void Init(string fer_path);
         string Execute(string);
         void Exit();
@@ -46,7 +46,7 @@ namespace HepLib {
     
     class Form {
     public:
-        const char * Sentinel = "---EOF---";
+        string Sentinel = "---EOF---";
         void Init(string form_path_args);
         string Execute(string script, const char * out_var="[o]");
         void Exit();
