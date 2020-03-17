@@ -24,11 +24,11 @@ namespace HepLib {
     //----------------------------------------
     // HepLib::SD
     //----------------------------------------
-    const symbol SD::ep("ep");
-    const symbol SD::eps("eps");
-    const symbol SD::vs("s");
-    const symbol SD::vz("vz");
-    const symbol SD::epz("epz");
+    const realsymbol SD::ep("ep");
+    const realsymbol SD::eps("eps");
+    const realsymbol SD::vs("s");
+    const realsymbol SD::vz("vz");
+    const realsymbol SD::epz("epz");
     const symbol SD::iEpsilon("iEpsilon");
     const realsymbol SD::NaN("NaN");
 
@@ -54,12 +54,12 @@ namespace HepLib {
     //----------------------------------------
     // HepLib::FC
     //----------------------------------------
-    symbol FC::D("D");
-    symbol FC::CA("CA");
-    symbol FC::CF("CF");
-    symbol FC::NA("NA");
-    symbol FC::NF("NF");
-    symbol FC::gs("gs");
+    realsymbol FC::D("D");
+    realsymbol FC::CA("CA");
+    realsymbol FC::CF("CF");
+    realsymbol FC::NA("NA");
+    realsymbol FC::NF("NF");
+    realsymbol FC::gs("gs");
     
     FC::FCFormat::_init::_init() {
         GiNaC_archive_Symbols.append(D);

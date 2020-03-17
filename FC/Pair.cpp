@@ -38,9 +38,9 @@ namespace HepLib::FC {
     }
     
     void Pair::fc_print(const FCFormat &c, unsigned level) const {
-        if(is_a<Vector>(lr[0]) && is_a<Vector>(lr[1])) c << "SPD[" << lr[0] << "," << lr[1] << "]";
-        else if(is_a<Vector>(lr[0]) && is_a<Index>(lr[1])) c << "FVD[" << lr[0] << "," << lr[1] << "]";
-        else if(is_a<Index>(lr[0]) && is_a<Index>(lr[1])) c << "MTD[" << lr[0] << "," << lr[1] << "]";
+        if(is_a<Vector>(lr[0]) && is_a<Vector>(lr[1])) c << "SPD(" << lr[0] << "," << lr[1] << ")";
+        else if(is_a<Vector>(lr[0]) && is_a<Index>(lr[1])) c << "FVD(" << lr[0] << "," << lr[1] << ")";
+        else if(is_a<Index>(lr[0]) && is_a<Index>(lr[1])) c << "MTD(" << lr[0] << "," << lr[1] << ")";
     }
     
     size_t Pair::nops() const { return 2; }
@@ -69,6 +69,10 @@ namespace HepLib::FC {
     //-----------------------------------------------------------
     // SP function - ScalarProduct
     //-----------------------------------------------------------
+    ex SP(ex a) {
+        if(is_a<Vector>(a)) return Pair(ex_to<Vector>(a), ex_to<Vector>(a));
+        throw Error("SP(a) with a is NOT a vector.");
+    }
     ex SP(ex a, ex b) {
         if(is_a<Vector>(a) && is_a<Vector>(b)) return Pair(ex_to<Vector>(a), ex_to<Vector>(b));
         else if(is_a<Vector>(a) && is_a<Index>(b)) return Pair(ex_to<Vector>(a), ex_to<Index>(b));

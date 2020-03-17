@@ -195,6 +195,10 @@ namespace HepLib::FC {
         return 0;
     }
     
+    ex SUNT::conjugate() const {
+        return SUNT(ija[1], ija[0], ija[2]);
+    }
+    
     GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNF, basic,
         print_func<print_dflt>(&SUNF::print).
         print_func<FormFormat>(&SUNF::form_print)

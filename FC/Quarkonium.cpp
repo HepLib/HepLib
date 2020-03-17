@@ -37,6 +37,46 @@ namespace HepLib::FC {
             return ret;
         }
         
+        namespace {
+            ex ITD(ex si, ex qi , ex p) {
+                return -SP(si,qi)+SP(p,si)*SP(p,qi)/SP(p);
+            }
+        }
+        
+        ex SL1Proj(ex si, ex qi, ex p) {
+            return ITD(si,qi,p)/sqrt(D-1);
+        }
+        
+        ex SL1Proj(ex si, ex qi, ex mu, ex p) {
+            return -I*LC(si,qi,mu,p)/sqrt(2*SP(p));
+        }
+        
+        ex SL1Proj(ex si, ex qi, ex mu1, ex mu2, ex p) {
+            return (ITD(si,mu1,p)*ITD(qi,mu2,p)+ITD(qi,mu1,p)*ITD(si,mu2,p))/2 - ITD(si,qi,p)*ITD(mu1,mu2,p)/(D-1);
+        }
+        
+        ex SL2Proj(ex si, ex qi1, ex qi2, ex mu, ex p) {
+            return sqrt((D-1)/(D+1))*((ITD(si,qi1,p)*ITD(qi2,mu,p)+ITD(si,qi2,p)*ITD(qi1,mu,p))/2- ITD(si,mu,p)*ITD(qi1,qi2,p)/(D-1));
+        }
+        
+        ex SL2Proj(ex si, ex qi1, ex qi2, ex mu1, ex mu2, ex p) {
+            return -I/(sqrt(2*(D-1)*SP(p))) * (SP(mu1,qi1)*LC(qi2,si,mu2,p)+SP(mu1,qi2)*LC(qi1,si,mu2,p));
+        }
+        
+        ex SLSum(ex si, ex siR, ex qi, ex qiR, ex p, int L) {
+            if(L==0) return ITD(si,qi,p)*ITD(siR,qiR,p)/(D-1);
+            else if(L==1) return (ITD(si,siR,p)*ITD(qi,qiR,p)-ITD(si,qiR,p)*ITD(qi,siR,p))/2;
+            else if(L==2) return (ITD(si,siR,p)*ITD(qi,qiR,p)+ITD(si,qiR,p)*ITD(qi,siR,p))/2-ITD(si,qi,p)*ITD(siR,qiR,p)/(D-1);
+            return 0;
+        }
+        
+        ex ColorProj() {
+            return 1/sqrt(NF);
+        }
+        ex ColorProj(Index i, Index j, Index a) {
+            return sqrt(ex(2)) * SUNT(i,j,a);
+        }
+        
     }
 }
 

@@ -20,7 +20,7 @@ namespace HepLib::FC {
     IMPLEMENT_HAS(DiracGamma)
         
     return_type_t DiracGamma::return_type_tinfo() const {
-        return make_return_type_t<DiracGamma>(rl);
+        return make_return_type_t<clifford>(rl);
     }
     
     bool DiracGamma::match_same_type(const basic & other) const {
@@ -77,7 +77,7 @@ namespace HepLib::FC {
         }
         if(is_a<Vector>(pi)) c << "GSD";
         else c << "GAD";
-        c << "[" << pi << "]";
+        c << "(" << pi << ")";
     }
     
     void DiracGamma::archive(archive_node & n) const {
@@ -96,6 +96,14 @@ namespace HepLib::FC {
         return 0;
     }
     
+    ex DiracGamma::conjugate() const {
+        if(is_a<Index>(pi) || is_a<Vector>(pi)) return *this;
+        else if(is_zero(pi-5)) return -1*DiracGamma(5, rl);
+        else if(is_zero(pi-6)) return DiracGamma(7, rl);
+        else if(is_zero(pi-7)) return DiracGamma(6, rl);
+        throw Error("invalid DiracGamma Found.");
+    }
+    
     //-----------------------------------------------------------
     // TR/GAS functions
     //-----------------------------------------------------------
@@ -106,7 +114,7 @@ namespace HepLib::FC {
         }
         void TR_fc_print(const ex &arg, const print_context &c0) {
             auto c = static_cast<const FCFormat &>(c0);
-            c << "DiracTrace[" << arg << "]";
+            c << "DiracTrace(" << arg << ")";
         }
     }
     

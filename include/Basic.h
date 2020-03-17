@@ -331,7 +331,7 @@ namespace HepLib {
         prototype_table FuncDict;
         symtab SymDict;
         ex Read(string instr);
-        Parser(symtab st, prototype_table ft=get_default_reader());
+        Parser(symtab st);
         Parser();
     };
     

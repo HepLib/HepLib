@@ -19,12 +19,12 @@ namespace HepLib::FC {
     using namespace GiNaC;
     using namespace HepLib;
     
-    extern symbol D;
-    extern symbol CA;
-    extern symbol CF;
-    extern symbol NA;
-    extern symbol NF;
-    extern symbol gs;
+    extern realsymbol D;
+    extern realsymbol CA;
+    extern realsymbol CF;
+    extern realsymbol NA;
+    extern realsymbol NF;
+    extern realsymbol gs;
     
     class Index;
     class Vector;
@@ -198,6 +198,7 @@ namespace HepLib::FC {
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
         ex derivative(const symbol & s) const override;
+        ex conjugate() const override;
     };
     GINAC_DECLARE_UNARCHIVER(SUNT);
     
@@ -242,6 +243,7 @@ namespace HepLib::FC {
         ex lr[2];
     };
     GINAC_DECLARE_UNARCHIVER(Pair);
+    ex SP(ex a);
     ex SP(ex a, ex b);
     
     //-----------------------------------------------------------
@@ -294,6 +296,7 @@ namespace HepLib::FC {
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
         ex derivative(const symbol & s) const override;
+        ex conjugate() const override;
     private:
         ex pi;
         unsigned rl;
@@ -320,6 +323,8 @@ namespace HepLib::FC {
         enum IO {In, Out};
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu);
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu);
+        ex ColorProj(Index i, Index j, Index a);
+        ex ColorProj();
     }
     
     

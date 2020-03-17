@@ -38,8 +38,25 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Parser Class
     /*-----------------------------------------------------*/
+    // copy from GiNaC parser, note the alignas(2)
     namespace {
-        class registered_functions_hack : public GiNaC::function {
+        alignas(2) static ex sqrt_reader(const exvector& ev) {
+            return GiNaC::sqrt(ev[0]);
+        }
+
+        alignas(2) static ex pow_reader(const exvector& ev) {
+            return GiNaC::pow(ev[0], ev[1]);
+        }
+
+        alignas(2) static ex power_reader(const exvector& ev) {
+            return GiNaC::power(ev[0], ev[1]);
+        }
+
+        alignas(2) static ex lst_reader(const exvector& ev) {
+            return GiNaC::lst(ev.begin(), ev.end());
+        }
+    
+        class functions_hack : public GiNaC::function {
         public:
             static const std::vector<function_options>& get_registered_functions() {
                 return function::registered_functions();
@@ -52,13 +69,37 @@ namespace HepLib {
             reader_func ptr = (reader_func)((void *)u);
             return ptr;
         }
+        
+        const prototype_table& ginac_reader() {
+            using std::make_pair;
+            static bool initialized = false;
+            static prototype_table reader;
+            if (!initialized) {
+                reader[make_pair("sqrt", 1)] = sqrt_reader;
+                reader[make_pair("pow", 2)] = pow_reader;
+                reader[make_pair("power", 2)] = power_reader;
+                reader[make_pair("lst", 0)] = lst_reader;
+                enum { log, exp, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh, atanh, atan2,
+                        Li2, Li3, zetaderiv, Li, S, H, lgamma, tgamma, beta, factorial, binomial, Order,
+                        NFUNCTIONS
+                };
+                auto it = functions_hack::get_registered_functions().begin();
+                unsigned serial = 0;
+                for ( ; serial<NFUNCTIONS; ++it, ++serial ) {
+                    prototype proto = make_pair(it->get_name(), it->get_nparams());
+                    reader[proto] = encode_serial_as_reader_func(serial);
+                }
+                initialized = true;
+            }
+            return reader;
+        }
     }
     
-    Parser::Parser(symtab st, prototype_table ft) : SymDict(st), FuncDict(ft) { }
-    Parser::Parser() : FuncDict(get_default_reader()) { }
+    Parser::Parser(symtab st) : SymDict(st), FuncDict(ginac_reader()) { }
+    Parser::Parser() : FuncDict(ginac_reader()) { }
     ex Parser::Read(string instr) {
         unsigned serial = 0;
-        for (auto & it : registered_functions_hack::get_registered_functions()) {
+        for (auto & it : functions_hack::get_registered_functions()) {
             prototype proto = make_pair(it.get_name(), it.get_nparams());
             FuncDict[proto] = encode_serial_as_reader_func(serial);
             ++serial;
@@ -67,6 +108,5 @@ namespace HepLib {
         return ginac_parser(instr);
     }
     
-
 }
 

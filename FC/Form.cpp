@@ -6,15 +6,16 @@ namespace HepLib::FC {
     // Extend Parser for form, copied from ginac/parser of GiNaC
     //-----------------------------------------------------------
     namespace {
-        ex SP_reader(const exvector& ev) {
+
+        alignas(2) static ex SP_reader(const exvector& ev) {
             return SP(ev[0], ev[1]);
         }
         
-        ex LC_reader(const exvector& ev) {
+        alignas(2) static ex LC_reader(const exvector& ev) {
             return LC(ev[0], ev[1], ev[2], ev[3]);
         }
         
-        ex SUNT_reader(const exvector& ev) {
+        alignas(2) static ex SUNT_reader(const exvector& ev) {
             return SUNT(ex_to<Index>(ev[0]), ex_to<Index>(ev[1]), ex_to<Index>(ev[2]));
         }
     }
@@ -214,6 +215,8 @@ namespace HepLib::FC {
         ex ret = fp.Read(ostr);
         return ret;
     }
+    
+    
 
 
 }

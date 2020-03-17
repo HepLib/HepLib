@@ -59,6 +59,7 @@ namespace HepLib::FC {
             if(i!=0) c << ",";
             else c << "]";
         }
+        if(first) c << "[]";
     }
     
     size_t Eps::nops() const { return 4; }

@@ -39,21 +39,21 @@ namespace HepLib::FC {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        return I * SP(TI(fi1),TI(fi2)) * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom,mom)-m*m);
+        return I * SP(TI(fi1),TI(fi2)) * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
     }
     
     ex Qgraf::GluonPropagator(ex e) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        return (-I) * SP(CI(fi1),CI(fi2)) * SP(LI(fi1),LI(fi2)) / SP(mom,mom); // Feynman Gauge
+        return (-I) * SP(CI(fi1),CI(fi2)) * SP(LI(fi1),LI(fi2)) / SP(mom); // Feynman Gauge
     }
     
     ex Qgraf::GhostPropagator(ex e) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        return I * SP(CI(fi1),CI(fi2)) / SP(mom,mom);
+        return I * SP(CI(fi1),CI(fi2)) / SP(mom);
     }
     
     ex Qgraf::q2gVertex(ex e) {
