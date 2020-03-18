@@ -326,7 +326,7 @@ namespace HepLib::FC {
     ex GAS(ex expr);
     
     // Form, TIR
-    ex form(const ex &expr, bool verb=false, bool all=true);
+    ex form(const ex &expr, bool all_in_one=true, bool verb=false);
     ex TIR(const lst &vis, const lst &eps);
     
     

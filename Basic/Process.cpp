@@ -67,12 +67,13 @@ namespace HepLib {
     }
     
     void Fermat::Exit() {
-        fermat.io() << "&q" << endl;
+        fermat.io() << "&q" << endl << endl << endl;
+        fermat.io().close();
     }
     
     string Fermat::Execute(string expr) {
         fermat.io() << expr << endl;
-        fermat.io() << "!('" << Sentinel << "')" << endl;
+        fermat.io() << "!('" << Sentinel << "')" << endl << endl;
         auto ostr = fermat.ReadLines(Sentinel);
         const char* WhiteSpace = " \t\v\r\n";
         if(!ostr.empty()) {
@@ -95,7 +96,8 @@ namespace HepLib {
     
     void Form::Exit() {
         if(inited) {
-            write(io[0][1], ".end\n\n", 6);
+            string exit_cmd = ".end\n\n" + Sentinel +"\n\n\n";
+            write(io[0][1], exit_cmd.c_str(), exit_cmd.length());
             char buffer[8];
             read(io[1][0], buffer, 8);
             close(io[0][0]);
@@ -131,7 +133,7 @@ namespace HepLib {
             close(io[1][0]);
             close(stdo[0]);
             dup2(stdo[1], 1);
-            
+                        
             auto pid = getpid(); // current process id
             ostringstream oss;
             oss << "init-" << pid << ".frm";
@@ -151,13 +153,15 @@ namespace HepLib {
             ofs << "#procedure put(mexp)" << endl;
             ofs << "    #toexternal \"%E\", `mexp'" << endl;
             ofs << "    #toexternal \""<<Sentinel<<"\"" << endl;
+            ofs << "    #toexternal \"\\n\"" << endl;
             ofs << "#endprocedure" << endl;
             ofs << "#setexternal `PIPE1_';" << endl;
             ofs << "#toexternal \"OK\"" << endl;
             ofs << "Local [o]=0;" << endl;
             ofs << ".sort" << endl;
             ofs << "Format Mathematica;" << endl;
-            ofs << "#fromexternal" << endl;
+            ofs << "#prompt \"" << Prompt << "\"" << endl;
+            ofs << "#fromexternal -" << endl;
             ofs << ".end" << endl;
             ofs.close();
     
@@ -198,19 +202,11 @@ namespace HepLib {
         script += "#call put(";
         script += out_var;
         script += ")\n";
-        script += "\n.sort\n";
-        script += "#fromexternal";
-        
-        // replace blank line
-        while(true) {
-            auto pos = script.find("\n\n");
-            if(pos==string::npos) break;
-            script.replace(pos, 2, "\n");
-        }
-        script += "\n\n"; // blank line to prompt
+        script += ".sort\n";
+        script += Prompt + "\n"; // prompt
         
         write(io[0][1], script.c_str(), script.length());
-        
+
         string ostr;
         int n = 1024;
         char buffer[n+1]; // make sure the last one is '\0'

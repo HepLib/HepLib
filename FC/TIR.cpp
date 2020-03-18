@@ -75,7 +75,7 @@ namespace HepLib::FC {
             lst eqns;
             for(auto bi : bis) {
                 auto fexp = (eqL+eqR).subs(sp_map)*bi;
-                fexp = form(fexp, false, true).subs(sp_map);
+                fexp = form(fexp, false, false).subs(sp_map);
                 eqns.append(fexp);
             }
 

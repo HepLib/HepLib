@@ -162,15 +162,16 @@ namespace HepLib::FC {
         }
         
         // trace and contract
-        mapTR tr;
-        expr = tr(expr);
         HepLib::Form form;
         form.Init(InstallPrefix+"/bin/form");
         string ostr;
         if(is_a<lst>(expr)) {
+            auto total = expr.nops();
             ostr = "{";
             int c = 1;
             for(auto item : expr) {
+                mapTR tr;
+                item = tr(item);
                 ff << "L [o]=" << item << ";" << endl;
                 ff << "contract 0;" << endl;
                 ff << "#call SUNTrace" << endl;
@@ -179,12 +180,21 @@ namespace HepLib::FC {
                 
                 if(verb) {
                     cout << "--------------------------------------" << endl;
-                    cout << "Form Script @" << c-1 << " :" << endl;
+                    cout << "Form Script @" << c-1 << " / " << total << endl;
                     cout << "--------------------------------------" << endl;
                     cout << ss.str() << endl;
                 }
+                
+                auto otmp = form.Execute(ss.str());
             
-                ostr += form.Execute(ss.str());
+                if(verb) {
+                    cout << "--------------------------------------" << endl;
+                    cout << "Form Output @" << c-1 << " / " << total << endl;
+                    cout << "--------------------------------------" << endl;
+                    cout << otmp << endl;
+                }
+            
+                ostr += otmp;
                 ss.clear();
                 ss.str("");
                 
@@ -193,6 +203,8 @@ namespace HepLib::FC {
             }
             ostr += "}";
         } else {
+            mapTR tr;
+            expr = tr(expr);
             ff << "L [o]=" << expr << ";" << endl;
             ff << "contract 0;" << endl;
             ff << "#call SUNTrace" << endl;
@@ -208,16 +220,17 @@ namespace HepLib::FC {
             ostr = form.Execute(ss.str());
             ss.clear();
             ss.str("");
+            
+            if(verb) {
+                cout << "--------------------------------------" << endl;
+                cout << "Form Output:" << endl;
+                cout << "--------------------------------------" << endl;
+                cout << ostr << endl;
+            }
         }
-        
         form.Exit();
         
-        if(verb) {
-            cout << "--------------------------------------" << endl;
-            cout << "Form Output:" << endl;
-            cout << "--------------------------------------" << endl;
-            cout << ostr << endl;
-        }
+        
 
         string_replace_all(ostr, "[", "(");
         string_replace_all(ostr, "]", ")");
@@ -247,7 +260,7 @@ namespace HepLib::FC {
         return ret;
     }}
     
-    ex form(const ex &expr, bool verb, bool all) {
+    ex form(const ex &expr, bool all, bool verb) {
         if(all || is_a<lst>(expr)) return runform(expr, verb);
         
         auto ret = mma_collect(expr, [](const ex & e)->bool {
