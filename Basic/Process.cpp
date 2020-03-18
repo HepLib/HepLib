@@ -46,6 +46,7 @@ namespace HepLib {
     //-----------------------------------------------------------
     // Fermat Class
     //-----------------------------------------------------------
+    #define ENTER endl<<endl<<endl
     Fermat::Error::Error(const char * _msg) : msg(_msg) { }
     
     const char * Fermat::Error::what() const throw () {
@@ -54,26 +55,25 @@ namespace HepLib {
     
     void Fermat::Init(string fer_path) {
         fermat.Open(fer_path);
-        fermat.io() << "&M" << endl << endl; // prompt
-        fermat.io() << "&(_d=90000)" << endl; // width of the display on the window
-        fermat.io() << "&d" << endl << "0" << endl; // off floating point representation
-        fermat.io() << "&(_t=0)" << endl; // off a certain fast probabalistic algorithm
-        fermat.io() << "&(t=0)" << endl; // off timing
-        fermat.io() << "&(_s=0)" << endl;
-        fermat.io() << "&(_o=1000)" << endl; // http://home.bway.net/lewis/fer64mono.html
-        fermat.io() << "!('" << Sentinel << "')" << endl;
+        fermat.io() << "&M" << ENTER; // prompt
+        fermat.io() << "&(_d=90000);" << endl; // width of the display on the window
+        fermat.io() << "&(d=0);" << endl; // off floating point representation
+        fermat.io() << "&(_t=0);" << endl; // off a certain fast probabalistic algorithm
+        fermat.io() << "&(t=0);" << endl; // off timing
+        fermat.io() << "&(_s=0);" << endl;
+        fermat.io() << "&(_o=1000);" << endl; // http://home.bway.net/lewis/fer64mono.html
+        fermat.io() << "!('" << Sentinel << "');" << ENTER;
         fermat.ReadLines(Sentinel);
         fermat.ReadLine(); // read 0
     }
     
     void Fermat::Exit() {
-        fermat.io() << "&q" << endl << endl << endl;
-        fermat.io().close();
+        fermat.io() << "&q;" << ENTER;
     }
     
     string Fermat::Execute(string expr) {
         fermat.io() << expr << endl;
-        fermat.io() << "!('" << Sentinel << "')" << endl << endl;
+        fermat.io() << "!('" << Sentinel << "')" << ENTER;
         auto ostr = fermat.ReadLines(Sentinel);
         const char* WhiteSpace = " \t\v\r\n";
         if(!ostr.empty()) {
@@ -96,17 +96,12 @@ namespace HepLib {
     
     void Form::Exit() {
         if(inited) {
-            string exit_cmd = ".end\n\n" + Sentinel +"\n\n\n";
+            string exit_cmd = "\n.end\n" + Prompt +"\n";
             write(io[0][1], exit_cmd.c_str(), exit_cmd.length());
             char buffer[8];
             read(io[1][0], buffer, 8);
-            close(io[0][0]);
-            close(io[0][1]);
-            close(io[1][0]);
-            close(io[1][1]);
-            close(stdo[0]);
-            close(stdo[1]);
-            kill(pid, SIGTERM);
+            int st;
+            waitpid(pid, &st, WUNTRACED);
         }
     }
     
@@ -161,7 +156,7 @@ namespace HepLib {
             ofs << ".sort" << endl;
             ofs << "Format Mathematica;" << endl;
             ofs << "#prompt \"" << Prompt << "\"" << endl;
-            ofs << "#fromexternal -" << endl;
+            ofs << "#fromexternal-" << endl;
             ofs << ".end" << endl;
             ofs.close();
     
@@ -172,7 +167,6 @@ namespace HepLib {
             char buffer[256];
             sprintf(buffer, oss.str().c_str(), form_path_args.c_str(), io[0][0], io[1][1]);
             system(buffer);
-            
             exit(0);
         } else {
             close(io[0][0]);
@@ -198,11 +192,9 @@ namespace HepLib {
     
     string Form::Execute(string script, const char * out_var) {
         
-        script += "\n.sort\n";
-        script += "#call put(";
+        script += "\n.sort\n#call put(";
         script += out_var;
-        script += ")\n";
-        script += ".sort\n";
+        script += ")\n.sort\n";
         script += Prompt + "\n"; // prompt
         
         write(io[0][1], script.c_str(), script.length());

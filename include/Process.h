@@ -63,7 +63,7 @@ namespace HepLib {
         bool inited = false;
         int io[2][2];
         int stdo[2];
-        int pid;
+        pid_t pid = 0;
     };
     
 }

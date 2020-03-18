@@ -180,7 +180,7 @@ namespace HepLib::FC {
                 
                 if(verb) {
                     cout << "--------------------------------------" << endl;
-                    cout << "Form Script @" << c-1 << " / " << total << endl;
+                    cout << "Form Script @" << c-1 << " / " << total-1 << endl;
                     cout << "--------------------------------------" << endl;
                     cout << ss.str() << endl;
                 }
@@ -189,7 +189,7 @@ namespace HepLib::FC {
             
                 if(verb) {
                     cout << "--------------------------------------" << endl;
-                    cout << "Form Output @" << c-1 << " / " << total << endl;
+                    cout << "Form Output @" << c-1 << " / " << total-1 << endl;
                     cout << "--------------------------------------" << endl;
                     cout << otmp << endl;
                 }
@@ -230,8 +230,6 @@ namespace HepLib::FC {
         }
         form.Exit();
         
-        
-
         string_replace_all(ostr, "[", "(");
         string_replace_all(ostr, "]", ")");
         for(auto v : vec_lst) {
