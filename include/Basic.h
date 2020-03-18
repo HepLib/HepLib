@@ -338,10 +338,10 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // isFunction
     /*-----------------------------------------------------*/
-    inline bool isFunction(ex e, string func_name) {
+    inline bool isFunction(const ex &e, string func_name) {
         return is_a<GiNaC::function>(e) && ex_to<GiNaC::function>(e).get_name()==func_name;
     }
-    inline bool isFunction(ex e, string func_name, int nargs) {
+    inline bool isFunction(const ex &e, string func_name, int nargs) {
         return is_a<GiNaC::function>(e) && ex_to<GiNaC::function>(e).get_name()==func_name && e.nops()==nargs;
     }
     

@@ -168,6 +168,7 @@ namespace HepLib {
             char buffer[256];
             sprintf(buffer, oss.str().c_str(), form_path_args.c_str(), io[0][0], io[1][1]);
             system(buffer);
+            
             exit(0);
         } else {
             close(io[0][0]);

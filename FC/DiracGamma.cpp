@@ -21,6 +21,7 @@ namespace HepLib::FC {
         
     return_type_t DiracGamma::return_type_tinfo() const {
         return make_return_type_t<clifford>(rl);
+        //return make_return_type_t<DiracGamma>(rl);
     }
     
     bool DiracGamma::match_same_type(const basic & other) const {

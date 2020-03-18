@@ -23,6 +23,14 @@ namespace HepLib::FC {
     GINAC_IMPLEMENT_PRINT_CONTEXT(FormFormat, print_dflt)
     OUT_FORMAT_IMPLEMENT(FormFormat)
     
+    void FormFormat::power_print(const power & p, const FormFormat & c, unsigned level) {
+        if(p.op(1)==2 && !DiracGamma::has(p)) {
+            c << "((" << p.op(0) << ")*(" << p.op(0) << "))";
+        } else {
+            c << "(" << p.op(0) << ")^(" << p.op(1) << ")";
+        }
+    }
+    
     //-----------------------------------------------------------
     // FCFormat Output
     //-----------------------------------------------------------

@@ -70,10 +70,7 @@ namespace HepLib::FC {
     //-----------------------------------------------------------
     // SP function - ScalarProduct
     //-----------------------------------------------------------
-    ex SP(ex a) {
-        if(is_a<Vector>(a)) return Pair(ex_to<Vector>(a), ex_to<Vector>(a));
-        throw Error("SP(a) with a is NOT a vector.");
-    }
+    ex SP(ex a) { return SP(a,a); }
     ex SP(ex a, ex b) {
         if(is_a<Vector>(a) && is_a<Vector>(b)) return Pair(ex_to<Vector>(a), ex_to<Vector>(b));
         else if(is_a<Vector>(a) && is_a<Index>(b)) return Pair(ex_to<Vector>(a), ex_to<Index>(b));

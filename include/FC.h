@@ -117,8 +117,14 @@ namespace HepLib::FC {
         GINAC_DECLARE_PRINT_CONTEXT(FormFormat, print_dflt)
     public:
         FormFormat(ostream &os, unsigned opt=0);
+        static void power_print(const power & p, const FormFormat & c, unsigned level=0);
         OUT_FORMAT_DECLARE(FormFormat)
+        // static initialization
+        class _init {
+            public: _init();
+        };
     private:
+        static _init FormFormat_init;
     };
         
     //-----------------------------------------------------------
@@ -319,10 +325,9 @@ namespace HepLib::FC {
     inline ex GAS(const Index &i) { return DiracGamma(i); }
     ex GAS(ex expr);
     
-    // Form
-    ex form(ex expr, bool verb=false);
-    // TIR
-    ex TIR(lst vis, lst eps);
+    // Form, TIR
+    ex form(const ex &expr, bool verb=false, bool all=true);
+    ex TIR(const lst &vis, const lst &eps);
     
     
     //-----------------------------------------------------------

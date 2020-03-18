@@ -35,7 +35,7 @@ namespace HepLib::FC {
     }
 
     
-    ex TIR(lst vis, lst eps) {
+    ex TIR(const lst &vis, const lst &eps) {
         lst lps;
         for(auto vi : vis) {
             if(!is_a<Pair>(vi) || !is_a<Vector>(vi.op(0)) || !is_a<Index>(vi.op(1)))
@@ -47,7 +47,7 @@ namespace HepLib::FC {
         for(auto pi : eps) {
             if(!is_a<Vector>(pi)) throw Error("TIR invalid 2nd arguments");
         }
-        
+
         auto visn = vis.nops();
         if(lps.nops()<2) {
             ex eqL=1, eqR=0;
@@ -57,7 +57,7 @@ namespace HepLib::FC {
                 is.append(vi.op(1));
             }
             
-            for(int er=0; er<=vis.nops(); er=er+2) {
+            for(int er=((visn%2==0) ? 0 : 1); er<=visn; er=er+2) {
                 auto ep_comb = combs(eps, er);
                 for(auto item : ep_comb) {
                     ex bi=1;
@@ -70,13 +70,14 @@ namespace HepLib::FC {
                     xs.append(x);
                     xs0.append(x==0);
             }}
-            
+
             int n = bis.nops();
             lst eqns;
             for(auto bi : bis) {
-                eqns.append((eqL+eqR).subs(sp_map)*bi);
+                auto fexp = (eqL+eqR).subs(sp_map)*bi;
+                fexp = form(fexp, false, true).subs(sp_map);
+                eqns.append(fexp);
             }
-            eqns = ex_to<lst>(form(eqns).subs(sp_map));
 
             matrix mat(n, n+1);
             for(int i=0; i<n; i++) {
@@ -120,7 +121,7 @@ namespace HepLib::FC {
             fermat.Execute(ss.str());
             ss.clear();
             ss.str("");
-            
+
             ss << "[fM]:=[(";
             for(int c=0; c<n+1; c++) {
                 for(int r=0; r<n; r++) {
@@ -138,7 +139,7 @@ namespace HepLib::FC {
             ss << "![fM" << endl;
             auto ostr = fermat.Execute(ss.str());
             fermat.Exit();
-            
+
             ostr = ostr.substr(0, ostr.length()-1);
             const char* WhiteSpace = " \t\v\r\n";
             if(!ostr.empty()) {
@@ -151,9 +152,10 @@ namespace HepLib::FC {
             string_replace_all(ostr, "]", "}");
             Parser fp(st);
             auto mat2 = fp.Read(ostr);
-cout << "mat2=" << mat2 << endl;
+
             ex res = 0;
             for(int i=0; i<n; i++) {
+                if(is_zero(mat2.op(i).op(i))) throw Error("Zero Determinant in TIR.");
                 res += bis.op(i) * mat2.op(i).op(n);
             }
             res = res.subs(sp_map);

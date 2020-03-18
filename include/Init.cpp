@@ -73,4 +73,9 @@ namespace HepLib {
     }
     FC::FCFormat::_init FC::FCFormat::FCFormat_init;
     
+    FC::FormFormat::_init::_init() {
+        set_print_func<power, FormFormat>(FormFormat::power_print);
+    }
+    FC::FormFormat::_init FC::FormFormat::FormFormat_init;
+    
 }

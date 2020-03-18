@@ -68,7 +68,8 @@ namespace HepLib::FC {
     //-----------------------------------------------------------
     // form 
     //-----------------------------------------------------------
-    ex form(ex expr, bool verb) {
+    namespace {
+    ex runform(ex expr, bool verb) {
         lst vec_lst, VD_lst, CF_lst, CA_lst, sym_lst;
         for(const_preorder_iterator i = expr.preorder_begin(); i != expr.preorder_end(); ++i) {
             if(is_a<Vector>(*i)) vec_lst.append(*i);
@@ -244,9 +245,32 @@ namespace HepLib::FC {
         fp.FuncDict[make_pair("T", 3)] = SUNT_reader;
         ex ret = fp.Read(ostr);
         return ret;
+    }}
+    
+    ex form(const ex &expr, bool verb, bool all) {
+        if(all || is_a<lst>(expr)) return runform(expr, verb);
+        
+        auto ret = mma_collect(expr, [](const ex & e)->bool {
+            return Index::has(e) || DiracGamma::has(e);
+        },false,true);
+        
+        lst to_lst;
+        int current = 0;
+        ret = MapFunction([&](const ex & e, MapFunction &self)->ex{
+            if(e.match(coVF(w))) {
+                to_lst.append(e.op(0));
+                return coVF(current++);
+            } else return e.map(self);
+        })(ret);
+        
+        lst out_lst = ex_to<lst>(runform(to_lst, verb));
+        ret = MapFunction([&](const ex & e, MapFunction &self)->ex{
+            if(e.match(coVF(w))) {
+                return out_lst.op(ex_to<numeric>(e.op(0)).to_int());
+            } else return e.map(self);
+        })(ret);
+        return ret;
     }
-    
-    
 
 
 }
