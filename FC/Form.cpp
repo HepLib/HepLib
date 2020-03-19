@@ -118,7 +118,7 @@ namespace HepLib::FC {
                 st[i.name.get_name()] = i;
                 for(auto jx : VD_lst) {
                     auto j = ex_to<Index>(jx);
-                    st[i.name.get_name()+"_"+j.name.get_name()] = i(j);
+                    st[i.name.get_name()+"_"+j.name.get_name()] = SP(i,j).subs(sp_map);
                 }
             }
             ff << ";" << endl;
@@ -132,7 +132,7 @@ namespace HepLib::FC {
                 st[i.name.get_name()] = i;
                 for(auto jx : CF_lst) {
                     auto j = ex_to<Index>(jx);
-                    st[i.name.get_name()+"_"+j.name.get_name()] = i(j);
+                    st[i.name.get_name()+"_"+j.name.get_name()] = SP(i,j).subs(sp_map);
                 }
             }
             ff << ";" << endl;
@@ -146,7 +146,7 @@ namespace HepLib::FC {
                 st[i.name.get_name()] = i;
                 for(auto jx : CA_lst) {
                     auto j = ex_to<Index>(jx);
-                    st[i.name.get_name()+"_"+j.name.get_name()] = i(j);
+                    st[i.name.get_name()+"_"+j.name.get_name()] = SP(i,j).subs(sp_map);
                 }
             }
             ff << ";" << endl;
@@ -261,6 +261,7 @@ namespace HepLib::FC {
     ex form(const ex &expr, bool all, bool verb) {
         if(all || is_a<lst>(expr)) return runform(expr, verb);
         
+        if(expr.has(coVF(w))) throw Error("form error: expr has coVF already.");
         auto ret = mma_collect(expr, [](const ex & e)->bool {
             return Index::has(e) || DiracGamma::has(e);
         },false,true);

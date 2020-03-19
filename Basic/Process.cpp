@@ -55,7 +55,7 @@ namespace HepLib {
     
     void Fermat::Init(string fer_path) {
         fermat.Open(fer_path);
-        fermat.io() << "&M" << ENTER; // prompt
+        fermat.io() << "&(M=' ');" << endl; // prompt
         fermat.io() << "&(_d=90000);" << endl; // width of the display on the window
         fermat.io() << "&(d=0);" << endl; // off floating point representation
         fermat.io() << "&(_t=0);" << endl; // off a certain fast probabalistic algorithm
@@ -68,7 +68,7 @@ namespace HepLib {
     }
     
     void Fermat::Exit() {
-        fermat.io() << "&q;" << ENTER;
+        fermat.io() << "&q;" << endl << "&x;" << ENTER;
     }
     
     string Fermat::Execute(string expr) {
@@ -177,7 +177,10 @@ namespace HepLib {
             char buffer[1024];
             read(io[1][0], buffer, sizeof(buffer));
             char* p = strstr(buffer, "\n");
-            if(p==NULL) return throw Error("Init Failed: Expect a Line break!");
+            if(p==NULL){
+                cout << buffer << endl;
+                throw Error("Init Failed: Expect a Line break!");
+            }
             sprintf(p, ",%d\n\n\0", pid);
             write(io[0][1], buffer, strlen(buffer));
             read(io[1][0], buffer, sizeof(buffer));

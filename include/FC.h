@@ -327,7 +327,7 @@ namespace HepLib::FC {
     
     // Form, TIR
     ex form(const ex &expr, bool all_in_one=true, bool verb=false);
-    ex TIR(const lst &vis, const lst &eps);
+    ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     
     
     //-----------------------------------------------------------
