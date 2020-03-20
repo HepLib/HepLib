@@ -56,8 +56,9 @@ namespace HepLib::FC {
                 first = false;
             }
             c << pis[i];
-            if(i!=0) c << ",";
-            else c << "]";
+            
+            if(i==0) c << "]";
+            else if(!first || !is_a<Vector>(pis[i-1])) c << ",";
         }
         if(first) c << "[]";
     }
@@ -109,7 +110,7 @@ namespace HepLib::FC {
                     sign *= pow(-1, is.size());
                 } else is.push_back(ex_to<Index>(pis.op(i)));
             }
-            return Eps(vs, is);
+            return sign*Eps(vs, is);
         }
         
         for(int i=0; i<4; i++) {

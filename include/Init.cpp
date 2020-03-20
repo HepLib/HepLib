@@ -24,11 +24,11 @@ namespace HepLib {
     //----------------------------------------
     // HepLib::SD
     //----------------------------------------
-    const realsymbol SD::ep("ep");
-    const realsymbol SD::eps("eps");
-    const realsymbol SD::vs("s");
-    const realsymbol SD::vz("vz");
-    const realsymbol SD::epz("epz");
+    const symbol SD::ep("ep");
+    const symbol SD::eps("eps");
+    const symbol SD::vs("s");
+    const symbol SD::vz("vz");
+    const symbol SD::epz("epz");
     const symbol SD::iEpsilon("iEpsilon");
     const realsymbol SD::NaN("NaN");
 
@@ -77,5 +77,7 @@ namespace HepLib {
         set_print_func<power, FormFormat>(FormFormat::power_print);
     }
     FC::FormFormat::_init FC::FormFormat::FormFormat_init;
+    
+    FC::FCFormat FC::FCout(cout);
     
 }

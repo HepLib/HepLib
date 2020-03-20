@@ -29,6 +29,7 @@ namespace HepLib::FC {
         public:
             ex operator()(const ex &e) {
                 if(is_a<DiracGamma>(e)) return DiracGamma(ex_to<DiracGamma>(e), gline);
+                else if(!DiracGamma::has(e)) return e;
                 else return e.map(*this);
             }
             mapGamma(int _gline) : gline(_gline) { };
@@ -46,9 +47,8 @@ namespace HepLib::FC {
                     gs = mapGamma(gline)(gs);
                     gs = DiracGamma(1, gline) * gs;
                     return TR(gs);
-                } else {
-                    return e.map(*this);
-                }
+                } else if (!e.has(TR(w))) return e;
+                else return e.map(*this);
             }
             stringstream ss;
         private:
@@ -272,14 +272,16 @@ namespace HepLib::FC {
             if(e.match(coVF(w))) {
                 to_lst.append(e.op(0));
                 return coVF(current++);
-            } else return e.map(self);
+            } else if (!e.has(coVF(w))) return e;
+            else return e.map(self);
         })(ret);
         
         lst out_lst = ex_to<lst>(runform(to_lst, verb));
         ret = MapFunction([&](const ex & e, MapFunction &self)->ex{
             if(e.match(coVF(w))) {
                 return out_lst.op(ex_to<numeric>(e.op(0)).to_int());
-            } else return e.map(self);
+            } else if (!e.has(coVF(w))) return e;
+            else return e.map(self);
         })(ret);
         return ret;
     }

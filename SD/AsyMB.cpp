@@ -399,6 +399,7 @@ namespace HepLib::SD {
                 auto tmp = fe.op(0).op(i).subs(lst{x(w)==1,PL(w)==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
                 if(!is_a<numeric>(tmp.evalf())) {
                     cout << Color_Error << "Extra Variable(^[ep,eps,PL,x]) Found: " << RESET << fe.op(0).op(i) << endl;
+                    cout << Color_Error << tmp << RESET << endl;
                     exit(1);
                 }
             }

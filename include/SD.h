@@ -26,11 +26,11 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     
     extern const symbol iEpsilon;
-    extern const realsymbol ep;
-    extern const realsymbol eps;
-    extern const realsymbol vs;
-    extern const realsymbol vz;
-    extern const realsymbol epz;
+    extern const symbol ep;
+    extern const symbol eps;
+    extern const symbol vs;
+    extern const symbol vz;
+    extern const symbol epz;
     extern const realsymbol NaN;
     
     /*-----------------------------------------------------*/

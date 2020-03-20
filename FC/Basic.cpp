@@ -55,7 +55,7 @@ namespace HepLib::FC {
     //-----------------------------------------------------------
     // Error Class
     //-----------------------------------------------------------
-    Error::Error(const char * _msg) : msg(_msg) { }
+    Error::Error(string _msg) : msg(_msg) { }
     const char * Error::what() const throw () {
         return msg.c_str();
     }

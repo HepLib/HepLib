@@ -13,6 +13,10 @@ bool classname::has(const ex &e) { \
 #include "Basic.h"
 #include "Process.h"
 
+namespace GiNaC {
+    extern ex _ex1;
+}
+
 namespace HepLib::FC {
 
     using namespace std;
@@ -143,12 +147,13 @@ namespace HepLib::FC {
     private:
         static _init FCFormat_init;
     };
+    extern FCFormat FCout;
     
     class Error : public exception {
     public:
         string msg;
         const char * what() const throw ();
-        Error(const char * _msg);
+        Error(string _msg);
     };
     
     //-----------------------------------------------------------
@@ -247,7 +252,6 @@ namespace HepLib::FC {
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
         ex derivative(const symbol & s) const override;
-        void operator = (const ex & e);
     private:
         ex lr[2];
     };
@@ -264,6 +268,7 @@ namespace HepLib::FC {
     class Eps : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(Eps, basic)
     public:
+        ex pis[4];
         Eps(const Vector &p1, const Vector &p2, const Vector &p3, const Vector &p4);
         Eps(const Vector &p1, const Vector &p2, const Vector &p3, const Index &i1);
         Eps(const Vector &p1, const Vector &p2, const Index &i1, const Index &i2);
@@ -280,8 +285,6 @@ namespace HepLib::FC {
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
         ex derivative(const symbol & s) const override;
-    private:
-        ex pis[4];
     };
     GINAC_DECLARE_UNARCHIVER(Eps);
     ex LC(ex pi1, ex pi2, ex pi3, ex pi4);
@@ -292,6 +295,8 @@ namespace HepLib::FC {
     class DiracGamma : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(DiracGamma, basic)
     public:
+        ex pi;
+        unsigned rl;
         DiracGamma(const Vector &p, unsigned rl=0);
         DiracGamma(const Index &i, unsigned rl=0);
         DiracGamma(int int_1567, unsigned _rl=0);
@@ -310,9 +315,6 @@ namespace HepLib::FC {
         static bool has(const ex &e);
         ex derivative(const symbol & s) const override;
         ex conjugate() const override;
-    private:
-        ex pi;
-        unsigned rl;
     };
     GINAC_DECLARE_UNARCHIVER(DiracGamma);
     
@@ -339,6 +341,16 @@ namespace HepLib::FC {
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu);
         ex ColorProj(Index i, Index j, Index a);
         ex ColorProj();
+        
+        ex SL1Proj(ex si, ex qi, ex p);
+        ex SL1Proj(ex si, ex qi, ex mu, ex p);
+        ex SL1Proj(ex si, ex qi, ex mu1, ex mu2, ex p);
+        ex SL2Proj(ex si, ex qi1, ex qi2, ex mu, ex p);
+        ex SL2Proj(ex si, ex qi1, ex qi2, ex mu1, ex mu2, ex p);
+        ex SLSum(ex si, ex siR, ex qi, ex qiR, ex p, int L);
+        
+        ex LProj(const ex &expr_in, const lst &pqi);
+
     }
     
     
