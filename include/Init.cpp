@@ -24,22 +24,16 @@ namespace HepLib {
     //----------------------------------------
     // HepLib::SD
     //----------------------------------------
-    const symbol SD::ep("ep");
-    const symbol SD::eps("eps");
-    const symbol SD::vs("s");
-    const symbol SD::vz("vz");
-    const symbol SD::epz("epz");
-    const symbol SD::iEpsilon("iEpsilon");
-    const realsymbol SD::NaN("NaN");
+    const Symbol SD::ep("ep");
+    const Symbol SD::eps("eps");
+    const Symbol SD::vs("s");
+    const Symbol SD::vz("vz");
+    const Symbol SD::epz("epz");
+    const Symbol SD::iEpsilon("iEpsilon",false);
+    const Symbol SD::NaN("NaN");
 
     SD::SecDec::_init::_init() {
-        GiNaC_archive_Symbols.append(ep);
-        GiNaC_archive_Symbols.append(eps);
-        GiNaC_archive_Symbols.append(vs);
-        GiNaC_archive_Symbols.append(vz);
-        GiNaC_archive_Symbols.append(epz);
-        GiNaC_archive_Symbols.append(iEpsilon);
-        GiNaC_archive_Symbols.append(NaN);
+        // for later use
         GiNaC_archive_Symbols.sort();
         GiNaC_archive_Symbols.unique();
     }
@@ -54,21 +48,15 @@ namespace HepLib {
     //----------------------------------------
     // HepLib::FC
     //----------------------------------------
-    realsymbol FC::D("D");
-    realsymbol FC::CA("CA");
-    realsymbol FC::CF("CF");
-    realsymbol FC::NA("NA");
-    realsymbol FC::NF("NF");
-    realsymbol FC::gs("gs");
+    const Symbol FC::D("D");
+    const Symbol FC::CA("CA");
+    const Symbol FC::CF("CF");
+    const Symbol FC::NA("NA");
+    const Symbol FC::NF("NF");
+    const Symbol FC::gs("gs");
     exmap FC::sp_map;
     
     FC::FCFormat::_init::_init() {
-        GiNaC_archive_Symbols.append(D);
-        GiNaC_archive_Symbols.append(CA);
-        GiNaC_archive_Symbols.append(CF);
-        GiNaC_archive_Symbols.append(NA);
-        GiNaC_archive_Symbols.append(NF);
-        GiNaC_archive_Symbols.append(gs);
         set_print_func<ncmul, FCFormat>(FCFormat::ncmul_print);
     }
     FC::FCFormat::_init FC::FCFormat::FCFormat_init;

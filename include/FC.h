@@ -1,21 +1,7 @@
 #pragma once
 
-#define DEFAULT_CTOR(classname) \
-classname::classname() { setflag(status_flags::evaluated | status_flags::expanded); }
-
-#define IMPLEMENT_HAS(classname) \
-bool classname::has(const ex &e) { \
-    for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) if(is_a<classname>(*i)) return true; \
-    return false; \
-}
-
-
 #include "Basic.h"
 #include "Process.h"
-
-namespace GiNaC {
-    extern ex _ex1;
-}
 
 namespace HepLib::FC {
 
@@ -23,12 +9,12 @@ namespace HepLib::FC {
     using namespace GiNaC;
     using namespace HepLib;
     
-    extern realsymbol D;
-    extern realsymbol CA;
-    extern realsymbol CF;
-    extern realsymbol NA;
-    extern realsymbol NF;
-    extern realsymbol gs;
+    extern const Symbol D;
+    extern const Symbol CA;
+    extern const Symbol CF;
+    extern const Symbol NA;
+    extern const Symbol NF;
+    extern const Symbol gs;
     extern exmap sp_map;
     
     class Index;
@@ -330,6 +316,7 @@ namespace HepLib::FC {
     // Form, TIR
     ex form(const ex &expr, bool all_in_one=true, bool verb=false);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
+    ex MatrixContract(const ex & expr_in);
     
     
     //-----------------------------------------------------------

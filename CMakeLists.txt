@@ -4,7 +4,7 @@ SET(CMAKE_CXX_COMPILER g++)
 SET(CMAKE_Fortran_COMPILER gfortran)
 
 #-----------------------------------------------
-# Configuration Here
+# Configure
 #-----------------------------------------------
 # set the install prefix
 IF(APPLE)
@@ -98,7 +98,7 @@ INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include
 #-----------------------------------------------
 # install bin/*
 #-----------------------------------------------
-FILE(GLOB_RECURSE cpp_files "bin/*.cpp")
+FILE(GLOB cpp_files "bin/*.cpp")
 FOREACH(exe_cpp ${cpp_files})
     GET_FILENAME_COMPONENT(exe ${exe_cpp} NAME_WE)
     ADD_EXECUTABLE(${exe} bin/${exe}.cpp)

@@ -304,5 +304,64 @@ namespace HepLib::FC {
         return ret;
     }
     
+    ex MatrixContract(const ex & expr_in) {
+        if(expr_in.has(coVF(w))) throw Error("MatrixContract: coVF found in expr_in.");
+        
+        auto expr = mma_collect(expr_in, Matrix(w1, w2, w3), false, true);
+        expr = MapFunction([](const ex &e, MapFunction &self)->ex {
+            if(e.match(coVF(w))) {
+                if(e.op(0).match(Matrix(w1, w2, w3))) return e.op(0);
+                if(!is_a<mul>(e.op(0))) cout << "error." << endl;
+                lst mats;
+                std::map<ex,unsigned,ex_is_less> to_map, from_map;
+                std::set<int> todo;
+                for(auto item : e.op(0)) mats.append(item);
+                for(int i=0; i<mats.nops(); i++) {
+                    auto item = mats.op(i);
+                    to_map[item.op(1)] = i+10; // avoid 0 in map
+                    from_map[item.op(2)] = i+10; // avoid 0 in map
+                    todo.insert(i);
+                }
+                
+                ex retMat = 1;
+                while(todo.size()>0) {
+                    int c = *(todo.begin());
+                    todo.erase(c);
+                    ex curMat = mats.op(c).op(0);
+                    auto li=mats.op(c).op(1);
+                    auto ri=mats.op(c).op(2);
+                    while(true) {
+                        if(is_zero(li-ri)) {
+                            retMat *= TR(curMat);
+                            break;
+                        }
+                        int ti = to_map[ri];
+                        int fi = from_map[li];
+                        if(ti==0 && fi==0) {
+                            retMat *= Matrix(curMat, li, ri);
+                            break;
+                        }
+                        if(ti!=0) {
+                            curMat = curMat * mats.op(ti-10).op(0);
+                            ri = mats.op(ti-10).op(2);
+                            todo.erase(ti-10);
+                            continue;
+                        }
+                        if(fi!=0) {
+                            curMat = mats.op(fi-10).op(0) * curMat;
+                            li = mats.op(fi-10).op(1);
+                            todo.erase(fi-10);
+                            continue;
+                        }
+                    }
+                }
+                return retMat;
+            } else if(!e.has(coVF(w))) return e;
+            else return e.map(self);
+        })(expr);
+        
+        return expr;
+    }
+    
 }
 

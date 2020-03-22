@@ -2,6 +2,42 @@
 
 namespace HepLib {
 
+    //-----------------------------------------------------------
+    // Symbol Class
+    //-----------------------------------------------------------
+    DEFAULT_CTOR(Symbol)
+    GINAC_BIND_UNARCHIVER(Symbol);
+    IMPLEMENT_HAS(Symbol)
+    
+    GINAC_IMPLEMENT_REGISTERED_CLASS(Symbol, symbol)
+    
+    Symbol::Symbol(const string &s, bool is_real) : symbol(get_symbol(s)), isReal(is_real) { }
+    int Symbol::compare_same_type(const basic &other) const {
+        const Symbol &o = static_cast<const Symbol &>(other);
+        int ret = get_name().compare(o.get_name());
+        if(ret==0) return 0;
+        else if(ret<0) return -1;
+        else return 1;
+    }
+    
+    void Symbol::archive(archive_node & n) const {
+        inherited::archive(n);
+        n.add_bool("isReal", isReal);
+    }
+    
+    void Symbol::read_archive(const archive_node& n, lst& sym_lst) {
+        inherited::read_archive(n, sym_lst);
+        bool is_real;
+        n.find_bool("isReal", is_real);
+        *this = Symbol(get_name(), is_real);
+    }
+    
+    ex Symbol::eval() const { return *this; }
+    ex Symbol::evalf() const { return *this; }
+    ex Symbol::conjugate() const { return *this * (isReal ? 1 : -1); }
+    ex Symbol::real_part() const { return (isReal ? *this : ex(0)); }
+    ex Symbol::imag_part() const { return (isReal ? ex(0) : *this); }
+
     /*-----------------------------------------------------*/
     // Global varibales
     /*-----------------------------------------------------*/
@@ -302,7 +338,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // garResult Function
     /*-----------------------------------------------------*/
-    void garRead(const char *garfn, map<string, ex> &resMap) {
+    void garRead(const string &garfn, map<string, ex> &resMap) {
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -313,8 +349,18 @@ namespace HepLib {
             resMap[name] = res;
         }
     }
+    
+    void garWrite(const string &garfn, const map<string, ex> &resMap) {
+        archive ar;
+        for(const auto & item : resMap) {
+            ar.archive_ex(item.second, item.first.c_str());
+        }
+        ofstream out(garfn);
+        out << ar;
+        out.close();
+    }
 
-    ex garRead(const char *garfn, const char* key) {
+    ex garRead(const string &garfn, const char* key) {
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -323,7 +369,7 @@ namespace HepLib {
         return res;
     }
 
-    ex garResult(const char *garfn) {
+    ex garResult(const string &garfn) {
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -341,7 +387,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // str2ex Function
     /*-----------------------------------------------------*/
-    ex str2ex(const char *expr, symtab stab) {
+    ex str2ex(const string &expr, symtab stab) {
         parser reader(stab);
         ex ret = reader(expr);
         return ret;
@@ -350,7 +396,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // str2lst Function
     /*-----------------------------------------------------*/
-    lst str2lst(const char *expr, symtab stab) {
+    lst str2lst(const string &expr, symtab stab) {
         parser reader(stab);
         ex ret = reader(expr);
         return ex_to<lst>(ret);
@@ -371,7 +417,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Series at s=0 similar to Mathematica
     /*-----------------------------------------------------*/
-    ex mma_series(ex const expr_in, symbol const s0, int sn0) {
+    ex mma_series(ex const & expr_in, symbol const &s0, int sn0) {
         ex expr = expr_in;
         if(!expr.has(s0)) return expr;
         

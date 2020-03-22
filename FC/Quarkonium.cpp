@@ -79,7 +79,7 @@ namespace HepLib::FC {
         
         // S/P/D Wave Project
         ex LProj(const ex &expr_in, const lst &pqi) {
-            static int sidx=0;
+            static int lproj=0;
             static string prefix = "lproj";
             
             ex p = pqi.op(0);
@@ -96,10 +96,10 @@ namespace HepLib::FC {
                 if(!e.has(q)) return e;
                 else if(is_a<Pair>(e)) {
                     if(is_a<Index>(e.op(1))) return e;
-                    Index idx(prefix+to_string(sidx++));
+                    Index idx(prefix+to_string(lproj++));
                     return SP(e.op(0), idx) * SP(e.op(1), idx);
                 } else if(is_a<Eps>(e)) {
-                    Index idx(prefix+to_string(sidx++));
+                    Index idx(prefix+to_string(lproj++));
                     auto pis0 = ex_to<Eps>(e).pis;
                     ex pis[4];
                     for(int i=0; i<3; i++) {
@@ -110,10 +110,16 @@ namespace HepLib::FC {
                     }
                     return LC(pis[0], pis[1], pis[2], pis[3]) * SP(q, idx);
                 } else if(is_a<DiracGamma>(e)) {
-                    Index idx(prefix+to_string(sidx++));
+                    Index idx(prefix+to_string(lproj++));
                     auto g = ex_to<DiracGamma>(e);
-                    return DiracGamma(idx, g.rl) * SP(q, idx);
+                    return DiracGamma(idx, g.rl) * SP(g.pi, idx);
+                } else if (e.match(TR(w))) {
+                    auto ret = e.op(0).map(self);
+                    ret = mma_collect(ret, q, true);
+                    ret = ret.subs(coCF(w)==TR(w));
+                    return ret;
                 } else return e.map(self);
+                throw Error("something should be wrong here");
                 return 0;
             })(expr_in);
 
@@ -127,7 +133,10 @@ namespace HepLib::FC {
                     } else if(is_a<Pair>(e.op(0))) {
                         is.push_back(ex_to<Index>(e.op(0).op(1)));
                     } else if(is_zero(e.op(0)-1) && pqi.nops()==2) return 1;
-                    else throw Error("something is wrong here.");
+                    else {
+                        cout << e.op(0) << endl;
+                        throw Error("LProj: something is wrong, unhandled terms.");
+                    }
 
                     int isn = is.size();
                     switch (pqi.nops()) {
@@ -154,12 +163,14 @@ namespace HepLib::FC {
                             if(isn==2) return SP(is[0],e1)*SP(is[1],e2);
                             else throw Error("LProj not supported yet in D-wave.");
                             break;
-                        } default:
+                        } default: {
                             throw Error("LProj not supported yet with L>2");
+                        }
                     }
+                    throw Error("something should be wrong here");
                     return 0; // un-reachable
                 } else if (!e.has(coVF(w))) return e;
-                else return e.map(self);
+                return e.map(self);
             })(expr);
             
             return expr;

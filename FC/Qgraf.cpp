@@ -134,9 +134,7 @@ namespace HepLib::FC {
         return ret;
     }
     
-    namespace {
-        
-    }
+    
     
 }
 

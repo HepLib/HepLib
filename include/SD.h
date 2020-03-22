@@ -25,13 +25,13 @@ namespace HepLib::SD {
     // Global Variables
     /*-----------------------------------------------------*/
     
-    extern const symbol iEpsilon;
-    extern const symbol ep;
-    extern const symbol eps;
-    extern const symbol vs;
-    extern const symbol vz;
-    extern const symbol epz;
-    extern const realsymbol NaN;
+    extern const Symbol iEpsilon;
+    extern const Symbol ep;
+    extern const Symbol eps;
+    extern const Symbol vs;
+    extern const Symbol vz;
+    extern const Symbol epz;
+    extern const Symbol NaN;
     
     /*-----------------------------------------------------*/
     // Global Functions

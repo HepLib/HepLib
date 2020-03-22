@@ -12,6 +12,15 @@
 #include <omp.h>
 #include <sys/wait.h>
 
+#define DEFAULT_CTOR(classname) \
+classname::classname() { setflag(status_flags::evaluated | status_flags::expanded); }
+
+#define IMPLEMENT_HAS(classname) \
+bool classname::has(const ex &e) { \
+    for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) if(is_a<classname>(*i)) return true; \
+    return false; \
+}
+
 /*-----------------------------------------------------*/
 // operator << Macro for GiNaC Output Format
 /*-----------------------------------------------------*/
@@ -63,6 +72,27 @@ namespace HepLib {
     #define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
     #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
     #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
+    
+    //-----------------------------------------------------------
+    // Symbol Class
+    //-----------------------------------------------------------
+    class Symbol : public symbol {
+    GINAC_DECLARE_REGISTERED_CLASS(Symbol, symbol)
+    public:
+        Symbol(const string &s, bool is_real=true); // false for pure imaginary
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n, lst& sym_lst) override;
+        
+        ex eval() const override; // for performance reasons
+        ex evalf() const override; // for performance reasons
+        ex conjugate() const override;
+        ex real_part() const override;
+        ex imag_part() const override;
+        bool isReal;
+        
+        static bool has(const ex &e);
+    };
+    GINAC_DECLARE_UNARCHIVER(Symbol);
 
     /*-----------------------------------------------------*/
     // Global Symbol
@@ -158,11 +188,12 @@ namespace HepLib {
     // Helpers
     /*-----------------------------------------------------*/
     string RunOS(const char * cmd);
-    void garRead(const char *garfn, map<string, ex> &resMap);
-    ex garRead(const char *garfn, const char* key);
-    ex garResult(const char *garfn);
-    ex str2ex(const char *expr, symtab stab);
-    lst str2lst(const char *expr, symtab stab);
+    void garRead(const string &garfn, map<string, ex> &resMap);
+    void garWrite(const string &garfn, const map<string, ex> &resMap);
+    ex garRead(const string &garfn, const char* key);
+    ex garResult(const string &garfn);
+    ex str2ex(const string &expr, symtab stab);
+    lst str2lst(const string &expr, symtab stab);
     lst xlst(int ei);
     lst xlst(int bi, int ei);
     
@@ -202,7 +233,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Series at s=0 similar to Mathematica
     /*-----------------------------------------------------*/
-    ex mma_series(ex const expr, symbol const s, int sn);
+    ex mma_series(ex const & expr, const symbol &s, int sn);
     
     ex mma_expand(const ex &expr, std::function<bool(const ex &)>, int depth=0);
     ex mma_expand(ex const &expr, lst const &pats, int depth=0);
@@ -349,5 +380,8 @@ namespace HepLib {
     // string Functions
     /*-----------------------------------------------------*/
     void string_replace_all(string &str, const string &from, const string &to);
+    
+    
+    
     
 }

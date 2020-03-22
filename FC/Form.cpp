@@ -100,11 +100,11 @@ namespace HepLib::FC {
                 st[v.name.get_name()] = v;
                 for(auto vvx : vec_lst) {
                     auto vv = ex_to<Vector>(vvx);
-                    st[v.name.get_name()+"_"+vv.name.get_name()] = v(vv);
+                    st[v.name.get_name()+"_"+vv.name.get_name()] = SP(v,vv).subs(sp_map);
                 }
                 for(auto ix : VD_lst) {
                     auto i = ex_to<Index>(ix);
-                    st[v.name.get_name()+"_"+i.name.get_name()] = v(i);
+                    st[v.name.get_name()+"_"+i.name.get_name()] = SP(v,i).subs(sp_map);
                 }
             }
             ff << ";" << endl;
