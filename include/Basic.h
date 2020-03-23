@@ -79,7 +79,9 @@ namespace HepLib {
     class Symbol : public symbol {
     GINAC_DECLARE_REGISTERED_CLASS(Symbol, symbol)
     public:
-        Symbol(const string &s, bool is_real=true); // false for pure imaginary
+        // is_real=false for pure imaginary
+        // check=true to if the name exist then error
+        Symbol(const string &s, bool is_real=true, bool check=true);
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         
@@ -97,7 +99,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Global Symbol
     /*-----------------------------------------------------*/
-    const symbol & get_symbol(const string & s);
+    const symbol & get_symbol(const string & s, bool check=false);
 
     /*-----------------------------------------------------*/
     // split
@@ -262,6 +264,8 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     extern ex w, w0, w1, w2, w3, w4, w5;
     extern string InstallPrefix;
+    extern const Symbol iEpsilon;
+    extern const Symbol ep;
     
     /*-----------------------------------------------------*/
     // Global Colors

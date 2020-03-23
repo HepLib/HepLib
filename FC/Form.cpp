@@ -8,7 +8,7 @@ namespace HepLib::FC {
     namespace {
 
         alignas(2) static ex SP_reader(const exvector& ev) {
-            return SP(ev[0], ev[1]);
+            return SP(ev[0], ev[1]).subs(sp_map);
         }
         
         alignas(2) static ex LC_reader(const exvector& ev) {
@@ -69,7 +69,8 @@ namespace HepLib::FC {
     // form 
     //-----------------------------------------------------------
     namespace {
-    ex runform(ex expr, bool verb) {
+    ex runform(const ex &expr_in, bool verb) {
+        ex expr = expr_in.subs(sp_map);
         lst vec_lst, VD_lst, CF_lst, CA_lst, sym_lst;
         for(const_preorder_iterator i = expr.preorder_begin(); i != expr.preorder_end(); ++i) {
             if(is_a<Vector>(*i)) vec_lst.append(*i);
@@ -102,10 +103,6 @@ namespace HepLib::FC {
                     auto vv = ex_to<Vector>(vvx);
                     st[v.name.get_name()+"_"+vv.name.get_name()] = SP(v,vv).subs(sp_map);
                 }
-                for(auto ix : VD_lst) {
-                    auto i = ex_to<Index>(ix);
-                    st[v.name.get_name()+"_"+i.name.get_name()] = SP(v,i).subs(sp_map);
-                }
             }
             ff << ";" << endl;
         }
@@ -116,10 +113,6 @@ namespace HepLib::FC {
                 auto i = ex_to<Index>(ix);
                 ff << " " << i;
                 st[i.name.get_name()] = i;
-                for(auto jx : VD_lst) {
-                    auto j = ex_to<Index>(jx);
-                    st[i.name.get_name()+"_"+j.name.get_name()] = SP(i,j).subs(sp_map);
-                }
             }
             ff << ";" << endl;
         }
@@ -130,10 +123,6 @@ namespace HepLib::FC {
                 auto i = ex_to<Index>(ix);
                 ff << " " << i;
                 st[i.name.get_name()] = i;
-                for(auto jx : CF_lst) {
-                    auto j = ex_to<Index>(jx);
-                    st[i.name.get_name()+"_"+j.name.get_name()] = SP(i,j).subs(sp_map);
-                }
             }
             ff << ";" << endl;
         }
@@ -144,10 +133,6 @@ namespace HepLib::FC {
                 auto i = ex_to<Index>(ix);
                 ff << " " << i;
                 st[i.name.get_name()] = i;
-                for(auto jx : CA_lst) {
-                    auto j = ex_to<Index>(jx);
-                    st[i.name.get_name()+"_"+j.name.get_name()] = SP(i,j).subs(sp_map);
-                }
             }
             ff << ";" << endl;
         }
@@ -235,7 +220,7 @@ namespace HepLib::FC {
         for(auto v : vec_lst) {
             string pat(ex_to<Vector>(v).name.get_name());
             string from = pat+"(";
-            string to = "("+pat+"_";
+            string to = "SP("+pat+",";
             string_replace_all(ostr, from, to);
             from = pat+".";
             to = pat+"_";
@@ -283,7 +268,7 @@ namespace HepLib::FC {
             } else if (!e.has(coVF(w))) return e;
             else return e.map(self);
         })(ret);
-        return ret;
+        return ret.subs(sp_map);
     }
 
 

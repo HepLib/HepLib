@@ -313,11 +313,24 @@ namespace HepLib::FC {
     inline ex GAS(const Index &i) { return DiracGamma(i); }
     ex GAS(ex expr);
     
-    // Form, TIR
+    // Form, TIR, Apart
     ex form(const ex &expr, bool all_in_one=true, bool verb=false);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
+    ex Apart(const ex &expr_in, const lst &vars);
+    ex ApartIR2ex(const ex & expr_in);
     
+    // ApartIR function upto 2 arguments
+    class ApartIR1_SERIAL { public: static unsigned serial; };
+    template<typename T1>
+    inline GiNaC::function ApartIR(const T1 & p1) {
+        return GiNaC::function(ApartIR1_SERIAL::serial, ex(p1));
+    }
+    class ApartIR2_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2>
+    inline GiNaC::function ApartIR(const T1 & p1, const T2 & p2) {
+        return GiNaC::function(ApartIR2_SERIAL::serial, ex(p1), ex(p2));
+    }
     
     //-----------------------------------------------------------
     // Quarkonium

@@ -18,18 +18,20 @@ namespace HepLib {
     ex w3 = wild(3);
     ex w4 = wild(4);
     ex w5 = wild(5);
+    
+    const Symbol ep("ep");
+    const Symbol iEpsilon("iEpsilon",false);
+    
     lst GiNaC_archive_Symbols = lst{};
     string InstallPrefix = "@PREFIX_DIR@";
 
     //----------------------------------------
     // HepLib::SD
     //----------------------------------------
-    const Symbol SD::ep("ep");
     const Symbol SD::eps("eps");
-    const Symbol SD::vs("s");
+    const Symbol SD::vs("vs");
     const Symbol SD::vz("vz");
     const Symbol SD::epz("epz");
-    const Symbol SD::iEpsilon("iEpsilon",false);
     const Symbol SD::NaN("NaN");
 
     SD::SecDec::_init::_init() {

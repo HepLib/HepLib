@@ -11,7 +11,7 @@ namespace HepLib {
     
     GINAC_IMPLEMENT_REGISTERED_CLASS(Symbol, symbol)
     
-    Symbol::Symbol(const string &s, bool is_real) : symbol(get_symbol(s)), isReal(is_real) { }
+    Symbol::Symbol(const string &s, bool r, bool c) : symbol(get_symbol(s,c)), isReal(r) { }
     int Symbol::compare_same_type(const basic &other) const {
         const Symbol &o = static_cast<const Symbol &>(other);
         int ret = get_name().compare(o.get_name());
@@ -29,7 +29,7 @@ namespace HepLib {
         inherited::read_archive(n, sym_lst);
         bool is_real;
         n.find_bool("isReal", is_real);
-        *this = Symbol(get_name(), is_real);
+        *this = Symbol(get_name(), is_real, false);
     }
     
     ex Symbol::eval() const { return *this; }
@@ -177,13 +177,15 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Global Symbol
     /*-----------------------------------------------------*/
-    const symbol & get_symbol(const string & s) {
+    const symbol & get_symbol(const string & s, bool check) {
         static map<string, symbol> directory;
         map<string, symbol>::iterator i = directory.find(s);
-        if (i != directory.end())
+        if (i != directory.end()) {
+            if(check) throw std::runtime_error("get_symbol: check failed with name: " + s);
             return i->second;
-        else
+        } else {
             return directory.insert(make_pair(s, symbol(s))).first->second;
+        }
     }
 
     /*-----------------------------------------------------*/

@@ -25,8 +25,6 @@ namespace HepLib::SD {
     // Global Variables
     /*-----------------------------------------------------*/
     
-    extern const Symbol iEpsilon;
-    extern const Symbol ep;
     extern const Symbol eps;
     extern const Symbol vs;
     extern const Symbol vz;
