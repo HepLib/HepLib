@@ -15,8 +15,8 @@ namespace HepLib::FC {
     GINAC_BIND_UNARCHIVER(Pair);
     IMPLEMENT_HAS(Pair)
 
-    Pair::Pair(const Vector &p1, const Vector &p2) : lr{p1,p2} { }
-    Pair::Pair(const Index &i1, const Index &i2) : lr{i1,i2} { }
+    Pair::Pair(const Vector &p1, const Vector &p2) { lst p12={p1,p2};p12.sort();lr[0]=p12.op(0);lr[1]=p12.op(1); }
+    Pair::Pair(const Index &i1, const Index &i2) { lst i12={i1,i2};i12.sort();lr[0]=i12.op(0);lr[1]=i12.op(1); }
     Pair::Pair(const Vector &p, const Index &i) : lr{p,i} { }
 
     int Pair::compare_same_type(const basic &other) const {

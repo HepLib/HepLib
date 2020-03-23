@@ -19,6 +19,7 @@ namespace HepLib {
     //-----------------------------------------------------------
     void Process::Open(string cmds, const redi::pstreams::pmode pm) {
         pio.open(cmds, pm);
+        if(!pio.is_open()) throw std::runtime_error("Process open failed.");
         return;
     }
     

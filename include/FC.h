@@ -317,7 +317,7 @@ namespace HepLib::FC {
     ex form(const ex &expr, bool all_in_one=true, bool verb=false);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
-    ex Apart(const ex &expr_in, const lst &vars);
+    ex Apart(const ex &expr_in, const lst &vars, exmap sign_map=exmap());
     ex ApartIR2ex(const ex & expr_in);
     
     // ApartIR function upto 2 arguments

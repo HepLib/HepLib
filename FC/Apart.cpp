@@ -57,8 +57,7 @@ namespace HepLib::FC {
         //--------------------------------------------------
         // null vector
         //--------------------------------------------------
-        bool use_fermat = false;
-        if(use_fermat) {
+        if(nrow>10) {
             lst rep_vs;
             ex tree = mat;
             for(const_preorder_iterator i = tree.preorder_begin(); i != tree.preorder_end(); ++i) {
@@ -185,7 +184,7 @@ namespace HepLib::FC {
                 sol -= nvec.op(c) * (iWF(c)-mat(nrow,c)); // iWF(c) refer to c-th column, and minus the const term
             }
             sol = sol/nvec.op(ni) + mat(nrow,ni); // last one: const term
-            sol = mma_collect(pow(sol, mat(nrow+1,ni)), iWF(w)); // expand the numerator with power
+            sol = mma_collect(pow(sol.subs(iEpsilon==0), mat(nrow+1,ni)), iWF(w)); // expand the numerator with power
 
             if(!is_a<add>(sol)) sol = lst{ sol };
             ex res = 0;
@@ -231,6 +230,7 @@ namespace HepLib::FC {
         
         ex cres0 = 0;
         for(int c=0; c<ncol; c++) cres0 += mat(nrow,c)*null_vec.op(c);
+        cres0 = cres0.subs(iEpsilon==0);
         auto cres = subs(cres0, iWF(w)==w+1);
         auto nvec = subs(null_vec, iWF(w)==w+1);
         if(is_zero(cres)) {
@@ -295,13 +295,21 @@ namespace HepLib::FC {
         }
     }
 
-    ex Apart(const ex &expr_in, const lst &vars) {
+    ex Apart(const ex &expr_in, const lst &vars_in, exmap sign_map) {
+        exmap map1, map2;
+        lst vars;
+        for(auto v : vars_in) {
+            symbol s;
+            map1[v]=s;
+            map2[s]=v;
+            vars.append(s);
+        }
         ex pref = 1;
-        ex expr = expr_in;
+        ex expr = expr_in.subs(map1);
         if(!is_a<mul>(expr)) expr = lst{expr};
         
         lst plst;
-        for(auto item : expr_in) {
+        for(auto item : expr) {
             bool has_var=false;
             for(auto v : vars) {
                 if(item.has(v)) {
@@ -312,8 +320,12 @@ namespace HepLib::FC {
             if(has_var) {
                 if(!isOK(item,vars)) throw Error("Apart: item is not linear wrt vars.");
                 plst.append(item);
-                
             } else pref *= item;
+        }
+        plst.sort();
+        
+        if(plst.nops()==0) {
+            return pref * ApartIR(1,vars_in);
         }
         
         int nrow=vars.nops(), ncol=plst.nops();
@@ -326,6 +338,16 @@ namespace HepLib::FC {
                 mat(nrow+1,c) = tmp.op(1);
                 tmp = tmp.op(0);
             } else mat(nrow+1,c) = 1;
+            
+            // input the sign
+            for(auto v : vars) {
+                if(is_zero(tmp.coeff(v)) || is_zero(sign_map[v.subs(map2)])) continue;
+                ex sign = sign_map[v.subs(map2)]/tmp.coeff(v);
+                pref /= pow(sign, mat(nrow+1,c));
+                tmp *= sign;
+                break;
+            }
+            
             for(int r=0; r<nrow; r++) {
                 mat(r,c) = tmp.coeff(vars.op(r));
             }
@@ -338,7 +360,8 @@ namespace HepLib::FC {
             else if(!e.has((ApartIR(w)))) return e;
             else return e.map(self);
         })(ret);
-        return pref * ret;
+        ret = pref * ret;
+        return ret.subs(map2);
     }
 
 }
