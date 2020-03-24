@@ -247,7 +247,7 @@ namespace HepLib::FC {
         if(all || is_a<lst>(expr)) return runform(expr, verb);
         
         if(expr.has(coVF(w))) throw Error("form error: expr has coVF already.");
-        auto ret = mma_collect(expr, [](const ex & e)->bool {
+        auto ret = mma_collect(expr.subs(sp_map), [](const ex & e)->bool {
             return Index::has(e) || DiracGamma::has(e);
         },false,true);
         

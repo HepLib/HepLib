@@ -228,6 +228,7 @@ namespace HepLib::FC {
         Pair(const Vector &p1, const Vector &p2);
         Pair(const Index &i1, const Index &i2);
         Pair(const Vector &p, const Index &i);
+        Pair(const Index &i, const Vector &p);
         size_t nops() const override;
         ex op(size_t i) const override;
         ex& let_op(size_t i) override;
@@ -242,11 +243,11 @@ namespace HepLib::FC {
         ex lr[2];
     };
     GINAC_DECLARE_UNARCHIVER(Pair);
-    ex SP(ex a);
-    ex SP(ex a, ex b);
-    void letSP(ex a, ex b, ex ab);
-    void letSP(ex a, ex a2);
-    void resetSP();
+    ex SP(const ex &a);
+    ex SP(const ex &a, const ex &b);
+    ex& letSP(const ex &p1, const ex &p2);
+    ex& letSP(const ex &p);
+    void clearSP();
     
     //-----------------------------------------------------------
     // Eps Class
@@ -318,6 +319,7 @@ namespace HepLib::FC {
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
     ex Apart(const ex &expr_in, const lst &vars, exmap sign_map=exmap());
+    ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms);
     ex ApartIR2ex(const ex & expr_in);
     
     // ApartIR function upto 2 arguments

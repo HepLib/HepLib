@@ -18,6 +18,7 @@ namespace HepLib::FC {
     Pair::Pair(const Vector &p1, const Vector &p2) { lst p12={p1,p2};p12.sort();lr[0]=p12.op(0);lr[1]=p12.op(1); }
     Pair::Pair(const Index &i1, const Index &i2) { lst i12={i1,i2};i12.sort();lr[0]=i12.op(0);lr[1]=i12.op(1); }
     Pair::Pair(const Vector &p, const Index &i) : lr{p,i} { }
+    Pair::Pair(const Index &i, const Vector &p) : lr{p,i} { }
 
     int Pair::compare_same_type(const basic &other) const {
         const Pair &o = static_cast<const Pair &>(other);
@@ -70,47 +71,47 @@ namespace HepLib::FC {
     //-----------------------------------------------------------
     // SP function - ScalarProduct
     //-----------------------------------------------------------
-    ex SP(ex a) { return SP(a,a); }
-    ex SP(ex a, ex b) {
+    ex SP(const ex & a) { return SP(a,a); }
+    ex SP(const ex & a, const ex & b) {
         if(is_a<Vector>(a) && is_a<Vector>(b)) return Pair(ex_to<Vector>(a), ex_to<Vector>(b));
         else if(is_a<Vector>(a) && is_a<Index>(b)) return Pair(ex_to<Vector>(a), ex_to<Index>(b));
         else if(is_a<Index>(a) && is_a<Vector>(b)) return Pair(ex_to<Vector>(b), ex_to<Index>(a));
         else if(is_a<Index>(a) && is_a<Index>(b)) return Pair(ex_to<Index>(a), ex_to<Index>(b));
         
         lst alst, blst;
-        a = a.expand();
-        if(is_a<add>(a)) {
-            for(auto item : a) alst.append(item);
-        } else alst.append(a);
+        auto aex = a.expand();
+        if(is_a<add>(aex)) {
+            for(auto item : aex) alst.append(item);
+        } else alst.append(aex);
         for(int i=0; i<alst.nops(); i++) {
             if(!is_a<mul>(alst.op(i))) alst.let_op(i) = lst{alst.op(i)};
             ex c=1;
             ex v=1;
             for(auto ii : alst.op(i)) {
                 if(is_a<Vector>(ii) || is_a<Index>(ii)) {
-                    if(!is_zero(v-1)) throw Error("Error Found in SP");
+                    if(!is_zero(v-1)) throw Error("Error Found in SP @1");
                     v = ii;
                 } else c *= ii;
             }
-            if(is_zero(v-1)) throw Error("Error Found in SP");
+            if(is_zero(v-1)) throw Error("Error Found in SP @2");
             alst.let_op(i) = lst{c,v};
         }
         
-        b = b.expand();
-        if(is_a<add>(b)) {
-            for(auto item : b) blst.append(item);
-        } else blst.append(b);
+        auto bex = b.expand();
+        if(is_a<add>(bex)) {
+            for(auto item : bex) blst.append(item);
+        } else blst.append(bex);
         for(int i=0; i<blst.nops(); i++) {
             if(!is_a<mul>(blst.op(i))) blst.let_op(i) = lst{blst.op(i)};
             ex c=1;
             ex v=1;
             for(auto ii : blst.op(i)) {
                 if(is_a<Vector>(ii) || is_a<Index>(ii)) {
-                    if(!is_zero(v-1)) throw Error("Error Found in SP");
+                    if(!is_zero(v-1)) throw Error("Error Found in SP @3");
                     v = ii;
                 } else c *= ii;
             }
-            if(is_zero(v-1)) throw Error("Error Found in SP");
+            if(is_zero(v-1)) throw Error("Error Found in SP @4");
             blst.let_op(i) = lst{c,v};
         }
         
@@ -121,18 +122,17 @@ namespace HepLib::FC {
         return res;
     }
     
-    void letSP(ex a, ex b, ex ab) {
-        if(!(is_a<Vector>(a) || is_a<Index>(a)) || !(is_a<Vector>(b) || is_a<Index>(b)))
+    ex & letSP(const ex &p1, const ex &p2) {
+        if(!(is_a<Vector>(p1) || is_a<Index>(p1)) || !(is_a<Vector>(p2) || is_a<Index>(p2)))
             throw Error("Invalide arguments for letSP.");
-        sp_map[SP(a,b)]=ab;
-        sp_map[SP(b,a)]=ab;
+        return sp_map[SP(p1,p2)];
     }
-    void letSP(ex a, ex a2) {
-        if(!is_a<Vector>(a))
+    ex & letSP(const ex &p) {
+        if(!is_a<Vector>(p))
             throw Error("Invalide arguments for letSP.");
-        sp_map[SP(a)]=a2;
+        return sp_map[SP(p)];
     }
-    void resetSP() {
+    void clearSP() {
         sp_map.clear();
     }
 
