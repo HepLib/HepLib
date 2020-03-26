@@ -395,6 +395,7 @@ namespace HepLib::FC {
         sps.sort();
         sps.unique();
         
+        // TODO: maybe, to improve the numerator case
         if(expr.has(coVF(w))) throw Error("Apart: coVF exist.");
         expr = mma_collect(expr, loops, false, true);
 

@@ -81,7 +81,7 @@ namespace HepLib::FC {
         int Loops;
         string Options;
         vector<string> Others;
-        ex Amplitudes(symtab st);
+        lst Amplitudes(symtab st);
         
         static Index LI(ex fn);
         static Index DI(ex fn);
@@ -98,6 +98,11 @@ namespace HepLib::FC {
         static ex g4Vertex(ex e);
         static ex gh2gVertex(ex e);
         
+        static lst TopoLines(const ex & amp);
+        static void DrawTeX(const lst & amps, string fn, bool rm=true);
+        static vector<lst> ShrinkCut(ex amp, lst prop, int n=1);
+        
+        static map<ex,string,ex_is_less> LineTeX;
     };
     
     //-----------------------------------------------------------

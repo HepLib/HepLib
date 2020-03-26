@@ -119,5 +119,26 @@ namespace HepLib {
         }
     }
     
+    
+    void Combinations(int n, int m, std::function<void(const int*)> f) {
+        if(m<1 || m>n) return;
+        std::string bitmask(m,1);
+        bitmask.resize(n,0);
+        do {
+            int is[m]; int j=0;
+            for (int i=0; i<n; ++i) {
+                if(bitmask[i]) { is[j]=i; j++; }
+            }
+            f(is);
+        } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+    }
+    
+    void Permutations(int n, std::function<void(const int*)> f) {
+        if(n<1) return;
+        int pis[n];
+        for(int i=0; i<n; i++) pis[i]=i;
+        do { f(pis); } while(std::next_permutation(pis,pis+n));
+    }
+    
 }
 

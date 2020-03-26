@@ -385,7 +385,8 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     void string_replace_all(string &str, const string &from, const string &to);
     
-    
+    void Combinations(int n, int m, std::function<void(const int*)> f);
+    void Permutations(int n, std::function<void(const int*)> f);
     
     
 }

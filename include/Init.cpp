@@ -57,6 +57,7 @@ namespace HepLib {
     const Symbol FC::NF("NF");
     const Symbol FC::gs("gs");
     exmap FC::sp_map;
+    map<ex,string,ex_is_less> FC::Qgraf::LineTeX;
     
     FC::FCFormat::_init::_init() {
         set_print_func<ncmul, FCFormat>(FCFormat::ncmul_print);
