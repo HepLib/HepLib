@@ -17,9 +17,9 @@ namespace HepLib {
             Error(WSLINK lp);
         };
         
-        WSKernel(const char * _str = NULL);
+        WSKernel(const string & open_str="");
         ~WSKernel();
-        string Evaluate(const char *expr);
+        string Evaluate(const string & expr);
     private:
         WSENV ep;
         WSLINK lp;

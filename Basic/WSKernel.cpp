@@ -12,20 +12,21 @@ namespace HepLib {
         if(err_msg!=NULL) WSReleaseErrorMessage(lp, err_msg);
     };
 
-    WSKernel::WSKernel(const char *str) {
+    WSKernel::WSKernel(const string & open_str) {
         int error;
         ep = WSInitialize((WSParametersPointer)0);
         if(ep == (WSENV)0) throw Error(lp);
         
-        if(str==NULL) {
+        string ostr = open_str;
+        if(ostr.length()<1) {
             #ifdef __APPLE__
-            str = "-linkmode launch -linkname '/Applications/Mathematica.app/Contents/MacOS/WolframKernel -wstp'";
+            ostr = "-linkmode launch -linkname '/Applications/Mathematica.app/Contents/MacOS/WolframKernel -wstp'";
             #else
-            str = "-linkmode launch -linkname 'math -wstp'";
+            ostr = "-linkmode launch -linkname 'math -wstp'";
             #endif
         }
         
-        lp = WSOpenString(ep, str, &error);
+        lp = WSOpenString(ep, ostr.c_str(), &error);
         //lp = WSOpenString(ep, "-linkcreate -linkprotocol IntraProcess", &error);
         //lp = WSOpenArgcArgv(ep, argc, argv, &error);
         if(lp == (WSLINK)0 || error != WSEOK) throw Error(lp);
@@ -36,12 +37,12 @@ namespace HepLib {
         WSDeinitialize(ep);
     }
 
-    string WSKernel::Evaluate(const char * expr) {
+    string WSKernel::Evaluate(const string & expr) {
         WSPutFunction(lp, "EvaluatePacket", 1);
         WSPutFunction(lp, "ToString", 1);
         WSPutFunction(lp, "InputForm", 1);
         WSPutFunction(lp, "ToExpression", 1);
-        WSPutString(lp, expr);
+        WSPutString(lp, expr.c_str());
         WSEndPacket(lp);
         WSFlush(lp);
 

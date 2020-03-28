@@ -166,7 +166,7 @@ namespace HepLib::FC {
         return lines;
     }
     
-    void Qgraf::DrawTeX(const lst & amps, string fn, bool rm) {
+    void Qgraf::DrawPDF(const lst & amps, string fn, bool rm) {
         int id=0;
         vector<ex> amp_vec;
         for(auto item : amps) amp_vec.push_back(item);

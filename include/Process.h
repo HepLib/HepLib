@@ -5,6 +5,7 @@
 #include <sstream>
 #include <cstring>
 #include <fcntl.h>
+#include "Basic.h"
 
 namespace HepLib {
     
@@ -29,7 +30,7 @@ namespace HepLib {
     class Fermat {
     public:
         string Sentinel = "---EOF---";
-        void Init(string fer_path);
+        void Init(string fer_path="fer64");
         string Execute(string);
         void Exit();
         
@@ -37,18 +38,20 @@ namespace HepLib {
         public:
             string msg;
             const char * what() const throw ();
-            Error(const char * _msg);
+            Error(const string & _msg);
         };
         
     private:
-        Process fermat;
+        int P2C[2];
+        int C2P[2];
+        pid_t pid = 0;
     };
     
     class Form {
     public:
         string Sentinel = "---EOF---";
         string Prompt = "***EOF***";
-        void Init(string form_path_args);
+        void Init(string form_path_args="form");
         string Execute(string script, const char * out_var="[o]");
         void Exit();
         

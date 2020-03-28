@@ -99,7 +99,7 @@ namespace HepLib::FC {
         static ex gh2gVertex(ex e);
         
         static lst TopoLines(const ex & amp);
-        static void DrawTeX(const lst & amps, string fn, bool rm=true);
+        static void DrawPDF(const lst & amps, string fn, bool rm=true);
         static vector<lst> ShrinkCut(ex amp, lst prop, int n=1);
         
         static map<ex,string,ex_is_less> LineTeX;

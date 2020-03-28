@@ -17,8 +17,8 @@ namespace HepLib::FC {
 
     Pair::Pair(const Vector &p1, const Vector &p2) { lst p12={p1,p2};p12.sort();lr[0]=p12.op(0);lr[1]=p12.op(1); }
     Pair::Pair(const Index &i1, const Index &i2) { lst i12={i1,i2};i12.sort();lr[0]=i12.op(0);lr[1]=i12.op(1); }
-    Pair::Pair(const Vector &p, const Index &i) : lr{p,i} { }
-    Pair::Pair(const Index &i, const Vector &p) : lr{p,i} { }
+    Pair::Pair(const Vector &p, const Index &i)  : lr{p, i} { }
+    Pair::Pair(const Index &i, const Vector &p) : lr{p, i} { }
 
     int Pair::compare_same_type(const basic &other) const {
         const Pair &o = static_cast<const Pair &>(other);
@@ -77,7 +77,7 @@ namespace HepLib::FC {
         else if(is_a<Vector>(a) && is_a<Index>(b)) return Pair(ex_to<Vector>(a), ex_to<Index>(b));
         else if(is_a<Index>(a) && is_a<Vector>(b)) return Pair(ex_to<Vector>(b), ex_to<Index>(a));
         else if(is_a<Index>(a) && is_a<Index>(b)) return Pair(ex_to<Index>(a), ex_to<Index>(b));
-        
+
         lst alst, blst;
         auto aex = a.expand();
         if(is_a<add>(aex)) {

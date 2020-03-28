@@ -36,7 +36,6 @@ namespace HepLib::FC {
     }
 
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps) {
-
         for(auto pi : loop_ps) {
             if(!is_a<Vector>(pi)) throw Error("TIR invalid 2nd argument");
         }
@@ -124,7 +123,7 @@ namespace HepLib::FC {
                     stringstream ss;
                     for(int i=0; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
                     Fermat fermat;
-                    fermat.Init(InstallPrefix+"/bin/fer64");
+                    fermat.Init();
                     fermat.Execute(ss.str());
                     ss.clear();
                     ss.str("");
@@ -150,13 +149,11 @@ namespace HepLib::FC {
                     ss << "![m" << endl;
                     auto ostr = fermat.Execute(ss.str());
                     fermat.Exit();
-
+                    
+                    // make sure last char is 0
+                    if(ostr[ostr.length()-1]!='0') throw Error("TIR: last char is NOT 0.");
                     ostr = ostr.substr(0, ostr.length()-1);
-                    const char* WhiteSpace = " \t\v\r\n";
-                    if(!ostr.empty()) {
-                        ostr.erase(0, ostr.find_first_not_of(WhiteSpace));
-                        ostr.erase(ostr.find_last_not_of(WhiteSpace)+1);
-                    }
+                    string_trim(ostr);
                     
                     ostr.erase(0, ostr.find(":=")+2);
                     string_replace_all(ostr, "[", "{");

@@ -59,7 +59,7 @@ namespace HepLib::FC {
         // null vector
         //--------------------------------------------------
         static exmap null_cache;
-        bool use_fermat = false; // if start feramt process many times, the efficient is slow
+        bool use_fermat = true; // if start feramt process many times, the efficient is slow
         if(is_zero(null_cache[sub_matrix(mat,0,nrow,0,ncol)])){
             if(use_fermat) {
                 lst rep_vs;
@@ -86,7 +86,7 @@ namespace HepLib::FC {
                 stringstream ss;
                 for(int i=0; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
                 Fermat fermat;
-                fermat.Init(InstallPrefix+"/bin/fer64");
+                fermat.Init();
                 fermat.Execute(ss.str());
                 ss.clear();
                 ss.str("");
@@ -116,12 +116,10 @@ namespace HepLib::FC {
                 auto ostr = fermat.Execute(ss.str());
                 fermat.Exit();
 
+                // make sure last char is 0
+                if(ostr[ostr.length()-1]!='0') throw Error("TIR: last char is NOT 0.");
                 ostr = ostr.substr(0, ostr.length()-1);
-                const char* WhiteSpace = " \t\v\r\n";
-                if(!ostr.empty()) {
-                    ostr.erase(0, ostr.find_first_not_of(WhiteSpace));
-                    ostr.erase(ostr.find_last_not_of(WhiteSpace)+1);
-                }
+                string_trim(ostr);
                 
                 ostr.erase(0, ostr.find(":=")+2);
                 string_replace_all(ostr, "[", "{");

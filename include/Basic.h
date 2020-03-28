@@ -90,7 +90,7 @@ namespace HepLib {
         ex conjugate() const override;
         ex real_part() const override;
         ex imag_part() const override;
-        bool isReal;
+        bool isReal = true;
         
         static bool has(const ex &e);
     };
@@ -384,6 +384,7 @@ namespace HepLib {
     // string Functions
     /*-----------------------------------------------------*/
     void string_replace_all(string &str, const string &from, const string &to);
+    void string_trim(string &str);
     
     void Combinations(int n, int m, std::function<void(const int*)> f);
     void Permutations(int n, std::function<void(const int*)> f);

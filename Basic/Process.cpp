@@ -48,40 +48,104 @@ namespace HepLib {
     // Fermat Class
     //-----------------------------------------------------------
     #define ENTER endl<<endl<<endl
-    Fermat::Error::Error(const char * _msg) : msg(_msg) { }
+    Fermat::Error::Error(const string & _msg) : msg(_msg) { }
     
     const char * Fermat::Error::what() const throw () {
         return msg.c_str();
     }
     
     void Fermat::Init(string fer_path) {
-        fermat.Open(fer_path);
-        fermat.io() << "&(M=' ');" << endl; // prompt
-        fermat.io() << "&(_d=90000);" << endl; // width of the display on the window
-        fermat.io() << "&(d=0);" << endl; // off floating point representation
-        fermat.io() << "&(_t=0);" << endl; // off a certain fast probabalistic algorithm
-        fermat.io() << "&(t=0);" << endl; // off timing
-        fermat.io() << "&(_s=0);" << endl;
-        fermat.io() << "&(_o=1000);" << endl; // http://home.bway.net/lewis/fer64mono.html
-        fermat.io() << "!('" << Sentinel << "');" << ENTER;
-        fermat.ReadLines(Sentinel);
-        fermat.ReadLine(); // read 0
+        pipe(P2C);
+        pipe(C2P);
+        
+        pid = fork();
+        if (pid == 0) { // child process
+            close(P2C[1]);
+            close(C2P[0]);
+            dup2(C2P[1], 1);
+            close(C2P[1]);
+            dup2(P2C[0], 0);
+            close(P2C[0]);
+            system(fer_path.c_str());
+            exit(0);
+        }
+        
+        // parent process
+        close(P2C[0]);  // P2C[1] for write
+        close(C2P[1]); // C2P[0] for read
+        
+        ostringstream script;
+        script << "&(_d=90000);" << endl; // width of the display on the window
+        script << "&d" << endl << "0;" << endl; // off floating point representation
+        script << "&(_t=0);" << endl; // off a certain fast probabalistic algorithm
+        script << "&(t=0);" << endl; // off timing
+        script << "&(_s=0);" << endl;
+        script << "&(_o=1000);" << endl; // http://home.bway.net/lewis/fer64mono.html
+        script << "&(M=' ');" << endl; // prompt
+        script << "!('" << Sentinel << "');" << ENTER;
+        string istr = script.str();
+        write(P2C[1], istr.c_str(), istr.length());
+        
+        string ostr;
+        int n = 1024;
+        char buffer[n+1]; // make sure the last one is '\0'
+        int nio;
+        while(true) {
+            for(int i=0; i<n+1; i++) buffer[i] = '\0';
+            nio = read(C2P[0], buffer, n);
+            if(nio>0) ostr += buffer;
+            else throw Error(ostr);
+            auto cpos = ostr.find(Sentinel);
+            if(cpos!=string::npos) {
+                const char* WhiteSpace = " \t\v\r\n";
+                auto lpos = ostr.find_last_not_of(WhiteSpace);
+                if(ostr[lpos]!='0') read(C2P[0], buffer, n); // last 0, due to Sentinel
+                ostr.erase(cpos);
+                break;
+            }
+        }
+        
+        string_replace_all(ostr, "*** entry > 30 or < 5 means turn off mono multiply.", "");
+        if(ostr.find("***")!=string::npos) throw Error(ostr.c_str());
     }
     
     void Fermat::Exit() {
-        fermat.io() << "&q;" << endl << "&x;" << ENTER;
+        ostringstream script;
+        script << "&q;" << endl << "&x;" << ENTER;
+        string istr = script.str();
+        write(P2C[1], istr.c_str(), istr.length());
+        int st;
+        waitpid(pid, &st, WUNTRACED);
     }
     
+    // out string still contains the last number
     string Fermat::Execute(string expr) {
-        fermat.io() << expr << endl;
-        fermat.io() << "!('" << Sentinel << "')" << ENTER;
-        auto ostr = fermat.ReadLines(Sentinel);
-        const char* WhiteSpace = " \t\v\r\n";
-        if(!ostr.empty()) {
-            ostr.erase(0, ostr.find_first_not_of(WhiteSpace));
-            ostr.erase(ostr.find_last_not_of(WhiteSpace)+1);
+        ostringstream script;
+        script << expr << endl;
+        script << "!('" << Sentinel << "')" << ENTER;
+        string istr = script.str();
+        write(P2C[1], istr.c_str(), istr.length());
+        
+        string ostr;
+        int n = 1024;
+        char buffer[n+1]; // make sure the last one is '\0'
+        int nio;
+        while(true) {
+            for(int i=0; i<n+1; i++) buffer[i] = '\0';
+            nio = read(C2P[0], buffer, n);
+            if(nio>0) ostr += buffer;
+            else throw Error(ostr);
+            auto cpos = ostr.find(Sentinel);
+            if(cpos!=string::npos) {
+                const char* WhiteSpace = " \t\v\r\n";
+                auto lpos = ostr.find_last_not_of(WhiteSpace);
+                if(ostr[lpos]!='0') read(C2P[0], buffer, n); // last 0, due to Sentinel 
+                ostr.erase(cpos);
+                break;
+            }
         }
-        fermat.ReadLine(); // read 0
+        string_trim(ostr);
+
         if(ostr.find("***")!=string::npos) throw Error(ostr.c_str());
         return ostr;
     }
@@ -169,25 +233,26 @@ namespace HepLib {
             sprintf(buffer, oss.str().c_str(), form_path_args.c_str(), io[0][0], io[1][1]);
             system(buffer);
             exit(0);
-        } else {
-            close(io[0][0]);
-            close(io[1][1]);
-            close(stdo[1]);
-            fcntl(stdo[0], F_SETFL, fcntl(stdo[0], F_GETFL, 0) | O_NONBLOCK);
-            
-            char buffer[1024];
-            read(io[1][0], buffer, sizeof(buffer));
-            char* p = strstr(buffer, "\n");
-            if(p==NULL){
-                cout << buffer << endl;
-                throw Error("Init Failed: Expect a Line break!");
-            }
-            sprintf(p, ",%d\n\n\0", pid);
-            write(io[0][1], buffer, strlen(buffer));
-            read(io[1][0], buffer, sizeof(buffer));
-            p = strstr(buffer, "OK");
-            if(p==NULL || p!=buffer) throw Error("Init Failed: Expect OK!");
+        } 
+        
+        close(io[0][0]);
+        close(io[1][1]);
+        close(stdo[1]);
+        fcntl(stdo[0], F_SETFL, fcntl(stdo[0], F_GETFL, 0) | O_NONBLOCK);
+        
+        char buffer[1024];
+        read(io[1][0], buffer, sizeof(buffer));
+        char* p = strstr(buffer, "\n");
+        if(p==NULL){
+            cout << buffer << endl;
+            throw Error("Init Failed: Expect a Line break!");
         }
+        sprintf(p, ",%d\n\n\0", pid);
+        write(io[0][1], buffer, strlen(buffer));
+        read(io[1][0], buffer, sizeof(buffer));
+        p = strstr(buffer, "OK");
+        if(p==NULL || p!=buffer) throw Error("Init Failed: Expect OK!");
+    
         
         ostringstream oss;
         oss << "init-" << pid << ".frm";
@@ -195,13 +260,13 @@ namespace HepLib {
     }
     
     string Form::Execute(string script, const char * out_var) {
+        string istr = script;
+        istr += "\n.sort\n#call put(";
+        istr += out_var;
+        istr += ")\n.sort\n";
+        istr += Prompt + "\n"; // prompt
         
-        script += "\n.sort\n#call put(";
-        script += out_var;
-        script += ")\n.sort\n";
-        script += Prompt + "\n"; // prompt
-        
-        write(io[0][1], script.c_str(), script.length());
+        write(io[0][1], istr.c_str(), istr.length());
 
         string ostr;
         int n = 1024;

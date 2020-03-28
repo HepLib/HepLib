@@ -119,6 +119,13 @@ namespace HepLib {
         }
     }
     
+    void string_trim(string &ostr) {
+        const char* WhiteSpace = " \t\v\r\n";
+        if(!ostr.empty()) {
+            ostr.erase(0, ostr.find_first_not_of(WhiteSpace));
+            ostr.erase(ostr.find_last_not_of(WhiteSpace)+1);
+        }
+    }
     
     void Combinations(int n, int m, std::function<void(const int*)> f) {
         if(m<1 || m>n) return;
