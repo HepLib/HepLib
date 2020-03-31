@@ -93,8 +93,21 @@ namespace HepLib {
         bool isReal = true;
         
         static bool has(const ex &e);
+        static std::map<std::string, ex> Tables;
+    
     };
     GINAC_DECLARE_UNARCHIVER(Symbol);
+    
+    
+    /*-----------------------------------------------------*/
+    // Eroor Class
+    /*-----------------------------------------------------*/
+    class Error : public exception {
+    public:
+        string msg;
+        const char * what() const throw ();
+        Error(string _msg);
+    };
 
     /*-----------------------------------------------------*/
     // Global Symbol
@@ -178,8 +191,8 @@ namespace HepLib {
     void GiNaC_archive_Symbols_from(vector<ex>);
     vector<ex> GiNaC_Parallel(
         int nproc,
-        vector<ex> const &invec,
-        std::function<ex(ex const &, int)> f,
+        int ntotal,
+        std::function<ex(int)> f,
         const char* key = NULL,
         int verb = 0,
         bool rm = true,
@@ -366,8 +379,7 @@ namespace HepLib {
         prototype_table FuncDict;
         symtab SymDict;
         ex Read(string instr);
-        Parser(symtab st);
-        Parser();
+        Parser(symtab st=Symbol::Tables);
     };
     
     /*-----------------------------------------------------*/
@@ -387,7 +399,9 @@ namespace HepLib {
     void string_trim(string &str);
     
     void Combinations(int n, int m, std::function<void(const int*)> f);
+    void CombinationsR(int n, int m, std::function<void(const int*)> f);
     void Permutations(int n, std::function<void(const int*)> f);
-    
+    void Permutations(int n, int m, std::function<void(const int*)> f);
+    void PermutationsR(int n, int m, std::function<void(const int*)> f);
     
 }

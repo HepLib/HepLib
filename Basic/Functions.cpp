@@ -96,7 +96,6 @@ namespace HepLib {
     }
     
     Parser::Parser(symtab st) : SymDict(st), FuncDict(ginac_reader()) { }
-    Parser::Parser() : FuncDict(ginac_reader()) { }
     ex Parser::Read(string instr) {
         unsigned serial = 0;
         for (auto & it : functions_hack::get_registered_functions()) {
@@ -140,6 +139,22 @@ namespace HepLib {
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
     }
     
+    void CombinationsR(int n, int m, std::function<void(const int*)> f) {
+        if(m<1) return;
+        Combinations(n+m-1, n-1, [n,m,f](const int* isr) {
+            int is[m];
+            int mi=m;
+            for(int ni=0; ni<n; ni++) {
+                int c=0;
+                if(ni==n-1) c=(n+m-2)-isr[n-2];
+                else if(ni==0) c=isr[ni];
+                else c=isr[ni]-isr[ni-1]-1;
+                for(int j=0; j<c; j++) is[--mi] = n-1-ni;
+            }
+            f(is); 
+        });
+    }
+    
     void Permutations(int n, std::function<void(const int*)> f) {
         if(n<1) return;
         int pis[n];
@@ -147,5 +162,57 @@ namespace HepLib {
         do { f(pis); } while(std::next_permutation(pis,pis+n));
     }
     
+    void Permutations(int n, int m, std::function<void(const int*)> f) {
+        if(m<1 || m>n) return;
+        Combinations(n, m, [m,f](const int *ns1) {
+            Permutations(m, [m,f,ns1](const int *ns2) {
+                int ns[m];
+                for(int i=0; i<m; i++) ns[i] = ns1[ns2[i]];
+                f(ns);
+            });
+        });
+    }
+    
+    namespace {
+        struct Generator {
+        public:
+            int *a;
+            
+            Generator(int s, int v) : cSlots(s) , cValues(v) {
+                a = new int[s];
+                for(int i = 0; i<cSlots-1; i++) a[i]=1-1;
+                a[cSlots-1]=0-1;
+                nextInd = cSlots;
+            }
+
+            ~Generator() { delete a; }
+
+            bool doNext() {
+                for (;;) {
+                    if (a[nextInd-1]==cValues-1) {
+                        nextInd--;
+                        if(nextInd==0) return false;
+                    } else {
+                        a[nextInd-1]++;
+                        while (nextInd<cSlots) {
+                            nextInd++;
+                            a[nextInd-1]=1-1;
+                        }
+                        return true;
+                    }
+                }
+            }
+            
+        private:
+            int cSlots;
+            int cValues;
+            int nextInd;
+        };
+    }   
+    
+    void PermutationsR(int n, int m, std::function<void(const int*)> f) {
+        Generator g(m,n);
+        while (g.doNext()) f(g.a);
+    }
 }
 

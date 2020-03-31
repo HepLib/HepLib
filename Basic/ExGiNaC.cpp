@@ -3,6 +3,14 @@
 namespace HepLib {
 
     //-----------------------------------------------------------
+    // Error Class
+    //-----------------------------------------------------------
+    Error::Error(string _msg) : msg(_msg) { }
+    const char * Error::what() const throw () {
+        return msg.c_str();
+    }
+
+    //-----------------------------------------------------------
     // Symbol Class
     //-----------------------------------------------------------
     DEFAULT_CTOR(Symbol)
@@ -11,7 +19,7 @@ namespace HepLib {
     
     GINAC_IMPLEMENT_REGISTERED_CLASS(Symbol, symbol)
     
-    Symbol::Symbol(const string &s, bool r, bool c) : symbol(get_symbol(s,c)), isReal(r) { }
+    Symbol::Symbol(const string &s, bool r, bool c) : symbol(get_symbol(s,c)), isReal(r) { Tables[s]=*this; }
     int Symbol::compare_same_type(const basic &other) const {
         const Symbol &o = static_cast<const Symbol &>(other);
         int ret = get_name().compare(o.get_name());
@@ -63,7 +71,7 @@ namespace HepLib {
         GiNaC_archive_Symbols.unique();
     }
     vector<ex> GiNaC_Parallel(
-        int nproc, vector<ex> const &invec, std::function<ex(ex const &, int)> f,
+        int nproc, int ntotal, std::function<ex(int)> f,
         const char* key, int verb, bool rm, int prtlvl) {
         
         auto ppid = getpid();
@@ -72,11 +80,10 @@ namespace HepLib {
         cmd << "mkdir -p " << ppid;
         system(cmd.str().c_str());
 
-        int total = invec.size();
         int batch = 1;
-        if(para_max_run>0) batch = total/para_max_run/10;
+        if(para_max_run>0) batch = ntotal/para_max_run/10;
         if(batch<1) batch = 1;
-        int btotal = total/batch + ((total%batch)==0 ? 0 : 1);
+        int btotal = ntotal/batch + ((ntotal%batch)==0 ? 0 : 1);
 
         for(int bi=0; bi<btotal; bi++) {
             if(verb > 1) {
@@ -99,9 +106,8 @@ namespace HepLib {
             try {
                 for(int ri=0; ri<batch; ri++) {
                     int i = bi*batch + ri;
-                    if(i<total) {
-                        auto item = invec[i];
-                        auto res = f(item, i);
+                    if(i<ntotal) {
+                        auto res = f(i);
                         archive ar;
                         ar.archive_ex(res, "res");
                         ar.archive_ex(19790923, "c");
@@ -125,19 +131,19 @@ namespace HepLib {
         auto cpid = getpid();
         if(cpid!=ppid) exit(0); // make sure
         if(para_max_run>0) while (wait(NULL) != -1) { }
-        if(verb > 1 && total > 0) cout << "@" << now(false) << endl;
+        if(verb > 1 && ntotal > 0) cout << "@" << now(false) << endl;
 
         vector<ex> ovec;
-        for(int i=0; i<total; i++) {
+        for(int i=0; i<ntotal; i++) {
             if(verb > 1) {
                 if(key == NULL) {
                     cout << "\r  ";
                     for(int pi=0; pi<prtlvl; pi++) cout << "   ";
-                    cout << "\\--Reading *.gar [" << (i+1) << "/" << total << "] ... " << flush;
+                    cout << "\\--Reading *.gar [" << (i+1) << "/" << ntotal << "] ... " << flush;
                 } else {
                     cout << "\r  ";
                     for(int pi=0;pi<prtlvl;pi++) cout << "   ";
-                    cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (i+1) << "/" << total << "] ... " << flush;
+                    cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (i+1) << "/" << ntotal << "] ... " << flush;
                 }
             }
 
@@ -170,7 +176,7 @@ namespace HepLib {
             system(cmd.str().c_str());
             system(cmd.str().c_str());
         }
-        if(verb > 1 && total > 0) cout << "@" << now(false) << endl;
+        if(verb > 1 && ntotal > 0) cout << "@" << now(false) << endl;
         return ovec;
     }
 

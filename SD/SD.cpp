@@ -786,7 +786,8 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         if(verb) cout << now() << " - Scaleless: " << FunExp.size() << " :> " << flush;
 
         vector<ex> sl_res =
-        GiNaC_Parallel(ParallelProcess, FunExp, [&](ex const &funexp, int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, FunExp.size(), [&](int idx)->ex {
+            auto funexp = FunExp[idx];
             if(funexp.nops()<3) return funexp;
             symbol s;
             auto fun = funexp.op(0);
@@ -934,7 +935,8 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
     void SecDec::XEnd() {
         if(Verbose > 0) cout << now() << " - BiSection: " << FunExp.size() << " :> " << flush;
         vector<ex> funexps =
-        GiNaC_Parallel(ParallelProcess, FunExp, [&](ex const &fe, int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, FunExp.size(), [&](int idx)->ex {
+            auto fe = FunExp[idx];
             lst para_res_lst;
             if(xSign(fe.op(0).op(1))==0) {
                 auto fes = AutoEnd(fe);
@@ -988,8 +990,9 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         
         if(Verbose > 0) cout << now() << " - SDPrepares: ..." << endl << flush;
         vector<ex> sd_res =
-        GiNaC_Parallel(ParallelProcess, FunExp, [&](ex const &fe, int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, FunExp.size(), [&](int idx)->ex {
             // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
+            auto fe = FunExp[idx];
             auto xns_pns = DS(fe);
             lst para_res_lst;
             for(auto const &item : xns_pns) {
@@ -1098,11 +1101,13 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             ostringstream spn;
             spn << "IBP-" << (pn-1);
             vector<ex> ibp_res =
-            GiNaC_Parallel(ParallelProcess, ibp_in_vec, [&](ex const &xns_pns, int idx)->ex {
+            GiNaC_Parallel(ParallelProcess, ibp_in_vec.size(), [&](int idx)->ex {
                 // return lst
                 // {0, element} for input with pole reached and doing nothing
                 // {1, {element, ...}} for input whth pole NOT reached
                 // element pattern still as { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }
+                
+                auto xns_pns = ibp_in_vec[idx];
                 
                 auto xns = xns_pns.op(0);
                 auto pns = xns_pns.op(1);
@@ -1222,9 +1227,10 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         }
         
         vector<ex> res =
-        GiNaC_Parallel(ParallelProcess, ibp_res_vec, [&](ex const &xns_expr, int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, ibp_res_vec.size(), [&](int idx)->ex {
 
             // return single element in which ep/eps can be expanded safely.
+            auto xns_expr = ibp_res_vec[idx];
             lst para_res_lst;
             auto xns = xns_expr.op(0);
             auto expr = xns_expr.op(1);
@@ -1284,7 +1290,8 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         
         if(zResides) {
             Integrands =
-            GiNaC_Parallel(ParallelProcess, ints, [&](ex const &item, int idx)->ex {
+            GiNaC_Parallel(ParallelProcess, ints.size(), [&](int idx)->ex {
+                auto item = ints[idx];
                 ex it = item;
                 if(it.has(vz)) {
                     exset cts;
@@ -1352,10 +1359,11 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         if(Verbose > 1) cout << Integrands.size() << endl;
             
         vector<ex> res =
-        GiNaC_Parallel(ParallelProcess, Integrands, [&](ex const &item, ex idx)->ex {
+        GiNaC_Parallel(ParallelProcess, Integrands.size(), [&](int idx)->ex {
             // return { {two elements}, {two elements}, ...},
             // 1st: x-independent coefficient, expanded in ep/eps
             // 2nd: x-integrand
+            auto item = Integrands[idx];
             if(item.is_zero()) return lst{ lst{ 0, 0} };
             exset cts;
             item.find(CT(w), cts);

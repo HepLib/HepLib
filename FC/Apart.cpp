@@ -58,8 +58,10 @@ namespace HepLib::FC {
         //--------------------------------------------------
         // null vector
         //--------------------------------------------------
+        // if start feramt process many times, the efficient is slow
+        bool use_fermat = false; 
+        
         static exmap null_cache;
-        bool use_fermat = true; // if start feramt process many times, the efficient is slow
         if(is_zero(null_cache[sub_matrix(mat,0,nrow,0,ncol)])){
             if(use_fermat) {
                 lst rep_vs;
@@ -423,6 +425,31 @@ namespace HepLib::FC {
         if(!is_zero(chk)) throw Error("Apart random check Failed.");
         
         return res;
+    }
+    
+    ex ApartIRC(const ex & expr_in) {
+        return MapFunction([](const ex & e, MapFunction &self)->ex {
+            if(!e.has(ApartIR(w1,w2))) return e;
+            else if(e.match(ApartIR(w1,w2))) {
+                int n = e.op(1).nops();
+                auto mat0 = ex_to<matrix>(e.op(0));
+                int cc = mat0.cols();
+                if(cc==n) return e;
+                matrix mat(n+2,n);
+                for(int r=0; r<n+2; r++) {
+                    for(int c=0; c<cc; c++) mat(r,c) = mat0(r,c);
+                }
+                for(int i=0; i<n; i++) {
+                    mat(i,cc) = 1;
+                    auto r = mat.rank();
+                    if(r==n) break;
+                    if(r==cc+1) cc++;
+                    else mat(i,cc) = 0;
+                }
+                if(mat.rank()!=n) throw Error("ApartIRC failed, NOT full rank.");
+                return ApartIR(mat, e.op(1));
+            } else return e.map(self);
+        })(expr_in);
     }
 
 }

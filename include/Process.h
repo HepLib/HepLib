@@ -33,15 +33,9 @@ namespace HepLib {
         void Init(string fer_path="fer64");
         string Execute(string);
         void Exit();
-        
-        class Error : public exception {
-        public:
-            string msg;
-            const char * what() const throw ();
-            Error(const string & _msg);
-        };
-        
+                
     private:
+        bool inited = false;
         int P2C[2];
         int C2P[2];
         pid_t pid = 0;
@@ -54,13 +48,6 @@ namespace HepLib {
         void Init(string form_path_args="form");
         string Execute(string script, const char * out_var="[o]");
         void Exit();
-        
-        class Error : public exception {
-        public:
-            string msg;
-            const char * what() const throw ();
-            Error(const char * _msg);
-        };
     
     private:
         bool inited = false;

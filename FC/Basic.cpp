@@ -53,14 +53,6 @@ namespace HepLib::FC {
     }
 
     //-----------------------------------------------------------
-    // Error Class
-    //-----------------------------------------------------------
-    Error::Error(string _msg) : msg(_msg) { }
-    const char * Error::what() const throw () {
-        return msg.c_str();
-    }
-    
-    //-----------------------------------------------------------
     // Index Class
     //-----------------------------------------------------------
     GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(Index, basic,

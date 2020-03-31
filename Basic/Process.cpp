@@ -48,13 +48,29 @@ namespace HepLib {
     // Fermat Class
     //-----------------------------------------------------------
     #define ENTER endl<<endl<<endl
-    Fermat::Error::Error(const string & _msg) : msg(_msg) { }
-    
-    const char * Fermat::Error::what() const throw () {
-        return msg.c_str();
+        
+    void Fermat::Exit() {
+        if(inited) {
+            ostringstream script;
+            script << "&q;" << endl << "&x;" << ENTER;
+            string istr = script.str();
+            write(P2C[1], istr.c_str(), istr.length());
+            int st;
+            waitpid(pid, &st, WUNTRACED);
+            inited = false;
+        }
     }
     
     void Fermat::Init(string fer_path) {
+        if(inited) {
+            close(P2C[0]);
+            close(P2C[1]);
+            close(C2P[0]);
+            close(C2P[1]);
+            kill(pid, SIGTERM);
+        }
+        inited = true;
+        
         pipe(P2C);
         pipe(C2P);
         
@@ -109,15 +125,6 @@ namespace HepLib {
         if(ostr.find("***")!=string::npos) throw Error(ostr.c_str());
     }
     
-    void Fermat::Exit() {
-        ostringstream script;
-        script << "&q;" << endl << "&x;" << ENTER;
-        string istr = script.str();
-        write(P2C[1], istr.c_str(), istr.length());
-        int st;
-        waitpid(pid, &st, WUNTRACED);
-    }
-    
     // out string still contains the last number
     string Fermat::Execute(string expr) {
         ostringstream script;
@@ -153,12 +160,6 @@ namespace HepLib {
     //-----------------------------------------------------------
     // Form Class
     //-----------------------------------------------------------
-    Form::Error::Error(const char * _msg) : msg(_msg) { }
-    
-    const char * Form::Error::what() const throw () {
-        return msg.c_str();
-    }
-    
     void Form::Exit() {
         if(inited) {
             string exit_cmd = "\n.end\n" + Prompt +"\n";
@@ -167,6 +168,7 @@ namespace HepLib {
             read(io[1][0], buffer, 8);
             int st;
             waitpid(pid, &st, WUNTRACED);
+            inited = false;
         }
     }
     

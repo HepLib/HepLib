@@ -48,10 +48,11 @@ namespace HepLib::SD {
         }
 
         vector<ex> res =
-        GiNaC_Parallel(ParallelProcess, ftnxn_vec, [&](ex const & ftnxn, int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, ftnxn_vec.size(), [&](int idx)->ex {
             // return lst{ ft_n, lst{lambda-i, lambda-max} }
             // with I*[lambda-i]*lambda, lambda < lambda-max
             // note that lambda sequence only matches to x sequence in F-term
+            auto ftnxn = ftnxn_vec[idx];
             int npara = -1;
             for(auto kv : Parameter) if(npara<kv.first) npara = kv.first;
             dREAL paras[npara+1];

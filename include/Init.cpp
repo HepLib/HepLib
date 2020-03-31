@@ -1,6 +1,6 @@
 #include "SD.h"
 #include "FC.h"
-
+#include "IBP.h"
 
 namespace HepLib {
 
@@ -11,6 +11,8 @@ namespace HepLib {
     //----------------------------------------
     // HepLib
     //----------------------------------------
+    std::map<std::string, ex> Symbol::Tables; // alias as symtab in parser
+    
     ex w = wild();
     ex w0 = wild(0);
     ex w1 = wild(1);
@@ -70,5 +72,10 @@ namespace HepLib {
     FC::FormFormat::_init FC::FormFormat::FormFormat_init;
     
     FC::FCFormat FC::FCout(cout);
+    
+    //----------------------------------------
+    // HepLib::IBP
+    //----------------------------------------
+    const Symbol IBP::d("d");
     
 }

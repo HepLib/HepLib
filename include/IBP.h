@@ -2,57 +2,39 @@
 
 #include "Basic.h"
 
-#include <dlfcn.h>
+namespace HepLib::IBP {
 
-#include <string>
-#include <fcntl.h>
-#include <signal.h>
-#include <sys/syscall.h>
-#include <sstream>
-#include <ios>
+    using namespace std;
+    using namespace GiNaC;
+    using namespace HepLib;
+    
+    extern const Symbol d;
+    
+    DECLARE_FUNCTION_1P(a)
+    DECLARE_FUNCTION_2P(F)
 
-namespace HepLib {
-
-    matrix RowReduce(matrix);
-    void RunFermat(char const * ifn);
-
-    DECLARE_FUNCTION_1P(P)
-    DECLARE_FUNCTION_1P(F)
-    DECLARE_FUNCTION_1P(L)
-    DECLARE_FUNCTION_1P(n)
-
-
-    class FormatCache {
+    class FIRE {
     public:
-        map<ex,lst,ex_is_less> F2fmt;
-        map<ex,lst,ex_is_less> I2fmt;
-        map<lst,ex,ex_is_less> fmt2F;
-        lst Cuts;
-    };
-
-    class IBP {
-    public:
-        static symbol const ep;
-        static symbol const eps;
-        static symbol const d;
-        
-        static lst formatF(ex f, FormatCache &cache);
-        static lst formatI(ex ibp, FormatCache &cache);
-        static bool less(lst ls1, lst ls2);
-        
-        lst Cuts;
+        lst Internal;
+        lst External;
         lst Variables;
-        int Verbose = 0;
-        lst FSolution;
+        lst Replacements;
+        lst Propagators;
+        exvector Integrals;
+        vector<exmap> IBPs;
+        ex UF(ex corner);
         
-        void Prepare(lst loop, lst ext, lst prop, lst repl);
-        void Generate(vector<lst> seeds);
+        string WorkingDir;
+        int ProblemNumber;
+        
+        int Dimension;
+        exvector MasterIntegrals;
+        exmap Rules;
+        
         void Reduce();
         
-    private:
-        lst preIBPs;
-        lst IBPs;
-        static ex collectF(ex);
+        static exmap FindRules(vector<FIRE> fs, bool mi=true); 
+        
     };
 
 

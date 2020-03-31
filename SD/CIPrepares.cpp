@@ -15,8 +15,9 @@ namespace HepLib::SD {
         auto pid = getpid();
                 
         vector<ex> resf =
-        GiNaC_Parallel(ParallelProcess, expResult, [&](ex const &kv, int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, expResult.size(), [&](int idx)->ex {
             // return lst{ kv.op(0), kv.op(1), ft};
+            auto kv = expResult[idx];
             auto expr = kv.op(1);
             auto xs = get_xy_from(expr);
             if(xs.size()<1) {
@@ -136,8 +137,9 @@ namespace HepLib::SD {
     //============================================================================================================
 
         // Prepare FT-lambda
-        GiNaC_Parallel(ParallelProcess, ftnvec, [&](ex const &kv, int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, ftnvec.size(), [&](int idx)->ex {
             // return nothing
+            auto kv = ftnvec[idx];
             ex ft = kv.op(0);
             ex ft_n = kv.op(1);
             auto fxs = get_xy_from(ft);
@@ -565,10 +567,11 @@ namespace HepLib::SD {
 
         // Prepare Integrand
         vector<ex> res =
-        GiNaC_Parallel(ParallelProcess, res_vec, [&](ex const &kvf, int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, res_vec.size(), [&](int idx)->ex {
             // return lst{ no-x-result, xn, x-indepent prefactor, ft_n }
             // or     lst{ id(SD(D|Q)_id in .so), xn, x-indepent prefactor, ft_n }
             
+            auto kvf = res_vec[idx];
             auto expr = kvf.op(1);
             auto xs = get_xy_from(expr);
             auto ft_n = kvf.op(3);

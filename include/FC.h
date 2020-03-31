@@ -2,12 +2,14 @@
 
 #include "Basic.h"
 #include "Process.h"
+#include "IBP.h"
 
 namespace HepLib::FC {
 
     using namespace std;
     using namespace GiNaC;
     using namespace HepLib;
+    using namespace HepLib::IBP;
     
     extern const Symbol D;
     extern const Symbol CA;
@@ -139,13 +141,6 @@ namespace HepLib::FC {
         static _init FCFormat_init;
     };
     extern FCFormat FCout;
-    
-    class Error : public exception {
-    public:
-        string msg;
-        const char * what() const throw ();
-        Error(string _msg);
-    };
     
     //-----------------------------------------------------------
     // Index Class
@@ -326,6 +321,7 @@ namespace HepLib::FC {
     ex Apart(const ex &expr_in, const lst &vars, exmap sign_map=exmap());
     ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms);
     ex ApartIR2ex(const ex & expr_in);
+    ex ApartIRC(const ex & expr_in);
     
     // ApartIR function upto 2 arguments
     class ApartIR1_SERIAL { public: static unsigned serial; };

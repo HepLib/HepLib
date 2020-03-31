@@ -163,7 +163,7 @@ namespace HepLib::FC {
             else return e.map(self);
         })(lines));
         
-        return lines;
+        return lines.sort();
     }
     
     void Qgraf::DrawPDF(const lst & amps, string fn, bool rm) {
@@ -173,7 +173,8 @@ namespace HepLib::FC {
         string tex_path = to_string(getpid()) + "_TeX/";
         system(("mkdir -p "+tex_path).c_str());
         
-        GiNaC_Parallel(-1, amp_vec, [&](ex const &amp, int idx)->ex {
+        GiNaC_Parallel(-1, amp_vec.size(), [&](int idx)->ex {
+            auto amp = amp_vec[idx];
             ofstream out(tex_path+to_string(idx)+".tex");
             out << "\\documentclass[tikz]{standalone}" << endl;
             out << "\\usepackage{tikz-feynman}" << endl;
