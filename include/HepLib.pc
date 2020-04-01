@@ -1,0 +1,11 @@
+prefix="@PREFIX_DIR@"
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: HepLib
+Description: Library for HighEnergyPhysics
+Version: 1.0
+Libs: -L${libdir} -lHepLib
+Libs.private:  -lcln -lginac -lMinuit2 -lcubaq -lquallstatic -lquadmath
+Cflags: -I${includedir}

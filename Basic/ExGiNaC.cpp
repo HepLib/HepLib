@@ -75,7 +75,7 @@ namespace HepLib {
         const char* key, int verb, bool rm, int prtlvl) {
         
         auto ppid = getpid();
-        int para_max_run = nproc<0 ? omp_get_num_procs() : nproc;
+        int para_max_run = nproc<0 ? omp_get_num_procs()-1 : nproc;
         ostringstream cmd;
         cmd << "mkdir -p " << ppid;
         system(cmd.str().c_str());
@@ -408,6 +408,15 @@ namespace HepLib {
         parser reader(stab);
         ex ret = reader(expr);
         return ex_to<lst>(ret);
+    }
+    
+    /*-----------------------------------------------------*/
+    // str2lst Function
+    /*-----------------------------------------------------*/
+    string ex2str(const ex &expr) {
+        ostringstream oss;
+        oss << expr << endl;
+        return oss.str();
     }
 
     /*-----------------------------------------------------*/

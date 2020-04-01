@@ -185,7 +185,8 @@ namespace HepLib::FC {
         if(ni!=-1) {
             auto nvec = subs(null_vec, iWF(w)==w+1);
             if(is_zero(nvec.op(ni))) nvec = subs(null_vec, iWF(w)==w+3);
-            if(is_zero(nvec.op(ni))) throw Error("Apart: iWF to int failed.");
+            if(is_zero(nvec.op(ni))) nvec = subs(null_vec, iWF(w)==3*w+7);
+            if(is_zero(nvec.op(ni))) throw Error("Apart: iWF to int failed with "+ex2str(null_vec.op(ni)));
             ex sol = 0;
             for(int c=0; c<ncol; c++) {
                 if(c==ni) continue;
@@ -436,7 +437,12 @@ namespace HepLib::FC {
                 int cc = mat0.cols();
                 if(cc==n) return e;
                 matrix mat(n+2,n);
+                // zero each element
                 for(int r=0; r<n+2; r++) {
+                    for(int c=0; c<cc; c++) mat(r,c) = 0;
+                }
+                // n-row from mat0 to mat, note the last 2 rows still 0
+                for(int r=0; r<n; r++) {
                     for(int c=0; c<cc; c++) mat(r,c) = mat0(r,c);
                 }
                 for(int i=0; i<n; i++) {
@@ -447,9 +453,134 @@ namespace HepLib::FC {
                     else mat(i,cc) = 0;
                 }
                 if(mat.rank()!=n) throw Error("ApartIRC failed, NOT full rank.");
+                // last 2 rows from mat0 to mat
+                for(int r=n; r<n+2; r++) {
+                    for(int c=0; c<mat0.cols(); c++) mat(r,c) = mat0(r,c);
+                }
                 return ApartIR(mat, e.op(1));
             } else return e.map(self);
         })(expr_in);
+    }
+    
+    void Apart2FIRE(exvector &air_vec, lst vloops, lst vexts) {
+        string wdir = to_string(getpid()) + "_FIRE";
+        exset intg;
+        for(auto &air : air_vec) {
+            // fix ApartIR from archive
+            air = air.subs(GiNaC::function(ApartIR1_SERIAL::serial, w1, w2)==ApartIR(w1,w2));
+            
+            air = ApartIRC(air);
+            find(air, ApartIR(w1, w2), intg);
+        }
+        
+        exmap sp2;
+        lst loops;
+        for(auto vp1 : vloops) {
+            auto p1 = ex_to<Vector>(vp1).name;
+            loops.append(p1);
+            for(auto vp2 : vloops) {
+                auto p2 = ex_to<Vector>(vp2).name;
+                sp2[SP(vp1,vp2)] = p1 * p2;
+            }
+            for(auto vp2 : vexts) {
+                auto p2 = ex_to<Vector>(vp2).name;
+                sp2[SP(vp1,vp2)] = p1 * p2;
+            }
+        }
+        lst repls, exts;
+        for(auto vp1 : vexts) {
+            auto p1 = ex_to<Vector>(vp1).name;
+            exts.append(p1);
+            for(auto vp2 : vexts) {
+                auto p2 = ex_to<Vector>(vp2).name;
+                repls.append(p1*p2==SP(vp1,vp2).subs(sp_map));
+            }
+        }
+        repls.sort();
+        repls.unique();
+        
+        exmap ir2F;
+        std::map<ex, FIRE*, ex_is_less> p2f;
+        vector<FIRE*> fvec;
+        int pn=1;
+        for(auto item : intg) {
+            auto mat = ex_to<matrix>(item.op(0));
+            auto vars = ex_to<lst>(item.op(1));
+            lst props, ns;
+            int nrow = mat.rows();
+            for(int c=0; c<mat.cols(); c++) {
+                ex pc = 0;
+                for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
+                pc += mat(nrow-2,c);
+                props.append(pc.subs(sp2));
+                ns.append(ex(0)-mat(nrow-1,c).subs(sp2));
+            }
+
+            if(p2f[props]==NULL) {
+                FIRE * f = new FIRE();
+                p2f[props] = f;
+                f->Propagators = props;
+                f->Internal = loops;
+                f->External = exts;
+                f->Replacements = repls;
+                f->WorkingDir = wdir;
+                f->ProblemNumber = pn++;
+                fvec.push_back(f);
+            }
+            FIRE * f = p2f[props];
+            f->Integrals.append(ns);
+            ir2F[item] = F(f->ProblemNumber, ns);
+        }
+        
+        auto int_rules = FIRE::FindRules(fvec, false);
+        for(auto &fp : fvec) {
+            auto ints = fp->Integrals;
+            for(int i=0; i<ints.nops(); i++) ints.let_op(i) = F(fp->ProblemNumber, ints.op(i));
+            ints = ex_to<lst>(subs(ints, int_rules));
+            ints.sort();
+            ints.unique();
+            for(int i=0; i<ints.nops(); i++) ints.let_op(i) = ints.op(i).op(1);
+            fp->Integrals = ints;
+        }
+        
+        auto fres= GiNaC_Parallel(-1, fvec.size(), [fvec](int idx)->ex {
+            auto item = fvec[idx];
+            item->Reduce();
+            return lst {
+                item->Dimension,
+                item->MasterIntegrals,
+                item->Rules
+            };
+        }, "FIRE", 100);
+        
+        exmap F2F;
+        for(int i=0; i<fres.size(); i++) {
+            fvec[i]->Dimension = ex_to<numeric>(fres[i].op(0)).to_int();
+            fvec[i]->MasterIntegrals = ex_to<lst>(fres[i].op(1));
+            fvec[i]->Rules = ex_to<lst>(fres[i].op(2));
+            for(auto item : fvec[i]->Rules) F2F[item.op(0)] = item.op(1);
+        }
+        
+        MapFunction mapF([fvec](const ex &e, MapFunction &self)->ex {
+            if(!e.has(F(w1,w2))) return e;
+            else if(e.match(F(w1,w2))) {
+                int idx = ex_to<numeric>(e.op(0)).to_int();
+                return F(fvec[idx-1]->Propagators, e.op(1));
+            } else return e.map(self);
+        });
+        
+        auto mi_rules = FIRE::FindRules(fvec);
+        for(auto &air : air_vec) {
+            air = air.subs(ir2F);
+            air = air.subs(int_rules);
+            air = air.subs(F2F);
+            air = air.subs(mi_rules);
+            air = mapF(air);
+        }
+        
+        for(auto fp : fvec) delete fp;
+        system(("rm -rf "+wdir).c_str());
+        
     }
 
 }

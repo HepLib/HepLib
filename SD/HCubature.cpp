@@ -13,7 +13,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
     bool NaNQ = false;
 
     if(self->UseCpp) {
-        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
+        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
         for(int i=0; i<npts; i++) {
             mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
             int iDQMP = self->inDQMP(x+i*xdim);

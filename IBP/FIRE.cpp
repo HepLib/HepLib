@@ -5,7 +5,8 @@ namespace HepLib::IBP {
     REGISTER_FUNCTION(a, do_not_evalf_params())
     REGISTER_FUNCTION(F, do_not_evalf_params())
 
-    void FIRE::Reduce() {
+    void FIRE::Reduce() { 
+        if(Integrals.nops()<1) return;
         Dimension = Propagators.nops();
         int pn = ProblemNumber;
         int dim = Dimension;
@@ -19,6 +20,7 @@ namespace HepLib::IBP {
         }
         sps.sort();
         sps.unique();
+        if(sps.nops() != dim) throw Error("FIRE::Reduce: sps failed.");
         
         lst sp2s, s2sp, ss;
         for(auto item : sps) {
@@ -37,15 +39,17 @@ namespace HepLib::IBP {
             eqns.append(eq == iWF(i));
         }
         auto s2p = lsolve(eqns, ss);
+        if(s2p.nops() != dim) throw Error("FIRE::Reduce: lsove failed.");
 
         IBPs.clear();
+        exvector IBPvec;
         lst ns0;
         for(int i=0; i<dim; i++) ns0.append(0);
         for(auto loop : Internal) {
             lst dp_lst;
-            symbol ds;
-            for(int i=0; i<dim; i++) {
-                dp_lst.append(Propagators.op(i).subs(loop==ds).diff(ds).subs(ds==loop));
+            for(int i=0; i<dim; i++) {  
+                auto s = ex_to<Symbol>(loop);
+                dp_lst.append(Propagators.op(i).diff(s));
             }
             
             for(auto iep : InExternal) {
@@ -54,9 +58,9 @@ namespace HepLib::IBP {
                     auto ns = ns0;
                     ns.let_op(i) = ns.op(i)+1; // note the covention
                     auto tmp = dp_lst.op(i) * iep;
-                    tmp = tmp.expand();
-                    tmp = tmp.subs(sp2s, subs_options::algebraic);
+                    tmp = mma_collect(tmp, InExternal);
                     tmp = tmp.subs(Replacements, subs_options::algebraic);
+                    tmp = tmp.subs(sp2s, subs_options::algebraic);
                     tmp = tmp.subs(s2p, subs_options::algebraic);
                     tmp = ex(0) - a(i+1)*tmp;
 
@@ -76,12 +80,14 @@ namespace HepLib::IBP {
                 for(auto nc : nc_map) {
                     if(!is_zero(nc.second)) {
                         ok = true;
-                        break;
+                        IBPvec.push_back(nc.second);
                     }
                 }
                 if(ok) IBPs.push_back(nc_map);
             }
         }
+        
+        auto Variables = gather_symbols(IBPvec);
         
         ostringstream start;
         start << "Null" << endl << endl;
@@ -140,8 +146,9 @@ namespace HepLib::IBP {
         ostringstream config;
         config << "#threads 4" << endl;
         config << "#fermat fer64" << endl;
-        config << "#variables d";
-        for(auto v : Variables) config << "," << v;
+        config << "#variables ";
+        bool first = true;
+        for(auto v : Variables) { config << (first ? "" : ",") << v; first=false; }
         config << endl;
         config << "#database db" << pn << endl;
         config << "#bucket 20" << endl;
@@ -153,8 +160,8 @@ namespace HepLib::IBP {
         // *.intg
         ostringstream intg;
         intg << "{";
-        for(int i=0; i<Integrals.size(); i++) {
-            intg << "{" << pn << "," << Integrals[i] << (i<Integrals.size()-1 ? "}," : "}");
+        for(int i=0; i<Integrals.nops(); i++) {
+            intg << "{" << pn << "," << Integrals[i] << (i<Integrals.nops()-1 ? "}," : "}");
         }
         intg << "}" << endl;
         
@@ -175,6 +182,7 @@ namespace HepLib::IBP {
         ostringstream cmd;
         cmd << "cd " << WorkingDir << " && FIRE5 -c " << pn << " >/dev/null";
         system(cmd.str().c_str());
+        system(("rm -rf "+WorkingDir+"/db"+to_string(pn)).c_str());
         
         ifstream ifs(WorkingDir+"/"+spn+".tables");
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
@@ -195,8 +203,8 @@ namespace HepLib::IBP {
             for(auto it : item.op(1)) {
                 right += it.op(0).subs(id2F) * it.op(1);
             }
-            if(is_zero(left-right)) MasterIntegrals.push_back(left);
-            else Rules[left] = right;
+            if(is_zero(left-right)) MasterIntegrals.append(left);
+            else Rules.append(left==right);
         }
     }
     
@@ -207,6 +215,7 @@ namespace HepLib::IBP {
             if(is_zero(idx.op(i))) continue;
             ft -= iWF(idx.op(i)) * x(i) * Propagators.op(i);
         }
+
         ex ut = 1;
         for(int i=0; i<Internal.nops(); i++) {
             ft = mma_collect(ft, Internal);
@@ -222,10 +231,11 @@ namespace HepLib::IBP {
         ut = subs(ut, Replacements, subs_options::algebraic);
         ut = normal(ut);
         ex uf = ut*ft;
+
         ex_is_less comp;
-        Permutations(nps, nps, [comp,nps,&uf,&ft,&ut](const int *ns) {
+        Permutations(nps, [comp,nps,&uf,&ft,&ut](const int *ns) {
             exmap x2x;
-            for(int i=0; i<nps; i++) x2x[x(i)]==x(ns[i]);
+            for(int i=0; i<nps; i++) x2x[x(i)]=x(ns[i]);
             ex uf2 = uf.subs(x2x);
             if(comp(uf2, uf)) {
                 uf = uf2;
@@ -233,30 +243,48 @@ namespace HepLib::IBP {
                 ut = ut.subs(x2x);
             }
         });
+
         return lst{ut, ft};
     }  
     
-    exmap FIRE::FindRules(vector<FIRE> fs, bool mi) {
+    lst FIRE::FindRules(const vector<FIRE> & fs, bool mi) {
         map<ex,lst,ex_is_less> group;;
         if(mi) {
             for(auto fi : fs) {
-                for(auto idx : fi.Integrals) {
-                    group[fi.UF(idx)].append(F(fi.ProblemNumber,idx));
-                }
+                for(auto mi : fi.MasterIntegrals) group[fi.UF(mi.subs(F(w1,w2)==w2))].append(mi);
             }
         } else {
             for(auto fi : fs) {
-                for(auto mi : fi.MasterIntegrals) {
-                    group[fi.UF(mi.subs(F(w1,w2)==w2))].append(mi);
-                }
+                for(auto idx : fi.Integrals) group[fi.UF(idx)].append(F(fi.ProblemNumber,idx));
             }
         }
         
-        exmap rules;
+        lst rules;
         for(auto g : group) {
             lst gs = ex_to<lst>(g.second);
             if(gs.nops()<2) continue;
-            for(int i=1; i<gs.nops(); i++) rules[gs.op(i)]=gs.op(0);
+            for(int i=1; i<gs.nops(); i++) rules.append(gs.op(i)==gs.op(0));
+        }
+        return rules;
+    }
+    
+    lst FIRE::FindRules(const vector<FIRE*> & fs, bool mi) {
+        map<ex,lst,ex_is_less> group;;
+        if(mi) {
+            for(auto fi : fs) {
+                for(auto mi : fi->MasterIntegrals) group[fi->UF(mi.subs(F(w1,w2)==w2))].append(mi);
+            }
+        } else {
+            for(auto fi : fs) {
+                for(auto idx : fi->Integrals) group[fi->UF(idx)].append(F(fi->ProblemNumber,idx));
+            }
+        }
+        
+        lst rules;
+        for(auto g : group) {
+            lst gs = ex_to<lst>(g.second);
+            if(gs.nops()<2) continue;
+            for(int i=1; i<gs.nops(); i++) rules.append(gs.op(i)==gs.op(0));
         }
         return rules;
     }

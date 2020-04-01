@@ -136,6 +136,7 @@ namespace HepLib::FC {
     
     lst Qgraf::TopoLines(const ex & amp) {
         map<ex,int,ex_is_less> v2id, fid2vid;
+        map<int,ex> vid2fs; // fileds in the vertex
         int cid = 0;
         lst lines;
         for(const_preorder_iterator i = amp.preorder_begin(); i != amp.preorder_end(); ++i) {
@@ -150,16 +151,21 @@ namespace HepLib::FC {
                 if(v2id[e]==0) {
                     cid++;
                     v2id[e]=cid;
+                    lst fs;
                     for(auto f : e) {
                         ex fid = f.op(1);
                         fid2vid[fid] = cid;
+                        fs.append(f.op(0));
                     }
+                    vid2fs[cid] = fs;
                 }
             }
         }
-        lines = ex_to<lst>(MapFunction([&fid2vid](const ex &e, MapFunction &self)->ex{
-            if(e.match(iWF(w))) return fid2vid[e.op(0)];
-            else if(!e.has(iWF(w))) return e;
+        lines = ex_to<lst>(MapFunction([&vid2fs,&fid2vid](const ex &e, MapFunction &self)->ex{
+            if(e.match(iWF(w))) {
+                auto vid = fid2vid[e.op(0)];
+                return lst{vid, vid2fs[vid]};
+            } else if(!e.has(iWF(w))) return e;
             else return e.map(self);
         })(lines));
         
@@ -182,25 +188,45 @@ namespace HepLib::FC {
             out << "\\begin{document}" << endl;
             out << "\\feynmandiagram{" << endl;
             auto lines = TopoLines(amp);
+
             exmap bend_map;
+            std::map<ex,int,ex_is_less> vtex_map; // vertex option, only once
             for(auto l : lines) {
                 lst ll = lst{l.op(0), l.op(1)};
                 ll.sort();
                 bend_map[ll] = bend_map[ll] + 1;
                 
-                out << "\"" << l.op(1) << "\"";
-                if(l.op(1)<0) out << "[particle=" << l.op(1) << "]";
-                
-                out << " --[";
+                auto fidL = (is_a<numeric>(l.op(1)) ? l.op(1) : l.op(1).op(0));
+                out << "\"" << fidL << "\"";
+                if(fidL<0) {
+                    out << "[particle=";
+                    if(InOutTeX[fidL].length()>0) out << InOutTeX[fidL];
+                    else out << fidL;
+                    out << "]";
+                } else if(vtex_map[l.op(1).op(1)]==0) {
+                    out << VerTeX[l.op(1).op(1)];
+                    vtex_map[l.op(1).op(1)]=1;
+                }
+
+                out << "  --[";
                 auto f = l.op(2).op(0);
                 if(LineTeX[f].length()>0) out << LineTeX[f];
                 if(bend_map[ll]>2) out << ",half right";
                 else if(bend_map[ll]>1) out << ",half left";
-                if(l.op(0)==l.op(1)) out << ",loop,distance=2cm";
+                if(is_zero(l.op(0)-l.op(1))) out << ",loop,distance=2cm";
                 out << "]";
                 
-                out << "\"" << l.op(0) << "\"";
-                if(l.op(0)<0) out << "[particle=" << l.op(0) << "]";
+                auto fidR = (is_a<numeric>(l.op(0)) ? l.op(0) : l.op(0).op(0));
+                out << "  \"" << fidR << "\"";
+                if(fidR<0) {
+                    out << "[particle=";
+                    if(InOutTeX[fidR].length()>0) out << InOutTeX[fidR];
+                    else out<< fidR;
+                    out << "]";
+                } else if(vtex_map[l.op(0).op(1)]==0) {
+                    out << VerTeX[l.op(0).op(1)];
+                    vtex_map[l.op(0).op(1)]=1;
+                }
                 out << ";" << endl;
             }
             out << "};" << endl;
@@ -222,6 +248,13 @@ namespace HepLib::FC {
         int namps = total;
         if((total%4)!=0) total = (total/4+1)*4;
         for(int i=0 ; i<total; i++) {
+            
+            if((i!=0) && (i+1!=total) && (i%100)==0) {
+                out << "\\end{tabular}" << endl << endl;
+                out << "\\begin{tabular}{|cc|cc|cc|cc|}" << endl;
+                out << "\\hline" << endl;
+            }
+            
             out << "{\\tiny " << i+1 << "}&" << endl;
             if(i<namps) {
                 out << "\\includegraphics[keepaspectratio,";
@@ -285,24 +318,27 @@ namespace HepLib::FC {
                     if(is_zero(tls2.op(i).op(1)-lp.op(0))) tls2.let_op(i).let_op(1) = lp.op(1);
                 }
             }
-            
+
             // final connected parts
             map<int, lst> con_map;
             for(auto li : tls2) {
                 if(is_zero(li)) continue;
                 ex key, val;
-                if(li.op(0)>0 && li.op(1)<0) {
-                    key = li.op(0);
-                    val = li.op(1);
-                } else if(li.op(1)>0 && li.op(0)<0) {
-                    key = li.op(1);
-                    val = li.op(0);
+                ex fiL = li.op(0);
+                if(is_a<lst>(fiL)) fiL = fiL.op(0);
+                ex fiR = li.op(1);
+                if(is_a<lst>(fiR)) fiR = fiR.op(0);
+                if(fiL>0 && fiR<0) {
+                    con_map[ex_to<numeric>(fiL).to_int()].append(fiR);
+                } else if(fiR>0 && fiL<0) {
+                    con_map[ex_to<numeric>(fiR).to_int()].append(fiL);
                 } else {
-                    if(li.op(0)>0) key = li.op(0);
-                    else key = li.op(1);
+                    if(fiL>0 && is_zero(fiR)) key = fiL;
+                    else if(fiR>0 && is_zero(fiL)) key = fiR;
+                    else throw Error("ShrinkCut: unexpcected point reached.");
                     val = li.op(2).op(0);
+                    con_map[ex_to<numeric>(key).to_int()].append(val);
                 }
-                con_map[ex_to<numeric>(key).to_int()].append(val);
             }
             
             lst item;
@@ -311,6 +347,37 @@ namespace HepLib::FC {
         });
         
         return ret;
+    }
+    
+    bool Qgraf::HasLoop(ex amp, lst prop) {
+        auto tls = Qgraf::TopoLines(amp);
+        int ntls = tls.nops();
+        // shrink internal lines of prop
+        int last = 0;
+        while(true) {
+            ex lp = 0;
+            for(int i=last; i<ntls; i++) {
+                auto li = tls.op(i);
+                if(is_zero(li) || li.op(2).nops()<2) continue; // external line
+                auto cpi = li.op(2);
+                bool m1 = !(is_zero(cpi.op(0)-prop.op(0)) && is_zero(cpi.op(1)-prop.op(1)));
+                bool m2 = !(is_zero(cpi.op(0)-prop.op(1)) && is_zero(cpi.op(1)-prop.op(0)));
+                if(m1 && m2) continue; // other propagators
+                if(is_zero(li.op(0)-li.op(1))) return true; // a loop found
+                last = i;
+                lp = li;
+                tls.let_op(last) = 0;
+                break;
+            }
+            if(is_zero(lp)) break;
+            
+            for(int i=0; i<ntls; i++) {
+                if(is_zero(tls.op(i))) continue;
+                if(is_zero(tls.op(i).op(0)-lp.op(0))) tls.let_op(i).let_op(0) = lp.op(1);
+                if(is_zero(tls.op(i).op(1)-lp.op(0))) tls.let_op(i).let_op(1) = lp.op(1);
+            }
+        }
+        return false;
     }
     
 }

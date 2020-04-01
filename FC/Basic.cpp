@@ -59,16 +59,12 @@ namespace HepLib::FC {
         print_func<print_context>(&Index::print)
     )
     
-    Index::Index(const string &s, const Type t) : name(get_symbol(s)), type(t) { }
+    Index::Index(const string &s, const Type t) : name(s,true,false), type(t) { }
     int Index::compare_same_type(const basic &other) const {
         const Index &o = static_cast<const Index &>(other);
-        auto c = name.compare(o.name);
-        if(c!=0) return c;
-        if(type > o.type) return 1;
-        if(type < o.type) return -1;
-        return 0;
+        return name.compare(o.name);
     }
-        
+    
     void Index::print(const print_context &c, unsigned level) const {
         c.s << name;
     }
@@ -92,7 +88,7 @@ namespace HepLib::FC {
         string nstr;
         unsigned t;
         n.find_string("name", nstr);
-        name = get_symbol(nstr);
+        name = Symbol(nstr,true,false);
         n.find_unsigned("type", t);
         type = (Type)t;
     }
@@ -108,7 +104,7 @@ namespace HepLib::FC {
         print_func<print_context>(&Vector::print)
     )
     
-    Vector::Vector(const string &s) : name(get_symbol(s)) { }
+    Vector::Vector(const string &s) : name(s,true,false) { }
     int Vector::compare_same_type(const basic &other) const {
         const Vector &o = static_cast<const Vector &>(other);
         return name.compare(o.name);
@@ -136,7 +132,7 @@ namespace HepLib::FC {
         string nstr;
         unsigned t;
         n.find_string("name", nstr);
-        name = get_symbol(nstr);
+        name = Symbol(nstr,true,false);
     }
     
     ex Vector::derivative(const symbol & s) const {

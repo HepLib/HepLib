@@ -103,8 +103,11 @@ namespace HepLib::FC {
         static lst TopoLines(const ex & amp);
         static void DrawPDF(const lst & amps, string fn, bool rm=true);
         static vector<lst> ShrinkCut(ex amp, lst prop, int n=1);
+        static bool HasLoop(ex amp, lst prop);
         
         static map<ex,string,ex_is_less> LineTeX;
+        static map<ex,string,ex_is_less> VerTeX;
+        static map<ex,string,ex_is_less> InOutTeX;
     };
     
     //-----------------------------------------------------------
@@ -152,7 +155,7 @@ namespace HepLib::FC {
         Index(const string &s, const Type type=Type::VD);
         Pair operator() (const Index & i);
         Pair operator() (const Vector & p);
-        symbol name;
+        Symbol name;
         Type type;
         void print(const print_context &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
@@ -171,7 +174,7 @@ namespace HepLib::FC {
         Vector(const string &s);
         Pair operator() (const Vector & p);
         Pair operator() (const Index & mu);
-        symbol name;
+        Symbol name;
         void print(const print_context &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
@@ -322,6 +325,7 @@ namespace HepLib::FC {
     ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms);
     ex ApartIR2ex(const ex & expr_in);
     ex ApartIRC(const ex & expr_in);
+    void Apart2FIRE(exvector &air_vec, lst loops, lst exts);
     
     // ApartIR function upto 2 arguments
     class ApartIR1_SERIAL { public: static unsigned serial; };
@@ -334,6 +338,7 @@ namespace HepLib::FC {
     inline GiNaC::function ApartIR(const T1 & p1, const T2 & p2) {
         return GiNaC::function(ApartIR2_SERIAL::serial, ex(p1), ex(p2));
     }
+    class ApartIR_SERIAL;
     
     //-----------------------------------------------------------
     // Quarkonium
@@ -355,6 +360,6 @@ namespace HepLib::FC {
         ex LProj(const ex &expr_in, const lst &pqi);
 
     }
-    
-    
+        
 }
+

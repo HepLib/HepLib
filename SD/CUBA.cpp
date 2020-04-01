@@ -14,7 +14,7 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
     auto self = (CUBA*)fdata;
     int xdim = *pxdim, ydim = *pydim;
     bool NaNQ = false;
-    //#pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
+    //#pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
     int npts = 1;
     for(int i=0; i<npts; i++) {
         int iDQMP = self->inDQMP(x+i*xdim);

@@ -209,6 +209,7 @@ namespace HepLib {
     ex garResult(const string &garfn);
     ex str2ex(const string &expr, symtab stab);
     lst str2lst(const string &expr, symtab stab);
+    string ex2str(const ex &expr);
     lst xlst(int ei);
     lst xlst(int bi, int ei);
     

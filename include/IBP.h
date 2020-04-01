@@ -17,23 +17,24 @@ namespace HepLib::IBP {
     public:
         lst Internal;
         lst External;
-        lst Variables;
         lst Replacements;
         lst Propagators;
-        exvector Integrals;
-        vector<exmap> IBPs;
+        lst Integrals;
         ex UF(ex corner);
         
         string WorkingDir;
         int ProblemNumber;
         
         int Dimension;
-        exvector MasterIntegrals;
-        exmap Rules;
+        lst MasterIntegrals;
+        lst Rules;
         
         void Reduce();
         
-        static exmap FindRules(vector<FIRE> fs, bool mi=true); 
+        static lst FindRules(const vector<FIRE> &fs, bool mi=true);
+        static lst FindRules(const vector<FIRE*> &fs, bool mi=true); 
+    private:
+        vector<exmap> IBPs;
         
     };
 
