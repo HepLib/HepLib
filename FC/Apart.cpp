@@ -184,8 +184,7 @@ namespace HepLib::FC {
         
         if(ni!=-1) {
             auto nvec = subs(null_vec, iWF(w)==w+1);
-            if(is_zero(nvec.op(ni))) nvec = subs(null_vec, iWF(w)==w+3);
-            if(is_zero(nvec.op(ni))) nvec = subs(null_vec, iWF(w)==3*w+7);
+            if(is_zero(nvec.op(ni))) nvec = subs(null_vec, iWF(w)==w*w+3);
             if(is_zero(nvec.op(ni))) throw Error("Apart: iWF to int failed with "+ex2str(null_vec.op(ni)));
             ex sol = 0;
             for(int c=0; c<ncol; c++) {
@@ -243,8 +242,8 @@ namespace HepLib::FC {
         auto cres = subs(cres0, iWF(w)==w+1);
         auto nvec = subs(null_vec, iWF(w)==w+1);
         if(is_zero(cres)) {
-            cres = subs(cres0, iWF(w)==w+3);
-            nvec = subs(null_vec, iWF(w)==w+3);
+            cres = subs(cres0, iWF(w)==w*w+3);
+            nvec = subs(null_vec, iWF(w)==w*w+3);
         }
 
         // handle const is NOT zero

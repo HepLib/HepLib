@@ -93,7 +93,7 @@ namespace HepLib {
         bool isReal = true;
         
         static bool has(const ex &e);
-        static std::map<std::string, ex> Tables;
+        static std::map<std::string, ex> Table;
     
     };
     GINAC_DECLARE_UNARCHIVER(Symbol);
@@ -193,7 +193,7 @@ namespace HepLib {
         int nproc,
         int ntotal,
         std::function<ex(int)> f,
-        const char* key = NULL,
+        const string & key = "",
         int verb = 0,
         bool rm = true,
         int prtlvl = 0
@@ -202,7 +202,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Helpers
     /*-----------------------------------------------------*/
-    string RunOS(const char * cmd);
+    string RunOS(const string & cmd);
     void garRead(const string &garfn, map<string, ex> &resMap);
     void garWrite(const string &garfn, const map<string, ex> &resMap);
     ex garRead(const string &garfn, const char* key);
@@ -377,10 +377,12 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     class Parser {
     public:
-        prototype_table FuncDict;
-        symtab SymDict;
+        prototype_table FTable;
+        symtab STable;
         ex Read(string instr);
-        Parser(symtab st=Symbol::Tables);
+        ex ReadFile(string filename);
+        Parser();
+        Parser(symtab st);
     };
     
     /*-----------------------------------------------------*/

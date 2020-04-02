@@ -19,7 +19,7 @@ namespace HepLib {
     
     GINAC_IMPLEMENT_REGISTERED_CLASS(Symbol, symbol)
     
-    Symbol::Symbol(const string &s, bool r, bool c) : symbol(get_symbol(s,c)), isReal(r) { Tables[s]=*this; }
+    Symbol::Symbol(const string &s, bool r, bool c) : symbol(get_symbol(s,c)), isReal(r) { Table[s]=*this; }
     int Symbol::compare_same_type(const basic &other) const {
         const Symbol &o = static_cast<const Symbol &>(other);
         int ret = get_name().compare(o.get_name());
@@ -72,7 +72,7 @@ namespace HepLib {
     }
     vector<ex> GiNaC_Parallel(
         int nproc, int ntotal, std::function<ex(int)> f,
-        const char* key, int verb, bool rm, int prtlvl) {
+        const string & key, int verb, bool rm, int prtlvl) {
         
         auto ppid = getpid();
         int para_max_run = nproc<0 ? omp_get_num_procs()-1 : nproc;
@@ -90,7 +90,7 @@ namespace HepLib {
                 cout << "\r  ";
                 for(int pi=0;pi<prtlvl;pi++) cout << "   ";
                 cout << "\\--Evaluating ";
-                if(key != NULL) cout << Color_HighLight << key << RESET << " ";
+                if(key != "") cout << Color_HighLight << key << RESET << " ";
                 cout << Color_HighLight << batch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] ... " << flush;
             }
             
@@ -112,7 +112,7 @@ namespace HepLib {
                         ar.archive_ex(res, "res");
                         ar.archive_ex(19790923, "c");
                         ostringstream garfn;
-                        if(key == NULL) garfn << ppid << "/" << i << ".gar";
+                        if(key == "") garfn << ppid << "/" << i << ".gar";
                         else garfn << ppid << "/" << i << "." << key << ".gar";
                         ofstream outs(garfn.str().c_str());
                         outs << ar;
@@ -136,7 +136,7 @@ namespace HepLib {
         vector<ex> ovec;
         for(int i=0; i<ntotal; i++) {
             if(verb > 1) {
-                if(key == NULL) {
+                if(key == "") {
                     cout << "\r  ";
                     for(int pi=0; pi<prtlvl; pi++) cout << "   ";
                     cout << "\\--Reading *.gar [" << (i+1) << "/" << ntotal << "] ... " << flush;
@@ -152,7 +152,7 @@ namespace HepLib {
             
             archive ar;
             ostringstream garfn;
-            if(key == NULL) garfn << ppid << "/" << i << ".gar";
+            if(key == "") garfn << ppid << "/" << i << ".gar";
             else garfn << ppid << "/" << i << "." << key << ".gar";
             if(!file_exists(garfn.str().c_str())) {
                 cerr << Color_Error << "GiNaC_Parallel: Check the error message above." << RESET << endl;
@@ -328,11 +328,11 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // RunOS Command
     /*-----------------------------------------------------*/
-    string RunOS(const char * cmd) {
+    string RunOS(const string & cmd) {
         char buf[128];
         ostringstream oss;
         FILE *fp = NULL;
-        if( (fp = popen(cmd, "r")) != NULL) {
+        if( (fp = popen(cmd.c_str(), "r")) != NULL) {
             while(fgets(buf, 128, fp) != NULL) {
                 oss << buf;
             }
@@ -368,7 +368,7 @@ namespace HepLib {
         out.close();
     }
 
-    ex garRead(const string &garfn, const char* key) {
+    ex garRead(const string &garfn, const char* key) { // use the const char *, not string
         archive ar;
         ifstream in(garfn);
         in >> ar;

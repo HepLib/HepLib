@@ -261,7 +261,7 @@ namespace HepLib {
         if(file_exists(oss.str().c_str())) remove(oss.str().c_str());
     }
     
-    string Form::Execute(string script, const char * out_var) {
+    string Form::Execute(string script, const string & out_var) {
         string istr = script;
         istr += "\n.sort\n#call put(";
         istr += out_var;

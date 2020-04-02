@@ -95,16 +95,25 @@ namespace HepLib {
         }
     }
     
-    Parser::Parser(symtab st) : SymDict(st), FuncDict(ginac_reader()) { }
+    Parser::Parser() : STable(Symbol::Table), FTable(ginac_reader()) { }
+    Parser::Parser(symtab st) : STable(Symbol::Table), FTable(ginac_reader()) { 
+        for(auto item : st) STable[item.first] = item.second;
+    }
     ex Parser::Read(string instr) {
         unsigned serial = 0;
         for (auto & it : functions_hack::get_registered_functions()) {
             prototype proto = make_pair(it.get_name(), it.get_nparams());
-            FuncDict[proto] = encode_serial_as_reader_func(serial);
+            FTable[proto] = encode_serial_as_reader_func(serial);
             ++serial;
         }
-        parser ginac_parser(SymDict, false, FuncDict);
+        parser ginac_parser(STable, false, FTable);
         return ginac_parser(instr);
+    }
+    ex Parser::ReadFile(string filename) {
+        ifstream ifs(filename);
+        string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
+        ifs.close();
+        return Read(ostr);
     }
     
     /*-----------------------------------------------------*/

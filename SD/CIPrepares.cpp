@@ -4,7 +4,7 @@
 
 namespace HepLib::SD {
 
-    void SecDec::CIPrepares(const char *key) {
+    void SecDec::CIPrepares(const string & key) {
         if(expResult.size()<1) {
             IsZero = true;
         }
@@ -540,7 +540,7 @@ namespace HepLib::SD {
         bool hasF = (ftnvec.size()>0);
         if(hasF) {
             ostringstream sofn, cmd;
-            if(key != NULL) {
+            if(key != "") {
                 sofn << key << "F.so";
             } else {
                 sofn << pid << "F.so";
@@ -1037,7 +1037,7 @@ namespace HepLib::SD {
     //============================================================================================================
 
         ostringstream fsofn, sofn, garfn, cmd;
-        if(key != NULL) {
+        if(key != "") {
             fsofn << key << "F.so";
             sofn << key << ".so";
             garfn << key << ".ci.gar";
@@ -1080,7 +1080,7 @@ namespace HepLib::SD {
                 if(end>res_size-1) end = res_size-1;
                 sofn.clear();
                 sofn.str("");
-                if(key != NULL) sofn << key << "X" << n << ".so";
+                if(key != "") sofn << key << "X" << n << ".so";
                 else sofn << pid << "X" << n << ".so";
                 cmd.clear();
                 cmd.str("");

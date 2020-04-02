@@ -5,11 +5,11 @@
 namespace HepLib::SD {
     
     // need Parameter
-    void SecDec::Contours(const char *key, const char *pkey) {
+    void SecDec::Contours(const string & key, const string & pkey) {
         if(IsZero) return;
         if(Minimizer==NULL) Minimizer = new MinUit();
 
-        if(key != NULL) {
+        if(key != "") {
             ostringstream garfn;
             garfn << key << ".ci.gar";
             archive ar;
@@ -35,7 +35,7 @@ namespace HepLib::SD {
         system(cmd.str().c_str());
         
         ostringstream fsofn;
-        if(key != NULL) {
+        if(key != "") {
             fsofn << key << "F.so";
         } else {
             fsofn << pid << "F.so";
@@ -166,9 +166,9 @@ namespace HepLib::SD {
         if(use_dlclose) dlclose(module);
         
         ostringstream garfn;
-        if(key != NULL) {
+        if(key != "") {
             garfn << key;
-            if(pkey != NULL) garfn << "-" << pkey;
+            if(pkey != "") garfn << "-" << pkey;
             garfn << ".las.gar";
             lst gar_res;
             for(auto &item : res) gar_res.append(item);

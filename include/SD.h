@@ -238,12 +238,12 @@ namespace HepLib::SD {
     class CppFormat : public print_csrc_cl_N {
         GINAC_DECLARE_PRINT_CONTEXT(CppFormat, print_csrc_cl_N)
     public:
-        CppFormat(ostream &os, const char* s = "L", unsigned opt = 0);
+        CppFormat(ostream &os, const string & s = "L", unsigned opt = 0);
         static ex q2ex(qREAL);
         static qREAL ex2q(ex);
-        const char* suffix;
+        string suffix;
         static void QPrint(qREAL qr);
-        const char* MQuote = "\"";
+        string MQuote = "\"";
         // static initialization
         class _init {
             public: _init();
@@ -288,7 +288,7 @@ namespace HepLib::SD {
     public:
         static bool use_dlclose;
         static bool debug;
-        static const char* cpp;
+        static string cpp;
         
         int ParallelProcess = -1;
         int epN = 0;
@@ -304,7 +304,7 @@ namespace HepLib::SD {
         IntegratorBase *Integrator = NULL;
         MinimizeBase *Minimizer = NULL;
         ex ResultError;
-        const char * CFLAGS = "";
+        string CFLAGS = "";
         bool IsZero = false;
         bool CheckEnd = false;
         //bool use_CCF = true;
@@ -353,12 +353,12 @@ namespace HepLib::SD {
         void KillPowers(int bits=1+2);
         bool IsBad(ex f, vector<exmap> vmap);
         vector<ex> AutoEnd(ex po_ex);
-        void CIPrepares(const char* key = NULL);
-        void Contours(const char * key = NULL, const char *pkey = NULL);
-        void Integrates(const char* key = NULL, const char *pkey = NULL, int kid=0);
-        void Evaluate(FeynmanParameter fpi, const char *key = NULL);
-        void Evaluate(XIntegrand xint, const char *key = NULL);
-        void Evaluate(vector<ex> FunExp, const char *key = NULL);
+        void CIPrepares(const string & key = "");
+        void Contours(const string & key = "", const string & pkey = "");
+        void Integrates(const string & key="", const string & pkey="", int kid=0);
+        void Evaluate(FeynmanParameter fpi, const string & key = "");
+        void Evaluate(XIntegrand xint, const string & key = "");
+        void Evaluate(vector<ex> FunExp, const string & key = "");
         void MB();
         void XEnd();
         void ChengWu(bool sub_cw=false);
@@ -408,7 +408,7 @@ namespace HepLib::SD {
     class cseParser {
     public:
         ex Parse(ex expr, bool reset=true);
-        const char* oc = "o";
+        string oc = "o";
         int on();
         vector<pair<int, ex>> os();
     private:

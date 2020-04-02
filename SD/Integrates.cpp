@@ -5,7 +5,7 @@
 namespace HepLib::SD {
     
     // need Parameter
-    void SecDec::Integrates(const char *key, const char *pkey, int kid) {
+    void SecDec::Integrates(const string & key, const string & pkey, int kid) {
         if(IsZero) return;
         if(Integrator==NULL) Integrator = new HCubature();
                 
@@ -14,7 +14,7 @@ namespace HepLib::SD {
         lst lstRE;
         auto pid = getpid();
         ostringstream fsofn, sofn, cmd;
-        if(key == NULL) {
+        if(key == "") {
             sofn << pid << ".so";
             fsofn << pid << "F.so";
         } else {
@@ -33,7 +33,7 @@ namespace HepLib::SD {
             garfn.clear();
             garfn.str("");
             garfn << key;
-            if(pkey != NULL) garfn << "-" << pkey;
+            if(pkey != "") garfn << "-" << pkey;
             garfn << ".las.gar";
             if(file_exists(garfn.str().c_str())) {
                 archive la_ar;
@@ -52,7 +52,7 @@ namespace HepLib::SD {
                 garfn.clear();
                 garfn.str("");
                 garfn << key;
-                if(pkey != NULL) garfn << "-" << pkey;
+                if(pkey != "") garfn << "-" << pkey;
                 garfn << ".res.gar";
                 if(!file_exists(garfn.str().c_str())) {
                     cerr << Color_Error << "Integrates: File Not Found: " << garfn.str() << RESET << endl;
@@ -77,14 +77,14 @@ namespace HepLib::SD {
             exit(1);
         }
         
-        if(!debug && key == NULL) {
+        if(!debug && key == "") {
             if(file_exists(fsofn.str().c_str())) remove(fsofn.str().c_str());
             remove(sofn.str().c_str());
         }
         vector<void*> ex_modules;
         for(int n=1; true; n++) {
             ostringstream ex_sofn;
-            if(key == NULL) {
+            if(key == "") {
                 ex_sofn << pid << "X" << n << ".so";
             } else {
                 ex_sofn << key << "X" << n << ".so";
@@ -97,7 +97,7 @@ namespace HepLib::SD {
                     exit(1);
                 }
                 ex_modules.push_back(module);
-                if(!debug && key == NULL) remove(ex_sofn.str().c_str());
+                if(!debug && key == "") remove(ex_sofn.str().c_str());
             } else break;
         }
         
@@ -301,7 +301,7 @@ namespace HepLib::SD {
                 
                 ostringstream las_fn;
                 las_fn << key;
-                if(pkey != NULL) las_fn << "-" << pkey;
+                if(pkey != "") las_fn << "-" << pkey;
                 las_fn << "-" << current << ".las";
                 if(use_las && file_exists(las_fn.str().c_str())) {
                     std::ifstream las_ifs;
@@ -529,10 +529,10 @@ namespace HepLib::SD {
         }
         ResultError = VESimplify(ResultError,epN,epsN);
         
-        if(key != NULL) {
+        if(key != "") {
             ostringstream garfn;
             garfn << key;
-            if(pkey != NULL) garfn << "-" << pkey;
+            if(pkey != "") garfn << "-" << pkey;
             garfn << ".res.gar";
             archive ar;
             ar.archive_ex(ResultError, "res");

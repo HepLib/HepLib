@@ -46,7 +46,7 @@ namespace HepLib {
         string Sentinel = "---EOF---";
         string Prompt = "***EOF***";
         void Init(string form_path_args="form");
-        string Execute(string script, const char * out_var="[o]");
+        string Execute(string script, const string & out_var="[o]");
         void Exit();
     
     private:

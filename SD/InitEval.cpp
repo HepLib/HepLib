@@ -439,10 +439,10 @@ namespace HepLib::SD {
         Normalizes();
     }
     
-    void SecDec::Evaluate(FeynmanParameter fp, const char* key) {
+    void SecDec::Evaluate(FeynmanParameter fp, const string & key) {
         
         cout << endl << "Starting @ " << now() << endl;
-        if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");
+        if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         Initialize(fp);
         if(FunExp.size()<1) return;
@@ -462,10 +462,10 @@ namespace HepLib::SD {
         cout << "Finished @ " << now() << endl << endl;
     }
 
-    void SecDec::Evaluate(XIntegrand xint, const char *key) {
+    void SecDec::Evaluate(XIntegrand xint, const string & key) {
         
         cout << endl << "Starting @ " << now() << endl;
-        if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");
+        if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         Initialize(xint);
         if(FunExp.size()<1) return;
@@ -485,10 +485,10 @@ namespace HepLib::SD {
         cout << "Finished @ " << now() << endl << endl;
     }
     
-    void SecDec::Evaluate(vector<ex> funexp, const char *key) {
+    void SecDec::Evaluate(vector<ex> funexp, const string & key) {
         
         cout << endl << "Starting @ " << now() << endl;
-        if(strlen(CFLAGS)<1) CFLAGS = getenv("SD_CFLAGS");
+        if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         FunExp = funexp;
         if(FunExp.size()<1) return;

@@ -236,9 +236,9 @@ namespace HepLib::FC {
         st["I"] = I;
 
         Parser fp(st);
-        fp.FuncDict[make_pair("SP", 2)] = SP_reader;
-        fp.FuncDict[make_pair("LC", 4)] = LC_reader;
-        fp.FuncDict[make_pair("T", 3)] = SUNT_reader;
+        fp.FTable[make_pair("SP", 2)] = SP_reader;
+        fp.FTable[make_pair("LC", 4)] = LC_reader;
+        fp.FTable[make_pair("T", 3)] = SUNT_reader;
         ex ret = fp.Read(ostr);
         return ret;
     }}

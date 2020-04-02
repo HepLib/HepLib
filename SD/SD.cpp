@@ -5,10 +5,6 @@
 
 namespace HepLib::SD {
 
-    bool SecDec::use_dlclose = true;
-    bool SecDec::debug = false;
-    const char* SecDec::cpp = "g++";
-
     bool SecDecBase::VerifySD(vector<exmap> map_vec, bool quick) {
         lst xs;
         exmap nxs;

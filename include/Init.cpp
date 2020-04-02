@@ -11,7 +11,7 @@ namespace HepLib {
     //----------------------------------------
     // HepLib
     //----------------------------------------
-    std::map<std::string, ex> Symbol::Tables; // alias as symtab in parser
+    std::map<std::string, ex> Symbol::Table; // alias as symtab in parser
     
     ex w = wild();
     ex w0 = wild(0);
@@ -35,6 +35,10 @@ namespace HepLib {
     const Symbol SD::vz("vz");
     const Symbol SD::epz("epz");
     const Symbol SD::NaN("NaN");
+    
+    bool SD::SecDec::use_dlclose = true;
+    bool SD::SecDec::debug = false;
+    string SD::SecDec::cpp = "g++";
 
     SD::SecDec::_init::_init() {
         // for later use
