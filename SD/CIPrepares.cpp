@@ -14,7 +14,7 @@ namespace HepLib::SD {
         if(Verbose > 0) cout << now() << " - CIPrepares ..." << endl << flush;
         auto pid = getpid();
                 
-        vector<ex> resf =
+        auto resf =
         GiNaC_Parallel(ParallelProcess, expResult.size(), [&](int idx)->ex {
             // return lst{ kv.op(0), kv.op(1), ft};
             auto kv = expResult[idx];
@@ -566,7 +566,7 @@ namespace HepLib::SD {
         }
 
         // Prepare Integrand
-        vector<ex> res =
+        auto res =
         GiNaC_Parallel(ParallelProcess, res_vec.size(), [&](int idx)->ex {
             // return lst{ no-x-result, xn, x-indepent prefactor, ft_n }
             // or     lst{ id(SD(D|Q)_id in .so), xn, x-indepent prefactor, ft_n }

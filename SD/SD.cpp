@@ -781,7 +781,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         if(IsZero) return;
         if(verb) cout << now() << " - Scaleless: " << FunExp.size() << " :> " << flush;
 
-        vector<ex> sl_res =
+        auto sl_res =
         GiNaC_Parallel(ParallelProcess, FunExp.size(), [&](int idx)->ex {
             auto funexp = FunExp[idx];
             if(funexp.nops()<3) return funexp;
@@ -930,7 +930,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
 
     void SecDec::XEnd() {
         if(Verbose > 0) cout << now() << " - BiSection: " << FunExp.size() << " :> " << flush;
-        vector<ex> funexps =
+        auto funexps =
         GiNaC_Parallel(ParallelProcess, FunExp.size(), [&](int idx)->ex {
             auto fe = FunExp[idx];
             lst para_res_lst;
@@ -985,7 +985,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         }
         
         if(Verbose > 0) cout << now() << " - SDPrepares: ..." << endl << flush;
-        vector<ex> sd_res =
+        auto sd_res =
         GiNaC_Parallel(ParallelProcess, FunExp.size(), [&](int idx)->ex {
             // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
             auto fe = FunExp[idx];
@@ -1096,7 +1096,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             pn++;
             ostringstream spn;
             spn << "IBP-" << (pn-1);
-            vector<ex> ibp_res =
+            auto ibp_res =
             GiNaC_Parallel(ParallelProcess, ibp_in_vec.size(), [&](int idx)->ex {
                 // return lst
                 // {0, element} for input with pole reached and doing nothing
@@ -1222,7 +1222,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             }
         }
         
-        vector<ex> res =
+        auto res =
         GiNaC_Parallel(ParallelProcess, ibp_res_vec.size(), [&](int idx)->ex {
 
             // return single element in which ep/eps can be expanded safely.
@@ -1354,7 +1354,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         }
         if(Verbose > 1) cout << Integrands.size() << endl;
             
-        vector<ex> res =
+        auto res =
         GiNaC_Parallel(ParallelProcess, Integrands.size(), [&](int idx)->ex {
             // return { {two elements}, {two elements}, ...},
             // 1st: x-independent coefficient, expanded in ep/eps

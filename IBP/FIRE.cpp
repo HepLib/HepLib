@@ -213,12 +213,12 @@ namespace HepLib::IBP {
         int nps = Propagators.nops();
         for(int i=0; i<nps; i++) {
             if(is_zero(idx.op(i))) continue;
-            ft -= iWF(idx.op(i)) * x(i) * Propagators.op(i);
+            ft -= (is_zero(idx.op(i)-1) ? ex(1) : iWF(idx.op(i))) * x(i) * Propagators.op(i);
         }
 
         ex ut = 1;
         for(int i=0; i<Internal.nops(); i++) {
-            ft = mma_collect(ft, Internal);
+            ft = ft.expand();
             auto t2 = ft.coeff(Internal.op(i), 2);
             auto t1 = ft.coeff(Internal.op(i), 1);
             auto t0 = ft.subs(Internal.op(i)==0);

@@ -80,10 +80,11 @@ namespace HepLib::FC {
         string Model;
         string In;
         string Out;
+        string LoopPrefix = "q";
         int Loops;
         string Options;
         vector<string> Others;
-        lst Amplitudes(symtab st);
+        lst Amplitudes(symtab st, bool debug=false);
         
         static Index LI(ex fn);
         static Index DI(ex fn);
@@ -101,7 +102,7 @@ namespace HepLib::FC {
         static ex gh2gVertex(ex e);
         
         static lst TopoLines(const ex & amp);
-        static void DrawPDF(const lst & amps, string fn, bool rm=true);
+        static void DrawPDF(const lst & amps, string fn, bool debug=false);
         static vector<lst> ShrinkCut(ex amp, lst prop, int n=1);
         static bool HasLoop(ex amp, lst prop);
         

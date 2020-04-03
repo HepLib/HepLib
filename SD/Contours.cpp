@@ -47,7 +47,7 @@ namespace HepLib::SD {
             exit(1);
         }
 
-        vector<ex> res =
+        auto res =
         GiNaC_Parallel(ParallelProcess, ftnxn_vec.size(), [&](int idx)->ex {
             // return lst{ ft_n, lst{lambda-i, lambda-max} }
             // with I*[lambda-i]*lambda, lambda < lambda-max

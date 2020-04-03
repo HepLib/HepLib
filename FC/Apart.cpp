@@ -463,15 +463,31 @@ namespace HepLib::FC {
     
     void Apart2FIRE(exvector &air_vec, lst vloops, lst vexts) {
         string wdir = to_string(getpid()) + "_FIRE";
-        exset intg;
-        for(auto &air : air_vec) {
+cout << "step 1 @ " << now() << endl;        
+
+        auto air_intg = GiNaC_Parallel(-1, air_vec.size(), [air_vec] (int idx) {
+            auto air = air_vec[idx];
             // fix ApartIR from archive
             air = air.subs(GiNaC::function(ApartIR1_SERIAL::serial, w1, w2)==ApartIR(w1,w2));
+            air = air.subs(GiNaC::function(ApartIR2_SERIAL::serial, w1)==ApartIR(w1));
             
             air = ApartIRC(air);
+            exset intg;
             find(air, ApartIR(w1, w2), intg);
-        }
+            lst intgs;
+            for(auto item : intg) intgs.append(item);
+            return lst{air, intgs};
+        }, "IRC", 100);
         
+        lst intg;
+        for(int i=0; i<air_vec.size(); i++) {
+            air_vec[i] = air_intg[i].op(0);
+            for(auto item : air_intg[i].op(1)) intg.append(item);
+        }
+        intg.sort();
+        intg.unique();
+        
+cout << "step 2 @ " << now() << endl;   
         exmap sp2;
         lst loops;
         for(auto vp1 : vloops) {
@@ -486,6 +502,7 @@ namespace HepLib::FC {
                 sp2[SP(vp1,vp2)] = p1 * p2;
             }
         }
+
         lst repls, exts;
         for(auto vp1 : vexts) {
             auto p1 = ex_to<Vector>(vp1).name;
@@ -497,7 +514,7 @@ namespace HepLib::FC {
         }
         repls.sort();
         repls.unique();
-        
+
         exmap ir2F;
         std::map<ex, FIRE*, ex_is_less> p2f;
         vector<FIRE*> fvec;
@@ -530,8 +547,11 @@ namespace HepLib::FC {
             f->Integrals.append(ns);
             ir2F[item] = F(f->ProblemNumber, ns);
         }
-        
+
+cout << "step 5-a @ " << now() << endl;        
         auto int_rules = FIRE::FindRules(fvec, false);
+cout << "step 5-b @ " << now() << endl;   
+
         for(auto &fp : fvec) {
             auto ints = fp->Integrals;
             for(int i=0; i<ints.nops(); i++) ints.let_op(i) = F(fp->ProblemNumber, ints.op(i));
@@ -541,7 +561,7 @@ namespace HepLib::FC {
             for(int i=0; i<ints.nops(); i++) ints.let_op(i) = ints.op(i).op(1);
             fp->Integrals = ints;
         }
-        
+cout << "step 6 @ " << now() << endl;        
         auto fres= GiNaC_Parallel(-1, fvec.size(), [fvec](int idx)->ex {
             auto item = fvec[idx];
             item->Reduce();

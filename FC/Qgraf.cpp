@@ -97,7 +97,7 @@ namespace HepLib::FC {
         return -gs * SUNF(CI(fi1),CI(fi2),CI(fi3)) * SP(mom1,LI(fi3));
     }
 
-    lst Qgraf::Amplitudes(symtab st) {
+    lst Qgraf::Amplitudes(symtab st, bool debug) {
         std::ofstream ofs;
         ofs.open("qgraf.dat", ios::out);
                 
@@ -107,12 +107,13 @@ namespace HepLib::FC {
         ofs << "in=" << In << ";" << endl;
         ofs << "out=" << Out << ";" << endl;
         ofs << "loops=" << Loops << ";" << endl;
-        ofs << "loop_momentum=q;" << endl;
-        ofs << "options=" << Options << ";" << endl;
+        ofs << "loop_momentum=" << LoopPrefix << ";" << endl;
+        if(Options!="") ofs << "options=" << Options << ";" << endl;
         for(auto vs : Others) ofs << vs << ";" << endl;
         ofs.close();
         
-        system((InstallPrefix+"/bin/qgraf > /dev/null").c_str());
+        if(debug) system((InstallPrefix+"/bin/qgraf").c_str());
+        else system((InstallPrefix+"/bin/qgraf > /dev/null").c_str());
         
         ifstream ifs(Output);
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
@@ -172,12 +173,13 @@ namespace HepLib::FC {
         return lines.sort();
     }
     
-    void Qgraf::DrawPDF(const lst & amps, string fn, bool rm) {
+    void Qgraf::DrawPDF(const lst & amps, string fn, bool debug) {
         int id=0;
         vector<ex> amp_vec;
         for(auto item : amps) amp_vec.push_back(item);
         string tex_path = to_string(getpid()) + "_TeX/";
         system(("mkdir -p "+tex_path).c_str());
+        int limit = 300;
         
         GiNaC_Parallel(-1, amp_vec.size(), [&](int idx)->ex {
             auto amp = amp_vec[idx];
@@ -241,7 +243,7 @@ namespace HepLib::FC {
         out << "\\usepackage{graphicx}" << endl;
         out << "\\usepackage{adjustbox}" << endl;
         out << "\\begin{document}" << endl;
-        out << "\\begin{adjustbox}{width=\\textwidth}" << endl;
+        out << "\\begin{adjustbox}{valign=T,width=\\textwidth}" << endl;
         out << "\\begin{tabular}{|cc|cc|cc|cc|}" << endl;
         out << "\\hline" << endl;
         int total = amps.nops();
@@ -249,7 +251,7 @@ namespace HepLib::FC {
         if((total%4)!=0) total = (total/4+1)*4;
         for(int i=0 ; i<total; i++) {
             
-            if((i!=0) && (i+1!=total) && (i%100)==0) {
+            if((i!=0) && (i+1!=total) && (i%limit)==0) {
                 out << "\\end{tabular}" << endl << endl;
                 out << "\\begin{tabular}{|cc|cc|cc|cc|}" << endl;
                 out << "\\hline" << endl;
@@ -269,8 +271,9 @@ namespace HepLib::FC {
         out << "\\end{adjustbox}" << endl;
         out << "\\end{document}" << endl;
         out.close();
-        system(("cd "+tex_path+" && echo X | pdflatex diagram 1>/dev/null && mv diagram.pdf ../"+fn).c_str());
-        if(rm) system(("rm -r "+tex_path).c_str());
+        if(debug)  system(("cd "+tex_path+" && pdflatex diagram && mv diagram.pdf ../"+fn).c_str());
+        else system(("cd "+tex_path+" && echo X | pdflatex diagram 1>/dev/null && mv diagram.pdf ../"+fn).c_str());
+        if(!debug) system(("rm -r "+tex_path).c_str());
     }
     
     // lst is actually a lst of lst, different connectted parts

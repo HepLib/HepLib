@@ -344,7 +344,7 @@ namespace HepLib {
 
 
     /*-----------------------------------------------------*/
-    // garResult Function
+    // garRead/garWrite Function
     /*-----------------------------------------------------*/
     void garRead(const string &garfn, map<string, ex> &resMap) {
         archive ar;
@@ -358,16 +358,6 @@ namespace HepLib {
         }
     }
     
-    void garWrite(const string &garfn, const map<string, ex> &resMap) {
-        archive ar;
-        for(const auto & item : resMap) {
-            ar.archive_ex(item.second, item.first.c_str());
-        }
-        ofstream out(garfn);
-        out << ar;
-        out.close();
-    }
-
     ex garRead(const string &garfn, const char* key) { // use the const char *, not string
         archive ar;
         ifstream in(garfn);
@@ -377,7 +367,7 @@ namespace HepLib {
         return res;
     }
 
-    ex garResult(const string &garfn) {
+    ex garRead(const string &garfn) {
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -391,6 +381,26 @@ namespace HepLib {
         }
         return res;
     }
+    
+    void garWrite(const string &garfn, const map<string, ex> &resMap) {
+        archive ar;
+        for(const auto & item : resMap) {
+            ar.archive_ex(item.second, item.first.c_str());
+        }
+        ofstream out(garfn);
+        out << ar;
+        out.close();
+    }
+
+    void garWrite(const string &garfn, const ex & res) {
+        archive ar;
+        ar.archive_ex(res, "res");
+        ar.archive_ex(19790923, "c");
+        ofstream out(garfn);
+        out << ar;
+        out.close();
+    }
+
 
     /*-----------------------------------------------------*/
     // str2ex Function

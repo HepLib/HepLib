@@ -204,9 +204,10 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     string RunOS(const string & cmd);
     void garRead(const string &garfn, map<string, ex> &resMap);
-    void garWrite(const string &garfn, const map<string, ex> &resMap);
     ex garRead(const string &garfn, const char* key);
-    ex garResult(const string &garfn);
+    ex garRead(const string &garfn);
+    void garWrite(const string &garfn, const map<string, ex> &resMap);
+    void garWrite(const string &garfn, const ex & res);
     ex str2ex(const string &expr, symtab stab);
     lst str2lst(const string &expr, symtab stab);
     string ex2str(const ex &expr);
@@ -408,7 +409,7 @@ namespace HepLib {
     void PermutationsR(int n, int m, std::function<void(const int*)> f);
     
     /*-----------------------------------------------------*/
-    // string Functions
+    // Other Functions
     /*-----------------------------------------------------*/
     extern MapFunction Rationalize;
     
