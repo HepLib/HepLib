@@ -14,14 +14,14 @@ namespace HepLib::SD {
             if(is_zero(ex1_in) && is_zero(ex2_in)) {
                 c.s << "0(0)";
             } else if(is_zero(ex1_in)) {
-                numeric ex2 = ex_to<numeric>(ex2_in);
+                numeric ex2 = ex_to<numeric>(Rationalize(ex2_in));
                 int n2 = floor(ex_to<numeric>(log(ex2)/log10).to_double());
                 double d2 = round(ex_to<numeric>(ex2/power(10,n2)).to_double());
                 if(d2==10) {d2=1; n2++;}
                 c.s << "0(" << d2 << ")";
                 if(n2!=0) c.s << "E" << n2;
             } else if(is_zero(ex2_in)) {
-                numeric ex1 = ex_to<numeric>(ex1_in);
+                numeric ex1 = ex_to<numeric>(Rationalize(ex1_in));
                 bool neg = bool(ex1<0);
                 if(neg) ex1 = 0-ex1;
                 int n1 = floor(ex_to<numeric>(log(ex1)/log10).to_double());
@@ -50,8 +50,8 @@ namespace HepLib::SD {
                 if(n1!=0) c.s << "E" << n1;
                 if(neg) c.s << ")";
             } else {
-                numeric ex1 = ex_to<numeric>(ex1_in);
-                numeric ex2 = ex_to<numeric>(ex2_in);
+                numeric ex1 = ex_to<numeric>(Rationalize(ex1_in));
+                numeric ex2 = ex_to<numeric>(Rationalize(ex2_in));
                 bool neg = bool(ex1<0);
                 if(neg) ex1 = 0-ex1;
                 

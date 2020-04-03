@@ -407,4 +407,9 @@ namespace HepLib {
     void Permutations(int n, int m, std::function<void(const int*)> f);
     void PermutationsR(int n, int m, std::function<void(const int*)> f);
     
+    /*-----------------------------------------------------*/
+    // string Functions
+    /*-----------------------------------------------------*/
+    extern MapFunction Rationalize;
+    
 }

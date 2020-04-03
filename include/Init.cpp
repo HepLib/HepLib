@@ -1,3 +1,4 @@
+#include "cln/cln.h"
 #include "SD.h"
 #include "FC.h"
 #include "IBP.h"
@@ -83,5 +84,20 @@ namespace HepLib {
     // HepLib::IBP
     //----------------------------------------
     const Symbol IBP::d("d");
+    
+    //----------------------------------------
+    // Rationalize
+    //----------------------------------------
+    
+    MapFunction Rationalize([](const ex & e, MapFunction & self)->ex{
+        if(is_a<numeric>(e)) {
+            auto ne = ex_to<numeric>(e);
+            if(ne.is_crational()) return e;
+            auto zz = ne.to_cl_N();
+            auto re = cln::rationalize(cln::realpart(zz));
+            auto im = cln::rationalize(cln::imagpart(zz));
+            return numeric(cln::complex(re,im));
+        } else return e.map(self);
+    });
     
 }
