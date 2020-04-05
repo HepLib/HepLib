@@ -67,7 +67,7 @@ namespace HepLib::SD {
             ft = collect_common_factors(ft);
             return lst{ kv.op(0), kv.op(1), ft};
             
-        }, "CI-F", Verbose, false);
+        }, "CI-F", false);
         
 
     //============================================================================================================
@@ -535,7 +535,7 @@ namespace HepLib::SD {
             
             return 0;
         
-        }, "CI-C", Verbose, false);
+        }, "CI-C", false);
         
         bool hasF = (ftnvec.size()>0);
         if(hasF) {
@@ -1031,7 +1031,7 @@ namespace HepLib::SD {
             system(cmd.str().c_str());
             if(!debug) remove(cppfn.str().c_str());
             return lst{ idx, xs.size(), kvf.op(0), ft_n };
-        }, "CI-I", Verbose, false);
+        }, "CI-I", false);
         
 
     //============================================================================================================

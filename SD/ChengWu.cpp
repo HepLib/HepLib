@@ -238,11 +238,11 @@ bool SecDec::Partilize(ex f0, lst delta, lst &in_ret, int mode) {
 }
 
 void SecDec::ChengWu(bool sub_cw) {
-    ChengWu(FunExp, Verbose, sub_cw);
+    ChengWu(FunExp, sub_cw);
 }
 
-// FunExp & Verbose are local
-void SecDec::ChengWu(vector<ex> &FunExp, int Verbose, bool sub_cw) {
+// FunExp is now local
+void SecDec::ChengWu(vector<ex> &FunExp, bool sub_cw) {
     vector<ex> FunExp2;
     for(auto fe : FunExp) {
         if(fe.nops()<3 || xSign(fe.op(0).op(1))!=0) {
@@ -255,7 +255,7 @@ void SecDec::ChengWu(vector<ex> &FunExp, int Verbose, bool sub_cw) {
         for(int di=0; di<deltas.nops(); di++) Projectivize(fe, deltas.op(di)); //make sure projective
         let_op_prepend(fe, 0, fe.op(0).op(1));
         let_op_prepend(fe, 1, 0);
-        auto ret = ChengWu_Internal(fe, Verbose);
+        auto ret = ChengWu_Internal(fe);
         for(auto item : ret) FunExp2.push_back(item);
     }
     
@@ -275,7 +275,7 @@ void SecDec::ChengWu(vector<ex> &FunExp, int Verbose, bool sub_cw) {
             if(ft.degree(xi)==1 && xSign(ft.subs(xi==0))!=0) {
                 auto fe2 = fe;
                 let_op(fe2, 0, 0, ft.coeff(xi));
-                auto ret1 = ChengWu_Internal(fe2, Verbose);
+                auto ret1 = ChengWu_Internal(fe2);
                 for(auto item : ret1) {
                     if(get_op(item,0,0)!=1) goto inner_loop_end;
                 }
@@ -289,7 +289,7 @@ void SecDec::ChengWu(vector<ex> &FunExp, int Verbose, bool sub_cw) {
                     }
                     let_op(item, 0, 0, ft0); // actual F-term
                     if(Verbose>10) cout << "  \\--Cheng-Wu Subsection" << endl;
-                    auto ret2 = ChengWu_Internal(item, Verbose);
+                    auto ret2 = ChengWu_Internal(item);
                     for(auto item2 : ret2) FunExp.push_back(item2);
                 }
                 goto loop_end;
@@ -312,7 +312,7 @@ void SecDec::ChengWu(vector<ex> &FunExp, int Verbose, bool sub_cw) {
 // make sure ft in the first term ONLY appear in ChengWu.cpp
 // input: ft = in_fe.op(0).op(0)
 // ouput: in_op(0).op(0) replaced by 1-ok, 2-nok
-vector<ex> SecDec::ChengWu_Internal(ex in_fe, int Verbose) {
+vector<ex> SecDec::ChengWu_Internal(ex in_fe) {
     vector<ex> fe_lst, ret_lst;
     fe_lst.push_back(in_fe);
     while(true) {

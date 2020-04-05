@@ -62,7 +62,10 @@ namespace HepLib::FC {
     Index::Index(const string &s, const Type t) : name(s,true,false), type(t) { }
     int Index::compare_same_type(const basic &other) const {
         const Index &o = static_cast<const Index &>(other);
-        return name.compare(o.name);
+        auto ret = name.get_name().compare(o.name.get_name());
+        if(ret==0) return 0;
+        else if(ret<0) return -1;
+        else return 1;
     }
     
     void Index::print(const print_context &c, unsigned level) const {
@@ -107,7 +110,10 @@ namespace HepLib::FC {
     Vector::Vector(const string &s) : name(s,true,false) { }
     int Vector::compare_same_type(const basic &other) const {
         const Vector &o = static_cast<const Vector &>(other);
-        return name.compare(o.name);
+        auto ret = name.get_name().compare(o.name.get_name());
+        if(ret==0) return 0;
+        else if(ret<0) return -1;
+        else return 1;
     }
     
     void Vector::print(const print_context &c, unsigned level) const {

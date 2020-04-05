@@ -268,7 +268,6 @@ namespace HepLib::SD {
             qREAL paras[npara+1];
             for(auto kv : Parameter) paras[kv.first] = CppFormat::ex2q(kv.second);
             
-            Integrator->Verbose = Verbose;
             Integrator->ReIm = reim;
             Integrator->MPDigits = MPDigits;
             Integrator->Integrand = fp;
@@ -441,7 +440,6 @@ namespace HepLib::SD {
                     auto miner = new HookeJeeves();
                     ErrMin::miner = miner;
                     ErrMin::Integrator = Integrator;
-                    ErrMin::Verbose = Verbose;
                     dREAL oo[las.nops()-1], ip[las.nops()-1];
                     for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = lambda[i];
                     ErrMin::lambda = oo;

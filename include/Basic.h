@@ -194,7 +194,6 @@ namespace HepLib {
         int ntotal,
         std::function<ex(int)> f,
         const string & key = "",
-        int verb = 0,
         bool rm = true,
         int prtlvl = 0
     );
@@ -281,6 +280,7 @@ namespace HepLib {
     extern string InstallPrefix;
     extern const Symbol iEpsilon;
     extern const Symbol ep;
+    extern int Verbose;
     
     /*-----------------------------------------------------*/
     // Global Colors
@@ -409,8 +409,16 @@ namespace HepLib {
     void PermutationsR(int n, int m, std::function<void(const int*)> f);
     
     /*-----------------------------------------------------*/
-    // Other Functions
+    // Rationalize
     /*-----------------------------------------------------*/
     extern MapFunction Rationalize;
+    
+    
+    
+    /*-----------------------------------------------------*/
+    // Other Functions
+    /*-----------------------------------------------------*/
+    inline void append_to(const exvector & exv, lst & alst) { for(auto item : exv) alst.append(item); }
+    inline void append_to(const lst & alst, exvector & exv) { for(auto item : alst) exv.push_back(item); }
     
 }

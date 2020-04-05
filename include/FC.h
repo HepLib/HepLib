@@ -101,6 +101,9 @@ namespace HepLib::FC {
         static ex g4Vertex(ex e);
         static ex gh2gVertex(ex e);
         
+        ex eikonalPropagator(ex e, ex n, int mode); // 0 for gluon, others for quark/anti-quark
+        ex eikonalVertex(ex e, ex n, int mode); // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
+        
         static lst TopoLines(const ex & amp);
         static void DrawPDF(const lst & amps, string fn, bool debug=false);
         static vector<lst> ShrinkCut(ex amp, lst prop, int n=1);

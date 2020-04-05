@@ -134,7 +134,6 @@ namespace HepLib::SD {
         qREAL EpsAbs = 1E-5;
         qREAL EpsRel = 0;
         int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
-        int Verbose = 0;
         int NANMax = 250;
         int nNAN = 0;
         
@@ -266,7 +265,6 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     class ErrMin {
     public:
-        static int Verbose;
         static IntegratorBase *Integrator;
         static qREAL *paras;
         static dREAL *lambda;
@@ -294,7 +292,6 @@ namespace HepLib::SD {
         int epN = 0;
         int epsN = 0;
         int sN = 0;
-        int Verbose = 1;
         int PoleRequested = -5;
         exmap nReplacements;
         vector<ex> FunExp;
@@ -378,8 +375,8 @@ namespace HepLib::SD {
         static ex RefinedFT(ex const & ft);
         static lst RefinedFT_lst(ex const & ft);
         
-        static void ChengWu(vector<ex> &FunExp, int verb=0, bool sub_cw=false);
-        static vector<ex> ChengWu_Internal(ex fe, int verb=0);
+        static void ChengWu(vector<ex> &FunExp, bool sub_cw=false);
+        static vector<ex> ChengWu_Internal(ex fe);
         
         // static initialization
         class _init {

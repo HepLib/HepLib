@@ -463,13 +463,15 @@ namespace HepLib::FC {
     
     void Apart2FIRE(exvector &air_vec, lst vloops, lst vexts) {
         string wdir = to_string(getpid()) + "_FIRE";
-cout << "step 1 @ " << now() << endl;        
 
-        auto air_intg = GiNaC_Parallel(-1, air_vec.size(), [air_vec] (int idx) {
+        auto air_intg = 
+        GiNaC_Parallel(-1, air_vec.size(), [air_vec] (int idx) {
             auto air = air_vec[idx];
             // fix ApartIR from archive
-            air = air.subs(GiNaC::function(ApartIR1_SERIAL::serial, w1, w2)==ApartIR(w1,w2));
-            air = air.subs(GiNaC::function(ApartIR2_SERIAL::serial, w1)==ApartIR(w1));
+            air = air.subs(lst { 
+                GiNaC::function(ApartIR1_SERIAL::serial, w1, w2)==ApartIR(w1,w2),
+                GiNaC::function(ApartIR2_SERIAL::serial, w1)==ApartIR(w1)
+            });
             
             air = ApartIRC(air);
             exset intg;
@@ -477,17 +479,16 @@ cout << "step 1 @ " << now() << endl;
             lst intgs;
             for(auto item : intg) intgs.append(item);
             return lst{air, intgs};
-        }, "IRC", 100);
+        }, "IRC");
         
-        lst intg;
+        exset intg;
         for(int i=0; i<air_vec.size(); i++) {
             air_vec[i] = air_intg[i].op(0);
-            for(auto item : air_intg[i].op(1)) intg.append(item);
+            for(auto item : air_intg[i].op(1)) intg.insert(item);
         }
-        intg.sort();
-        intg.unique();
         
-cout << "step 2 @ " << now() << endl;   
+        if(Verbose>0) cout << "  \\--Total Integrals: " << intg.size() << " @ " << now() << endl;
+        
         exmap sp2;
         lst loops;
         for(auto vp1 : vloops) {
@@ -502,7 +503,6 @@ cout << "step 2 @ " << now() << endl;
                 sp2[SP(vp1,vp2)] = p1 * p2;
             }
         }
-
         lst repls, exts;
         for(auto vp1 : vexts) {
             auto p1 = ex_to<Vector>(vp1).name;
@@ -528,7 +528,12 @@ cout << "step 2 @ " << now() << endl;
                 ex pc = 0;
                 for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
                 pc += mat(nrow-2,c);
-                props.append(pc.subs(sp2));
+                pc = pc.subs(sp2);
+                if(Pair::has(pc)) {
+                    cout << "sp2 = " << sp2 << endl;
+                    throw Error("Apart2FIRE: Pair still exist: "+ex2str(pc));
+                }
+                props.append(pc);
                 ns.append(ex(0)-mat(nrow-1,c).subs(sp2));
             }
 
@@ -547,10 +552,10 @@ cout << "step 2 @ " << now() << endl;
             f->Integrals.append(ns);
             ir2F[item] = F(f->ProblemNumber, ns);
         }
+        
+        if(Verbose>0) cout << "  \\--Total FIRE: " << fvec.size() << " @ " << now() << endl;
 
-cout << "step 5-a @ " << now() << endl;        
         auto int_rules = FIRE::FindRules(fvec, false);
-cout << "step 5-b @ " << now() << endl;   
 
         for(auto &fp : fvec) {
             auto ints = fp->Integrals;
@@ -561,7 +566,7 @@ cout << "step 5-b @ " << now() << endl;
             for(int i=0; i<ints.nops(); i++) ints.let_op(i) = ints.op(i).op(1);
             fp->Integrals = ints;
         }
-cout << "step 6 @ " << now() << endl;        
+
         auto fres= GiNaC_Parallel(-1, fvec.size(), [fvec](int idx)->ex {
             auto item = fvec[idx];
             item->Reduce();
@@ -570,7 +575,7 @@ cout << "step 6 @ " << now() << endl;
                 item->MasterIntegrals,
                 item->Rules
             };
-        }, "FIRE", 100);
+        }, "FIRE");
         
         exmap F2F;
         for(int i=0; i<fres.size(); i++) {
@@ -589,6 +594,7 @@ cout << "step 6 @ " << now() << endl;
         });
         
         auto mi_rules = FIRE::FindRules(fvec);
+
         for(auto &air : air_vec) {
             air = air.subs(ir2F);
             air = air.subs(int_rules);

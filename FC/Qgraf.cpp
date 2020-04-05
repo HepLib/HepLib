@@ -96,6 +96,25 @@ namespace HepLib::FC {
         auto mom1 = e.op(0).op(2);
         return -gs * SUNF(CI(fi1),CI(fi2),CI(fi3)) * SP(mom1,LI(fi3));
     }
+    
+    ex Qgraf::eikonalPropagator(ex e, ex n, int mode) { // 0 for gluon, others for quark/anti-quark
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto mom = e.op(2);
+        if(mode==0) return I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)+iEpsilon);
+        else return I * SP(DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)+iEpsilon);
+    }
+    
+    ex Qgraf::eikonalVertex(ex e, ex n, int mode) { // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        auto mom1 = e.op(0).op(2);
+        if(mode==0) return I * gs * SP(n,LI(fi3)) * SP(DI(fi1),DI(fi2)) * (-I*SUNF(CI(fi3),TI(fi1),TI(fi2)));
+        else if(mode==1 || mode==-2) return I * gs * SP(n,LI(fi3)) * SP(DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
+        else if(mode==2 || mode==-1) return I * gs * SP(n,LI(fi3)) * SP(DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
+        else return 0;
+    }
 
     lst Qgraf::Amplitudes(symtab st, bool debug) {
         std::ofstream ofs;
@@ -236,7 +255,7 @@ namespace HepLib::FC {
             out.close();
             system(("cd "+tex_path+" && echo X | lualatex " + to_string(idx) + " 1>/dev/null").c_str());
             return 0;
-        }, "TeX", 100, true);
+        }, "TeX");
         
         ofstream out(tex_path+"diagram.tex");
         out << "\\documentclass{standalone}" << endl;

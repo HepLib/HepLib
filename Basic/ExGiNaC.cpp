@@ -72,7 +72,7 @@ namespace HepLib {
     }
     vector<ex> GiNaC_Parallel(
         int nproc, int ntotal, std::function<ex(int)> f,
-        const string & key, int verb, bool rm, int prtlvl) {
+        const string & key, bool rm, int prtlvl) {
         
         auto ppid = getpid();
         int para_max_run = nproc<0 ? omp_get_num_procs()-1 : nproc;
@@ -86,7 +86,7 @@ namespace HepLib {
         int btotal = ntotal/batch + ((ntotal%batch)==0 ? 0 : 1);
 
         for(int bi=0; bi<btotal; bi++) {
-            if(verb > 1) {
+            if(Verbose > 1) {
                 cout << "\r  ";
                 for(int pi=0;pi<prtlvl;pi++) cout << "   ";
                 cout << "\\--Evaluating ";
@@ -104,21 +104,16 @@ namespace HepLib {
             }
             
             try {
+                lst res_lst;
                 for(int ri=0; ri<batch; ri++) {
                     int i = bi*batch + ri;
-                    if(i<ntotal) {
-                        auto res = f(i);
-                        archive ar;
-                        ar.archive_ex(res, "res");
-                        ar.archive_ex(19790923, "c");
-                        ostringstream garfn;
-                        if(key == "") garfn << ppid << "/" << i << ".gar";
-                        else garfn << ppid << "/" << i << "." << key << ".gar";
-                        ofstream outs(garfn.str().c_str());
-                        outs << ar;
-                        outs.close();
-                    }
+                    if(i<ntotal) res_lst.append(f(i));
+                    else break;
                 }
+                ostringstream garfn;
+                if(key == "") garfn << ppid << "/" << bi << ".gar";
+                else garfn << ppid << "/" << bi << "." << key << ".gar";
+                garWrite(garfn.str(), res_lst);
             } catch(exception &p) {
                 cout << Color_Error << "Failed in GiNaC_Parallel!" << RESET << endl;
                 cout << Color_Error << p.what() << RESET << endl;
@@ -131,19 +126,19 @@ namespace HepLib {
         auto cpid = getpid();
         if(cpid!=ppid) exit(0); // make sure
         if(para_max_run>0) while (wait(NULL) != -1) { }
-        if(verb > 1 && ntotal > 0) cout << "@" << now(false) << endl;
+        if(Verbose > 1 && ntotal > 0) cout << "@" << now(false) << endl;
 
         vector<ex> ovec;
-        for(int i=0; i<ntotal; i++) {
-            if(verb > 1) {
+        for(int bi=0; bi<btotal; bi++) {
+            if(Verbose > 1) {
                 if(key == "") {
                     cout << "\r  ";
                     for(int pi=0; pi<prtlvl; pi++) cout << "   ";
-                    cout << "\\--Reading *.gar [" << (i+1) << "/" << ntotal << "] ... " << flush;
+                    cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] ... " << flush;
                 } else {
                     cout << "\r  ";
                     for(int pi=0;pi<prtlvl;pi++) cout << "   ";
-                    cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (i+1) << "/" << ntotal << "] ... " << flush;
+                    cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] ... " << flush;
                 }
             }
 
@@ -152,20 +147,15 @@ namespace HepLib {
             
             archive ar;
             ostringstream garfn;
-            if(key == "") garfn << ppid << "/" << i << ".gar";
-            else garfn << ppid << "/" << i << "." << key << ".gar";
+            if(key == "") garfn << ppid << "/" << bi << ".gar";
+            else garfn << ppid << "/" << bi << "." << key << ".gar";
             if(!file_exists(garfn.str().c_str())) {
                 cerr << Color_Error << "GiNaC_Parallel: Check the error message above." << RESET << endl;
                 exit(0);
             }
-            ifstream ins(garfn.str().c_str());
-            ins >> ar;
-            ins.close();
+            auto res_lst = garRead(garfn.str());
             remove(garfn.str().c_str());
-            auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
-            if(c!=19790923) throw runtime_error("*.gar error!");
-            auto res = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
-            ovec.push_back(res);
+            for(auto res : res_lst) ovec.push_back(res);
             Digits = oDigits;
         }
         
@@ -176,7 +166,7 @@ namespace HepLib {
             system(cmd.str().c_str());
             system(cmd.str().c_str());
         }
-        if(verb > 1 && ntotal > 0) cout << "@" << now(false) << endl;
+        if(Verbose > 1 && ntotal > 0) cout << "@" << now(false) << endl;
         return ovec;
     }
 

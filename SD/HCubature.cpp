@@ -98,7 +98,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
 void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* nrun, void *fdata) {
     auto self = (HCubature*)fdata;
     if(*nrun == self->MaxPTS + 1979) return;
-    if(self->Verbose>10 && self->RunMAX>0 && (*nrun-self->NEval) >= self->RunPTS) {
+    if(Verbose>10 && self->RunMAX>0 && (*nrun-self->NEval) >= self->RunPTS) {
         char r0[64], r1[64], e0[32], e1[32];
         quadmath_snprintf(r0, sizeof r0, "%.10QG", result[0]);
         quadmath_snprintf(r1, sizeof r1, "%.10QG", result[1]);
@@ -114,14 +114,14 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1])) || (isinfq(result[0]) || isinfq(result[1]) || isinfq(epsabs[0]) || isinfq(epsabs[1]))) {
          *nrun = self->MaxPTS + 1979;
          if(self->LastState>0) self->LastState = -1;
-         if(self->Verbose>10 && self->RunMAX>0) cout << Color_Error << "     Exit with NaN, LastN=" << self->lastNRUN << RESET << endl;
+         if(Verbose>10 && self->RunMAX>0) cout << Color_Error << "     Exit with NaN, LastN=" << self->lastNRUN << RESET << endl;
          return;
     }
     
     if(self->RunMAX>0 && (epsabs[0] > 1E30*self->EpsAbs || epsabs[1] > 1E30*self->EpsAbs)) {
          *nrun = self->MaxPTS + 1979;
          if(self->LastState>0) self->LastState = -1;
-         if(self->Verbose>10 && self->RunMAX>0) cout << Color_Warn << "     Exit with EpsAbs, LastN=" << self->lastNRUN << RESET << endl;
+         if(Verbose>10 && self->RunMAX>0) cout << Color_Warn << "     Exit with EpsAbs, LastN=" << self->lastNRUN << RESET << endl;
          return;
     }
     
@@ -150,7 +150,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         ostringstream cmd;
         cmd << "rm " << fn.str();
         system(cmd.str().c_str());
-        if(self->Verbose>10) cout << "     Exit: " << fn.str() << endl;
+        if(Verbose>10) cout << "     Exit: " << fn.str() << endl;
     }
 }
 

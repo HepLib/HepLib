@@ -53,7 +53,6 @@ int main(int argc, char** argv) {
     fp.nReplacements[eps] = ex(1)/111;
     
     SecDec work;
-    work.Verbose = 0;
     //work.CheckEnd = true;
     
     work.Initialize(fp);

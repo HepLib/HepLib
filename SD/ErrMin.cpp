@@ -2,7 +2,6 @@
 
 namespace HepLib::SD {
 
-int ErrMin::Verbose;
 IntegratorBase *ErrMin::Integrator = NULL;
 MinimizeBase *ErrMin::miner = NULL;
 qREAL *ErrMin::paras = NULL;

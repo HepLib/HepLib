@@ -1,4 +1,5 @@
 #include "IBP.h"
+#include <cmath>
 
 namespace HepLib::IBP {
 
@@ -90,16 +91,18 @@ namespace HepLib::IBP {
         auto Variables = gather_symbols(IBPvec);
         
         ostringstream start;
-        start << "Null" << endl << endl;
-        start << "ExampleDimension[" << pn << "]=" << Internal.nops() * InExternal.nops() << endl << endl;
+
+        start << "ExampleDimension[" << pn << "]=" << dim << endl << endl;
         start << "ProblemNumber=" << pn << endl << endl;
         
         // .start - SBasisL
-        PermutationsR(2, dim, [dim,pn,&start](const int *ns) {
-            start << "SBasisL[" << pn << ",{";
-            for(int i=0; i<dim; i++) start << (ns[i]<1 ? -1 : 1) << (i<dim-1 ? "," : "");
-            start << "}]=0" << endl << endl;
-        });
+        if(Version==5) {
+            PermutationsR(2, dim, [dim,pn,&start](const int *ns) {
+                start << "SBasisL[" << pn << ",{";
+                for(int i=0; i<dim; i++) start << (ns[i]<1 ? -1 : 1) << (i<dim-1 ? "," : "");
+                start << "}]=0" << endl << endl;
+            });
+        }
         
         // .start - SBasis0L, SBasis0D && SBasis0C
         start << "SBasis0L[" << pn << "]=" << IBPs.size() << endl << endl;
@@ -109,7 +112,21 @@ namespace HepLib::IBP {
             lst items;
             for(auto kv : IBPs[i]) {
                 items.append(kv.first);
-                oss << "SBasis0C[" << pn << "," << (i+1) << "," << kv.first << "]=" << kv.second << endl << endl;
+                if(Version==5) {
+                    oss << "SBasis0C[" << pn << "," << (i+1) << "," << kv.first << "]=" << kv.second << endl << endl;
+                } else {
+                    lst olst;
+                    auto tmp = mma_collect(kv.second, a(w), true, true);
+                    if(!is_a<add>(tmp)) tmp = lst{tmp};
+                    for(auto item : tmp) {
+                        auto cc = item.subs(lst{coVF(w)==1, coCF(w)==w});
+                        auto cv = item.subs(lst{coVF(w)==w, coCF(w)==1});
+                        if(is_zero(cv-1)) cv=0;
+                        else cv = cv.subs(a(w)==w);
+                        olst.append(lst{cc, cv});
+                    }
+                    oss << "SBasis0C[" << pn << "," << (i+1) << "," << kv.first << "]=" << olst << endl << endl;
+                }
             }
             start << items << endl << endl;
         }
@@ -128,9 +145,38 @@ namespace HepLib::IBP {
         start << "}}}" << endl << endl;
         
         // .start - SBasisR
-        start << "SBasisR[" << pn << ",{";
-        for(int i=0; i<dim; i++) start << "-1" << (i<dim-1 ? "," : "");
-        start << "}]=True" << endl << endl;
+        lst Rlst;
+        Rlst.append(lst{});
+        for(int i=0; i<dim; i++) {
+            let_op_append(Rlst, 0, -1);
+        }
+        for(auto lpi : Internal) {
+            vector<int> ns_vec;
+            lst ns0;
+            for(int i=0; i<dim; i++) ns0.append(1);
+            for(int i=0; i<dim; i++) {
+                if(Propagators.op(i).has(lpi)) ns0.let_op(i) = -1;
+                else ns_vec.push_back(i);
+            }
+            for(int n=0; n<std::pow(2,ns_vec.size()); n++) {
+                int cn = n;
+                lst ns1 = ns0;
+                for(int j=0; j<ns_vec.size(); j++) {
+                    if((cn%2)==1) ns1.let_op(ns_vec[j]) = -1;
+                    cn /= 2;
+                }
+                Rlst.append(ns1);
+            } 
+        }
+        Rlst.sort();
+        Rlst.unique();
+                
+        for(auto iR : Rlst) {
+            start << "SBasisR[" << pn << ",{";
+            for(int i=0; i<dim; i++) start << iR.op(i) << (i<dim-1 ? "," : "");
+            start << "}]=True" << endl << endl;
+        }
+        
         
         // .start - Others
         start << "SBasisRL[" << pn << "]=0" << endl << endl;
@@ -180,7 +226,7 @@ namespace HepLib::IBP {
         intg_out.close();
         
         ostringstream cmd;
-        cmd << "cd " << WorkingDir << " && FIRE5 -c " << pn << " >/dev/null";
+        cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << ") -c " << pn << " >/dev/null";
         system(cmd.str().c_str());
         system(("rm -rf "+WorkingDir+"/db"+to_string(pn)).c_str());
         
@@ -211,9 +257,11 @@ namespace HepLib::IBP {
     ex FIRE::UF(ex idx) {
         ex ft = 0;
         int nps = Propagators.nops();
+        int nxi=0;
         for(int i=0; i<nps; i++) {
             if(is_zero(idx.op(i))) continue;
-            ft -= (is_zero(idx.op(i)-1) ? ex(1) : iWF(idx.op(i))) * x(i) * Propagators.op(i);
+            if(!is_zero(idx.op(i)-1)) ft -= iWF(idx.op(i)) * x(nxi++) * Propagators.op(i);
+            else ft -= x(nxi++) * Propagators.op(i);
         }
 
         ex ut = 1;
@@ -233,9 +281,9 @@ namespace HepLib::IBP {
         ex uf = ut*ft;
 
         ex_is_less comp;
-        Permutations(nps, [comp,nps,&uf,&ft,&ut](const int *ns) {
+        Permutations(nxi, [comp,nxi,&uf,&ft,&ut](const int *ns) {
             exmap x2x;
-            for(int i=0; i<nps; i++) x2x[x(i)]=x(ns[i]);
+            for(int i=0; i<nxi; i++) x2x[x(i)]=x(ns[i]);
             ex uf2 = uf.subs(x2x);
             if(comp(uf2, uf)) {
                 uf = uf2;
@@ -247,16 +295,31 @@ namespace HepLib::IBP {
         return lst{ut, ft};
     }  
     
-    lst FIRE::FindRules(const vector<FIRE> & fs, bool mi) {
-        map<ex,lst,ex_is_less> group;;
+    lst FIRE::FindRules(vector<FIRE> & fs, bool mi) {
+        exvector uf_mi_vec;
         if(mi) {
-            for(auto fi : fs) {
-                for(auto mi : fi.MasterIntegrals) group[fi.UF(mi.subs(F(w1,w2)==w2))].append(mi);
-            }
+            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,&fs](int idx)->ex {
+                FIRE & fi = fs[idx]; // only here
+                lst uf_mi_lst;
+                for(auto mi : fi.MasterIntegrals) {
+                    uf_mi_lst.append(lst{ fi.UF(mi.subs(F(w1,w2)==w2)), mi });
+                }
+                return uf_mi_lst;
+            }, "MI");
         } else {
-            for(auto fi : fs) {
-                for(auto idx : fi.Integrals) group[fi.UF(idx)].append(F(fi.ProblemNumber,idx));
-            }
+            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,&fs](int idx)->ex {
+                FIRE & fi = fs[idx]; // only here
+                lst uf_mi_lst;
+                for(auto mi : fi.Integrals) {
+                    uf_mi_lst.append(lst{ fi.UF(mi), F(fi.ProblemNumber,mi) });
+                }
+                return uf_mi_lst;
+            }, "INT");
+        }
+    
+        map<ex,lst,ex_is_less> group;
+        for(auto item1 : uf_mi_vec) {
+            for(auto item : item1) group[item.op(0)].append(item.op(1));
         }
         
         lst rules;
@@ -265,18 +328,39 @@ namespace HepLib::IBP {
             if(gs.nops()<2) continue;
             for(int i=1; i<gs.nops(); i++) rules.append(gs.op(i)==gs.op(0));
         }
+        
+        if(Verbose>0) cout << "  \\--FindRules: " << uf_mi_vec.size() << " - " << rules.nops() << " @ " << now() << endl;
         return rules;
     }
     
-    lst FIRE::FindRules(const vector<FIRE*> & fs, bool mi) {
-        map<ex,lst,ex_is_less> group;;
+    lst FIRE::FindRules(vector<FIRE*> & fs, bool mi) {
+        exvector uf_mi_vec;
         if(mi) {
-            for(auto fi : fs) {
-                for(auto mi : fi->MasterIntegrals) group[fi->UF(mi.subs(F(w1,w2)==w2))].append(mi);
-            }
+            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+                FIRE & fi = *(fs[idx]); // only here
+                lst uf_mi_lst;
+                for(auto mi : fi.MasterIntegrals) {
+                    uf_mi_lst.append(lst{ fi.UF(mi.subs(F(w1,w2)==w2)), mi });
+                }
+                return uf_mi_lst;
+            }, "MI");
         } else {
-            for(auto fi : fs) {
-                for(auto idx : fi->Integrals) group[fi->UF(idx)].append(F(fi->ProblemNumber,idx));
+            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+                FIRE & fi = *(fs[idx]); // only here
+                lst uf_mi_lst;
+                for(auto mi : fi.Integrals) {
+                    uf_mi_lst.append(lst{ fi.UF(mi), F(fi.ProblemNumber,mi) });
+                }
+                return uf_mi_lst;
+            }, "INT");
+        }
+    
+        map<ex,lst,ex_is_less> group;
+        int ntotal = 0;
+        for(auto item1 : uf_mi_vec) {
+            for(auto item : item1) {
+                group[item.op(0)].append(item.op(1));
+                ntotal++;
             }
         }
         
@@ -286,6 +370,8 @@ namespace HepLib::IBP {
             if(gs.nops()<2) continue;
             for(int i=1; i<gs.nops(); i++) rules.append(gs.op(i)==gs.op(0));
         }
+        
+        if(Verbose>0) cout << "  \\--FindRules: " << ntotal << " :> " << (ntotal-rules.nops()) << " @ " << now() << endl;
         return rules;
     }
 

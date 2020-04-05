@@ -161,7 +161,7 @@ namespace HepLib::SD {
 
             return lst{ ftnxn.op(1), las }; // ft_id, las
         
-        }, "las", Verbose, !debug);
+        }, "las", !debug);
         
         if(use_dlclose) dlclose(module);
         

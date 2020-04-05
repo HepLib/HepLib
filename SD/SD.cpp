@@ -846,7 +846,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             }
             if(!is0) return lst{fun, exp, deltas};
             else return lst{};
-        }, "SL", 0, true);
+        }, "SL", true);
         
         FunExp.clear();
         FunExp.shrink_to_fit();
@@ -941,7 +941,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 para_res_lst.append(fe);
             }
             return para_res_lst;
-        }, "f1", 0, !debug);
+        }, "f1", !debug);
 
         FunExp.clear();
         FunExp.shrink_to_fit();
@@ -1042,7 +1042,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 }
             }
             return para_res_lst;
-        }, "SD", Verbose, true);
+        }, "SD", true);
         
         ex min_expn = 1, min_expn2 = 10;
         vector<ex> ibp_in_vec;
@@ -1204,7 +1204,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 }
                 return lst{0, xns_pns };
 
-            }, spn.str().c_str(), Verbose, true);
+            }, spn.str().c_str(), true);
         
             ibp_in_vec.clear();
             ibp_in_vec.shrink_to_fit();
@@ -1272,7 +1272,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             //deleted from GiNaC 1.7.7
             //if(para_res_lst.nops()<1) para_res_lst.append(0);
             return para_res_lst;
-        }, "Taylor", Verbose, true);
+        }, "Taylor", true);
         
         // Take z-residues
         bool zResides = false;
@@ -1313,7 +1313,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                     it = ex(0)-it.coeff(vz, -1);
                 }
                 return it;
-            }, "zResidue", Verbose, true);
+            }, "zResidue", true);
         } else {
             Integrands = ints;
         }
@@ -1470,7 +1470,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             //if(para_res_lst.nops()<1) para_res_lst.append(lst{0,0});
             return para_res_lst;
 
-        }, "EpsEp", Verbose, !debug);
+        }, "EpsEp", !debug);
         
         if(Verbose > 1) cout << "  \\--Collecting: ";
         map<ex, ex, ex_is_less> int_pref;

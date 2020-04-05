@@ -24,6 +24,7 @@ namespace HepLib {
     
     const Symbol ep("ep");
     const Symbol iEpsilon("iEpsilon",false);
+    int Verbose = 0;
     
     lst GiNaC_archive_Symbols = lst{};
     string InstallPrefix = "@PREFIX_DIR@";
