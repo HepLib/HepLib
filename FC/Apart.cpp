@@ -330,7 +330,7 @@ namespace HepLib::FC {
                 plst.append(item);
             } else pref *= item;
         }
-        plst.sort();
+        plst.sort(); // TODO: add unique sort here
         
         if(plst.nops()==0) return pref * ApartIR(1,vars_in);
         
@@ -567,7 +567,8 @@ namespace HepLib::FC {
             fp->Integrals = ints;
         }
 
-        auto fres= GiNaC_Parallel(-1, fvec.size(), [fvec](int idx)->ex {
+        int nprocs = omp_get_num_procs();
+        auto fres= GiNaC_Parallel(nprocs/3, fvec.size(), [fvec](int idx)->ex {
             auto item = fvec[idx];
             item->Reduce();
             return lst {
@@ -594,7 +595,7 @@ namespace HepLib::FC {
         });
         
         auto mi_rules = FIRE::FindRules(fvec);
-
+        
         for(auto &air : air_vec) {
             air = air.subs(ir2F);
             air = air.subs(int_rules);

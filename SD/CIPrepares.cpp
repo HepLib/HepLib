@@ -11,7 +11,7 @@ namespace HepLib::SD {
         
         if(IsZero) return;
         
-        if(Verbose > 0) cout << now() << " - CIPrepares ..." << endl << flush;
+        if(Verbose > 1) cout << now() << " - CIPrepares ..." << endl << flush;
         auto pid = getpid();
                 
         auto resf =

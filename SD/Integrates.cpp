@@ -9,7 +9,7 @@ namespace HepLib::SD {
         if(IsZero) return;
         if(Integrator==NULL) Integrator = new HCubature();
                 
-        if(Verbose > 0) cout << now() << " - Integrates ..." << endl << flush;
+        if(Verbose > 1) cout << now() << " - Integrates ..." << endl << flush;
         
         lst lstRE;
         auto pid = getpid();

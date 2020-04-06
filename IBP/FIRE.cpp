@@ -7,8 +7,8 @@ namespace HepLib::IBP {
     REGISTER_FUNCTION(F, do_not_evalf_params())
 
     void FIRE::Reduce() { 
-        if(Integrals.nops()<1) return;
         Dimension = Propagators.nops();
+        if(Integrals.nops()<1) return;
         int pn = ProblemNumber;
         int dim = Dimension;
         lst InExternal;
@@ -170,7 +170,7 @@ namespace HepLib::IBP {
         }
         Rlst.sort();
         Rlst.unique();
-                
+        
         for(auto iR : Rlst) {
             start << "SBasisR[" << pn << ",{";
             for(int i=0; i<dim; i++) start << iR.op(i) << (i<dim-1 ? "," : "");
@@ -197,6 +197,7 @@ namespace HepLib::IBP {
         for(auto v : Variables) { config << (first ? "" : ",") << v; first=false; }
         config << endl;
         config << "#database db" << pn << endl;
+        if(Version>5) config << "#pos_pref 5" << endl;
         config << "#bucket 20" << endl;
         config << "#start" << endl;
         config << "#problem " << pn << " " << pn << ".start" << endl;
@@ -252,50 +253,72 @@ namespace HepLib::IBP {
             if(is_zero(left-right)) MasterIntegrals.append(left);
             else Rules.append(left==right);
         }
+        MasterIntegrals.sort();
+        MasterIntegrals.unique();
+        
     }
     
     ex FIRE::UF(ex idx) {
         ex ft = 0;
         int nps = Propagators.nops();
+        map<int, vector<int>> ngrp;
+        for(int i=0; i<nps; i++) ngrp[-ex_to<numeric>(idx.op(i)).to_int()].push_back(i);
+        
         int nxi=0;
-        for(int i=0; i<nps; i++) {
-            if(is_zero(idx.op(i))) continue;
-            if(!is_zero(idx.op(i)-1)) ft -= iWF(idx.op(i)) * x(nxi++) * Propagators.op(i);
-            else ft -= x(nxi++) * Propagators.op(i);
+        map<int, vector<int>> pgrp;
+        for(auto kv : ngrp) {
+            if(kv.first==0) continue;
+            for(auto i : kv.second) {
+                ft -= iWF(idx.op(i)) * x(nxi) * Propagators.op(i);
+                pgrp[kv.first].push_back(nxi);
+                nxi++;
+            }
         }
 
         ex ut = 1;
         for(int i=0; i<Internal.nops(); i++) {
             ft = ft.expand();
-            auto t2 = ft.coeff(Internal.op(i), 2);
-            auto t1 = ft.coeff(Internal.op(i), 1);
+            ft = subs(ft, Replacements, subs_options::algebraic);
+            auto t2 = ft.coeff(Internal.op(i),2);
+            auto t1 = ft.coeff(Internal.op(i),1);
             auto t0 = ft.subs(Internal.op(i)==0);
             ut *= t2;
             if(is_zero(t2)) return lst{0,0};
             ft = normal(t0-t1*t1/(4*t2));
         }
-        ft = subs(ex(0)-ut*ft, Replacements, subs_options::algebraic);
-        ft = normal(ft);
+        ft = ex(0)-subs(ut*ft, Replacements, subs_options::algebraic);
         ut = subs(ut, Replacements, subs_options::algebraic);
-        ut = normal(ut);
-        ex uf = ut*ft;
-
+        ex uf = normal(ut*ft);
+        
+        lst xRepl;
+        for(int i=0; i<nxi; i++) xRepl.append(x(i));
+        
         ex_is_less comp;
-        Permutations(nxi, [comp,nxi,&uf,&ft,&ut](const int *ns) {
-            exmap x2x;
-            for(int i=0; i<nxi; i++) x2x[x(i)]=x(ns[i]);
-            ex uf2 = uf.subs(x2x);
-            if(comp(uf2, uf)) {
-                uf = uf2;
-                ft = ft.subs(x2x);
-                ut = ut.subs(x2x);
-            }
-        });
+        for(auto pi : pgrp) {
+            auto vi = pi.second;
+            int nvi = vi.size();
+            if(nvi<2) continue;
+            ex uf1 = uf;
+            Permutations(nvi, [comp,nvi,vi,uf,&uf1,&xRepl](const int *ns) {
+                exmap x2x;
+                for(int i=0; i<nvi; i++) x2x[x(vi[i])]=x(vi[ns[i]]);
+                ex uf2 = uf.subs(x2x);
+                if(comp(uf2, uf1)) {
+                    uf1 = uf2;
+                    xRepl = ex_to<lst>(subs(xRepl,x2x));
+                }
+            });
+            uf = uf1;
+        }
+
+        for(int i=0; i<nxi; i++) xRepl.let_op(i) = (x(i)==xRepl.op(i));
+        ut = normal(ut.subs(xRepl));
+        ft = normal(ft.subs(xRepl));
 
         return lst{ut, ft};
     }  
     
-    lst FIRE::FindRules(vector<FIRE> & fs, bool mi) {
+    exmap FIRE::FindRules(vector<FIRE> & fs, bool mi) {
         exvector uf_mi_vec;
         if(mi) {
             uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,&fs](int idx)->ex {
@@ -322,18 +345,18 @@ namespace HepLib::IBP {
             for(auto item : item1) group[item.op(0)].append(item.op(1));
         }
         
-        lst rules;
+        exmap rules;
         for(auto g : group) {
             lst gs = ex_to<lst>(g.second);
             if(gs.nops()<2) continue;
-            for(int i=1; i<gs.nops(); i++) rules.append(gs.op(i)==gs.op(0));
+            for(int i=1; i<gs.nops(); i++) rules[gs.op(i)]=gs.op(0);
         }
         
-        if(Verbose>0) cout << "  \\--FindRules: " << uf_mi_vec.size() << " - " << rules.nops() << " @ " << now() << endl;
+        if(Verbose>0) cout << "  \\--FindRules: " << uf_mi_vec.size() << " - " << rules.size() << " @ " << now() << endl;
         return rules;
     }
     
-    lst FIRE::FindRules(vector<FIRE*> & fs, bool mi) {
+    exmap FIRE::FindRules(vector<FIRE*> & fs, bool mi) {
         exvector uf_mi_vec;
         if(mi) {
             uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
@@ -364,14 +387,14 @@ namespace HepLib::IBP {
             }
         }
         
-        lst rules;
+        exmap rules;
         for(auto g : group) {
             lst gs = ex_to<lst>(g.second);
             if(gs.nops()<2) continue;
-            for(int i=1; i<gs.nops(); i++) rules.append(gs.op(i)==gs.op(0));
+            for(int i=1; i<gs.nops(); i++) rules[gs.op(i)]=gs.op(0);
         }
         
-        if(Verbose>0) cout << "  \\--FindRules: " << ntotal << " :> " << (ntotal-rules.nops()) << " @ " << now() << endl;
+        if(Verbose>0) cout << "  \\--FindRules: " << ntotal << " :> " << (ntotal-rules.size()) << " @ " << now() << endl;
         return rules;
     }
 

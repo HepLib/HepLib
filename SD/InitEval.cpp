@@ -71,7 +71,7 @@ namespace HepLib::SD {
         auto nsubs = fp.nReplacements;
         nReplacements = fp.nReplacements;
         
-        if(Verbose > 0) cout << now() << " - Initialize ..." << endl << flush;
+        if(Verbose > 1) cout << now() << " - Initialize ..." << endl << flush;
         
         ex asgn = 1;
         ex a = 0;

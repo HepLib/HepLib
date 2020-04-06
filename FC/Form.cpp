@@ -234,6 +234,7 @@ namespace HepLib::FC {
         st["NA"] = NA;
         st["NF"] = NF;
         st["I"] = I;
+        st["i_"] = I;
 
         Parser fp(st);
         fp.FTable[make_pair("SP", 2)] = SP_reader;

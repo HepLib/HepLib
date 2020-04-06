@@ -32,8 +32,8 @@ namespace HepLib::IBP {
         
         void Reduce();
         
-        static lst FindRules(vector<FIRE> &fs, bool mi=true);
-        static lst FindRules(vector<FIRE*> &fs, bool mi=true); 
+        static exmap FindRules(vector<FIRE> &fs, bool mi=true);
+        static exmap FindRules(vector<FIRE*> &fs, bool mi=true); 
     private:
         vector<exmap> IBPs;
         

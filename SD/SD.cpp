@@ -929,7 +929,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
     }
 
     void SecDec::XEnd() {
-        if(Verbose > 0) cout << now() << " - BiSection: " << FunExp.size() << " :> " << flush;
+        if(Verbose > 2) cout << now() << " - BiSection: " << FunExp.size() << " :> " << flush;
         auto funexps =
         GiNaC_Parallel(ParallelProcess, FunExp.size(), [&](int idx)->ex {
             auto fe = FunExp[idx];
@@ -948,7 +948,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         for(auto &item : funexps) {
             for(auto &it : ex_to<lst>(item)) FunExp.push_back(ex_to<lst>(it));
         }
-        if(Verbose > 0) cout << FunExp.size() << endl;
+        if(Verbose > 2) cout << FunExp.size() << endl;
     }
 
     // after SDPrepares, Integrands can be expanded in ep safely.
@@ -984,7 +984,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             return;
         }
         
-        if(Verbose > 0) cout << now() << " - SDPrepares: ..." << endl << flush;
+        if(Verbose > 1) cout << now() << " - SDPrepares: ..." << endl << flush;
         auto sd_res =
         GiNaC_Parallel(ParallelProcess, FunExp.size(), [&](int idx)->ex {
             // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
@@ -1327,7 +1327,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             return;
         }
         
-        if(Verbose > 0) cout << now() << " - EpsEpExpands ..." << endl << flush;
+        if(Verbose > 1) cout << now() << " - EpsEpExpands ..." << endl << flush;
         
         if(Verbose > 1) cout << "  \\--Collecting: " << Integrands.size() << " :> " << flush;
         map<ex, ex, ex_is_less> int_map;
