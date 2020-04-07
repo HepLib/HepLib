@@ -258,18 +258,19 @@ namespace HepLib::IBP {
         
     }
     
-    ex FIRE::UF(ex idx) {
+    ex FIRE::UF(const ex & idx) const {
         ex ft = 0;
         int nps = Propagators.nops();
         map<int, vector<int>> ngrp;
-        for(int i=0; i<nps; i++) ngrp[-ex_to<numeric>(idx.op(i)).to_int()].push_back(i);
+        for(int i=0; i<nps; i++) ngrp[ex_to<numeric>(idx.op(i)).to_int()].push_back(i);
         
         int nxi=0;
         map<int, vector<int>> pgrp;
         for(auto kv : ngrp) {
             if(kv.first==0) continue;
             for(auto i : kv.second) {
-                ft -= iWF(idx.op(i)) * x(nxi) * Propagators.op(i);
+                if(!is_zero(idx.op(i)-1)) ft -= iWF(idx.op(i)) * x(nxi) * Propagators.op(i);
+                else ft -= x(nxi) * Propagators.op(i);
                 pgrp[kv.first].push_back(nxi);
                 nxi++;
             }
@@ -299,16 +300,18 @@ namespace HepLib::IBP {
             int nvi = vi.size();
             if(nvi<2) continue;
             ex uf1 = uf;
-            Permutations(nvi, [comp,nvi,vi,uf,&uf1,&xRepl](const int *ns) {
+            auto xRepl1 = xRepl;
+            Permutations(nvi, [comp,nvi,vi,uf,&uf1,xRepl,&xRepl1](const int *ns) {
                 exmap x2x;
                 for(int i=0; i<nvi; i++) x2x[x(vi[i])]=x(vi[ns[i]]);
                 ex uf2 = uf.subs(x2x);
                 if(comp(uf2, uf1)) {
                     uf1 = uf2;
-                    xRepl = ex_to<lst>(subs(xRepl,x2x));
+                    xRepl1 = ex_to<lst>(subs(xRepl,x2x));
                 }
             });
             uf = uf1;
+            xRepl = xRepl1;
         }
 
         for(int i=0; i<nxi; i++) xRepl.let_op(i) = (x(i)==xRepl.op(i));
@@ -318,49 +321,11 @@ namespace HepLib::IBP {
         return lst{ut, ft};
     }  
     
-    exmap FIRE::FindRules(vector<FIRE> & fs, bool mi) {
-        exvector uf_mi_vec;
-        if(mi) {
-            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,&fs](int idx)->ex {
-                FIRE & fi = fs[idx]; // only here
-                lst uf_mi_lst;
-                for(auto mi : fi.MasterIntegrals) {
-                    uf_mi_lst.append(lst{ fi.UF(mi.subs(F(w1,w2)==w2)), mi });
-                }
-                return uf_mi_lst;
-            }, "MI");
-        } else {
-            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,&fs](int idx)->ex {
-                FIRE & fi = fs[idx]; // only here
-                lst uf_mi_lst;
-                for(auto mi : fi.Integrals) {
-                    uf_mi_lst.append(lst{ fi.UF(mi), F(fi.ProblemNumber,mi) });
-                }
-                return uf_mi_lst;
-            }, "INT");
-        }
-    
-        map<ex,lst,ex_is_less> group;
-        for(auto item1 : uf_mi_vec) {
-            for(auto item : item1) group[item.op(0)].append(item.op(1));
-        }
-        
-        exmap rules;
-        for(auto g : group) {
-            lst gs = ex_to<lst>(g.second);
-            if(gs.nops()<2) continue;
-            for(int i=1; i<gs.nops(); i++) rules[gs.op(i)]=gs.op(0);
-        }
-        
-        if(Verbose>0) cout << "  \\--FindRules: " << uf_mi_vec.size() << " - " << rules.size() << " @ " << now() << endl;
-        return rules;
-    }
-    
-    exmap FIRE::FindRules(vector<FIRE*> & fs, bool mi) {
+    pair<exmap,lst> FIRE::FindRules(vector<FIRE> & fs, bool mi) {
         exvector uf_mi_vec;
         if(mi) {
             uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
-                FIRE & fi = *(fs[idx]); // only here
+                const FIRE & fi = fs[idx]; // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.MasterIntegrals) {
                     uf_mi_lst.append(lst{ fi.UF(mi.subs(F(w1,w2)==w2)), mi });
@@ -369,13 +334,13 @@ namespace HepLib::IBP {
             }, "MI");
         } else {
             uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
-                FIRE & fi = *(fs[idx]); // only here
+                const FIRE & fi = fs[idx]; // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.Integrals) {
                     uf_mi_lst.append(lst{ fi.UF(mi), F(fi.ProblemNumber,mi) });
                 }
                 return uf_mi_lst;
-            }, "INT");
+            }, "I");
         }
     
         map<ex,lst,ex_is_less> group;
@@ -386,16 +351,60 @@ namespace HepLib::IBP {
                 ntotal++;
             }
         }
-        
+
         exmap rules;
+        lst int_lst;
         for(auto g : group) {
             lst gs = ex_to<lst>(g.second);
-            if(gs.nops()<2) continue;
             for(int i=1; i<gs.nops(); i++) rules[gs.op(i)]=gs.op(0);
+            int_lst.append(gs.op(0));
         }
         
-        if(Verbose>0) cout << "  \\--FindRules: " << ntotal << " :> " << (ntotal-rules.size()) << " @ " << now() << endl;
-        return rules;
+        if(Verbose>2) cout << "  \\--FindRules: " << ntotal << " :> " << int_lst.nops() << " @ " << now(false) << endl;
+        return make_pair(rules,int_lst);
+    }
+    
+    pair<exmap,lst> FIRE::FindRules(vector<FIRE*> & fs, bool mi) {
+        exvector uf_mi_vec;
+        if(mi) {
+            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+                const FIRE & fi = *(fs[idx]); // only here
+                lst uf_mi_lst;
+                for(auto mi : fi.MasterIntegrals) {
+                    uf_mi_lst.append(lst{ fi.UF(mi.subs(F(w1,w2)==w2)), mi });
+                }
+                return uf_mi_lst;
+            }, "MI");
+        } else {
+            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+                const FIRE & fi = *(fs[idx]); // only here
+                lst uf_mi_lst;
+                for(auto mi : fi.Integrals) {
+                    uf_mi_lst.append(lst{ fi.UF(mi), F(fi.ProblemNumber,mi) });
+                }
+                return uf_mi_lst;
+            }, "I");
+        }
+    
+        map<ex,lst,ex_is_less> group;
+        int ntotal = 0;
+        for(auto item1 : uf_mi_vec) {
+            for(auto item : item1) {
+                group[item.op(0)].append(item.op(1));
+                ntotal++;
+            }
+        }
+
+        exmap rules;
+        lst int_lst;
+        for(auto g : group) {
+            lst gs = ex_to<lst>(g.second);
+            for(int i=1; i<gs.nops(); i++) rules[gs.op(i)]=gs.op(0);
+            int_lst.append(gs.op(0));
+        }
+        
+        if(Verbose>2) cout << "  \\--FindRules: " << ntotal << " :> " << int_lst.nops() << " @ " << now(false) << endl;
+        return make_pair(rules,int_lst);
     }
 
 }

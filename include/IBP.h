@@ -20,7 +20,7 @@ namespace HepLib::IBP {
         lst Replacements;
         lst Propagators;
         lst Integrals;
-        ex UF(ex corner);
+        ex UF(const ex & corner) const;
         
         string WorkingDir;
         int ProblemNumber;
@@ -32,8 +32,8 @@ namespace HepLib::IBP {
         
         void Reduce();
         
-        static exmap FindRules(vector<FIRE> &fs, bool mi=true);
-        static exmap FindRules(vector<FIRE*> &fs, bool mi=true); 
+        static pair<exmap,lst> FindRules(vector<FIRE> &fs, bool mi=true);
+        static pair<exmap,lst> FindRules(vector<FIRE*> &fs, bool mi=true); 
     private:
         vector<exmap> IBPs;
         

@@ -487,7 +487,7 @@ namespace HepLib::FC {
             for(auto item : air_intg[i].op(1)) intg.insert(item);
         }
         
-        if(Verbose>0) cout << "  \\--Total Integrals: " << intg.size() << " @ " << now() << endl;
+        if(Verbose>0) cout << "  \\--Total Integrals: " << intg.size() << " @ " << now(false) << endl;
         
         exmap sp2;
         lst loops;
@@ -515,7 +515,7 @@ namespace HepLib::FC {
         repls.sort();
         repls.unique();
 
-        exmap ir2F;
+        exmap IR2F;
         std::map<ex, FIRE*, ex_is_less> p2f;
         vector<FIRE*> fvec;
         int pn=1;
@@ -550,26 +550,33 @@ namespace HepLib::FC {
             }
             FIRE * f = p2f[props];
             f->Integrals.append(ns);
-            ir2F[item] = F(f->ProblemNumber, ns);
+            IR2F[item] = F(f->ProblemNumber, ns);
         }
         
-        if(Verbose>0) cout << "  \\--Total FIRE: " << fvec.size() << " @ " << now() << endl;
+        if(Verbose>0) cout << "  \\--Total Problems: " << fvec.size() << " @ " << now(false) << endl;
 
-        auto int_rules = FIRE::FindRules(fvec, false);
-
-        for(auto &fp : fvec) {
-            auto ints = fp->Integrals;
-            for(int i=0; i<ints.nops(); i++) ints.let_op(i) = F(fp->ProblemNumber, ints.op(i));
-            ints = ex_to<lst>(subs(ints, int_rules));
-            ints.sort();
-            ints.unique();
-            for(int i=0; i<ints.nops(); i++) ints.let_op(i) = ints.op(i).op(1);
-            fp->Integrals = ints;
+        auto rules_ints = FIRE::FindRules(fvec, false);
+        
+        map<int,lst> pn_ints_map;
+        for(auto item : rules_ints.second) {
+            int pn = ex_to<numeric>(item.op(0)).to_int();
+            pn_ints_map[pn].append(item.op(1));
         }
+        
+        vector<FIRE*> fvec_re;
+        int nints = 0;
+        for(auto pi : pn_ints_map) {
+            auto fp = fvec[pi.first-1];
+            fp->Integrals = pi.second;
+            nints += fp->Integrals.nops();
+            fvec_re.push_back(fp);
+        }
+        
+        if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << nints << "/" << fvec_re.size() << " @ " << now(false) << endl;
 
         int nprocs = omp_get_num_procs();
-        auto fres= GiNaC_Parallel(nprocs/3, fvec.size(), [fvec](int idx)->ex {
-            auto item = fvec[idx];
+        auto fres= GiNaC_Parallel(nprocs/2, fvec_re.size(), [fvec_re](int idx)->ex {
+            auto item = fvec_re[idx];
             item->Reduce();
             return lst {
                 item->Dimension,
@@ -579,29 +586,30 @@ namespace HepLib::FC {
         }, "FIRE");
         
         exmap F2F;
-        for(int i=0; i<fres.size(); i++) {
-            fvec[i]->Dimension = ex_to<numeric>(fres[i].op(0)).to_int();
-            fvec[i]->MasterIntegrals = ex_to<lst>(fres[i].op(1));
-            fvec[i]->Rules = ex_to<lst>(fres[i].op(2));
-            for(auto item : fvec[i]->Rules) F2F[item.op(0)] = item.op(1);
+        for(int i=0; i<fvec_re.size(); i++) {
+            fvec_re[i]->Dimension = ex_to<numeric>(fres[i].op(0)).to_int();
+            fvec_re[i]->MasterIntegrals = ex_to<lst>(fres[i].op(1));
+            fvec_re[i]->Rules = ex_to<lst>(fres[i].op(2));
+            for(auto item : fvec_re[i]->Rules) F2F[item.op(0)] = item.op(1);
         }
         
-        MapFunction mapF([fvec](const ex &e, MapFunction &self)->ex {
+        auto mi_rules = FIRE::FindRules(fvec_re);
+        
+        MapFunction F2ex([fvec](const ex &e, MapFunction &self)->ex {
             if(!e.has(F(w1,w2))) return e;
             else if(e.match(F(w1,w2))) {
                 int idx = ex_to<numeric>(e.op(0)).to_int();
                 return F(fvec[idx-1]->Propagators, e.op(1));
             } else return e.map(self);
         });
-        
-        auto mi_rules = FIRE::FindRules(fvec);
+
         
         for(auto &air : air_vec) {
-            air = air.subs(ir2F);
-            air = air.subs(int_rules);
+            air = air.subs(IR2F);
+            air = air.subs(rules_ints.first);
             air = air.subs(F2F);
-            air = air.subs(mi_rules);
-            air = mapF(air);
+            air = air.subs(mi_rules.first);
+            air = F2ex(air);
         }
         
         for(auto fp : fvec) delete fp;

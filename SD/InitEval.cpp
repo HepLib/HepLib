@@ -441,7 +441,7 @@ namespace HepLib::SD {
     
     void SecDec::Evaluate(FeynmanParameter fp, const string & key) {
         
-        if(Verbose>0) cout << endl << "Starting @ " << now() << endl;
+        if(Verbose>1) cout << endl << "Starting @ " << now() << endl;
         if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         Initialize(fp);
@@ -459,12 +459,12 @@ namespace HepLib::SD {
         Contours(key);
         Integrates(key);
         ParallelProcess = pps;
-        if(Verbose>0) cout << "Finished @ " << now() << endl << endl;
+        if(Verbose>1) cout << "Finished @ " << now() << endl << endl;
     }
 
     void SecDec::Evaluate(XIntegrand xint, const string & key) {
         
-        if(Verbose>0) cout << endl << "Starting @ " << now() << endl;
+        if(Verbose>1) cout << endl << "Starting @ " << now() << endl;
         if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         Initialize(xint);
@@ -482,12 +482,12 @@ namespace HepLib::SD {
         Contours(key);
         Integrates(key);
         ParallelProcess = pps;
-        if(Verbose>0) cout << "Finished @ " << now() << endl << endl;
+        if(Verbose>1) cout << "Finished @ " << now() << endl << endl;
     }
     
     void SecDec::Evaluate(vector<ex> funexp, const string & key) {
         
-        if(Verbose>0) cout << endl << "Starting @ " << now() << endl;
+        if(Verbose>1) cout << endl << "Starting @ " << now() << endl;
         if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         FunExp = funexp;
@@ -505,7 +505,7 @@ namespace HepLib::SD {
         Contours(key);
         Integrates(key);
         ParallelProcess = pps;
-        if(Verbose>0) cout << "Finished @ " << now() << endl << endl;
+        if(Verbose>1) cout << "Finished @ " << now() << endl << endl;
     }
     
 }
