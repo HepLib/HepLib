@@ -305,7 +305,7 @@ namespace HepLib::FC {
         expr = MapFunction([](const ex &e, MapFunction &self)->ex {
             if(e.match(coVF(w))) {
                 if(e.op(0).match(Matrix(w1, w2, w3))) return e.op(0);
-                if(!is_a<mul>(e.op(0))) cout << "error." << endl;
+                if(!is_a<mul>(e.op(0))) throw Error("MatrixContract: mma_collect error: " + ex2str(e));
                 lst mats;
                 std::map<ex,unsigned,ex_is_less> to_map, from_map;
                 std::set<int> todo;

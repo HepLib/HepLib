@@ -33,6 +33,7 @@ namespace HepLib {
         void Init(string fer_path="fer64");
         string Execute(string);
         void Exit();
+        ~Fermat();
                 
     private:
         bool inited = false;
@@ -45,9 +46,10 @@ namespace HepLib {
     public:
         string Sentinel = "---EOF---";
         string Prompt = "***EOF***";
-        void Init(string form_path_args="form");
+        void Init(string form_path="form");
         string Execute(string script, const string & out_var="[o]");
         void Exit();
+        ~Form();
     
     private:
         bool inited = false;

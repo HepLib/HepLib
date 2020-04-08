@@ -68,8 +68,21 @@ namespace HepLib::FC {
     //-----------------------------------------------------------
     // form 
     //-----------------------------------------------------------
+    static HepLib::Form form_proc;
+    static map<pid_t, bool> init_map;
+    
     namespace {
     ex runform(const ex &expr_in, bool verb) {
+        if((init_map.find(PID)==init_map.end()) || !init_map[PID]) { // init section
+            ostringstream ss;
+            ss << "CFunction pow,sqrt,Pi,gamma;" << endl;
+            ss << "Symbols D, NF, NA, I;" << endl;
+            ss << "#include- " << InstallPrefix <<  "/include/SUN.h" << endl;
+            form_proc.Init("form");
+            form_proc.Execute(ss.str());
+            init_map[PID] = true;
+        }
+        
         ex expr = expr_in.subs(sp_map);
         lst vec_lst, VD_lst, CF_lst, CA_lst, sym_lst;
         for(const_preorder_iterator i = expr.preorder_begin(); i != expr.preorder_end(); ++i) {
@@ -79,6 +92,17 @@ namespace HepLib::FC {
                 else if(ex_to<Index>(*i).type==Index::Type::CF) CF_lst.append(*i);
                 else if(ex_to<Index>(*i).type==Index::Type::CA) CA_lst.append(*i);
             } else if(is_a<symbol>(*i)) sym_lst.append(*i);
+            else if(is_a<GiNaC::function>(*i)) {
+                static vector<string> fun_vec = { 
+                    "TR", "sin", "cos"
+                };
+                auto func = ex_to<GiNaC::function>(*i).get_name();
+                bool ok = false;
+                for(auto fi : fun_vec) {
+                    if(fi==func) { ok = true; break; }
+                }
+                if(!ok) throw Error("runform: Functions not defined in FORM: "+func);
+            }
         }
         vec_lst.sort(); vec_lst.unique();
         VD_lst.sort(); VD_lst.unique();
@@ -89,9 +113,6 @@ namespace HepLib::FC {
         
         stringstream ss;
         FormFormat ff(ss);
-        ff << "CFunction pow,sqrt,Pi,gamma;" << endl;
-        ff << "Symbols D, NF, NA, I;" << endl;
-        ff << "#include- " << InstallPrefix <<  "/include/SUN.h" << endl;
         symtab st;
         if(vec_lst.nops()>0) {
             ff << "Vectors";
@@ -147,8 +168,6 @@ namespace HepLib::FC {
         }
         
         // trace and contract
-        HepLib::Form form;
-        form.Init(InstallPrefix+"/bin/form");
         string ostr;
         if(is_a<lst>(expr)) {
             auto total = expr.nops();
@@ -170,7 +189,10 @@ namespace HepLib::FC {
                     cout << ss.str() << endl;
                 }
                 
-                auto otmp = form.Execute(ss.str());
+                auto script = ss.str();
+                string_replace_all(script, "sin(", "sin_(");
+                string_replace_all(script, "cos(", "cos_(");
+                auto otmp = form_proc.Execute(script);
             
                 if(verb) {
                     cout << "--------------------------------------" << endl;
@@ -202,7 +224,10 @@ namespace HepLib::FC {
                 cout << "--------------------------------------" << endl;
                 cout << ss.str() << endl;
             }
-            ostr = form.Execute(ss.str());
+            auto script = ss.str();
+            string_replace_all(script, "sin(", "sin_(");
+            string_replace_all(script, "cos(", "cos_(");
+            ostr = form_proc.Execute(script);
             ss.clear();
             ss.str("");
             
@@ -213,7 +238,6 @@ namespace HepLib::FC {
                 cout << ostr << endl;
             }
         }
-        form.Exit();
         
         string_replace_all(ostr, "[", "(");
         string_replace_all(ostr, "]", ")");
@@ -229,6 +253,8 @@ namespace HepLib::FC {
         
         string_replace_all(ostr, "d_(", "SP(");
         string_replace_all(ostr, "e_(", "LC(");
+        string_replace_all(ostr, "sin_", "sin");
+        string_replace_all(ostr, "cos_", "cos");
         
         st["I2R"] = ex(1)/2;
         st["NA"] = NA;
@@ -244,6 +270,13 @@ namespace HepLib::FC {
         return ret;
     }}
     
+    /**
+     * @brief evalulate expr in form program
+     * @param expr the input expression
+     * @param all true for sending all into form, otherwise will use mma_collect w.r.t. Index/DiracGamma
+     * @return 返回说明
+     * @retval result with index contract, trace performed, etc.
+     */
     ex form(const ex &expr, bool all, bool verb) {
         if(all || is_a<lst>(expr)) return runform(expr, verb);
         

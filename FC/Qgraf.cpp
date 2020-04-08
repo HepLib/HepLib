@@ -13,12 +13,16 @@ namespace HepLib::FC {
             int n = ex_to<numeric>(fn).to_int();
             return (n<0 ? "m" : "") + to_string(abs(n));
         }
+        
+        ex mat_conj(const ex & e1, const ex & e2, const ex & e3) {
+            return Matrix(e1.conjugate(), e3, e2);
+        }
     }
 
     REGISTER_FUNCTION(Propagator, do_not_evalf_params())
     REGISTER_FUNCTION(InField, do_not_evalf_params())
     REGISTER_FUNCTION(OutField, do_not_evalf_params())
-    REGISTER_FUNCTION(Matrix, do_not_evalf_params().set_return_type(return_types::commutative))
+    REGISTER_FUNCTION(Matrix, do_not_evalf_params().conjugate_func(mat_conj).set_return_type(return_types::commutative))
     
     unsigned Field2_SERIAL::serial = GiNaC::function::register_new(function_options("Field",2).do_not_evalf_params().overloaded(2));
     unsigned Field3_SERIAL::serial = GiNaC::function::register_new(function_options("Field",3).do_not_evalf_params().overloaded(2));
@@ -102,7 +106,14 @@ namespace HepLib::FC {
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
         if(mode==0) return I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)+iEpsilon);
-        else return I * SP(DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)+iEpsilon);
+        else return I * Matrix(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)+iEpsilon);
+    }
+    ex Qgraf::eikonalPropagatorR(ex e, ex n, int mode) { // 0 for gluon, others for quark/anti-quark
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto mom = e.op(2);
+        if(mode==0) return -I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)+iEpsilon);
+        else return -I * Matrix(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)-iEpsilon);
     }
     
     ex Qgraf::eikonalVertex(ex e, ex n, int mode) { // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
@@ -110,9 +121,19 @@ namespace HepLib::FC {
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
         auto mom1 = e.op(0).op(2);
-        if(mode==0) return I * gs * SP(n,LI(fi3)) * SP(DI(fi1),DI(fi2)) * (-I*SUNF(CI(fi3),TI(fi1),TI(fi2)));
-        else if(mode==1 || mode==-2) return I * gs * SP(n,LI(fi3)) * SP(DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
-        else if(mode==2 || mode==-1) return I * gs * SP(n,LI(fi3)) * SP(DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
+        if(mode==0) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-I*SUNF(CI(fi3),TI(fi1),TI(fi2)));
+        else if(mode==1 || mode==-2) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
+        else if(mode==2 || mode==-1) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
+        else return 0;
+    }
+    ex Qgraf::eikonalVertexR(ex e, ex n, int mode) { // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        auto mom1 = e.op(0).op(2);
+        if(mode==0) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (I*SUNF(CI(fi3),TI(fi1),TI(fi2)));
+        else if(mode==1 || mode==-2) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
+        else if(mode==2 || mode==-1) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
         else return 0;
     }
 
@@ -200,7 +221,7 @@ namespace HepLib::FC {
         system(("mkdir -p "+tex_path).c_str());
         int limit = 300;
         
-        GiNaC_Parallel(-1, amp_vec.size(), [&](int idx)->ex {
+        GiNaC_Parallel(-1, amp_vec.size(), 0, [&](int idx)->ex {
             auto amp = amp_vec[idx];
             ofstream out(tex_path+to_string(idx)+".tex");
             out << "\\documentclass[tikz]{standalone}" << endl;

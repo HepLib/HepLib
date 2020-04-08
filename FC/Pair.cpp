@@ -53,7 +53,13 @@ namespace HepLib::FC {
     void Pair::fc_print(const FCFormat &c, unsigned level) const {
         if(is_a<Vector>(lr[0]) && is_a<Vector>(lr[1])) c << "SPD(" << lr[0] << "," << lr[1] << ")";
         else if(is_a<Vector>(lr[0]) && is_a<Index>(lr[1])) c << "FVD(" << lr[0] << "," << lr[1] << ")";
-        else if(is_a<Index>(lr[0]) && is_a<Index>(lr[1])) c << "MTD(" << lr[0] << "," << lr[1] << ")";
+        else if(is_a<Index>(lr[0]) && is_a<Index>(lr[1])) {
+            auto ii = ex_to<Index>(lr[0]);
+            if(ii.type == Index::Type::VD) c << "MTD(" << lr[0] << "," << lr[1] << ")";
+            else if(ii.type == Index::Type::CF) c << "Delta(" << lr[0] << "," << lr[1] << ")";
+            else if(ii.type == Index::Type::CA) c << "SUNDelta(" << lr[0] << "," << lr[1] << ")";
+            else throw Error("Pair::fc_print unexpected.");
+        }
     }
     
     size_t Pair::nops() const { return 2; }
@@ -61,7 +67,15 @@ namespace HepLib::FC {
         return lr[i];
     }
     ex & Pair::let_op(size_t i) {
+        ensure_if_modifiable();
         return lr[i];
+    }
+    
+    ex Pair::eval() const {
+        if(flags & status_flags::evaluated) return *this;
+        else if(!is_a<Vector>(lr[0]) && !is_a<Index>(lr[0])) return SP(lr[0],lr[1]);
+        else if(!is_a<Vector>(lr[1]) && !is_a<Index>(lr[1])) return SP(lr[0],lr[1]);
+        else return this->hold();
     }
     
     void Pair::archive(archive_node & n) const {

@@ -782,7 +782,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         if(verb) cout << now() << " - Scaleless: " << FunExp.size() << " :> " << flush;
 
         auto sl_res =
-        GiNaC_Parallel(ParallelProcess, FunExp.size(), [&](int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, FunExp.size(), 0, [&](int idx)->ex {
             auto funexp = FunExp[idx];
             if(funexp.nops()<3) return funexp;
             symbol s;
@@ -931,7 +931,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
     void SecDec::XEnd() {
         if(Verbose > 2) cout << now() << " - BiSection: " << FunExp.size() << " :> " << flush;
         auto funexps =
-        GiNaC_Parallel(ParallelProcess, FunExp.size(), [&](int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, FunExp.size(), 0, [&](int idx)->ex {
             auto fe = FunExp[idx];
             lst para_res_lst;
             if(xSign(fe.op(0).op(1))==0) {
@@ -986,7 +986,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         
         if(Verbose > 1) cout << now() << " - SDPrepares: ..." << endl << flush;
         auto sd_res =
-        GiNaC_Parallel(ParallelProcess, FunExp.size(), [&](int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, FunExp.size(), 0, [&](int idx)->ex {
             // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
             auto fe = FunExp[idx];
             auto xns_pns = DS(fe);
@@ -1097,7 +1097,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             ostringstream spn;
             spn << "IBP-" << (pn-1);
             auto ibp_res =
-            GiNaC_Parallel(ParallelProcess, ibp_in_vec.size(), [&](int idx)->ex {
+            GiNaC_Parallel(ParallelProcess, ibp_in_vec.size(), 0, [&](int idx)->ex {
                 // return lst
                 // {0, element} for input with pole reached and doing nothing
                 // {1, {element, ...}} for input whth pole NOT reached
@@ -1223,7 +1223,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         }
         
         auto res =
-        GiNaC_Parallel(ParallelProcess, ibp_res_vec.size(), [&](int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, ibp_res_vec.size(), 0, [&](int idx)->ex {
 
             // return single element in which ep/eps can be expanded safely.
             auto xns_expr = ibp_res_vec[idx];
@@ -1286,7 +1286,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         
         if(zResides) {
             Integrands =
-            GiNaC_Parallel(ParallelProcess, ints.size(), [&](int idx)->ex {
+            GiNaC_Parallel(ParallelProcess, ints.size(), 0, [&](int idx)->ex {
                 auto item = ints[idx];
                 ex it = item;
                 if(it.has(vz)) {
@@ -1355,7 +1355,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         if(Verbose > 1) cout << Integrands.size() << endl;
             
         auto res =
-        GiNaC_Parallel(ParallelProcess, Integrands.size(), [&](int idx)->ex {
+        GiNaC_Parallel(ParallelProcess, Integrands.size(), 0, [&](int idx)->ex {
             // return { {two elements}, {two elements}, ...},
             // 1st: x-independent coefficient, expanded in ep/eps
             // 2nd: x-integrand

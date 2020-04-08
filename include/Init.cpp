@@ -25,6 +25,7 @@ namespace HepLib {
     const Symbol ep("ep");
     const Symbol iEpsilon("iEpsilon",false);
     int Verbose = 0;
+    pid_t PID = getpid();
     
     lst GiNaC_archive_Symbols = lst{};
     string InstallPrefix = "@PREFIX_DIR@";
@@ -85,6 +86,7 @@ namespace HepLib {
     // HepLib::IBP
     //----------------------------------------
     const Symbol IBP::d("d");
+    int IBP::FIRE::Version = 6;
     
     //----------------------------------------
     // Rationalize

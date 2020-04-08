@@ -9,7 +9,7 @@ namespace HepLib::IBP {
     void FIRE::Reduce() { 
         Dimension = Propagators.nops();
         if(Integrals.nops()<1) return;
-        int pn = ProblemNumber;
+        int pn = 0; // to avoid unsigned show overflow in FIRE
         int dim = Dimension;
         lst InExternal;
         for(auto ii : Internal) InExternal.append(ii);
@@ -177,7 +177,6 @@ namespace HepLib::IBP {
             start << "}]=True" << endl << endl;
         }
         
-        
         // .start - Others
         start << "SBasisRL[" << pn << "]=0" << endl << endl;
         start << "HPI[" << pn << "]={}" << endl << endl;
@@ -185,8 +184,6 @@ namespace HepLib::IBP {
         string sss = start.str();
         string_replace_all(sss, "=", " = ");
         string_replace_all(sss, ",", ", ");
-        
-        string spn = to_string(pn);
         
         // .config
         ostringstream config;
@@ -196,13 +193,13 @@ namespace HepLib::IBP {
         bool first = true;
         for(auto v : Variables) { config << (first ? "" : ",") << v; first=false; }
         config << endl;
-        config << "#database db" << pn << endl;
+        config << "#database db" << ProblemNumber << endl;
         if(Version>5) config << "#pos_pref 5" << endl;
         config << "#bucket 20" << endl;
         config << "#start" << endl;
-        config << "#problem " << pn << " " << pn << ".start" << endl;
-        config << "#integrals " << pn << ".intg" << endl;
-        config << "#output " << pn << ".tables" << endl;
+        config << "#problem " << pn << " " << ProblemNumber << ".start" << endl;
+        config << "#integrals " << ProblemNumber << ".intg" << endl;
+        config << "#output " << ProblemNumber << ".tables" << endl;
         
         // *.intg
         ostringstream intg;
@@ -211,6 +208,8 @@ namespace HepLib::IBP {
             intg << "{" << pn << "," << Integrals[i] << (i<Integrals.nops()-1 ? "}," : "}");
         }
         intg << "}" << endl;
+        
+        string spn = to_string(ProblemNumber);
         
         if(WorkingDir.length()<1) WorkingDir = to_string(getpid());
         system(("mkdir -p "+WorkingDir).c_str());
@@ -227,9 +226,9 @@ namespace HepLib::IBP {
         intg_out.close();
         
         ostringstream cmd;
-        cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << ") -c " << pn << " >/dev/null";
+        cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << ") -c " << ProblemNumber << " >/dev/null";
         system(cmd.str().c_str());
-        system(("rm -rf "+WorkingDir+"/db"+to_string(pn)).c_str());
+        system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());
         
         ifstream ifs(WorkingDir+"/"+spn+".tables");
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
@@ -241,7 +240,8 @@ namespace HepLib::IBP {
         auto tp_lst = tp.Read(ostr);
         exmap id2F;
         for(auto item : tp_lst.op(1)) {
-            id2F[item.op(0)] = F(item.op(1).op(0), item.op(1).op(1));
+            if(!is_zero(item.op(1).op(0))) throw Error("FIRE::Reduce: pn is NOT 0.");
+            id2F[item.op(0)] = F(ProblemNumber, item.op(1).op(1));
         }
         
         for(auto item : tp_lst.op(0)) {
@@ -324,7 +324,7 @@ namespace HepLib::IBP {
     pair<exmap,lst> FIRE::FindRules(vector<FIRE> & fs, bool mi) {
         exvector uf_mi_vec;
         if(mi) {
-            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), 0, [mi,fs](int idx)->ex {
                 const FIRE & fi = fs[idx]; // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.MasterIntegrals) {
@@ -333,7 +333,7 @@ namespace HepLib::IBP {
                 return uf_mi_lst;
             }, "MI");
         } else {
-            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), 0, [mi,fs](int idx)->ex {
                 const FIRE & fi = fs[idx]; // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.Integrals) {
@@ -367,7 +367,7 @@ namespace HepLib::IBP {
     pair<exmap,lst> FIRE::FindRules(vector<FIRE*> & fs, bool mi) {
         exvector uf_mi_vec;
         if(mi) {
-            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), 0, [mi,fs](int idx)->ex {
                 const FIRE & fi = *(fs[idx]); // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.MasterIntegrals) {
@@ -376,14 +376,14 @@ namespace HepLib::IBP {
                 return uf_mi_lst;
             }, "MI");
         } else {
-            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), 0, [mi,fs](int idx)->ex {
                 const FIRE & fi = *(fs[idx]); // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.Integrals) {
                     uf_mi_lst.append(lst{ fi.UF(mi), F(fi.ProblemNumber,mi) });
                 }
                 return uf_mi_lst;
-            }, "I");
+            }, "II");
         }
     
         map<ex,lst,ex_is_less> group;

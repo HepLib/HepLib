@@ -190,13 +190,19 @@ namespace HepLib {
     void GiNaC_archive_Symbols_from(ex);
     void GiNaC_archive_Symbols_from(vector<ex>);
     vector<ex> GiNaC_Parallel(
-        int nproc,
-        int ntotal,
+        int nproc, int ntotal, int nbatch,
         std::function<ex(int)> f,
         const string & key = "",
         bool rm = true,
         int prtlvl = 0
     );
+    inline vector<ex> GiNaC_Parallel(
+        int nproc, int ntotal,
+        std::function<ex(int)> f,
+        const string & key = "",
+        bool rm = true,
+        int prtlvl = 0
+    ) { return  GiNaC_Parallel(nproc, ntotal, 0, f, key, rm, prtlvl); }
     
     /*-----------------------------------------------------*/
     // Helpers
@@ -281,6 +287,7 @@ namespace HepLib {
     extern const Symbol iEpsilon;
     extern const Symbol ep;
     extern int Verbose;
+    extern pid_t PID;
     
     /*-----------------------------------------------------*/
     // Global Colors

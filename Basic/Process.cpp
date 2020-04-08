@@ -48,6 +48,8 @@ namespace HepLib {
     // Fermat Class
     //-----------------------------------------------------------
     #define ENTER endl<<endl<<endl
+    
+    Fermat::~Fermat() { Exit(); }
         
     void Fermat::Exit() {
         if(inited) {
@@ -71,8 +73,9 @@ namespace HepLib {
         }
         inited = true;
         
-        pipe(P2C);
-        pipe(C2P);
+        if (pipe(P2C)==-1 || pipe(C2P)==-1) {
+            throw Error("pipe failed in Fermat::Init.");
+        }
         
         pid = fork();
         if (pid == 0) { // child process
@@ -82,7 +85,7 @@ namespace HepLib {
             close(C2P[1]);
             dup2(P2C[0], 0);
             close(P2C[0]);
-            system(fer_path.c_str());
+            execlp(fer_path.c_str(), fer_path.c_str(), NULL);
             exit(0);
         }
         
@@ -160,6 +163,8 @@ namespace HepLib {
     //-----------------------------------------------------------
     // Form Class
     //-----------------------------------------------------------
+    Form::~Form() { Exit(); }
+    
     void Form::Exit() {
         if(inited) {
             string exit_cmd = "\n.end\n" + Prompt +"\n";
@@ -172,7 +177,7 @@ namespace HepLib {
         }
     }
     
-    void Form::Init(string form_path_args) {
+    void Form::Init(string form_path) {
     
         if(inited) {
             close(io[0][0]);
@@ -185,9 +190,9 @@ namespace HepLib {
         }
         inited = true;
         
-        pipe(io[0]);
-        pipe(io[1]);
-        pipe(stdo);
+        if (pipe(io[0])==-1 || pipe(io[1])==-1 || pipe(stdo)==-1) {
+            throw Error("pipe failed in Form::Init.");
+        }
         
         pid = fork();
         if (pid == 0) {
@@ -226,14 +231,12 @@ namespace HepLib {
             ofs << "#fromexternal-" << endl;
             ofs << ".end" << endl;
             ofs.close();
-    
-            oss.clear();
-            oss.str("");
-            oss << "%s -pipe %d,%d -M init-" << pid << endl;
             
-            char buffer[256];
-            sprintf(buffer, oss.str().c_str(), form_path_args.c_str(), io[0][0], io[1][1]);
-            system(buffer);
+            execlp(form_path.c_str(), form_path.c_str(), 
+                "-pipe", 
+                (to_string(io[0][0])+","+to_string(io[1][1])).c_str(),
+                "-M", ("init-"+to_string(pid)).c_str(),
+                NULL);
             exit(0);
         } 
         
@@ -246,7 +249,7 @@ namespace HepLib {
         read(io[1][0], buffer, sizeof(buffer));
         char* p = strstr(buffer, "\n");
         if(p==NULL){
-            cout << buffer << endl;
+            cout << "the return is: <|" << buffer << "|>" << endl;
             throw Error("Init Failed: Expect a Line break!");
         }
         sprintf(p, ",%d\n\n\0", pid);
@@ -255,7 +258,6 @@ namespace HepLib {
         p = strstr(buffer, "OK");
         if(p==NULL || p!=buffer) throw Error("Init Failed: Expect OK!");
     
-        
         ostringstream oss;
         oss << "init-" << pid << ".frm";
         if(file_exists(oss.str().c_str())) remove(oss.str().c_str());

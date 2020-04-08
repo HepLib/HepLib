@@ -1,3 +1,14 @@
+/**
+ * @file Apart.cpp
+ * @brief Functions to perform partial fraction
+ * @details check the details
+ * @mainpage Apart.cpp
+ * @author F. Feng
+ * @email F.Feng@outlook.com
+ * @version 1.0.0
+ * @date 2020-04-08
+ */
+
 #include "FC.h"
 #include "cln/cln.h"
 
@@ -465,14 +476,8 @@ namespace HepLib::FC {
         string wdir = to_string(getpid()) + "_FIRE";
 
         auto air_intg = 
-        GiNaC_Parallel(-1, air_vec.size(), [air_vec] (int idx) {
-            auto air = air_vec[idx];
-            // fix ApartIR from archive
-            air = air.subs(lst { 
-                GiNaC::function(ApartIR1_SERIAL::serial, w1, w2)==ApartIR(w1,w2),
-                GiNaC::function(ApartIR2_SERIAL::serial, w1)==ApartIR(w1)
-            });
-            
+        GiNaC_Parallel(-1, air_vec.size(), 0, [air_vec] (int idx) {
+            auto air = air_vec[idx];            
             air = ApartIRC(air);
             exset intg;
             find(air, ApartIR(w1, w2), intg);
@@ -575,7 +580,7 @@ namespace HepLib::FC {
         if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << nints << "/" << fvec_re.size() << " @ " << now(false) << endl;
 
         int nprocs = omp_get_num_procs();
-        auto fres= GiNaC_Parallel(nprocs/2, fvec_re.size(), [fvec_re](int idx)->ex {
+        auto fres= GiNaC_Parallel(nprocs/2, fvec_re.size(), 1, [fvec_re](int idx)->ex {
             auto item = fvec_re[idx];
             item->Reduce();
             return lst {

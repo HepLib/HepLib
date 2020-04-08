@@ -68,6 +68,7 @@ namespace HepLib::FC {
         return pis[i];
     }
     ex & Eps::let_op(size_t i) {
+        ensure_if_modifiable();
         return pis[i];
     }
     

@@ -101,8 +101,10 @@ namespace HepLib::FC {
         static ex g4Vertex(ex e);
         static ex gh2gVertex(ex e);
         
-        ex eikonalPropagator(ex e, ex n, int mode); // 0 for gluon, others for quark/anti-quark
-        ex eikonalVertex(ex e, ex n, int mode); // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
+        static ex eikonalPropagator(ex e, ex n, int mode); // 0 for gluon, others for quark/anti-quark
+        static ex eikonalPropagatorR(ex e, ex n, int mode); // right side from cut
+        static ex eikonalVertex(ex e, ex n, int mode); // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
+        static ex eikonalVertexR(ex e, ex n, int mode); // right side from cut
         
         static lst TopoLines(const ex & amp);
         static void DrawPDF(const lst & amps, string fn, bool debug=false);
@@ -239,6 +241,7 @@ namespace HepLib::FC {
         size_t nops() const override;
         ex op(size_t i) const override;
         ex& let_op(size_t i) override;
+        ex eval() const override;
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void fc_print(const FCFormat &c, unsigned level = 0) const;
@@ -304,6 +307,8 @@ namespace HepLib::FC {
         unsigned get_rl();
         size_t nops() const override;
         ex op(size_t i) const override;
+        ex& let_op(size_t i) override;
+        ex eval() const override;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
@@ -317,9 +322,9 @@ namespace HepLib::FC {
     //-----------------------------------------------------------
     DECLARE_FUNCTION_1P(TR)
     
-    inline ex GAS(const Vector &p) { return DiracGamma(p); }
-    inline ex GAS(const Index &i) { return DiracGamma(i); }
-    ex GAS(ex expr);
+    inline ex GAS(const Vector &p, unsigned rl=0) { return DiracGamma(p,rl); }
+    inline ex GAS(const Index &i, unsigned rl=0) { return DiracGamma(i,rl); }
+    ex GAS(ex expr, unsigned rl=0);
     
     // Form, TIR, Apart
     ex form(const ex &expr, bool all_in_one=true, bool verb=false);

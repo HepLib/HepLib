@@ -24,7 +24,6 @@ namespace HepLib::IBP {
         
         string WorkingDir;
         int ProblemNumber;
-        int Version = 6;
         
         int Dimension;
         lst MasterIntegrals;
@@ -34,6 +33,7 @@ namespace HepLib::IBP {
         
         static pair<exmap,lst> FindRules(vector<FIRE> &fs, bool mi=true);
         static pair<exmap,lst> FindRules(vector<FIRE*> &fs, bool mi=true); 
+        static int Version;
     private:
         vector<exmap> IBPs;
         

@@ -71,7 +71,8 @@ namespace HepLib {
         GiNaC_archive_Symbols.unique();
     }
     vector<ex> GiNaC_Parallel(
-        int nproc, int ntotal, std::function<ex(int)> f,
+        int nproc, int ntotal, int nbatch, 
+        std::function<ex(int)> f,
         const string & key, bool rm, int prtlvl) {
         
         auto ppid = getpid();
@@ -79,11 +80,10 @@ namespace HepLib {
         ostringstream cmd;
         cmd << "mkdir -p " << ppid;
         system(cmd.str().c_str());
-
-        int batch = 1;
-        if(para_max_run>0) batch = ntotal/para_max_run/10;
-        if(batch<1) batch = 1;
-        int btotal = ntotal/batch + ((ntotal%batch)==0 ? 0 : 1);
+        
+        if(para_max_run>0 && nbatch<=0) nbatch = ntotal/para_max_run/10;
+        if(nbatch<1) nbatch = 1;
+        int btotal = ntotal/nbatch + ((ntotal%nbatch)==0 ? 0 : 1);
 
         for(int bi=0; bi<btotal; bi++) {
             if(Verbose > 1) {
@@ -91,7 +91,7 @@ namespace HepLib {
                 for(int pi=0;pi<prtlvl;pi++) cout << "   ";
                 cout << "\\--Evaluating ";
                 if(key != "") cout << Color_HighLight << key << RESET << " ";
-                cout << Color_HighLight << batch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] ... " << flush;
+                cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] ... " << flush;
             }
             
             if(para_max_run>0) {
@@ -100,13 +100,15 @@ namespace HepLib {
                 else if (pid != 0) {
                     if(bi >= para_max_run) wait(NULL);
                     continue;
+                } else {
+                    PID = getpid(); // update PID after fork
                 }
             }
             
             try {
                 lst res_lst;
-                for(int ri=0; ri<batch; ri++) {
-                    int i = bi*batch + ri;
+                for(int ri=0; ri<nbatch; ri++) {
+                    int i = bi*nbatch + ri;
                     if(i<ntotal) res_lst.append(f(i));
                     else break;
                 }

@@ -51,6 +51,20 @@ namespace HepLib::FC {
         return 0;
     }
     
+    ex & DiracGamma::let_op(size_t i) {
+        static ex ex_rl = numeric(rl);
+        ensure_if_modifiable();
+        if(i==0) return pi;
+        else return ex_rl;
+    }
+    
+    ex DiracGamma::eval() const {
+        if(flags & status_flags::evaluated) return *this;
+        else if(is_zero(pi) || is_zero(pi-1) || is_zero(pi-5) || is_zero(pi-6) || is_zero(pi-7)) return this->hold();
+        else if(!is_a<Vector>(pi) && !is_a<Index>(pi)) return GAS(pi,rl);
+        else return this->hold();
+    }
+    
     void DiracGamma::print(const print_dflt &c, unsigned level) const {
         if(is_zero(pi-1)) {
             c.s << "𝕚";
@@ -102,6 +116,7 @@ namespace HepLib::FC {
         else if(is_zero(pi-5)) return -1*DiracGamma(5, rl);
         else if(is_zero(pi-6)) return DiracGamma(7, rl);
         else if(is_zero(pi-7)) return DiracGamma(6, rl);
+        else if(is_zero(pi-1)) return DiracGamma(1, rl);
         throw Error("invalid DiracGamma Found.");
     }
     
@@ -126,11 +141,11 @@ namespace HepLib::FC {
         expl_derivative_func(expl_TR_diff)
     );
     
-    ex GAS(ex expr) {
-        if(is_zero(expr-1)) return DiracGamma(1);
-        else if(is_zero(expr-5)) return DiracGamma(5);
-        else if(is_zero(expr-6)) return DiracGamma(6);
-        else if(is_zero(expr-7)) return DiracGamma(7);
+    ex GAS(ex expr, unsigned rl) {
+        if(is_zero(expr-1)) return DiracGamma(1,rl);
+        else if(is_zero(expr-5)) return DiracGamma(5,rl);
+        else if(is_zero(expr-6)) return DiracGamma(6,rl);
+        else if(is_zero(expr-7)) return DiracGamma(7,rl);
         
         ex tmp = expand(expr);
         lst ex_lst;
@@ -147,10 +162,10 @@ namespace HepLib::FC {
             for(auto ii : mul_lst) {
                 if(is_a<Vector>(ii)) {
                     if(is_a<DiracGamma>(g)) throw Error("Something Wrong with GAS");
-                    g = DiracGamma(ex_to<Vector>(ii));
+                    g = DiracGamma(ex_to<Vector>(ii),rl);
                 } else if(is_a<Index>(ii)) {
                     if(is_a<DiracGamma>(g)) throw Error("Something Wrong with GAS");
-                    g = DiracGamma(ex_to<Index>(ii));
+                    g = DiracGamma(ex_to<Index>(ii),rl);
                 } else {
                     c *= ii;
                 }
