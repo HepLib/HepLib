@@ -340,7 +340,7 @@ namespace HepLib::SD {
         void Initialize(FeynmanParameter fpi);
         void Initialize(XIntegrand xint);
         void Normalizes();
-        void Scalelesses(bool verb=false);
+        void Scalelesses();
         void SDPrepares();
         void EpsEpExpands();
         void RemoveDeltas();

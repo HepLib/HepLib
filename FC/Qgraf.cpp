@@ -221,7 +221,7 @@ namespace HepLib::FC {
         system(("mkdir -p "+tex_path).c_str());
         int limit = 300;
         
-        GiNaC_Parallel(-1, amp_vec.size(), 0, [&](int idx)->ex {
+        GiNaC_Parallel(-1, amp_vec.size(), [&](int idx)->ex {
             auto amp = amp_vec[idx];
             ofstream out(tex_path+to_string(idx)+".tex");
             out << "\\documentclass[tikz]{standalone}" << endl;

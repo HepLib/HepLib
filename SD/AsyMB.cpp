@@ -427,6 +427,22 @@ namespace HepLib::SD {
                         let_op_append(fe, 1, fe.op(1).op(1)-vz-epz);
                         fe.let_op(0).let_op(1) = w1;
                         fe.let_op(1).let_op(1) = vz;
+                    } else if(xPositive(ex(0)-w1)) {
+                        cout << Color_Warn << "MB(): Negtive w1 found!" << RESET << endl;
+                        let_op_append(fe, 0, ex(0)-w1);
+                        let_op_append(fe, 1, vz);
+                        let_op_append(fe, 0, exp(-I*Pi*vz));
+                        let_op_append(fe, 1, 1);
+                        fe.let_op(0).let_op(1) = w2;
+                        fe.let_op(1).let_op(1) = fe.op(1).op(1)-vz-epz;
+                    } else if(xPositive(ex(0)-w2)) {
+                        cout << Color_Warn << "MB(): Negtive w2 found!" << RESET << endl;
+                        let_op_append(fe, 0, ex(0)-w2);
+                        let_op_append(fe, 1, fe.op(1).op(1)-vz-epz);
+                        let_op_append(fe, 0, exp(-I*Pi*(fe.op(1).op(1)-vz-epz)));
+                        let_op_append(fe, 1, 1);
+                        fe.let_op(0).let_op(1) = w1;
+                        fe.let_op(1).let_op(1) = vz;
                     } else {
                         cout << Color_Error << "Neither w1 nor w2 is xPositive!" << RESET << endl;
                         cout << "w1=" << w1 << endl;

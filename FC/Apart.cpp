@@ -58,6 +58,32 @@ namespace HepLib::FC {
     }
     
     //--------------------------------------------------
+    // ApartIR2ex
+    //--------------------------------------------------
+    ex ApartIR2F(const ex & expr_in) {
+        ex ret = expr_in;
+        ret = MapFunction([](const ex & e, MapFunction &self)->ex{
+            if(e.match(ApartIR(1)) || e.match(ApartIR(1,w))) return 1;
+            else if(e.match(ApartIR(w1, w2))) {
+                ex vars = e.op(1);
+                matrix mat = ex_to<matrix>(e.op(0));
+                lst ps, ns;
+                for(int c=0; c<mat.cols(); c++) {
+                    ex sum=0;
+                    for(int r=0; r<mat.rows()-2; r++) sum += mat(r,c) * vars.op(r);
+                    sum += mat(mat.rows()-2,c);
+                    if(is_zero(mat(mat.rows()-1,c))) continue;
+                    ps.append(sum);
+                    ns.append(0-mat(mat.rows()-1,c));
+                }
+                return F(ps, ns);
+            } else if(!e.has((ApartIR(w))) && !e.has((ApartIR(w1,w2)))) return e;
+            else return e.map(self);
+        })(ret);
+        return ret;
+    }
+    
+    //--------------------------------------------------
     // each column: [c1,...,cn,c0,n] -> (c1 x1+...+cn xn+c0)^n
     // return sum of coefficient * ApartIR
     //--------------------------------------------------
@@ -476,7 +502,7 @@ namespace HepLib::FC {
         string wdir = to_string(getpid()) + "_FIRE";
 
         auto air_intg = 
-        GiNaC_Parallel(-1, air_vec.size(), 0, [air_vec] (int idx) {
+        GiNaC_Parallel(-1, air_vec.size(), [air_vec] (int idx) {
             auto air = air_vec[idx];            
             air = ApartIRC(air);
             exset intg;

@@ -307,14 +307,38 @@ namespace HepLib::FC {
                 if(e.op(0).match(Matrix(w1, w2, w3))) return e.op(0);
                 if(!is_a<mul>(e.op(0))) throw Error("MatrixContract: mma_collect error: " + ex2str(e));
                 lst mats;
-                std::map<ex,unsigned,ex_is_less> to_map, from_map;
+                std::map<ex,int,ex_is_less> to_map, from_map;
                 std::set<int> todo;
                 for(auto item : e.op(0)) mats.append(item);
+                lst mats_idx;
                 for(int i=0; i<mats.nops(); i++) {
                     auto item = mats.op(i);
-                    to_map[item.op(1)] = i+10; // avoid 0 in map
-                    from_map[item.op(2)] = i+10; // avoid 0 in map
+                    if(item.op(0).return_type()==return_types::commutative || item.op(0).is_equal(GAS(1))) {
+                        mats_idx.append(lst{item,i});
+                    } else {
+                        if(to_map[item.op(1)]!=0 || from_map[item.op(2)]!=0) throw Error("MatrixContract: Matrix index conflict.");
+                        to_map[item.op(1)] = i+10; // avoid 0 in map
+                        from_map[item.op(2)] = i+10; // avoid 0 in map
+                    }
                     todo.insert(i);
+                }
+                
+                // update to_map/from_map w.r.t mats_idx
+                for(int i=0; i<mats_idx.nops(); i++) {
+                    auto item = mats_idx.op(i).op(0);
+                    int ii = ex_to<numeric>(mats_idx.op(i).op(1)).to_int();
+                    if(to_map[item.op(1)]==0 && from_map[item.op(2)]==0) {
+                        to_map[item.op(1)] = ii+10; // avoid 0 in map
+                        from_map[item.op(2)] = ii+10; // avoid 0 in map
+                    } else if(to_map[item.op(2)]==0 && from_map[item.op(1)]==0) {
+                        to_map[item.op(2)] = ii+10; // avoid 0 in map
+                        from_map[item.op(1)] = ii+10; // avoid 0 in map
+                        // need to swap the 2nd and 3rd index
+                        auto li = get_op(mats, ii, 1); 
+                        auto ri = get_op(mats, ii, 2);
+                        let_op(mats, ii, 1, ri);
+                        let_op(mats, ii, 2, li);
+                    } else throw Error("MatrixContract: Matrix index conflict.");
                 }
                 
                 ex retMat = 1;

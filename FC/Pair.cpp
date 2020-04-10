@@ -148,6 +148,15 @@ namespace HepLib::FC {
         return res;
     }
     
+    ex sp(const ex & a, const ex & b) {
+        if(is_a<Vector>(a) && is_a<Vector>(b)) return ex_to<Vector>(a).name * ex_to<Vector>(b).name;
+        else throw Error("Error in sp(2).");
+    }
+    ex sp(const ex & a) {
+        if(is_a<Vector>(a)) return ex_to<Vector>(a).name * ex_to<Vector>(a).name;
+        else throw Error("Error in sp(1).");
+    }
+    
     ex & letSP(const ex &p1, const ex &p2) {
         if(!(is_a<Vector>(p1) || is_a<Index>(p1)) || !(is_a<Vector>(p2) || is_a<Index>(p2)))
             throw Error("Invalide arguments for letSP.");

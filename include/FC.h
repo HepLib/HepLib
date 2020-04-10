@@ -255,6 +255,8 @@ namespace HepLib::FC {
     GINAC_DECLARE_UNARCHIVER(Pair);
     ex SP(const ex &a);
     ex SP(const ex &a, const ex &b);
+    ex sp(const ex & a, const ex & b);
+    ex sp(const ex & a);
     ex& letSP(const ex &p1, const ex &p2);
     ex& letSP(const ex &p);
     void clearSP();
@@ -333,6 +335,7 @@ namespace HepLib::FC {
     ex Apart(const ex &expr_in, const lst &vars, exmap sign_map=exmap());
     ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms);
     ex ApartIR2ex(const ex & expr_in);
+    ex ApartIR2F(const ex & expr_in);
     ex ApartIRC(const ex & expr_in);
     void Apart2FIRE(exvector &air_vec, lst loops, lst exts);
     
