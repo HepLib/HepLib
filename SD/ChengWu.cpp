@@ -1,12 +1,6 @@
 /**
- * @file ChengWu.cpp
+ * @file
  * @brief Functions to use Cheng-Wu theorem to make F-term positive
- * @details check the details
- * @mainpage ChengWu.cpp
- * @author F. Feng
- * @email F.Feng@outlook.com
- * @version 1.0.0
- * @date 2020-04-09
  */
 
 #include "SD.h"
@@ -19,8 +13,6 @@ namespace HepLib::SD {
      * @param fe is the { function list, exponet list }
      * @param delta is a list of x's in Delta function
      * @param xsum is used to balance the powers, xsum refers to Delta(1-xsum), if xsum=0, then xsum=SUM(delta list)
-     * @return 
-     * @retval nothing
      */
     void SecDec::Projectivize(ex &fe, ex delta, ex xsum) {
         symbol s;
@@ -77,8 +69,6 @@ namespace HepLib::SD {
      * @param fe is the { function list, exponet list }
      * @param xs the list of { xi }, make transformation for each xi -> cy * yi & yi->xi,  the determinant will be added to fe back
      * @param cy the coefficient
-     * @return 
-     * @retval nothing
      */
     void SecDec::Scalelize(ex &fe, const lst xs, const ex cy) {
         lst x2y, y2x;
@@ -129,8 +119,7 @@ namespace HepLib::SD {
      * @brief Binarize the input fe, w.r.t. the linear eqn
      * @param fe the { function list, exponet list }
      * @param eqn linear equation, line a xi + b xj, e.g. xi-xj can be devide into xi>xj and xi < xj, and then change xi/xj back to 0 to infinity
-     * @return 
-     * @retval 2 elements of { function list, exponet list }, just like fe
+     * @return 2 elements of { function list, exponet list }, just like fe
      */
     vector<ex> SecDec::Binarize(ex const fe, ex const eqn) {
         vector<ex> add_to;

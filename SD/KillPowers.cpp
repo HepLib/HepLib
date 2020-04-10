@@ -1,10 +1,9 @@
 /**
- * @file KillPowers.cpp
+ * @file 
  * @brief Functions to Kill terms like (  a xi - b xj )^n
  * @details check the details
  * @mainpage KillPowers.cpp
  * @author F. Feng
- * @email F.Feng@outlook.com
  * @version 1.0.0
  * @date 2020-04-09
  */
@@ -18,8 +17,7 @@ namespace HepLib::SD {
      * @brief Kill Powers With Delta
      * @param fe is the function list
      * @param kpi is a counter
-     * @return 
-     * @retval true for sucess, false for nothing changed
+     * @return true for sucess, false for nothing changed
      */
     bool SecDec::KillPowersWithDelta(ex fe, int kpi) {
         if(fe.op(0).op(fe.op(0).nops()-1)==iWF(1) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
@@ -131,8 +129,7 @@ namespace HepLib::SD {
      * @param fe is the function list
      * @param kpi is a counter
      * @param bits each bit for an option, bit2 for (a xi-b xj), bit1 for (a xi-c), with other x's=0
-     * @return 
-     * @retval true for sucess, false for nothing changed
+     * @return true for sucess, false for nothing changed
      */
     bool SecDec::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
         if(is_zero(fe.op(0).op(fe.op(0).nops()-1)-iWF(1)) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {

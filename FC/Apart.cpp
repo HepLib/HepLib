@@ -1,10 +1,9 @@
 /**
- * @file Apart.cpp
+ * @file
  * @brief Functions to perform partial fraction
  * @details check the details
  * @mainpage Apart.cpp
  * @author F. Feng
- * @email F.Feng@outlook.com
  * @version 1.0.0
  * @date 2020-04-08
  */
@@ -33,9 +32,11 @@ namespace HepLib::FC {
         
     }
     
-    //--------------------------------------------------
-    // ApartIR2ex
-    //--------------------------------------------------
+    /**
+     * @brief convert ApartIR to ex
+     * @param expr_in expression contains ApartIR
+     * @return ApartIR converted into normal ex
+     */
     ex ApartIR2ex(const ex & expr_in) {
         ex ret = expr_in;
         ret = MapFunction([](const ex & e, MapFunction &self)->ex{
@@ -57,9 +58,11 @@ namespace HepLib::FC {
         return ret;
     }
     
-    //--------------------------------------------------
-    // ApartIR2ex
-    //--------------------------------------------------
+    /**
+     * @brief convert ApartIR to F(ps, ns), ns is like FIRE convention
+     * @param expr_in expression contains ApartIR
+     * @return ApartIR converted into F(ps, ns)
+     */
     ex ApartIR2F(const ex & expr_in) {
         ex ret = expr_in;
         ret = MapFunction([](const ex & e, MapFunction &self)->ex{
@@ -83,10 +86,11 @@ namespace HepLib::FC {
         return ret;
     }
     
-    //--------------------------------------------------
-    // each column: [c1,...,cn,c0,n] -> (c1 x1+...+cn xn+c0)^n
-    // return sum of coefficient * ApartIR
-    //--------------------------------------------------
+    /**
+     * @brief Apart on matrix
+     * @param mat each column: [c1,...,cn,c0,n] -> (c1 x1+...+cn xn+c0)^n
+     * @return sum of coefficient * ApartIR
+     */
     ex Apart(const matrix & mat) {
         int nrow = mat.rows()-2;
         int ncol = mat.cols();
@@ -340,6 +344,13 @@ namespace HepLib::FC {
         }
     }
 
+    /**
+     * @brief Apart on ex
+     * @param expr_in normal expresion
+     * @param vars_in independent variables
+     * @param sign_map a map of vars to 1 or -1, key can be omited
+     * @return sum of coefficient * ApartIR
+     */
     ex Apart(const ex &expr_in, const lst &vars_in, exmap sign_map) {
         exmap map1, map2;
         lst vars;
@@ -414,6 +425,13 @@ namespace HepLib::FC {
         return ret.subs(map2);
     }
     
+    /**
+     * @brief Apart on ex
+     * @param expr_in input expression
+     * @param loops list of loop Vector
+     * @param extps list of external Vector
+     * @return sum of coefficient * ApartIR
+     */
     ex Apart(const ex &expr_in, const lst &loops, const lst & extps) {
         auto expr = expr_in;
         lst sps;
@@ -464,6 +482,11 @@ namespace HepLib::FC {
         return res;
     }
     
+    /**
+     * @brief complete the ApartIR elements
+     * @param expr_in input expression
+     * @return ApartIR with complete matrix rank, ready for IBP reduction
+     */
     ex ApartIRC(const ex & expr_in) {
         return MapFunction([](const ex & e, MapFunction &self)->ex {
             if(!e.has(ApartIR(w1,w2))) return e;
@@ -498,6 +521,11 @@ namespace HepLib::FC {
         })(expr_in);
     }
     
+    /**
+     * @brief perform FIRE reduction on the Aparted input
+     * @param air_vec vector contains aparted input, ApartIRC will be call internally 
+     * @return nothing returned, the input air_vec will be updated
+     */
     void Apart2FIRE(exvector &air_vec, lst vloops, lst vexts) {
         string wdir = to_string(getpid()) + "_FIRE";
 
@@ -633,19 +661,22 @@ namespace HepLib::FC {
                 return F(fvec[idx-1]->Propagators, e.op(1));
             } else return e.map(self);
         });
-
         
-        for(auto &air : air_vec) {
+        auto air_res =
+        GiNaC_Parallel(-1, air_vec.size(), [&](int idx)->ex {
+            auto air = air_vec[idx];
             air = air.subs(IR2F);
             air = air.subs(rules_ints.first);
             air = air.subs(F2F);
             air = air.subs(mi_rules.first);
             air = F2ex(air);
-        }
+            return air;
+        }, "F2F");
         
         for(auto fp : fvec) delete fp;
         system(("rm -rf "+wdir).c_str());
-        
+
+        for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];        
     }
 
 }

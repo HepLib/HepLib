@@ -274,8 +274,7 @@ namespace HepLib::FC {
      * @brief evalulate expr in form program
      * @param expr the input expression
      * @param all true for sending all into form, otherwise will use mma_collect w.r.t. Index/DiracGamma
-     * @return 返回说明
-     * @retval result with index contract, trace performed, etc.
+     * @return result with index contract, trace performed, etc.
      */
     ex form(const ex &expr, bool all, bool verb) {
         if(all || is_a<lst>(expr)) return runform(expr, verb);
