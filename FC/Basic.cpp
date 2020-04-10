@@ -316,7 +316,7 @@ namespace HepLib::FC {
                     if(item.op(0).return_type()==return_types::commutative || item.op(0).is_equal(GAS(1))) {
                         mats_idx.append(lst{item,i});
                     } else {
-                        if(to_map[item.op(1)]!=0 || from_map[item.op(2)]!=0) throw Error("MatrixContract: Matrix index conflict.");
+                        if(to_map[item.op(1)]!=0 || from_map[item.op(2)]!=0) throw Error("MatrixContract: index conflict (1).");
                         to_map[item.op(1)] = i+10; // avoid 0 in map
                         from_map[item.op(2)] = i+10; // avoid 0 in map
                     }
@@ -324,21 +324,39 @@ namespace HepLib::FC {
                 }
                 
                 // update to_map/from_map w.r.t mats_idx
-                for(int i=0; i<mats_idx.nops(); i++) {
-                    auto item = mats_idx.op(i).op(0);
-                    int ii = ex_to<numeric>(mats_idx.op(i).op(1)).to_int();
-                    if(to_map[item.op(1)]==0 && from_map[item.op(2)]==0) {
-                        to_map[item.op(1)] = ii+10; // avoid 0 in map
-                        from_map[item.op(2)] = ii+10; // avoid 0 in map
-                    } else if(to_map[item.op(2)]==0 && from_map[item.op(1)]==0) {
-                        to_map[item.op(2)] = ii+10; // avoid 0 in map
-                        from_map[item.op(1)] = ii+10; // avoid 0 in map
-                        // need to swap the 2nd and 3rd index
-                        auto li = get_op(mats, ii, 1); 
-                        auto ri = get_op(mats, ii, 2);
-                        let_op(mats, ii, 1, ri);
-                        let_op(mats, ii, 2, li);
-                    } else throw Error("MatrixContract: Matrix index conflict.");
+                bool checked = false;
+                while(true) {
+                    lst mats_idx2;
+                    bool ok = true; // double check
+                    for(int i=0; i<mats_idx.nops(); i++) {
+                        auto item = mats_idx.op(i).op(0);
+                        int ii = ex_to<numeric>(mats_idx.op(i).op(1)).to_int();
+                        if(!checked && 
+                            to_map[item.op(1)]==0 && from_map[item.op(2)]==0 && 
+                            to_map[item.op(2)]==0 && from_map[item.op(1)]==0) {
+                            mats_idx2.append(mats_idx.op(i));
+                            continue;
+                        }
+                        ok = false;
+                        checked = false;
+                        if(to_map[item.op(1)]==0 && from_map[item.op(2)]==0) {
+                            to_map[item.op(1)] = ii+10; // avoid 0 in map
+                            from_map[item.op(2)] = ii+10; // avoid 0 in map
+                        } else if(to_map[item.op(2)]==0 && from_map[item.op(1)]==0) {
+                            to_map[item.op(2)] = ii+10; // avoid 0 in map
+                            from_map[item.op(1)] = ii+10; // avoid 0 in map
+                            // need to swap the 2nd and 3rd index
+                            auto li = get_op(mats, ii, 1); 
+                            auto ri = get_op(mats, ii, 2);
+                            let_op(mats, ii, 1, ri);
+                            let_op(mats, ii, 2, li);
+                        } else {
+                            throw Error("MatrixContract: index conflict (2).");
+                        }
+                    }
+                    if(mats_idx2.nops()<1) break;
+                    mats_idx = mats_idx2;
+                    if(ok) checked=true;
                 }
                 
                 ex retMat = 1;
