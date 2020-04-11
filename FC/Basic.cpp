@@ -301,7 +301,8 @@ namespace HepLib::FC {
     ex MatrixContract(const ex & expr_in) {
         if(expr_in.has(coVF(w))) throw Error("MatrixContract: coVF found in expr_in.");
         
-        auto expr = mma_collect(expr_in, Matrix(w1, w2, w3), false, true);
+        auto expr = expr_in.subs(pow(Matrix(w1,w2,w3),2)==Matrix(w1,w2,w3)*Matrix(w1,w3,w2));
+        expr = mma_collect(expr, Matrix(w1, w2, w3), false, true);
         expr = MapFunction([](const ex &e, MapFunction &self)->ex {
             if(e.match(coVF(w))) {
                 if(e.op(0).match(Matrix(w1, w2, w3))) return e.op(0);
@@ -378,13 +379,17 @@ namespace HepLib::FC {
                             break;
                         }
                         if(ti!=0) {
-                            curMat = curMat * mats.op(ti-10).op(0);
+                            auto mat = mats.op(ti-10).op(0);
+                            if(is_zero(curMat-GAS(1))) curMat = mat;
+                            else if(!is_zero(mat-GAS(1))) curMat = curMat * mat;
                             ri = mats.op(ti-10).op(2);
                             todo.erase(ti-10);
                             continue;
                         }
                         if(fi!=0) {
-                            curMat = mats.op(fi-10).op(0) * curMat;
+                            auto mat = mats.op(fi-10).op(0);
+                            if(is_zero(curMat-GAS(1))) curMat = mat;
+                            else if(!is_zero(mat-GAS(1))) curMat = mat * curMat;
                             li = mats.op(fi-10).op(1);
                             todo.erase(fi-10);
                             continue;

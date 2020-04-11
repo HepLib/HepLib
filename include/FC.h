@@ -1,5 +1,6 @@
 /**
  * @file 
+ * @brief FC header file
  */
  
 #pragma once
@@ -80,7 +81,6 @@ namespace HepLib::FC {
     //-----------------------------------------------------------
     class Qgraf {
     public:
-        string Output;
         string Model;
         string In;
         string Out;
@@ -89,6 +89,8 @@ namespace HepLib::FC {
         string Options;
         vector<string> Others;
         lst Amplitudes(symtab st, bool debug=false);
+        
+        static string Style;
         
         static Index LI(ex fn);
         static Index DI(ex fn);

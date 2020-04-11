@@ -138,12 +138,21 @@ namespace HepLib::FC {
     }
 
     lst Qgraf::Amplitudes(symtab st, bool debug) {
+        std::ofstream style;
+        style.open("qgraf.sty", ios::out);
+        style << Style << endl;
+        style.close();
+        
+        std::ofstream model;
+        style.open("qgraf.mod", ios::out);
+        style << Model << endl;
+        style.close();
+        
         std::ofstream ofs;
         ofs.open("qgraf.dat", ios::out);
-                
-        ofs << "output='" << Output << "';" << endl;
-        ofs << "style='" << InstallPrefix << "/include/HepLib.sty';" << endl;
-        ofs << "model='" << Model << "';" << endl;
+        ofs << "output='qgraf.out';" << endl;
+        ofs << "style='qgraf.sty';" << endl;
+        ofs << "model='qgraf.mod';" << endl;
         ofs << "in=" << In << ";" << endl;
         ofs << "out=" << Out << ";" << endl;
         ofs << "loops=" << Loops << ";" << endl;
@@ -155,12 +164,16 @@ namespace HepLib::FC {
         if(debug) system((InstallPrefix+"/bin/qgraf").c_str());
         else system((InstallPrefix+"/bin/qgraf > /dev/null").c_str());
         
-        ifstream ifs(Output);
+        ifstream ifs("qgraf.out");
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
         ifs.close();
         
-        if(access("qgraf.dat",F_OK)!=-1) remove("qgraf.dat");
-        if(access(Output.c_str(),F_OK)!=-1) remove(Output.c_str());
+        if(!debug) {
+            if(access("qgraf.dat",F_OK)!=-1) remove("qgraf.dat");
+            if(access("qgraf.mod",F_OK)!=-1) remove("qgraf.mod");
+            if(access("qgraf.sty",F_OK)!=-1) remove("qgraf.sty");
+            if(access("qgraf.out",F_OK)!=-1) remove("qgraf.out");
+        }
         
         const char* rm_chars = " \t\v\r\n,";
         if(!ostr.empty()) {

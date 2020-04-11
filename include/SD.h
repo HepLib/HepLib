@@ -1,5 +1,6 @@
 /**
  * @file 
+ * @brief SecDec header file
  */
  
 #pragma once
