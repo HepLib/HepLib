@@ -75,6 +75,8 @@ namespace HepLib::FC {
         if(flags & status_flags::evaluated) return *this;
         else if(!is_a<Vector>(lr[0]) && !is_a<Index>(lr[0])) return SP(lr[0],lr[1]);
         else if(!is_a<Vector>(lr[1]) && !is_a<Index>(lr[1])) return SP(lr[0],lr[1]);
+        else if((is_a<Vector>(lr[0]) && is_a<Vector>(lr[1]))) return Pair(ex_to<Vector>(lr[0]),ex_to<Vector>(lr[1])).hold();
+        else if((is_a<Index>(lr[0]) && is_a<Index>(lr[1]))) return Pair(ex_to<Index>(lr[0]),ex_to<Index>(lr[1])).hold();
         else return this->hold();
     }
     

@@ -138,6 +138,7 @@ namespace HepLib::FC {
     }
 
     lst Qgraf::Amplitudes(symtab st, bool debug) {
+        system("rm -f qgraf.dat qgraf.out qgraf.sty qgraf.mod");
         std::ofstream style;
         style.open("qgraf.sty", ios::out);
         style << Style << endl;
