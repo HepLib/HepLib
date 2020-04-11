@@ -62,7 +62,8 @@ namespace HepLib::SD {
     DECLARE_FUNCTION_2P(VEO)
     DECLARE_FUNCTION_1P(epsID)
     DECLARE_FUNCTION_2P(CV) // not used internally, for user use only
-
+    extern int VEO_Digits;
+    
     /*-----------------------------------------------------*/
     // SD Input
     /*-----------------------------------------------------*/

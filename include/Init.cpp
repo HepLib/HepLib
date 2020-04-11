@@ -54,7 +54,7 @@ namespace HepLib {
         set_print_func<numeric, CppFormat>(CppFormat::print_numeric);
     }
     SD::CppFormat::_init SD::CppFormat::CppFormat_init;
-    
+    int SD::VEO_Digits = 10;
     
     //----------------------------------------
     // HepLib::FC

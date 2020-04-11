@@ -62,6 +62,13 @@ namespace HepLib::SD {
         auto ls = fp.LoopMomenta;
         auto tls = fp.tLoopMomenta;
         
+        for(auto item : ls) {
+            if(!is_a<symbol>(item)) throw Error("SecDec::Initialize failed, NOT a symbol: "+ex2str(item));
+        }
+        for(auto item : tls) {
+            if(!is_a<symbol>(item)) throw Error("SecDec::Initialize failed, NOT a symbol: "+ex2str(item));
+        }
+        
         Replacements2(fp.lReplacements);
         Replacements2(fp.tReplacements);
         Replacements2(fp.nReplacements);
@@ -445,6 +452,7 @@ namespace HepLib::SD {
         if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         Initialize(fp);
+        MB();
         if(FunExp.size()<1) return;
         GiNaC_archive_Symbols_from(FunExp);
         Scalelesses();
@@ -468,6 +476,7 @@ namespace HepLib::SD {
         if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         Initialize(xint);
+        MB();
         if(FunExp.size()<1) return;
         GiNaC_archive_Symbols_from(FunExp);
         Scalelesses();
@@ -491,6 +500,7 @@ namespace HepLib::SD {
         if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         FunExp = funexp;
+        MB();
         if(FunExp.size()<1) return;
         GiNaC_archive_Symbols_from(FunExp);
         Scalelesses();

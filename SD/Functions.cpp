@@ -25,7 +25,7 @@ namespace HepLib::SD {
                 bool neg = bool(ex1<0);
                 if(neg) ex1 = 0-ex1;
                 int n1 = floor(ex_to<numeric>(log(ex1)/log10).to_double());
-                int n12 = 20;
+                int n12 = VEO_Digits;
                 ostringstream oss;
                 oss << evalf(ex1/power(10,n1));
                 string sd1 = oss.str();
@@ -67,8 +67,8 @@ namespace HepLib::SD {
                     if(n2!=0) c.s << "E" << n2;
                 } else {
                     int n12 = n1-n2;
-                    if(n12>20) {
-                        n12 = 20;
+                    if(n12>VEO_Digits) {
+                        n12 = VEO_Digits;
                         d2 = 0;
                     }
                     ostringstream oss;
@@ -98,47 +98,7 @@ namespace HepLib::SD {
             Digits = oDigits;
             return;
         }
-        
-        static void print_VEO_Old(const ex & ex1_in, const ex & ex2_in, const print_context & c) {
-            ex ex1 = ex1_in, ex2 = ex2_in;
-            if(abs(ex1) < numeric("1E-30")) ex1 = 0;
-            if(abs(ex2) < numeric("1E-30")) ex2 = 0;
-            if(ex1==0 || ex2==0) {
-                char bf1[128], bf2[128];
-                quadmath_snprintf(bf1, sizeof bf1, "%.10QG", CppFormat::ex2q(ex1_in));
-                quadmath_snprintf(bf2, sizeof bf2, "%.10QG", CppFormat::ex2q(ex2_in));
-                c.s << "(" << bf1 << " +- " << bf2 << ")";
-                return;
-            }
-            int digits = 30;
-            if(!ex2.is_zero()) {
-                auto ratio = ex_to<numeric>(abs(ex1/ex2));
-                digits = floorq(logq(ratio.to_double())/logq(10.Q)) + 2;
-                digits = digits > 1 ? digits : 1;
-                digits = digits > 30 ? 30 : digits;
-            }
-            auto oDigits = Digits;
-            ostringstream oss;
-            try {
-                Digits = digits;
-                oss << "(" << ex1.evalf();
-                Digits = 2;
-                oss << " +- " << ex2.evalf() << ")";
-                Digits = oDigits;
-                c.s << oss.str();
-            } catch(...) {
-                Digits = oDigits;
-                try {
-                    char bf1[128], bf2[128];
-                    quadmath_snprintf(bf1, sizeof bf1, "%.10QG", CppFormat::ex2q(ex1_in));
-                    quadmath_snprintf(bf2, sizeof bf2, "%.10QG", CppFormat::ex2q(ex2_in));
-                    c.s << "(" << bf1 << " +- " << bf2 << ")";
-                } catch(...) {
-                    c.s << Color_Error << "[-NaN-]" << RESET;
-                }
-            }
-        }
-        
+                
         static ex NoDiff_1P(const ex & x, unsigned diff_param) {return 0;}
         static ex NoDiff_2P(const ex & x, const ex & y, unsigned diff_param) {return 0;}
         static ex VE_Conjugate(const ex & x, const ex & y) { return VE(x,y).hold(); }
