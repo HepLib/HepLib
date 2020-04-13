@@ -665,10 +665,10 @@ namespace HepLib::FC {
         auto air_res =
         GiNaC_Parallel(-1, air_vec.size(), [&](int idx)->ex {
             auto air = air_vec[idx];
-            air = air.subs(IR2F);
-            air = air.subs(rules_ints.first);
-            air = air.subs(F2F);
-            air = air.subs(mi_rules.first);
+            air = air.subs(IR2F,subs_options::subs_options::no_pattern);
+            air = air.subs(rules_ints.first,subs_options::subs_options::no_pattern);
+            air = air.subs(F2F,subs_options::subs_options::no_pattern);
+            air = air.subs(mi_rules.first,subs_options::subs_options::no_pattern);
             air = F2ex(air);
             return air;
         }, "F2F");

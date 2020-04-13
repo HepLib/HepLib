@@ -74,10 +74,10 @@ namespace HepLib::SD {
                     ostringstream oss;
                     oss << evalf(ex1/power(10,n1));
                     string sd1 = oss.str();
-                    if(sd1.length()<2+n12) {
+                    if(sd1.length()<3+n12) {
                         oss.clear();
                         oss.str("");
-                        oss << evalf(ex1/power(10,n1)+power(10,-3-n12));
+                        oss << evalf(ex1/power(10,n1)+power(10,-4-n12));
                         sd1 = oss.str();
                     } else {
                         int ci = stoi(sd1.substr(2+n12,1));
@@ -89,6 +89,7 @@ namespace HepLib::SD {
                         }
                     }
                     sd1 = sd1.substr(0, 2+n12);
+                    if(sd1[sd1.length()-1]=='.') sd1 = sd1.substr(0, sd1.length()-1);
                     if(neg) c.s << "(-";
                     c.s << sd1 << "(" << d2 << ")";
                     if(n1!=0) c.s << "E" << n1;

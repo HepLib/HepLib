@@ -315,7 +315,7 @@ namespace HepLib::SD {
         bool use_las = false;
         bool save_las = false;
         bool use_IBF = false;
-        bool use_MP = false;
+        bool use_MP = true;
         bool all_in_one = true;
         int CT_method = 1; // 0: original, 1: rescaled
         int MPDigits = 50; // digits in mpREAL for MP

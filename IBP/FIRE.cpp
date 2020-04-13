@@ -33,7 +33,7 @@ namespace HepLib::IBP {
         
         lst eqns, iWFs;
         for(int i=0; i<dim; i++) {
-            auto eq = Propagators.op(i).expand();
+            auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
             eq = eq.subs(sp2s, subs_options::algebraic);
             eq = eq.subs(Replacements, subs_options::algebraic);
             if(eq.has(iWF(w))) throw Error("iWF used in eq.");
@@ -187,7 +187,7 @@ namespace HepLib::IBP {
         
         // .config
         ostringstream config;
-        config << "#threads 4" << endl;
+        config << "#threads 1" << endl;
         config << "#fermat fer64" << endl;
         config << "#variables ";
         bool first = true;
