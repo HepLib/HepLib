@@ -317,7 +317,7 @@ namespace HepLib::SD {
         bool use_IBF = false;
         bool use_MP = true;
         bool all_in_one = true;
-        int CT_method = 1; // 0: original, 1: rescaled
+        int CT_method = 0; // 0: original, 1: rescaled
         int MPDigits = 50; // digits in mpREAL for MP
         lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
         

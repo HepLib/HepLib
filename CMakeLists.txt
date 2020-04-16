@@ -3,6 +3,10 @@ SET(CMAKE_C_COMPILER gcc)
 SET(CMAKE_CXX_COMPILER g++)
 SET(CMAKE_Fortran_COMPILER gfortran)
 
+# OpenMP
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+
 #-----------------------------------------------
 # Configure
 #-----------------------------------------------

@@ -21,7 +21,7 @@ namespace HepLib::SD {
     }
 
     void SecDec::Initialize(FeynmanParameter fp) {
-        
+            
         if(fp.Propagators.nops() != fp.Exponents.nops()) {
             cerr << Color_Error << "Initialize: the length of Propagators and Exponents are NOT equal." << RESET << endl;
             exit(1);
@@ -167,8 +167,10 @@ namespace HepLib::SD {
             if(sgn.is_zero()) {
                 sgn = 1;
                 if(is_a<numeric>(p) && ex_to<numeric>(p)>0) sgn = -1;
-                cout << Color_Warn << " - Warning: Can NOT determine the iEpsilon sign." << RESET << endl;
-                cout << " - " << p << " from " << ps.op(i) << endl;
+                if(Verbose>0) {
+                    cout << Color_Warn << " - Warning: Can NOT determine the iEpsilon sign." << RESET << endl;
+                    cout << " - " << p << " from " << ps.op(i) << endl;
+                }
             }
             
             p = (ps.op(i)*sgn).subs(iEpsilon==0);
@@ -216,7 +218,7 @@ namespace HepLib::SD {
             if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << Color_Error << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << Color_Error << "Initialize: NOT positive (1) - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << RESET << endl;
                 exit(1);
@@ -224,7 +226,7 @@ namespace HepLib::SD {
             if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << Color_Error << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << Color_Error << "Initialize: NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << RESET << endl;
                 exit(1);
@@ -276,7 +278,7 @@ namespace HepLib::SD {
             if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << Color_Error << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << Color_Error << "Initialize: NOT positive (2) - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << RESET << endl;
                 exit(1);
@@ -284,7 +286,7 @@ namespace HepLib::SD {
             if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
             }))) {
-                cerr << Color_Error << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+                cerr << Color_Error << "Initialize: NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }) << RESET << endl;
                 exit(1);

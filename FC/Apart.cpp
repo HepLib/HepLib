@@ -485,38 +485,61 @@ namespace HepLib::FC {
     /**
      * @brief complete the ApartIR elements
      * @param expr_in input expression
+     * @param cut_props cut propagators, default is { }
      * @return ApartIR with complete matrix rank, ready for IBP reduction
      */
-    ex ApartIRC(const ex & expr_in) {
-        return MapFunction([](const ex & e, MapFunction &self)->ex {
+    ex ApartIRC(const ex & expr_in, const ex & cut_props) {
+        return MapFunction([cut_props](const ex & e, MapFunction &self)->ex {
             if(!e.has(ApartIR(w1,w2))) return e;
             else if(e.match(ApartIR(w1,w2))) {
                 int n = e.op(1).nops();
                 auto mat0 = ex_to<matrix>(e.op(0));
-                int cc = mat0.cols();
-                if(cc==n) return e;
                 matrix mat(n+2,n);
-                // zero each element
-                for(int r=0; r<n+2; r++) {
-                    for(int c=0; c<cc; c++) mat(r,c) = 0;
+                int cc = mat0.cols();
+                if(cc==n) mat=mat0;
+                else {
+                    // zero each element
+                    for(int r=0; r<n+2; r++) {
+                        for(int c=0; c<cc; c++) mat(r,c) = 0;
+                    }
+                    // n-row from mat0 to mat, note the last 2 rows still 0
+                    for(int r=0; r<n; r++) {
+                        for(int c=0; c<cc; c++) mat(r,c) = mat0(r,c);
+                    }
+                    for(int i=0; i<n; i++) {
+                        mat(i,cc) = 1;
+                        auto r = mat.rank();
+                        if(r==n) break;
+                        if(r==cc+1) cc++;
+                        else mat(i,cc) = 0;
+                    }
+                    if(mat.rank()!=n) throw Error("ApartIRC failed, NOT full rank.");
+                    // last 2 rows from mat0 to mat
+                    for(int r=n; r<n+2; r++) {
+                        for(int c=0; c<mat0.cols(); c++) mat(r,c) = mat0(r,c);
+                    }
                 }
-                // n-row from mat0 to mat, note the last 2 rows still 0
-                for(int r=0; r<n; r++) {
-                    for(int c=0; c<cc; c++) mat(r,c) = mat0(r,c);
+                if(cut_props.nops()>0) {
+                    int ncp = cut_props.nops();
+                    int nr = mat.rows();
+                    int nc = mat.cols();
+                    matrix mat2(ncp+nr, ncp+nc);
+                    for(int c=0; c<nc; c++) {
+                        for(int r=0; r<ncp; r++) mat2(r, c+ncp) = 0;
+                        for(int r=0; r<nr; r++) mat2(r+ncp, c+ncp) = mat(r,c);
+                    }
+                    lst vs2;
+                    for(int c=0; c<ncp; c++) {
+                        for(int r=0; r<nr+ncp; r++) mat2(r, c) = 0;
+                        mat2(c,c) = 1;
+                        mat2(nr+ncp-1,c) = -1;
+                        vs2.append(cut_props.op(c));
+                    }
+                    for(auto ni : e.op(1)) vs2.append(ni);
+                    return ApartIR(mat2, vs2);
+                } else {
+                    return ApartIR(mat, e.op(1));
                 }
-                for(int i=0; i<n; i++) {
-                    mat(i,cc) = 1;
-                    auto r = mat.rank();
-                    if(r==n) break;
-                    if(r==cc+1) cc++;
-                    else mat(i,cc) = 0;
-                }
-                if(mat.rank()!=n) throw Error("ApartIRC failed, NOT full rank.");
-                // last 2 rows from mat0 to mat
-                for(int r=n; r<n+2; r++) {
-                    for(int c=0; c<mat0.cols(); c++) mat(r,c) = mat0(r,c);
-                }
-                return ApartIR(mat, e.op(1));
             } else return e.map(self);
         })(expr_in);
     }
@@ -524,15 +547,18 @@ namespace HepLib::FC {
     /**
      * @brief perform FIRE reduction on the Aparted input
      * @param air_vec vector contains aparted input, ApartIRC will be call internally 
+     * @param vloops loop vectors
+     * @param vexts external vectors
+     * @param cut_props cut propagators, default is { }
      * @return nothing returned, the input air_vec will be updated
      */
-    void Apart2FIRE(exvector &air_vec, lst vloops, lst vexts) {
+    void Apart2FIRE(exvector &air_vec, lst vloops, lst vexts, const ex & cut_props) {
         string wdir = to_string(getpid()) + "_FIRE";
-
+        
         auto air_intg = 
-        GiNaC_Parallel(-1, air_vec.size(), [air_vec] (int idx) {
+        GiNaC_Parallel(-1, air_vec.size(), [air_vec,cut_props] (int idx) {
             auto air = air_vec[idx];            
-            air = ApartIRC(air);
+            if(is_a<lst>(cut_props)) air = ApartIRC(air, cut_props);
             exset intg;
             find(air, ApartIR(w1, w2), intg);
             lst intgs;
@@ -605,6 +631,9 @@ namespace HepLib::FC {
                 f->Replacements = repls;
                 f->WorkingDir = wdir;
                 f->ProblemNumber = pn++;
+                if(cut_props.nops()>0) {
+                    for(int i=0; i<cut_props.nops(); i++) f->Cuts.append(i+1);
+                }
                 fvec.push_back(f);
             }
             FIRE * f = p2f[props];
@@ -632,6 +661,31 @@ namespace HepLib::FC {
         }
         
         if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << nints << "/" << fvec_re.size() << " @ " << now(false) << endl;
+        
+        MapFunction F2ex([fvec](const ex &e, MapFunction &self)->ex {
+            if(!e.has(F(w1,w2))) return e;
+            else if(e.match(F(w1,w2))) {
+                int idx = ex_to<numeric>(e.op(0)).to_int();
+                return F(fvec[idx-1]->Propagators, e.op(1));
+            } else return e.map(self);
+        });
+        
+        if(true || !is_a<lst>(cut_props)) {
+            auto air_res =
+            GiNaC_Parallel(-1, air_vec.size(), [&](int idx)->ex {
+                auto air = air_vec[idx];
+                air = air.subs(IR2F,subs_options::subs_options::no_pattern);
+                air = air.subs(rules_ints.first,subs_options::subs_options::no_pattern);
+                air = F2ex(air);
+                return air;
+            }, "F2F");
+            
+            for(auto fp : fvec) delete fp;
+            system(("rm -rf "+wdir).c_str());
+
+            for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];   
+            return;
+        }
 
         int nprocs = omp_get_num_procs();
         auto fres= GiNaC_Parallel(nprocs/2, fvec_re.size(), 1, [fvec_re](int idx)->ex {
@@ -653,14 +707,6 @@ namespace HepLib::FC {
         }
         
         auto mi_rules = FIRE::FindRules(fvec_re);
-        
-        MapFunction F2ex([fvec](const ex &e, MapFunction &self)->ex {
-            if(!e.has(F(w1,w2))) return e;
-            else if(e.match(F(w1,w2))) {
-                int idx = ex_to<numeric>(e.op(0)).to_int();
-                return F(fvec[idx-1]->Propagators, e.op(1));
-            } else return e.map(self);
-        });
         
         auto air_res =
         GiNaC_Parallel(-1, air_vec.size(), [&](int idx)->ex {

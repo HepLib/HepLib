@@ -265,6 +265,8 @@ namespace HepLib::FC {
     ex sp(const ex & a);
     ex& letSP(const ex &p1, const ex &p2);
     ex& letSP(const ex &p);
+    void clearSP(const ex &p1, const ex &p2);
+    void clearSP(const ex &p);
     void clearSP();
     
     //-----------------------------------------------------------
@@ -342,8 +344,8 @@ namespace HepLib::FC {
     ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms);
     ex ApartIR2ex(const ex & expr_in);
     ex ApartIR2F(const ex & expr_in);
-    ex ApartIRC(const ex & expr_in);
-    void Apart2FIRE(exvector &air_vec, lst loops, lst exts);
+    ex ApartIRC(const ex & expr_in, const ex & cut_props=lst{});
+    void Apart2FIRE(exvector &air_vec, lst loops, lst exts, const ex & cut_props=lst{});
     
     // ApartIR function upto 2 arguments
     class ApartIR1_SERIAL { public: static unsigned serial; };

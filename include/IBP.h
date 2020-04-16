@@ -25,6 +25,7 @@ namespace HepLib::IBP {
         lst Replacements;
         lst Propagators;
         lst Integrals;
+        lst Cuts;
         ex UF(const ex & corner) const;
         
         string WorkingDir;

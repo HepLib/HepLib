@@ -9,7 +9,7 @@ namespace HepLib::IBP {
     void FIRE::Reduce() { 
         Dimension = Propagators.nops();
         if(Integrals.nops()<1) return;
-        int pn = 0; // to avoid unsigned show overflow in FIRE
+        int pn = 0; // to avoid unsigned short overflow in FIRE
         int dim = Dimension;
         lst InExternal;
         for(auto ii : Internal) InExternal.append(ii);
@@ -21,7 +21,25 @@ namespace HepLib::IBP {
         }
         sps.sort();
         sps.unique();
-        if(sps.nops() != dim) throw Error("FIRE::Reduce: sps failed.");
+        if(sps.nops()<dim) {
+            lst sps_ext;
+            for(auto it : External) {
+                for(auto ii : External) sps_ext.append(it*ii);
+            }
+            sps_ext.sort();
+            sps_ext.unique();
+            for(auto item : sps_ext) {
+                auto item2 = item.subs(Replacements, subs_options::algebraic);
+                if(is_zero(item-item2)) sps.append(item);
+            }
+            sps.sort();
+            sps.unique();
+        }
+        if(sps.nops() != dim) {
+            cout << "sps = " << sps << endl;
+            cout << "Propagators = " << Propagators << endl;
+            throw Error("FIRE::Reduce: sps failed.");
+        }
         
         lst sp2s, s2sp, ss;
         for(auto item : sps) {
@@ -168,6 +186,29 @@ namespace HepLib::IBP {
                 Rlst.append(ns1);
             } 
         }
+        
+        // handle Cut Propagators
+        if(Cuts.nops()>0) {
+            // TODO: check this one
+            Rlst.remove_all(); 
+            for(auto cx : Cuts) {
+                int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cuts
+                lst ns0;
+                for(int i=0; i<dim; i++) ns0.append(1);
+                ns0.let_op(ci) = -1;
+                for(int n=0; n<std::pow(2,dim-1); n++) {
+                    int cn = n;
+                    lst ns1 = ns0;
+                    for(int j=0; j<dim; j++) {
+                        if(ci==j) continue;
+                        if((cn%2)==1) ns1.let_op(j) = -1;
+                        cn /= 2;
+                    }
+                    Rlst.append(ns1);
+                } 
+            }
+        }
+        
         Rlst.sort();
         Rlst.unique();
         
@@ -187,7 +228,7 @@ namespace HepLib::IBP {
         
         // .config
         ostringstream config;
-        config << "#threads 1" << endl;
+        config << "#threads 4" << endl;
         config << "#fermat fer64" << endl;
         config << "#variables ";
         bool first = true;

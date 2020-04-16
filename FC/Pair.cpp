@@ -161,13 +161,23 @@ namespace HepLib::FC {
     
     ex & letSP(const ex &p1, const ex &p2) {
         if(!(is_a<Vector>(p1) || is_a<Index>(p1)) || !(is_a<Vector>(p2) || is_a<Index>(p2)))
-            throw Error("Invalide arguments for letSP.");
+            throw Error("Invalide arguments for letSP (2).");
         return sp_map[SP(p1,p2)];
     }
     ex & letSP(const ex &p) {
         if(!is_a<Vector>(p))
-            throw Error("Invalide arguments for letSP.");
+            throw Error("Invalide arguments for letSP (1).");
         return sp_map[SP(p)];
+    }
+    void clearSP(const ex &p1, const ex &p2) {
+        if(!(is_a<Vector>(p1) || is_a<Index>(p1)) || !(is_a<Vector>(p2) || is_a<Index>(p2)))
+            throw Error("Invalide arguments for resetSP (2).");
+        sp_map.erase(SP(p1,p2));
+    }
+    void clearSP(const ex &p) {
+        if(!is_a<Vector>(p))
+            throw Error("Invalide arguments for resetSP (1).");
+        sp_map.erase(SP(p));
     }
     void clearSP() {
         sp_map.clear();
