@@ -3,7 +3,11 @@
 
 namespace HepLib::IBP {
 
-    REGISTER_FUNCTION(a, do_not_evalf_params())
+    static void a_print(const ex & ex_in, const print_context & c) {
+        c.s << "a[" << ex_in << "]";
+    }
+
+    REGISTER_FUNCTION(a, do_not_evalf_params().print_func<print_dflt>(a_print))
     REGISTER_FUNCTION(F, do_not_evalf_params())
 
     void FIRE::Reduce() { 
@@ -131,7 +135,8 @@ namespace HepLib::IBP {
             for(auto kv : IBPs[i]) {
                 items.append(kv.first);
                 if(Version==5) {
-                    oss << "SBasis0C[" << pn << "," << (i+1) << "," << kv.first << "]=" << kv.second << endl << endl;
+                    oss << "SBasis0C[" << pn << "," << (i+1) << "," << kv.first << "]=" << 
+                    collect_common_factors(kv.second.normal()) << endl << endl;
                 } else {
                     lst olst;
                     auto tmp = mma_collect(kv.second, a(w), true, true);
@@ -139,6 +144,8 @@ namespace HepLib::IBP {
                     for(auto item : tmp) {
                         auto cc = item.subs(lst{coVF(w)==1, coCF(w)==w});
                         auto cv = item.subs(lst{coVF(w)==w, coCF(w)==1});
+                        cc = collect_common_factors(cc.normal());
+                        if(is_zero(cc)) continue;
                         if(is_zero(cv-1)) cv=0;
                         else cv = cv.subs(a(w)==w);
                         olst.append(lst{cc, cv});
@@ -228,15 +235,17 @@ namespace HepLib::IBP {
         
         // .config
         ostringstream config;
-        config << "#threads 4" << endl;
-        config << "#fermat fer64" << endl;
+        if(Version>5) config << "#compressor none" << endl;
+        config << "#threads 1" << endl;
+        config << "#fthreads 4" << endl;
+        //config << "#fermat fer64" << endl;
         config << "#variables ";
         bool first = true;
         for(auto v : Variables) { config << (first ? "" : ",") << v; first=false; }
         config << endl;
         config << "#database db" << ProblemNumber << endl;
-        if(Version>5) config << "#pos_pref 5" << endl;
-        config << "#bucket 20" << endl;
+        //if(Version>5) config << "#pos_pref 5" << endl;
+        if(Version==5) config << "#bucket 20" << endl;
         config << "#start" << endl;
         config << "#problem " << pn << " " << ProblemNumber << ".start" << endl;
         config << "#integrals " << ProblemNumber << ".intg" << endl;
@@ -358,7 +367,6 @@ namespace HepLib::IBP {
         for(int i=0; i<nxi; i++) xRepl.let_op(i) = (x(i)==xRepl.op(i));
         ut = normal(ut.subs(xRepl));
         ft = normal(ft.subs(xRepl));
-
         return lst{ut, ft};
     }  
     

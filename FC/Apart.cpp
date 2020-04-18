@@ -588,13 +588,23 @@ namespace HepLib::FC {
                 sp2[SP(vp1,vp2)] = p1 * p2;
             }
         }
+        for(auto vp1 : vexts) {
+            auto p1 = ex_to<Vector>(vp1).name;
+            for(auto vp2 : vexts) {
+                auto p2 = ex_to<Vector>(vp2).name;
+                auto vsp2 = SP(vp1,vp2);
+                if(is_zero(vsp2-vsp2.subs(sp_map))) sp2[SP(vp1,vp2)] = p1 * p2;
+            }
+        }
         lst repls, exts;
         for(auto vp1 : vexts) {
             auto p1 = ex_to<Vector>(vp1).name;
             exts.append(p1);
             for(auto vp2 : vexts) {
                 auto p2 = ex_to<Vector>(vp2).name;
-                repls.append(p1*p2==SP(vp1,vp2).subs(sp_map));
+                auto vsp2 = SP(vp1,vp2);
+                auto vv2 = vsp2.subs(sp_map);
+                if(!is_zero(vsp2-vv2)) repls.append(p1*p2==vv2);
             }
         }
         repls.sort();
@@ -670,7 +680,7 @@ namespace HepLib::FC {
             } else return e.map(self);
         });
         
-        if(true || !is_a<lst>(cut_props)) {
+        if(!is_a<lst>(cut_props)) {
             auto air_res =
             GiNaC_Parallel(-1, air_vec.size(), [&](int idx)->ex {
                 auto air = air_vec[idx];
