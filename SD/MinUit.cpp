@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief MinUit to find minimum
+ * @author F. Feng
+ * @version 1.0.0
+ * @date 2020-04-21
+ */
+ 
 #include "SD.h"
 #include <cmath>
 

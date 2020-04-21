@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Functions to perform Tensor Index Reduction
+ * @author F. Feng
+ * @version 1.0.0
+ * @date 2020-04-20
+ */
+ 
 #include "FC.h"
 #include <cmath>
 
@@ -35,6 +43,13 @@ namespace HepLib::FC {
         
     }
 
+    /**
+     * @brief Tensor Index Reduction
+     * @param expr_in expression 
+     * @param loop_ps lst contains loop vectors
+     * @param ext_ps lst constains external vectors
+     * @return TIR result
+     */
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps) {
         for(auto pi : loop_ps) {
             if(!is_a<Vector>(pi)) throw Error("TIR invalid 2nd argument");

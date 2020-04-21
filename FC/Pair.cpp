@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Pair class
+ * @author F. Feng
+ * @version 1.0.0
+ * @date 2020-04-20
+ */
+ 
 #include "FC.h"
 
 namespace HepLib::FC {
@@ -15,6 +23,12 @@ namespace HepLib::FC {
     GINAC_BIND_UNARCHIVER(Pair);
     IMPLEMENT_HAS(Pair)
 
+    /**
+     * @brief Pair constructor, ordered internally
+     * @param p1 Vector in p1.p2
+     * @param p2 Vector  in p1.p2
+     * @return p1.p2
+     */
     Pair::Pair(const Vector &p1, const Vector &p2) { 
         if(p1.compare(p2)>0) {
             lr[0]=p1;lr[1]=p2; 
@@ -22,6 +36,13 @@ namespace HepLib::FC {
             lr[0]=p2;lr[1]=p1; 
         }
     }
+    
+    /**
+     * @brief Pair constructor, ordered internally
+     * @param i1 Index in i1.i2
+     * @param i2 Index  in i1.i2
+     * @return i1.i2 i.e., g^{i1,i2}
+     */
     Pair::Pair(const Index &i1, const Index &i2) { 
         if(i1.compare(i2)>0) {
             lr[0]=i1;lr[1]=i2; 
@@ -29,7 +50,21 @@ namespace HepLib::FC {
             lr[0]=i2;lr[1]=i1; 
         }
     }
+    
+    /**
+     * @brief Pair constructor
+     * @param p Vector in p^i
+     * @param i Index  in p^i
+     * @return p^i
+     */
     Pair::Pair(const Vector &p, const Index &i)  : lr{p, i} { }
+    
+    /**
+     * @brief Pair constructor
+     * @param i Index  in p^i
+     * @param p Vector in p^i
+     * @return p^i
+     */
     Pair::Pair(const Index &i, const Vector &p) : lr{p, i} { }
 
     int Pair::compare_same_type(const basic &other) const {
@@ -40,16 +75,31 @@ namespace HepLib::FC {
         return c2;
     }
     
+    /**
+     * @brief default print function
+     * @param c default print format
+     * @param level level in print function
+     */
     void Pair::print(const print_dflt &c, unsigned level) const {
         c.s << lr[0] << "." << lr[1];
     }
     
+    /**
+     * @brief FormFormat print function
+     * @param c FormFormat print format
+     * @param level level in print function
+     */
     void Pair::form_print(const FormFormat &c, unsigned level) const {
         if(is_a<Vector>(lr[0]) && is_a<Vector>(lr[1])) c << lr[0] << "." << lr[1];
         else if(is_a<Vector>(lr[0]) && is_a<Index>(lr[1])) c << lr[0] << "(" << lr[1] << ")";
         else if(is_a<Index>(lr[0]) && is_a<Index>(lr[1])) c << "d_(" << lr[0] << "," << lr[1] << ")";
     }
     
+    /**
+     * @brief FCFormat print function
+     * @param c FCFormat print format
+     * @param level level in print function
+     */
     void Pair::fc_print(const FCFormat &c, unsigned level) const {
         if(is_a<Vector>(lr[0]) && is_a<Vector>(lr[1])) c << "SPD(" << lr[0] << "," << lr[1] << ")";
         else if(is_a<Vector>(lr[0]) && is_a<Index>(lr[1])) c << "FVD(" << lr[0] << "," << lr[1] << ")";

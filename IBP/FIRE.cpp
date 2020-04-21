@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief IBP with FIRE
+ * @author F. Feng
+ * @version 1.0.0
+ * @date 2020-04-20
+ */
+ 
 #include "IBP.h"
 #include <cmath>
 
@@ -10,6 +18,9 @@ namespace HepLib::IBP {
     REGISTER_FUNCTION(a, do_not_evalf_params().print_func<print_dflt>(a_print))
     REGISTER_FUNCTION(F, do_not_evalf_params())
 
+    /**
+     * @brief Do IBP Reduction 
+     */
     void FIRE::Reduce() { 
         Dimension = Propagators.nops();
         if(Integrals.nops()<1) return;
@@ -196,8 +207,7 @@ namespace HepLib::IBP {
         
         // handle Cut Propagators
         if(Cuts.nops()>0) {
-            // TODO: check this one
-            Rlst.remove_all(); 
+            //Rlst.remove_all();  // TODO: check this one
             for(auto cx : Cuts) {
                 int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cuts
                 lst ns0;
@@ -244,7 +254,7 @@ namespace HepLib::IBP {
         for(auto v : Variables) { config << (first ? "" : ",") << v; first=false; }
         config << endl;
         config << "#database db" << ProblemNumber << endl;
-        //if(Version>5) config << "#pos_pref 5" << endl;
+        if(Version>5) config << "#pos_pref 5" << endl;
         if(Version==5) config << "#bucket 20" << endl;
         config << "#start" << endl;
         config << "#problem " << pn << " " << ProblemNumber << ".start" << endl;
@@ -308,6 +318,11 @@ namespace HepLib::IBP {
         
     }
     
+    /**
+     * @brief UF function, from FIRE.m
+     * @param idx exponent for the internal Propagator
+     * @return lst of {U, F}
+     */
     ex FIRE::UF(const ex & idx) const {
         ex ft = 0;
         int nps = Propagators.nops();
@@ -370,6 +385,12 @@ namespace HepLib::IBP {
         return lst{ut, ft};
     }  
     
+    /**
+     * @brief Find Rules for Integrals or Master Integrals
+     * @param fs vector of FIRE object
+     * @param mi true for Master Integals
+     * @return rules replacement and left integrals or left master integrals
+     */
     pair<exmap,lst> FIRE::FindRules(vector<FIRE> & fs, bool mi) {
         exvector uf_mi_vec;
         if(mi) {
@@ -413,6 +434,12 @@ namespace HepLib::IBP {
         return make_pair(rules,int_lst);
     }
     
+    /**
+     * @brief Find Rules for Integrals or Master Integrals
+     * @param fs vector of FIRE pointer object
+     * @param mi true for Master Integals
+     * @return rules replacement and left integrals or left master integrals
+     */
     pair<exmap,lst> FIRE::FindRules(vector<FIRE*> & fs, bool mi) {
         exvector uf_mi_vec;
         if(mi) {

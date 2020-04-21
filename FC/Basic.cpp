@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Basic Functions for FC
+ * @author F. Feng
+ * @version 1.0.0
+ * @date 2020-04-21
+ */
+ 
 #include "FC.h"
 
 namespace HepLib::FC {

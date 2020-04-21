@@ -3,10 +3,6 @@ SET(CMAKE_C_COMPILER gcc)
 SET(CMAKE_CXX_COMPILER g++)
 SET(CMAKE_Fortran_COMPILER gfortran)
 
-# OpenMP
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-
 #-----------------------------------------------
 # Configure
 #-----------------------------------------------
@@ -115,6 +111,10 @@ ENDFOREACH()
 ADD_EXECUTABLE(qgraf "bin/qgraf-3.1.4.f")
 INSTALL(TARGETS qgraf DESTINATION bin)
 INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/OTHER/HepLib.pc" DESTINATION "lib/pkgconfig")
+
+# OpenMP
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 
 MESSAGE(STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}")
 

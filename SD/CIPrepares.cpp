@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Functions for Contour/Integration Preparation
+ * @author F. Feng
+ * @version 1.0.0
+ * @date 2020-04-21
+ */
+ 
 #include "SD.h"
 #include <math.h>
 #include <cmath>

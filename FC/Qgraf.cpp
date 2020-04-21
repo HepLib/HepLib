@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Qgraf related
+ * @author F. Feng
+ * @version 1.0.0
+ * @date 2020-04-20
+ */
+ 
 #include "FC.h"
 
 namespace HepLib::FC {
@@ -39,6 +47,12 @@ namespace HepLib::FC {
     Index Qgraf::CI(ex fn) { return Index(ci_+n2s(fn),Index::Type::CA); }
     Index Qgraf::AI(ex fn) { return Index(ai_+n2s(fn),Index::Type::CA); }
     
+    /**
+     * @brief Propagator for quark
+     * @param e expression with head of Propagator
+     * @param m the quark mass, default is 0
+     * @return the quark propagator, with dirac/color index
+     */
     ex Qgraf::QuarkPropagator(ex e, ex m) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
@@ -46,6 +60,11 @@ namespace HepLib::FC {
         return I * SP(TI(fi1),TI(fi2)) * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
     }
     
+    /**
+     * @brief Propagator for gluon
+     * @param e expression with head of Propagator
+     * @return the gloun propagator under Feynman gauge, with dirac/color index
+     */
     ex Qgraf::GluonPropagator(ex e) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
@@ -53,6 +72,11 @@ namespace HepLib::FC {
         return (-I) * SP(CI(fi1),CI(fi2)) * SP(LI(fi1),LI(fi2)) / SP(mom); // Feynman Gauge
     }
     
+    /**
+     * @brief Propagator for ghost
+     * @param e expression with head of Propagator
+     * @return the ghost propagator, with dirac/color index
+     */
     ex Qgraf::GhostPropagator(ex e) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
@@ -60,6 +84,11 @@ namespace HepLib::FC {
         return I * SP(CI(fi1),CI(fi2)) / SP(mom);
     }
     
+    /**
+     * @brief q-qbar-g vertex
+     * @param e expression with head of Vertex
+     * @return the q-qbar-g vertex
+     */
     ex Qgraf::q2gVertex(ex e) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
@@ -67,6 +96,11 @@ namespace HepLib::FC {
         return I*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SUNT(TI(fi1),TI(fi2),CI(fi3));
     }
     
+    /**
+     * @brief g-g-g vertex
+     * @param e expression with head of Vertex
+     * @return the g-g-g vertex
+     */
     ex Qgraf::g3Vertex(ex e) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
@@ -81,6 +115,11 @@ namespace HepLib::FC {
         );
     }
     
+    /**
+     * @brief g-g-g-g vertex
+     * @param e expression with head of Vertex
+     * @return the g-g-g-g vertex
+     */
     ex Qgraf::g4Vertex(ex e) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
@@ -93,6 +132,11 @@ namespace HepLib::FC {
         );
     }
     
+    /**
+     * @brief ghost-anti ghost-g vertex
+     * @param e expression with head of Vertex
+     * @return the ghost-anti ghost-g vertex
+     */
     ex Qgraf::gh2gVertex(ex e) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
@@ -101,14 +145,29 @@ namespace HepLib::FC {
         return -gs * SUNF(CI(fi1),CI(fi2),CI(fi3)) * SP(mom1,LI(fi3));
     }
     
-    ex Qgraf::eikonalPropagator(ex e, ex n, int mode) { // 0 for gluon, others for quark/anti-quark
+    /**
+     * @brief Eikonal Propagator, left side w.r.t cutting line
+     * @param e expression with head of Propagator
+     * @param n the direction vector
+     * @param mode 0 for gluon, others for quark/anti-quark
+     * @return Eikonal Propagator
+     */
+    ex Qgraf::eikonalPropagator(ex e, ex n, int mode) { 
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
         if(mode==0) return I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)+iEpsilon);
         else return I * Matrix(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)+iEpsilon);
     }
-    ex Qgraf::eikonalPropagatorR(ex e, ex n, int mode) { // 0 for gluon, others for quark/anti-quark
+    
+    /**
+     * @brief Eikonal Propagator, right side version w.r.t to cutting line
+     * @param e expression with head of Propagator
+     * @param n the direction vector
+     * @param mode 0 for gluon, others for quark/anti-quark
+     * @return Eikonal Propagator
+     */
+    ex Qgraf::eikonalPropagatorR(ex e, ex n, int mode) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
@@ -116,7 +175,14 @@ namespace HepLib::FC {
         else return -I * Matrix(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)-iEpsilon);
     }
     
-    ex Qgraf::eikonalVertex(ex e, ex n, int mode) { // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
+    /**
+     * @brief Eikonal-Gloun Vertex, left side w.r.t. cutting line
+     * @param e expression with head of Vertex
+     * @param n the direction vector
+     * @param mode 0 for gluon, +/-1 for quark, +/-2 for anti-quark, + for out, - form in
+     * @return Eikonal-Gloun Vertex
+     */
+    ex Qgraf::eikonalVertex(ex e, ex n, int mode) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
@@ -126,7 +192,15 @@ namespace HepLib::FC {
         else if(mode==2 || mode==-1) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
         else return 0;
     }
-    ex Qgraf::eikonalVertexR(ex e, ex n, int mode) { // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
+    
+    /**
+     * @brief Eikonal-Gloun Vertex, right side w.r.t. cutting line
+     * @param e expression with head of Vertex
+     * @param n the direction vector
+     * @param mode 0 for gluon, +/-1 for quark, +/-2 for anti-quark, + for out, - form in
+     * @return Eikonal-Gloun Vertex
+     */
+    ex Qgraf::eikonalVertexR(ex e, ex n, int mode) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
@@ -137,6 +211,12 @@ namespace HepLib::FC {
         else return 0;
     }
 
+    /**
+     * @brief generte the Amplitudes
+     * @param st symtab for the parser, no need for Symbol, usually used for momentum Vector
+     * @param debug true for detailed message, and to keep the files
+     * @return Amplitudes for current Qgraf object
+     */
     lst Qgraf::Amplitudes(symtab st, bool debug) {
         system("rm -f qgraf.dat qgraf.out qgraf.sty qgraf.mod");
         std::ofstream style;
@@ -189,6 +269,11 @@ namespace HepLib::FC {
         return ex_to<lst>(ret);
     }
     
+    /**
+     * @brief generate the topological lines for the amplitude
+     * @param amp the element from Amplitudes
+     * @return topoligical lines
+     */
     lst Qgraf::TopoLines(const ex & amp) {
         map<ex,int,ex_is_less> v2id, fid2vid;
         map<int,ex> vid2fs; // fileds in the vertex
@@ -227,6 +312,13 @@ namespace HepLib::FC {
         return lines.sort();
     }
     
+    /**
+     * @brief generate Feynman diagrams for the amplitudes, in PDF format
+     * @param amps refers to Amplitudes
+     * @param fn the filename of the PDF
+     * @param debug true for more detailed output, and keep the files
+     * @return nonthing, check pdf file
+     */
     void Qgraf::DrawPDF(const lst & amps, string fn, bool debug) {
         int id=0;
         vector<ex> amp_vec;
@@ -330,7 +422,13 @@ namespace HepLib::FC {
         if(!debug) system(("rm -r "+tex_path).c_str());
     }
     
-    // lst is actually a lst of lst, different connectted parts
+    /**
+     * @brief cut the amplitude, and return the connected parts, may have many different cuts
+     * @param amp one of the Amplitudes
+     * @param prop the line type to be cutted
+     * @param n the number of lines to be cutted
+     * @return vector of lst, each element in the vector, is actually a lst of lst, different connectted parts
+     */
     vector<lst> Qgraf::ShrinkCut(ex amp, lst prop, int n) {
         vector<lst> ret;
         auto tls = Qgraf::TopoLines(amp);
@@ -406,6 +504,12 @@ namespace HepLib::FC {
         return ret;
     }
     
+    /**
+     * @brief check a amplitude has a loop w.r.t. propapagtor
+     * @param amp one of the Amplitudes
+     * @param prop the line type in the loop
+     * @return true if the corresponding loop exsits
+     */
     bool Qgraf::HasLoop(ex amp, lst prop) {
         auto tls = Qgraf::TopoLines(amp);
         int ntls = tls.nops();

@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Matrix Determinat, used in Numerical Integration
+ * @author F. Feng
+ * @version 1.0.0
+ * @date 2020-04-21
+ */
+ 
 #include <math.h>
 #include <complex>
 extern "C" {

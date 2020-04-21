@@ -1,8 +1,6 @@
 /**
  * @file
  * @brief Functions to perform partial fraction
- * @details check the details
- * @mainpage Apart.cpp
  * @author F. Feng
  * @version 1.0.0
  * @date 2020-04-08
@@ -629,7 +627,7 @@ namespace HepLib::FC {
                     throw Error("Apart2FIRE: Pair still exist: "+ex2str(pc));
                 }
                 props.append(pc);
-                ns.append(ex(0)-mat(nrow-1,c).subs(sp2));
+                ns.append(ex(0)-mat(nrow-1,c).subs(sp2)); // note Apart and FIRE convension
             }
 
             if(p2f[props]==NULL) {

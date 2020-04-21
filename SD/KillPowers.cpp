@@ -1,8 +1,6 @@
 /**
  * @file 
- * @brief Functions to Kill terms like (  a xi - b xj )^n
- * @details check the details
- * @mainpage KillPowers.cpp
+ * @brief Functions to Kill terms like (a xi - b xj )^n
  * @author F. Feng
  * @version 1.0.0
  * @date 2020-04-09
@@ -43,7 +41,7 @@ namespace HepLib::SD {
                     }
                     if(!has_xij) continue;
                     
-                    symbol xi("xi"), xj("xj");
+                    symbol xi, xj;
                     auto ftij = ftitem.subs(lst{xs[i]==xi, xs[j]==xj});
                     auto xs2 = get_x_from(ftij);
                     auto fts2 = RefinedFT_lst(ftij.subs(x(w)==0));
@@ -147,7 +145,7 @@ namespace HepLib::SD {
             auto xs = get_x_from(ftitem);
             for(int i=0; i<xs.size(); i++) {
                 for(int j=i+1; j<xs.size(); j++) {
-                    symbol xi("xi"), xj("xj");
+                    symbol xi, xj;
                     auto ftij = ftitem.subs(lst{xs[i]==xi, xs[j]==xj});
                     auto xs2 = get_x_from(ftij);
                     for(int nn=0; nn<std::pow(2,xs2.size()); nn++) {
@@ -342,7 +340,7 @@ namespace HepLib::SD {
         for(auto ftitem : fts) {
             auto xs = get_x_from(ftitem);
             for(int i=0; i<xs.size(); i++) {
-                symbol xi("xi");
+                symbol xi;
                 auto fti = ftitem.subs(lst{xs[i]==xi});
                 auto xs2 = get_x_from(fti);
                 for(int nn=0; nn<std::pow(2,xs2.size()); nn++) {

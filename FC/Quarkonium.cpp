@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Helpers for Quarkonium
+ * @author F. Feng
+ * @version 1.0.0
+ * @date 2020-04-20
+ */
+ 
 #include "FC.h"
 
 namespace HepLib::FC {
@@ -6,15 +14,21 @@ namespace HepLib::FC {
     // Quarkonium Class
     //-----------------------------------------------------------
     namespace Quarkonium {
-    
-        // Using non-Relativistic Normalization
-        // To Use Relativistic Normalization, Just Times Sqrt[2e 2eb]
-        // SProj0In[pc,pcb,m,e,mu], where pc=P/2+q,pcb=P/2-q,e^2=m^2-q^2,
-        // In CM, P=(M=2e,0) & q=(0,q), P.q=0, P.q=0
-        // SProj0In[pc,pcb,m,mb,e,eb,mu], where p=e/(e+eb)P+q,pb=eb/(e+eb)P-q,e^2=m^2-q^2,eb^2=mb^2-qb^2,
-        // In CM, P=(M=e+eb,0) & q=(0,q), P.q=0
-        // arXiv:1003.0061
             
+        /**
+         * @brief Spin Projector with the same mass, non-Relativistic Normalization, 
+         * To Use Relativistic Normalization, Just Times 2e
+         * SpinProj[In,p,pb,m,e,mu], where p=P/2+q, pb=P/2-q, e^2=m^2-q^2,
+         * In CM, P=(M=2e,0) & q=(0,q), P.q=0, P.q=0
+         * @param io In or Out
+         * @param s s=0 or s=1
+         * @param p quark momentum
+         * @param pb anti-quark momentum
+         * @param m mass
+         * @param e e^2=m^q-q^2
+         * @param mu only for s=1
+         * @return the corresponding spin projector
+         */
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu) {
             ex ret;
             if(io==In && s==1) ret = (GAS(p)+m*GAS(1))*(GAS(p+pb)+2*e*GAS(1))*GAS(mu)*(GAS(pb)-m*GAS(1));
@@ -26,6 +40,23 @@ namespace HepLib::FC {
             return ret;
         }
         
+        /**
+         * @brief Spin Projector with different mass, non-Relativistic Normalization, 
+         * To Use Relativistic Normalization, Just Times Sqrt[2e 2eb]
+         * SpinProj[In,p,pb,m,mb,e,eb,mu], where p=e/(e+eb)P+q,pb=eb/(e+eb)P-q,e^2=m^2-q^2,eb^2=mb^2-qb^2,
+         * In CM, P=(M=e+eb,0) & q=(0,q), P.q=0
+         * arXiv:1003.0061
+         * @param io In or Out
+         * @param s s=0 or s=1
+         * @param p quark momentum
+         * @param pb anti-quark momentum
+         * @param m quark mass
+         * @param mb anti-quark mass
+         * @param e for quark: e^2=m^q-q^2
+         * @param eb for anti-quark eb^2=mb^2-qb^2 
+         * @param mu only for s=1
+         * @return the corresponding spin projector
+         */
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu) {
             ex ret;
             if(io==In && s==1) ret = (GAS(p)+m*GAS(1))*(GAS(p+pb)+(e+eb)*GAS(1))*GAS(mu)*(GAS(pb)-mb*GAS(1));
@@ -37,9 +68,18 @@ namespace HepLib::FC {
             return ret;
         }
         
+        /**
+         * @brief Color-Singlet Projector 
+         * @return Color-Singlet Projector
+         */
         ex ColorProj() {
             return 1/sqrt(NF);
         }
+        
+        /**
+         * @brief Color-Octet Projector 
+         * @return Color-Octet Projector
+         */
         ex ColorProj(Index i, Index j, Index a) {
             return sqrt(ex(2)) * SUNT(i,j,a);
         }
@@ -50,26 +90,79 @@ namespace HepLib::FC {
             }
         }
         
+        /**
+         * @brief S-L with total spin 0, L=1
+         * @param si spin index
+         * @param qi q-vector index
+         * @param p total momentum
+         * @return S-L with total spin 0
+         */
         ex SL1Proj(ex si, ex qi, ex p) {
             return ITD(si,qi,p)/sqrt(D-1);
         }
         
+        /**
+         * @brief S-L with total spin 1, L=1
+         * @param si spin index
+         * @param qi q-vector index
+         * @param mu spin index
+         * @param total momentum
+         * @return S-L with total spin 1 
+         */
         ex SL1Proj(ex si, ex qi, ex mu, ex p) {
             return -I*LC(si,qi,mu,p)/sqrt(2*SP(p));
         }
         
+        /**
+         * @brief S-L with total spin 2, L=1
+         * @param si spin index
+         * @param qi q-vector index
+         * @param mu1 spin-2 index
+         * @param mu2 spin-2 index
+         * @param total momentum
+         * @return S-L with total spin 2
+         */
         ex SL1Proj(ex si, ex qi, ex mu1, ex mu2, ex p) {
             return (ITD(si,mu1,p)*ITD(qi,mu2,p)+ITD(qi,mu1,p)*ITD(si,mu2,p))/2 - ITD(si,qi,p)*ITD(mu1,mu2,p)/(D-1);
         }
         
+        /**
+         * @brief S-L with total spin 1, L=2
+         * @param si spin index
+         * @param qi1 q1-vector index
+         * @param qi2 q2-vector index
+         * @param mu spin index
+         * @param total momentum
+         * @return S-L with total spin 1
+         */
         ex SL2Proj(ex si, ex qi1, ex qi2, ex mu, ex p) {
             return sqrt((D-1)/(D+1))*((ITD(si,qi1,p)*ITD(qi2,mu,p)+ITD(si,qi2,p)*ITD(qi1,mu,p))/2- ITD(si,mu,p)*ITD(qi1,qi2,p)/(D-1));
         }
         
+        /**
+         * @brief S-L with total spin 2, L=2
+         * @param si spin index
+         * @param qi1 q1-vector index
+         * @param qi2 q2-vector index
+         * @param mu1 spin-2 index
+         * @param mu2 spin-2 index
+         * @param total momentum
+         * @return S-L with total spin L
+         */
         ex SL2Proj(ex si, ex qi1, ex qi2, ex mu1, ex mu2, ex p) {
             return -I/(sqrt(2*(D-1)*SP(p))) * (SP(mu1,qi1)*LC(qi2,si,mu2,p)+SP(mu1,qi2)*LC(qi1,si,mu2,p));
         }
         
+        /**
+         * @brief S-L spin sum for L=0,1,2
+         * @param si spin index
+         * @param siR spin index @ right side
+         * @param qi q-vector index
+         * @param qiR q-vector index @ right side
+         * @param p total momentum
+         * @param L total spin, L=0,1,2
+         * @return S-L with total spin L
+         */
         ex SLSum(ex si, ex siR, ex qi, ex qiR, ex p, int L) {
             if(L==0) return ITD(si,qi,p)*ITD(siR,qiR,p)/(D-1);
             else if(L==1) return (ITD(si,siR,p)*ITD(qi,qiR,p)-ITD(si,qiR,p)*ITD(qi,siR,p))/2;
@@ -77,7 +170,12 @@ namespace HepLib::FC {
             return 0;
         }
         
-        // S/P/D Wave Project
+        /**
+         * @brief S/P/D Wave Project
+         * @param expr_in the input expression
+         * @param pqi the lst { p, q, i1,i2,i3,... }
+         * @return the LProj result
+         */
         ex LProj(const ex &expr_in, const lst &pqi) {
             static int lproj=0;
             static string prefix = "lproj";

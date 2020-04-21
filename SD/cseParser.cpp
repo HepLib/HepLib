@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Functions for C++ code generation for Numerical Integration
+ * @author F. Feng
+ * @version 1.0.0
+ * @date 2020-04-21
+ */
+ 
 #include "SD.h"
 
 namespace HepLib::SD {
