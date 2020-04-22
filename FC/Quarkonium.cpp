@@ -14,6 +14,14 @@ namespace HepLib::FC {
     // Quarkonium Class
     //-----------------------------------------------------------
     namespace Quarkonium {
+    
+        ex Gamma5(const string pre, int start) {
+            Index i1(pre+to_string(start+0), Index::Type::VD);
+            Index i2(pre+to_string(start+1), Index::Type::VD);
+            Index i3(pre+to_string(start+2), Index::Type::VD);
+            Index i4(pre+to_string(start+3), Index::Type::VD);
+            return LC(i1,i2,i3,i4)*GAS(i1)*GAS(i2)*GAS(i3)*GAS(i4)/(I*factorial(4));
+        }
             
         /**
          * @brief Spin Projector with the same mass, non-Relativistic Normalization, 
@@ -72,8 +80,8 @@ namespace HepLib::FC {
          * @brief Color-Singlet Projector 
          * @return Color-Singlet Projector
          */
-        ex ColorProj() {
-            return 1/sqrt(NF);
+        ex ColorProj(Index i, Index j) {
+            return SP(i,j)/sqrt(NF);
         }
         
         /**

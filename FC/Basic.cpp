@@ -161,7 +161,7 @@ namespace HepLib::FC {
         print_func<FormFormat>(&SUNT::form_print)
     )
     
-    SUNT::SUNT(Index i, Index j, Index a) : ija{i,j,a} { }
+    SUNT::SUNT(ex i, ex j, ex a) : ija{i,j,a} { }
     int SUNT::compare_same_type(const basic &other) const {
         const SUNT &o = static_cast<const SUNT &>(other);
         for(int i=0; i<3; i++) {
@@ -180,6 +180,10 @@ namespace HepLib::FC {
     
     size_t SUNT::nops() const { return 3; }
     ex SUNT::op(size_t i) const {
+        return ija[i];
+    }
+    ex & SUNT::let_op(size_t i) {
+        ensure_if_modifiable();
         return ija[i];
     }
     
@@ -214,7 +218,7 @@ namespace HepLib::FC {
         print_func<FormFormat>(&SUNF::form_print)
     )
     
-    SUNF::SUNF(Index i, Index j, Index k) : ijk{i,j,k} { }
+    SUNF::SUNF(ex i, ex j, ex k) : ijk{i,j,k} { }
     int SUNF::compare_same_type(const basic &other) const {
         const SUNF &o = static_cast<const SUNF &>(other);
         for(int i=0; i<3; i++) {
@@ -234,6 +238,10 @@ namespace HepLib::FC {
     
     size_t SUNF::nops() const { return 3; }
     ex SUNF::op(size_t i) const {
+        return ijk[i];
+    }
+    ex & SUNF::let_op(size_t i) {
+        ensure_if_modifiable();
         return ijk[i];
     }
     

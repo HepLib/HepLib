@@ -52,6 +52,7 @@ namespace HepLib::FC {
                     ex gs = e.op(0);
                     gline++;
                     ss << "tracen " << gline << ";" << endl;
+                    ss << ".sort" << endl;
                     gs = mapGamma(gline)(gs);
                     gs = DiracGamma(1, gline) * gs;
                     return TR(gs);
@@ -71,6 +72,38 @@ namespace HepLib::FC {
             }
         }
         
+        // SU(N) : Phys.Rev., D14, 1536 (1976)
+        string init_script = R"EOF(
+CFunction pow,sqrt,Pi,gamma;
+Tensor T,f(antisymmetric);
+Tensor colTp;
+Symbols I2R,NF,NA,D,I;
+Dimension NA;
+AutoDeclare Index colAj;
+Dimension NF;
+AutoDeclare Index colFi;
+
+#procedure SUNTrace
+Dimension NF;
+#do colXi = 1,1
+    if ( count(f,1) || match(T(colFi1?,colFi2?,colAj1?)*T(colFi3?,colFi4?,colAj1?)) ) redefine colXi "0";
+    id,once,f(colAj1?,colAj2?,colAj3?) = 1/I2R/i_*T(colFi1,colFi2,colAj1)*T(colFi2,colFi3,colAj2)*T(colFi3,colFi1,colAj3)-1/I2R/i_*T(colFi1,colFi2,colAj3)*T(colFi2,colFi3,colAj2)*T(colFi3,colFi1,colAj1);
+    sum colFi1,colFi2,colFi3;
+    id T(colFi1?,colFi2?,colAj1?)*T(colFi3?,colFi4?,colAj1?) = colTp(colFi1,colFi2,colFi3,colFi4);
+    #do colXj = 1,1
+        if ( count(colTp,1) ) redefine colXj "0";
+        .sort
+        id,once,colTp(colFi1?,colFi2?,colFi3?,colFi4?) = I2R*(d_(colFi1,colFi4)*d_(colFi2,colFi3)-d_(colFi1,colFi2)*d_(colFi3,colFi4)/NF);
+    #enddo
+    #do colXk = 1,1
+        if ( match(T(colFi1?,colFi1?,colAj1?)) ) redefine colXk "0";
+        .sort
+        id,once,T(colFi1?,colFi1?,colAj1?) = 0;
+    #enddo
+#enddo
+
+#endprocedure
+        )EOF";
     }
     
     //-----------------------------------------------------------
@@ -83,9 +116,7 @@ namespace HepLib::FC {
     ex runform(const ex &expr_in, bool verb) {
         if((init_map.find(PID)==init_map.end()) || !init_map[PID]) { // init section
             ostringstream ss;
-            ss << "CFunction pow,sqrt,Pi,gamma;" << endl;
-            ss << "Symbols D, NF, NA, I;" << endl;
-            ss << "#include- " << InstallPrefix <<  "/include/SUN.h" << endl;
+            ss << init_script << endl;
             form_proc.Init("form");
             form_proc.Execute(ss.str());
             init_map[PID] = true;
@@ -185,14 +216,16 @@ namespace HepLib::FC {
                 mapTR tr;
                 item = tr(item);
                 ff << "L [o]=" << item << ";" << endl;
-                ff << "contract 0;" << endl;
-                ff << "#call SUNTrace" << endl;
+                ff << ".sort" << endl;
                 ff << tr.ss.str();
+                ff << "#call SUNTrace" << endl;
+                ff << ".sort" << endl;
                 ff << "contract 0;" << endl;
+                ff << ".sort" << endl;
                 
                 if(verb) {
                     cout << "--------------------------------------" << endl;
-                    cout << "Form Script @" << c-1 << " / " << total-1 << endl;
+                    cout << "Form Script @ " << c << " / " << total << endl;
                     cout << "--------------------------------------" << endl;
                     cout << ss.str() << endl;
                 }
@@ -204,7 +237,7 @@ namespace HepLib::FC {
             
                 if(verb) {
                     cout << "--------------------------------------" << endl;
-                    cout << "Form Output @" << c-1 << " / " << total-1 << endl;
+                    cout << "Form Output @" << c << " / " << total << endl;
                     cout << "--------------------------------------" << endl;
                     cout << otmp << endl;
                 }
@@ -221,10 +254,12 @@ namespace HepLib::FC {
             mapTR tr;
             expr = tr(expr);
             ff << "L [o]=" << expr << ";" << endl;
-            ff << "contract 0;" << endl;
-            ff << "#call SUNTrace" << endl;
+            ff << ".sort" << endl;
             ff << tr.ss.str();
+            ff << "#call SUNTrace" << endl;
+            ff << ".sort" << endl;
             ff << "contract 0;" << endl;
+            ff << ".sort" << endl;
             
             if(verb) {
                 cout << "--------------------------------------" << endl;

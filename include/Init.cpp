@@ -60,8 +60,6 @@ namespace HepLib {
     // HepLib::FC
     //----------------------------------------
     const Symbol FC::D("D");
-    const Symbol FC::CA("CA");
-    const Symbol FC::CF("CF");
     const Symbol FC::NA("NA");
     const Symbol FC::NF("NF");
     const Symbol FC::gs("gs");

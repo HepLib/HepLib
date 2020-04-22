@@ -187,7 +187,7 @@ namespace HepLib::FC {
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
         auto mom1 = e.op(0).op(2);
-        if(mode==0) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-I*SUNF(CI(fi3),TI(fi1),TI(fi2)));
+        if(mode==0) return I * gs * SP(n,LI(fi3)) * (-I*SUNF(CI(fi3),CI(fi1),CI(fi2)));
         else if(mode==1 || mode==-2) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
         else if(mode==2 || mode==-1) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
         else return 0;
@@ -205,11 +205,61 @@ namespace HepLib::FC {
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
         auto mom1 = e.op(0).op(2);
-        if(mode==0) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (I*SUNF(CI(fi3),TI(fi1),TI(fi2)));
+        if(mode==0) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (I*SUNF(CI(fi3),CI(fi1),CI(fi2)));
         else if(mode==1 || mode==-2) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
         else if(mode==2 || mode==-1) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
         else return 0;
     }
+    
+    /**
+     * @brief Gluon Fragmentation Function Vertex, nbar-e-g
+     * @param e expression with head of Vertex
+     * @param n the direction vector
+     * @return Eikonal-Gloun Vertex
+     */
+     ex Qgraf::GluonFFV(ex e, ex n) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        auto mom2 = e.op(1).op(2);
+        auto mom3 = e.op(2).op(2);
+        return I * (SP(n,mom2)*SP(LI(fi2),LI(fi3)) + SP(mom3,LI(fi2))*SP(n,LI(fi3))) * SP(CI(fi1),CI(fi3));
+     }
+          
+     /**
+     * @brief Quark Fragmentation Function Vertex, qbar-e-nbar/Qbar-e-nbar
+     * @param e expression with head of Vertex
+     * @param n the direction vector
+     * @return Eikonal-Gloun Vertex
+     */
+     ex Qgraf::QuarkFFV(ex e, ex n) {
+        auto fi1 = e.op(0).op(1);
+        auto fi3 = e.op(2).op(1);
+        return SP(TI(fi1),TI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi3));
+     }
+     
+     /**
+     * @brief Change Index from left to right, only affect li/di/ci/ti, external index start with dim/lim/cim/tim will not be changed
+     * @param e input expression 
+     * @return Index changed
+     */
+     ex Qgraf::IndexCC(ex e) {
+        static MapFunction map([](const ex &e, MapFunction &self)->ex {
+            if(!Index::has(e)) return e;
+            else if(is_a<Index>(e)) {
+                auto idx = ex_to<Index>(e);
+                auto nstr = idx.name.get_name();
+                if(nstr.rfind("lim",0)==0) return e;
+                else if(nstr.rfind("dim",0)==0) return e;
+                else if(nstr.rfind("cim",0)==0) return e;
+                else if(nstr.rfind("tim",0)==0) return e;
+                else if(nstr.rfind("li",0)==0 || nstr.rfind("di",0)==0 || nstr.rfind("ci",0)==0 || nstr.rfind("ti",0)==0) return Index("r"+nstr, idx.type);
+                else return e;
+            }
+            else return e.map(self);
+        });
+        return map(e);
+     }
 
     /**
      * @brief generte the Amplitudes

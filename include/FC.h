@@ -17,8 +17,6 @@ namespace HepLib::FC {
     using namespace HepLib::IBP;
     
     extern const Symbol D;
-    extern const Symbol CA;
-    extern const Symbol CF;
     extern const Symbol NA;
     extern const Symbol NF;
     extern const Symbol gs;
@@ -106,6 +104,10 @@ namespace HepLib::FC {
         static ex g3Vertex(ex e);
         static ex g4Vertex(ex e);
         static ex gh2gVertex(ex e);
+        
+        static ex IndexCC(ex e);
+        static ex GluonFFV(ex e, ex n);
+        static ex QuarkFFV(ex e, ex n);
         
         static ex eikonalPropagator(ex e, ex n, int mode); // 0 for gluon, others for quark/anti-quark
         static ex eikonalPropagatorR(ex e, ex n, int mode); // right side from cut
@@ -201,10 +203,11 @@ namespace HepLib::FC {
     class SUNT : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(SUNT, basic)
     public:
-        SUNT(Index i, Index j, Index a);
-        Index ija[3];
+        SUNT(ex i, ex j, ex a);
+        ex ija[3]; // Index
         size_t nops() const override;
         ex op(size_t i) const override;
+        ex& let_op(size_t i) override;
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void print(const print_dflt &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
@@ -218,10 +221,11 @@ namespace HepLib::FC {
     class SUNF : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(SUNF, basic)
     public:
-        SUNF(Index i, Index j, Index k);
-        Index ijk[3];
+        SUNF(ex i, ex j, ex k);
+        ex ijk[3]; // Index
         size_t nops() const override;
         ex op(size_t i) const override;
+        ex& let_op(size_t i) override;
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
@@ -368,7 +372,7 @@ namespace HepLib::FC {
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu);
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu);
         ex ColorProj(Index i, Index j, Index a);
-        ex ColorProj();
+        ex ColorProj(Index i, Index j);
         
         ex SL1Proj(ex si, ex qi, ex p);
         ex SL1Proj(ex si, ex qi, ex mu, ex p);
@@ -378,7 +382,8 @@ namespace HepLib::FC {
         ex SLSum(ex si, ex siR, ex qi, ex qiR, ex p, int L);
         
         ex LProj(const ex &expr_in, const lst &pqi);
-
+        
+        ex Gamma5(const string pre, int start=1);
     }
         
 }

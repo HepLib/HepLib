@@ -140,9 +140,14 @@ namespace HepLib::FC {
             auto c = static_cast<const FCFormat &>(c0);
             c << "DiracTrace(" << arg << ")";
         }
+        
+        ex tr_conj(const ex & e) {
+            return TR(e.conjugate());
+        }
     }
     
     REGISTER_FUNCTION(TR, do_not_evalf_params().
+        conjugate_func(tr_conj).
         print_func<FormFormat>(&TR_form_print).
         print_func<FCFormat>(&TR_fc_print).
         set_return_type(return_types::commutative).
