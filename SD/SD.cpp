@@ -915,9 +915,10 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                             auto fun = fe.op(0).op(j);
                             fun = fun.subs(repl).normal();
                             if(!fun.is_polynomial(xj)) {
-                                cerr << Color_Error << "RemoveDeltas: fun is NOT polynormial of xj." << Color_Error << endl;
+                                cerr << Color_Error << "RemoveDeltas: fun is NOT polynormial of xj." << RESET << endl;
                                 cerr << "xj: " << xj << endl;
                                 cerr << "fun: " << fun << endl;
+                                cerr << funexp << endl;
                                 std::exit(1);
                             }
                             auto expn = expand(fun).degree(xj);

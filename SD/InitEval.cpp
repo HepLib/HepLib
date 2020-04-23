@@ -128,15 +128,11 @@ namespace HepLib::SD {
                 continue;
             } else if(is_a<numeric>(ns.op(i)) && (ns.op(i)<=0)) {
                 xtNeg[x(i)]=0;
-                if(ns.op(i)<0) {
-                    asgn *= pow(-1, ns.op(i));
-                    rem += x(i) * ps.op(i).subs(iEpsilon==0);
-                }
-                continue;
             }
 
             auto p = ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop).subs(nsubs);
             p = p.subs(lsubs,sop).subs(tsubs,sop).subs(nsubs);
+
             // check loop^2
             for(auto m : ls) {
                 if(!is_a<numeric>(p.coeff(m,2))) {
@@ -354,10 +350,11 @@ namespace HepLib::SD {
                 ex xpn = 0;
                 int nps = fe.op(0).nops();
                 for(int k=0; k<nps; k++) {
-                    auto tmp = fe.op(0).op(k).expand();
-                    if(tmp.ldegree(x(i))>0) {
-                        xpn += tmp.ldegree(x(i)) * fe.op(1).op(k);
-                        tmp = collect_common_factors(tmp / pow(x(i),tmp.ldegree(x(i))));
+                    auto tmp = fe.op(0).op(k);
+                    auto ldeg = tmp.expand().ldegree(x(i));
+                    if(ldeg>0) {
+                        xpn += ldeg * fe.op(1).op(k);
+                        tmp = collect_common_factors(tmp / pow(x(i),ldeg));
                     }
                     tmp = tmp.subs(x(i)==0);
                     let_op(fe,0,k,tmp);
@@ -370,7 +367,7 @@ namespace HepLib::SD {
                         throw Error("Initialize: xpn < 0 found.");
                     }
                     fe = 0;
-                }                
+                }   
             }
         }}
 
@@ -436,7 +433,7 @@ namespace HepLib::SD {
                 }
             }
         }
-        
+
         if(fp.isAsy) DoAsy();
         XReOrders();
         Normalizes();

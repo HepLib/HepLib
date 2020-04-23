@@ -301,7 +301,9 @@ ex Factor(const ex expr) {
     expr2 = expr2.subs(xy2s);
     expr2 = factor(expr2);
     expr2 = expr2.subs(s2xy);
-    return PowerExpand(expr2);
+    expr2 = PowerExpand(expr2);
+    expr2 = collect_common_factors(expr2);
+    return expr2;
 }
 
 ex FactorOutX(const ex expr) {
@@ -319,6 +321,7 @@ ex FactorOutX(const ex expr) {
     expr2 = factor(expr2);
     expr2 = expr2.subs(s2x);
     expr2 = PowerExpand(expr2);
+    expr2 = collect_common_factors(expr2);
     if(!is_a<mul>(expr2)) return expr2;
     ex ret = 1;
     for(auto item : expr2) {
@@ -328,11 +331,24 @@ ex FactorOutX(const ex expr) {
 }
 
 ex PowerExpand(const ex expr) {
-    ex expr2 = expr;
-    expr2 = expr2.subs(pow(pow(x(w1), w2), w3)==pow(x(w1), w2*w3), subs_options::algebraic);
-    expr2 = expr2.subs(pow(pow(y(w1), w2), w3)==pow(y(w1), w2*w3), subs_options::algebraic);
-    expr2 = expr2.subs(pow(pow(z(w1), w2), w3)==pow(z(w1), w2*w3), subs_options::algebraic);
-    return expr2;
+    ex expo = expr;
+    while(true) {
+        auto expr2 = expo;
+        expr2 = expr2.subs(pow(x(w1)*w2,w3)==pow(x(w1),w3)*pow(w2,w3), subs_options::algebraic);
+        expr2 = expr2.subs(pow(y(w1)*w2,w3)==pow(y(w1),w3)*pow(w2,w3), subs_options::algebraic);
+        expr2 = expr2.subs(pow(z(w1)*w2,w3)==pow(z(w1),w3)*pow(w2,w3), subs_options::algebraic);
+        
+        expr2 = expr2.subs(pow(pow(x(w1),w2),w3)==pow(x(w1),w2*w3), subs_options::algebraic);
+        expr2 = expr2.subs(pow(pow(y(w1),w2),w3)==pow(y(w1),w2*w3), subs_options::algebraic);
+        expr2 = expr2.subs(pow(pow(z(w1),w2),w3)==pow(z(w1),w2*w3), subs_options::algebraic);
+        
+        expr2 = expr2.subs(pow(w0,w1)*pow(w0,w2)==pow(w0,w1+w2),subs_options::algebraic);
+        expr2 = expr2.subs(w0*pow(w0,w1)==pow(w0,w1+1),subs_options::algebraic);
+        expr2 = expr2.subs(pow(w0,w1)/w0==pow(w0,w1-1),subs_options::algebraic);
+        if(is_zero(expo-expr2)) break;
+        expo = expr2;
+    }
+    return expo;
 }
 
 ex SecDec::PrefactorFIESTA(int nLoop) {
