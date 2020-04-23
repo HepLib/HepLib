@@ -215,30 +215,10 @@ namespace HepLib::SD {
             
             cu *= u;
             auto u_nd = numer_denom(u);
-            ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
-            if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
-            if(usgn.is_zero()) {
-                cerr << Color_Error << "Initialize: (usgn.is_zero())" << RESET << endl;
-                exit(1);
-            }
+            ex usgn = FactorOutX(u_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
+            if(is_zero(usgn)) usgn = FactorOutX(u_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
+            if(!is_a<numeric>(usgn) || is_zero(usgn)) throw Error("Initialize: usgn is zero or non-numeric.");
             usgn = normal(usgn)>0 ? 1 : -1;
-            
-            if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
-                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-            }))) {
-                cerr << Color_Error << "Initialize: NOT positive (1) - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
-                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }) << RESET << endl;
-                exit(1);
-            }
-            if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
-                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-            }))) {
-                cerr << Color_Error << "Initialize: NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
-                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }) << RESET << endl;
-                exit(1);
-            }
             
             uList1.append(usgn*u_nd.op(0));
             uList2.append(-(4-2*ep)/2);
@@ -249,7 +229,7 @@ namespace HepLib::SD {
         } else {
             rem = normal(rem.subs(lsubs,sop).subs(lsubs,sop));
         }
-        
+
         // t-Loop
         if(tls.nops()>0) {
             u=1;
@@ -275,30 +255,10 @@ namespace HepLib::SD {
             
             cu *= u;
             auto u_nd = numer_denom(u);
-            ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
-            if(usgn.is_zero()) usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
-            if(usgn.is_zero()) {
-                cerr << Color_Error << "Initialize: (usgn.is_zero())" << RESET << endl;
-                exit(1);
-            }
+            ex usgn = FactorOutX(u_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
+            if(is_zero(usgn)) usgn = FactorOutX(u_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
+            if(!is_a<numeric>(usgn) || is_zero(usgn)) throw Error("Initialize: usgn is zero or non-numeric.");
             usgn = normal(usgn)>0 ? 1 : -1;
-            
-            if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
-                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-            }))) {
-                cerr << Color_Error << "Initialize: NOT positive (2) - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
-                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }) << RESET << endl;
-                exit(1);
-            }
-            if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
-                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-            }))) {
-                cerr << Color_Error << "Initialize: NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
-                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }) << RESET << endl;
-                exit(1);
-            }
             
             uList1.append(usgn*u_nd.op(0));
             if(fp.isQuasi) uList2.append(-(3-2*ep)/2);
@@ -315,9 +275,11 @@ namespace HepLib::SD {
         rem = normal(rem * u);
         auto rem_nd = numer_denom(rem);
         
-        ex usgn = u_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
+        ex usgn = FactorOutX(u_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
+        if(!is_a<numeric>(usgn) || is_zero(usgn)) throw Error("Initialize: usgn is zero or non-numeric.");
         usgn = normal(usgn)>0 ? 1 : -1;
-        ex fsgn = rem_nd.op(1).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
+        ex fsgn = FactorOutX(rem_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
+        if(!is_a<numeric>(fsgn) || is_zero(fsgn)) throw Error("Initialize: fsgn is zero or non-numeric.");
         fsgn = normal(fsgn)>0 ? 1 : -1;
         
         lst fList1, fList2;
@@ -341,7 +303,7 @@ namespace HepLib::SD {
 
         vector<ex> ret;
         ret.push_back(lst{fList1, fList2});
-
+        
         // negative index
         for(int i=0; i<xn; i++) {
         if(is_a<numeric>(ns.op(i)) && ns.op(i)<0) {
@@ -354,6 +316,19 @@ namespace HepLib::SD {
                 for(auto fe : ret) {
                     auto plst = ex_to<lst>(fe.op(0));
                     auto nlst = ex_to<lst>(fe.op(1));
+
+                    ex nxi=0;
+                    for(int ij=0; ij<plst.nops(); ij++) {
+                        if(plst.op(ij).ldegree(x(i))>0) {
+                            plst.let_op(ij) = plst.op(ij) / pow(x(i), plst.op(ij).ldegree(x(i)));
+                            nxi += plst.op(ij).ldegree(x(i)) * nlst.op(ij);
+                        }
+                    }
+                    if(!is_zero(nxi)) {
+                        plst.append(x(i));
+                        nlst.append(nxi);
+                    }
+                    
                     for(int ij=0; ij<nlst.nops(); ij++) {
                         auto dtmp = nlst.op(ij) * mma_diff(plst.op(ij),x(i),1,false);
                         if(dtmp.is_zero()) continue;
@@ -375,8 +350,27 @@ namespace HepLib::SD {
                 ret = nret;
             }
             
-            for(auto &fe : ret) {
-                fe = ex_to<lst>(subs(fe, x(i)==0));
+            for(auto &fe : ret) {   
+                ex xpn = 0;
+                int nps = fe.op(0).nops();
+                for(int k=0; k<nps; k++) {
+                    auto tmp = fe.op(0).op(k).expand();
+                    if(tmp.ldegree(x(i))>0) {
+                        xpn += tmp.ldegree(x(i)) * fe.op(1).op(k);
+                        tmp = collect_common_factors(tmp / pow(x(i),tmp.ldegree(x(i))));
+                    }
+                    tmp = tmp.subs(x(i)==0);
+                    let_op(fe,0,k,tmp);
+                }
+
+                if(!is_zero(xpn)) {
+                    if(is_a<numeric>(xpn) && xpn<0) {
+                        cout << "xpn=" << xpn << " :> " << i << endl;
+                        cout << fe << endl;
+                        throw Error("Initialize: xpn < 0 found.");
+                    }
+                    fe = 0;
+                }                
             }
         }}
 
@@ -394,6 +388,7 @@ namespace HepLib::SD {
             if(is_a<numeric>(ns.op(i)) && ns.op(i)<=1) continue;
             else {
                 for(auto &fe : ret) {
+                    if(is_zero(fe)) continue;
                     let_op_append(fe, 0, x(i));
                     let_op_append(fe, 1, ns.op(i)-1);
                  }
@@ -401,6 +396,7 @@ namespace HepLib::SD {
         }
 
         for(auto &fe : ret) {
+            if(is_zero(fe)) continue;
             let_op_append(fe, 0, pre);
             let_op_append(fe, 1, 1);
             if(xpre != 1) {
@@ -419,11 +415,28 @@ namespace HepLib::SD {
             if(is_a<numeric>(ns.op(i)) && ns.op(i)<=0) continue;
             delta.append(x(i));
         }
-        for(auto &fe : ret) let_op_append(fe, lst{delta});
-        FunExp = ret;
+        FunExp.clear();
+        for(auto &fe : ret) {
+            if(is_zero(fe)) continue;
+            let_op_append(fe, lst{delta});
+            FunExp.push_back(fe);
+        }
         
-        GiNaC_archive_Symbols_from(FunExp);
         Normalizes();
+        // final check non-f term positive
+        for(auto fe : FunExp) {
+            auto fs = fe.op(0);
+            auto ns = fe.op(1);
+            for(int i=0; i<fs.nops(); i++) {
+                if(i==1 || (is_a<numeric>(ns.op(i)) && ex_to<numeric>(ns.op(i)).is_pos_integer())) continue;
+                auto nv = fs.op(i).subs(nReplacements).subs(lst{CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111});
+                if(!xPositive(nv)) {
+                    cout << "fs = " << fs << endl << "ns = " << ns << endl;
+                    throw Error("Initialize: non-positive u-term found.");
+                }
+            }
+        }
+        
         if(fp.isAsy) DoAsy();
         XReOrders();
         Normalizes();
@@ -459,7 +472,6 @@ namespace HepLib::SD {
     void SecDec::Evaluate(FeynmanParameter fp, const string & key) {
         
         if(Verbose>1) cout << endl << "Starting @ " << now() << endl;
-        if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         Initialize(fp);
         MB();
@@ -483,7 +495,6 @@ namespace HepLib::SD {
     void SecDec::Evaluate(XIntegrand xint, const string & key) {
         
         if(Verbose>1) cout << endl << "Starting @ " << now() << endl;
-        if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         Initialize(xint);
         MB();
@@ -507,7 +518,6 @@ namespace HepLib::SD {
     void SecDec::Evaluate(vector<ex> funexp, const string & key) {
         
         if(Verbose>1) cout << endl << "Starting @ " << now() << endl;
-        if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         FunExp = funexp;
         MB();

@@ -304,6 +304,29 @@ ex Factor(const ex expr) {
     return PowerExpand(expr2);
 }
 
+ex FactorOutX(const ex expr) {
+    exset xset;
+    expr.find(x(w), xset);
+    lst x2s, s2x;
+    for(auto xi : xset) {
+        symbol tx;
+        x2s.append(xi==tx);
+        s2x.append(tx==xi);
+    }
+    ex expr2 = PowerExpand(expr);
+    expr2 = collect_common_factors(expr2);
+    expr2 = expr2.subs(x2s);
+    expr2 = factor(expr2);
+    expr2 = expr2.subs(s2x);
+    expr2 = PowerExpand(expr2);
+    if(!is_a<mul>(expr2)) return expr2;
+    ex ret = 1;
+    for(auto item : expr2) {
+        if(!item.match(x(w))) ret *= item;
+    }
+    return ret;
+}
+
 ex PowerExpand(const ex expr) {
     ex expr2 = expr;
     expr2 = expr2.subs(pow(pow(x(w1), w2), w3)==pow(x(w1), w2*w3), subs_options::algebraic);
@@ -317,6 +340,7 @@ ex SecDec::PrefactorFIESTA(int nLoop) {
 }
 
 double SecDec::FindMinimum(ex expr, bool compare0) {
+    if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
     static long long fid = 0;
     fid++;
     ostringstream cppfn, sofn, cmd;

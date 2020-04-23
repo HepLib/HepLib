@@ -11,12 +11,16 @@
 
 namespace HepLib::IBP {
 
+    static ex f_expand(const ex & arg1, const ex & arg2, unsigned options) {
+        return F(arg1,arg2).hold();
+    }
+
     static void a_print(const ex & ex_in, const print_context & c) {
         c.s << "a[" << ex_in << "]";
     }
 
     REGISTER_FUNCTION(a, do_not_evalf_params().print_func<print_dflt>(a_print))
-    REGISTER_FUNCTION(F, do_not_evalf_params())
+    REGISTER_FUNCTION(F, do_not_evalf_params().expand_func(f_expand))
 
     /**
      * @brief Do IBP Reduction 
@@ -97,6 +101,7 @@ namespace HepLib::IBP {
                     tmp = tmp.subs(sp2s, subs_options::algebraic);
                     tmp = tmp.subs(s2p, subs_options::algebraic);
                     tmp = ex(0) - a(i+1)*tmp;
+                    tmp = tmp.subs(D==d); // replace D to d
 
                     for(int j=0; j<dim; j++) {
                         auto cj = tmp.coeff(iWF(j));
@@ -310,6 +315,7 @@ namespace HepLib::IBP {
             for(auto it : item.op(1)) {
                 right += it.op(0).subs(id2F) * it.op(1);
             }
+            right = right.subs(d==D); // replace d back to D
             if(is_zero(left-right)) MasterIntegrals.append(left);
             else Rules.append(left==right);
         }

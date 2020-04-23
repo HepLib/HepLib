@@ -18,6 +18,7 @@ namespace HepLib::SD {
         }
         
         if(IsZero) return;
+        if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
         if(Verbose > 1) cout << now() << " - CIPrepares ..." << endl << flush;
         auto pid = getpid();

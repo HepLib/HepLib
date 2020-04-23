@@ -567,6 +567,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                                 if(!is_a<numeric>(tr)) {
                                     cerr << Color_Error << "Normalize: tr is NOT numeric with nReplacements." << RESET << endl;
                                     cerr << "tmp: " << tmp << endl;
+                                    cerr << "tr: " << tr << endl;
                                     cerr << "nReplacements: " << nReplacements << endl;
                                     exit(1);
                                 }
@@ -663,39 +664,41 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
 
     // working with or without Deltas
     void SecDec::Normalizes() {
-        if(IsZero) return;
+        for(int ri=0; ri<2; ri++) { // run twice, needs to check in more details
+            if(IsZero) return;
 
-        vector<ex> funexp;
-        for(auto fe : FunExp) {
-            funexp.push_back(Normalize(fe));
-        }
-        FunExp.clear();
-        FunExp.shrink_to_fit();
-        
-        exmap fn;
-        for(auto fe : funexp) {
-            ex key = 1;
-            if(fe.nops()>2) key = iWF(fe.op(2));
-            for(int i=1; i<fe.op(0).nops(); i++) key *= pow(fe.op(0).op(i), fe.op(1).op(i));
-            fn[key] += fe.op(0).op(0);
-        }
-        
-        exmap ifn;
-        for(auto fe : funexp) {
-            ex key = 1;
-            if(fe.nops()>2) key = iWF(fe.op(2));
-            for(int i=1; i<fe.op(0).nops(); i++) key *= pow(fe.op(0).op(i), fe.op(1).op(i));
-            if(ifn[key]>0) continue;
-            lst fun, exp;
-            fun.append(fn[key]);
-            exp.append(1);
-            for(int i=1; i<fe.op(0).nops(); i++) {
-                fun.append(fe.op(0).op(i));
-                exp.append(fe.op(1).op(i));
+            vector<ex> funexp;
+            for(auto fe : FunExp) {
+                funexp.push_back(Normalize(fe));
             }
-            if(fe.nops()>2) FunExp.push_back(lst{fun, exp, fe.op(2)});
-            else FunExp.push_back(lst{fun, exp});
-            ifn[key] = 1;
+            FunExp.clear();
+            FunExp.shrink_to_fit();
+            
+            exmap fn;
+            for(auto fe : funexp) {
+                ex key = 1;
+                if(fe.nops()>2) key = iWF(fe.op(2));
+                for(int i=1; i<fe.op(0).nops(); i++) key *= pow(fe.op(0).op(i), fe.op(1).op(i));
+                fn[key] += fe.op(0).op(0);
+            }
+            
+            exmap ifn;
+            for(auto fe : funexp) {
+                ex key = 1;
+                if(fe.nops()>2) key = iWF(fe.op(2));
+                for(int i=1; i<fe.op(0).nops(); i++) key *= pow(fe.op(0).op(i), fe.op(1).op(i));
+                if(ifn[key]>0) continue;
+                lst fun, exp;
+                fun.append(fn[key]);
+                exp.append(1);
+                for(int i=1; i<fe.op(0).nops(); i++) {
+                    fun.append(fe.op(0).op(i));
+                    exp.append(fe.op(1).op(i));
+                }
+                if(fe.nops()>2) FunExp.push_back(lst{fun, exp, fe.op(2)});
+                else FunExp.push_back(lst{fun, exp});
+                ifn[key] = 1;
+            }
         }
     }
 

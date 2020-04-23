@@ -291,6 +291,7 @@ namespace HepLib {
     extern string InstallPrefix;
     extern const Symbol iEpsilon;
     extern const Symbol ep;
+    extern const Symbol D;
     extern int Verbose;
     extern pid_t PID;
     

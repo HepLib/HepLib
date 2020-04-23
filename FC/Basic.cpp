@@ -277,43 +277,6 @@ namespace HepLib::FC {
         return SUNF(i, j, e) * SUNF(e, k, l);
     }
     
-    ex SUNSimplify(const ex & inexpr) {
-        auto ret = inexpr;
-        int i = 0;
-        ret = MapFunction([&](const ex &e, MapFunction &self)->ex {
-            ex I2R = ex(1)/2;
-            if(is_a<SUNF>(e)) {
-                Index colFi1 = Index("ssCOL"+to_string(i++), Index::Type::CF);
-                Index colFi2 = Index("ssCOL"+to_string(i++), Index::Type::CF);
-                Index colFi3 = Index("ssCOL"+to_string(i++), Index::Type::CF);
-                Index colAj1 = ex_to<Index>(e.op(0));
-                Index colAj2 = ex_to<Index>(e.op(1));
-                Index colAj3 = ex_to<Index>(e.op(2));
-                return 1/I2R/I*SUNT(colFi1,colFi2,colAj1)*SUNT(colFi2,colFi3,colAj2)*SUNT(colFi3,colFi1,colAj3) -
-                    1/I2R/I*SUNT(colFi1,colFi2,colAj3)*SUNT(colFi2,colFi3,colAj2)*SUNT(colFi3,colFi1,colAj1);
-            }
-            return e.map(self);
-        })(ret);
-        
-        ret = MapFunction([&](const ex &e, MapFunction &self)->ex {
-            if(is_a<SUNT>(e)) {
-                Index col1 = ex_to<Index>(e.op(0));
-                Index col2 = ex_to<Index>(e.op(1));
-                Index col3 = ex_to<Index>(e.op(2));
-                return iWF(col1, col2, col3);
-            }
-            return e.map(self);
-        })(ret);
-        ret = mma_collect(ret, iWF(w1, w2, w3));
-        
-        while(true) {
-            auto tmp = ret.subs(iWF(w1,w2,w3)*iWF(w4,w5,w3)==iWF(w1,w2,w4,w5), subs_options::algebraic);
-            if(is_zero(tmp-ret)) break;
-            ret = tmp;
-        }
-        return ret;
-    }
-    
     ex MatrixContract(const ex & expr_in) {
         if(expr_in.has(coVF(w))) throw Error("MatrixContract: coVF found in expr_in.");
         

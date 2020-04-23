@@ -25,6 +25,7 @@ namespace HepLib {
     const Symbol ep("ep");
     const Symbol iEpsilon("iEpsilon",false);
     int Verbose = 0;
+    const Symbol D("D");
     pid_t PID = getpid();
     
     lst GiNaC_archive_Symbols = lst{};
@@ -59,7 +60,6 @@ namespace HepLib {
     //----------------------------------------
     // HepLib::FC
     //----------------------------------------
-    const Symbol FC::D("D");
     const Symbol FC::NA("NA");
     const Symbol FC::NF("NF");
     const Symbol FC::gs("gs");

@@ -49,6 +49,7 @@ namespace HepLib::SD {
     int x_free_index(ex expr);
     int y_free_index(ex expr);
     ex Factor(const ex expr);
+    ex FactorOutX(const ex expr);
     ex PowerExpand(const ex expr);
     
     

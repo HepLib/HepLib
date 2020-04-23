@@ -16,7 +16,6 @@ namespace HepLib::FC {
     using namespace HepLib;
     using namespace HepLib::IBP;
     
-    extern const Symbol D;
     extern const Symbol NA;
     extern const Symbol NF;
     extern const Symbol gs;
@@ -236,7 +235,6 @@ namespace HepLib::FC {
     GINAC_DECLARE_UNARCHIVER(SUNF);
     
     ex SUNF4(Index i, Index j, Index k, Index l);
-    ex SUNSimplify(const ex & inexpr);
     
     //-----------------------------------------------------------
     // Pair Class
@@ -349,7 +347,7 @@ namespace HepLib::FC {
     ex ApartIR2ex(const ex & expr_in);
     ex ApartIR2F(const ex & expr_in);
     ex ApartIRC(const ex & expr_in, const ex & cut_props=lst{});
-    void Apart2FIRE(exvector &air_vec, lst loops, lst exts, const ex & cut_props=lst{});
+    void Apart2FIRE(exvector &air_vec, lst loops, lst exts, bool reduce=true, const lst & cut_props=lst{});
     
     // ApartIR function upto 2 arguments
     class ApartIR1_SERIAL { public: static unsigned serial; };

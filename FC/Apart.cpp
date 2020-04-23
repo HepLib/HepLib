@@ -550,13 +550,13 @@ namespace HepLib::FC {
      * @param cut_props cut propagators, default is { }
      * @return nothing returned, the input air_vec will be updated
      */
-    void Apart2FIRE(exvector &air_vec, lst vloops, lst vexts, const ex & cut_props) {
+    void Apart2FIRE(exvector &air_vec, lst vloops, lst vexts, bool reduce, const lst & cut_props) {
         string wdir = to_string(getpid()) + "_FIRE";
         
         auto air_intg = 
         GiNaC_Parallel(-1, air_vec.size(), [air_vec,cut_props] (int idx) {
             auto air = air_vec[idx];            
-            if(is_a<lst>(cut_props)) air = ApartIRC(air, cut_props);
+            if(cut_props.nops()>0) air = ApartIRC(air, cut_props);
             exset intg;
             find(air, ApartIR(w1, w2), intg);
             lst intgs;
@@ -678,13 +678,14 @@ namespace HepLib::FC {
             } else return e.map(self);
         });
         
-        if(!is_a<lst>(cut_props)) {
+        if(!reduce) {
             auto air_res =
             GiNaC_Parallel(-1, air_vec.size(), [&](int idx)->ex {
                 auto air = air_vec[idx];
                 air = air.subs(IR2F,subs_options::subs_options::no_pattern);
                 air = air.subs(rules_ints.first,subs_options::subs_options::no_pattern);
                 air = F2ex(air);
+                air = mma_collect(air, F(w1,w2), false, false);
                 return air;
             }, "F2F");
             
@@ -724,6 +725,7 @@ namespace HepLib::FC {
             air = air.subs(F2F,subs_options::subs_options::no_pattern);
             air = air.subs(mi_rules.first,subs_options::subs_options::no_pattern);
             air = F2ex(air);
+            air = mma_collect(air, F(w1,w2), false, false);
             return air;
         }, "F2F");
         
