@@ -21,7 +21,12 @@ ex CppFormat::q2ex(qREAL num) {
 }
 
 qREAL CppFormat::ex2q(ex num) {
-    qREAL ret = ex_to<numeric>(num).to_double();
+    ostringstream nss;
+    auto oDigits = Digits;
+    Digits = 40;
+    nss << num.evalf() << endl;
+    qREAL ret = strtoflt128(nss.str().c_str(), NULL);
+    Digits = oDigits;
     return ret;
 }
 

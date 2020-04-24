@@ -26,10 +26,10 @@ namespace HepLib::IBP {
      * @brief Do IBP Reduction 
      */
     void FIRE::Reduce() { 
-        Dimension = Propagators.nops();
+        ProblemDimension = Propagators.nops();
         if(Integrals.nops()<1) return;
         int pn = 0; // to avoid unsigned short overflow in FIRE
-        int dim = Dimension;
+        int pdim = ProblemDimension;
         lst InExternal;
         for(auto ii : Internal) InExternal.append(ii);
         for(auto ii : External) InExternal.append(ii);
@@ -40,7 +40,7 @@ namespace HepLib::IBP {
         }
         sps.sort();
         sps.unique();
-        if(sps.nops()<dim) {
+        if(sps.nops()<pdim) {
             lst sps_ext;
             for(auto it : External) {
                 for(auto ii : External) sps_ext.append(it*ii);
@@ -54,7 +54,7 @@ namespace HepLib::IBP {
             sps.sort();
             sps.unique();
         }
-        if(sps.nops() != dim) {
+        if(sps.nops() != pdim) {
             cout << "sps = " << sps << endl;
             cout << "Propagators = " << Propagators << endl;
             throw Error("FIRE::Reduce: sps failed.");
@@ -69,7 +69,7 @@ namespace HepLib::IBP {
         }
         
         lst eqns, iWFs;
-        for(int i=0; i<dim; i++) {
+        for(int i=0; i<pdim; i++) {
             auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
             eq = eq.subs(sp2s, subs_options::algebraic);
             eq = eq.subs(Replacements, subs_options::algebraic);
@@ -77,22 +77,22 @@ namespace HepLib::IBP {
             eqns.append(eq == iWF(i));
         }
         auto s2p = lsolve(eqns, ss);
-        if(s2p.nops() != dim) throw Error("FIRE::Reduce: lsove failed.");
+        if(s2p.nops() != pdim) throw Error("FIRE::Reduce: lsove failed.");
 
         IBPs.clear();
         exvector IBPvec;
         lst ns0;
-        for(int i=0; i<dim; i++) ns0.append(0);
+        for(int i=0; i<pdim; i++) ns0.append(0);
         for(auto loop : Internal) {
             lst dp_lst;
-            for(int i=0; i<dim; i++) {  
+            for(int i=0; i<pdim; i++) {  
                 auto s = ex_to<Symbol>(loop);
                 dp_lst.append(Propagators.op(i).diff(s));
             }
             
             for(auto iep : InExternal) {
                 exmap nc_map;
-                for(int i=0; i<dim; i++) { // diff on each propagator
+                for(int i=0; i<pdim; i++) { // diff on each propagator
                     auto ns = ns0;
                     ns.let_op(i) = ns.op(i)+1; // note the covention
                     auto tmp = dp_lst.op(i) * iep;
@@ -101,9 +101,8 @@ namespace HepLib::IBP {
                     tmp = tmp.subs(sp2s, subs_options::algebraic);
                     tmp = tmp.subs(s2p, subs_options::algebraic);
                     tmp = ex(0) - a(i+1)*tmp;
-                    tmp = tmp.subs(D==d); // replace D to d
 
-                    for(int j=0; j<dim; j++) {
+                    for(int j=0; j<pdim; j++) {
                         auto cj = tmp.coeff(iWF(j));
                         if(is_zero(cj)) continue;
                         auto cns = ns;
@@ -114,12 +113,12 @@ namespace HepLib::IBP {
                     if(!is_zero(tmp)) nc_map[ns] = nc_map[ns] + tmp;
                 }
                 
-                if(is_zero(loop-iep)) nc_map[ns0] = nc_map[ns0] + d;
+                if(is_zero(loop-iep)) nc_map[ns0] = nc_map[ns0] + VectorDimension;
                 bool ok = false;
                 for(auto nc : nc_map) {
                     if(!is_zero(nc.second)) {
                         ok = true;
-                        IBPvec.push_back(nc.second);
+                        IBPvec.push_back(nc.second.subs(D==d)); // replace D to d
                     }
                 }
                 if(ok) IBPs.push_back(nc_map);
@@ -130,14 +129,14 @@ namespace HepLib::IBP {
         
         ostringstream start;
 
-        start << "ExampleDimension[" << pn << "]=" << dim << endl << endl;
+        start << "ExampleDimension[" << pn << "]=" << pdim << endl << endl;
         start << "ProblemNumber=" << pn << endl << endl;
         
         // .start - SBasisL
         if(Version==5) {
-            PermutationsR(2, dim, [dim,pn,&start](const int *ns) {
+            PermutationsR(2, pdim, [pdim,pn,&start](const int *ns) {
                 start << "SBasisL[" << pn << ",{";
-                for(int i=0; i<dim; i++) start << (ns[i]<1 ? -1 : 1) << (i<dim-1 ? "," : "");
+                for(int i=0; i<pdim; i++) start << (ns[i]<1 ? -1 : 1) << (i<pdim-1 ? "," : "");
                 start << "}]=0" << endl << endl;
             });
         }
@@ -176,26 +175,26 @@ namespace HepLib::IBP {
         // .start - SBasisS
         start << "SBasisS[" << pn << "]={{{";
         // 1,2,3,...
-        for(int i=0; i<dim; i++) start << (i+1) << (i<dim-1 ? "," : "");
+        for(int i=0; i<pdim; i++) start << (i+1) << (i<pdim-1 ? "," : "");
         start << "},{";
         // 1,1,1,...
-        for(int i=0; i<dim; i++) start << 1 << (i<dim-1 ? "," : "");
+        for(int i=0; i<pdim; i++) start << 1 << (i<pdim-1 ? "," : "");
         start << "},{";
         // 0,0,0,...
-        for(int i=0; i<dim; i++) start << 0 << (i<dim-1 ? "," : "");
+        for(int i=0; i<pdim; i++) start << 0 << (i<pdim-1 ? "," : "");
         start << "}}}" << endl << endl;
         
         // .start - SBasisR
         lst Rlst;
         Rlst.append(lst{});
-        for(int i=0; i<dim; i++) {
+        for(int i=0; i<pdim; i++) {
             let_op_append(Rlst, 0, -1);
         }
         for(auto lpi : Internal) {
             vector<int> ns_vec;
             lst ns0;
-            for(int i=0; i<dim; i++) ns0.append(1);
-            for(int i=0; i<dim; i++) {
+            for(int i=0; i<pdim; i++) ns0.append(1);
+            for(int i=0; i<pdim; i++) {
                 if(Propagators.op(i).has(lpi)) ns0.let_op(i) = -1;
                 else ns_vec.push_back(i);
             }
@@ -216,12 +215,12 @@ namespace HepLib::IBP {
             for(auto cx : Cuts) {
                 int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cuts
                 lst ns0;
-                for(int i=0; i<dim; i++) ns0.append(1);
+                for(int i=0; i<pdim; i++) ns0.append(1);
                 ns0.let_op(ci) = -1;
-                for(int n=0; n<std::pow(2,dim-1); n++) {
+                for(int n=0; n<std::pow(2,pdim-1); n++) {
                     int cn = n;
                     lst ns1 = ns0;
-                    for(int j=0; j<dim; j++) {
+                    for(int j=0; j<pdim; j++) {
                         if(ci==j) continue;
                         if((cn%2)==1) ns1.let_op(j) = -1;
                         cn /= 2;
@@ -236,7 +235,7 @@ namespace HepLib::IBP {
         
         for(auto iR : Rlst) {
             start << "SBasisR[" << pn << ",{";
-            for(int i=0; i<dim; i++) start << iR.op(i) << (i<dim-1 ? "," : "");
+            for(int i=0; i<pdim; i++) start << iR.op(i) << (i<pdim-1 ? "," : "");
             start << "}]=True" << endl << endl;
         }
         
@@ -256,7 +255,12 @@ namespace HepLib::IBP {
         //config << "#fermat fer64" << endl;
         config << "#variables ";
         bool first = true;
-        for(auto v : Variables) { config << (first ? "" : ",") << v; first=false; }
+        for(auto v : Variables) { 
+            if(!islower(ex_to<symbol>(v).get_name()[0])) 
+                throw Error("Reduce: Fermat requires a name must begin with a lower case letter.");
+            config << (first ? "" : ",") << v; 
+            first=false; 
+        }
         config << endl;
         config << "#database db" << ProblemNumber << endl;
         if(Version>5) config << "#pos_pref 5" << endl;

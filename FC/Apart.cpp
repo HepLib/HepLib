@@ -430,7 +430,8 @@ namespace HepLib::FC {
      * @param extps list of external Vector
      * @return sum of coefficient * ApartIR
      */
-    ex Apart(const ex &expr_in, const lst &loops, const lst & extps) {
+    ex Apart(const ex &expr_ino, const lst &loops, const lst & extps) {
+        auto expr_in = expr_ino.subs(sp_map);
         auto expr = expr_in;
         lst sps;
         exmap sign;
@@ -545,7 +546,7 @@ namespace HepLib::FC {
     /**
      * @brief perform FIRE reduction on the Aparted input
      * @param air_vec vector contains aparted input, ApartIRC will be call internally 
-     * @param vloops loop vectors
+     * @param vloops loop vectors, vloops will be differentialized in FIRE
      * @param vexts external vectors
      * @param cut_props cut propagators, default is { }
      * @return nothing returned, the input air_vec will be updated
@@ -556,7 +557,7 @@ namespace HepLib::FC {
         auto air_intg = 
         GiNaC_Parallel(-1, air_vec.size(), [air_vec,cut_props] (int idx) {
             auto air = air_vec[idx];            
-            if(cut_props.nops()>0) air = ApartIRC(air, cut_props);
+            air = ApartIRC(air, cut_props);
             exset intg;
             find(air, ApartIR(w1, w2), intg);
             lst intgs;
@@ -701,7 +702,7 @@ namespace HepLib::FC {
             auto item = fvec_re[idx];
             item->Reduce();
             return lst {
-                item->Dimension,
+                item->ProblemDimension,
                 item->MasterIntegrals,
                 item->Rules
             };
@@ -709,7 +710,7 @@ namespace HepLib::FC {
         
         exmap F2F;
         for(int i=0; i<fvec_re.size(); i++) {
-            fvec_re[i]->Dimension = ex_to<numeric>(fres[i].op(0)).to_int();
+            fvec_re[i]->ProblemDimension = ex_to<numeric>(fres[i].op(0)).to_int();
             fvec_re[i]->MasterIntegrals = ex_to<lst>(fres[i].op(1));
             fvec_re[i]->Rules = ex_to<lst>(fres[i].op(2));
             for(auto item : fvec_re[i]->Rules) F2F[item.op(0)] = item.op(1);

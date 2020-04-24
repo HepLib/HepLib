@@ -128,6 +128,7 @@ namespace HepLib::SD {
                 continue;
             } else if(is_a<numeric>(ns.op(i)) && (ns.op(i)<=0)) {
                 xtNeg[x(i)]=0;
+                if(is_zero(ns.op(i))) continue;
             }
 
             auto p = ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop).subs(nsubs);
@@ -299,7 +300,7 @@ namespace HepLib::SD {
 
         vector<ex> ret;
         ret.push_back(lst{fList1, fList2});
-        
+
         // negative index
         for(int i=0; i<xn; i++) {
         if(is_a<numeric>(ns.op(i)) && ns.op(i)<0) {
@@ -315,9 +316,10 @@ namespace HepLib::SD {
 
                     ex nxi=0;
                     for(int ij=0; ij<plst.nops(); ij++) {
-                        if(plst.op(ij).ldegree(x(i))>0) {
-                            plst.let_op(ij) = plst.op(ij) / pow(x(i), plst.op(ij).ldegree(x(i)));
-                            nxi += plst.op(ij).ldegree(x(i)) * nlst.op(ij);
+                        auto ldeg = plst.op(ij).expand().ldegree(x(i));
+                        if(ldeg>0) {
+                            plst.let_op(ij) = collect_common_factors(plst.op(ij) / pow(x(i),ldeg));
+                            nxi += ldeg * nlst.op(ij);
                         }
                     }
                     if(!is_zero(nxi)) {

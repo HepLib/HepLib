@@ -26,12 +26,13 @@ namespace HepLib::IBP {
         lst Propagators;
         lst Integrals;
         lst Cuts;
-        ex UF(const ex & corner) const;
+        ex UF(const ex & corner) const;        
+        ex VectorDimension = d;
         
         string WorkingDir;
         int ProblemNumber;
         
-        int Dimension;
+        int ProblemDimension;
         lst MasterIntegrals;
         lst Rules;
         

@@ -72,7 +72,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
             }
             if(!ok && (self->IntegrandMP!=NULL)) {
                 qREAL xx[xdim];
-                for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.Q-30 ? 1.Q-30  : x[i*xdim+ii] * 0.95Q;
+                for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.E-30Q ? 1.E-30Q  : x[i*xdim+ii] * 0.95Q;
                 self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
             }
         }
