@@ -147,10 +147,10 @@ namespace HepLib::SD {
         int DQMP = 0;
         int QXDim = 2;
         int MPXDim = 1;
-        qREAL QXLimit = 1E-2Q;
-        qREAL MPXLimit = 1E-4Q;
-        qREAL QFLimit = 1E-2Q;
-        qREAL MPFLimit = 1E-4Q;
+        qREAL QXLimit = 1E-3Q;
+        qREAL MPXLimit = 1E-5Q;
+        qREAL QFLimit = 1E-3Q;
+        qREAL MPFLimit = 1E-5Q;
         
         bool UseCpp = true;
         long long NEval = 0;
@@ -295,7 +295,6 @@ namespace HepLib::SD {
         static bool debug;
         static string cpp;
         
-        int ParallelProcess = -1;
         int epN = 0;
         int epsN = 0;
         int sN = 0;

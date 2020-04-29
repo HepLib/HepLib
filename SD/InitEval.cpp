@@ -308,7 +308,8 @@ namespace HepLib::SD {
                 cerr << Color_Error << "Initialize: (!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer())" << RESET << endl;
                 exit(1);
             }
-            for(int j=0; j<-ns.op(i); j++) {
+
+            for(int j=0; j<ex(0)-ns.op(i); j++) {
                 vector<ex> nret;
                 for(auto fe : ret) {
                     auto plst = ex_to<lst>(fe.op(0));
@@ -322,22 +323,23 @@ namespace HepLib::SD {
                             nxi += ldeg * nlst.op(ij);
                         }
                     }
+                    nxi = normal(nxi);
                     if(!is_zero(nxi)) {
                         plst.append(x(i));
                         nlst.append(nxi);
                     }
                     
-                    for(int ij=0; ij<nlst.nops(); ij++) {
-                        auto dtmp = nlst.op(ij) * mma_diff(plst.op(ij),x(i),1,false);
-                        if(dtmp.is_zero()) continue;
+                    for(int ij=0; ij<nlst.nops(); ij++) { // note the "-" sign
+                        auto dtmp = ex(0)-nlst.op(ij) * mma_diff(plst.op(ij),x(i),1,false);
+                        if(is_zero(dtmp)) continue;
                         auto plst2 = plst;
                         auto nlst2 = nlst;
-                        if((nlst.op(ij)-1).is_zero()) {
+                        if(is_zero(nlst.op(ij)-1)) {
                             plst2.let_op(ij) = dtmp;
                         } else {
                             nlst2.let_op(ij) = nlst.op(ij)-1;
                             int nn = plst.nops();
-                            if(!(nlst.op(nn-1)-1).is_zero()) {
+                            if(!is_zero(nlst.op(nn-1)-1)) {
                                 plst2.append(dtmp);
                                 nlst2.append(1);
                             } else plst2.let_op(nn-1) = plst.op(nn-1) * dtmp;
@@ -361,7 +363,8 @@ namespace HepLib::SD {
                     tmp = tmp.subs(x(i)==0);
                     let_op(fe,0,k,tmp);
                 }
-
+                
+                xpn = normal(xpn);
                 if(!is_zero(xpn)) {
                     if(is_a<numeric>(xpn) && xpn<0) {
                         cout << "xpn=" << xpn << " :> " << i << endl;
@@ -369,7 +372,7 @@ namespace HepLib::SD {
                         throw Error("Initialize: xpn < 0 found.");
                     }
                     fe = 0;
-                }   
+                } 
             }
         }}
 

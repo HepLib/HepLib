@@ -24,7 +24,7 @@ namespace HepLib::SD {
         auto pid = getpid();
                 
         auto resf =
-        GiNaC_Parallel(ParallelProcess, expResult.size(), [&](int idx)->ex {
+        GiNaC_Parallel(expResult.size(), [&](int idx)->ex {
             // return lst{ kv.op(0), kv.op(1), ft};
             auto kv = expResult[idx];
             auto expr = kv.op(1);
@@ -146,7 +146,7 @@ namespace HepLib::SD {
     //============================================================================================================
 
         // Prepare FT-lambda
-        GiNaC_Parallel(ParallelProcess, ftnvec.size(), [&](int idx)->ex {
+        GiNaC_Parallel(ftnvec.size(), [&](int idx)->ex {
             // return nothing
             auto kv = ftnvec[idx];
             ex ft = kv.op(0);
@@ -576,7 +576,7 @@ namespace HepLib::SD {
 
         // Prepare Integrand
         auto res =
-        GiNaC_Parallel(ParallelProcess, res_vec.size(), [&](int idx)->ex {
+        GiNaC_Parallel(res_vec.size(), [&](int idx)->ex {
             // return lst{ no-x-result, xn, x-indepent prefactor, ft_n }
             // or     lst{ id(SD(D|Q)_id in .so), xn, x-indepent prefactor, ft_n }
             

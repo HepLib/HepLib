@@ -9,6 +9,7 @@
 #include "FC.h"
 
 namespace HepLib::FC {
+    using namespace Qgraf;
 
     //-----------------------------------------------------------
     // Quarkonium Class
@@ -49,11 +50,31 @@ namespace HepLib::FC {
         }
         
         /**
+         * @brief Spin Projector with the same mass, non-Relativistic Normalization, 
+         * - To Use Relativistic Normalization, Just Times 2e
+         * - SpinProj[In,p,pb,m,e,mu], where p=P/2+q, pb=P/2-q, e^2=m^2-q^2,
+         * - In CM, P=(M=2e,0) & q=(0,q), P.q=0, P.q=0
+         * @param io In or Out
+         * @param s s=0 or s=1
+         * @param p quark momentum
+         * @param pb anti-quark momentum
+         * @param m mass
+         * @param e e^2=m^q-q^2
+         * @param mu only for s=1
+         * @param i quark qgraf index
+         * @param j anti-quark qgraf index
+         * @return the corresponding spin projector
+         */
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j) {
+            return Matrix(SpinProj(io,s,p,pb,m,e,mu), Qgraf::DI(j), Qgraf::DI(i));
+        }
+        
+        /**
          * @brief Spin Projector with different mass, non-Relativistic Normalization, 
-         * To Use Relativistic Normalization, Just Times Sqrt[2e 2eb]
-         * SpinProj[In,p,pb,m,mb,e,eb,mu], where p=e/(e+eb)P+q,pb=eb/(e+eb)P-q,e^2=m^2-q^2,eb^2=mb^2-qb^2,
-         * In CM, P=(M=e+eb,0) & q=(0,q), P.q=0
-         * arXiv:1003.0061
+         * - To Use Relativistic Normalization, Just Times Sqrt[2e 2eb]
+         * - SpinProj[In,p,pb,m,mb,e,eb,mu], where p=e/(e+eb)P+q,pb=eb/(e+eb)P-q,e^2=m^2-q^2,eb^2=mb^2-qb^2,
+         * - In CM, P=(M=e+eb,0) & q=(0,q), P.q=0
+         * - arXiv:1003.0061
          * @param io In or Out
          * @param s s=0 or s=1
          * @param p quark momentum
@@ -77,19 +98,46 @@ namespace HepLib::FC {
         }
         
         /**
+         * @brief Spin Projector with different mass, non-Relativistic Normalization, 
+         * - To Use Relativistic Normalization, Just Times Sqrt[2e 2eb]
+         * - SpinProj[In,p,pb,m,mb,e,eb,mu], where p=e/(e+eb)P+q,pb=eb/(e+eb)P-q,e^2=m^2-q^2,eb^2=mb^2-qb^2,
+         * - In CM, P=(M=e+eb,0) & q=(0,q), P.q=0
+         * - arXiv:1003.0061
+         * @param io In or Out
+         * @param s s=0 or s=1
+         * @param p quark momentum
+         * @param pb anti-quark momentum
+         * @param m quark mass
+         * @param mb anti-quark mass
+         * @param e for quark: e^2=m^q-q^2
+         * @param eb for anti-quark eb^2=mb^2-qb^2 
+         * @param mu only for s=1
+         * @param i quark qgraf index
+         * @param j anti-quark qgraf index
+         * @return the corresponding spin projector
+         */
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, int i, int j) {
+            return Matrix(SpinProj(io,s,p,pb,m,e,mb,eb,mu), Qgraf::DI(j), Qgraf::DI(i));
+        }
+        
+        /**
          * @brief Color-Singlet Projector 
+         * @param i quark qgraf index
+         * @param j anti-quark qgraf index
          * @return Color-Singlet Projector
          */
-        ex ColorProj(Index i, Index j) {
-            return SP(i,j)/sqrt(NF);
+        ex ColorProj(int i, int j) {
+            return SP(Qgraf::TI(i),Qgraf::TI(j))/sqrt(NF);
         }
         
         /**
          * @brief Color-Octet Projector 
+         * @param i quark qgraf index
+         * @param j anti-quark qgraf index
          * @return Color-Octet Projector
          */
-        ex ColorProj(Index i, Index j, Index a) {
-            return sqrt(ex(2)) * SUNT(i,j,a);
+        ex ColorProj(int i, int j, Index a) {
+            return sqrt(ex(2)) * SUNT(Qgraf::TI(i), Qgraf::TI(j), a);
         }
         
         namespace {

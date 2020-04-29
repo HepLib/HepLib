@@ -8,7 +8,7 @@
  
 #include "FC.h"
 
-namespace HepLib::FC {
+namespace HepLib::FC::Qgraf {
 
     namespace {
         string di_("di");
@@ -17,6 +17,12 @@ namespace HepLib::FC {
         string fi_("fi");
         string ci_("ci");
         string ai_("ai");
+        string rdi_("rdi");
+        string rli_("rli");
+        string rti_("rti");
+        string rfi_("rfi");
+        string rci_("rci");
+        string rai_("rai");
         inline string n2s(ex fn) {
             int n = ex_to<numeric>(fn).to_int();
             return (n<0 ? "m" : "") + to_string(abs(n));
@@ -40,234 +46,26 @@ namespace HepLib::FC {
     unsigned Vertex5_SERIAL::serial = GiNaC::function::register_new(function_options("Vertex",5).do_not_evalf_params().overloaded(5));
     unsigned Vertex6_SERIAL::serial = GiNaC::function::register_new(function_options("Vertex",6).do_not_evalf_params().overloaded(5));
 
-    Index Qgraf::DI(ex fn) { return Index(di_+n2s(fn),Index::Type::VD); }
-    Index Qgraf::LI(ex fn) { return Index(li_+n2s(fn),Index::Type::VD); }
-    Index Qgraf::TI(ex fn) { return Index(ti_+n2s(fn),Index::Type::CF); }
-    Index Qgraf::FI(ex fn) { return Index(fi_+n2s(fn),Index::Type::CF); }
-    Index Qgraf::CI(ex fn) { return Index(ci_+n2s(fn),Index::Type::CA); }
-    Index Qgraf::AI(ex fn) { return Index(ai_+n2s(fn),Index::Type::CA); }
+    Index DI(ex fn) { return Index(di_+n2s(fn),Index::Type::VD); }
+    Index LI(ex fn) { return Index(li_+n2s(fn),Index::Type::VD); }
+    Index TI(ex fn) { return Index(ti_+n2s(fn),Index::Type::CF); }
+    Index FI(ex fn) { return Index(fi_+n2s(fn),Index::Type::CF); }
+    Index CI(ex fn) { return Index(ci_+n2s(fn),Index::Type::CA); }
+    Index AI(ex fn) { return Index(ai_+n2s(fn),Index::Type::CA); }
+    Index RDI(ex fn) { return Index(rdi_+n2s(fn),Index::Type::VD); }
+    Index RLI(ex fn) { return Index(rli_+n2s(fn),Index::Type::VD); }
+    Index RTI(ex fn) { return Index(rti_+n2s(fn),Index::Type::CF); }
+    Index RFI(ex fn) { return Index(rfi_+n2s(fn),Index::Type::CF); }
+    Index RCI(ex fn) { return Index(rci_+n2s(fn),Index::Type::CA); }
+    Index RAI(ex fn) { return Index(rai_+n2s(fn),Index::Type::CA); }
     
-    /**
-     * @brief Propagator for quark
-     * @param e expression with head of Propagator
-     * @param m the quark mass, default is 0
-     * @return the quark propagator, with dirac/color index
-     */
-    ex Qgraf::QuarkPropagator(ex e, ex m) {
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto mom = e.op(2);
-        return I * SP(TI(fi1),TI(fi2)) * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
-    }
-    
-    /**
-     * @brief Propagator for gluon
-     * @param e expression with head of Propagator
-     * @return the gloun propagator under Feynman gauge, with dirac/color index
-     */
-    ex Qgraf::GluonPropagator(ex e) {
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto mom = e.op(2);
-        return (-I) * SP(CI(fi1),CI(fi2)) * SP(LI(fi1),LI(fi2)) / SP(mom); // Feynman Gauge
-    }
-    
-    /**
-     * @brief Propagator for ghost
-     * @param e expression with head of Propagator
-     * @return the ghost propagator, with dirac/color index
-     */
-    ex Qgraf::GhostPropagator(ex e) {
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto mom = e.op(2);
-        return I * SP(CI(fi1),CI(fi2)) / SP(mom);
-    }
-    
-    /**
-     * @brief q-qbar-g vertex
-     * @param e expression with head of Vertex
-     * @return the q-qbar-g vertex
-     */
-    ex Qgraf::q2gVertex(ex e) {
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto fi3 = e.op(2).op(1);
-        return I*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SUNT(TI(fi1),TI(fi2),CI(fi3));
-    }
-    
-    /**
-     * @brief g-g-g vertex
-     * @param e expression with head of Vertex
-     * @return the g-g-g vertex
-     */
-    ex Qgraf::g3Vertex(ex e) {
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto fi3 = e.op(2).op(1);
-        auto mom1 = e.op(0).op(2);
-        auto mom2 = e.op(1).op(2);
-        auto mom3 = e.op(2).op(2);
-        return gs*SUNF(CI(fi1),CI(fi2),CI(fi3))*(
-            SP(mom1-mom2,LI(fi3))*SP(LI(fi1),LI(fi2)) +
-            SP(mom2-mom3,LI(fi1))*SP(LI(fi2),LI(fi3)) +
-            SP(mom3-mom1,LI(fi2))*SP(LI(fi3),LI(fi1))
-        );
-    }
-    
-    /**
-     * @brief g-g-g-g vertex
-     * @param e expression with head of Vertex
-     * @return the g-g-g-g vertex
-     */
-    ex Qgraf::g4Vertex(ex e) {
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto fi3 = e.op(2).op(1);
-        auto fi4 = e.op(3).op(1);
-        return (-I)*gs*gs*(
-            SUNF4(CI(fi1),CI(fi2),CI(fi3),CI(fi4))*(SP(LI(fi1),LI(fi3))*SP(LI(fi2),LI(fi4))-SP(LI(fi1),LI(fi4))*SP(LI(fi2),LI(fi3))) +
-            SUNF4(CI(fi1),CI(fi3),CI(fi2),CI(fi4))*(SP(LI(fi1),LI(fi2))*SP(LI(fi3),LI(fi4))-SP(LI(fi1),LI(fi4))*SP(LI(fi2),LI(fi3))) +
-            SUNF4(CI(fi1),CI(fi4),CI(fi2),CI(fi3))*(SP(LI(fi1),LI(fi2))*SP(LI(fi4),LI(fi3))-SP(LI(fi1),LI(fi3))*SP(LI(fi4),LI(fi2)))
-        );
-    }
-    
-    /**
-     * @brief ghost-anti ghost-g vertex
-     * @param e expression with head of Vertex
-     * @return the ghost-anti ghost-g vertex
-     */
-    ex Qgraf::gh2gVertex(ex e) {
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto fi3 = e.op(2).op(1);
-        auto mom1 = e.op(0).op(2);
-        return -gs * SUNF(CI(fi1),CI(fi2),CI(fi3)) * SP(mom1,LI(fi3));
-    }
-    
-    /**
-     * @brief Eikonal Propagator, left side w.r.t cutting line
-     * @param e expression with head of Propagator
-     * @param n the direction vector
-     * @param mode 0 for gluon, others for quark/anti-quark
-     * @return Eikonal Propagator
-     */
-    ex Qgraf::eikonalPropagator(ex e, ex n, int mode) { 
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto mom = e.op(2);
-        if(mode==0) return I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)+iEpsilon);
-        else return I * Matrix(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)+iEpsilon);
-    }
-    
-    /**
-     * @brief Eikonal Propagator, right side version w.r.t to cutting line
-     * @param e expression with head of Propagator
-     * @param n the direction vector
-     * @param mode 0 for gluon, others for quark/anti-quark
-     * @return Eikonal Propagator
-     */
-    ex Qgraf::eikonalPropagatorR(ex e, ex n, int mode) {
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto mom = e.op(2);
-        if(mode==0) return -I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)+iEpsilon);
-        else return -I * Matrix(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)-iEpsilon);
-    }
-    
-    /**
-     * @brief Eikonal-Gloun Vertex, left side w.r.t. cutting line
-     * @param e expression with head of Vertex
-     * @param n the direction vector
-     * @param mode 0 for gluon, +/-1 for quark, +/-2 for anti-quark, + for out, - form in
-     * @return Eikonal-Gloun Vertex
-     */
-    ex Qgraf::eikonalVertex(ex e, ex n, int mode) {
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto fi3 = e.op(2).op(1);
-        auto mom1 = e.op(0).op(2);
-        if(mode==0) return I * gs * SP(n,LI(fi3)) * (-I*SUNF(CI(fi3),CI(fi1),CI(fi2)));
-        else if(mode==1 || mode==-2) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
-        else if(mode==2 || mode==-1) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
-        else return 0;
-    }
-    
-    /**
-     * @brief Eikonal-Gloun Vertex, right side w.r.t. cutting line
-     * @param e expression with head of Vertex
-     * @param n the direction vector
-     * @param mode 0 for gluon, +/-1 for quark, +/-2 for anti-quark, + for out, - form in
-     * @return Eikonal-Gloun Vertex
-     */
-    ex Qgraf::eikonalVertexR(ex e, ex n, int mode) {
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto fi3 = e.op(2).op(1);
-        auto mom1 = e.op(0).op(2);
-        if(mode==0) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (I*SUNF(CI(fi3),CI(fi1),CI(fi2)));
-        else if(mode==1 || mode==-2) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
-        else if(mode==2 || mode==-1) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
-        else return 0;
-    }
-    
-    /**
-     * @brief Gluon Fragmentation Function Vertex, nbar-e-g
-     * @param e expression with head of Vertex
-     * @param n the direction vector
-     * @return Eikonal-Gloun Vertex
-     */
-     ex Qgraf::GluonFFV(ex e, ex n) {
-        auto fi1 = e.op(0).op(1);
-        auto fi2 = e.op(1).op(1);
-        auto fi3 = e.op(2).op(1);
-        auto mom2 = e.op(1).op(2);
-        auto mom3 = e.op(2).op(2);
-        return I * (SP(n,mom2)*SP(LI(fi2),LI(fi3)) + SP(mom3,LI(fi2))*SP(n,LI(fi3))) * SP(CI(fi1),CI(fi3));
-     }
-          
-     /**
-     * @brief Quark Fragmentation Function Vertex, qbar-e-nbar/Qbar-e-nbar
-     * @param e expression with head of Vertex
-     * @param n the direction vector
-     * @return Eikonal-Gloun Vertex
-     */
-     ex Qgraf::QuarkFFV(ex e, ex n) {
-        auto fi1 = e.op(0).op(1);
-        auto fi3 = e.op(2).op(1);
-        return SP(TI(fi1),TI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi3));
-     }
-     
-     /**
-     * @brief Change Index from left to right, only affect li/di/ci/ti, external index start with dim/lim/cim/tim will not be changed
-     * @param e input expression 
-     * @return Index changed
-     */
-     ex Qgraf::IndexCC(ex e) {
-        static MapFunction map([](const ex &e, MapFunction &self)->ex {
-            if(!Index::has(e)) return e;
-            else if(is_a<Index>(e)) {
-                auto idx = ex_to<Index>(e);
-                auto nstr = idx.name.get_name();
-                if(nstr.rfind("lim",0)==0) return e;
-                else if(nstr.rfind("dim",0)==0) return e;
-                else if(nstr.rfind("cim",0)==0) return e;
-                else if(nstr.rfind("tim",0)==0) return e;
-                else if(nstr.rfind("li",0)==0 || nstr.rfind("di",0)==0 || nstr.rfind("ci",0)==0 || nstr.rfind("ti",0)==0) return Index("r"+nstr, idx.type);
-                else return e;
-            }
-            else return e.map(self);
-        });
-        return map(e);
-     }
-
     /**
      * @brief generte the Amplitudes
      * @param st symtab for the parser, no need for Symbol, usually used for momentum Vector
      * @param debug true for detailed message, and to keep the files
      * @return Amplitudes for current Qgraf object
      */
-    lst Qgraf::Amplitudes(symtab st, bool debug) {
+    lst Process::Amplitudes(symtab st, bool debug) {
         system("rm -f qgraf.dat qgraf.out qgraf.sty qgraf.mod");
         std::ofstream style;
         style.open("qgraf.sty", ios::out);
@@ -324,7 +122,7 @@ namespace HepLib::FC {
      * @param amp the element from Amplitudes
      * @return topoligical lines
      */
-    lst Qgraf::TopoLines(const ex & amp) {
+    lst TopoLines(const ex & amp) {
         map<ex,int,ex_is_less> v2id, fid2vid;
         map<int,ex> vid2fs; // fileds in the vertex
         int cid = 0;
@@ -369,7 +167,7 @@ namespace HepLib::FC {
      * @param debug true for more detailed output, and keep the files
      * @return nonthing, check pdf file
      */
-    void Qgraf::DrawPDF(const lst & amps, string fn, bool debug) {
+    void DrawPDF(const lst & amps, string fn, bool debug) {
         int id=0;
         vector<ex> amp_vec;
         for(auto item : amps) amp_vec.push_back(item);
@@ -377,7 +175,7 @@ namespace HepLib::FC {
         system(("mkdir -p "+tex_path).c_str());
         int limit = 300;
         
-        GiNaC_Parallel(-1, amp_vec.size(), [&](int idx)->ex {
+        GiNaC_Parallel(amp_vec.size(), [&](int idx)->ex {
             auto amp = amp_vec[idx];
             ofstream out(tex_path+to_string(idx)+".tex");
             out << "\\documentclass[tikz]{standalone}" << endl;
@@ -479,9 +277,9 @@ namespace HepLib::FC {
      * @param n the number of lines to be cutted
      * @return vector of lst, each element in the vector, is actually a lst of lst, different connectted parts
      */
-    vector<lst> Qgraf::ShrinkCut(ex amp, lst prop, int n) {
+    vector<lst> ShrinkCut(ex amp, lst prop, int n) {
         vector<lst> ret;
-        auto tls = Qgraf::TopoLines(amp);
+        auto tls = TopoLines(amp);
         vector<int> cls_vec;
         for(int i=0; i<tls.nops(); i++) {
             auto pi = tls.op(i).op(2);
@@ -560,8 +358,8 @@ namespace HepLib::FC {
      * @param prop the line type in the loop
      * @return true if the corresponding loop exsits
      */
-    bool Qgraf::HasLoop(ex amp, lst prop) {
-        auto tls = Qgraf::TopoLines(amp);
+    bool HasLoop(ex amp, lst prop) {
+        auto tls = TopoLines(amp);
         int ntls = tls.nops();
         // shrink internal lines of prop
         int last = 0;
@@ -589,6 +387,252 @@ namespace HepLib::FC {
             }
         }
         return false;
+    }
+    
+    /**
+     * @brief Propagator for quark
+     * @param e expression with head of Propagator
+     * @param m the quark mass, default is 0
+     * @return the quark propagator, with dirac/color index
+     */
+    ex QuarkPropagator(ex e, ex m) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto mom = e.op(2);
+        return I * SP(TI(fi1),TI(fi2)) * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
+    }
+    
+    /**
+     * @brief Propagator for gluon
+     * @param e expression with head of Propagator
+     * @return the gloun propagator under Feynman gauge, with dirac/color index
+     */
+    ex GluonPropagator(ex e) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto mom = e.op(2);
+        return (-I) * SP(CI(fi1),CI(fi2)) * SP(LI(fi1),LI(fi2)) / SP(mom); // Feynman Gauge
+    }
+    
+    /**
+     * @brief Propagator for ghost
+     * @param e expression with head of Propagator
+     * @return the ghost propagator, with dirac/color index
+     */
+    ex GhostPropagator(ex e) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto mom = e.op(2);
+        return I * SP(CI(fi1),CI(fi2)) / SP(mom);
+    }
+    
+    /**
+     * @brief q-qbar-g vertex
+     * @param e expression with head of Vertex
+     * @return the q-qbar-g vertex
+     */
+    ex q2gVertex(ex e) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        return I*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SUNT(TI(fi1),TI(fi2),CI(fi3));
+    }
+    
+    /**
+     * @brief g-g-g vertex
+     * @param e expression with head of Vertex
+     * @return the g-g-g vertex
+     */
+    ex g3Vertex(ex e) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        auto mom1 = e.op(0).op(2);
+        auto mom2 = e.op(1).op(2);
+        auto mom3 = e.op(2).op(2);
+        return gs*SUNF(CI(fi1),CI(fi2),CI(fi3))*(
+            SP(mom1-mom2,LI(fi3))*SP(LI(fi1),LI(fi2)) +
+            SP(mom2-mom3,LI(fi1))*SP(LI(fi2),LI(fi3)) +
+            SP(mom3-mom1,LI(fi2))*SP(LI(fi3),LI(fi1))
+        );
+    }
+    
+    /**
+     * @brief g-g-g-g vertex
+     * @param e expression with head of Vertex
+     * @return the g-g-g-g vertex
+     */
+    ex g4Vertex(ex e) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        auto fi4 = e.op(3).op(1);
+        return (-I)*gs*gs*(
+            SUNF4(CI(fi1),CI(fi2),CI(fi3),CI(fi4))*(SP(LI(fi1),LI(fi3))*SP(LI(fi2),LI(fi4))-SP(LI(fi1),LI(fi4))*SP(LI(fi2),LI(fi3))) +
+            SUNF4(CI(fi1),CI(fi3),CI(fi2),CI(fi4))*(SP(LI(fi1),LI(fi2))*SP(LI(fi3),LI(fi4))-SP(LI(fi1),LI(fi4))*SP(LI(fi2),LI(fi3))) +
+            SUNF4(CI(fi1),CI(fi4),CI(fi2),CI(fi3))*(SP(LI(fi1),LI(fi2))*SP(LI(fi4),LI(fi3))-SP(LI(fi1),LI(fi3))*SP(LI(fi4),LI(fi2)))
+        );
+    }
+    
+    /**
+     * @brief ghost-anti ghost-g vertex
+     * @param e expression with head of Vertex
+     * @return the ghost-anti ghost-g vertex
+     */
+    ex gh2gVertex(ex e) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        auto mom1 = e.op(0).op(2);
+        return -gs * SUNF(CI(fi1),CI(fi2),CI(fi3)) * SP(mom1,LI(fi3));
+    }
+    
+    /**
+     * @brief Eikonal Propagator, left side w.r.t cutting line
+     * @param e expression with head of Propagator
+     * @param n the direction vector
+     * @param mode 0 for gluon, others for quark/anti-quark
+     * @return Eikonal Propagator
+     */
+    ex eikonalPropagator(ex e, ex n, int mode) { 
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto mom = e.op(2);
+        if(mode==0) return I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)+iEpsilon);
+        else return I * Matrix(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)+iEpsilon);
+    }
+    
+    /**
+     * @brief Eikonal Propagator, right side version w.r.t to cutting line
+     * @param e expression with head of Propagator
+     * @param n the direction vector
+     * @param mode 0 for gluon, others for quark/anti-quark
+     * @return Eikonal Propagator
+     */
+    ex eikonalPropagatorR(ex e, ex n, int mode) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto mom = e.op(2);
+        if(mode==0) return -I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)+iEpsilon);
+        else return -I * Matrix(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)-iEpsilon);
+    }
+    
+    /**
+     * @brief Eikonal-Gloun Vertex, left side w.r.t. cutting line
+     * @param e expression with head of Vertex
+     * @param n the direction vector
+     * @param mode 0 for gluon, +/-1 for quark, +/-2 for anti-quark, + for out, - form in
+     * @return Eikonal-Gloun Vertex
+     */
+    ex eikonalVertex(ex e, ex n, int mode) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        auto mom1 = e.op(0).op(2);
+        if(mode==0) return I * gs * SP(n,LI(fi3)) * (-I*SUNF(CI(fi3),CI(fi1),CI(fi2)));
+        else if(mode==1 || mode==-2) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
+        else if(mode==2 || mode==-1) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
+        else return 0;
+    }
+    
+    /**
+     * @brief Eikonal-Gloun Vertex, right side w.r.t. cutting line
+     * @param e expression with head of Vertex
+     * @param n the direction vector
+     * @param mode 0 for gluon, +/-1 for quark, +/-2 for anti-quark, + for out, - form in
+     * @return Eikonal-Gloun Vertex
+     */
+    ex eikonalVertexR(ex e, ex n, int mode) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        auto mom1 = e.op(0).op(2);
+        if(mode==0) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (I*SUNF(CI(fi3),CI(fi1),CI(fi2)));
+        else if(mode==1 || mode==-2) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
+        else if(mode==2 || mode==-1) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
+        else return 0;
+    }
+    
+    /**
+     * @brief Gluon Fragmentation Function Vertex, nbar-e-g
+     * @param e expression with head of Vertex
+     * @param n the direction vector
+     * @return Eikonal-Gloun Vertex
+     */
+     ex GluonFFV(ex e, ex n) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        auto mom2 = e.op(1).op(2);
+        auto mom3 = e.op(2).op(2);
+        return I * (SP(n,mom2)*SP(LI(fi2),LI(fi3)) + SP(mom3,LI(fi2))*SP(n,LI(fi3))) * SP(CI(fi1),CI(fi3));
+     }
+          
+   /**
+    * @brief Quark Fragmentation Function Vertex, qbar-e-nbar/Qbar-e-nbar
+    * @param e expression with head of Vertex
+    * @param n the direction vector
+    * @return Eikonal-Gloun Vertex
+    */
+    ex QuarkFFV(ex e, ex n) {
+        auto fi1 = e.op(0).op(1);
+        auto fi3 = e.op(2).op(1);
+        return SP(TI(fi1),TI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi3));
+    }
+     
+    /**
+     * @brief Change Index from left to right, only affect li/di/ci/ti, external index start with dim/lim/cim/tim will also be changed if all=true
+     * @param e input expression 
+     * @param all if true external index will also be changed
+     * @return Index changed
+     */
+     ex IndexCC(ex e, bool all) {
+        static MapFunction map([all](const ex &e, MapFunction &self)->ex {
+            if(!Index::has(e)) return e;
+            else if(is_a<Index>(e)) {
+                auto idx = ex_to<Index>(e);
+                auto nstr = idx.name.get_name();
+                if(!all && nstr.rfind("lim",0)==0) return e;
+                else if(!all && nstr.rfind("dim",0)==0) return e;
+                else if(!all && nstr.rfind("cim",0)==0) return e;
+                else if(!all && nstr.rfind("tim",0)==0) return e;
+                else if(nstr.rfind("li",0)==0 || nstr.rfind("di",0)==0 || nstr.rfind("ci",0)==0 || nstr.rfind("ti",0)==0) return Index("r"+nstr, idx.type);
+                else return e;
+            }
+            else return e.map(self);
+        });
+        return map(e);
+     }
+     
+    /**
+     * @brief Color-Singlet Projector 
+     * @param qi gluon qgraf index
+     * @return g^{i ir} delta^{i ir}
+     */
+    ex GluonSum(int qi) {
+        return SP(Qgraf::LI(qi), Qgraf::RLI(qi)) * SP(Qgraf::CI(qi), Qgraf::RCI(qi));
+    }
+
+    /**
+     * @brief Color-Singlet Projector 
+     * @param qi quark qgraf index
+     * @param p anti-quark momentum vector
+     * @param m anti-quark mass
+     * @return Quark summation
+     */
+    ex QuarkSum(int qi, ex p, ex m) {
+        return Matrix(GAS(p)+m*GAS(1), Qgraf::RDI(qi), Qgraf::DI(qi)) * SP(Qgraf::RTI(qi), Qgraf::TI(qi));
+    }
+
+    /**
+     * @brief Color-Singlet Projector 
+     * @param qi anti-quark qgraf index
+     * @param p anti-quark momentum vector
+     * @param m anti-quark mass
+     * @return anti-Quark summation
+     */
+    ex AntiQuarkSum(int qi, ex p, ex m) {
+        return Matrix(GAS(p)-m*GAS(1), Qgraf::DI(qi), Qgraf::RDI(qi)) * SP(Qgraf::TI(qi), Qgraf::RTI(qi));
     }
     
 }

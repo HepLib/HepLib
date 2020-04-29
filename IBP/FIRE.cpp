@@ -404,7 +404,7 @@ namespace HepLib::IBP {
     pair<exmap,lst> FIRE::FindRules(vector<FIRE> & fs, bool mi) {
         exvector uf_mi_vec;
         if(mi) {
-            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs](int idx)->ex {
                 const FIRE & fi = fs[idx]; // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.MasterIntegrals) {
@@ -413,7 +413,7 @@ namespace HepLib::IBP {
                 return uf_mi_lst;
             }, "MI");
         } else {
-            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs](int idx)->ex {
                 const FIRE & fi = fs[idx]; // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.Integrals) {
@@ -453,7 +453,7 @@ namespace HepLib::IBP {
     pair<exmap,lst> FIRE::FindRules(vector<FIRE*> & fs, bool mi) {
         exvector uf_mi_vec;
         if(mi) {
-            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs](int idx)->ex {
                 const FIRE & fi = *(fs[idx]); // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.MasterIntegrals) {
@@ -462,7 +462,7 @@ namespace HepLib::IBP {
                 return uf_mi_lst;
             }, "MI");
         } else {
-            uf_mi_vec = GiNaC_Parallel(-1, fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs](int idx)->ex {
                 const FIRE & fi = *(fs[idx]); // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.Integrals) {

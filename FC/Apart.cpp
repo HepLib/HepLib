@@ -85,6 +85,26 @@ namespace HepLib::FC {
     }
     
     /**
+     * @brief convert F(ps, ns) to normal ex, ns is like FIRE convention
+     * @param expr_in expression contains F
+     * @return F(ps, ns) converted into normal expression
+     */
+     ex F2ex(const ex & expr_in) {
+        ex ret = expr_in;
+        ret = MapFunction([](const ex & e, MapFunction &self)->ex{
+            if(e.match(F(w1, w2))) {
+                auto ps = e.op(0);
+                auto ns = e.op(1);
+                ex res = 1;
+                for(int i=0; i<ps.nops(); i++) res *= pow(ps.op(i), ex(0)-ns.op(i));
+                return res;
+            } else if(!e.has((F(w1,w2)))) return e;
+            else return e.map(self);
+        })(ret);
+        return ret;
+     }
+    
+    /**
      * @brief Apart on matrix
      * @param mat each column: [c1,...,cn,c0,n] -> (c1 x1+...+cn xn+c0)^n
      * @return sum of coefficient * ApartIR
@@ -555,7 +575,7 @@ namespace HepLib::FC {
         string wdir = to_string(getpid()) + "_FIRE";
         
         auto air_intg = 
-        GiNaC_Parallel(-1, air_vec.size(), [air_vec,cut_props] (int idx) {
+        GiNaC_Parallel(air_vec.size(), [air_vec,cut_props] (int idx) {
             auto air = air_vec[idx];            
             air = ApartIRC(air, cut_props);
             exset intg;
@@ -681,7 +701,7 @@ namespace HepLib::FC {
         
         if(!reduce) {
             auto air_res =
-            GiNaC_Parallel(-1, air_vec.size(), [&](int idx)->ex {
+            GiNaC_Parallel(air_vec.size(), [&](int idx)->ex {
                 auto air = air_vec[idx];
                 air = air.subs(IR2F,subs_options::subs_options::no_pattern);
                 air = air.subs(rules_ints.first,subs_options::subs_options::no_pattern);
@@ -698,7 +718,7 @@ namespace HepLib::FC {
         }
 
         int nprocs = omp_get_num_procs();
-        auto fres= GiNaC_Parallel(nprocs/2, fvec_re.size(), 1, [fvec_re](int idx)->ex {
+        auto fres= GiNaC_Parallel(fvec_re.size(), 1, [fvec_re](int idx)->ex {
             auto item = fvec_re[idx];
             item->Reduce();
             return lst {
@@ -719,7 +739,7 @@ namespace HepLib::FC {
         auto mi_rules = FIRE::FindRules(fvec_re);
         
         auto air_res =
-        GiNaC_Parallel(-1, air_vec.size(), [&](int idx)->ex {
+        GiNaC_Parallel(air_vec.size(), [&](int idx)->ex {
             auto air = air_vec[idx];
             air = air.subs(IR2F,subs_options::subs_options::no_pattern);
             air = air.subs(rules_ints.first,subs_options::subs_options::no_pattern);

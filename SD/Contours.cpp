@@ -56,7 +56,7 @@ namespace HepLib::SD {
         }
 
         auto res =
-        GiNaC_Parallel(ParallelProcess, ftnxn_vec.size(), [&](int idx)->ex {
+        GiNaC_Parallel(ftnxn_vec.size(), [&](int idx)->ex {
             // return lst{ ft_n, lst{lambda-i, lambda-max} }
             // with I*[lambda-i]*lambda, lambda < lambda-max
             // note that lambda sequence only matches to x sequence in F-term

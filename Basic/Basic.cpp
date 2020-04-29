@@ -1,24 +1,36 @@
+/**
+ * @file
+ * @brief Basic Functions, extend GiNaC
+ * @author F. Feng
+ * @version 1.0.0
+ * @date 2020-04-20
+ */
+
 #include "Basic.h"
 
 namespace HepLib {
 
-    //-----------------------------------------------------------
-    // Error Class
-    //-----------------------------------------------------------
+    /**
+     * @brief Error constructor, 
+     * @param _msg error message 
+     */
     Error::Error(string _msg) : msg(_msg) { }
     const char * Error::what() const throw () {
         return msg.c_str();
     }
 
-    //-----------------------------------------------------------
-    // Symbol Class
-    //-----------------------------------------------------------
     DEFAULT_CTOR(Symbol)
     GINAC_BIND_UNARCHIVER(Symbol);
     IMPLEMENT_HAS(Symbol)
     
     GINAC_IMPLEMENT_REGISTERED_CLASS(Symbol, symbol)
     
+    /**
+     * @brief Symbol constructor
+     * @param s symbol name
+     * @param r true for real, false for pure imaginary 
+     * @param c true to check the name exist or not, if exsit error thrown
+     */
     Symbol::Symbol(const string &s, bool r, bool c) : symbol(get_symbol(s,c)), isReal(r) { Table[s]=*this; }
     int Symbol::compare_same_type(const basic &other) const {
         const Symbol &o = static_cast<const Symbol &>(other);
@@ -28,11 +40,20 @@ namespace HepLib {
         else return 1;
     }
     
+    /**
+     * @brief Symbol archive
+     * @param n archive node
+     */
     void Symbol::archive(archive_node & n) const {
         inherited::archive(n);
         n.add_bool("isReal", isReal);
     }
     
+    /**
+     * @brief Symbol read_archive
+     * @param n archive node
+     * @param sym_lst symbol lst
+     */
     void Symbol::read_archive(const archive_node& n, lst& sym_lst) {
         inherited::read_archive(n, sym_lst);
         bool is_real;
@@ -54,9 +75,10 @@ namespace HepLib {
     const char* Color_Warn = MAGENTA;
     const char* Color_HighLight = WHITE;
 
-    /*-----------------------------------------------------*/
-    // GiNaC_Parallel
-    /*-----------------------------------------------------*/
+    /**
+     * @brief update GiNaC_archive_Symbols from expr
+     * @param expr input expression, symbol in expr will be added to GiNaC_archive_Symbols
+     */
     void GiNaC_archive_Symbols_from(ex expr) {
         auto syms = gather_symbols(expr);
         for(auto si : syms) GiNaC_archive_Symbols.append(si);
@@ -64,24 +86,48 @@ namespace HepLib {
         GiNaC_archive_Symbols.unique();
     }
 
+    /**
+     * @brief update GiNaC_archive_Symbols from expr
+     * @param invec input expression, symbol in the vector will be added to GiNaC_archive_Symbols
+     */
     void GiNaC_archive_Symbols_from(vector<ex> invec) {
         auto syms = gather_symbols(invec);
         for(auto si : syms) GiNaC_archive_Symbols.append(si);
         GiNaC_archive_Symbols.sort();
         GiNaC_archive_Symbols.unique();
     }
+    
+    /**
+     * @brief GiNaC Parallel Evaluation using fork
+     * @param ntotal the number of total items, 0 for non-parallel version
+     * @param nbatch the batch number for each run, if nbatch<=0, then nbatch = ntotal/para_max_run/10
+     * @param f function to be applied on the index, from 0 to (ntotal-1)
+     * @param key key used in archive file name and display message
+     * @param rm default true, and false will keep the archive file
+     * @param prtlvl the indent level in the print message, when the Verbose>1
+     * @return return the ntotal-element vector, i.e., [f(0), ..., f(ntotal-1)]
+     */
     vector<ex> GiNaC_Parallel(
-        int nproc, int ntotal, int nbatch, 
+        int ntotal, int nbatch, 
         std::function<ex(int)> f,
         const string & key, bool rm, int prtlvl) {
+        int nproc = ParallelProcess;
+        
+        // nproc=0, non-parallel
+        if(nproc==0) {
+            vector<ex> ovec;
+            for(int i=0; i<ntotal; i++) ovec.push_back(f(i));
+            return ovec;
+        }
         
         auto ppid = getpid();
         int para_max_run = nproc<0 ? omp_get_num_procs()-1 : nproc;
+        if(para_max_run<1) para_max_run = 1;
         ostringstream cmd;
         cmd << "mkdir -p " << ppid;
         system(cmd.str().c_str());
         
-        if(para_max_run>0 && nbatch<=0) nbatch = ntotal/para_max_run/10;
+        if(nbatch<=0) nbatch = ntotal/para_max_run/10;
         if(nbatch<1) nbatch = 1;
         int btotal = ntotal/nbatch + ((ntotal%nbatch)==0 ? 0 : 1);
 
@@ -94,17 +140,15 @@ namespace HepLib {
                 cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] ... " << flush;
             }
             
-            if(para_max_run>0) {
-                auto pid = fork();
-                if (pid < 0) perror("fork() error");
-                else if (pid != 0) {
-                    if(bi >= para_max_run) wait(NULL);
-                    continue;
-                } else {
-                    PID = getpid(); // update PID after fork
-                }
-            }
+            auto pid = fork();
+            if (pid < 0) perror("fork() error");
+            else if (pid != 0) {
+                if(bi >= para_max_run) wait(NULL);
+                continue;
+            } 
             
+            // child process
+            PID = getpid(); // update PID after fork
             try {
                 lst res_lst;
                 for(int ri=0; ri<nbatch; ri++) {
@@ -119,15 +163,13 @@ namespace HepLib {
             } catch(exception &p) {
                 cout << Color_Error << "Failed in GiNaC_Parallel!" << RESET << endl;
                 cout << Color_Error << p.what() << RESET << endl;
-                if(para_max_run>0) exit(0);
-                throw p;
             }
-            if(para_max_run>0) exit(0);
+            exit(0);
         }
         
         auto cpid = getpid();
-        if(cpid!=ppid) exit(0); // make sure
-        if(para_max_run>0) while (wait(NULL) != -1) { }
+        if(cpid!=ppid) exit(0); // make sure child exit
+        while (wait(NULL) != -1) { }
         if(Verbose > 1 && ntotal > 0) cout << "@" << now(false) << endl;
 
         vector<ex> ovec;
@@ -172,9 +214,12 @@ namespace HepLib {
         return ovec;
     }
 
-    /*-----------------------------------------------------*/
-    // Global Symbol
-    /*-----------------------------------------------------*/
+    /**
+     * @brief get the symbol from symbol factory, if not exsit, a new one will be created
+     * @param s the name of the symbol
+     * @param check true to check exist, and if so, error will be thrown
+     * @return return the found/created symbol
+     */
     const symbol & get_symbol(const string & s, bool check) {
         static map<string, symbol> directory;
         map<string, symbol>::iterator i = directory.find(s);
@@ -186,9 +231,12 @@ namespace HepLib {
         }
     }
 
-    /*-----------------------------------------------------*/
-    // split
-    /*-----------------------------------------------------*/
+    /**
+     * @brief split the string into serveral part, separated by the delimiter
+     * @param s the input string
+     * @param delimiter the char delimiter
+     * @return return separated string vector
+     */
     std::vector<std::string> split(const std::string& s, char delimiter) {
         std::vector<std::string> tokens;
         std::string token;
@@ -199,9 +247,11 @@ namespace HepLib {
         return tokens;
     }
 
-    /*-----------------------------------------------------*/
-    // MatHelper
-    /*-----------------------------------------------------*/
+    /**
+     * @brief chech matrix has zero row
+     * @param mat the input matrix
+     * @return return matrix has zero row or not
+     */
     bool MatHelper::has_zero_row(const matrix &mat) {
         for(int r=0; r<mat.rows(); r++) {
             bool iszero = true;
@@ -216,6 +266,12 @@ namespace HepLib {
         return false;
     }
 
+    /**
+     * @brief chech r-th row of matrix is zero or not
+     * @param mat the input matrix
+     * @param r refers to the (r+1)-th row
+     * @return return r-th row of matrix is zero or not
+     */
     bool MatHelper::is_zero_row(const matrix &mat, int r) {
         if(r>=mat.rows()) {
             cerr << Color_Error << "r>=mat.rows()" << RESET << endl;
@@ -227,6 +283,11 @@ namespace HepLib {
         return true;
     }
 
+    /**
+     * @brief the all zero row's index, start from 0
+     * @param mat the input matrix
+     * @return return index vector for all zero rows
+     */
     vector<int> MatHelper::zero_row_index(const matrix &mat) {
         vector<int> ret;
         for(int r=0; r<mat.rows(); r++) {
@@ -242,6 +303,11 @@ namespace HepLib {
         return ret;
     }
 
+    /**
+     * @brief remove the zero row
+     * @param mat the input matrix
+     * @return return the matrix will zero row removed
+     */
     matrix MatHelper::remove_zero_rows(const matrix &mat) {
         vector<int> zri = zero_row_index(mat);
         if(zri.size()<1) return mat;
@@ -259,6 +325,15 @@ namespace HepLib {
         return ret;
     }
 
+    /**
+     * @brief part of the matrix, submatrix, row: r->r+nr, c->c+nc
+     * @param mat the input matrix
+     * @param r start row index, start from 0
+     * @param c start column index, start from 0
+     * @param nr the number of rows
+     * @param nc the number of columns
+     * @return return index vector for all zero rows
+     */
     matrix MatHelper::sub(matrix mat, int r, int nr, int c, int nc) {
         matrix ret(nr, nc);
         for(int ir=0; ir<nr; ir++) {
@@ -269,20 +344,22 @@ namespace HepLib {
         return ret;
     }
 
-
-
-    /*-----------------------------------------------------*/
-    // lstHelper
-    /*-----------------------------------------------------*/
+    /**
+     * @brief sum all elements in the list
+     * @param m the input lst
+     * @return return the sum
+     */
     ex lstHelper::sum(lst m) {
         ex ret = 0;
         for(int i=0; i<m.nops(); i++) ret += m.op(i);
         return ret;
     }
 
-    /*-----------------------------------------------------*/
-    // now string
-    /*-----------------------------------------------------*/
+    /**
+     * @brief date/time string
+     * @param use_date defualt true to include the date in the string
+     * @return return date/time string
+     */
     string now(bool use_date) {
         time_t timep;
         time (&timep);
@@ -292,9 +369,11 @@ namespace HepLib {
         return tmp;
     }
 
-    /*-----------------------------------------------------*/
-    // Symbols
-    /*-----------------------------------------------------*/
+    /**
+     * @brief get all symbols from input expression
+     * @param e input expression
+     * @return all symbols in the input
+     */
     lst gather_symbols(const ex & e) {
         lst sym_lst;
         for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
@@ -305,6 +384,11 @@ namespace HepLib {
         return sym_lst;
     }
 
+    /**
+     * @brief get all symbols from input expression
+     * @param ve input expression vector
+     * @return all symbols in the input
+     */
     lst gather_symbols(const vector<ex> & ve) {
         lst sym_lst;
         for(auto e : ve) {
@@ -317,9 +401,11 @@ namespace HepLib {
         return sym_lst;
     }
 
-    /*-----------------------------------------------------*/
-    // RunOS Command
-    /*-----------------------------------------------------*/
+    /**
+     * @brief run symtem command and return the output as string
+     * @param cmd symtem command
+     * @return the command output
+     */
     string RunOS(const string & cmd) {
         char buf[128];
         ostringstream oss;
@@ -335,9 +421,11 @@ namespace HepLib {
     }
 
 
-    /*-----------------------------------------------------*/
-    // garRead/garWrite Function
-    /*-----------------------------------------------------*/
+    /**
+     * @brief garRead from file, and output in a map
+     * @param garfn ginac archive filename
+     * @param resMap will be update, a string key map
+     */
     void garRead(const string &garfn, map<string, ex> &resMap) {
         archive ar;
         ifstream in(garfn);
@@ -350,6 +438,12 @@ namespace HepLib {
         }
     }
     
+    /**
+     * @brief garRead from file, only the element w.r.t. key 
+     * @param garfn ginac archive filename
+     * @param key the archive key, note (const char *) type, match unarchive_ex in GiNaC
+     * @return the expression w.r.t. key
+     */
     ex garRead(const string &garfn, const char* key) { // use the const char *, not string
         archive ar;
         ifstream in(garfn);
@@ -359,6 +453,11 @@ namespace HepLib {
         return res;
     }
 
+    /**
+     * @brief garRead from file, only the element w.r.t. key "res", note inner check will be performed
+     * @param garfn ginac archive filename
+     * @return the expression w.r.t. key "res"
+     */
     ex garRead(const string &garfn) {
         archive ar;
         ifstream in(garfn);
@@ -374,6 +473,10 @@ namespace HepLib {
         return res;
     }
     
+    /**
+     * @brief garWrite to write the string-key map to the archive
+     * @param garfn ginac archive filename for output
+     */
     void garWrite(const string &garfn, const map<string, ex> &resMap) {
         archive ar;
         for(const auto & item : resMap) {
@@ -384,6 +487,11 @@ namespace HepLib {
         out.close();
     }
 
+    /**
+     * @brief garWrite to write the expression to the archive, with key: "res", including a check key will be written
+     * @param garfn ginac archive filename for output
+     * @param res the output expression
+     */
     void garWrite(const string &garfn, const ex & res) {
         archive ar;
         ar.archive_ex(res, "res");
@@ -394,48 +502,91 @@ namespace HepLib {
     }
 
 
-    /*-----------------------------------------------------*/
-    // str2ex Function
-    /*-----------------------------------------------------*/
+    /**
+     * @brief convert string to ex expression, using Parser internally
+     * @param expr expression in string format
+     * @param stab the symtab
+     * @return the parsed expression
+     */
     ex str2ex(const string &expr, symtab stab) {
-        parser reader(stab);
-        ex ret = reader(expr);
+        Parser par(stab);
+        ex ret = par.Read(expr);
         return ret;
     }
 
-    /*-----------------------------------------------------*/
-    // str2lst Function
-    /*-----------------------------------------------------*/
+    /**
+     * @brief convert string to the lst, using Parser internally
+     * @param expr a lst in string format
+     * @param stab the symtab
+     * @return the parsed expression
+     */
     lst str2lst(const string &expr, symtab stab) {
-        parser reader(stab);
-        ex ret = reader(expr);
+        Parser par(stab);
+        ex ret = par.Read(expr);
         return ex_to<lst>(ret);
     }
     
-    /*-----------------------------------------------------*/
-    // str2lst Function
-    /*-----------------------------------------------------*/
+    /**
+     * @brief convert ex to output string, the defalut printer format will be used
+     * @param expr a expression
+     * @return the output string
+     */
     string ex2str(const ex &expr) {
         ostringstream oss;
         oss << expr << endl;
         return oss.str();
     }
+    
+    /**
+     * @brief convert exvector to lst
+     * @param exvec input exvector
+     * @return lst
+     */
+    lst exvec2lst(const exvector & exvec) {
+        lst ret;
+        for(auto item : exvec) ret.append(item);
+        return ret;
+    }
+    
+    /**
+     * @brief convert lst to exvector
+     * @param exvec input lst
+     * @return exvector
+     */
+    exvector lst2exvec(const lst & alst) {
+        exvector ret;
+        for(auto item : alst) ret.push_back(item);
+        return ret;
+    }   
 
-    /*-----------------------------------------------------*/
-    // str2lst Function
-    /*-----------------------------------------------------*/
+    /**
+     * @brief return a lst: x(bi), x(bi+1), ..., x(ei)
+     * @param bi start index
+     * @param ei end index
+     * @return the x lst
+     */
     lst xlst(int bi, int ei) {
         lst ret;
         for(int i=bi; i<=ei; i++) ret.append(x(i));
         return ret;
     }
+    
+    /**
+     * @brief return a lst: x(0), x(1), ..., x(ei)
+     * @param ei end index
+     * @return the x lst
+     */
     lst xlst(int ei) {
         return xlst(0, ei);
     }
 
-    /*-----------------------------------------------------*/
-    // Series at s=0 similar to Mathematica
-    /*-----------------------------------------------------*/
+    /**
+     * @brief the series like Mathematica, include s^n
+     * @param expr_in input expression
+     * @param s0 the variable
+     * @param sn0 expanded upto sn0 order, include s0^sn0
+     * @return the corresponding series
+     */
     ex mma_series(ex const & expr_in, symbol const &s0, int sn0) {
         ex expr = expr_in;
         if(!expr.has(s0)) return expr;
@@ -499,9 +650,14 @@ namespace HepLib {
         return 0;
     }
 
-    /*-----------------------------------------------------*/
-    // mma_diff
-    /*-----------------------------------------------------*/
+    /**
+     * @brief the differential like Mathematica
+     * @param expr input expression
+     * @param xp the variable, can be an expression, will replace by a symbol and back again
+     * @param nth nth-derivative
+     * @param expand true to call mma_expand before diff
+     * @return the corresponding nth-derivative
+     */
     ex mma_diff(ex const expr, ex const xp, unsigned nth, bool expand) {
         symbol s;
         ex res = expr.subs(xp==s);
@@ -512,9 +668,13 @@ namespace HepLib {
         return res;
     }
 
-    /*-----------------------------------------------------*/
-    // mma_expand
-    /*-----------------------------------------------------*/
+    /**
+     * @brief the expand like Mathematica
+     * @param expr_in input expression
+     * @param isOK only expand the element e, when isOK(e) is true
+     * @param depth will be incresed by 1 when each recursively called, when depth>5, GiNaC expand will be used
+     * @return the expanded expression
+     */
     ex mma_expand(ex const &expr_in, std::function<bool(const ex &)> isOK, int depth) {
         if(depth>5) return expr_in.expand();
         ex expr;
@@ -556,6 +716,14 @@ namespace HepLib {
         if(depth==0) res = res.subs(coCF(w)==w);
         return res;
     }
+    
+    /**
+     * @brief the expand like Mathematica
+     * @param expr_in input expression
+     * @param pats only expand the element e, when e has at least one pattern in pats is true
+     * @param depth will be incresed by 1 when each recursively called
+     * @return the expanded expression
+     */
     ex mma_expand(ex const &expr_in, lst const &pats, int depth) {
         return mma_expand(expr_in, [pats](const ex & e)->bool {
             for(auto pat : pats) {
@@ -564,15 +732,28 @@ namespace HepLib {
             return false;
         }, depth);
     }
+    
+    /**
+     * @brief the expand like Mathematica
+     * @param expr_in input expression
+     * @param pat only expand the element e, when e has the pattern: pat
+     * @param depth will be incresed by 1 when each recursively called
+     * @return the expanded expression
+     */
     ex mma_expand(ex const &expr_in, const ex &pat, int depth) {
         return mma_expand(expr_in, [pat](const ex & e)->bool {
             return e.has(pat);
         }, depth);
     }
 
-    /*-----------------------------------------------------*/
-    // mma_collect
-    /*-----------------------------------------------------*/
+    /**
+     * @brief the collect function like Mathematica
+     * @param expr_in input expression
+     * @param isOK only collect the element e, when isOK(e) is true
+     * @param ccf true for wrapping coefficient in coCF
+     * @param cvf true to wrapping isOK-ed element in coVF
+     * @return the collected expression
+     */
     ex mma_collect(ex const &expr_in, std::function<bool(const ex &)> isOK, bool ccf, bool cvf) {
         auto res = mma_expand(expr_in, isOK);
         lst items;
@@ -610,6 +791,14 @@ namespace HepLib {
         return res;
     }
     
+    /**
+     * @brief the collect function like Mathematica
+     * @param expr_in input expression
+     * @param pats only collect the element e match at least one patter in pats, like mma_expand
+     * @param ccf true for wrapping coefficient in coCF
+     * @param cvf true to wrapping isOK-ed element in coVF
+     * @return the collected expression
+     */
     ex mma_collect(ex const &expr_in, lst const &pats, bool ccf, bool cvf) {
         return mma_collect(expr_in, [pats](const ex & e)->bool {
             for(auto pat : pats) {
@@ -618,15 +807,26 @@ namespace HepLib {
             return false;
         }, ccf, cvf);
     }
+    
+    /**
+     * @brief the collect function like Mathematica
+     * @param expr_in input expression
+     * @param pat only collect the element e match the pattern, like mma_expand
+     * @param ccf true for wrapping coefficient in coCF
+     * @param cvf true to wrapping isOK-ed element in coVF
+     * @return the collected expression
+     */
     ex mma_collect(ex const &expr_in, ex const &pat, bool ccf, bool cvf) {
         return mma_collect(expr_in, [pat](const ex & e)->bool {
             return e.has(pat);
         }, ccf, cvf);
     }
 
-    /*-----------------------------------------------------*/
-    // Evalf
-    /*-----------------------------------------------------*/
+    /**
+     * @brief the nuerical evaluation, Digits=50 will be used
+     * @param expr input expression
+     * @return the nuerical expression
+     */
     ex Evalf(ex expr) {
         exset zs;
         //patterns needing evalf()
@@ -643,9 +843,11 @@ namespace HepLib {
         return expr.subs(repl);
     }
 
-    /*-----------------------------------------------------*/
-    // xPositive & xSign
-    /*-----------------------------------------------------*/
+    /**
+     * @brief check the expr is xPositive, i.e., each x-monomial item is postive
+     * @param expr input expression
+     * @return xPositive or not
+     */
     bool xPositive(ex const expr) {
         auto tmp = expr.expand();
         if(tmp.is_zero()) return true;
@@ -665,142 +867,335 @@ namespace HepLib {
         return ret;
     }
 
+    /**
+     * @brief the always sign for expr
+     * @param expr input expression
+     * @return 1 for xPositive exprs, -1 when -expr is xPositive, 0 for others
+     */
     int xSign(ex const expr) {
         if(xPositive(expr)) return 1;
         else if(xPositive(ex(0)-expr)) return -1;
         else return 0;
     }
 
-    /*-----------------------------------------------------*/
-    // let_op extension
-    /*-----------------------------------------------------*/
+    /**
+     * @brief append item into expression
+     * @param ex_in input expression will be update
+     * @param item element to be appended to ex_in
+     */
     void let_op_append(ex & ex_in, const ex item) {
         auto tmp = ex_to<lst>(ex_in);
         tmp.append(item);
         ex_in = tmp;
     }
+    
+    /**
+     * @brief preppend item into expression
+     * @param ex_in input expression will be update
+     * @param item element to be prepended to ex_in
+     */
     void let_op_prepend(ex & ex_in, const ex item) {
         auto tmp = ex_to<lst>(ex_in);
         tmp.prepend(item);
         ex_in = tmp;
     }
+    
+    /**
+     * @brief remove last from expression
+     * @param ex_in input lst and will be update, last element will be remove
+     */
     void let_op_remove_last(ex & ex_in) {
         auto tmp = ex_to<lst>(ex_in);
         tmp.remove_last();
         ex_in = tmp;
     }
+    
+    /**
+     * @brief remove first from expression
+     * @param ex_in input lst and will be update, first element will be remove
+     */
     void let_op_remove_first(ex & ex_in) {
         auto tmp = ex_to<lst>(ex_in);
         tmp.remove_first();
         ex_in = tmp;
     }
 
+    /**
+     * @brief append item into index-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index, index-th should be lst, and item will be append into it
+     * @param item element to be appended to index-th of ex_in
+     */
     void let_op_append(ex & ex_in, int index, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.append(item);
         ex_in.let_op(index) = tmp;
     }
+    
+    /**
+     * @brief append item into index-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index, index-th should be lst, and item will be append into it
+     * @param item element to be appended to index-th of ex_in
+     */
     void let_op_append(lst & ex_in, int index, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.append(item);
         ex_in.let_op(index) = tmp;
     }
+    
+    /**
+     * @brief append item into index1-th.index2-th of expression
+     * @param ex_in input expression will be update
+     * @param index1 the first index
+     * @param index2 the second index
+     * @param item element to be appended to index1-th.index2-th of ex_in
+     */
     void let_op_append(ex & ex_in, int index1, int index2, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.append(item);
         ex_in.let_op(index1).let_op(index2) = tmp;
     }
+    
+    /**
+     * @brief append item into index1-th.index2-th of expression
+     * @param ex_in input expression will be update
+     * @param index1 the first index
+     * @param index2 the second index
+     * @param item element to be appended to index1-th.index2-th of ex_in
+     */
     void let_op_append(lst & ex_in, int index1, int index2, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.append(item);
         ex_in.let_op(index1).let_op(index2) = tmp;
     }
 
+    /**
+     * @brief prepend item into index-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index, index-th should be lst, and item will be append into it
+     * @param item element to be prepended to index-th of ex_in
+     */
     void let_op_prepend(ex & ex_in, int index, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.prepend(item);
         ex_in.let_op(index) = tmp;
     }
+    
+    /**
+     * @brief prepend item into index-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index, index-th should be lst, and item will be append into it
+     * @param item element to be prepended to index-th of ex_in
+     */
     void let_op_prepend(lst & ex_in, int index, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.prepend(item);
         ex_in.let_op(index) = tmp;
     }
+    
+    /**
+     * @brief prepend item into index1-th.index2-th of expression
+     * @param ex_in input expression will be update
+     * @param index1 the first index
+     * @param index2 the second index
+     * @param item element to be prepend to index1-th.index2-th of ex_in
+     */
     void let_op_prepend(ex & ex_in, int index1, int index2, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.prepend(item);
         ex_in.let_op(index1).let_op(index2) = tmp;
     }
+    
+    /**
+     * @brief prepend item into index1-th.index2-th of expression
+     * @param ex_in input expression will be update
+     * @param index1 the first index
+     * @param index2 the second index
+     * @param item element to be prepend to index1-th.index2-th of ex_in
+     */
     void let_op_prepend(lst & ex_in, int index1, int index2, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.prepend(item);
         ex_in.let_op(index1).let_op(index2) = tmp;
     }
 
+    /**
+     * @brief remove the last in index-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index
+     */
     void let_op_remove_last(ex & ex_in, int index) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.remove_last();
         ex_in.let_op(index) = tmp;
     }
+    
+    /**
+     * @brief remove the last in index-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index
+     */
     void let_op_remove_last(lst & ex_in, int index) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.remove_last();
         ex_in.let_op(index) = tmp;
     }
+    
+    /**
+     * @brief remove the last in index1-th.index2-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index
+     */
     void let_op_remove_last(ex & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.remove_last();
         ex_in.let_op(index1).let_op(index2) = tmp;
     }
+    
+    /**
+     * @brief remove the last in index1-th.index2-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index
+     */
     void let_op_remove_last(lst & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.remove_last();
         ex_in.let_op(index1).let_op(index2) = tmp;
     }
 
+    /**
+     * @brief remove the first in index-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index
+     */
     void let_op_remove_first(ex & ex_in, int index) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.remove_first();
         ex_in.let_op(index) = tmp;
     }
+    
+    /**
+     * @brief remove the first in index-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index
+     */
     void let_op_remove_first(lst & ex_in, int index) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.remove_first();
         ex_in.let_op(index) = tmp;
     }
+    
+    /**
+     * @brief remove the first in index1-th.index2-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index
+     */
     void let_op_remove_first(ex & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.remove_first();
         ex_in.let_op(index1).let_op(index2) = tmp;
     }
+    
+    /**
+     * @brief remove the first in index1-th.index2-th of expression
+     * @param ex_in input expression will be update
+     * @param index the index
+     */
     void let_op_remove_first(lst & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.remove_first();
         ex_in.let_op(index1).let_op(index2) = tmp;
     }
 
+    /**
+     * @brief update index1-th.index2-th of expression with item
+     * @param ex_in input expression will be update
+     * @param index1 the index
+     * @param index2 the index
+     * @param the new item
+     */
     void let_op(ex &ex_in, int index1, int index2, const ex item) {
         ex_in.let_op(index1).let_op(index2) = item;
     }
+    
+    /**
+     * @brief update index1-th.index2-th of expression with item
+     * @param ex_in input expression will be update
+     * @param index1 the index
+     * @param index2 the index
+     * @param the new item
+     */
     void let_op(lst &ex_in, int index1, int index2, const ex item) {
         ex_in.let_op(index1).let_op(index2) = item;
     }
+    
+    /**
+     * @brief update index1-th.index2-th.index3-th of expression with item
+     * @param ex_in input expression will be update
+     * @param index1 the index
+     * @param index2 the index
+     * @param index3 the index
+     * @param the new item
+     */
     void let_op(ex &ex_in, int index1, int index2, int index3, const ex item) {
         ex_in.let_op(index1).let_op(index2).let_op(index3) = item;
     }
+    
+    /**
+     * @brief update index1-th.index2-th.index3-th of expression with item
+     * @param ex_in input expression will be update
+     * @param index1 the index
+     * @param index2 the index
+     * @param index3 the index
+     * @param the new item
+     */
     void let_op(lst &ex_in, int index1, int index2, int index3, const ex item) {
         ex_in.let_op(index1).let_op(index2).let_op(index3) = item;
     }
 
+    /**
+     * @brief return index1-th.index2-th of expression
+     * @param ex_in input expression will be update
+     * @param index1 the index
+     * @param index2 the index
+     * @return the element
+     */
     ex get_op(const ex ex_in, int index1, int index2) {
         return ex_in.op(index1).op(index2);
     }
+    
+    /**
+     * @brief return index1-th.index2-th of expression
+     * @param ex_in input expression will be update
+     * @param index1 the index
+     * @param index2 the index
+     * @return the element
+     */
     ex get_op(const lst ex_in, int index1, int index2) {
         return ex_in.op(index1).op(index2);
     }
+    
+    /**
+     * @brief return index1-th.index2-th.index3-th of expression
+     * @param ex_in input expression will be update
+     * @param index1 the index
+     * @param index2 the index
+     * @param index3 the index
+     * @return the element
+     */
     ex get_op(const ex ex_in, int index1, int index2, int index3) {
         return ex_in.op(index1).op(index2).op(index3);
     }
+    
+    /**
+     * @brief return index1-th.index2-th.index3-th of expression
+     * @param ex_in input expression will be update
+     * @param index1 the index
+     * @param index2 the index
+     * @param index3 the index
+     * @return the element
+     */
     ex get_op(const lst ex_in, int index1, int index2, int index3) {
         return ex_in.op(index1).op(index2).op(index3);
     }

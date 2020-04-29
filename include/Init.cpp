@@ -25,6 +25,7 @@ namespace HepLib {
     const Symbol ep("ep");
     const Symbol iEpsilon("iEpsilon",false);
     int Verbose = 0;
+    int ParallelProcess = -1;
     const Symbol D("D");
     pid_t PID = getpid();
     
@@ -77,8 +78,33 @@ namespace HepLib {
         set_print_func<power, FormFormat>(FormFormat::power_print);
     }
     FC::FormFormat::_init FC::FormFormat::FormFormat_init;
-    
     FC::FCFormat FC::FCout(cout);
+    
+    //----------------------------------------
+    // Process _init
+    //----------------------------------------
+    FC::Qgraf::Process::_init::_init() {
+        auto q = Symbol("q",true,false);
+        auto gh = Symbol("gh",true,false);
+        auto Q = Symbol("Q",true,false);
+        auto g = Symbol("g",true,false);
+        auto Qbar = Symbol("Qbar",true,false);
+        auto n = Symbol("n",true,false);
+        auto nbar = Symbol("nbar",true,false);
+        auto e = Symbol("e",true,false);
+        
+        LineTeX[q] = "fermion, edge label=q";
+        LineTeX[gh] = "ghost, edge label=$\\chi$"; 
+        LineTeX[Q] = "fermion, edge label=Q";
+        LineTeX[g] = "gluon, edge label=g";
+        LineTeX[Qbar] = "anti fermion, edge label=$\\bar{Q}$";
+        LineTeX[n] = "double distance=1.5pt";
+        LineTeX[nbar] = "double distance=1.5pt";    
+        LineTeX[e] = "color=white";
+        
+        VerTeX[lst{Qbar, e, nbar}] = "[crossed dot]";
+    }
+    FC::Qgraf::Process::_init FC::Qgraf::Process::Process_init;
     
     //----------------------------------------
     // HepLib::IBP
@@ -105,7 +131,7 @@ namespace HepLib {
     
 }
 
-std::string HepLib::FC::Qgraf::Style = R"EOF(
+const std::string HepLib::FC::Qgraf::Style = R"EOF(
 <prologue>
 
 <diagram>

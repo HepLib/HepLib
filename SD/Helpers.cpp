@@ -325,7 +325,7 @@ ex FactorOutX(const ex expr) {
     if(!is_a<mul>(expr2)) return expr2;
     ex ret = 1;
     for(auto item : expr2) {
-        if(!item.match(x(w))) ret *= item;
+        if(!item.match(x(w)) && !item.match(pow(x(w1),w2))) ret *= item;
     }
     return ret;
 }

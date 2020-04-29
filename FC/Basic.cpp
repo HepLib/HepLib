@@ -9,6 +9,7 @@
 #include "FC.h"
 
 namespace HepLib::FC {
+    using namespace Qgraf;
 
     DEFAULT_CTOR(Index)
     GINAC_BIND_UNARCHIVER(Index);

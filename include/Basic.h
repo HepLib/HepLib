@@ -86,7 +86,7 @@ namespace HepLib {
     public:
         // is_real=false for pure imaginary
         // check=true to if the name exist then error
-        Symbol(const string &s, bool is_real=true, bool check=true);
+        Symbol(const string &s, bool is_real=true, bool check=false);
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         
@@ -195,19 +195,19 @@ namespace HepLib {
     void GiNaC_archive_Symbols_from(ex);
     void GiNaC_archive_Symbols_from(vector<ex>);
     vector<ex> GiNaC_Parallel(
-        int nproc, int ntotal, int nbatch,
+        int ntotal, int nbatch,
         std::function<ex(int)> f,
         const string & key = "",
         bool rm = true,
         int prtlvl = 0
     );
     inline vector<ex> GiNaC_Parallel(
-        int nproc, int ntotal,
+        int ntotal,
         std::function<ex(int)> f,
         const string & key = "",
         bool rm = true,
         int prtlvl = 0
-    ) { return  GiNaC_Parallel(nproc, ntotal, 0, f, key, rm, prtlvl); }
+    ) { return  GiNaC_Parallel(ntotal, 0, f, key, rm, prtlvl); }
     
     /*-----------------------------------------------------*/
     // Helpers
@@ -221,6 +221,8 @@ namespace HepLib {
     ex str2ex(const string &expr, symtab stab);
     lst str2lst(const string &expr, symtab stab);
     string ex2str(const ex &expr);
+    lst exvec2lst(const exvector & exvec);
+    exvector lst2exvec(const lst & alst);
     lst xlst(int ei);
     lst xlst(int bi, int ei);
     
@@ -293,6 +295,7 @@ namespace HepLib {
     extern const Symbol ep;
     extern const Symbol D;
     extern int Verbose;
+    extern int ParallelProcess;
     extern pid_t PID;
     
     /*-----------------------------------------------------*/

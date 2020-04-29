@@ -26,104 +26,6 @@ namespace HepLib::FC {
     class Pair;
     
     //-----------------------------------------------------------
-    // Filed/Propagator/Vertex Function
-    //-----------------------------------------------------------
-    DECLARE_FUNCTION_3P(Propagator)
-    DECLARE_FUNCTION_3P(InField)
-    DECLARE_FUNCTION_3P(OutField)
-    DECLARE_FUNCTION_3P(Matrix)
-    
-    // Field function 2-3
-    class Field2_SERIAL { public: static unsigned serial; };
-    template<typename T1, typename T2>
-    inline GiNaC::function Field(const T1 & p1, const T2 & p2) {
-        return GiNaC::function(Field2_SERIAL::serial, ex(p1), ex(p2));
-    }
-    class Field3_SERIAL { public: static unsigned serial; };
-    template<typename T1, typename T2, typename T3>
-    inline GiNaC::function Field(const T1 & p1, const T2 & p2, const T3 & p3) {
-        return GiNaC::function(Field3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
-    }
-    
-    // Vertex function 2-6
-    class Vertex2_SERIAL { public: static unsigned serial; };
-    template<typename T1, typename T2>
-    inline GiNaC::function Vertex(const T1 & p1, const T2 & p2) {
-        return GiNaC::function(Vertex2_SERIAL::serial, ex(p1), ex(p2));
-    }
-    class Vertex3_SERIAL { public: static unsigned serial; };
-    template<typename T1, typename T2, typename T3>
-    inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3) {
-        return GiNaC::function(Vertex3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
-    }
-    class Vertex4_SERIAL { public: static unsigned serial; };
-    template<typename T1, typename T2, typename T3, typename T4>
-    inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4) {
-        return GiNaC::function(Vertex4_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4));
-    }
-    class Vertex5_SERIAL { public: static unsigned serial; };
-    template<typename T1, typename T2, typename T3, typename T4, typename T5>
-    inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5) {
-        return GiNaC::function(Vertex5_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5));
-    }
-    class Vertex6_SERIAL { public: static unsigned serial; };
-    template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-    inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5, const T6 & p6) {
-        return GiNaC::function(Vertex6_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5), ex(p6));
-    }
-    
-    
-    //-----------------------------------------------------------
-    // Qgraf Class
-    //-----------------------------------------------------------
-    class Qgraf {
-    public:
-        string Model;
-        string In;
-        string Out;
-        string LoopPrefix = "q";
-        int Loops;
-        string Options;
-        vector<string> Others;
-        lst Amplitudes(symtab st, bool debug=false);
-        
-        static string Style;
-        
-        static Index LI(ex fn);
-        static Index DI(ex fn);
-        static Index TI(ex fn);
-        static Index FI(ex fn);
-        static Index CI(ex fn);
-        static Index AI(ex fn);
-        
-        static ex QuarkPropagator(ex e, ex m=0);
-        static ex GluonPropagator(ex e);
-        static ex GhostPropagator(ex e);
-        static ex q2gVertex(ex e);
-        static ex g3Vertex(ex e);
-        static ex g4Vertex(ex e);
-        static ex gh2gVertex(ex e);
-        
-        static ex IndexCC(ex e);
-        static ex GluonFFV(ex e, ex n);
-        static ex QuarkFFV(ex e, ex n);
-        
-        static ex eikonalPropagator(ex e, ex n, int mode); // 0 for gluon, others for quark/anti-quark
-        static ex eikonalPropagatorR(ex e, ex n, int mode); // right side from cut
-        static ex eikonalVertex(ex e, ex n, int mode); // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
-        static ex eikonalVertexR(ex e, ex n, int mode); // right side from cut
-        
-        static lst TopoLines(const ex & amp);
-        static void DrawPDF(const lst & amps, string fn, bool debug=false);
-        static vector<lst> ShrinkCut(ex amp, lst prop, int n=1);
-        static bool HasLoop(ex amp, lst prop);
-        
-        static map<ex,string,ex_is_less> LineTeX;
-        static map<ex,string,ex_is_less> VerTeX;
-        static map<ex,string,ex_is_less> InOutTeX;
-    };
-    
-    //-----------------------------------------------------------
     // FormFormat Output
     //-----------------------------------------------------------
     class FormFormat : public print_dflt {
@@ -346,6 +248,7 @@ namespace HepLib::FC {
     ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms);
     ex ApartIR2ex(const ex & expr_in);
     ex ApartIR2F(const ex & expr_in);
+    ex F2ex(const ex & expr_in);
     ex ApartIRC(const ex & expr_in, const ex & cut_props=lst{});
     void Apart2FIRE(exvector &air_vec, lst loops, lst exts, bool reduce=true, const lst & cut_props=lst{});
     
@@ -363,14 +266,129 @@ namespace HepLib::FC {
     class ApartIR_SERIAL;
     
     //-----------------------------------------------------------
-    // Quarkonium
+    // Qgraf namespace
+    //-----------------------------------------------------------
+    namespace Qgraf {
+        
+        //-----------------------------------------------------------
+        // Filed/Propagator/Vertex Function
+        //-----------------------------------------------------------
+        DECLARE_FUNCTION_3P(Propagator)
+        DECLARE_FUNCTION_3P(InField)
+        DECLARE_FUNCTION_3P(OutField)
+        DECLARE_FUNCTION_3P(Matrix)
+        
+        // Field function 2-3
+        class Field2_SERIAL { public: static unsigned serial; };
+        template<typename T1, typename T2>
+        inline GiNaC::function Field(const T1 & p1, const T2 & p2) {
+            return GiNaC::function(Field2_SERIAL::serial, ex(p1), ex(p2));
+        }
+        class Field3_SERIAL { public: static unsigned serial; };
+        template<typename T1, typename T2, typename T3>
+        inline GiNaC::function Field(const T1 & p1, const T2 & p2, const T3 & p3) {
+            return GiNaC::function(Field3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
+        }
+        
+        // Vertex function 2-6
+        class Vertex2_SERIAL { public: static unsigned serial; };
+        template<typename T1, typename T2>
+        inline GiNaC::function Vertex(const T1 & p1, const T2 & p2) {
+            return GiNaC::function(Vertex2_SERIAL::serial, ex(p1), ex(p2));
+        }
+        class Vertex3_SERIAL { public: static unsigned serial; };
+        template<typename T1, typename T2, typename T3>
+        inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3) {
+            return GiNaC::function(Vertex3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
+        }
+        class Vertex4_SERIAL { public: static unsigned serial; };
+        template<typename T1, typename T2, typename T3, typename T4>
+        inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4) {
+            return GiNaC::function(Vertex4_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4));
+        }
+        class Vertex5_SERIAL { public: static unsigned serial; };
+        template<typename T1, typename T2, typename T3, typename T4, typename T5>
+        inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5) {
+            return GiNaC::function(Vertex5_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5));
+        }
+        class Vertex6_SERIAL { public: static unsigned serial; };
+        template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
+        inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5, const T6 & p6) {
+            return GiNaC::function(Vertex6_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5), ex(p6));
+        }
+        
+        class Process {
+        public:
+            string Model;
+            string In;
+            string Out;
+            string LoopPrefix = "q";
+            int Loops;
+            string Options;
+            vector<string> Others;
+            lst Amplitudes(symtab st, bool debug=false);
+            class _init {
+                public: _init();
+            };
+        private:
+            static _init Process_init;
+        };
+        
+        extern const string Style;
+        lst TopoLines(const ex & amp);
+        void DrawPDF(const lst & amps, string fn, bool debug=false);
+        vector<lst> ShrinkCut(ex amp, lst prop, int n=1);
+        bool HasLoop(ex amp, lst prop);
+        extern map<ex,string,ex_is_less> LineTeX;
+        extern map<ex,string,ex_is_less> VerTeX;
+        extern map<ex,string,ex_is_less> InOutTeX;
+        
+        Index LI(ex fn);
+        Index DI(ex fn);
+        Index TI(ex fn);
+        Index FI(ex fn);
+        Index CI(ex fn);
+        Index AI(ex fn);
+        Index RLI(ex fn);
+        Index RDI(ex fn);
+        Index RTI(ex fn);
+        Index RFI(ex fn);
+        Index RCI(ex fn);
+        Index RAI(ex fn);
+        
+        ex QuarkPropagator(ex e, ex m=0);
+        ex GluonPropagator(ex e);
+        ex GhostPropagator(ex e);
+        ex q2gVertex(ex e);
+        ex g3Vertex(ex e);
+        ex g4Vertex(ex e);
+        ex gh2gVertex(ex e);
+        
+        ex IndexCC(ex e, bool all=true);
+        ex GluonFFV(ex e, ex n);
+        ex QuarkFFV(ex e, ex n);
+        
+        ex eikonalPropagator(ex e, ex n, int mode); // 0 for gluon, others for quark/anti-quark
+        ex eikonalPropagatorR(ex e, ex n, int mode); // right side from cut
+        ex eikonalVertex(ex e, ex n, int mode); // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
+        ex eikonalVertexR(ex e, ex n, int mode); // right side from cut
+            
+        ex GluonSum(int qi);
+        ex QuarkSum(int qi, ex p, ex m);
+        ex AntiQuarkSum(int qi, ex p, ex m);
+    };
+    
+    //-----------------------------------------------------------
+    // Quarkonium namespace
     //-----------------------------------------------------------
     namespace Quarkonium {
         enum IO {In, Out};
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu);
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu);
-        ex ColorProj(Index i, Index j, Index a);
-        ex ColorProj(Index i, Index j);
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j);
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, int i, int j);
+        ex ColorProj(int i, int j, Index a);
+        ex ColorProj(int i, int j);
         
         ex SL1Proj(ex si, ex qi, ex p);
         ex SL1Proj(ex si, ex qi, ex mu, ex p);
