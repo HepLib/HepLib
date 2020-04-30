@@ -66,6 +66,13 @@ namespace HepLib {
     ex Symbol::conjugate() const { return *this * (isReal ? 1 : -1); }
     ex Symbol::real_part() const { return (isReal ? *this : ex(0)); }
     ex Symbol::imag_part() const { return (isReal ? ex(0) : *this); }
+    
+    exmap Symbol::AssignMap;
+    void Symbol::Assign(const Symbol & s, const ex & v) { AssignMap[s] = v; }
+    void Symbol::Assign(const string & str, const ex & v) { AssignMap[Symbol(str)] = v; }
+    void Symbol::clearAssign(const Symbol &s) { AssignMap.erase(s); }
+    void Symbol::clearAssign(const string &str) { AssignMap.erase(Symbol(str)); }
+    void Symbol::clearAssign() { AssignMap.clear(); }
 
     /*-----------------------------------------------------*/
     // Global varibales

@@ -103,6 +103,7 @@ namespace HepLib {
         LineTeX[e] = "color=white";
         
         VerTeX[lst{Qbar, e, nbar}] = "[crossed dot]";
+        VerTeX[lst{nbar, e, g}] = "[crossed dot]";
     }
     FC::Qgraf::Process::_init FC::Qgraf::Process::Process_init;
     

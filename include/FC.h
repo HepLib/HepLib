@@ -172,6 +172,7 @@ namespace HepLib::FC {
     void clearSP(const ex &p1, const ex &p2);
     void clearSP(const ex &p);
     void clearSP();
+    ex SP2sp(const ex & exin);
     
     //-----------------------------------------------------------
     // Eps Class

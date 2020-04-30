@@ -232,6 +232,22 @@ namespace HepLib::FC {
     void clearSP() {
         sp_map.clear();
     }
+    ex SP2sp(const ex & exin) {
+        auto ret = exin.subs(sp_map);
+        lst vecs;
+        for(const_preorder_iterator i = ret.preorder_begin(); i != ret.preorder_end(); ++i) {
+            if(is_a<Vector>(*i)) vecs.append(*i);
+        }
+        vecs.sort();
+        vecs.unique();
+        exmap spmap;
+        for(auto vp1 : vecs) {
+            for(auto vp2 : vecs) {
+                spmap[SP(vp1,vp2)]=sp(vp1,vp2);
+            }
+        }
+        return ret.subs(spmap);
+    }
 
 }
 

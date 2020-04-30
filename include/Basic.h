@@ -99,7 +99,12 @@ namespace HepLib {
         
         static bool has(const ex &e);
         static std::map<std::string, ex> Table;
-    
+        static exmap AssignMap;
+        static void Assign(const Symbol & s, const ex & v);
+        static void Assign(const string & str, const ex & v);
+        static void clearAssign(const Symbol &s);
+        static void clearAssign(const string &str);
+        static void clearAssign();
     };
     GINAC_DECLARE_UNARCHIVER(Symbol);
     
