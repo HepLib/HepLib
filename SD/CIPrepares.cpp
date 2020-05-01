@@ -176,12 +176,13 @@ namespace HepLib::SD {
                 }
             }
 
+            system(("mkdir -p "+to_string(pid)).c_str());
             ostringstream cppfn, sofn;
             cppfn << pid << "/F" << ft_n << ".cpp";
             sofn << pid << "/F" << ft_n << ".o";
             std::ofstream ofs;
             ofs.open(cppfn.str(), ios::out);
-            if (!ofs) throw runtime_error("failed to open *.cpp file!");
+            if (!ofs) throw runtime_error("failed to open *.cpp file! (1)");
             
             lst cxRepl, czRepl;
             for (int i=0; i<fxs.size(); i++) {
@@ -641,11 +642,12 @@ namespace HepLib::SD {
                 plRepl.append(PL(i) == symbol(pl.str()));
             }
             
+            system(("mkdir -p "+to_string(pid)).c_str());
             ostringstream cppfn;
             cppfn << pid << "/" << idx << ".cpp";
             std::ofstream ofs;
             ofs.open(cppfn.str(), ios::out);
-            if (!ofs) throw runtime_error("failed to open *.cpp file!");
+            if (!ofs) throw runtime_error("failed to open *.cpp file! (2)");
 
     /*----------------------------------------------*/
     ofs << R"EOF(

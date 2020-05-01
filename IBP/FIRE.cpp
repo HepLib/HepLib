@@ -469,7 +469,7 @@ namespace HepLib::IBP {
                     uf_mi_lst.append(lst{ fi.UF(mi), F(fi.ProblemNumber,mi) });
                 }
                 return uf_mi_lst;
-            }, "II");
+            }, "FI");
         }
     
         map<ex,lst,ex_is_less> group;

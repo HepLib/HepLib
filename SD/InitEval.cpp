@@ -172,7 +172,7 @@ namespace HepLib::SD {
             if(sgn.is_zero()) {
                 sgn = 1;
                 if(is_a<numeric>(p) && ex_to<numeric>(p)>0) sgn = -1;
-                if(Verbose>0) {
+                if(Verbose>0 && (!is_a<numeric>(ns.op(i)) || ns.op(i)>0)) {
                     cout << Color_Warn << " - Warning: Can NOT determine the iEpsilon sign." << RESET << endl;
                     cout << " - " << p << " from " << ps.op(i) << endl;
                 }

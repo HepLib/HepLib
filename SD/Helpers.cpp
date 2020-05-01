@@ -365,7 +365,7 @@ double SecDec::FindMinimum(ex expr, bool compare0) {
     sofn << "/tmp/" << pid << "-" << fid << "-min.so";
     std::ofstream ofs;
     ofs.open(cppfn.str(), ios::out);
-    if (!ofs) throw runtime_error("failed to open *.cpp file!");
+    if (!ofs) throw runtime_error("failed to open *.cpp file! (3)");
     
     auto xs = get_xy_from(expr);
     dREAL UB[xs.size()], LB[xs.size()];

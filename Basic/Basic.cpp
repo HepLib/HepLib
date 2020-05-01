@@ -150,7 +150,7 @@ namespace HepLib {
             auto pid = fork();
             if (pid < 0) perror("fork() error");
             else if (pid != 0) {
-                if(bi >= para_max_run) wait(NULL);
+                if(bi+1 >= para_max_run) wait(NULL);
                 continue;
             } 
             
