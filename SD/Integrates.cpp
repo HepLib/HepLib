@@ -154,6 +154,8 @@ namespace HepLib::SD {
             int reim = 0;
             if(ReIm==3) reim = 3;
             co = mma_collect(co, eps);
+auto coo = co;
+            if(co.is_zero()) {cout << "co=" << coo << endl; continue;}
             for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
                 auto tmp = co.coeff(eps, si);
                 if(tmp.has(eps)) {

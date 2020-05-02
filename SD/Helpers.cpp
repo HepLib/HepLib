@@ -198,7 +198,7 @@ namespace HepLib::SD {
         int p = -5;
         auto expr = mma_collect(expr_in, ep);
         while(true) {
-            auto tmp = normal(series_to_poly(expr.series(ep, p)));
+            auto tmp = series_to_poly(expr.series(ep, p));
             if(!tmp.is_zero()) {
                 tmp = mma_collect(tmp, ep);
                 return tmp.ldegree(ep);
@@ -212,7 +212,7 @@ namespace HepLib::SD {
         int p = -5;
         auto expr = mma_collect(expr_in, eps);
         while(true) {
-            auto tmp = normal(series_to_poly(expr.series(eps, p)));
+            auto tmp = series_to_poly(expr.series(eps, p));
             if(!tmp.is_zero()) {
                 tmp = mma_collect(tmp, eps);
                 return tmp.ldegree(eps);
@@ -226,7 +226,7 @@ namespace HepLib::SD {
         int p = -5;
         auto expr = mma_collect(expr_in, vs);
         while(true) {
-            auto tmp = normal(series_to_poly(expr.series(vs, p)));
+            auto tmp = series_to_poly(expr.series(vs, p));
             if(!tmp.is_zero()) {
                 tmp = mma_collect(tmp, vs);
                 return tmp.ldegree(vs);

@@ -1406,7 +1406,6 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             if(it.has(epz)) it = mma_series(it,epz,0);
             it = mma_collect(it, lst{epz, vs}, true);
             if(it.is_zero()) return lst{ lst{ 0, 0} };
-            
             lst its;
             if(is_a<add>(it)) {
                 for(auto ii : it) its.append(ii);
