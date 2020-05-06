@@ -146,6 +146,8 @@ namespace HepLib::SD {
             co = item.op(2).subs(plRepl).subs(iEpsilon==0);
             
             if(co.is_zero()) continue;
+            co = mma_collect(co, eps);
+            if(co.is_zero()) continue;
             if(co.has(PL(w))) {
                 cerr << Color_Error << "Integrates: PL found @ " << co << RESET << endl;
                 exit(1);
@@ -153,9 +155,7 @@ namespace HepLib::SD {
             qREAL cmax = -1;
             int reim = 0;
             if(ReIm==3) reim = 3;
-            co = mma_collect(co, eps);
-auto coo = co;
-            if(co.is_zero()) {cout << "co=" << coo << endl; continue;}
+            
             for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
                 auto tmp = co.coeff(eps, si);
                 if(tmp.has(eps)) {

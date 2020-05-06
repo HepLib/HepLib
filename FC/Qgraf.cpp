@@ -120,7 +120,7 @@ namespace HepLib::FC::Qgraf {
     /**
      * @brief generate the topological lines for the amplitude
      * @param amp the element from Amplitudes
-     * @return topoligical lines
+     * @return topoligical lines, {{vid1,fs1}, {vid2,fs2}, lst{f1,f2}/lst{exf},mom}
      */
     lst TopoLines(const ex & amp) {
         map<ex,int,ex_is_less> v2id, fid2vid;
