@@ -16,7 +16,7 @@ namespace HepLib::FC {
     namespace {
 
         alignas(2) static ex SP_reader(const exvector& ev) {
-            return SP(ev[0], ev[1]).subs(sp_map);
+            return SP(ev[0], ev[1]).subs(SP_map);
         }
         
         alignas(2) static ex LC_reader(const exvector& ev) {
@@ -122,7 +122,7 @@ Dimension NF;
             init_map[PID] = true;
         }
         
-        ex expr = expr_in.subs(sp_map);
+        ex expr = expr_in.subs(SP_map);
         lst vec_lst, VD_lst, CF_lst, CA_lst, sym_lst;
         for(const_preorder_iterator i = expr.preorder_begin(); i != expr.preorder_end(); ++i) {
             if(is_a<Vector>(*i)) vec_lst.append(*i);
@@ -161,7 +161,7 @@ Dimension NF;
                 st[v.name.get_name()] = v;
                 for(auto vvx : vec_lst) {
                     auto vv = ex_to<Vector>(vvx);
-                    st[v.name.get_name()+"_"+vv.name.get_name()] = SP(v,vv).subs(sp_map);
+                    st[v.name.get_name()+"_"+vv.name.get_name()] = SP(v,vv).subs(SP_map);
                 }
             }
             ff << ";" << endl;
@@ -323,7 +323,7 @@ Dimension NF;
         if(all || is_a<lst>(expr)) return runform(expr, verb);
         
         if(expr.has(coVF(w))) throw Error("form error: expr has coVF already.");
-        auto ret = mma_collect(expr.subs(sp_map), [](const ex & e)->bool {
+        auto ret = mma_collect(expr.subs(SP_map), [](const ex & e)->bool {
             return Index::has(e) || DiracGamma::has(e);
         },false,true);
         
@@ -344,7 +344,7 @@ Dimension NF;
             } else if (!e.has(coVF(w))) return e;
             else return e.map(self);
         })(ret);
-        return ret.subs(sp_map);
+        return ret.subs(SP_map);
     }
 
 

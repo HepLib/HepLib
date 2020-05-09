@@ -19,7 +19,7 @@ namespace HepLib::FC {
     extern const Symbol NA;
     extern const Symbol NF;
     extern const Symbol gs;
-    extern exmap sp_map;
+    extern exmap SP_map;
     
     class Index;
     class Vector;
@@ -76,6 +76,7 @@ namespace HepLib::FC {
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
+        static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
     };
     GINAC_DECLARE_UNARCHIVER(Index);
@@ -94,6 +95,7 @@ namespace HepLib::FC {
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
+        static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
     };
     GINAC_DECLARE_UNARCHIVER(Vector);
@@ -114,6 +116,7 @@ namespace HepLib::FC {
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
+        static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
         ex conjugate() const override;
     };
@@ -132,6 +135,7 @@ namespace HepLib::FC {
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
+        static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
     };
     GINAC_DECLARE_UNARCHIVER(SUNF);
@@ -158,6 +162,7 @@ namespace HepLib::FC {
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
+        static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
     private:
         ex lr[2];
@@ -173,6 +178,7 @@ namespace HepLib::FC {
     void clearSP(const ex &p);
     void clearSP();
     ex SP2sp(const ex & exin);
+    exmap sp_map();
     
     //-----------------------------------------------------------
     // Eps Class
@@ -196,6 +202,7 @@ namespace HepLib::FC {
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
+        static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
     };
     GINAC_DECLARE_UNARCHIVER(Eps);
@@ -227,6 +234,7 @@ namespace HepLib::FC {
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
+        static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
         ex conjugate() const override;
     };

@@ -26,6 +26,15 @@ bool classname::has(const ex &e) { \
     return false; \
 }
 
+#define IMPLEMENT_ALL(classname) \
+lst classname::all(const ex &e) { \
+    lst ret;\
+    for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) if(is_a<classname>(*i)) ret.append(*i); \
+    ret.sort(); \
+    ret.unique(); \
+    return ret; \
+}
+
 /*-----------------------------------------------------*/
 // operator << Macro for GiNaC Output Format
 /*-----------------------------------------------------*/
@@ -98,6 +107,7 @@ namespace HepLib {
         bool isReal = true;
         
         static bool has(const ex &e);
+        static lst all(const ex &e);
         static std::map<std::string, ex> Table;
         static exmap AssignMap;
         static void Assign(const Symbol & s, const ex & v);
@@ -434,12 +444,17 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     extern MapFunction Rationalize;
     
-    
+    /*-----------------------------------------------------*/
+    // LeafCount & sort
+    /*-----------------------------------------------------*/
+    long long int LeafCount(const ex & e);
+    void sort_lst(lst & ilst, bool less=true);
     
     /*-----------------------------------------------------*/
     // Other Functions
     /*-----------------------------------------------------*/
     inline void append_to(const exvector & exv, lst & alst) { for(auto item : exv) alst.append(item); }
     inline void append_to(const lst & alst, exvector & exv) { for(auto item : alst) exv.push_back(item); }
+    
     
 }

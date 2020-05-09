@@ -35,6 +35,7 @@ namespace HepLib::IBP {
         int ProblemDimension;
         lst MasterIntegrals;
         lst Rules;
+        lst Pairs;
         
         void Reduce();
         

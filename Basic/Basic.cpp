@@ -22,6 +22,7 @@ namespace HepLib {
     DEFAULT_CTOR(Symbol)
     GINAC_BIND_UNARCHIVER(Symbol);
     IMPLEMENT_HAS(Symbol)
+    IMPLEMENT_ALL(Symbol)
     
     GINAC_IMPLEMENT_REGISTERED_CLASS(Symbol, symbol)
     
@@ -1207,6 +1208,37 @@ namespace HepLib {
         return ex_in.op(index1).op(index2).op(index3);
     }
 
-
+    /**
+     * @brief count the leaf nodes
+     * @param e input expression
+     * @return the total number of leaf nodes
+     */
+    long long int LeafCount(const ex & e) {
+        if(is_a<numeric>(e)) return 1;
+        else if(is_a<symbol>(e)) return 2;
+        else if(e.nops()==1) return 3;
+        long long c = 10;
+        for(auto item : e) c += LeafCount(item);
+        return c;
+    }
+     
+     /**
+      * @brief sort the list in less order, or the reverse
+      * @param ilst input lst, will be updated after call
+      * @param less true for less order
+      */
+     void sort_lst(lst & ilst, bool less) {
+        auto ivec = lst2exvec(ilst);
+        std::sort(ivec.begin(), ivec.end(), [](const auto &a, const auto &b){
+            auto la = LeafCount(a);
+            auto lb = LeafCount(b);
+            if(la<lb) return true;
+            else if(la>lb) return false;
+            else return ex_is_less()(a,b);
+        });
+        auto n = ivec.size();
+        if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
+        else for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[n-1-i];
+     }
 }
 

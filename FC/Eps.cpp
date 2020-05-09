@@ -22,6 +22,7 @@ namespace HepLib::FC {
     DEFAULT_CTOR(Eps)
     GINAC_BIND_UNARCHIVER(Eps);
     IMPLEMENT_HAS(Eps)
+    IMPLEMENT_ALL(Eps)
 
     Eps::Eps(const Vector &x1, const Vector &x2, const Vector &x3, const Vector &x4) : pis{x1,x2,x3,x4} { }
     Eps::Eps(const Vector &x1, const Vector &x2, const Vector &x3, const Index &x4) : pis{x1,x2,x3,x4} { }

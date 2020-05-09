@@ -133,6 +133,7 @@ namespace HepLib::FC {
                 }
                 rep_vs.sort();
                 rep_vs.unique();
+                sort_lst(rep_vs);
                 
                 exmap v2f;
                 symtab st;
@@ -396,7 +397,7 @@ namespace HepLib::FC {
                 plst.append(item);
             } else pref *= item;
         }
-        plst.sort(); // TODO: add unique sort here
+        sort_lst(plst);
         
         if(plst.nops()==0) return pref * ApartIR(1,vars_in);
         
@@ -451,23 +452,24 @@ namespace HepLib::FC {
      * @return sum of coefficient * ApartIR
      */
     ex Apart(const ex &expr_ino, const lst &loops, const lst & extps) {
-        auto expr_in = expr_ino.subs(sp_map);
+        auto expr_in = expr_ino.subs(SP_map);
         auto expr = expr_in;
         lst sps;
         exmap sign;
         for(auto li : loops) {
             sign[SP(li)] = -1;
             for(auto li2: loops) {
-                auto item = SP(li, li2).subs(sp_map);
+                auto item = SP(li, li2).subs(SP_map);
                 if(is_a<Pair>(item)) sps.append(item);
             }
             for(auto ei: extps) {
-                auto item = SP(li, ei).subs(sp_map);
+                auto item = SP(li, ei).subs(SP_map);
                 if(is_a<Pair>(item)) sps.append(item);
             }
         }
         sps.sort();
         sps.unique();
+        sort_lst(sps);
         
         // TODO: maybe, to improve the numerator case
         if(expr.has(coVF(w))) throw Error("Apart: coVF exist.");
@@ -571,7 +573,7 @@ namespace HepLib::FC {
      * @param cut_props cut propagators, default is { }
      * @return nothing returned, the input air_vec will be updated
      */
-    void Apart2FIRE(exvector &air_vec, lst vloops, lst vexts, bool reduce, const lst & cut_props) {
+    void Apart2FIRE(exvector &air_vec, lst loops, lst exts, bool reduce, const lst & cut_props) {
         string wdir = to_string(getpid()) + "_FIRE";
         
         auto air_intg = 
@@ -593,41 +595,13 @@ namespace HepLib::FC {
         
         if(Verbose>0) cout << "  \\--Total Integrals: " << intg.size() << " @ " << now(false) << endl;
         
-        exmap sp2;
-        lst loops;
-        for(auto vp1 : vloops) {
-            auto p1 = ex_to<Vector>(vp1).name;
-            loops.append(p1);
-            for(auto vp2 : vloops) {
-                auto p2 = ex_to<Vector>(vp2).name;
-                sp2[SP(vp1,vp2)] = p1 * p2;
-            }
-            for(auto vp2 : vexts) {
-                auto p2 = ex_to<Vector>(vp2).name;
-                sp2[SP(vp1,vp2)] = p1 * p2;
-            }
-        }
-        for(auto vp1 : vexts) {
-            auto p1 = ex_to<Vector>(vp1).name;
-            for(auto vp2 : vexts) {
-                auto p2 = ex_to<Vector>(vp2).name;
-                auto vsp2 = SP(vp1,vp2);
-                if(is_zero(vsp2-vsp2.subs(sp_map))) sp2[SP(vp1,vp2)] = p1 * p2;
-            }
-        }
-        lst repls, exts;
-        for(auto vp1 : vexts) {
-            auto p1 = ex_to<Vector>(vp1).name;
-            exts.append(p1);
-            for(auto vp2 : vexts) {
-                auto p2 = ex_to<Vector>(vp2).name;
-                auto vsp2 = SP(vp1,vp2);
-                auto vv2 = vsp2.subs(sp_map);
-                if(!is_zero(vsp2-vv2)) repls.append(p1*p2==vv2);
-            }
-        }
-        repls.sort();
-        repls.unique();
+        lst repls;
+        auto sps = sp_map();
+        for(auto kv : sps) repls.append(kv.first == kv.second);
+        
+        lst floops, fexts;
+        for(auto li : loops) floops.append(ex_to<Vector>(li).name);
+        for(auto li : exts) fexts.append(ex_to<Vector>(li).name);
 
         exmap IR2F;
         std::map<ex, FIRE*, ex_is_less> p2f;
@@ -642,22 +616,19 @@ namespace HepLib::FC {
                 ex pc = 0;
                 for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
                 pc += mat(nrow-2,c);
-                pc = pc.subs(sp2);
-                if(Pair::has(pc)) {
-                    cout << "sp2 = " << sp2 << endl;
-                    throw Error("Apart2FIRE: Pair still exist: "+ex2str(pc));
-                }
+                pc = SP2sp(pc);
                 props.append(pc);
-                ns.append(ex(0)-mat(nrow-1,c).subs(sp2)); // note Apart and FIRE convension
+                ns.append(ex(0)-mat(nrow-1,c)); // note Apart and FIRE convension
             }
 
             if(p2f[props]==NULL) {
                 FIRE * f = new FIRE();
                 p2f[props] = f;
                 f->Propagators = props;
-                f->Internal = loops;
-                f->External = exts;
+                f->Internal = floops;
+                f->External = fexts;
                 f->Replacements = repls;
+                f->Pairs = ex_to<lst>(SP2sp(Pair::all(vars)));
                 f->WorkingDir = wdir;
                 f->ProblemNumber = pn++;
                 if(cut_props.nops()>0) {

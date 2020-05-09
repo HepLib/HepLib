@@ -287,6 +287,7 @@ namespace HepLib::SD {
             }
             uf.sort();
             uf.unique();
+            sort_lst(uf);
             for(auto item : uf) xpol *= item;
             if(!xpol.has(vs)) {
                 FunExp.push_back(fe);

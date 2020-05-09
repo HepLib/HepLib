@@ -82,6 +82,7 @@ namespace HepLib::SD {
         }
         xpols.sort();
         xpols.unique();
+        sort_lst(xpols);
         
         if(all_in_one) {
             ex xpol = 1;

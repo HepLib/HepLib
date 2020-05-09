@@ -22,6 +22,7 @@ namespace HepLib::FC {
     DEFAULT_CTOR(Pair)
     GINAC_BIND_UNARCHIVER(Pair);
     IMPLEMENT_HAS(Pair)
+    IMPLEMENT_ALL(Pair)
 
     /**
      * @brief Pair constructor, ordered internally
@@ -212,34 +213,29 @@ namespace HepLib::FC {
     ex & letSP(const ex &p1, const ex &p2) {
         if(!(is_a<Vector>(p1) || is_a<Index>(p1)) || !(is_a<Vector>(p2) || is_a<Index>(p2)))
             throw Error("Invalide arguments for letSP (2).");
-        return sp_map[SP(p1,p2)];
+        return SP_map[SP(p1,p2)];
     }
     ex & letSP(const ex &p) {
         if(!is_a<Vector>(p))
             throw Error("Invalide arguments for letSP (1).");
-        return sp_map[SP(p)];
+        return SP_map[SP(p)];
     }
     void clearSP(const ex &p1, const ex &p2) {
         if(!(is_a<Vector>(p1) || is_a<Index>(p1)) || !(is_a<Vector>(p2) || is_a<Index>(p2)))
             throw Error("Invalide arguments for resetSP (2).");
-        sp_map.erase(SP(p1,p2));
+        SP_map.erase(SP(p1,p2));
     }
     void clearSP(const ex &p) {
         if(!is_a<Vector>(p))
             throw Error("Invalide arguments for resetSP (1).");
-        sp_map.erase(SP(p));
+        SP_map.erase(SP(p));
     }
     void clearSP() {
-        sp_map.clear();
+        SP_map.clear();
     }
     ex SP2sp(const ex & exin) {
-        auto ret = exin.subs(sp_map);
-        lst vecs;
-        for(const_preorder_iterator i = ret.preorder_begin(); i != ret.preorder_end(); ++i) {
-            if(is_a<Vector>(*i)) vecs.append(*i);
-        }
-        vecs.sort();
-        vecs.unique();
+        auto ret = exin.subs(SP_map);
+        lst vecs = Vector::all(ret);
         exmap spmap;
         for(auto vp1 : vecs) {
             for(auto vp2 : vecs) {
@@ -247,6 +243,17 @@ namespace HepLib::FC {
             }
         }
         return ret.subs(spmap);
+    }
+    exmap sp_map() {
+        exmap ret;
+        for(auto kv : SP_map) {
+            auto key = kv.first;
+            if(key.nops()!=2 || !is_a<Vector>(key.op(0)) || !is_a<Vector>(key.op(1))) continue;
+            auto p1 = ex_to<Vector>(key.op(0));
+            auto p2 = ex_to<Vector>(key.op(1));
+            ret[p1.name * p2.name] = kv.second.subs(SP_map);
+        }
+        return ret;
     }
 
 }

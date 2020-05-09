@@ -124,6 +124,7 @@ namespace HepLib::FC {
                     }
                     rep_vs.sort();
                     rep_vs.unique();
+                    sort_lst(rep_vs);
                     
                     exmap v2f;
                     symtab st;
@@ -181,7 +182,7 @@ namespace HepLib::FC {
                         if(is_zero(mat2.op(i).op(i)) && !is_zero(mat2.op(i).op(n))) throw Error("Zero Determinant in TIR.");
                         res += bis.op(i) * mat2.op(i).op(n);
                     }
-                    res = res.subs(sp_map);
+                    res = res.subs(SP_map);
                     return res;
                 } else {
                     int cmin=10000, cmax=-1;

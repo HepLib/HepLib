@@ -26,6 +26,7 @@ namespace HepLib::FC {
     DEFAULT_CTOR(DiracGamma)
     GINAC_BIND_UNARCHIVER(DiracGamma);
     IMPLEMENT_HAS(DiracGamma)
+    IMPLEMENT_ALL(DiracGamma)
         
     return_type_t DiracGamma::return_type_tinfo() const {
         return make_return_type_t<clifford>(rl);

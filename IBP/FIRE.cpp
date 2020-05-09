@@ -33,35 +33,38 @@ namespace HepLib::IBP {
         lst InExternal;
         for(auto ii : Internal) InExternal.append(ii);
         for(auto ii : External) InExternal.append(ii);
-
-        lst sps;
-        for(auto it : Internal) {
-            for(auto ii : InExternal) sps.append(it*ii);
-        }
-        sps.sort();
-        sps.unique();
-        if(sps.nops()<pdim) {
-            lst sps_ext;
-            for(auto it : External) {
-                for(auto ii : External) sps_ext.append(it*ii);
+        
+        if(Pairs.nops()<1) {
+            for(auto it : Internal) {
+                for(auto ii : InExternal) Pairs.append(it*ii);
             }
-            sps_ext.sort();
-            sps_ext.unique();
-            for(auto item : sps_ext) {
-                auto item2 = item.subs(Replacements, subs_options::algebraic);
-                if(is_zero(item-item2)) sps.append(item);
+            Pairs.sort();
+            Pairs.unique();
+            
+            if(Pairs.nops()<pdim) {
+                lst sps_ext;
+                for(auto it : External) {
+                    for(auto ii : External) sps_ext.append(it*ii);
+                }
+                sps_ext.sort();
+                sps_ext.unique();
+                for(auto item : sps_ext) {
+                    auto item2 = item.subs(Replacements, subs_options::algebraic);
+                    if(is_zero(item-item2)) Pairs.append(item);
+                }
+                Pairs.sort();
+                Pairs.unique();
             }
-            sps.sort();
-            sps.unique();
         }
-        if(sps.nops() != pdim) {
-            cout << "sps = " << sps << endl;
+        
+        if(Pairs.nops() != pdim) {
+            cout << "Pairs = " << Pairs << endl;
             cout << "Propagators = " << Propagators << endl;
-            throw Error("FIRE::Reduce: sps failed.");
+            throw Error("FIRE::Reduce: Pairs failed.");
         }
         
         lst sp2s, s2sp, ss;
-        for(auto item : sps) {
+        for(auto item : Pairs) {
             symbol si;
             ss.append(si);
             sp2s.append(item==si);
@@ -85,12 +88,12 @@ namespace HepLib::IBP {
         for(int i=0; i<pdim; i++) ns0.append(0);
         for(auto loop : Internal) {
             lst dp_lst;
-            for(int i=0; i<pdim; i++) {  
+            for(int i=0; i<pdim; i++) { 
                 auto s = ex_to<Symbol>(loop);
                 dp_lst.append(Propagators.op(i).diff(s));
-            }
+            } 
             
-            for(auto iep : InExternal) {
+            for(auto iep : InExternal) { 
                 exmap nc_map;
                 for(int i=0; i<pdim; i++) { // diff on each propagator
                     auto ns = ns0;
@@ -124,7 +127,7 @@ namespace HepLib::IBP {
                 if(ok) IBPs.push_back(nc_map);
             }
         }
-        
+
         auto Variables = gather_symbols(IBPvec);
         
         ostringstream start;
