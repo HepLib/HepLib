@@ -26,8 +26,8 @@ namespace HepLib::IBP {
         lst Propagators;
         lst Integrals;
         lst Cuts;
-        ex UF(const ex & corner) const;        
-        ex VectorDimension = d;
+        int pos_pref = 1;
+        lst mi_pref;
         
         string WorkingDir;
         int ProblemNumber;
@@ -39,9 +39,14 @@ namespace HepLib::IBP {
         
         void Reduce();
         
-        static pair<exmap,lst> FindRules(vector<FIRE> &fs, bool mi=true);
-        static pair<exmap,lst> FindRules(vector<FIRE*> &fs, bool mi=true); 
+        static lst LoopUF(const FIRE & fire, const ex & corner);
+        static pair<exmap,lst> FindRules(vector<FIRE> &fs, bool mi=true, std::function<lst(const FIRE &, const ex &)> uf=LoopUF);
+        static pair<exmap,lst> FindRules(vector<FIRE*> &fs, bool mi=true, std::function<lst(const FIRE &, const ex &)> uf=LoopUF); 
+        
         static int Version;
+        static ex VectorDimension;
+        
+        static lst UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs); 
     private:
         vector<exmap> IBPs;
         

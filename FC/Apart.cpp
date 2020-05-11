@@ -573,7 +573,8 @@ namespace HepLib::FC {
      * @param cut_props cut propagators, default is { }
      * @return nothing returned, the input air_vec will be updated
      */
-    void Apart2FIRE(exvector &air_vec, lst loops, lst exts, bool reduce, const lst & cut_props) {
+    void Apart2FIRE(exvector &air_vec, const lst & loops_exts, const lst & cut_props, 
+        std::function<lst(const FIRE &, const ex &)> uf) {
         string wdir = to_string(getpid()) + "_FIRE";
         
         auto air_intg = 
@@ -599,9 +600,19 @@ namespace HepLib::FC {
         auto sps = sp_map();
         for(auto kv : sps) repls.append(kv.first == kv.second);
         
-        lst floops, fexts;
-        for(auto li : loops) floops.append(ex_to<Vector>(li).name);
-        for(auto li : exts) fexts.append(ex_to<Vector>(li).name);
+        lst loops, exts;
+        bool reduce = false;
+        if(loops_exts.nops()==2) {
+            for(auto li : loops_exts.op(0)) {
+                if(is_a<Vector>(li)) loops.append(ex_to<Vector>(li).name);
+                else loops.append(li);
+            }
+            for(auto li : loops_exts.op(1)) {
+                if(is_a<Vector>(li)) exts.append(ex_to<Vector>(li).name);
+                else exts.append(li);
+            }
+            reduce = true;
+        }
 
         exmap IR2F;
         std::map<ex, FIRE*, ex_is_less> p2f;
@@ -625,8 +636,8 @@ namespace HepLib::FC {
                 FIRE * f = new FIRE();
                 p2f[props] = f;
                 f->Propagators = props;
-                f->Internal = floops;
-                f->External = fexts;
+                f->Internal = loops;
+                f->External = exts;
                 f->Replacements = repls;
                 f->Pairs = ex_to<lst>(SP2sp(Pair::all(vars)));
                 f->WorkingDir = wdir;
@@ -643,7 +654,7 @@ namespace HepLib::FC {
         
         if(Verbose>0) cout << "  \\--Total Problems: " << fvec.size() << " @ " << now(false) << endl;
 
-        auto rules_ints = FIRE::FindRules(fvec, false);
+        auto rules_ints = FIRE::FindRules(fvec, false, uf);
         
         map<int,lst> pn_ints_map;
         for(auto item : rules_ints.second) {
@@ -707,7 +718,7 @@ namespace HepLib::FC {
             for(auto item : fvec_re[i]->Rules) F2F[item.op(0)] = item.op(1);
         }
         
-        auto mi_rules = FIRE::FindRules(fvec_re);
+        auto mi_rules = FIRE::FindRules(fvec_re, true, uf);
         
         auto air_res =
         GiNaC_Parallel(air_vec.size(), [&](int idx)->ex {
@@ -722,7 +733,7 @@ namespace HepLib::FC {
         }, "F2F");
         
         for(auto fp : fvec) delete fp;
-        system(("rm -rf "+wdir).c_str());
+        //system(("rm -rf "+wdir).c_str());
 
         for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];        
     }

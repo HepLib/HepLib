@@ -250,6 +250,8 @@ namespace HepLib::IBP {
         string_replace_all(sss, "=", " = ");
         string_replace_all(sss, ",", ", ");
         
+        string spn = to_string(ProblemNumber);
+        
         // .config
         ostringstream config;
         if(Version>5) config << "#compressor none" << endl;
@@ -266,10 +268,22 @@ namespace HepLib::IBP {
         }
         config << endl;
         config << "#database db" << ProblemNumber << endl;
-        if(Version>5) config << "#pos_pref 5" << endl;
+        if(Version>5 && pos_pref!=1) config << "#pos_pref "<< pos_pref << endl;
+        if(Version>5) config << "#allIBP" << endl;
         if(Version==5) config << "#bucket 20" << endl;
         config << "#start" << endl;
         config << "#problem " << pn << " " << ProblemNumber << ".start" << endl;
+        if(mi_pref.nops()>0) {
+            ostringstream oss;
+            oss << "{";
+            int nn = mi_pref.nops();
+            for(int i=0; i<nn; i++) oss << "{" << pn << "," << mi_pref.op(i) << (i<nn-1 ? "}," : "}");
+            oss << "}";
+            ofstream pref_out(WorkingDir+"/"+spn+".pref");
+            pref_out << oss.str() << endl;
+            pref_out.close();
+            config << "#preferred " << ProblemNumber << ".pref" << endl;
+        }
         config << "#integrals " << ProblemNumber << ".intg" << endl;
         config << "#output " << ProblemNumber << ".tables" << endl;
         
@@ -280,8 +294,6 @@ namespace HepLib::IBP {
             intg << "{" << pn << "," << Integrals[i] << (i<Integrals.nops()-1 ? "}," : "}");
         }
         intg << "}" << endl;
-        
-        string spn = to_string(ProblemNumber);
         
         if(WorkingDir.length()<1) WorkingDir = to_string(getpid());
         system(("mkdir -p "+WorkingDir).c_str());
@@ -328,7 +340,70 @@ namespace HepLib::IBP {
         }
         MasterIntegrals.sort();
         MasterIntegrals.unique();
-        
+     
+        // handle Cuts not equal 1, using #preferred
+        if(Cuts.nops()>0 && mi_pref.nops()<1) {
+            for(auto item : MasterIntegrals) {
+                lst mi = ex_to<lst>(item.op(1));
+                bool isOK = true;
+                for(auto cx : Cuts) {
+                    if(!is_zero(mi.op(ex_to<numeric>(cx).to_int()-1)-1)) {
+                        isOK = false;
+                        break;
+                    }
+                }
+                if(!isOK) {
+                    auto pi = mi;
+                    vector<int> ipos, ineg;
+                    for(int i=0; i<mi.nops(); i++) {
+                        bool isCut = false;
+                        for(auto cx : Cuts) {
+                            if(is_zero(cx-1-i)) {
+                                isCut = true;
+                                break;
+                            }
+                        }
+                        if(isCut) pi.let_op(i)=1;
+                        else if(mi.op(i)<=0) ineg.push_back(i);
+                        else ipos.push_back(i);
+                    }
+                    
+                    lst mi_pref_tmp;
+                    int max = 5;
+                    ex total = pow(numeric(max), ineg.size());
+                    for(numeric in=0; in<total; in++) {
+                        auto cin = in;
+                        auto pi2 = pi;
+                        for(int i=0; i<ineg.size(); i++) {
+                            int re = mod(cin,max).to_int();
+                            pi2.let_op(ineg[i]) = -re;
+                            cin = (cin-re)/max;
+                        }
+                        mi_pref_tmp.append(pi2);
+                    }
+                    
+                    int max2 = 2*max+1;
+                    total = pow(numeric(max2), ipos.size());
+                    for(auto pi : mi_pref_tmp) {
+                        for(numeric in=0; in<total; in++) {
+                            auto cin = in;
+                            auto pi2 = pi;
+                            for(int i=0; i<ipos.size(); i++) {
+                                int re = mod(cin,max2).to_int();
+                                pi2.let_op(ipos[i]) = re-max;
+                                cin = (cin-re)/max2;
+                            }
+                            mi_pref.append(pi2);
+                        }
+                    }
+                }
+            }
+            mi_pref.sort();
+            mi_pref.unique();
+            if(mi_pref.nops()>0) {
+                // another FIRE
+            }
+        }
     }
     
     /**
@@ -336,9 +411,9 @@ namespace HepLib::IBP {
      * @param idx exponent for the internal Propagator
      * @return lst of {U, F}
      */
-    ex FIRE::UF(const ex & idx) const {
+    lst FIRE::LoopUF(const FIRE & fire, const ex & idx) {
         ex ft = 0;
-        int nps = Propagators.nops();
+        int nps = fire.Propagators.nops();
         map<int, vector<int>> ngrp;
         for(int i=0; i<nps; i++) ngrp[ex_to<numeric>(idx.op(i)).to_int()].push_back(i);
         
@@ -347,26 +422,26 @@ namespace HepLib::IBP {
         for(auto kv : ngrp) {
             if(kv.first==0) continue;
             for(auto i : kv.second) {
-                if(!is_zero(idx.op(i)-1)) ft -= iWF(idx.op(i)) * x(nxi) * Propagators.op(i);
-                else ft -= x(nxi) * Propagators.op(i);
+                if(!is_zero(idx.op(i)-1)) ft -= iWF(idx.op(i)) * x(nxi) * fire.Propagators.op(i);
+                else ft -= x(nxi) * fire.Propagators.op(i);
                 pgrp[kv.first].push_back(nxi);
                 nxi++;
             }
         }
 
         ex ut = 1;
-        for(int i=0; i<Internal.nops(); i++) {
+        for(int i=0; i<fire.Internal.nops(); i++) {
             ft = ft.expand();
-            ft = subs(ft, Replacements, subs_options::algebraic);
-            auto t2 = ft.coeff(Internal.op(i),2);
-            auto t1 = ft.coeff(Internal.op(i),1);
-            auto t0 = ft.subs(Internal.op(i)==0);
+            ft = subs(ft, fire.Replacements, subs_options::algebraic);
+            auto t2 = ft.coeff(fire.Internal.op(i),2);
+            auto t1 = ft.coeff(fire.Internal.op(i),1);
+            auto t0 = ft.subs(fire.Internal.op(i)==0);
             ut *= t2;
             if(is_zero(t2)) return lst{0,0};
             ft = normal(t0-t1*t1/(4*t2));
         }
-        ft = ex(0)-subs(ut*ft, Replacements, subs_options::algebraic);
-        ut = subs(ut, Replacements, subs_options::algebraic);
+        ft = subs(ut*ft, fire.Replacements, subs_options::algebraic);
+        ut = subs(ut, fire.Replacements, subs_options::algebraic);
         ex uf = normal(ut*ft);
         
         lst xRepl;
@@ -399,31 +474,139 @@ namespace HepLib::IBP {
     }  
     
     /**
+     * @brief UF function, from FIRE.m
+     * @param idx exponent for the internal Propagator
+     * @return lst of {U, F}
+     */
+    lst FIRE::UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs) {
+        ex ft = 0;
+        int nps = ps.nops();
+        map<int, vector<int>> ngrp;
+        for(int i=0; i<nps; i++) ngrp[ex_to<numeric>(ns.op(i)).to_int()].push_back(i);
+        
+        int nxi=0;
+        map<int, vector<int>> pgrp;
+        for(auto kv : ngrp) {
+            if(kv.first==0) continue;
+            for(auto i : kv.second) {
+                if(!is_zero(ns.op(i)-1)) ft -= iWF(ns.op(i)) * x(nxi) * ps.op(i);
+                else ft -= x(nxi) * ps.op(i);
+                pgrp[kv.first].push_back(nxi);
+                nxi++;
+            }
+        }
+
+        ex ut1 = 1;
+        for(int i=0; i<loops.nops(); i++) {
+            ft = ft.expand();
+            ft = subs(ft, lsubs, subs_options::algebraic);
+            auto t2 = ft.coeff(loops.op(i),2);
+            auto t1 = ft.coeff(loops.op(i),1);
+            auto t0 = ft.subs(loops.op(i)==0);
+            ut1 *= t2;
+            if(is_zero(t2)) return lst{0,0,0};
+            ft = normal(t0-t1*t1/(4*t2));
+        }
+        ft = subs(ut1*ft, lsubs, subs_options::algebraic);
+        ut1 = subs(ut1, lsubs, subs_options::algebraic);
+
+        ex ut2 = 1;
+        for(int i=0; i<tloops.nops(); i++) {
+            ft = ft.expand();
+            ft = subs(ft, tsubs, subs_options::algebraic);
+            auto t2 = ft.coeff(tloops.op(i),2);
+            auto t1 = ft.coeff(tloops.op(i),1);
+            auto t0 = ft.subs(tloops.op(i)==0);
+            ut2 *= t2;
+            if(is_zero(t2)) return lst{0,0,0};
+            ft = normal(t0-t1*t1/(4*t2));
+        }
+        ft = subs(ut2*ft, tsubs, subs_options::algebraic);
+        ut2 = subs(ut2, tsubs, subs_options::algebraic);
+        
+        ex uf = normal(ut1*ut2*ft);
+        
+        lst xRepl;
+        for(int i=0; i<nxi; i++) xRepl.append(x(i));
+                
+        ex_is_less comp;
+        for(auto pi : pgrp) {
+            auto vi = pi.second;
+            int nvi = vi.size();
+            if(nvi<2) continue;
+            ex uf1 = uf;
+            auto xRepl1 = xRepl;
+            Permutations(nvi, [comp,nvi,vi,uf,&uf1,xRepl,&xRepl1](const int *ns) {
+                exmap x2x;
+                for(int i=0; i<nvi; i++) x2x[x(vi[i])]=x(vi[ns[i]]);
+                ex uf2 = uf.subs(x2x);
+                if(comp(uf2,uf1)) {
+                    uf1 = uf2;
+                    xRepl1 = ex_to<lst>(subs(xRepl,x2x));
+                }
+            });
+            uf = uf1;
+            xRepl = xRepl1;
+        }
+        for(int i=0; i<nxi; i++) xRepl.let_op(i) = (x(i)==xRepl.op(i));
+        
+        // z Permuatations
+        if(tloops.nops()>1) {
+            lst zRepl;
+            for(int i=0; i<tloops.nops(); i++) zRepl.append(z(i+1));
+        
+            ex uf1 = uf;
+            auto zRepl1 = zRepl;
+            vector<int> vi;
+            for(int i=0; i<tloops.nops(); i++) vi.push_back(i+1);
+            int nvi = vi.size();
+            Permutations(nvi, [comp,nvi,vi,uf,&uf1,zRepl,&zRepl1](const int *ns) {
+                exmap z2z;
+                for(int i=0; i<nvi; i++) z2z[z(vi[i])]=z(vi[ns[i]]);
+                ex uf2 = uf.subs(z2z);
+                if(comp(uf2,uf1)) {
+                    uf1 = uf2;
+                    zRepl1 = ex_to<lst>(subs(zRepl,z2z));
+                }
+            });
+            uf = uf1;
+            zRepl = zRepl1;
+            for(int i=0; i<zRepl.nops(); i++) zRepl.let_op(i) = (z(i+1)==zRepl.op(i));
+            for(auto item : zRepl) xRepl.append(item);
+        }
+
+        ut1 = normal(ut1.subs(xRepl));
+        ut2 = normal(ut2.subs(xRepl));
+        ft = normal(ft.subs(xRepl));
+        return lst{ut1, ut2, ft};
+    }
+    
+    /**
      * @brief Find Rules for Integrals or Master Integrals
      * @param fs vector of FIRE object
      * @param mi true for Master Integals
      * @return rules replacement and left integrals or left master integrals
      */
-    pair<exmap,lst> FIRE::FindRules(vector<FIRE> & fs, bool mi) {
+    pair<exmap,lst> FIRE::FindRules(vector<FIRE> & fs, bool mi, std::function<lst(const FIRE &, const ex &)> uf) {
         exvector uf_mi_vec;
         if(mi) {
-            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs,uf](int idx)->ex {
                 const FIRE & fi = fs[idx]; // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.MasterIntegrals) {
-                    uf_mi_lst.append(lst{ fi.UF(mi.subs(F(w1,w2)==w2)), mi });
+                    uf_mi_lst.append(lst{ uf(fi,mi.subs(F(w1,w2)==w2)), mi });
                 }
                 return uf_mi_lst;
             }, "MI");
         } else {
-            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs,uf](int idx)->ex {
                 const FIRE & fi = fs[idx]; // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.Integrals) {
-                    uf_mi_lst.append(lst{ fi.UF(mi), F(fi.ProblemNumber,mi) });
+                    uf_mi_lst.append(lst{ uf(fi,mi), F(fi.ProblemNumber,mi) });
                 }
                 return uf_mi_lst;
-            }, "I");
+            }, "FI");
         }
     
         map<ex,lst,ex_is_less> group;
@@ -453,23 +636,23 @@ namespace HepLib::IBP {
      * @param mi true for Master Integals
      * @return rules replacement and left integrals or left master integrals
      */
-    pair<exmap,lst> FIRE::FindRules(vector<FIRE*> & fs, bool mi) {
+    pair<exmap,lst> FIRE::FindRules(vector<FIRE*> & fs, bool mi, std::function<lst(const FIRE &, const ex &)> uf) {
         exvector uf_mi_vec;
         if(mi) {
-            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs,uf](int idx)->ex {
                 const FIRE & fi = *(fs[idx]); // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.MasterIntegrals) {
-                    uf_mi_lst.append(lst{ fi.UF(mi.subs(F(w1,w2)==w2)), mi });
+                    uf_mi_lst.append(lst{ uf(fi,mi.subs(F(w1,w2)==w2)), mi });
                 }
                 return uf_mi_lst;
             }, "MI");
         } else {
-            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs](int idx)->ex {
+            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs,uf](int idx)->ex {
                 const FIRE & fi = *(fs[idx]); // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.Integrals) {
-                    uf_mi_lst.append(lst{ fi.UF(mi), F(fi.ProblemNumber,mi) });
+                    uf_mi_lst.append(lst{ uf(fi,mi), F(fi.ProblemNumber,mi) });
                 }
                 return uf_mi_lst;
             }, "FI");
