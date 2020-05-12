@@ -202,7 +202,21 @@ namespace HepLib {
     inline bool file_exists(const char* fn) {
         return (access(fn,F_OK)!=-1);
     }
-
+    
+    inline ex subs_naive(const ex & expr, const ex & repls) {
+        return subs(expr, repls, subs_options::no_pattern);
+    };
+    inline ex subs_naive(const ex & expr, const exmap & repls) {
+        return subs(expr, repls, subs_options::no_pattern);
+    };
+    
+    inline ex subs_all(const ex & expr, const ex & repls) {
+        return subs(expr, repls, subs_options::algebraic);
+    };
+    inline ex subs_all(const ex & expr, const exmap & repls) {
+        return subs(expr, repls, subs_options::algebraic);
+    };
+    
     /*-----------------------------------------------------*/
     // vector : GiNaC_Parallel
     /*-----------------------------------------------------*/
@@ -234,7 +248,9 @@ namespace HepLib {
     void garWrite(const string &garfn, const map<string, ex> &resMap);
     void garWrite(const string &garfn, const ex & res);
     ex str2ex(const string &expr, symtab stab);
+    ex str2ex(const string &expr);
     lst str2lst(const string &expr, symtab stab);
+    lst str2lst(const string &expr);
     string ex2str(const ex &expr);
     lst exvec2lst(const exvector & exvec);
     exvector lst2exvec(const lst & alst);

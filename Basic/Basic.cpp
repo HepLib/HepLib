@@ -521,6 +521,17 @@ namespace HepLib {
         ex ret = par.Read(expr);
         return ret;
     }
+    
+    /**
+     * @brief convert string to ex expression, using Parser internally
+     * @param expr expression in string format
+     * @return the parsed expression
+     */
+    ex str2ex(const string &expr) {
+        Parser par;
+        ex ret = par.Read(expr);
+        return ret;
+    }
 
     /**
      * @brief convert string to the lst, using Parser internally
@@ -530,6 +541,17 @@ namespace HepLib {
      */
     lst str2lst(const string &expr, symtab stab) {
         Parser par(stab);
+        ex ret = par.Read(expr);
+        return ex_to<lst>(ret);
+    }
+    
+    /**
+     * @brief convert string to the lst, using Parser internally
+     * @param expr a lst in string format
+     * @return the parsed expression
+     */
+    lst str2lst(const string &expr) {
+        Parser par;
         ex ret = par.Read(expr);
         return ex_to<lst>(ret);
     }

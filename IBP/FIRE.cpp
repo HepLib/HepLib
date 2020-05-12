@@ -49,7 +49,7 @@ namespace HepLib::IBP {
                 sps_ext.sort();
                 sps_ext.unique();
                 for(auto item : sps_ext) {
-                    auto item2 = item.subs(Replacements, subs_options::algebraic);
+                    auto item2 = subs_all(item,Replacements);
                     if(is_zero(item-item2)) Pairs.append(item);
                 }
                 Pairs.sort();
@@ -214,7 +214,7 @@ namespace HepLib::IBP {
         
         // handle Cut Propagators
         if(Cuts.nops()>0) {
-            //Rlst.remove_all();  // TODO: check this one
+            Rlst.remove_all();  // TODO: check this one
             for(auto cx : Cuts) {
                 int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cuts
                 lst ns0;
@@ -251,6 +251,7 @@ namespace HepLib::IBP {
         string_replace_all(sss, ",", ", ");
         
         string spn = to_string(ProblemNumber);
+        system(("mkdir -p " + WorkingDir).c_str());
         
         // .config
         ostringstream config;
@@ -343,7 +344,10 @@ namespace HepLib::IBP {
      
         // handle Cuts not equal 1, using #preferred
         if(Cuts.nops()>0 && mi_pref.nops()<1) {
-            for(auto item : MasterIntegrals) {
+            lst cIntegrals;
+            auto mis = MasterIntegrals;
+            MasterIntegrals.remove_all();
+            for(auto item : mis) {
                 lst mi = ex_to<lst>(item.op(1));
                 bool isOK = true;
                 for(auto cx : Cuts) {
@@ -352,7 +356,9 @@ namespace HepLib::IBP {
                         break;
                     }
                 }
-                if(!isOK) {
+                if(isOK) MasterIntegrals.append(item);
+                else {
+                    cIntegrals.append(mi);
                     auto pi = mi;
                     vector<int> ipos, ineg;
                     for(int i=0; i<mi.nops(); i++) {
@@ -369,14 +375,14 @@ namespace HepLib::IBP {
                     }
                     
                     lst mi_pref_tmp;
-                    int max = 5;
+                    int max = 2;
                     ex total = pow(numeric(max), ineg.size());
                     for(numeric in=0; in<total; in++) {
                         auto cin = in;
                         auto pi2 = pi;
                         for(int i=0; i<ineg.size(); i++) {
                             int re = mod(cin,max).to_int();
-                            pi2.let_op(ineg[i]) = -re;
+                            pi2.let_op(ineg[i]) = ex(0)-re;
                             cin = (cin-re)/max;
                         }
                         mi_pref_tmp.append(pi2);
@@ -398,10 +404,30 @@ namespace HepLib::IBP {
                     }
                 }
             }
+            
+            // Reduce again
             mi_pref.sort();
             mi_pref.unique();
             if(mi_pref.nops()>0) {
-                // another FIRE
+                FIRE fire;
+                fire.Propagators = Propagators;
+                fire.Internal = Internal;
+                fire.External = External;
+                fire.Replacements = Replacements;
+                fire.Pairs = Pairs;
+                fire.ProblemNumber = ProblemNumber;
+                fire.Cuts = Cuts;
+                fire.Integrals = cIntegrals;
+                fire.mi_pref = mi_pref;
+                mi_pref.remove_all();
+                fire.WorkingDir = WorkingDir + "_Cuts";
+                fire.Reduce();
+                system(("rm -rf " + WorkingDir + "_Cuts").c_str());
+                for(auto item : fire.MasterIntegrals) MasterIntegrals.append(item);
+                auto rules = Rules;
+                Rules.remove_all();
+cout << fire.Rules << endl;
+                for(auto r : rules) Rules.append(r.op(0)==subs_naive(r.op(1),fire.Rules));
             }
         }
     }
@@ -440,8 +466,8 @@ namespace HepLib::IBP {
             if(is_zero(t2)) return lst{0,0};
             ft = normal(t0-t1*t1/(4*t2));
         }
-        ft = subs(ut*ft, fire.Replacements, subs_options::algebraic);
-        ut = subs(ut, fire.Replacements, subs_options::algebraic);
+        ft = subs_all(ut*ft, fire.Replacements);
+        ut = subs_all(ut, fire.Replacements);
         ex uf = normal(ut*ft);
         
         lst xRepl;
@@ -457,10 +483,10 @@ namespace HepLib::IBP {
             Permutations(nvi, [comp,nvi,vi,uf,&uf1,xRepl,&xRepl1](const int *ns) {
                 exmap x2x;
                 for(int i=0; i<nvi; i++) x2x[x(vi[i])]=x(vi[ns[i]]);
-                ex uf2 = uf.subs(x2x);
+                ex uf2 = subs_naive(uf,x2x);
                 if(comp(uf2, uf1)) {
                     uf1 = uf2;
-                    xRepl1 = ex_to<lst>(subs(xRepl,x2x));
+                    xRepl1 = ex_to<lst>(subs_naive(xRepl,x2x));
                 }
             });
             uf = uf1;
@@ -468,8 +494,8 @@ namespace HepLib::IBP {
         }
 
         for(int i=0; i<nxi; i++) xRepl.let_op(i) = (x(i)==xRepl.op(i));
-        ut = normal(ut.subs(xRepl));
-        ft = normal(ft.subs(xRepl));
+        ut = normal(subs_naive(ut,xRepl));
+        ft = normal(subs_naive(ft,xRepl));
         return lst{ut, ft};
     }  
     
@@ -499,7 +525,7 @@ namespace HepLib::IBP {
         ex ut1 = 1;
         for(int i=0; i<loops.nops(); i++) {
             ft = ft.expand();
-            ft = subs(ft, lsubs, subs_options::algebraic);
+            ft = subs_all(ft, lsubs);
             auto t2 = ft.coeff(loops.op(i),2);
             auto t1 = ft.coeff(loops.op(i),1);
             auto t0 = ft.subs(loops.op(i)==0);
@@ -507,13 +533,13 @@ namespace HepLib::IBP {
             if(is_zero(t2)) return lst{0,0,0};
             ft = normal(t0-t1*t1/(4*t2));
         }
-        ft = subs(ut1*ft, lsubs, subs_options::algebraic);
-        ut1 = subs(ut1, lsubs, subs_options::algebraic);
+        ft = subs_all(ut1*ft, lsubs);
+        ut1 = subs_all(ut1, lsubs);
 
         ex ut2 = 1;
         for(int i=0; i<tloops.nops(); i++) {
             ft = ft.expand();
-            ft = subs(ft, tsubs, subs_options::algebraic);
+            ft = subs_all(ft, tsubs);
             auto t2 = ft.coeff(tloops.op(i),2);
             auto t1 = ft.coeff(tloops.op(i),1);
             auto t0 = ft.subs(tloops.op(i)==0);
@@ -521,8 +547,8 @@ namespace HepLib::IBP {
             if(is_zero(t2)) return lst{0,0,0};
             ft = normal(t0-t1*t1/(4*t2));
         }
-        ft = subs(ut2*ft, tsubs, subs_options::algebraic);
-        ut2 = subs(ut2, tsubs, subs_options::algebraic);
+        ft = subs_all(ut2*ft, tsubs);
+        ut2 = subs_all(ut2, tsubs);
         
         ex uf = normal(ut1*ut2*ft);
         

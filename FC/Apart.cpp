@@ -733,7 +733,7 @@ namespace HepLib::FC {
         }, "F2F");
         
         for(auto fp : fvec) delete fp;
-        //system(("rm -rf "+wdir).c_str());
+        system(("rm -rf "+wdir).c_str());
 
         for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];        
     }
