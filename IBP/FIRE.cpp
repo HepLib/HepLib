@@ -426,10 +426,105 @@ namespace HepLib::IBP {
                 for(auto item : fire.MasterIntegrals) MasterIntegrals.append(item);
                 auto rules = Rules;
                 Rules.remove_all();
-cout << fire.Rules << endl;
                 for(auto r : rules) Rules.append(r.op(0)==subs_naive(r.op(1),fire.Rules));
             }
         }
+    }
+    
+    /**
+     * @brief Sort for all permuations, and return xs w.r.t. 1st permutation
+     * @param expr the input expression, as the sort key, no need of polynormial of xs
+     * @param xs the permutation list
+     * @return 1st of sorted xs
+     */
+    lst FIRE::SortPermutation(const ex & in_expr, const lst & xs) {
+        auto expr = in_expr;
+        bool isPoly = true;
+        lst xRepl;
+        map<ex,vector<int>,ex_is_less> pgrp;
+        if(!expr.is_polynomial(xs)) {
+            expr = expr.normal();
+            expr = expr.numer_denom();
+            if(!expr.is_polynomial(xs)) {
+                isPoly = false;
+                xRepl = xs;
+                for(int i=0; i<xs.nops(); i++) pgrp[-1].push_back(i); // all permuations
+            } else {
+                expr = expr.op(0) * expr.op(1);
+            }
+        }
+        
+        if(isPoly) { // only for polynomials
+            if(expr.has(coCF(w)) || expr.has(coVF(w))) throw Error("SortPermutation: coVF/coCF found.");
+            expr = mma_collect(expr, xs, true, true);
+            if(!is_a<add>(expr)) expr = lst{expr};
+            exvector cvs;
+            for(auto item : expr) {
+                cvs.push_back(lst{
+                    item.subs(lst{coCF(w)==w,coVF(w)==1}), // coefficient
+                    item.subs(lst{coCF(w)==1,coVF(w)==w}) // xs monomial
+                });
+            }
+            sort_vec_by(cvs,0);
+                    
+            int nxi = xs.nops();
+            bool first = true;
+            lst xkey[nxi];
+            lst subkey[nxi];
+            ex clast;
+            for(auto cv : cvs) {
+                ex cc = cv.op(0).expand();
+                ex vv = cv.op(1);
+                if(is_zero(cc)) continue;
+                if(!first && !is_zero(cc-clast)) {
+                    for(int i=0; i<nxi; i++) {
+                        sort_lst(subkey[i]);
+                        for(auto item : subkey[i]) xkey[i].append(item);
+                        subkey[i].remove_all();
+                    }
+                } 
+                first = false;
+                clast = cc;
+                for(int i=0; i<nxi; i++) subkey[i].append(vv.degree(xs.op(i)));
+            }
+            for(int i=0; i<nxi; i++) {
+                sort_lst(subkey[i]);
+                for(auto item : subkey[i]) xkey[i].append(item);
+                subkey[i].remove_all();
+            }
+            
+            exvector key_xi;
+            for(int i=0; i<nxi; i++) {
+                key_xi.push_back(lst{xkey[i], xs.op(i)});
+                pgrp[xkey[i]].push_back(i); // i w.r.t. position of xs
+            }
+            sort_vec_by(key_xi,0);
+            
+            xRepl.remove_all();
+            for(auto item : key_xi) xRepl.append(item.op(1));  
+        }
+        
+        // pgrp - needs to permuation explicitly 
+        expr = in_expr;
+        for(auto pi : pgrp) {
+            auto vi = pi.second;
+            int nvi = vi.size();
+            if(nvi<2) continue;
+            ex expr1 = expr;
+            auto xRepl1 = xRepl;
+            Permutations(nvi, [xs,nvi,vi,expr,&expr1,xRepl,&xRepl1](const int *ns) {
+                exmap x2x;
+                for(int i=0; i<nvi; i++) x2x[xs.op(vi[i])]=xs.op(vi[ns[i]]);
+                ex expr2 = subs_naive(expr,x2x);
+                if(ex_less(expr2,expr1)) {
+                    expr1 = expr2;
+                    xRepl1 = ex_to<lst>(subs_naive(xRepl,x2x));
+                }
+            });
+            expr = expr1;
+            xRepl = xRepl1;
+        }
+        return xRepl;
     }
     
     /**
@@ -440,25 +535,20 @@ cout << fire.Rules << endl;
     lst FIRE::LoopUF(const FIRE & fire, const ex & idx) {
         ex ft = 0;
         int nps = fire.Propagators.nops();
-        map<int, vector<int>> ngrp;
-        for(int i=0; i<nps; i++) ngrp[ex_to<numeric>(idx.op(i)).to_int()].push_back(i);
-        
         int nxi=0;
-        map<int, vector<int>> pgrp;
-        for(auto kv : ngrp) {
-            if(kv.first==0) continue;
-            for(auto i : kv.second) {
-                if(!is_zero(idx.op(i)-1)) ft -= iWF(idx.op(i)) * x(nxi) * fire.Propagators.op(i);
-                else ft -= x(nxi) * fire.Propagators.op(i);
-                pgrp[kv.first].push_back(nxi);
-                nxi++;
-            }
+        lst xs;
+        for(int i=0; i<nps; i++) {
+            if(is_zero(idx.op(i))) continue;
+            if(!is_zero(idx.op(i)-1)) ft -= iWF(idx.op(i)) * x(nxi) * fire.Propagators.op(i);
+            else ft -= x(nxi) * fire.Propagators.op(i);
+            xs.append(x(nxi));
+            nxi++;
         }
-
+        
         ex ut = 1;
         for(int i=0; i<fire.Internal.nops(); i++) {
             ft = ft.expand();
-            ft = subs(ft, fire.Replacements, subs_options::algebraic);
+            ft = subs_all(ft, fire.Replacements);
             auto t2 = ft.coeff(fire.Internal.op(i),2);
             auto t1 = ft.coeff(fire.Internal.op(i),1);
             auto t0 = ft.subs(fire.Internal.op(i)==0);
@@ -470,30 +560,8 @@ cout << fire.Rules << endl;
         ut = subs_all(ut, fire.Replacements);
         ex uf = normal(ut*ft);
         
-        lst xRepl;
-        for(int i=0; i<nxi; i++) xRepl.append(x(i));
-        
-        ex_is_less comp;
-        for(auto pi : pgrp) {
-            auto vi = pi.second;
-            int nvi = vi.size();
-            if(nvi<2) continue;
-            ex uf1 = uf;
-            auto xRepl1 = xRepl;
-            Permutations(nvi, [comp,nvi,vi,uf,&uf1,xRepl,&xRepl1](const int *ns) {
-                exmap x2x;
-                for(int i=0; i<nvi; i++) x2x[x(vi[i])]=x(vi[ns[i]]);
-                ex uf2 = subs_naive(uf,x2x);
-                if(comp(uf2, uf1)) {
-                    uf1 = uf2;
-                    xRepl1 = ex_to<lst>(subs_naive(xRepl,x2x));
-                }
-            });
-            uf = uf1;
-            xRepl = xRepl1;
-        }
-
-        for(int i=0; i<nxi; i++) xRepl.let_op(i) = (x(i)==xRepl.op(i));
+        auto xRepl = SortPermutation(uf,xs);
+        for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
         ut = normal(subs_naive(ut,xRepl));
         ft = normal(subs_naive(ft,xRepl));
         return lst{ut, ft};
@@ -507,19 +575,14 @@ cout << fire.Rules << endl;
     lst FIRE::UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs) {
         ex ft = 0;
         int nps = ps.nops();
-        map<int, vector<int>> ngrp;
-        for(int i=0; i<nps; i++) ngrp[ex_to<numeric>(ns.op(i)).to_int()].push_back(i);
-        
         int nxi=0;
-        map<int, vector<int>> pgrp;
-        for(auto kv : ngrp) {
-            if(kv.first==0) continue;
-            for(auto i : kv.second) {
-                if(!is_zero(ns.op(i)-1)) ft -= iWF(ns.op(i)) * x(nxi) * ps.op(i);
-                else ft -= x(nxi) * ps.op(i);
-                pgrp[kv.first].push_back(nxi);
-                nxi++;
-            }
+        lst xs;
+        for(int i=0; i<nps; i++) {
+            if(is_zero(ns.op(i))) continue;
+            if(!is_zero(ns.op(i)-1)) ft -= iWF(ns.op(i)) * x(nxi) * ps.op(i);
+            else ft -= x(nxi) * ps.op(i);
+            xs.append(x(nxi));
+            nxi++;
         }
 
         ex ut1 = 1;
@@ -533,8 +596,8 @@ cout << fire.Rules << endl;
             if(is_zero(t2)) return lst{0,0,0};
             ft = normal(t0-t1*t1/(4*t2));
         }
-        ft = subs_all(ut1*ft, lsubs);
-        ut1 = subs_all(ut1, lsubs);
+        ft = normal(subs_all(ut1*ft, lsubs));
+        ut1 = normal(subs_all(ut1, lsubs));
 
         ex ut2 = 1;
         for(int i=0; i<tloops.nops(); i++) {
@@ -547,57 +610,22 @@ cout << fire.Rules << endl;
             if(is_zero(t2)) return lst{0,0,0};
             ft = normal(t0-t1*t1/(4*t2));
         }
-        ft = subs_all(ut2*ft, tsubs);
-        ut2 = subs_all(ut2, tsubs);
+        ft = normal(subs_all(ut2*ft, tsubs));
+        ut2 = normal(subs_all(ut2, tsubs));
         
         ex uf = normal(ut1*ut2*ft);
         
-        lst xRepl;
-        for(int i=0; i<nxi; i++) xRepl.append(x(i));
-                
-        ex_is_less comp;
-        for(auto pi : pgrp) {
-            auto vi = pi.second;
-            int nvi = vi.size();
-            if(nvi<2) continue;
-            ex uf1 = uf;
-            auto xRepl1 = xRepl;
-            Permutations(nvi, [comp,nvi,vi,uf,&uf1,xRepl,&xRepl1](const int *ns) {
-                exmap x2x;
-                for(int i=0; i<nvi; i++) x2x[x(vi[i])]=x(vi[ns[i]]);
-                ex uf2 = uf.subs(x2x);
-                if(comp(uf2,uf1)) {
-                    uf1 = uf2;
-                    xRepl1 = ex_to<lst>(subs(xRepl,x2x));
-                }
-            });
-            uf = uf1;
-            xRepl = xRepl1;
-        }
-        for(int i=0; i<nxi; i++) xRepl.let_op(i) = (x(i)==xRepl.op(i));
-        
+        lst xRepl = SortPermutation(uf,xs);
+        for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
+        uf = uf.subs(xRepl);
+
         // z Permuatations
         if(tloops.nops()>1) {
-            lst zRepl;
-            for(int i=0; i<tloops.nops(); i++) zRepl.append(z(i+1));
-        
-            ex uf1 = uf;
-            auto zRepl1 = zRepl;
-            vector<int> vi;
-            for(int i=0; i<tloops.nops(); i++) vi.push_back(i+1);
-            int nvi = vi.size();
-            Permutations(nvi, [comp,nvi,vi,uf,&uf1,zRepl,&zRepl1](const int *ns) {
-                exmap z2z;
-                for(int i=0; i<nvi; i++) z2z[z(vi[i])]=z(vi[ns[i]]);
-                ex uf2 = uf.subs(z2z);
-                if(comp(uf2,uf1)) {
-                    uf1 = uf2;
-                    zRepl1 = ex_to<lst>(subs(zRepl,z2z));
-                }
-            });
-            uf = uf1;
-            zRepl = zRepl1;
-            for(int i=0; i<zRepl.nops(); i++) zRepl.let_op(i) = (z(i+1)==zRepl.op(i));
+            lst zs;
+            auto nzi = tloops.nops();
+            for(int i=0; i<nzi; i++) zs.append(z(i+1));
+            auto zRepl = SortPermutation(uf,zs);
+            for(int i=0; i<nzi; i++) zRepl.let_op(i)=(zRepl.op(i)==z(i+1));
             for(auto item : zRepl) xRepl.append(item);
         }
 

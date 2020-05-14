@@ -39,6 +39,7 @@ namespace HepLib::IBP {
         
         void Reduce();
         
+        static lst SortPermutation(const ex & in_expr, const lst & xs);
         static lst LoopUF(const FIRE & fire, const ex & corner);
         static pair<exmap,lst> FindRules(vector<FIRE> &fs, bool mi=true, std::function<lst(const FIRE &, const ex &)> uf=LoopUF);
         static pair<exmap,lst> FindRules(vector<FIRE*> &fs, bool mi=true, std::function<lst(const FIRE &, const ex &)> uf=LoopUF); 

@@ -464,7 +464,11 @@ namespace HepLib {
     // LeafCount & sort
     /*-----------------------------------------------------*/
     long long int LeafCount(const ex & e);
+    bool ex_less(const ex &a, const ex &b);
     void sort_lst(lst & ilst, bool less=true);
+    void sort_lst_by(lst & ilst, int n, bool less=true);
+    void sort_vec(exvector & ivec, bool less=true);
+    void sort_vec_by(exvector & ivec, int n, bool less=true);
     
     /*-----------------------------------------------------*/
     // Other Functions

@@ -1243,6 +1243,27 @@ namespace HepLib {
         for(auto item : e) c += LeafCount(item);
         return c;
     }
+    
+    bool ex_less(const ex &a, const ex &b) {
+        static ex_is_less comp;
+        if(is_a<numeric>(a) && is_a<numeric>(b)) {
+            if(a!=b) return a<b;
+            else return false;
+        } if(is_a<lst>(a) && is_a<lst>(b)) {
+            if(a.nops()!=b.nops()) return a.nops()<b.nops();
+            auto nn = a.nops();
+            for(int i=0; i<nn; i++) {
+                if(is_zero(a.op(i)-b.op(i))) continue;
+                return ex_less(a.op(i), b.op(i));
+            }
+            return false;
+        } else {
+            auto la = LeafCount(a);
+            auto lb = LeafCount(b);
+            if(la!=lb) la<lb;
+            return comp(a,b);
+        }
+    }
      
      /**
       * @brief sort the list in less order, or the reverse
@@ -1251,16 +1272,66 @@ namespace HepLib {
       */
      void sort_lst(lst & ilst, bool less) {
         auto ivec = lst2exvec(ilst);
-        std::sort(ivec.begin(), ivec.end(), [](const auto &a, const auto &b){
-            auto la = LeafCount(a);
-            auto lb = LeafCount(b);
-            if(la<lb) return true;
-            else if(la>lb) return false;
-            else return ex_is_less()(a,b);
+        std::sort(ivec.begin(), ivec.end(), ex_less);
+        auto n = ivec.size();
+        if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
+        else for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[n-1-i];
+     }
+     
+     /**
+      * @brief sort the list in less order, or the reverse
+      * @param ilst input lst, will be updated after call
+      * @param ki the sort key is at .op(n)
+      * @param less true for less order
+      */
+     void sort_lst_by(lst & ilst, int ki, bool less) {
+        auto ivec = lst2exvec(ilst);
+        std::sort(ivec.begin(), ivec.end(), [ki](const auto &as, const auto &bs){
+            auto a = as.op(ki);
+            auto b = bs.op(ki);
+            return ex_less(a,b);
         });
         auto n = ivec.size();
         if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
         else for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[n-1-i];
      }
+     
+     /**
+      * @brief sort the list in less order, or the reverse
+      * @param ivec input exvector, will be updated after call
+      * @param less true for less order
+      */
+     void sort_vec(exvector & ivec, bool less) {
+        std::sort(ivec.begin(), ivec.end(), [less](const auto &a0, const auto &b0){
+            auto a = a0;
+            auto b = b0;
+            if(!less) {
+                auto tmp = a;
+                a = b;
+                b = tmp;
+            }
+            return ex_less(a,b);
+        });
+     }
+     
+     /**
+      * @brief sort the list in less order, or the reverse
+      * @param ivec input exvector, will be updated after call
+      * @param ki the sort key is at .op(n)
+      * @param less true for less order
+      */
+     void sort_vec_by(exvector & ivec, int ki, bool less) {
+        std::sort(ivec.begin(), ivec.end(), [ki,less](const auto &as, const auto &bs){
+            auto a = as.op(ki);
+            auto b = bs.op(ki);
+            if(!less) {
+                auto tmp = a;
+                a = b;
+                b = tmp;
+            }
+            return ex_less(a,b);
+        });
+     }
+     
 }
 
