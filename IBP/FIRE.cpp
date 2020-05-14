@@ -420,9 +420,9 @@ namespace HepLib::IBP {
                 fire.Integrals = cIntegrals;
                 fire.mi_pref = mi_pref;
                 mi_pref.remove_all();
-                fire.WorkingDir = WorkingDir + "_Cuts";
+                fire.WorkingDir = WorkingDir + "_C"+to_string(ProblemNumber);
                 fire.Reduce();
-                system(("rm -rf " + WorkingDir + "_Cuts").c_str());
+                system(("rm -rf " + fire.WorkingDir).c_str());
                 for(auto item : fire.MasterIntegrals) MasterIntegrals.append(item);
                 auto rules = Rules;
                 Rules.remove_all();
