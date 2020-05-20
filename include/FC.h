@@ -409,6 +409,9 @@ namespace HepLib::FC {
         ex LProj(const ex &expr_in, const lst &pqi);
         
         ex Gamma5(const string pre, int start=1);
+        
+        ex DoPS(lst moms, ex amp, ex q2=1);
+        ex nPS(int n, ex q2=1);
     }
         
 }

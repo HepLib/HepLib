@@ -16,7 +16,6 @@ namespace HepLib::IBP {
     extern const Symbol d;
     
     DECLARE_FUNCTION_1P(a)
-    DECLARE_FUNCTION_2P(F)
 
     class FIRE {
     public:
@@ -51,6 +50,39 @@ namespace HepLib::IBP {
     private:
         vector<exmap> IBPs;
         
+    };
+            
+    class Laporta {
+    private:
+        map<ex,lst,ex_is_less> ccF;
+        map<ex,lst,ex_is_less> ccI;
+        map<lst,ex,ex_is_less> ccFinv;
+        map<ex,lst,ex_is_less> ccImax;
+    public:
+        
+        lst F2lst(ex f);
+        lst I2lst(ex ibp);
+        
+        lst Internal;
+        lst External;
+        lst Replacements;
+        lst Propagators;
+        lst Integrals;
+        lst Cuts;
+        
+        int ProblemDimension;
+        lst MasterIntegrals;
+        lst Rules;
+        lst Pairs;
+                
+        void Prepare(lst loop, lst ext, lst prop, lst repl);
+        void Generate(vector<lst> seeds);
+        void Generate2(lst seed);
+        void Reduce();
+        
+        lst preIBPs;
+        lst IBPs;
+        static ex collectF(ex);
     };
 
 

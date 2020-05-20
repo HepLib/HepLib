@@ -7,6 +7,7 @@
  */
  
 #include "FC.h"
+#include "SD.h"
 
 namespace HepLib::FC {
     using namespace Qgraf;
@@ -328,6 +329,151 @@ namespace HepLib::FC {
             })(expr);
             
             return expr;
+        }
+        
+        /**
+         * @brief n-massless body phase space
+         * https://arxiv.org/abs/hep-ph/0311276v1
+         * @param n the number of massless particles
+         * @return integrated phase space
+         */
+        ex nPS(int n, ex q2) {
+            return pow(2,5-4*n-2*ep+2*n*ep) * pow(Pi,3-2*n-ep+n*ep) *
+                tgamma(1-ep)/(tgamma((n-1)*(1-ep))*tgamma(n*(1-ep))) * pow(q2,n-2+ep-n*ep);
+        }
+        
+        namespace {
+            inline ex V(ex dim) { return 2*pow(Pi,dim/2) / tgamma(dim/2); }
+        }
+        
+        /**
+         * @brief 2-, 3-, 4- massless Phase space
+         * https://arxiv.org/abs/hep-ph/0311276v1
+         * @param q2 refers to q^2, total invarant mass 
+         * @param moms momentum in phase space
+         * @param amp input amplitudes
+         * @return amp * PS2/3/4, for PS4, a list will be returned
+         */
+        ex DoPS(lst moms, ex amp, ex q2) {
+            auto d = 4-2*ep;
+            int nc = moms.nops();
+            if(nc==2) {
+                return pow(2*Pi,2-d) * pow(q2,(d-4)/2) * V(d-1)/pow(2,d-1) * amp;
+            } else if(nc==3) {
+                auto p1 = moms.op(0);
+                auto p2 = moms.op(1);
+                auto p3 = moms.op(2);
+                ex s12 = x(0)*q2;
+                ex s13 = x(1)*q2;
+                ex s23 = x(2)*q2;
+                exmap sp2x;
+                sp2x[SP(p1,p2)]=s12/2;
+                sp2x[SP(p1,p3)]=s13/2;
+                sp2x[SP(p2,p3)]=s23/2;
+                sp2x[SP(p1)]=0;
+                sp2x[SP(p2)]=0;
+                sp2x[SP(p3)]=0;
+                
+                auto ret = pow(2*Pi,3-2*d) * pow(2,-1-d) * pow(q2,(2-d)/2) * V(d-1)*V(d-2) * amp.subs(sp2x);
+                
+                // add (s12 s13 s23)^((d-4)/2) to each F
+                ex ss = s12*s13*s23;
+                ret = MapFunction([ss,d](const ex & e, MapFunction &self)->ex{
+                    if(!e.has(F(w1,w2))) return e;
+                    else if(e.match(F(w1,w2))) {
+                        auto ps = ex_to<lst>(e.op(0));
+                        auto ns = ex_to<lst>(e.op(1));
+                        for(int i=0; i<ns.nops(); i++) ns.let_op(i)=-ns.op(i); // F convention
+                        ps.append(ss);
+                        ns.append((d-4)/2);
+                        return WF(lst{ps,ns,lst{x(0),x(1),x(2)}});
+                    } else return e.map(self);
+                })(ret);
+                
+                return ret;
+            } else if(nc==4) {
+                auto p1 = moms.op(0);
+                auto p2 = moms.op(1);
+                auto p3 = moms.op(2);
+                auto p4 = moms.op(3);
+                
+                ex s12 = x(0)*q2;
+                ex s13 = x(1)*q2;
+                ex s23 = x(2)*q2;
+                ex s14 = x(3)*q2;
+                ex s24 = x(4)*q2;
+                ex s34 = x(5)*q2;
+                exmap sp2x;
+                sp2x[SP(p1)]=0;
+                sp2x[SP(p2)]=0;
+                sp2x[SP(p3)]=0;
+                sp2x[SP(p4)]=0;
+                sp2x[SP(p1,p2)]=s12/2;
+                sp2x[SP(p1,p3)]=s13/2;
+                sp2x[SP(p2,p3)]=s23/2;
+                sp2x[SP(p1,p4)]=s14/2;
+                sp2x[SP(p2,p4)]=s24/2;
+                sp2x[SP(p3,p4)]=s34/2;
+                
+                auto ret = pow(2*Pi,4-3*d) * pow(2,1-2*d) * V(d-1)*V(d-2)*V(d-3) *
+                    pow(q2,3*d/2-4) * amp.subs(sp2x);
+                
+                // add λ(x16,x25,x34)^((d-5)/2) to each F
+                ret = MapFunction([d](const ex & e, MapFunction &self)->ex{
+                    if(!e.has(F(w1,w2))) return e;
+                    else if(e.match(F(w1,w2))) {
+                        auto ps = ex_to<lst>(e.op(0));
+                        auto ns = ex_to<lst>(e.op(1));
+                        for(int i=0; i<ns.nops(); i++) ns.let_op(i)=-ns.op(i); // F convention
+                        ex lambda = pow(x(2),2)*pow(x(3),2) + pow(x(1)*x(4)-x(0)*x(5),2) - 2*x(2)*x(3)*(x(1)*x(4) + x(0)*x(5));
+                        ps.append(-lambda);
+                        ns.append((d-5)/2); 
+                        lst xs;
+                        for(int i=0; i<6; i++) xs.append(x(i));
+                        ex fe = lst{ps,ns,xs};
+                        SD::SecDec::Projectivize(fe,xs);
+                        
+                        // cheng-wu: change x(0,1,2) from 0 to ∞, and rescale
+                        SD::SecDec::Scalelize(fe,x(0),1/x(5));
+                        SD::SecDec::Scalelize(fe,x(1),1/x(4));
+                        SD::SecDec::Scalelize(fe,x(2),1/x(3));
+                        auto fe_vec = SD::SecDec::Binarize(fe, x(0)-x(2));
+                        auto fe0 = fe_vec[0];
+                        auto fe2 = fe_vec[1];
+                        
+                        auto fe0_vec = SD::SecDec::Binarize(fe0, x(0)-x(1));
+                        auto fe2_vec = SD::SecDec::Binarize(fe2, x(2)-x(1));
+                        
+                        SD::SecDec::Scalelize(fe0_vec[0],x(2),pow(x(0)/x(1),2));
+                        // now Θ refers to x(2)>x(1)
+                        fe0_vec[0] = SD::SecDec::Binarize(fe0_vec[0], x(2)-x(1))[0];
+                        
+                        SD::SecDec::Scalelize(fe0_vec[1],x(2),pow(x(1),2)/(x(0)+2*x(1))/x(0));
+                        // now Θ refers to x(2)>x(0)
+                        fe0_vec[1] = SD::SecDec::Binarize(fe0_vec[1], x(2)-x(0))[0];
+
+                        SD::SecDec::Scalelize(fe2_vec[0],x(0),pow(x(2)/x(1),2));
+                        // now Θ refers to x(0)>x(1)
+                        fe2_vec[0] = SD::SecDec::Binarize(fe2_vec[0], x(0)-x(1))[0];
+                        
+                        SD::SecDec::Scalelize(fe2_vec[1],x(0),pow(x(1),2)/(x(2)+2*x(1))/x(2));
+                        // now Θ refers to x(0)>x(2)
+                        fe2_vec[1] = SD::SecDec::Binarize(fe2_vec[1], x(0)-x(2))[0];
+                        
+                        ex xsum = x(3)+x(4)+x(5);
+                        xsum = x(5);
+                        SD::SecDec::Projectivize(fe0_vec[0],xs,xsum);
+                        SD::SecDec::Projectivize(fe0_vec[1],xs,xsum);
+                        SD::SecDec::Projectivize(fe2_vec[0],xs,xsum);
+                        SD::SecDec::Projectivize(fe2_vec[1],xs,xsum);
+                        
+                        return WF(fe0_vec[0]) + WF(fe0_vec[1]) + WF(fe2_vec[0]) + WF(fe2_vec[1]);
+                        
+                    } else return e.map(self);
+                })(ret);
+                
+                return ret;
+            } else throw Error("DoPS: only 2-, 3-, 4- massless Phase Space supported.");
         }
         
     }

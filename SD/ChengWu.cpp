@@ -138,6 +138,8 @@ namespace HepLib::SD {
             exit(1);
         }
         
+        bool pos1 = (ci>0);
+        
         ci = abs(ci);
         cj = abs(cj);
         symbol yi,yj;
@@ -157,7 +159,6 @@ namespace HepLib::SD {
         auto fe1 = fe;
         fe1.let_op(0) = f1;
         fe1.let_op(1) = e1;
-        add_to.push_back(fe1);
         
         // Part II: ci xi-cj xj<0, i.e., i.e., xj>ci/cj xi
         auto f2 = ex_to<lst>(fe.op(0));
@@ -175,7 +176,15 @@ namespace HepLib::SD {
         auto fe2 = fe;
         fe2.let_op(0) = f2;
         fe2.let_op(1) = e2;
-        add_to.push_back(fe2);
+        
+        // return vector 
+        if(pos1) {
+            add_to.push_back(fe1);
+            add_to.push_back(fe2);
+        } else {
+            add_to.push_back(fe2);
+            add_to.push_back(fe1);
+        }
         return add_to;
     }
 

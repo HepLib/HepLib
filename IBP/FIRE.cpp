@@ -11,17 +11,12 @@
 
 namespace HepLib::IBP {
 
-    static ex f_expand(const ex & arg1, const ex & arg2, unsigned options) {
-        return F(arg1,arg2).hold();
-    }
-
     static void a_print(const ex & ex_in, const print_context & c) {
         c.s << "a[" << ex_in << "]";
     }
 
     REGISTER_FUNCTION(a, do_not_evalf_params().print_func<print_dflt>(a_print))
-    REGISTER_FUNCTION(F, do_not_evalf_params().expand_func(f_expand))
-
+    
     /**
      * @brief Do IBP Reduction 
      */
@@ -257,7 +252,7 @@ namespace HepLib::IBP {
         ostringstream config;
         if(Version>5) config << "#compressor none" << endl;
         config << "#threads 1" << endl;
-        config << "#fthreads 4" << endl;
+        config << "#fthreads 1" << endl;
         //config << "#fermat fer64" << endl;
         config << "#variables ";
         bool first = true;

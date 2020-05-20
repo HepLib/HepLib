@@ -15,6 +15,10 @@ namespace HepLib {
     REGISTER_FUNCTION(y, do_not_evalf_params())
     REGISTER_FUNCTION(z, do_not_evalf_params())
     
+    // F function, up to 2 arguments
+    unsigned F1_SERIAL::serial = GiNaC::function::register_new(function_options("F",1).do_not_evalf_params().overloaded(2));
+    unsigned F2_SERIAL::serial = GiNaC::function::register_new(function_options("F",2).do_not_evalf_params().overloaded(2));
+        
     // WF function, up to 5 arguments
     unsigned WF1_SERIAL::serial = GiNaC::function::register_new(function_options("WF",1).do_not_evalf_params().overloaded(5));
     unsigned WF2_SERIAL::serial = GiNaC::function::register_new(function_options("WF",2).do_not_evalf_params().overloaded(5));

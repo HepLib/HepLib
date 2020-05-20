@@ -300,7 +300,7 @@ namespace HepLib::SD {
         int sN = 0;
         int PoleRequested = -5;
         exmap nReplacements;
-        vector<ex> FunExp;
+        vector<ex> FunExp; // each item : { {f1,f2,...}, {n1,n2,...}, { delta_list1, delta_list2 } }
         vector<ex> Integrands;
         vector<ex> expResult;
         SecDecBase *SecDec = NULL;

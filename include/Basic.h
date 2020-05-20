@@ -251,6 +251,8 @@ namespace HepLib {
     ex str2ex(const string &expr);
     lst str2lst(const string &expr, symtab stab);
     lst str2lst(const string &expr);
+    string file2str(string filename);
+    ex file2ex(string filename);
     string ex2str(const ex &expr);
     lst exvec2lst(const exvector & exvec);
     exvector lst2exvec(const lst & alst);
@@ -345,6 +347,19 @@ namespace HepLib {
     DECLARE_FUNCTION_1P(x)
     DECLARE_FUNCTION_1P(y)
     DECLARE_FUNCTION_1P(z)
+    
+    // F wrapper function upto 2 arguments
+    class F1_SERIAL { public: static unsigned serial; };
+    template<typename T1>
+    inline GiNaC::function F(const T1 & p1) {
+        return GiNaC::function(F1_SERIAL::serial, ex(p1));
+    }
+    
+    class F2_SERIAL { public: static unsigned serial; };
+    template<typename T1, typename T2>
+    inline GiNaC::function F(const T1 & p1, const T2 & p2) {
+        return GiNaC::function(F2_SERIAL::serial, ex(p1), ex(p2));
+    }
     
     // WF wrapper function upto 5 arguments
     class WF1_SERIAL { public: static unsigned serial; };

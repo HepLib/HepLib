@@ -568,6 +568,27 @@ namespace HepLib {
     }
     
     /**
+     * @brief read file content to string
+     * @param filename file name
+     * @return the file content in string
+     */
+    string file2str(string filename) {
+        ifstream ifs(filename);
+        string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
+        ifs.close();
+        return ostr;
+    }
+    
+    /**
+     * @brief read file content to ex
+     * @param filename file name
+     * @return the file content in ex
+     */
+    ex file2ex(string filename) {
+        return str2ex(file2str(filename));
+    }
+    
+    /**
      * @brief convert exvector to lst
      * @param exvec input exvector
      * @return lst
