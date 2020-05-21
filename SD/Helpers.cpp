@@ -158,6 +158,10 @@ namespace HepLib::SD {
     ex VEResult(ex expr) {
         return expr.subs(VE(w1,w2)==VEO(w1,w2));
     }
+    
+    ex VEResult2(ex expr) {
+        return expr.subs(VE(w1,w2)==VEO2(w1,w2));
+    }
 
 
     /*-----------------------------------------------------*/

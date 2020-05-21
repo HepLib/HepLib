@@ -1001,7 +1001,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             return;
         }
         
-        if(Verbose > 1) cout << now() << " - SDPrepares: ..." << endl << flush;
+        if(Verbose > 1) cout << "  SDPrepares @ " << now() << endl;
         auto sd_res =
         GiNaC_Parallel(FunExp.size(), [&](int idx)->ex {
             // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
@@ -1105,7 +1105,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             }
         }
 
-        if(Verbose > 1) cout << "  \\--" << Color_HighLight << "Maximum x^-n: (" << ex(0)-min_expn << "+1) / " << (ex(0)-min_expn2) << RESET << endl << flush;
+        if(Verbose > 1) cout << "  \\--" << Color_HighLight << "Maximum x^-n: (" << ex(0)-min_expn << "+1) / " << (ex(0)-min_expn2) << RESET << endl;
 
         int pn = 0;
         vector<ex> ibp_res_vec;
@@ -1344,7 +1344,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             return;
         }
         
-        if(Verbose > 1) cout << now() << " - EpsEpExpands ..." << endl << flush;
+        if(Verbose > 1) cout << "  EpsEpExpands ..." << now() << endl;
         
         if(Verbose > 1) cout << "  \\--Collecting: " << Integrands.size() << " :> " << flush;
         map<ex, ex, ex_is_less> int_map;

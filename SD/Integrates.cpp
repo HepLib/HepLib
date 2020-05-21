@@ -17,7 +17,7 @@ namespace HepLib::SD {
         if(IsZero) return;
         if(Integrator==NULL) Integrator = new HCubature();
                 
-        if(Verbose > 1) cout << now() << " - Integrates ..." << endl << flush;
+        if(Verbose > 1) cout << "  Integrates @ " << now() << endl;
         
         lst lstRE;
         auto pid = getpid();
@@ -126,7 +126,7 @@ namespace HepLib::SD {
             current++;
             if(kid>0 && current != kid) continue;
             if(Verbose > 1) {
-                cout << "\r  \\--Evaluating [" <<current<<"/"<<total<< "] ... " << flush;
+                cout << "\r  \\--Integrating [" <<current<<"/"<<total<< "] " << flush;
             }
             
             unsigned int xsize = 0;
@@ -352,7 +352,7 @@ namespace HepLib::SD {
                             Digits = 3;
                             cout << "\r                                                    \r";
                             if(res.has(NaN)) cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << NaN << endl;
-                            else cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::SD::VEResult(VESimplify(res)) << endl;
+                            else cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::SD::VEResult2(VESimplify(res)) << endl;
                             Digits = oDigits;
                         }
                         

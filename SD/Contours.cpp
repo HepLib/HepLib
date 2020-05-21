@@ -31,7 +31,7 @@ namespace HepLib::SD {
         
         //change 2->1 from GiNaC 1.7.7
         if(FT_N_XN.nops()<1) return;
-        if(Verbose > 1) cout << now() << " - Contours ..." << endl << flush;
+        if(Verbose > 1) cout << "  Contours @ " << now() << endl;
         
         vector<ex> ftnxn_vec;
         //change 1->0 from GiNaC 1.7.7

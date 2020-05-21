@@ -62,6 +62,7 @@ namespace HepLib::SD {
     DECLARE_FUNCTION_2P(FTX)
     DECLARE_FUNCTION_2P(VE)
     DECLARE_FUNCTION_2P(VEO)
+    DECLARE_FUNCTION_2P(VEO2)
     DECLARE_FUNCTION_1P(epsID)
     DECLARE_FUNCTION_2P(CV) // not used internally, for user use only
     extern int VEO_Digits;
@@ -266,6 +267,7 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     ex VESimplify(ex expr, int epN = 0, int epsN = 0);
     ex VEResult(ex expr);
+    ex VEResult2(ex expr); // keep two digits in error
 
     /*-----------------------------------------------------*/
     // ErrMin with HookeJeeves

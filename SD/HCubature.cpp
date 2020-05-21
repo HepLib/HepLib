@@ -120,17 +120,19 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     if((*nrun-self->NEval) >= self->RunPTS) self->NEval = *nrun;
     
     if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1])) || (isinfq(result[0]) || isinfq(result[1]) || isinfq(epsabs[0]) || isinfq(epsabs[1]))) {
-         *nrun = self->MaxPTS + 1979;
-         if(self->LastState>0) self->LastState = -1;
-         if(Verbose>10 && self->RunMAX>0) cout << Color_Error << "     Exit with NaN, LastN=" << self->lastNRUN << RESET << endl;
-         return;
+        self->NEval = *nrun;
+        *nrun = self->MaxPTS + 1979;
+        if(self->LastState>0) self->LastState = -1;
+        if(Verbose>10 && self->RunMAX>0) cout << Color_Error << "     Exit with NaN, LastN=" << self->lastNRUN << RESET << endl;
+        return;
     }
     
     if(self->RunMAX>0 && (epsabs[0] > 1E30*self->EpsAbs || epsabs[1] > 1E30*self->EpsAbs)) {
-         *nrun = self->MaxPTS + 1979;
-         if(self->LastState>0) self->LastState = -1;
-         if(Verbose>10 && self->RunMAX>0) cout << Color_Warn << "     Exit with EpsAbs, LastN=" << self->lastNRUN << RESET << endl;
-         return;
+        self->NEval = *nrun;
+        *nrun = self->MaxPTS + 1979;
+        if(self->LastState>0) self->LastState = -1;
+        if(Verbose>10 && self->RunMAX>0) cout << Color_Warn << "     Exit with EpsAbs, LastN=" << self->lastNRUN << RESET << endl;
+        return;
     }
     
     if((self->LastState == 0) || (epsabs[0]<=2*self->LastAbsErr[0] && epsabs[1]<=2*self->LastAbsErr[1])) {
@@ -146,6 +148,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     bool rExit = (epsabs[0] < self->EpsAbs+1E-50Q) || (epsabs[0] < fabsq(result[0])*self->EpsRel+1E-50Q);
     bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabsq(result[1])*self->EpsRel+1E-50Q);
     if(rExit && iExit && (*nrun)>self->MinPTS) {
+        self->NEval = *nrun;
         *nrun = self->MaxPTS + 1979;
         return;
     }
@@ -154,6 +157,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     ostringstream fn;
     fn << pid << ".int.done";
     if(file_exists(fn.str().c_str())) {
+        self->NEval = *nrun;
         *nrun = self->MaxPTS + 1979;
         ostringstream cmd;
         cmd << "rm " << fn.str();

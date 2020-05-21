@@ -34,7 +34,7 @@ void MB::Initialize(FeynmanParameter fp) {
     auto nsubs = fp.nReplacements;
     auto nReplacements = fp.nReplacements;
     
-    if(Verbose > 1) cout << now() << " - Initialize ..." << endl << flush;
+    if(Verbose > 1) cout << "  Initialize @ " << now() << endl;
     
     ex asgn = 1;
     ex a = 0;

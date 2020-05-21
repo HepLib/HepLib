@@ -84,7 +84,7 @@ ex Laporta::collectF(ex expr) {
 
 void Laporta::Prepare(lst loop, lst ext, lst prop, lst repl) {
 
-    if(Verbose > 0) cout << now() << " - IBP Prepare ..." << endl << flush;
+    if(Verbose > 0) cout << "  IBP Prepare @ " << now() << endl;
 
     lst sps;
     for(auto it : loop) {
@@ -236,7 +236,7 @@ void Laporta::Generate2(lst seed) {
 }
 
 void Laporta::Generate(vector<lst> seeds) {
-    if(Verbose > 0) cout << now() << " - IBP Generate ..." << endl << flush;
+    if(Verbose > 0) cout << " IBP Generate @ " << now() << endl;
 
     IBPs.remove_all();
     lst ns;
