@@ -17,7 +17,7 @@ namespace HepLib::SD {
         if(IsZero) return;
         if(Integrator==NULL) Integrator = new HCubature();
                 
-        if(Verbose > 1) cout << "  Integrates @ " << now() << endl;
+        if(Verbose > 1) cout << Color_HighLight << "  Integrates @ " << now() << RESET << endl;
         
         lst lstRE;
         auto pid = getpid();

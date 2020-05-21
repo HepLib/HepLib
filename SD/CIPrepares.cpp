@@ -20,7 +20,7 @@ namespace HepLib::SD {
         if(IsZero) return;
         if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
-        if(Verbose > 1) cout << "  CIPrepares @ " << now() << endl;
+        if(Verbose > 1) cout << Color_HighLight << "  CIPrepares @ " << now() << RESET << endl;
         auto pid = getpid();
                 
         auto resf =

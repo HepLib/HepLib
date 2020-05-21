@@ -117,7 +117,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";
         cout << endl;
     }
-    if((*nrun-self->NEval) >= self->RunPTS) self->NEval = *nrun;
+    if((*nrun-self->NEval) >= self->RunPTS || self->RunMAX<0) self->NEval = *nrun;
     
     if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1])) || (isinfq(result[0]) || isinfq(result[1]) || isinfq(epsabs[0]) || isinfq(epsabs[1]))) {
         self->NEval = *nrun;
