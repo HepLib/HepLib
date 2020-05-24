@@ -1420,7 +1420,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 auto vc = tmp.subs(coCF(w)==1);
                 tmp = tmp / vc;
                 tmp = tmp.subs(coCF(w)==w);
-                //if(use_CCF) tmp = collect_common_factors(tmp);
+                if(use_CCF) tmp = collect_common_factors(tmp);
                 if(!tmp.has(eps) && !ct.has(eps)) {
                     if(tmp.has(epsID(w)) || ct.has(epsID(w))) {
                         cerr << Color_Error << "EpsEpExpands: epsID should be always multipled by eps!" << RESET << endl;
@@ -1437,7 +1437,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                         }
                         auto pref = mma_series(ct2, ep, epN-di);
                         if(pref.has(vs)) pref = mma_series(pref, vs, sN);
-                        //if(use_CCF) intg = collect_common_factors(intg);
+                        if(use_CCF) intg = collect_common_factors(intg);
                         para_res_lst.append(lst{pref * pow(ep, di), intg});
                     }
                 } else {
@@ -1446,7 +1446,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                     ex stmp = mma_series(tmp, eps, epsN-sctN);
                     for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
                         tmp = stmp.coeff(eps, sdi);
-                        //if(use_CCF) tmp = collect_common_factors(tmp);
+                        if(use_CCF) tmp = collect_common_factors(tmp);
                         if(tmp.has(eps)) {
                             cerr << Color_Error << "EpsEpExpands: eps found @ tmp = " << tmp << RESET << endl;
                             exit(1);
@@ -1474,7 +1474,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                                 }
                                 auto pref = mma_series(ct2, ep, epN-di);
                                 if(pref.has(vs)) pref = mma_series(pref, vs, sN);
-                                //if(use_CCF) intg = collect_common_factors(intg);
+                                if(use_CCF) intg = collect_common_factors(intg);
                                 para_res_lst.append(lst{eps_ci * pref * pow(eps, sdi) * pow(ep, di), intg});
                             }
                         }

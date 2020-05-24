@@ -312,7 +312,7 @@ namespace HepLib::SD {
         string CFLAGS = "";
         bool IsZero = false;
         bool CheckEnd = false;
-        //bool use_CCF = true;
+        bool use_CCF = false;
         bool use_ErrMin = false;
         bool use_las = false;
         bool save_las = false;

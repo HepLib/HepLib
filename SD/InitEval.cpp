@@ -86,7 +86,7 @@ namespace HepLib::SD {
         auto nsubs = fp.nReplacements;
         nReplacements = fp.nReplacements;
         
-        if(Verbose > 1) cout << now() << " - Initialize ..." << endl;
+        if(Verbose > 1) cout << Color_HighLight << "  Initialize @ " << now() << RESET << endl;
         
         ex asgn = 1;
         ex a = 0;
