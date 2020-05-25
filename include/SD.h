@@ -276,12 +276,12 @@ namespace HepLib::SD {
     public:
         static IntegratorBase *Integrator;
         static qREAL *paras;
-        static dREAL *lambda;
         static dREAL err_max;
         static dREAL err_min;
         static long long MaxRND;
         static long long RunRND;
         static MinimizeBase *miner;
+        static dREAL *lambda;
         static dREAL hjRHO;
         static ex lastResErr;
         static dREAL IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2);
@@ -326,7 +326,8 @@ namespace HepLib::SD {
         map<int, numeric> Parameter; // used Contours and Integrates, use PL in Prepares part
         
         // used in Contours
-        dREAL CTMax = 50;
+        bool CTMaxF = true;
+        dREAL CTMax = 50; // CTMax<0 for explict REAL mode
         int CTTryPTS = 3;
         int CTSavePTS = 3;
         

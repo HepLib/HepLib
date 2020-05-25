@@ -12,7 +12,11 @@
 
 namespace HepLib::SD {
     
-    // need Parameter
+    /**
+     * @brief Contours, note that here we need to provide the specific Parameter
+     * @param key the to retrive data from CIPrepares call
+     * @param pkey secondary key, final key will "key-pkey" to store Contours data
+     */
     void SecDec::Contours(const string & key, const string & pkey) {
         if(IsZero) return;
         if(Minimizer==NULL) Minimizer = new MinUit();
@@ -74,16 +78,39 @@ namespace HepLib::SD {
             
             auto ft = ftnxn.op(0);
             ft = ft.subs(plRepl);
-            if(xSign(ft)!=0) {
+            if(xSign(ft)!=0 || CTMax<0) {
                 if(Verbose>5) {
                     cout << "\r                                                    \r";
-                    cout << "     λ: xSign Found!" << endl;
+                    cout << "     λ: xSign!=0 or CTMax<0, back to REAL mode!" << endl;
                 }
                 return lst{ ftnxn.op(1), 1979 }; // ft_id, las
             }
             
-            int nvars = ex_to<numeric>(ftnxn.op(2)).to_int();;
+            int nvars = ex_to<numeric>(ftnxn.op(2)).to_int();
             ostringstream fname;
+            
+            if(CTMaxF) {
+                MinimizeBase::FunctionType fp = NULL;
+                fname.clear();
+                fname.str("");
+                fname << "minF_"<<ftnxn.op(1);
+                fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
+                if(fp==NULL) {
+                    cerr << Color_Error << "Contours: fp==NULL" << RESET << endl;
+                    cout << "dlerror(): " << dlerror() << endl;
+                    exit(1);
+                }
+                
+                dREAL maxf = Minimizer->FindMinimum(nvars, fp, paras);
+                if(maxf>0) {
+                    if(Verbose>5) {
+                        cout << "\r                                                    \r";
+                        cout << "     λ: F>0 is Found, back to REAL mode!" << endl;
+                    }
+                    return lst{ ftnxn.op(1), 1979 }; // ft_id, las
+                }
+            }
+            
             dREAL nlas[nvars];
             if(CT_method==0 || CT_method==1) {
                 dREAL max_df = -1, max_f;

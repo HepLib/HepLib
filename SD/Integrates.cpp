@@ -12,7 +12,12 @@
 
 namespace HepLib::SD {
     
-    // need Parameter
+    /**
+     * @brief Contours, note that here we need to provide the specific Parameter
+     * @param key the to retrive data from CIPrepares call
+     * @param pkey secondary key, final key will "key-pkey" to store Contours data
+     * @param kid only the kid-th will be evaluated and updated the original "key-pkey" data
+     */
     void SecDec::Integrates(const string & key, const string & pkey, int kid) {
         if(IsZero) return;
         if(Integrator==NULL) Integrator = new HCubature();
@@ -134,13 +139,16 @@ namespace HepLib::SD {
             vector<ex> xs, fxs;
             xsize = ex_to<numeric>(item.op(1)).to_int();
             if(xsize<1) {
+                auto oDigits = Digits;
                 Digits = 35;
                 if(kid>0) {
                     lstRE.let_op(kid-1) = VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
+                    Digits = oDigits;
                     break;
                 }
                 ResultError +=  VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
                 lstRE.append(VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl));
+                Digits = oDigits;
                 continue;
             }
             co = item.op(2).subs(plRepl).subs(iEpsilon==0);
@@ -164,6 +172,7 @@ namespace HepLib::SD {
                 }
                 tmp = mma_collect(tmp, ep);
                 for(int i=tmp.ldegree(ep); i<=tmp.degree(ep); i++) {
+                    auto oDigits = Digits;
                     Digits = 50;
                     auto ccRes = tmp.coeff(ep, i).evalf().expand();
                     lst css;
@@ -201,6 +210,7 @@ namespace HepLib::SD {
                         qREAL qnt = CppFormat::ex2q(nt);
                         if(qnt > cmax) cmax = qnt;
                     }
+                    Digits = oDigits;
                 }
             }
             if(cmax<=0) {
@@ -222,7 +232,7 @@ namespace HepLib::SD {
             }
             
             if(hasF && !is_a<lst>(las)) {
-                if(!is_zero(las-ex(1979))) {
+                if(!is_zero(las-ex(1979))) { // the convention for xPositive or explict real mode
                     cerr << Color_Error << "Integrates: something is wrong with the F-term @ ft_n = " << item.op(3) << ", las=" << las << RESET << endl;
                     exit(1);
                 } else {
@@ -455,7 +465,7 @@ namespace HepLib::SD {
                     ErrMin::lambda = oo;
                     ErrMin::err_max = 1E100;
                     auto err_min = ErrMin::err_min;
-                    ErrMin::err_min = err_min < 0 ? -err_min * ex_to<numeric>(cerr).to_double() : err_min/cmax;
+                    ErrMin::err_min = err_min < 0 ? -err_min * CppFormat::ex2q(cerr) : err_min/cmax;
                     ErrMin::RunRND = 0;
                     miner->Minimize(las.nops()-1, ErrMin::IntError, ip);
                     delete miner;

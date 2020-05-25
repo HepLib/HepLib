@@ -186,11 +186,11 @@ namespace HepLib {
                 if(key == "") {
                     cout << "\r  ";
                     for(int pi=0; pi<prtlvl; pi++) cout << "   ";
-                    cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] ... " << flush;
+                    cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] " << flush;
                 } else {
                     cout << "\r  ";
                     for(int pi=0;pi<prtlvl;pi++) cout << "   ";
-                    cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] ... " << flush;
+                    cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] " << flush;
                 }
             }
 
@@ -885,12 +885,12 @@ namespace HepLib {
         expr.find(zeta(w,w), zs);
         
         lst repl;
-        auto dd = Digits;
+        auto oDigits = Digits;
         Digits = 50;
         for(auto zi : zs) {
             repl.append(zi==zi.evalf());
         }
-        Digits = dd;
+        Digits = oDigits;
         return expr.subs(repl);
     }
 
@@ -1354,5 +1354,63 @@ namespace HepLib {
         });
      }
      
+     
+     //-----------------------------------------------------------
+    // XIntegral Class
+    //-----------------------------------------------------------
+    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(XIntegral, basic,
+        print_func<print_dflt>(&XIntegral::print)
+    )
+    
+    DEFAULT_CTOR(XIntegral)
+    GINAC_BIND_UNARCHIVER(XIntegral);
+    IMPLEMENT_HAS(XIntegral)
+    IMPLEMENT_ALL(XIntegral)
+
+    int XIntegral::compare_same_type(const basic &other) const {
+        const XIntegral &o = static_cast<const XIntegral &>(other);
+        auto c = Functions.compare(o.Functions);
+        if(c!=0) return c;
+        c = Exponents.compare(o.Exponents);
+        if(c!=0) return c;
+        c = Deltas.compare(o.Deltas);
+        if(c!=0) return c;
+        return 0;
+    }
+    
+    void XIntegral::print(const print_dflt &c, unsigned level) const {
+        c.s << "∬" << "(" << Functions << ")^(" << Exponents << ")";
+        if(Deltas.nops()>0) c.s << "*𝜹(" << Deltas << ")";
+    }
+    
+    size_t XIntegral::nops() const { return 3; }
+    ex XIntegral::op(size_t i) const {
+        if(i==0) return Functions;
+        else if(i==1) return Exponents;
+        else if(i==1) return Deltas;
+        else throw Error("It is required that i<3.");
+    }
+    ex & XIntegral::let_op(size_t i) {
+        ensure_if_modifiable();
+        if(i==0) return Functions;
+        else if(i==1) return Exponents;
+        else if(i==1) return Deltas;
+        else throw Error("It is required that i<3.");
+    }
+    
+    void XIntegral::archive(archive_node & n) const {
+        inherited::archive(n);
+        n.add_ex("Functions", Functions);
+        n.add_ex("Exponents", Exponents);
+        n.add_ex("Deltas", Deltas);
+    }
+    
+    void XIntegral::read_archive(const archive_node& n, lst& sym_lst) {
+        inherited::read_archive(n, sym_lst);
+        n.find_ex("Functions", Functions, sym_lst);
+        n.find_ex("Exponents", Exponents, sym_lst);
+        n.find_ex("Deltas", Deltas, sym_lst);
+    }
+    
 }
 

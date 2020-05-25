@@ -284,6 +284,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 cpi /= 2;
             }
             bool OK = true;
+            auto oDigits = Digits;
             Digits = 50;
             for(auto polist : polists) {
                 lst sdList;
@@ -307,6 +308,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 }
                 if(!OK) break;
             }
+            Digits = oDigits;
 
             if(OK) {
                 vector<ex> res;
@@ -332,14 +334,16 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         lst const polist = ex_to<lst>(po_ex.op(0));
         lst const exlist = ex_to<lst>(po_ex.op(1));
         lst sdList;
+        auto oDigits = Digits;
+        Digits = 50;
         for(int i=0; i<polist.nops(); i++) {
             auto tmp = polist.op(i);
             auto ntmp = exlist.op(i);
             if(!tmp.subs(lst{x(w)==0, y(w)==0}).normal().is_zero()) continue;
-            Digits = 50;
             if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
             sdList.append(tmp);
         }
+        Digits = oDigits;
 
         vector<exmap> vmap = SecDec->x2y(sdList, all_in_one);
         if(!VerifySD(vmap)) {
@@ -416,11 +420,13 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                     cerr << Color_Error << "DS: tmp = " << tmp << "tmp is NOT a numeric." << RESET << endl;
                     exit(1);
                 }
+                auto oDigits = Digits;
                 Digits = 50;
                 if( tmp.evalf() < 0 ) {
                     ct = exp(-I * Pi * exlist.op(1));
                     fsgin = -1;
                 }
+                Digits = oDigits;
                 ft = 1;
             }
 
@@ -485,6 +491,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                             auto tr = item.subs(nReplacements).subs(lst{
                                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                             });
+                            auto oDigits = Digits;
                             Digits = 50;
                             if(!is_a<numeric>(tr.evalf())) {
                                 cerr << Color_Error << "DS: not numeric - item: " << tr << " ; " << item << RESET << endl;
@@ -497,6 +504,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                             } else {
                                 ct *= item;
                             }
+                            Digits = oDigits;
                         } else {
                             rem *= item;
                         }

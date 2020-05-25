@@ -492,4 +492,24 @@ namespace HepLib {
     inline void append_to(const lst & alst, exvector & exv) { for(auto item : alst) exv.push_back(item); }
     
     
+    //-----------------------------------------------------------
+    // XIntegral Class, preface to SecDec
+    //-----------------------------------------------------------
+    class XIntegral : public basic {
+    GINAC_DECLARE_REGISTERED_CLASS(XIntegral, basic)
+    public:
+        ex Functions;
+        ex Exponents;
+        ex Deltas;
+        size_t nops() const override;
+        ex op(size_t i) const override;
+        ex & let_op(size_t i) override;
+        void print(const print_dflt &c, unsigned level = 0) const;
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n, lst& sym_lst) override;
+        static bool has(const ex &e);
+        static lst all(const ex &e);
+    };
+    GINAC_DECLARE_UNARCHIVER(XIntegral);
+    
 }

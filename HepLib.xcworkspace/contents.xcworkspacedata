@@ -28,4 +28,7 @@
    <FileRef
       location = "group:FC">
    </FileRef>
+   <FileRef
+      location = "group:Examples">
+   </FileRef>
 </Workspace>

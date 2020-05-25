@@ -12,6 +12,11 @@
 
 namespace HepLib::SD {
 
+    /**
+     * @brief PRank from FIESTA
+     * @param m input matrix
+     * @return PRank for matrix
+     */
     int SecDec::PRank(matrix m) {
         int nr = m.rows();
         int nc = m.cols();
@@ -28,7 +33,12 @@ namespace HepLib::SD {
         return pr;
     }
 
-    // PExpand from asy2.1.1.m
+    /**
+     * @brief PExpand from asy2.1.1.m
+     * @param xpol polynomial
+     * @param delta has delta or not
+     * @return PExpand result
+     */
     ex SecDec::PExpand(ex xpol, bool delta) {
         lst nlst;
         ex pol = collect_common_factors(xpol.expand());
@@ -134,7 +144,9 @@ namespace HepLib::SD {
         return ret;
     }
 
-    
+    /**
+     * @brief DoAsy 
+     */
     void SecDec::DoAsy() {
         
         while(true) {
@@ -386,6 +398,9 @@ namespace HepLib::SD {
         }
     }
     
+    /**
+     * @brief MB
+     */
     void SecDec::MB() {
         for(auto &fe : FunExp) {
             if(fe.has(vz)) continue; // 2nd entrance

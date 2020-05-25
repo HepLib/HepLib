@@ -12,6 +12,11 @@
 
 namespace HepLib::SD {
 
+    /**
+     * @brief Prepare for the Contours and Integrates calls
+     * .so will be generated, for more detailed exported function, check below
+     * @param key used to save intermidete result
+     */
     void SecDec::CIPrepares(const string & key) {
         if(expResult.size()<1) {
             IsZero = true;
@@ -519,6 +524,13 @@ namespace HepLib::SD {
             ft.subs(plRepl).subs(czRepl).print(cppL);
             ofs << ";" << endl;
             ofs << "return -zf.imag()/x[xn-1];" << endl; // find max image part, check with 0
+            ofs << "}" << endl;
+            ofs << endl;
+            
+            // for Minimization of F
+            ofs << "extern \"C\" " << endl;
+            ofs << "dREAL minF_"<<ft_n<<"(const int xn, const dREAL* x, const dREAL *pl, const dREAL *las_in) {" << endl;
+            ofs << "return FL_"<<ft_n<<"(x,pl);" << endl;
             ofs << "}" << endl;
             ofs << endl;
             

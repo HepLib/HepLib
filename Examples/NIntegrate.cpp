@@ -223,7 +223,7 @@ int main(int argc, char** argv) {
         for(int i=1; i<=nmi; i++) {
             if(in>0 && i!=in) continue;
             try {
-                cout << "Preparing " << i << "/" << nmi << endl;
+                cout << WHITE << "-" << i << "/" << nmi << " :" << RESET << endl;
                 Prepare(i);
             } catch(exception& e) {
                 cout << e.what() << endl;
@@ -250,7 +250,7 @@ int main(int argc, char** argv) {
             stringstream ss;
             ss << SD_path << "/" << i << ".ci.gar";
             if(!file_exists(ss.str().c_str())) continue;
-            cout << "Contouring - " << i << "/" << nmi << endl;
+            cout << WHITE << "-" << i << "/" << nmi << " :" << RESET << endl;
             Contour(i);
             cout << endl;
         }
@@ -265,7 +265,7 @@ int main(int argc, char** argv) {
             stringstream ss;
             ss << SD_path << "/" << i << ".ci.gar";
             if(!file_exists(ss.str().c_str())) continue;
-            cout << "Integrating - " << i << "/" << nmi << endl;
+            cout << WHITE << "-" << i << "/" << nmi << " :" << RESET << endl;
             auto res = Integrate(i, ii);
             fRes += res;
             cout << endl;
@@ -330,8 +330,8 @@ int main(int argc, char** argv) {
         }
         
         fRes = VESimplify(fRes, epN);
-        cout << endl << "Final Result"
-        if(in>0) cout << "[ n=" << in << " ]";
+        cout << endl << "Final Result";
+        if(in>0) cout << " [ n=" << in << " ]";
         cout << ":" << endl;
         cout << "------" << endl;
         cout << fRes << endl;
@@ -371,9 +371,8 @@ int main(int argc, char** argv) {
                 max_index = i;
             }
             if(ae && abs(tmp)>ee) {
-                cout << "./NLoop -n " << arg_n << " -a i -i " << (i+1) << endl;
                 cout << "# " << VESimplify(relst.op(i).expand().coeff(ep, epN)) << endl;
-                cout << endl;
+                cout << "./NIntegrate -n " << arg_n << " -a i -i " << (i+1) << endl;
             }
         }
         cout << "# Max Index: " << max_index+1 << " / " << relst.nops() << endl;

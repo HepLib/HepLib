@@ -66,7 +66,7 @@ dREAL MinUit::FindMinimum(int nvars, FunctionType func, dREAL *PL, dREAL *LAS, d
     else for(int i=0; i<nvars; i++) lb[i] = 0;
     
     double step[nvars];
-    for(int i=0; i<nvars; i++) step[i] = 5E-3 * (ub[i]-lb[i]);
+    for(int i=0; i<nvars; i++) step[i] = 1E-3 * (ub[i]-lb[i]);
     
     if(SavePTS<=0) SavePTS = 3;
     if(TryPTS<=0) TryPTS= 3;
@@ -171,7 +171,6 @@ void MinUit::ForceStop() {
 
 void MinUit::Minimize(int nvars, FunctionType func, dREAL *ip) {
     try {
-        omp_set_num_threads(1);
         FCN fcn(func, NULL, NULL);
         ROOT::Minuit2::MnUserParameters upar;
         for(int i=0; i<nvars; i++) {

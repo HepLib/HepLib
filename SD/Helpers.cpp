@@ -81,6 +81,7 @@ namespace HepLib::SD {
     // VE
     /*-----------------------------------------------------*/
     ex VESimplify(ex expr, int epN, int epsN) {
+        auto oDigits = Digits;
         Digits = 50;
         auto expr1 = expr.evalf();
         if(expr1.has(eps)) expr1 = mma_series(expr1, eps, epsN);
@@ -150,6 +151,7 @@ namespace HepLib::SD {
             }
         }}
         
+        Digits = oDigits;
         ret = ret.subs(lst{iWF(w)==w});
         ret = ret.subs(lst{VE(0,0)==0});
         return ret.collect(lst{eps,ep}, true);
