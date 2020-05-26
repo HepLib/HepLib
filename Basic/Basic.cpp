@@ -145,7 +145,7 @@ namespace HepLib {
                 for(int pi=0;pi<prtlvl;pi++) cout << "   ";
                 cout << "\\--Evaluating ";
                 if(key != "") cout << Color_HighLight << key << RESET << " ";
-                cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] ... " << flush;
+                cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] " << flush;
             }
             
             auto pid = fork();

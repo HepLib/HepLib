@@ -67,7 +67,8 @@ namespace HepLib::FC {
          * @return the corresponding spin projector
          */
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j) {
-            return Matrix(SpinProj(io,s,p,pb,m,e,mu), Qgraf::DI(j), Qgraf::DI(i));
+            if(io==IO::Out) return Matrix(SpinProj(io,s,p,pb,m,e,mu), Qgraf::DI(j), Qgraf::DI(i));
+            else return Matrix(SpinProj(io,s,p,pb,m,e,mu), Qgraf::DI(i), Qgraf::DI(j));
         }
         
         /**
@@ -231,12 +232,10 @@ namespace HepLib::FC {
          * @brief S/P/D Wave Project
          * @param expr_in the input expression
          * @param pqi the lst { p, q, i1,i2,i3,... }
+         * @param prefix the prefix used in the uncontract dumy index
          * @return the LProj result
          */
-        ex LProj(const ex &expr_in, const lst &pqi) {
-            static int lproj=0;
-            static string prefix = "lproj";
-            
+        ex LProj(const ex &expr_in, const lst &pqi, string prefix) {
             ex p = pqi.op(0);
             ex q = pqi.op(1);
             
@@ -247,37 +246,46 @@ namespace HepLib::FC {
             }
             
             // Un-Contract
-            auto expr = MapFunction([q](const ex &e, MapFunction &self)->ex{
-                if(!e.has(q)) return e;
-                else if(is_a<Pair>(e)) {
-                    if(is_a<Index>(e.op(1))) return e;
-                    Index idx(prefix+to_string(lproj++));
-                    return SP(e.op(0), idx) * SP(e.op(1), idx);
-                } else if(is_a<Eps>(e)) {
-                    Index idx(prefix+to_string(lproj++));
-                    auto pis0 = ex_to<Eps>(e).pis;
-                    ex pis[4];
-                    for(int i=0; i<3; i++) {
-                        pis[i] = pis0[i];
-                        if(is_zero(pis[i]-q)) {
-                            pis[i] = idx;
+            auto expr = expr_in.subs(SP_map);
+            expr = mma_collect(expr, q);
+            if(!is_a<add>(expr)) expr = lst{expr};
+            auto expr_tmp = expr;
+            expr = 0;
+            for(auto item : expr_tmp) {
+                int lproj=0;
+                expr += MapFunction([&lproj,prefix,q](const ex &e, MapFunction &self)->ex{
+                    if(!e.has(q)) return e;
+                    else if(is_a<Pair>(e)) {
+                        if(is_a<Index>(e.op(1))) return e;
+                        Index idx(prefix+to_string(lproj++));
+                        return SP(e.op(0), idx) * SP(e.op(1), idx);
+                    } else if(is_a<Eps>(e)) {
+                        Index idx(prefix+to_string(lproj++));
+                        auto pis0 = ex_to<Eps>(e).pis;
+                        ex pis[4];
+                        for(int i=0; i<3; i++) {
+                            pis[i] = pis0[i];
+                            if(is_zero(pis[i]-q)) {
+                                pis[i] = idx;
+                            }
                         }
-                    }
-                    return LC(pis[0], pis[1], pis[2], pis[3]) * SP(q, idx);
-                } else if(is_a<DiracGamma>(e)) {
-                    Index idx(prefix+to_string(lproj++));
-                    auto g = ex_to<DiracGamma>(e);
-                    return DiracGamma(idx, g.rl) * SP(g.pi, idx);
-                } else if (e.match(TR(w))) {
-                    auto ret = e.op(0).map(self);
-                    ret = mma_collect(ret, q, true);
-                    ret = ret.subs(coCF(w)==TR(w));
-                    return ret;
-                } else return e.map(self);
-                throw Error("something should be wrong here");
-                return 0;
-            })(expr_in);
+                        return LC(pis[0], pis[1], pis[2], pis[3]) * SP(q, idx);
+                    } else if(is_a<DiracGamma>(e)) {
+                        Index idx(prefix+to_string(lproj++));
+                        auto g = ex_to<DiracGamma>(e);
+                        return DiracGamma(idx, g.rl) * SP(g.pi, idx);
+                    } else if (e.match(TR(w))) {
+                        auto ret = e.op(0).map(self);
+                        ret = mma_collect(ret, q, true);
+                        ret = ret.subs(coCF(w)==TR(w));
+                        return ret;
+                    } else return e.map(self);
+                    throw Error("something should be wrong here");
+                    return 0;
+                })(item);
+            }
 
+            expr = expr.subs(SP_map);
             expr = mma_collect(expr, q, false, true);
 
             expr = MapFunction([q,p,pqi](const ex &e, MapFunction &self)->ex{
@@ -287,6 +295,9 @@ namespace HepLib::FC {
                         for(auto item : e.op(0)) is.push_back(ex_to<Index>(item.op(1)));
                     } else if(is_a<Pair>(e.op(0))) {
                         is.push_back(ex_to<Index>(e.op(0).op(1)));
+                    } else if(e.op(0).match(pow(w,2)) && is_a<Pair>(e.op(0).op(0))) {
+                        is.push_back(ex_to<Index>(e.op(0).op(0).op(1)));
+                        is.push_back(ex_to<Index>(e.op(0).op(0).op(1)));
                     } else if(is_zero(e.op(0)-1) && pqi.nops()==2) return 1;
                     else {
                         cout << e.op(0) << endl;
@@ -328,6 +339,7 @@ namespace HepLib::FC {
                 return e.map(self);
             })(expr);
             
+            expr = expr.subs(SP_map);
             return expr;
         }
         

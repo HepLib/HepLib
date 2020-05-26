@@ -189,6 +189,7 @@ namespace HepLib::FC::Qgraf {
             std::map<ex,int,ex_is_less> vtex_map; // vertex option, only once
             for(auto l : lines) {
                 lst ll = lst{l.op(0), l.op(1)};
+                bool isExt = (is_a<numeric>(ll.op(0)) && ll.op(0)<0) || (is_a<numeric>(ll.op(1)) && ll.op(1)<0);
                 ll.sort();
                 bend_map[ll] = bend_map[ll] + 1;
                 
@@ -206,7 +207,14 @@ namespace HepLib::FC::Qgraf {
 
                 out << "  --[";
                 auto f = l.op(2).op(0);
-                if(LineTeX[f].length()>0) out << LineTeX[f];
+                if(LineTeX[f].length()>0) {
+                    if(!isExt) out << LineTeX[f];
+                    else {
+                        auto cpos = LineTeX[f].find(", edge");
+                        if(cpos>0) out << LineTeX[f].substr(0,cpos);
+                        else out << LineTeX[f];
+                    }
+                }
                 if(bend_map[ll]>2) out << ",half right";
                 else if(bend_map[ll]>1) out << ",half left";
                 if(is_zero(l.op(0)-l.op(1))) out << ",loop,distance=2cm";

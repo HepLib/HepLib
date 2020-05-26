@@ -283,6 +283,7 @@ namespace HepLib::FC {
     }
     
     ex MatrixContract(const ex & expr_in) {
+        if(!expr_in.has(Matrix(w1,w2,w3))) return expr_in;
         if(expr_in.has(coVF(w))) throw Error("MatrixContract: coVF found in expr_in.");
         
         auto expr = expr_in.subs(pow(Matrix(w1,w2,w3),2)==Matrix(w1,w2,w3)*Matrix(w1,w3,w2));

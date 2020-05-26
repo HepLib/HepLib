@@ -11,7 +11,22 @@
 namespace HepLib::FC {
 
     static ex expl_TR_diff(const ex & arg, const symbol & s) {
-        return TR(arg.diff(s));
+        auto ret = arg.diff(s);
+        if(!is_a<add>(ret)) return TR(ret);
+        ex res = 0;
+        for(auto item : ret) {
+            auto num_den = numer_denom(collect_common_factors(item));
+            if(is_a<mul>(num_den.op(0))) {
+                ex c=1;
+                ex v=1;
+                for(auto it : num_den.op(0)) {
+                    if(!Index::has(it) && !DiracGamma::has(it)) c *= it;
+                    else v *= it;
+                }
+                res += c*TR(v)/num_den.op(1);
+            } else res += TR(num_den.op(0))/num_den.op(1);
+        }
+        return res;
     }
     
     //-----------------------------------------------------------

@@ -74,7 +74,7 @@ namespace HepLib::FC {
         
         // SU(N) : Phys.Rev., D14, 1536 (1976)
         string init_script = R"EOF(
-CFunction pow,sqrt,Pi,gamma;
+CFunction pow,sqrt,Pi,gamma,conjugate;
 Tensor T,f(antisymmetric);
 Tensor colTp;
 Symbols I2R,NF,NA,D,I;
@@ -113,7 +113,7 @@ Dimension NF;
     static map<pid_t, bool> init_map;
     
     namespace {
-    ex runform(const ex &expr_in, bool verb) {
+    ex runform(const ex &expr_in, int verb) {
         if((init_map.find(PID)==init_map.end()) || !init_map[PID]) { // init section
             ostringstream ss;
             ss << init_script << endl;
@@ -133,14 +133,17 @@ Dimension NF;
             } else if(is_a<symbol>(*i)) sym_lst.append(*i);
             else if(is_a<GiNaC::function>(*i)) {
                 static vector<string> fun_vec = { 
-                    "TR", "sin", "cos"
+                    "TR", "sin", "cos", "conjugate"
                 };
                 auto func = ex_to<GiNaC::function>(*i).get_name();
                 bool ok = false;
                 for(auto fi : fun_vec) {
                     if(fi==func) { ok = true; break; }
                 }
-                if(!ok) throw Error("runform: Functions not defined in FORM: "+func);
+                if(!ok) {
+                    cout << (*i) << endl;
+                    throw Error("runform: Functions not defined in FORM: "+func);
+                }
             }
         }
         vec_lst.sort(); vec_lst.unique();
@@ -223,7 +226,7 @@ Dimension NF;
                 ff << "contract 0;" << endl;
                 ff << ".sort" << endl;
                 
-                if(verb) {
+                if(verb>0) {
                     cout << "--------------------------------------" << endl;
                     cout << "Form Script @ " << c << " / " << total << endl;
                     cout << "--------------------------------------" << endl;
@@ -235,7 +238,7 @@ Dimension NF;
                 string_replace_all(script, "cos(", "cos_(");
                 auto otmp = form_proc.Execute(script);
             
-                if(verb) {
+                if(verb>1) {
                     cout << "--------------------------------------" << endl;
                     cout << "Form Output @" << c << " / " << total << endl;
                     cout << "--------------------------------------" << endl;
@@ -261,7 +264,7 @@ Dimension NF;
             ff << "contract 0;" << endl;
             ff << ".sort" << endl;
             
-            if(verb) {
+            if(verb>0) {
                 cout << "--------------------------------------" << endl;
                 cout << "Form Script:" << endl;
                 cout << "--------------------------------------" << endl;
@@ -274,7 +277,7 @@ Dimension NF;
             ss.clear();
             ss.str("");
             
-            if(verb) {
+            if(verb>1) {
                 cout << "--------------------------------------" << endl;
                 cout << "Form Output:" << endl;
                 cout << "--------------------------------------" << endl;
@@ -319,12 +322,12 @@ Dimension NF;
      * @param all true for sending all into form, otherwise will use mma_collect w.r.t. Index/DiracGamma
      * @return result with index contract, trace performed, etc.
      */
-    ex form(const ex &expr, bool all, bool verb) {
+    ex form(const ex &expr, bool all, int verb) {
         if(all || is_a<lst>(expr)) return runform(expr, verb);
         
         if(expr.has(coVF(w))) throw Error("form error: expr has coVF already.");
         auto ret = mma_collect(expr.subs(SP_map), [](const ex & e)->bool {
-            return Index::has(e) || DiracGamma::has(e);
+            return e.has(TR(w)) || SUNT::has(e) || SUNF::has(e) || Index::has(e) || DiracGamma::has(e);
         },false,true);
         
         lst to_lst;

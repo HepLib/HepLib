@@ -85,7 +85,9 @@ namespace HepLib {
     //----------------------------------------
     FC::Qgraf::Process::_init::_init() {
         auto q = Symbol("q",true,false);
+        auto qbar = Symbol("qbar",true,false);
         auto gh = Symbol("gh",true,false);
+        auto ghbar = Symbol("ghbar",true,false);
         auto Q = Symbol("Q",true,false);
         auto g = Symbol("g",true,false);
         auto Qbar = Symbol("Qbar",true,false);
@@ -94,7 +96,9 @@ namespace HepLib {
         auto e = Symbol("e",true,false);
         
         LineTeX[q] = "fermion, edge label=q";
+        LineTeX[qbar] = "anti fermion, edge label=q";
         LineTeX[gh] = "ghost, edge label=$\\chi$"; 
+        LineTeX[ghbar] = "ghost, edge label=$\\chi$"; 
         LineTeX[Q] = "fermion, edge label=Q";
         LineTeX[g] = "gluon, edge label=g";
         LineTeX[Qbar] = "anti fermion, edge label=$\\bar{Q}$";

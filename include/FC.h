@@ -250,7 +250,7 @@ namespace HepLib::FC {
     ex GAS(ex expr, unsigned rl=0);
     
     // Form, TIR, Apart
-    ex form(const ex &expr, bool all_in_one=true, bool verb=false);
+    ex form(const ex &expr, bool all_in_one=true, int verb=0);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
     ex Apart(const ex &expr_in, const lst &vars, exmap sign_map=exmap());
@@ -406,7 +406,7 @@ namespace HepLib::FC {
         ex SL2Proj(ex si, ex qi1, ex qi2, ex mu1, ex mu2, ex p);
         ex SLSum(ex si, ex siR, ex qi, ex qiR, ex p, int L);
         
-        ex LProj(const ex &expr_in, const lst &pqi);
+        ex LProj(const ex &expr_in, const lst &pqi, string prefix="lpj");
         
         ex Gamma5(const string pre, int start=1);
         
