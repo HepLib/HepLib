@@ -185,30 +185,42 @@ namespace HepLib::SD {
                         auto nt = css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{
                             epsID(w)==1, CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                         }).evalf();
-                        if(!is_a<numeric>(nt)) {
-                            cerr << Color_Error << "Integrates: Not a number with nt = " << nt << RESET << endl;
-                            exit(1);
-                        }
                         if(nt.has(ep)) {
                             cerr << Color_Error << "Integrates: ep found @ nt = " << nt << RESET << endl;
                             exit(1);
                         }
                         
-                        if(ReIm!=3 && reim!=3) {
-                            if(ex_to<numeric>(nt).imag()==0) {
-                                if(reim==2) reim = 3;
-                                else reim = 1;
-                            } else if(ex_to<numeric>(nt).real()==0) {
-                                if(reim==1) reim = 3;
-                                else reim = 2;
-                            } else {
-                                reim = 3;
+                        lst nt_lst;
+                        if(!is_a<numeric>(nt)) {
+                            nt = mma_collect(nt,[](const ex &e)->bool{return Symbol::has(e);},true,true);
+                            if(!is_a<add>(nt)) nt = lst{nt};
+                            for(auto nti : nt) {
+                                auto nnt = nti.subs(lst{coVF(w)==1,coCF(w)==w});
+                                if(!is_a<numeric>(nnt)) {
+                                    cerr << Color_Error << "Integrates: Not a number with nt = " << nnt << RESET << endl;
+                                    exit(1);
+                                }
+                                nt_lst.append(nnt);
                             }
-                        }
-                        nt = abs(nt).evalf(); // no PL here, then nReplacements
+                        } else nt_lst.append(nt);
                         
-                        qREAL qnt = CppFormat::ex2q(nt);
-                        if(qnt > cmax) cmax = qnt;
+                        for(auto nnt : nt_lst) {
+                            if(ReIm!=3 && reim!=3) {
+                                if(ex_to<numeric>(nnt).imag()==0) {
+                                    if(reim==2) reim = 3;
+                                    else reim = 1;
+                                } else if(ex_to<numeric>(nnt).real()==0) {
+                                    if(reim==1) reim = 3;
+                                    else reim = 2;
+                                } else {
+                                    reim = 3;
+                                }
+                            }
+                            nnt = abs(nnt).evalf(); // no PL here, then nReplacements
+                            
+                            qREAL qnt = CppFormat::ex2q(nnt);
+                            if(qnt > cmax) cmax = qnt;
+                        }
                     }
                     Digits = oDigits;
                 }
