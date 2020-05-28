@@ -253,6 +253,7 @@ namespace HepLib {
     lst str2lst(const string &expr);
     string file2str(string filename);
     ex file2ex(string filename);
+    void ex2file(const ex &, string filename);
     string ex2str(const ex &expr);
     lst exvec2lst(const exvector & exvec);
     exvector lst2exvec(const lst & alst);
@@ -498,9 +499,9 @@ namespace HepLib {
     class XIntegral : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(XIntegral, basic)
     public:
-        ex Functions;
-        ex Exponents;
-        ex Deltas;
+        ex Functions=lst{};
+        ex Exponents=lst{};
+        ex Deltas=lst{};
         size_t nops() const override;
         ex op(size_t i) const override;
         ex & let_op(size_t i) override;
@@ -509,6 +510,7 @@ namespace HepLib {
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
         static lst all(const ex &e);
+        XIntegral(ex fed);
     };
     GINAC_DECLARE_UNARCHIVER(XIntegral);
     

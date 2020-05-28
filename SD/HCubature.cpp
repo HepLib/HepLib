@@ -106,6 +106,16 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
 void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* nrun, void *fdata) {
     auto self = (HCubature*)fdata;
     if(*nrun == self->MaxPTS + 1979) return;
+    if(self->RunTime>0 && self->RunMAX>0) {
+        auto cur_timer = time(NULL);
+        auto used_time = difftime(cur_timer,self->StartTimer);
+        if(used_time>self->RunTime) {
+            self->NEval = *nrun;
+            *nrun = self->MaxPTS + 1979;
+            if(Verbose>10) cout << Color_Warn << "     Exit with Run out of Time: " << used_time << RESET << endl;
+            return;
+        }
+    }
     if(Verbose>10 && self->RunMAX>0 && (*nrun-self->NEval) >= self->RunPTS) {
         char r0[64], r1[64], e0[32], e1[32];
         quadmath_snprintf(r0, sizeof r0, "%.10QG", result[0]);
@@ -187,6 +197,8 @@ ex HCubature::Integrate() {
     
     MaxPTS = RunPTS * RunMAX;
     if(MaxPTS<0) MaxPTS = -MaxPTS;
+    
+    StartTimer = time(NULL);
     
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, MinPTS, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
     if(nok) {

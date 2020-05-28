@@ -74,7 +74,7 @@ namespace HepLib::FC {
         
         // SU(N) : Phys.Rev., D14, 1536 (1976)
         string init_script = R"EOF(
-CFunction pow,sqrt,Pi,gamma,conjugate;
+CFunction pow,sqrt,Pi,gamma;
 Tensor T,f(antisymmetric);
 Tensor colTp;
 Symbols I2R,NF,NA,D,I;
@@ -133,7 +133,7 @@ Dimension NF;
             } else if(is_a<symbol>(*i)) sym_lst.append(*i);
             else if(is_a<GiNaC::function>(*i)) {
                 static vector<string> fun_vec = { 
-                    "TR", "sin", "cos", "conjugate"
+                    "TR", "sin", "cos"
                 };
                 auto func = ex_to<GiNaC::function>(*i).get_name();
                 bool ok = false;

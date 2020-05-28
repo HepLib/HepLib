@@ -589,6 +589,19 @@ namespace HepLib {
     }
     
     /**
+     * @brief export expression file 
+     * @param the input expression
+     * @param filename file name
+     * @return the file content in ex
+     */
+    void ex2file(const ex & expr, string filename) {
+        std::ofstream ofs;
+        ofs.open(filename, ios::out);
+        ofs << expr << endl;
+        ofs.close();
+    }
+    
+    /**
      * @brief convert exvector to lst
      * @param exvec input exvector
      * @return lst
@@ -1379,23 +1392,24 @@ namespace HepLib {
     }
     
     void XIntegral::print(const print_dflt &c, unsigned level) const {
-        c.s << "∬" << "(" << Functions << ")^(" << Exponents << ")";
+        c.s << "[∬" << "(" << Functions << ")^(" << Exponents << ")";
         if(Deltas.nops()>0) c.s << "*𝜹(" << Deltas << ")";
+        c.s << "]";
     }
     
     size_t XIntegral::nops() const { return 3; }
     ex XIntegral::op(size_t i) const {
         if(i==0) return Functions;
         else if(i==1) return Exponents;
-        else if(i==1) return Deltas;
-        else throw Error("It is required that i<3.");
+        else if(i==2) return Deltas;
+        else throw Error("XIntegral::op, It is required that i<3.");
     }
     ex & XIntegral::let_op(size_t i) {
         ensure_if_modifiable();
         if(i==0) return Functions;
         else if(i==1) return Exponents;
-        else if(i==1) return Deltas;
-        else throw Error("It is required that i<3.");
+        else if(i==2) return Deltas;
+        else throw Error("XIntegral::let_op, It is required that i<3.");
     }
     
     void XIntegral::archive(archive_node & n) const {
@@ -1410,6 +1424,12 @@ namespace HepLib {
         n.find_ex("Functions", Functions, sym_lst);
         n.find_ex("Exponents", Exponents, sym_lst);
         n.find_ex("Deltas", Deltas, sym_lst);
+    }
+        
+    XIntegral::XIntegral(ex fed)  { 
+        Functions = fed.op(0);
+        Exponents = fed.op(1);
+        if(fed.nops()>2) Deltas = fed.op(2);
     }
     
 }

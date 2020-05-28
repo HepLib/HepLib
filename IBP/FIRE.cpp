@@ -18,9 +18,9 @@ namespace HepLib::IBP {
     REGISTER_FUNCTION(a, do_not_evalf_params().print_func<print_dflt>(a_print))
     
     /**
-     * @brief Do IBP Reduction 
+     * @brief Export start config intgral etc. files
      */
-    void FIRE::Reduce() { 
+    void FIRE::Export() {
         ProblemDimension = Propagators.nops();
         if(Integrals.nops()<1) return;
         int pn = 0; // to avoid unsigned short overflow in FIRE
@@ -75,7 +75,7 @@ namespace HepLib::IBP {
             eqns.append(eq == iWF(i));
         }
         auto s2p = lsolve(eqns, ss);
-        if(s2p.nops() != pdim) throw Error("FIRE::Reduce: lsove failed.");
+        if(s2p.nops() != pdim) throw Error("FIRE::Reduce: lsolve failed.");
 
         IBPs.clear();
         exvector IBPvec;
@@ -209,7 +209,7 @@ namespace HepLib::IBP {
         
         // handle Cut Propagators
         if(Cuts.nops()>0) {
-            Rlst.remove_all();  // TODO: check this one
+            //Rlst.remove_all();  // TODO: check this one
             for(auto cx : Cuts) {
                 int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cuts
                 lst ns0;
@@ -252,7 +252,7 @@ namespace HepLib::IBP {
         ostringstream config;
         if(Version>5) config << "#compressor none" << endl;
         config << "#threads 1" << endl;
-        config << "#fthreads 1" << endl;
+        config << "#fthreads 2" << endl;
         //config << "#fermat fer64" << endl;
         config << "#variables ";
         bool first = true;
@@ -304,12 +304,35 @@ namespace HepLib::IBP {
         ofstream intg_out(WorkingDir+"/"+spn+".intg");
         intg_out << intg.str() << endl;
         intg_out.close();
-        
+    
+    }
+    
+    /**
+     * @brief Do IBP Reduction, Export/FIRE/Import
+     */
+    void FIRE::Reduce() {
+        Export();
+        Run();
+        Import();
+    }
+    
+    /**
+     * @brief Run FIRE reduction 
+     */
+    void FIRE::Run() {
         ostringstream cmd;
-        cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << ") -c " << ProblemNumber << " >/dev/null";
+        cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << ")";
+        if(Version>5) cmd << " -silent -parallel";
+        cmd << " -c " << ProblemNumber << " >/dev/null";
         system(cmd.str().c_str());
         system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());
-        
+    }
+    
+    /**
+     * @brief Import tables  
+     */
+    void FIRE::Import() {
+        string spn = to_string(ProblemNumber);
         ifstream ifs(WorkingDir+"/"+spn+".tables");
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
         ifs.close();
@@ -507,15 +530,29 @@ namespace HepLib::IBP {
             if(nvi<2) continue;
             ex expr1 = expr;
             auto xRepl1 = xRepl;
-            Permutations(nvi, [xs,nvi,vi,expr,&expr1,xRepl,&xRepl1](const int *ns) {
+            
+            // https://stackoverflow.com/questions/1995328/are-there-any-better-methods-to-do-permutation-of-string
+            long long nf = 1;
+            for(int i=2; i<=nvi; i++) nf *= i;
+            for(long long ck=1; ck<=nf; ck++) { // n! permutations
+                auto vi2 = vi;
+                int k = ck;
+                for(int j=1; j<nvi; ++j) {
+                    std::swap(vi2[k%(j+1)], vi2[j]); 
+                    k=k/(j+1);
+                }
+                
                 exmap x2x;
-                for(int i=0; i<nvi; i++) x2x[xs.op(vi[i])]=xs.op(vi[ns[i]]);
+                for(int j=0; j<nvi; j++) {
+                    if(vi[j]!=vi2[j]) x2x[xs.op(vi[j])]=xs.op(vi2[j]);
+                }
                 ex expr2 = subs_naive(expr,x2x);
                 if(ex_less(expr2,expr1)) {
                     expr1 = expr2;
                     xRepl1 = ex_to<lst>(subs_naive(xRepl,x2x));
                 }
-            });
+            }
+            
             expr = expr1;
             xRepl = xRepl1;
         }
@@ -534,7 +571,7 @@ namespace HepLib::IBP {
         lst xs;
         for(int i=0; i<nps; i++) {
             if(is_zero(idx.op(i))) continue;
-            if(!is_zero(idx.op(i)-1)) ft -= iWF(idx.op(i)) * x(nxi) * fire.Propagators.op(i);
+            if(!is_zero(idx.op(i)-1)) ft -= a(idx.op(i)) * x(nxi) * fire.Propagators.op(i);
             else ft -= x(nxi) * fire.Propagators.op(i);
             xs.append(x(nxi));
             nxi++;
@@ -574,7 +611,7 @@ namespace HepLib::IBP {
         lst xs;
         for(int i=0; i<nps; i++) {
             if(is_zero(ns.op(i))) continue;
-            if(!is_zero(ns.op(i)-1)) ft -= iWF(ns.op(i)) * x(nxi) * ps.op(i);
+            if(!is_zero(ns.op(i)-1)) ft -= a(ns.op(i)) * x(nxi) * ps.op(i);
             else ft -= x(nxi) * ps.op(i);
             xs.append(x(nxi));
             nxi++;
@@ -646,7 +683,7 @@ namespace HepLib::IBP {
                     uf_mi_lst.append(lst{ uf(fi,mi.subs(F(w1,w2)==w2)), mi });
                 }
                 return uf_mi_lst;
-            }, "MI");
+            }, "R4MI");
         } else {
             uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs,uf](int idx)->ex {
                 const FIRE & fi = fs[idx]; // only here
@@ -655,7 +692,7 @@ namespace HepLib::IBP {
                     uf_mi_lst.append(lst{ uf(fi,mi), F(fi.ProblemNumber,mi) });
                 }
                 return uf_mi_lst;
-            }, "FI");
+            }, "R4FI");
         }
     
         map<ex,lst,ex_is_less> group;
@@ -695,7 +732,7 @@ namespace HepLib::IBP {
                     uf_mi_lst.append(lst{ uf(fi,mi.subs(F(w1,w2)==w2)), mi });
                 }
                 return uf_mi_lst;
-            }, "MI");
+            }, "R4MI");
         } else {
             uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs,uf](int idx)->ex {
                 const FIRE & fi = *(fs[idx]); // only here
@@ -704,7 +741,7 @@ namespace HepLib::IBP {
                     uf_mi_lst.append(lst{ uf(fi,mi), F(fi.ProblemNumber,mi) });
                 }
                 return uf_mi_lst;
-            }, "FI");
+            }, "R4FI");
         }
     
         map<ex,lst,ex_is_less> group;

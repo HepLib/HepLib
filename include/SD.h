@@ -136,9 +136,12 @@ namespace HepLib::SD {
         const qREAL* Parameter;
         int XDim;
         
+        time_t StartTimer; // used internally
+        
         long long RunMAX = 100;
         long long RunPTS = 100000;
         long long MinPTS = 100000;
+        long long RunTime = 0;
         qREAL EpsAbs = 1E-5;
         qREAL EpsRel = 0;
         int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
@@ -312,7 +315,7 @@ namespace HepLib::SD {
         string CFLAGS = "";
         bool IsZero = false;
         bool CheckEnd = false;
-        bool use_CCF = false;
+        bool use_CCF = true;
         bool use_ErrMin = false;
         bool use_las = false;
         bool save_las = false;

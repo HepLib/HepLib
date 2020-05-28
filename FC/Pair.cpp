@@ -150,12 +150,17 @@ namespace HepLib::FC {
     //-----------------------------------------------------------
     // SP function - ScalarProduct
     //-----------------------------------------------------------
-    ex SP(const ex & a) { return SP(a,a); }
-    ex SP(const ex & a, const ex & b) {
-        if(is_a<Vector>(a) && is_a<Vector>(b)) return Pair(ex_to<Vector>(a), ex_to<Vector>(b));
-        else if(is_a<Vector>(a) && is_a<Index>(b)) return Pair(ex_to<Vector>(a), ex_to<Index>(b));
-        else if(is_a<Index>(a) && is_a<Vector>(b)) return Pair(ex_to<Vector>(b), ex_to<Index>(a));
-        else if(is_a<Index>(a) && is_a<Index>(b)) return Pair(ex_to<Index>(a), ex_to<Index>(b));
+    ex SP(const ex & a, bool use_map) { return SP(a,a,use_map); }
+    ex SP(const ex & a, const ex & b, bool use_map) {
+        ex ret_sp;
+        if(is_a<Vector>(a) && is_a<Vector>(b)) ret_sp = Pair(ex_to<Vector>(a), ex_to<Vector>(b));
+        else if(is_a<Vector>(a) && is_a<Index>(b)) ret_sp = Pair(ex_to<Vector>(a), ex_to<Index>(b));
+        else if(is_a<Index>(a) && is_a<Vector>(b)) ret_sp = Pair(ex_to<Vector>(b), ex_to<Index>(a));
+        else if(is_a<Index>(a) && is_a<Index>(b)) ret_sp = Pair(ex_to<Index>(a), ex_to<Index>(b));
+        if(is_a<Pair>(ret_sp)) {
+            if(use_map) return ret_sp.subs(SP_map);
+            else return ret_sp;
+        }
 
         lst alst, blst;
         auto aex = a.expand();

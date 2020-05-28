@@ -168,8 +168,8 @@ namespace HepLib::FC {
         ex lr[2];
     };
     GINAC_DECLARE_UNARCHIVER(Pair);
-    ex SP(const ex &a);
-    ex SP(const ex &a, const ex &b);
+    ex SP(const ex &a, bool use_map=false);
+    ex SP(const ex &a, const ex &b, bool use_map=false);
     ex sp(const ex & a, const ex & b);
     ex sp(const ex & a);
     ex& letSP(const ex &p1, const ex &p2);
@@ -385,6 +385,8 @@ namespace HepLib::FC {
         ex GluonSum(int qi);
         ex QuarkSum(int qi, ex p, ex m);
         ex AntiQuarkSum(int qi, ex p, ex m);
+        ex GhostSum(int qi);
+        ex AntiGhostSum(int qi);
     };
     
     //-----------------------------------------------------------
@@ -410,7 +412,7 @@ namespace HepLib::FC {
         
         ex Gamma5(const string pre, int start=1);
         
-        ex DoPS(lst moms, ex amp, ex q2=1);
+        ex DoPS(lst moms, ex amp, int si=-1, ex q2=1);
         ex nPS(int n, ex q2=1);
     }
         

@@ -36,6 +36,9 @@ namespace HepLib::IBP {
         lst Rules;
         lst Pairs;
         
+        void Export();
+        void Run();
+        void Import();
         void Reduce();
         
         static lst SortPermutation(const ex & in_expr, const lst & xs);

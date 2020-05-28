@@ -584,8 +584,9 @@ namespace HepLib::FC {
         
         auto air_intg = 
         GiNaC_Parallel(air_vec.size(), [air_vec,cut_props] (int idx) {
-            auto air = air_vec[idx];            
-            air = ApartIRC(air, cut_props);
+            auto air = air_vec[idx];
+            air = air.subs(SP_map);            
+            air = ApartIRC(air, cut_props.subs(SP_map));
             exset intg;
             find(air, ApartIR(w1, w2), intg);
             lst intgs;
@@ -598,6 +599,8 @@ namespace HepLib::FC {
             air_vec[i] = air_intg[i].op(0);
             for(auto item : air_intg[i].op(1)) intg.insert(item);
         }
+        air_intg.clear();
+        air_intg.shrink_to_fit();
         
         if(Verbose>0) cout << "  \\--Total Integrals: " << intg.size() << " @ " << now(false) << endl;
         
@@ -618,7 +621,7 @@ namespace HepLib::FC {
             }
             reduce = true;
         }
-
+        
         exmap IR2F;
         std::map<ex, FIRE*, ex_is_less> p2f;
         vector<FIRE*> fvec;
@@ -658,15 +661,15 @@ namespace HepLib::FC {
         }
         
         if(Verbose>0) cout << "  \\--Total Problems: " << fvec.size() << " @ " << now(false) << endl;
-
-        auto rules_ints = FIRE::FindRules(fvec, false, uf);
         
+        auto rules_ints = FIRE::FindRules(fvec, false, uf);        
+
         map<int,lst> pn_ints_map;
         for(auto item : rules_ints.second) {
             int pn = ex_to<numeric>(item.op(0)).to_int();
             pn_ints_map[pn].append(item.op(1));
         }
-        
+
         vector<FIRE*> fvec_re;
         int nints = 0;
         for(auto pi : pn_ints_map) {
@@ -675,7 +678,7 @@ namespace HepLib::FC {
             nints += fp->Integrals.nops();
             fvec_re.push_back(fp);
         }
-        
+
         if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << nints << "/" << fvec_re.size() << " @ " << now(false) << endl;
         
         MapFunction F2ex([fvec](const ex &e, MapFunction &self)->ex {
@@ -703,23 +706,16 @@ namespace HepLib::FC {
             for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];   
             return;
         }
-
-        int nprocs = omp_get_num_procs();
-        auto fres= GiNaC_Parallel(fvec_re.size(), 1, [fvec_re](int idx)->ex {
-            auto item = fvec_re[idx];
-            item->Reduce();
-            return lst {
-                item->ProblemDimension,
-                item->MasterIntegrals,
-                item->Rules
-            };
+        
+        for(auto item : fvec_re) item->Export();
+        GiNaC_Parallel(fvec_re.size(), [fvec_re](int idx)->ex {
+            fvec_re[idx]->Run();
+            return 0;
         }, "FIRE");
+        for(auto item : fvec_re) item->Import();
         
         exmap F2F;
         for(int i=0; i<fvec_re.size(); i++) {
-            fvec_re[i]->ProblemDimension = ex_to<numeric>(fres[i].op(0)).to_int();
-            fvec_re[i]->MasterIntegrals = ex_to<lst>(fres[i].op(1));
-            fvec_re[i]->Rules = ex_to<lst>(fres[i].op(2));
             for(auto item : fvec_re[i]->Rules) F2F[item.op(0)] = item.op(1);
         }
         

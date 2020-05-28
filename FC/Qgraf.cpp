@@ -613,7 +613,7 @@ namespace HepLib::FC::Qgraf {
      }
      
     /**
-     * @brief Color-Singlet Projector 
+     * @brief polarization sum for gluon 
      * @param qi gluon qgraf index
      * @return g^{i ir} delta^{i ir}
      */
@@ -622,7 +622,7 @@ namespace HepLib::FC::Qgraf {
     }
 
     /**
-     * @brief Color-Singlet Projector 
+     * @brief polarization sum for quark 
      * @param qi quark qgraf index
      * @param p anti-quark momentum vector
      * @param m anti-quark mass
@@ -633,7 +633,7 @@ namespace HepLib::FC::Qgraf {
     }
 
     /**
-     * @brief Color-Singlet Projector 
+     * @brief polarization sum for anti-quark 
      * @param qi anti-quark qgraf index
      * @param p anti-quark momentum vector
      * @param m anti-quark mass
@@ -641,6 +641,24 @@ namespace HepLib::FC::Qgraf {
      */
     ex AntiQuarkSum(int qi, ex p, ex m) {
         return Matrix(GAS(p)-m*GAS(1), Qgraf::DI(qi), Qgraf::RDI(qi)) * SP(Qgraf::TI(qi), Qgraf::RTI(qi));
+    }
+    
+    /**
+     * @brief polarization sum for ghost 
+     * @param qi ghost qgraf index
+     * @return g^{i ir} delta^{i ir}
+     */
+    ex GhostSum(int qi) {
+        return SP(Qgraf::CI(qi), Qgraf::RCI(qi));
+    }
+    
+    /**
+     * @brief polarization sum for anti-ghost, note that we will add extra - here
+     * @param qi anti-ghost qgraf index
+     * @return g^{i ir} delta^{i ir}
+     */
+    ex AntiGhostSum(int qi) {
+        return -SP(Qgraf::CI(qi), Qgraf::RCI(qi));
     }
     
 }
