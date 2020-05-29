@@ -252,7 +252,7 @@ namespace HepLib::IBP {
         ostringstream config;
         if(Version>5) config << "#compressor none" << endl;
         config << "#threads 1" << endl;
-        config << "#fthreads 2" << endl;
+        config << "#fthreads 1" << endl;
         //config << "#fermat fer64" << endl;
         config << "#variables ";
         bool first = true;
@@ -565,38 +565,59 @@ namespace HepLib::IBP {
      * @return lst of {U, F}
      */
     lst FIRE::LoopUF(const FIRE & fire, const ex & idx) {
-        ex ft = 0;
-        int nps = fire.Propagators.nops();
-        int nxi=0;
+        static map<ex,exmap,ex_is_less> cache_by_prop;
+        exmap & cache = cache_by_prop[lst{fire.Propagators,fire.Internal}];
+        ex ut, ft, uf;
+        lst key;
         lst xs;
+        exmap x2ax;
+        int nxi=0;
+        int nps = fire.Propagators.nops();
+        ft = 0;
         for(int i=0; i<nps; i++) {
-            if(is_zero(idx.op(i))) continue;
-            if(!is_zero(idx.op(i)-1)) ft -= a(idx.op(i)) * x(nxi) * fire.Propagators.op(i);
-            else ft -= x(nxi) * fire.Propagators.op(i);
+            if(is_zero(idx.op(i))) {
+                key.append(0);
+                continue;
+            }
+            key.append(1);
+            if(!is_zero(idx.op(i)-1)) x2ax[x(nxi)] = a(idx.op(i)) * x(nxi);
             xs.append(x(nxi));
+            ft -= x(nxi) * fire.Propagators.op(i); // only used when no cache item
             nxi++;
         }
         
-        ex ut = 1;
-        for(int i=0; i<fire.Internal.nops(); i++) {
-            ft = ft.expand();
-            ft = subs_all(ft, fire.Replacements);
-            auto t2 = ft.coeff(fire.Internal.op(i),2);
-            auto t1 = ft.coeff(fire.Internal.op(i),1);
-            auto t0 = ft.subs(fire.Internal.op(i)==0);
-            ut *= t2;
-            if(is_zero(t2)) return lst{0,0};
-            ft = (t0-t1*t1/(4*t2)); // remove normal
+        if(is_zero(cache[key])) { // no cache item
+            ut = 1;
+            for(int i=0; i<fire.Internal.nops(); i++) {
+                ft = ft.expand();
+                ft = subs_all(ft, fire.Replacements);
+                auto t2 = ft.coeff(fire.Internal.op(i),2);
+                auto t1 = ft.coeff(fire.Internal.op(i),1);
+                auto t0 = ft.subs(fire.Internal.op(i)==0);
+                ut *= t2;
+                if(is_zero(t2)) return lst{0,0};
+                ft = normal(t0-t1*t1/(4*t2));
+            }
+            ft = normal(ut*ft);
+            ft = normal(subs_all(ft, fire.Replacements));
+            ut = normal(subs_all(ut, fire.Replacements));
+            uf = normal(ut*ft);
+            
+            cache[key] = lst{ut,ft,uf};
+        } else {
+            auto cc = cache[key];
+            ut = cc.op(0);
+            ft = cc.op(1);
+            uf = cc.op(2);
         }
-        ft = normal(ut*ft);
-        ft = subs_all(ft, fire.Replacements);
-        ut = subs_all(ut, fire.Replacements);
-        ex uf = ut*ft;
+        ut = ut.subs(x2ax);
+        ft = ft.subs(x2ax);
+        uf = uf.subs(x2ax);
         
         auto xRepl = SortPermutation(uf,xs);
         for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
-        ut = (subs_naive(ut,xRepl)); // remove normal
-        ft = (subs_naive(ft,xRepl)); // remove normal
+        ut = normal(subs_naive(ut,xRepl)); 
+        ft = normal(subs_naive(ft,xRepl));
         return lst{ut, ft};
     }  
     
@@ -606,49 +627,72 @@ namespace HepLib::IBP {
      * @return lst of {U, F}
      */
     lst FIRE::UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs) {
-        ex ft = 0;
-        int nps = ps.nops();
-        int nxi=0;
+        static map<ex,exmap,ex_is_less> cache_by_prop;
+        exmap & cache = cache_by_prop[lst{ps,loops,tloops}];
+        
+        ex ut1, ut2, ft, uf;
+        lst key;
         lst xs;
+        exmap x2ax;
+        int nxi=0;
+        int nps = ps.nops();
+        ft = 0;
         for(int i=0; i<nps; i++) {
-            if(is_zero(ns.op(i))) continue;
-            if(!is_zero(ns.op(i)-1)) ft -= a(ns.op(i)) * x(nxi) * ps.op(i);
-            else ft -= x(nxi) * ps.op(i);
+            if(is_zero(ns.op(i))) {
+                key.append(0);
+                continue;
+            }
+            key.append(1);
+            if(!is_zero(ns.op(i)-1)) x2ax[x(nxi)] = a(ns.op(i)) * x(nxi);
             xs.append(x(nxi));
+            ft -= x(nxi) * ps.op(i); // only used when no cache item
             nxi++;
         }
-
-        ex ut1 = 1;
-        for(int i=0; i<loops.nops(); i++) {
-            ft = ft.expand();
-            ft = subs_all(ft, lsubs);
-            auto t2 = ft.coeff(loops.op(i),2);
-            auto t1 = ft.coeff(loops.op(i),1);
-            auto t0 = ft.subs(loops.op(i)==0);
-            ut1 *= t2;
-            if(is_zero(t2)) return lst{0,0,0};
-            ft = (t0-t1*t1/(4*t2));
-        }
-        ft = normal(ut1*ft);
-        ft = (subs_all(ft, lsubs));
-        ut1 = (subs_all(ut1, lsubs));
-
-        ex ut2 = 1;
-        for(int i=0; i<tloops.nops(); i++) {
-            ft = ft.expand();
-            ft = subs_all(ft, tsubs);
-            auto t2 = ft.coeff(tloops.op(i),2);
-            auto t1 = ft.coeff(tloops.op(i),1);
-            auto t0 = ft.subs(tloops.op(i)==0);
-            ut2 *= t2;
-            if(is_zero(t2)) return lst{0,0,0};
-            ft = (t0-t1*t1/(4*t2));
-        }
-        ft = normal(ut2*ft);
-        ft = (subs_all(ft, tsubs));
-        ut2 = (subs_all(ut2, tsubs));
         
-        ex uf = (ut1*ut2*ft);
+        if(is_zero(cache[key])) { // no cache item
+            ut1 = 1;
+            for(int i=0; i<loops.nops(); i++) {
+                ft = ft.expand();
+                ft = subs_all(ft, lsubs);
+                auto t2 = ft.coeff(loops.op(i),2);
+                auto t1 = ft.coeff(loops.op(i),1);
+                auto t0 = ft.subs(loops.op(i)==0);
+                ut1 *= t2;
+                if(is_zero(t2)) return lst{0,0,0};
+                ft = normal(t0-t1*t1/(4*t2));
+            }
+            ft = normal(ut1*ft);
+            ft = normal(subs_all(ft, lsubs));
+            ut1 = normal(subs_all(ut1, lsubs));
+
+            ut2 = 1;
+            for(int i=0; i<tloops.nops(); i++) {
+                ft = ft.expand();
+                ft = subs_all(ft, tsubs);
+                auto t2 = ft.coeff(tloops.op(i),2);
+                auto t1 = ft.coeff(tloops.op(i),1);
+                auto t0 = ft.subs(tloops.op(i)==0);
+                ut2 *= t2;
+                if(is_zero(t2)) return lst{0,0,0};
+                ft = normal(t0-t1*t1/(4*t2));
+            }
+            ft = normal(ut2*ft);
+            ft = normal(subs_all(ft, tsubs));
+            ut2 = normal(subs_all(ut2, tsubs));
+            
+            uf = normal(ut1*ut2*ft);
+            cache[key] = lst{ut1,ut2,ft,uf};
+        } else {
+            auto cc = cache[key];
+            ut1 = cc.op(0);
+            ut2 = cc.op(1);
+            ft = cc.op(2);
+            uf = cc.op(3);
+        }
+        ut1 = ut1.subs(x2ax);
+        ut2 = ut2.subs(x2ax);
+        ft = ft.subs(x2ax);
+        uf = uf.subs(x2ax);
         
         lst xRepl = SortPermutation(uf,xs);
         for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
@@ -664,9 +708,9 @@ namespace HepLib::IBP {
             for(auto item : zRepl) xRepl.append(item);
         }
 
-        ut1 = (ut1.subs(xRepl));
-        ut2 = (ut2.subs(xRepl));
-        ft = (ft.subs(xRepl));
+        ut1 = normal(ut1.subs(xRepl));
+        ut2 = normal(ut2.subs(xRepl));
+        ft = normal(ft.subs(xRepl));
         return lst{ut1, ut2, ft};
     }
     
