@@ -181,7 +181,7 @@ namespace HepLib::SD {
                 }
             }
 
-            system(("mkdir -p "+to_string(pid)).c_str());
+            if(!dir_exists(to_string(pid))) system(("mkdir -p "+to_string(pid)).c_str());
             ostringstream cppfn, sofn;
             cppfn << pid << "/F" << ft_n << ".cpp";
             sofn << pid << "/F" << ft_n << ".o";
@@ -581,7 +581,10 @@ namespace HepLib::SD {
         // Compile the null.o
         if(true) {
             ostringstream cmd;
-            cmd << "mkdir -p " << pid << ";";
+            if(!dir_exists(to_string(pid))) cmd << "mkdir -p " << pid;
+            system(cmd.str().c_str());
+            cmd.clear();
+            cmd.str("");
             cmd << "echo ''>" << pid << "/null.cpp;";
             cmd << cpp << " -fPIC -c -o " << pid << "/null.o " << pid << "/null.cpp";
             system(cmd.str().c_str());
@@ -654,7 +657,7 @@ namespace HepLib::SD {
                 plRepl.append(PL(i) == symbol(pl.str()));
             }
             
-            system(("mkdir -p "+to_string(pid)).c_str());
+            if(!dir_exists(to_string(pid))) system(("mkdir -p "+to_string(pid)).c_str());
             ostringstream cppfn;
             cppfn << pid << "/" << idx << ".cpp";
             std::ofstream ofs;

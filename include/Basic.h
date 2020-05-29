@@ -16,6 +16,7 @@
 #include <list>
 #include <omp.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 
 #define DEFAULT_CTOR(classname) \
 classname::classname() { setflag(status_flags::evaluated | status_flags::expanded); }
@@ -199,8 +200,13 @@ namespace HepLib {
     lst gather_symbols(const ex & e);
     lst gather_symbols(const vector<ex> & ve);
 
-    inline bool file_exists(const char* fn) {
-        return (access(fn,F_OK)!=-1);
+    inline bool file_exists(string fn) {
+        return (access(fn.c_str(),F_OK)!=-1);
+    }
+    
+    inline bool dir_exists(string dir) {
+        struct stat buffer;
+        return (stat(dir.c_str(), &buffer)==0);
     }
     
     inline ex subs_naive(const ex & expr, const ex & repls) {

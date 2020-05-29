@@ -440,6 +440,7 @@ namespace HepLib::FC {
         }
 
         ex ret = Apart(mat);
+        ret = mma_collect(ret,ApartIR(w));
         ret = MapFunction([vars](const ex & e, MapFunction &self)->ex{
             if(e.match(ApartIR(w))) return ApartIR(e.op(0), vars);
             else if(!e.has((ApartIR(w)))) return e;

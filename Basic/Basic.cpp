@@ -133,7 +133,7 @@ namespace HepLib {
         if(para_max_run<1) para_max_run = 1;
         ostringstream cmd;
         cmd << "mkdir -p " << ppid;
-        system(cmd.str().c_str());
+        if(!dir_exists(to_string(ppid))) system(cmd.str().c_str());
         
         if(nbatch<=0) nbatch = ntotal/para_max_run/10;
         if(nbatch<1) nbatch = 1;
@@ -740,7 +740,7 @@ namespace HepLib {
      * @return the expanded expression
      */
     ex mma_expand(ex const &expr_in, std::function<bool(const ex &)> isOK, int depth) {
-        if(depth>5) return expr_in.expand();
+        if(depth>10) return expr_in.expand();
         ex expr;
         if(is_a<add>(expr_in)) {
             expr = 0;

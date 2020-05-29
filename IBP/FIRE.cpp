@@ -246,7 +246,7 @@ namespace HepLib::IBP {
         string_replace_all(sss, ",", ", ");
         
         string spn = to_string(ProblemNumber);
-        system(("mkdir -p " + WorkingDir).c_str());
+        if(!dir_exists(WorkingDir)) system(("mkdir -p " + WorkingDir).c_str());
         
         // .config
         ostringstream config;
@@ -292,7 +292,7 @@ namespace HepLib::IBP {
         intg << "}" << endl;
         
         if(WorkingDir.length()<1) WorkingDir = to_string(getpid());
-        system(("mkdir -p "+WorkingDir).c_str());
+        if(!dir_exists(WorkingDir)) system(("mkdir -p "+WorkingDir).c_str());
         ofstream start_out(WorkingDir+"/"+spn+".start");
         start_out << sss << endl;
         start_out.close();
@@ -586,16 +586,17 @@ namespace HepLib::IBP {
             auto t0 = ft.subs(fire.Internal.op(i)==0);
             ut *= t2;
             if(is_zero(t2)) return lst{0,0};
-            ft = normal(t0-t1*t1/(4*t2));
+            ft = (t0-t1*t1/(4*t2)); // remove normal
         }
-        ft = subs_all(ut*ft, fire.Replacements);
+        ft = normal(ut*ft);
+        ft = subs_all(ft, fire.Replacements);
         ut = subs_all(ut, fire.Replacements);
-        ex uf = normal(ut*ft);
+        ex uf = ut*ft;
         
         auto xRepl = SortPermutation(uf,xs);
         for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
-        ut = normal(subs_naive(ut,xRepl));
-        ft = normal(subs_naive(ft,xRepl));
+        ut = (subs_naive(ut,xRepl)); // remove normal
+        ft = (subs_naive(ft,xRepl)); // remove normal
         return lst{ut, ft};
     }  
     
@@ -626,10 +627,11 @@ namespace HepLib::IBP {
             auto t0 = ft.subs(loops.op(i)==0);
             ut1 *= t2;
             if(is_zero(t2)) return lst{0,0,0};
-            ft = normal(t0-t1*t1/(4*t2));
+            ft = (t0-t1*t1/(4*t2));
         }
-        ft = normal(subs_all(ut1*ft, lsubs));
-        ut1 = normal(subs_all(ut1, lsubs));
+        ft = normal(ut1*ft);
+        ft = (subs_all(ft, lsubs));
+        ut1 = (subs_all(ut1, lsubs));
 
         ex ut2 = 1;
         for(int i=0; i<tloops.nops(); i++) {
@@ -640,12 +642,13 @@ namespace HepLib::IBP {
             auto t0 = ft.subs(tloops.op(i)==0);
             ut2 *= t2;
             if(is_zero(t2)) return lst{0,0,0};
-            ft = normal(t0-t1*t1/(4*t2));
+            ft = (t0-t1*t1/(4*t2));
         }
-        ft = normal(subs_all(ut2*ft, tsubs));
-        ut2 = normal(subs_all(ut2, tsubs));
+        ft = normal(ut2*ft);
+        ft = (subs_all(ft, tsubs));
+        ut2 = (subs_all(ut2, tsubs));
         
-        ex uf = normal(ut1*ut2*ft);
+        ex uf = (ut1*ut2*ft);
         
         lst xRepl = SortPermutation(uf,xs);
         for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
@@ -661,9 +664,9 @@ namespace HepLib::IBP {
             for(auto item : zRepl) xRepl.append(item);
         }
 
-        ut1 = normal(ut1.subs(xRepl));
-        ut2 = normal(ut2.subs(xRepl));
-        ft = normal(ft.subs(xRepl));
+        ut1 = (ut1.subs(xRepl));
+        ut2 = (ut2.subs(xRepl));
+        ft = (ft.subs(xRepl));
         return lst{ut1, ut2, ft};
     }
     

@@ -172,7 +172,7 @@ namespace HepLib::FC::Qgraf {
         vector<ex> amp_vec;
         for(auto item : amps) amp_vec.push_back(item);
         string tex_path = to_string(getpid()) + "_TeX/";
-        system(("mkdir -p "+tex_path).c_str());
+        if(!dir_exists(tex_path)) system(("mkdir -p "+tex_path).c_str());
         int limit = 300;
         
         GiNaC_Parallel(amp_vec.size(), [&](int idx)->ex {

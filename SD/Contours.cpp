@@ -44,7 +44,7 @@ namespace HepLib::SD {
         auto pid = getpid();
         ostringstream cmd;
         cmd << "mkdir -p " << pid;
-        system(cmd.str().c_str());
+        if(!dir_exists(to_string(pid))) system(cmd.str().c_str());
         
         ostringstream fsofn;
         if(key != "") {
