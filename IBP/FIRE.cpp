@@ -616,8 +616,8 @@ namespace HepLib::IBP {
         
         auto xRepl = SortPermutation(uf,xs);
         for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
-        ut = normal(subs_naive(ut,xRepl)); 
-        ft = normal(subs_naive(ft,xRepl));
+        ut = (subs_naive(ut,xRepl)); 
+        ft = (subs_naive(ft,xRepl));
         return lst{ut, ft};
     }  
     
@@ -708,9 +708,9 @@ namespace HepLib::IBP {
             for(auto item : zRepl) xRepl.append(item);
         }
 
-        ut1 = normal(ut1.subs(xRepl));
-        ut2 = normal(ut2.subs(xRepl));
-        ft = normal(ft.subs(xRepl));
+        ut1 = (ut1.subs(xRepl));
+        ut2 = (ut2.subs(xRepl));
+        ft = (ft.subs(xRepl));
         return lst{ut1, ut2, ft};
     }
     
