@@ -201,7 +201,7 @@ namespace HepLib::FC {
         
         ex res = 0;
         for(auto ai : alst) {
-            for(auto bi : blst) res += ai.op(0) * bi.op(0) * SP(ai.op(1), bi.op(1));
+            for(auto bi : blst) res += ai.op(0) * bi.op(0) * SP(ai.op(1), bi.op(1), use_map);
         }
         return res;
     }

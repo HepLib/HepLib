@@ -248,43 +248,55 @@ namespace HepLib::FC {
             // Un-Contract
             auto expr = expr_in.subs(SP_map);
             expr = mma_collect(expr, q);
-            if(!is_a<add>(expr)) expr = lst{expr};
-            auto expr_tmp = expr;
-            expr = 0;
-            for(auto item : expr_tmp) {
-                int lproj=0;
-                expr += MapFunction([&lproj,prefix,q](const ex &e, MapFunction &self)->ex{
-                    if(!e.has(q)) return e;
-                    else if(is_a<Pair>(e)) {
-                        if(is_a<Index>(e.op(1))) return e;
-                        Index idx(prefix+to_string(lproj++));
-                        return SP(e.op(0), idx) * SP(e.op(1), idx);
-                    } else if(is_a<Eps>(e)) {
-                        Index idx(prefix+to_string(lproj++));
-                        auto pis0 = ex_to<Eps>(e).pis;
-                        ex pis[4];
-                        for(int i=0; i<3; i++) {
-                            pis[i] = pis0[i];
-                            if(is_zero(pis[i]-q)) {
-                                pis[i] = idx;
-                            }
-                        }
-                        return LC(pis[0], pis[1], pis[2], pis[3]) * SP(q, idx);
-                    } else if(is_a<DiracGamma>(e)) {
-                        Index idx(prefix+to_string(lproj++));
-                        auto g = ex_to<DiracGamma>(e);
-                        return DiracGamma(idx, g.rl) * SP(g.pi, idx);
-                    } else if (e.match(TR(w))) {
-                        auto ret = e.op(0).map(self);
-                        ret = mma_collect(ret, q, true);
-                        ret = ret.subs(coCF(w)==TR(w));
-                        return ret;
-                    } else return e.map(self);
-                    throw Error("something should be wrong here");
-                    return 0;
-                })(item);
-            }
+            int lproj=0;
 
+            expr = MapFunction([&lproj,prefix,q](const ex &e, MapFunction &self)->ex{
+                if(!e.has(q)) return e;
+                else if(is_a<Pair>(e)) {
+                    if(is_a<Index>(e.op(1))) return e;
+                    Index idx(prefix+to_string(lproj++));
+                    return SP(e.op(0), idx) * SP(e.op(1), idx);
+                } else if(is_a<Eps>(e)) {
+                    Index idx(prefix+to_string(lproj++));
+                    auto pis0 = ex_to<Eps>(e).pis;
+                    ex pis[4];
+                    for(int i=0; i<3; i++) {
+                        pis[i] = pis0[i];
+                        if(is_zero(pis[i]-q)) {
+                            pis[i] = idx;
+                        }
+                    }
+                    return LC(pis[0], pis[1], pis[2], pis[3]) * SP(q, idx);
+                } else if(is_a<DiracGamma>(e)) {
+                    Index idx(prefix+to_string(lproj++));
+                    auto g = ex_to<DiracGamma>(e);
+                    return DiracGamma(idx, g.rl) * SP(g.pi, idx);
+                } else if (e.match(TR(w))) {
+                    auto ret = self(e.op(0));
+                    ret = mma_collect(ret, q, true);
+                    ret = ret.subs(coCF(w)==TR(w));
+                    return ret;
+                } else if(is_a<add>(e)) {
+                    auto lpj = lproj;
+                    ex ret = 0;
+                    for(auto item : e) {
+                        lproj = lpj;
+                        ret += self(item);
+                    }
+                    return ret;
+                } else if(is_a<power>(e)) {
+                    if(!e.op(1).info(info_flags::posint)) throw Error("LProj: power is not info_flags::posint.");
+                    ex ret = 1;
+                    int pn = ex_to<numeric>(e.op(1)).to_int();
+                    for(int i=0; i<pn; i++) {
+                        ret *= self(e.op(0));
+                    }
+                    return ret;
+                } else return e.map(self);
+                throw Error("something should be wrong here");
+                return 0;
+            })(expr);
+            
             expr = expr.subs(SP_map);
             expr = mma_collect(expr, q, false, true);
 

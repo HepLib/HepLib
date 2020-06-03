@@ -74,7 +74,7 @@ namespace HepLib::SD {
                     if(tmp.subs(x(w)==1) < 0) need_contour_deformation = true;
                 }
                 if(!need_contour_deformation) ft = 1; //note the difference with SDPrepare
-            } else if(!ft.has(x(w))){
+            } else if(!ft.has(x(w))) {
                 ft = 1;
             }
             
@@ -614,6 +614,8 @@ namespace HepLib::SD {
             }
             
             auto ft = kvf.op(2);
+            auto nft = ft.subs(lst{iEpsilon==0,x(w)==0});
+            if(is_a<numeric>(nft) && nft>0) expr = expr.subs(iEpsilon==0);
             auto fxs = get_xy_from(ft);
             
             exset ftxset;
@@ -760,7 +762,7 @@ namespace HepLib::SD {
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 cseParser cse;
                 intg = cse.Parse(intg);
-                if(hasF || hasF2) ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                if(hasF2) ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 else ofs << "dREAL "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -862,7 +864,7 @@ namespace HepLib::SD {
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 cseParser cse;
                 intg = cse.Parse(intg);
-                if(hasF || hasF2) ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                if(hasF2) ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 else ofs << "qREAL "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -970,7 +972,7 @@ namespace HepLib::SD {
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 cseParser cse;
                 intg = cse.Parse(intg);
-                if(hasF || hasF2) ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                if(hasF2) ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 else ofs << "mpREAL "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";

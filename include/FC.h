@@ -76,6 +76,7 @@ namespace HepLib::FC {
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
+        static bool hasc(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
     };
@@ -179,6 +180,8 @@ namespace HepLib::FC {
     void clearSP();
     ex SP2sp(const ex & exin);
     exmap sp_map();
+    ex fermat_numer_denom(const ex & expr);
+    ex fermat_normal(const ex & expr);
     
     //-----------------------------------------------------------
     // Eps Class

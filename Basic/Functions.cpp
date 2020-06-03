@@ -6,7 +6,16 @@ namespace HepLib {
         static ex coCF_Diff(const ex & x, unsigned diff_param) {return 0;}
         static ex coCF_Expand(const ex & x, unsigned expand_options) {return coCF(x).hold();}
         static ex expl_coCF_diff(const ex & arg, const symbol & s) {return 0;}
+        
+        static ex HF_Expand(const ex & x, unsigned expand_options) {return HF(x).hold();}
+        static ex expl_HF_diff(const ex & arg, const symbol & s) {
+            auto ret = arg.diff(s);
+            auto nd = numer_denom(ret.normal());
+            return HF(nd.op(0))/nd.op(1);
+        }
     }
+    
+    REGISTER_FUNCTION(HF, expl_derivative_func(expl_HF_diff).expand_func(HF_Expand))
 
     REGISTER_FUNCTION(coCF, expl_derivative_func(expl_coCF_diff).derivative_func(coCF_Diff).expand_func(coCF_Expand))
     REGISTER_FUNCTION(coVF, do_not_evalf_params())

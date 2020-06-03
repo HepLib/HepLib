@@ -350,6 +350,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     DECLARE_FUNCTION_1P(coCF)
     DECLARE_FUNCTION_1P(coVF)
+    DECLARE_FUNCTION_1P(HF)
     
     DECLARE_FUNCTION_1P(x)
     DECLARE_FUNCTION_1P(y)
@@ -497,7 +498,18 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     inline void append_to(const exvector & exv, lst & alst) { for(auto item : exv) alst.append(item); }
     inline void append_to(const lst & alst, exvector & exv) { for(auto item : alst) exv.push_back(item); }
-    
+    inline lst CoPat(const ex & e, std::function<bool(const ex &)> f) {  
+        if(is_a<mul>(e)) {
+            ex cc=1;
+            ex vv=1;
+            for(auto item : e) {
+                if(f(item)) vv *= item;
+                else cc *= item;
+            }
+            return lst{cc,vv};
+        } else if(f(e)) return lst{1,e};
+        else return lst{e,1};
+    }
     
     //-----------------------------------------------------------
     // XIntegral Class, preface to SecDec
@@ -517,6 +529,7 @@ namespace HepLib {
         static bool has(const ex &e);
         static lst all(const ex &e);
         XIntegral(ex fed);
+        XIntegral(ex loops, ex ps, ex ns);
     };
     GINAC_DECLARE_UNARCHIVER(XIntegral);
     

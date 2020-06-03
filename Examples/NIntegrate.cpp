@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
     
     ostringstream cmd;
     cmd << "mkdir -p " << SD_path;
-    system(cmd.str().c_str());
+    if(!dir_exists(SD_path)) system(cmd.str().c_str());
     cmd.clear();
     cmd.str("");
     cmd << "ls " << cm_path << "|wc -l";

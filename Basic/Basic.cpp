@@ -1432,5 +1432,7 @@ namespace HepLib {
         if(fed.nops()>2) Deltas = fed.op(2);
     }
     
+    XIntegral::XIntegral(ex loops, ex ps, ex ns) {}
+    
 }
 

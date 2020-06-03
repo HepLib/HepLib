@@ -370,7 +370,7 @@ namespace HepLib::FC {
 
     /**
      * @brief Apart on ex
-     * @param expr_in normal expresion
+     * @param expr_in normal expresion, product of [ linear w.r.t. vars ]^n 
      * @param vars_in independent variables
      * @param sign_map a map of vars to 1 or -1, key can be omited
      * @return sum of coefficient * ApartIR
@@ -378,8 +378,9 @@ namespace HepLib::FC {
     ex Apart(const ex &expr_in, const lst &vars_in, exmap sign_map) {
         exmap map1, map2;
         lst vars;
-        for(auto v : vars_in) {
-            symbol s;
+        for(int i=0; i<vars_in.nops(); i++) {
+            auto v = vars_in.op(i);
+            Symbol s("_apX"+to_string(i));
             map1[v]=s;
             map2[s]=v;
             vars.append(s);
@@ -460,6 +461,8 @@ namespace HepLib::FC {
     ex Apart(const ex &expr_ino, const lst &loops, const lst & extps) {
         auto expr_in = expr_ino.subs(SP_map);
         auto expr = expr_in;
+        if(expr.has(coVF(w))) throw Error("Apart: coVF exist.");
+        
         lst sps;
         exmap sign;
         for(auto li : loops) {
@@ -477,15 +480,66 @@ namespace HepLib::FC {
         sps.unique();
         sort_lst(sps);
         
-        // TODO: maybe, to improve the numerator case
-        if(expr.has(coVF(w))) throw Error("Apart: coVF exist.");
-        expr = mma_collect(expr, loops, false, true);
-
-        ex res = MapFunction([sps, sign](const ex & e, MapFunction &self)->ex{
-            if(!e.has(coVF(w))) return e;
-            else if(e.match(coVF(w))) return Apart(e.op(0), sps, sign);
-            else return e.map(self);
-        })(expr);
+        ex res;
+        
+        if(false) { // new method
+            auto dn = fermat_numer_denom(expr);
+            auto den = Apart(1/dn.op(1), sps, sign);
+            den = ApartIRC(den);
+            den = mma_collect(den,ApartIR(w1,w2),true,true);
+            if(!is_a<add>(den)) den = lst{den};
+            
+            exmap sp2s, s2sp;
+            lst ss;
+            for(auto item : sps) {
+                symbol s;
+                sp2s[item] = s;
+                s2sp[s] = item;
+                ss.append(s);
+            }
+            auto num = dn.op(0).subs(sp2s);
+            
+            res = 0;
+            for(auto item : den) {
+                auto cc = item.subs(lst{coVF(w)==1,coCF(w)==w});
+                auto air = item.subs(lst{coVF(w)==w,coCF(w)==1});
+                
+                ex vars = air.op(1).subs(sp2s);
+                matrix mat = ex_to<matrix>(air.op(0));
+                lst ps, ns;
+                for(int c=0; c<mat.cols(); c++) {
+                    ex sum=0;
+                    for(int r=0; r<mat.rows()-2; r++) sum += mat(r,c) * vars.op(r);
+                    sum += mat(mat.rows()-2,c);
+                    ps.append(sum);
+                    ns.append(mat(mat.rows()-1,c));
+                }
+                
+                lst eqns;
+                lst apXs;
+                for(int i=0; i<vars.nops(); i++) {
+                    auto eq = ps.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
+                    eqns.append(eq == Symbol("_apX"+to_string(i)));
+                    apXs.append(Symbol("_apX"+to_string(i)));
+                }
+                auto s2p = lsolve(eqns, ss);
+                if(s2p.nops() != vars.nops()) throw Error("Apart: lsolve failed.");
+                
+                auto cur_num = num.subs(s2p);
+                cur_num = fermat_normal(cur_num);
+cout << mma_collect(cur_num,apXs).nops() << endl;
+            }
+        
+        }
+        
+        if(true) { // naive method
+            expr = mma_collect(expr, loops, false, true);
+            res = MapFunction([sps, sign](const ex & e, MapFunction &self)->ex{
+                if(!e.has(coVF(w))) return e;
+                else if(e.match(coVF(w))) return Apart(e.op(0), sps, sign);
+                else return e.map(self);
+            })(expr);
+        }
 
         // random check
         lst nlst;
