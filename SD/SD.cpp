@@ -1413,21 +1413,13 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             }
             
             if(it.has(epz)) it = mma_series(it,epz,0);
-            it = mma_collect(it, lst{epz, vs}, true);
-            if(it.is_zero()) return lst{ lst{ 0, 0} };
-            lst its;
-            if(is_a<add>(it)) {
-                for(auto ii : it) its.append(ii);
-            } else {
-                its.append(it);
-            }
-
+            auto cv_lst = mma_collect_lst(it, lst{epz, vs});
+            if(cv_lst.nops()<1) return lst{ lst{ 0, 0} };
+            
             lst para_res_lst;
-            for(int i=0; i<its.nops();i++) {
-                auto tmp = its.op(i);
-                auto vc = tmp.subs(coCF(w)==1);
-                tmp = tmp / vc;
-                tmp = tmp.subs(coCF(w)==w);
+            for(int i=0; i<cv_lst.nops();i++) {
+                auto tmp = cv_lst.op(i).op(0);
+                auto vc = cv_lst.op(i).op(1);
                 if(use_CCF) tmp = collect_common_factors(tmp);
                 if(!tmp.has(eps) && !ct.has(eps)) {
                     if(tmp.has(epsID(w)) || ct.has(epsID(w))) {
@@ -1460,19 +1452,12 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                             exit(1);
                         }
                         
-                        tmp = mma_collect(tmp, epsID(w), true, true);
-                        lst tmp_lst;
-                        if(is_a<add>(tmp)) {
-                            for(auto item : tmp) tmp_lst.append(item);
-                        } else {
-                            tmp_lst.append(tmp);
-                        }
-                        
+                        auto cv_lst = mma_collect_lst(tmp, epsID(w));
                         auto ct2 = mma_series(sct, eps, epsN-sdi);
                         int ctN = epRank(ct2);
-                        for(auto ti : tmp_lst) { // Note: tmp is local
-                            auto tmp = ti.subs(lst{coCF(w)==w,coVF(w)==1});
-                            auto eps_ci = ti.subs(lst{coCF(w)==1,coVF(w)==w});
+                        for(auto ti : cv_lst) { // Note: tmp is local
+                            auto tmp = ti.op(0);
+                            auto eps_ci = ti.op(1);
                             tmp = mma_series(tmp, ep, epN-ctN);
                             for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                                 auto intg = tmp.coeff(ep, di);

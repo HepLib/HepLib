@@ -152,11 +152,10 @@ namespace HepLib::IBP {
                     collect_common_factors(kv.second.normal()) << endl << endl;
                 } else {
                     lst olst;
-                    auto tmp = mma_collect(kv.second, a(w), true, true);
-                    if(!is_a<add>(tmp)) tmp = lst{tmp};
-                    for(auto item : tmp) {
-                        auto cc = item.subs(lst{coVF(w)==1, coCF(w)==w});
-                        auto cv = item.subs(lst{coVF(w)==w, coCF(w)==1});
+                    auto cv_lst = mma_collect_lst(kv.second, a(w));
+                    for(auto item : cv_lst) {
+                        auto cc = item.op(0);
+                        auto cv = item.op(1);
                         cc = collect_common_factors(cc.normal());
                         if(is_zero(cc)) continue;
                         if(is_zero(cv-1)) cv=0;
@@ -473,16 +472,9 @@ namespace HepLib::IBP {
         }
         
         if(isPoly) { // only for polynomials
-            if(expr.has(coCF(w)) || expr.has(coVF(w))) throw Error("SortPermutation: coVF/coCF found.");
-            expr = mma_collect(expr, xs, true, true);
-            if(!is_a<add>(expr)) expr = lst{expr};
+            auto cv_lst = mma_collect_lst(expr, xs);
             exvector cvs;
-            for(auto item : expr) {
-                cvs.push_back(lst{
-                    item.subs(lst{coCF(w)==w,coVF(w)==1}), // coefficient
-                    item.subs(lst{coCF(w)==1,coVF(w)==w}) // xs monomial
-                });
-            }
+            for(auto item : cv_lst) cvs.push_back(item);
             sort_vec_by(cvs,0);
                     
             int nxi = xs.nops();
@@ -491,7 +483,7 @@ namespace HepLib::IBP {
             lst subkey[nxi];
             ex clast;
             for(auto cv : cvs) {
-                ex cc = cv.op(0).expand();
+                ex cc = cv.op(0);
                 ex vv = cv.op(1);
                 if(is_zero(cc)) continue;
                 if(!first && !is_zero(cc-clast)) {

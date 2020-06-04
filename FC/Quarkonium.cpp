@@ -250,7 +250,7 @@ namespace HepLib::FC {
             expr = mma_collect(expr, q);
             int lproj=0;
 
-            expr = MapFunction([&lproj,prefix,q](const ex &e, MapFunction &self)->ex{
+            expr = MapFunction([&lproj,prefix,q](const ex &e, MapFunction &self)->ex {
                 if(!e.has(q)) return e;
                 else if(is_a<Pair>(e)) {
                     if(is_a<Index>(e.op(1))) return e;
@@ -301,58 +301,63 @@ namespace HepLib::FC {
             })(expr);
             
             expr = expr.subs(SP_map);
-            expr = mma_collect(expr, q, false, true);
-
-            expr = MapFunction([q,p,pqi](const ex &e, MapFunction &self)->ex{
-                if(e.match(coVF(w))) {
-                    vector<Index> is;
-                    if(is_a<mul>(e.op(0))) {
-                        for(auto item : e.op(0)) is.push_back(ex_to<Index>(item.op(1)));
-                    } else if(is_a<Pair>(e.op(0))) {
-                        is.push_back(ex_to<Index>(e.op(0).op(1)));
-                    } else if(e.op(0).match(pow(w,2)) && is_a<Pair>(e.op(0).op(0))) {
-                        is.push_back(ex_to<Index>(e.op(0).op(0).op(1)));
-                        is.push_back(ex_to<Index>(e.op(0).op(0).op(1)));
-                    } else if(is_zero(e.op(0)-1) && pqi.nops()==2) return 1;
-                    else {
-                        cout << e.op(0) << endl;
+            auto cv_lst = mma_collect_lst(expr, q);
+            expr = 0;
+            for(auto cv : cv_lst) {
+                auto e = cv.op(1);
+                if(is_zero(e-1)) {
+                    if(pqi.nops()==2) expr += cv.op(0);
+                    continue;
+                }
+                
+                if(!is_a<mul>(e)) e = lst{e};
+                vector<Index> is;
+                
+                for(auto item : e) {
+                    if(is_a<Pair>(item)) {
+                        is.push_back(ex_to<Index>(item.op(1)));
+                    } else if(item.match(pow(w,2)) && is_a<Pair>(item.op(0))) {
+                        is.push_back(ex_to<Index>(item.op(0).op(1)));
+                        is.push_back(ex_to<Index>(item.op(0).op(1)));
+                    } else {
+                        cout << item << endl;
                         throw Error("LProj: something is wrong, unhandled terms.");
                     }
+                }
 
-                    int isn = is.size();
-                    switch (pqi.nops()) {
-                        case 2: {
-                            if(isn%2!=0) return 0;
-                            else if(isn==2) return SP(q)*(SP(is[0],is[1])-SP(p,is[0])*SP(p,is[1])/SP(p))/(D-1);
-                            else throw Error("LProj not supported yet in S-wave.");
-                            break;
-                        } case 3: {
-                            auto qi = ex_to<Index>(pqi.op(2));
-                            if(isn==1) return SP(qi, is[0]);
-                            else if(isn==2) return 0;
-                            else if(isn==3) {
-                                auto m1 = is[0];
-                                auto m2 = is[1];
-                                auto m3 = is[2];
-                                return -SP(q)*(ITD(m1,m2,p)*SP(qi,m3)+ITD(m1,m3,p)*SP(qi,m2)+ITD(m2,m3,p)*SP(qi,m1))/(D+1);
-                            } else throw Error("LProj not supported yet in P-wave.");
-                            break;
-                        } case 4: {
-                            auto e1 = ex_to<Index>(pqi.op(2));
-                            auto e2 = ex_to<Index>(pqi.op(3));
-                            if(isn==1) return 0;
-                            if(isn==2) return SP(is[0],e1)*SP(is[1],e2);
-                            else throw Error("LProj not supported yet in D-wave.");
-                            break;
-                        } default: {
-                            throw Error("LProj not supported yet with L>2");
-                        }
+                ex qproj;
+                int isn = is.size();
+                switch (pqi.nops()) {
+                    case 2: {
+                        if(isn%2!=0) qproj = 0;
+                        else if(isn==2) qproj = SP(q)*(SP(is[0],is[1])-SP(p,is[0])*SP(p,is[1])/SP(p))/(D-1);
+                        else throw Error("LProj not supported yet in S-wave.");
+                        break;
+                    } case 3: {
+                        auto qi = ex_to<Index>(pqi.op(2));
+                        if(isn==1) qproj = SP(qi, is[0]);
+                        else if(isn==2) qproj = 0;
+                        else if(isn==3) {
+                            auto m1 = is[0];
+                            auto m2 = is[1];
+                            auto m3 = is[2];
+                            qproj = -SP(q)*(ITD(m1,m2,p)*SP(qi,m3)+ITD(m1,m3,p)*SP(qi,m2)+ITD(m2,m3,p)*SP(qi,m1))/(D+1);
+                        } else throw Error("LProj not supported yet in P-wave.");
+                        break;
+                    } case 4: {
+                        auto e1 = ex_to<Index>(pqi.op(2));
+                        auto e2 = ex_to<Index>(pqi.op(3));
+                        if(isn==1) qproj = 0;
+                        if(isn==2) qproj = SP(is[0],e1)*SP(is[1],e2);
+                        else throw Error("LProj not supported yet in D-wave.");
+                        break;
+                    } default: {
+                        throw Error("LProj not supported yet with L>2");
                     }
-                    throw Error("something should be wrong here");
-                    return 0; // un-reachable
-                } else if (!e.has(coVF(w))) return e;
-                return e.map(self);
-            })(expr);
+                }
+                
+                expr += cv.op(0) * qproj;
+            }
             
             expr = expr.subs(SP_map);
             return expr;

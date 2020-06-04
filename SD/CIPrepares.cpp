@@ -527,6 +527,27 @@ namespace HepLib::SD {
             ofs << "}" << endl;
             ofs << endl;
             
+            // for Minimization of F(z)-image, x[xn-1] is the lambda
+            ofs << "extern \"C\" " << endl;
+            ofs << "dREAL imgFQ_"<<ft_n<<"(const int xn, const dREAL* dx, const dREAL *dpl, const dREAL *dlas_in) {" << endl;
+            ofs << "qREAL x[xn];" <<endl;
+            ofs << "for(int i=0; i<xn; i++) x[i] = dx[i];" <<endl;
+            ofs << "int npls = " << npls << ";" << endl;
+            ofs << "qREAL pl[npls];" <<endl;
+            ofs << "for(int i=0; i<npls; i++) pl[i] = dpl[i];" <<endl;
+            ofs << "qREAL las[xn-1];" <<endl;
+            ofs << "for(int i=0; i<xn-1; i++) las[i] = dlas_in[i]*x[xn-1];" <<endl;
+            ofs << "qCOMPLEX z[xn], r[xn];" << endl;
+            ofs << "qREAL dff[xn+1];" << endl;
+            ofs << "X2ZQ_"<<ft_n<<"(x,z,r,dff,pl,las);" << endl;
+            ofs << "qCOMPLEX zf = ";
+            ft.subs(plRepl).subs(czRepl).print(cppQ);
+            ofs << ";" << endl;
+            ofs << "dREAL dret = -cimagq(zf/x[xn-1]);" << endl;
+            ofs << "return dret;" << endl; // find max image part, check with 0
+            ofs << "}" << endl;
+            ofs << endl;
+            
             // for Minimization of F
             ofs << "extern \"C\" " << endl;
             ofs << "dREAL minF_"<<ft_n<<"(const int xn, const dREAL* x, const dREAL *pl, const dREAL *las_in) {" << endl;

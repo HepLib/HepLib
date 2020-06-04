@@ -164,6 +164,39 @@ namespace HepLib::SD {
     ex VEResult2(ex expr) {
         return expr.subs(VE(w1,w2)==VEO2(w1,w2));
     }
+    
+    ex VEMaxErr(ex expr) {
+        auto oDigits = Digits;
+        Digits = 50;
+        
+        auto ccRes = expr.expand();
+        lst ccResList;
+        if(is_a<add>(ccRes)) {
+            for(auto item : ccRes) ccResList.append(item);
+        } else {
+            ccResList.append(ccRes);
+        }
+            
+        ccRes = -100;
+        for(auto item : ccResList) {
+            ex ntmp;
+            if(is_a<mul>(item)) {
+                ntmp = 1;
+                for(auto ii : item) {
+                    if(is_a<numeric>(ii) || ii.match(VE(w1, w2))) {
+                        ntmp *= ii;
+                    } 
+                }
+            } else if(is_a<numeric>(item) || item.match(VE(w1, w2))) {
+                ntmp = item;
+            }
+            ntmp = abs(ntmp.subs(VE(w1,w2)==w2)).evalf();
+            if(ntmp>ccRes) ccRes = ntmp;
+        }
+        
+        Digits = oDigits;
+        return ccRes;
+    }
 
 
     /*-----------------------------------------------------*/

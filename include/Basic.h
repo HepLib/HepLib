@@ -289,6 +289,7 @@ namespace HepLib {
     exvector lst2exvec(const lst & alst);
     lst xlst(int ei);
     lst xlst(int bi, int ei);
+    int CpuCores();
     
     void let_op_append(ex & ex_in, const ex item);
     void let_op_prepend(ex & ex_in, const ex item);
@@ -336,9 +337,12 @@ namespace HepLib {
     ex mma_collect(const ex &expr, lst const &pats, bool ccf=false, bool cvf=false);
     ex mma_collect(const ex &expr, ex const &pat, bool ccf=false, bool cvf=false);
     
+    lst mma_collect_lst(const ex &expr, std::function<bool(const ex &)>);
+    lst mma_collect_lst(const ex &expr, lst const &pats);
+    lst mma_collect_lst(const ex &expr, ex const &pat);
+    
     ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
-
     /*-----------------------------------------------------*/
     // Evalf
     /*-----------------------------------------------------*/
@@ -374,7 +378,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     DECLARE_FUNCTION_1P(coCF)
     DECLARE_FUNCTION_1P(coVF)
-    DECLARE_FUNCTION_1P(HF)
+    DECLARE_FUNCTION_1P(mma_expand_HF)
     
     DECLARE_FUNCTION_1P(x)
     DECLARE_FUNCTION_1P(y)

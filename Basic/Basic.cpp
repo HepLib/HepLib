@@ -795,7 +795,7 @@ namespace HepLib {
      * @return the expanded expression
      */
     ex mma_expand(ex const &expr_in, std::function<bool(const ex &)> isOK, int depth) {
-        if(depth>10) return expr_in.expand();
+        if(depth>15) return expr_in.expand();
         ex expr;
         if(is_a<add>(expr_in)) {
             expr = 0;
@@ -808,17 +808,17 @@ namespace HepLib {
             for(auto item : expr_in) {
                 if(isOK(item)) expr *= mma_expand(item, isOK, depth+1);
                 else if(is_a<numeric>(item)) expr *= item;
-                else expr *= coCF(item.subs(coCF(w)==w));
+                else expr *= mma_expand_HF(item.subs(mma_expand_HF(w)==w));
             }
         } else if(is_a<power>(expr_in) && expr_in.op(1).info(info_flags::nonnegint)) {
             auto item = expr_in.op(0);
             auto ni = expr_in.op(1);
             if(isOK(item)) expr = pow(mma_expand(item, isOK, depth+1), ni).expand();
             else if(is_a<numeric>(item)) expr = expr_in;
-            else expr = coCF(expr_in.subs(coCF(w)==w));
+            else expr = mma_expand_HF(expr_in.subs(mma_expand_HF(w)==w));
         } else {
             if(isOK(expr_in) || is_a<numeric>(expr_in)) expr = expr_in;
-            else expr = coCF(expr_in.subs(coCF(w)==w));
+            else expr = mma_expand_HF(expr_in.subs(mma_expand_HF(w)==w));
         }
         
         expr = expr.expand();
@@ -830,9 +830,9 @@ namespace HepLib {
                 if(isOK(item)) res += item;
                 else ccf_expr += item;
             }
-            if(!is_zero(ccf_expr)) res += coCF(ccf_expr.subs(coCF(w)==w));
+            if(!is_zero(ccf_expr)) res += mma_expand_HF(ccf_expr.subs(mma_expand_HF(w)==w));
         }
-        if(depth==0) res = res.subs(coCF(w)==w);
+        if(depth==0) res = res.subs(mma_expand_HF(w)==w);
         return res;
     }
     
@@ -900,7 +900,7 @@ namespace HepLib {
         for(auto vc : vc_map) {
             if(isOK(vc.second)) {
                 cerr << Color_Error << "mma_collect: pats founds @ " << vc.second << RESET << endl;
-                exit(1);
+                throw Error("mma_collect: coefficent has pat.");
             }
             res += coVF(vc.first) * coCF(vc.second);
         }
@@ -908,6 +908,47 @@ namespace HepLib {
         if(!ccf) res = res.subs(coCF(w)==w);
         if(!cvf) res = res.subs(coVF(w)==w);
         return res;
+    }
+    
+    /**
+     * @brief the collect function like Mathematica, reture the lst { {c1,v1}, {c2,v2}, ... }
+     * @param expr_in input expression
+     * @param isOK only collect the element e, when isOK(e) is true
+     * @return the collected expression in lst
+     */
+    lst mma_collect_lst(ex const &expr_in, std::function<bool(const ex &)> isOK) {
+        auto res = mma_expand(expr_in, isOK);
+        lst items;
+        if(is_a<add>(res)) {
+            for(auto item : res) items.append(item);
+        } else items.append(res);
+        
+        ex cf = 0;
+        map<ex, ex, ex_is_less> vc_map;
+        for(auto item : items) {
+            if(!isOK(item)) cf += item;
+            else if(is_a<mul>(item)) {
+                ex tc = 1, tv = 1;
+                for(auto ii : item) {
+                    if(!isOK(ii)) tc *= ii;
+                    else tv *= ii;
+                }
+                vc_map[tv] += tc;
+            } else {
+                vc_map[item] += 1;
+            }
+        }
+        lst res_lst;
+        if(!is_zero(cf)) res_lst.append(lst{cf,1});
+        for(auto vc : vc_map) {
+            if(isOK(vc.second)) {
+                cerr << Color_Error << "mma_collect: pats founds @ " << vc.second << RESET << endl;
+                throw Error("mma_collect: coefficent has pat.");
+            }
+            res_lst.append(lst{vc.second, vc.first});
+        }
+        
+        return res_lst;
     }
     
     /**
@@ -930,6 +971,21 @@ namespace HepLib {
     /**
      * @brief the collect function like Mathematica
      * @param expr_in input expression
+     * @param pats only collect the element e match at least one patter in pats, like mma_expand
+     * @return the collected expression
+     */
+    lst mma_collect_lst(ex const &expr_in, lst const &pats) {
+        return mma_collect_lst(expr_in, [pats](const ex & e)->bool {
+            for(auto pat : pats) {
+                if(e.has(pat)) return true;
+            }
+            return false;
+        });
+    }
+    
+    /**
+     * @brief the collect function like Mathematica
+     * @param expr_in input expression
      * @param pat only collect the element e match the pattern, like mma_expand
      * @param ccf true for wrapping coefficient in coCF
      * @param cvf true to wrapping isOK-ed element in coVF
@@ -939,6 +995,18 @@ namespace HepLib {
         return mma_collect(expr_in, [pat](const ex & e)->bool {
             return e.has(pat);
         }, ccf, cvf);
+    }
+    
+    /**
+     * @brief the collect function like Mathematica
+     * @param expr_in input expression
+     * @param pat only collect the element e match the pattern, like mma_expand
+     * @return the collected expression
+     */
+    lst mma_collect_lst(ex const &expr_in, ex const &pat) {
+        return mma_collect_lst(expr_in, [pat](const ex & e)->bool {
+            return e.has(pat);
+        });
     }
 
     /**
@@ -1488,6 +1556,10 @@ namespace HepLib {
     }
     
     XIntegral::XIntegral(ex loops, ex ps, ex ns) {}
+    
+    int CpuCores() {
+        return omp_get_num_procs();
+    }
     
 }
 

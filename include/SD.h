@@ -271,6 +271,7 @@ namespace HepLib::SD {
     ex VESimplify(ex expr, int epN = 0, int epsN = 0);
     ex VEResult(ex expr);
     ex VEResult2(ex expr); // keep two digits in error
+    ex VEMaxErr(ex expr);
 
     /*-----------------------------------------------------*/
     // ErrMin with HookeJeeves
@@ -330,7 +331,7 @@ namespace HepLib::SD {
         
         // used in Contours
         bool CTMaxF = true;
-        dREAL CTMax = 50; // CTMax<0 for explict REAL mode
+        dREAL CTMax = 1; // CTMax<0 for explict REAL mode
         int CTTryPTS = 3;
         int CTSavePTS = 3;
         

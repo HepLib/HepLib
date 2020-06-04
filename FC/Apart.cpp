@@ -441,12 +441,11 @@ namespace HepLib::FC {
         }
 
         ex ret = Apart(mat);
-        ret = mma_collect(ret,ApartIR(w));
-        ret = MapFunction([vars](const ex & e, MapFunction &self)->ex{
-            if(e.match(ApartIR(w))) return ApartIR(e.op(0), vars);
-            else if(!e.has((ApartIR(w)))) return e;
-            else return e.map(self);
-        })(ret);
+        auto cv_lst = mma_collect_lst(ret,ApartIR(w));
+        ret = 0;
+        for(auto cv : cv_lst) {
+            ret += cv.op(0) * ApartIR(cv.op(1).op(0), vars);
+        }
         ret = pref * ret;
         return ret.subs(map2);
     }
@@ -486,8 +485,7 @@ namespace HepLib::FC {
             auto dn = fermat_numer_denom(expr);
             auto den = Apart(1/dn.op(1), sps, sign);
             den = ApartIRC(den);
-            den = mma_collect(den,ApartIR(w1,w2),true,true);
-            if(!is_a<add>(den)) den = lst{den};
+            den = mma_collect_lst(den,ApartIR(w1,w2));
             
             exmap sp2s, s2sp;
             lst ss;
@@ -501,8 +499,8 @@ namespace HepLib::FC {
             
             res = 0;
             for(auto item : den) {
-                auto cc = item.subs(lst{coVF(w)==1,coCF(w)==w});
-                auto air = item.subs(lst{coVF(w)==w,coCF(w)==1});
+                auto cc = item.op(0);
+                auto air = item.op(1);
                 
                 ex vars = air.op(1).subs(sp2s);
                 matrix mat = ex_to<matrix>(air.op(0));
@@ -527,18 +525,16 @@ namespace HepLib::FC {
                 
                 auto cur_num = num.subs(s2p);
                 cur_num = fermat_normal(cur_num);
-cout << mma_collect(cur_num,apXs).nops() << endl;
             }
         
         }
         
         if(true) { // naive method
-            expr = mma_collect(expr, loops, false, true);
-            res = MapFunction([sps, sign](const ex & e, MapFunction &self)->ex{
-                if(!e.has(coVF(w))) return e;
-                else if(e.match(coVF(w))) return Apart(e.op(0), sps, sign);
-                else return e.map(self);
-            })(expr);
+            res = 0;
+            auto cv_lst = mma_collect_lst(expr, loops);
+            for(auto item : cv_lst) {
+                res += item.op(0) * Apart(item.op(1), sps, sign);
+            }
         }
 
         // random check
@@ -751,7 +747,7 @@ cout << mma_collect(cur_num,apXs).nops() << endl;
                 air = air.subs(IR2F,subs_options::subs_options::no_pattern);
                 air = air.subs(rules_ints.first,subs_options::subs_options::no_pattern);
                 air = F2ex(air);
-                air = mma_collect(air, F(w1,w2), false, false);
+                air = mma_collect(air, F(w1,w2));
                 return air;
             }, "F2F");
             
@@ -763,10 +759,13 @@ cout << mma_collect(cur_num,apXs).nops() << endl;
         }
         
         for(auto item : fvec_re) item->Export();
+        auto oproc = ParallelProcess;
+        ParallelProcess = CpuCores()*3/4;
         GiNaC_Parallel(fvec_re.size(), [fvec_re](int idx)->ex {
             fvec_re[idx]->Run();
             return 0;
         }, "FIRE");
+        ParallelProcess = oproc;
         for(auto item : fvec_re) item->Import();
         
         exmap F2F;
@@ -784,7 +783,7 @@ cout << mma_collect(cur_num,apXs).nops() << endl;
             air = air.subs(F2F,subs_options::subs_options::no_pattern);
             air = air.subs(mi_rules.first,subs_options::subs_options::no_pattern);
             air = F2ex(air);
-            air = mma_collect(air, F(w1,w2), false, false);
+            air = mma_collect(air, F(w1,w2));
             return air;
         }, "F2F");
         

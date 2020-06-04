@@ -192,10 +192,9 @@ namespace HepLib::SD {
                         
                         lst nt_lst;
                         if(!is_a<numeric>(nt)) {
-                            nt = mma_collect(nt,[](const ex &e)->bool{return Symbol::has(e);},true,true);
-                            if(!is_a<add>(nt)) nt = lst{nt};
-                            for(auto nti : nt) {
-                                auto nnt = nti.subs(lst{coVF(w)==1,coCF(w)==w});
+                            auto cv_lst = mma_collect_lst(nt,[](const ex &e)->bool{return Symbol::has(e);});
+                            for(auto nti : cv_lst) {
+                                auto nnt = nti.op(0);
                                 if(!is_a<numeric>(nnt)) {
                                     cerr << Color_Error << "Integrates: Not a number with nt = " << nnt << RESET << endl;
                                     exit(1);
@@ -356,6 +355,7 @@ namespace HepLib::SD {
                     smin = -1;
                     ex emin = 0;
                     ex lastResErr = 0;
+                    bool err_break = false;
                     for(int s=0; s<=LambdaSplit; s++) {
                         if(Verbose>10 && s==0) {
                             if(ctryR>0 || ctry>0 || ctryL>0)
@@ -385,7 +385,6 @@ namespace HepLib::SD {
                         diff = diff.subs(VE(0,0)==0);
                         exset ves;
                         diff.find(VE(w0, w1), ves);
-                        bool err_break = false;
                         for(auto ve : ves) {
                             if(abs(ve.op(0)) > ve.op(1)) {
                                 err_break = true;
@@ -406,7 +405,8 @@ namespace HepLib::SD {
                             cerr = err;
                             smin = s;
                             emin = err;
-                            if(emin < CppFormat::q2ex(EpsAbs/cmax/stot)) {
+                            if(s>0 && emin < CppFormat::q2ex(EpsAbs/cmax/stot)) { 
+                                // s>0 make sure at least 2 λs compatiable
                                 smin = -2;
                                 if(kid>0) {
                                     lstRE.let_op(kid-1) = co * res;
@@ -421,9 +421,7 @@ namespace HepLib::SD {
                                 }
                                 break;
                             }
-                        } else if(err > 1.E3 * emin) {
-                            break;
-                        }
+                        } else if(s>0 && err > 1.E3 * emin) break; // s>0 make sure at least 2 λs compatiable
                     }
                     if(smin == -2) break;
                     if(smin == -1) {
@@ -432,10 +430,10 @@ namespace HepLib::SD {
                     }
                     
                     if(smin <= 0) {
-                        if(ctryL >= CTryLeft || ctryR>0) break;
+                        if((!err_break) && (ctryL >= CTryLeft || ctryR>0)) break;
                         log_lamax = log_lamin;
                         log_lamin -= 1.5Q;
-                        ctryL++;
+                        if(!err_break) ctryL++;
                     } else if(smin >= LambdaSplit) {
                         if(ctryR >= CTryRight || ctryL>0) break;
                         log_lamin = log_lamax;

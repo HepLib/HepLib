@@ -31,7 +31,7 @@ namespace HepLib::FC {
             }
         }
         rep_vs.sort();
-        rep_vs.unique();
+        rep_vs.unique();        
         sort_lst(rep_vs);
         
         exmap v2f, f2v;
@@ -108,7 +108,7 @@ namespace HepLib::FC {
         if(cpos==string::npos) throw Error(estr+" NOT Found.");
         ostr = ostr.substr(0,cpos);
         string_trim(ostr);       
-        
+
         symtab st;
         st["i"] = I; 
         Parser fp(st);
@@ -195,7 +195,7 @@ namespace HepLib::FC {
         
         // SU(N) : Phys.Rev., D14, 1536 (1976)
         string init_script = R"EOF(
-CFunction pow,sqrt,gamma,conjugate;
+CFunction pow,sqrt,gamma;
 Tensor T,f(antisymmetric);
 Tensor colTp;
 Symbols gCF,I2R,NF,NA,D,I,Pi;
@@ -243,7 +243,7 @@ Dimension NF;
             init_map[PID] = true;
         }
         
-        ex expr = expr_in.subs(SP_map).subs(HF(w)==w);
+        ex expr = expr_in.subs(SP_map);
         ex all_expr = expr;
         stringstream sss;
         FormFormat ids(sss);
@@ -263,7 +263,7 @@ Dimension NF;
             } else if(is_a<symbol>(*i)) sym_lst.append(*i);
             else if(is_a<GiNaC::function>(*i)) {
                 static vector<string> fun_vec = { 
-                    "iWF", "TR", "sin", "cos", "conjugate"
+                    "iWF", "TR", "sin", "cos"
                 };
                 auto func = ex_to<GiNaC::function>(*i).get_name();
                 bool ok = false;
@@ -358,18 +358,16 @@ Dimension NF;
             st["gCF"] = item.op(0);
             item = Symbol("gCF") * item.op(1);
             // pull out color factor
-            item = mma_collect(item, [](const ex &e)->bool{return Index::hasc(e);},true,true);
-            if(!is_a<add>(item)) item = lst{item};
-            ex item_sum=0;
+            auto cv_lst = mma_collect_lst(item, [](const ex &e)->bool{return Index::hasc(e);});
+            item=0;
             exvector color_vec;
-            for(int i=0; i<item.nops(); i++) {
-                auto it = item.op(i);
-                auto cc = it.subs(lst{coVF(w)==1,coCF(w)==w});
-                auto vv = it.subs(lst{coVF(w)==w,coCF(w)==1});
+            for(int i=0; i<cv_lst.nops(); i++) {
+                auto it = cv_lst.op(i);
+                auto cc = it.op(0);
+                auto vv = it.op(1);
                 color_vec.push_back(vv);
-                item_sum += cc * Symbol("[cl"+to_string(i)+"]");
+                item += cc * Symbol("[cl"+to_string(i)+"]");
             }
-            item = item_sum;
             for(int i=0; i<color_vec.size(); i++) {
                 ff << "L [cl" << i << "]=" << color_vec[i] << ";" << endl;
                 ff << ".sort" << endl;
@@ -489,28 +487,17 @@ Dimension NF;
     ex form(const ex &expr, bool all, int verb) {
         if(all || is_a<lst>(expr)) return runform(expr, verb);
         
-        if(expr.has(coVF(w))) throw Error("form error: expr has coVF already.");
-        auto ret = mma_collect(expr.subs(SP_map), [](const ex & e)->bool {
+        auto cv_lst = mma_collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
             return e.has(TR(w)) || SUNT::has(e) || SUNF::has(e) || Index::has(e) || DiracGamma::has(e);
-        },false,true);
+        });
         
         lst to_lst;
-        int current = 0;
-        ret = MapFunction([&](const ex & e, MapFunction &self)->ex{
-            if(e.match(coVF(w))) {
-                to_lst.append(e.op(0));
-                return coVF(current++);
-            } else if (!e.has(coVF(w))) return e;
-            else return e.map(self);
-        })(ret);
-        
+        for(auto cv : cv_lst) to_lst.append(cv.op(1));
         lst out_lst = ex_to<lst>(runform(to_lst, verb));
-        ret = MapFunction([&](const ex & e, MapFunction &self)->ex{
-            if(e.match(coVF(w))) {
-                return out_lst.op(ex_to<numeric>(e.op(0)).to_int());
-            } else if (!e.has(coVF(w))) return e;
-            else return e.map(self);
-        })(ret);
+        
+        ex ret = 0;
+        for(int i=0; i<cv_lst.nops(); i++) ret += cv_lst.op(i).op(0) * out_lst.op(i);
+        
         return ret.subs(SP_map);
     }
 
