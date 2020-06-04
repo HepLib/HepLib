@@ -13,6 +13,7 @@ namespace HepLib {
     // HepLib
     //----------------------------------------
     std::map<std::string, ex> Symbol::Table; // alias as symtab in parser
+    std::map<std::string, ex> iSymbol::Table; // alias as symtab in parser
     
     ex w = wild();
     ex w0 = wild(0);
@@ -23,7 +24,7 @@ namespace HepLib {
     ex w5 = wild(5);
     
     const Symbol ep("ep");
-    const Symbol iEpsilon("iEpsilon",false);
+    const iSymbol iEpsilon("iEpsilon");
     int Verbose = 0;
     int ParallelProcess = -1;
     const Symbol D("D");
@@ -84,16 +85,16 @@ namespace HepLib {
     // Process _init
     //----------------------------------------
     FC::Qgraf::Process::_init::_init() {
-        auto q = Symbol("q",true,false);
-        auto qbar = Symbol("qbar",true,false);
-        auto gh = Symbol("gh",true,false);
-        auto ghbar = Symbol("ghbar",true,false);
-        auto Q = Symbol("Q",true,false);
-        auto g = Symbol("g",true,false);
-        auto Qbar = Symbol("Qbar",true,false);
-        auto n = Symbol("n",true,false);
-        auto nbar = Symbol("nbar",true,false);
-        auto e = Symbol("e",true,false);
+        auto q = Symbol("q");
+        auto qbar = Symbol("qbar");
+        auto gh = Symbol("gh");
+        auto ghbar = Symbol("ghbar");
+        auto Q = Symbol("Q");
+        auto g = Symbol("g");
+        auto Qbar = Symbol("Qbar");
+        auto n = Symbol("n");
+        auto nbar = Symbol("nbar");
+        auto e = Symbol("e");
         
         LineTeX[q] = "fermion, edge label=q";
         LineTeX[qbar] = "anti fermion, edge label=q";

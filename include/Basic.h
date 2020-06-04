@@ -94,9 +94,7 @@ namespace HepLib {
     class Symbol : public symbol {
     GINAC_DECLARE_REGISTERED_CLASS(Symbol, symbol)
     public:
-        // is_real=false for pure imaginary
-        // check=true to if the name exist then error
-        Symbol(const string &s, bool is_real=true, bool check=false);
+        Symbol(const string &s);
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         
@@ -105,11 +103,13 @@ namespace HepLib {
         ex conjugate() const override;
         ex real_part() const override;
         ex imag_part() const override;
-        bool isReal = true;
+        
+        unsigned get_domain() const override { return domain::positive; }
         
         static bool has(const ex &e);
         static lst all(const ex &e);
         static std::map<std::string, ex> Table;
+        
         static exmap AssignMap;
         static void Assign(const Symbol & s, const ex & v);
         static void Assign(const string & str, const ex & v);
@@ -118,6 +118,30 @@ namespace HepLib {
         static void clearAssign();
     };
     GINAC_DECLARE_UNARCHIVER(Symbol);
+    
+    //-----------------------------------------------------------
+    // iSymbol Class - I * Symbol
+    //-----------------------------------------------------------
+    class iSymbol : public symbol {
+    GINAC_DECLARE_REGISTERED_CLASS(iSymbol, symbol)
+    public:
+        iSymbol(const string &s);
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n, lst& sym_lst) override;
+        
+        unsigned get_domain() const override { return domain::complex; }
+        
+        ex eval() const override; // for performance reasons
+        ex evalf() const override; // for performance reasons
+        ex conjugate() const override;
+        ex real_part() const override;
+        ex imag_part() const override;
+        
+        static bool has(const ex &e);
+        static lst all(const ex &e);
+        static std::map<std::string, ex> Table;
+    };
+    GINAC_DECLARE_UNARCHIVER(iSymbol);
     
     
     /*-----------------------------------------------------*/
@@ -133,7 +157,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Global Symbol
     /*-----------------------------------------------------*/
-    const symbol & get_symbol(const string & s, bool check=false);
+    const symbol & get_symbol(const string & s);
 
     /*-----------------------------------------------------*/
     // split
@@ -331,7 +355,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     extern ex w, w0, w1, w2, w3, w4, w5;
     extern string InstallPrefix;
-    extern const Symbol iEpsilon;
+    extern const iSymbol iEpsilon;
     extern const Symbol ep;
     extern const Symbol D;
     extern int Verbose;

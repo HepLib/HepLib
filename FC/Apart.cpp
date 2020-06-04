@@ -140,7 +140,7 @@ namespace HepLib::FC {
                 int fvi = 0;
                 for(auto vi : rep_vs) {
                     auto name = "v" + to_string(fvi);
-                    v2f[vi] = get_symbol(name);
+                    v2f[vi] = Symbol(name);
                     st[name] = vi;
                     fvi++;
                 }

@@ -285,7 +285,10 @@ namespace HepLib::FC {
                     }
                     return ret;
                 } else if(is_a<power>(e)) {
-                    if(!e.op(1).info(info_flags::posint)) throw Error("LProj: power is not info_flags::posint.");
+                    if(!e.op(1).info(info_flags::posint)) {
+                        cout << e << endl;
+                        throw Error("LProj: power is not info_flags::posint.");
+                    }
                     ex ret = 1;
                     int pn = ex_to<numeric>(e.op(1)).to_int();
                     for(int i=0; i<pn; i++) {

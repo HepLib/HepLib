@@ -109,8 +109,12 @@ namespace HepLib {
         }
     }
     
-    Parser::Parser() : STable(Symbol::Table), FTable(ginac_reader()) { }
+    // note iSymbol will override Symbol if they share same name
+    Parser::Parser() : STable(Symbol::Table), FTable(ginac_reader()) { 
+        for(auto item : iSymbol::Table) STable[item.first] = item.second;
+    }
     Parser::Parser(symtab st) : STable(Symbol::Table), FTable(ginac_reader()) { 
+        for(auto item : iSymbol::Table) STable[item.first] = item.second;
         for(auto item : st) STable[item.first] = item.second;
     }
     ex Parser::Read(string instr) {

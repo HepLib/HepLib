@@ -18,21 +18,22 @@ namespace HepLib {
     const char * Error::what() const throw () {
         return msg.c_str();
     }
+    
+    /*-----------------------------------------------------*/
+    // Symbol
+    /*-----------------------------------------------------*/
 
     DEFAULT_CTOR(Symbol)
     GINAC_BIND_UNARCHIVER(Symbol);
     IMPLEMENT_HAS(Symbol)
     IMPLEMENT_ALL(Symbol)
-    
     GINAC_IMPLEMENT_REGISTERED_CLASS(Symbol, symbol)
     
     /**
      * @brief Symbol constructor
      * @param s symbol name
-     * @param r true for real, false for pure imaginary 
-     * @param c true to check the name exist or not, if exsit error thrown
      */
-    Symbol::Symbol(const string &s, bool r, bool c) : symbol(get_symbol(s,c)), isReal(r) { Table[s]=*this; }
+    Symbol::Symbol(const string &s) : symbol(get_symbol(s)) { Table[s]=*this; }
     int Symbol::compare_same_type(const basic &other) const {
         const Symbol &o = static_cast<const Symbol &>(other);
         int ret = get_name().compare(o.get_name());
@@ -47,7 +48,6 @@ namespace HepLib {
      */
     void Symbol::archive(archive_node & n) const {
         inherited::archive(n);
-        n.add_bool("isReal", isReal);
     }
     
     /**
@@ -58,15 +58,14 @@ namespace HepLib {
     void Symbol::read_archive(const archive_node& n, lst& sym_lst) {
         inherited::read_archive(n, sym_lst);
         bool is_real;
-        n.find_bool("isReal", is_real);
-        *this = Symbol(get_name(), is_real, false);
+        *this = Symbol(get_name());
     }
     
     ex Symbol::eval() const { return *this; }
     ex Symbol::evalf() const { return *this; }
-    ex Symbol::conjugate() const { return *this * (isReal ? 1 : -1); }
-    ex Symbol::real_part() const { return (isReal ? *this : ex(0)); }
-    ex Symbol::imag_part() const { return (isReal ? ex(0) : *this); }
+    ex Symbol::conjugate() const { return *this; }
+    ex Symbol::real_part() const { return *this; }
+    ex Symbol::imag_part() const { return 0; }
     
     exmap Symbol::AssignMap;
     void Symbol::Assign(const Symbol & s, const ex & v) { AssignMap[s] = v; }
@@ -74,6 +73,53 @@ namespace HepLib {
     void Symbol::clearAssign(const Symbol &s) { AssignMap.erase(s); }
     void Symbol::clearAssign(const string &str) { AssignMap.erase(Symbol(str)); }
     void Symbol::clearAssign() { AssignMap.clear(); }
+    
+    /*-----------------------------------------------------*/
+    // iSymbol
+    /*-----------------------------------------------------*/
+    
+    DEFAULT_CTOR(iSymbol)
+    GINAC_BIND_UNARCHIVER(iSymbol);
+    IMPLEMENT_HAS(iSymbol)
+    IMPLEMENT_ALL(iSymbol)
+    GINAC_IMPLEMENT_REGISTERED_CLASS(iSymbol, symbol)
+    
+    /**
+     * @brief Symbol constructor
+     * @param s symbol name
+     */
+    iSymbol::iSymbol(const string &s) : symbol(get_symbol(s)) { Table[s]=*this; }
+    int iSymbol::compare_same_type(const basic &other) const {
+        const iSymbol &o = static_cast<const iSymbol &>(other);
+        int ret = get_name().compare(o.get_name());
+        if(ret==0) return 0;
+        else if(ret<0) return -1;
+        else return 1;
+    }
+    
+    /**
+     * @brief Symbol archive
+     * @param n archive node
+     */
+    void iSymbol::archive(archive_node & n) const {
+        inherited::archive(n);
+    }
+    
+    /**
+     * @brief Symbol read_archive
+     * @param n archive node
+     * @param sym_lst symbol lst
+     */
+    void iSymbol::read_archive(const archive_node& n, lst& sym_lst) {
+        inherited::read_archive(n, sym_lst);
+        *this = iSymbol(get_name());
+    }
+    
+    ex iSymbol::eval() const { return *this; }
+    ex iSymbol::evalf() const { return *this; }
+    ex iSymbol::conjugate() const { return (*this)*(-1); }
+    ex iSymbol::real_part() const { return ex(0); }
+    ex iSymbol::imag_part() const { return (-I)*(*this); }
 
     /*-----------------------------------------------------*/
     // Global varibales
@@ -223,20 +269,29 @@ namespace HepLib {
     }
 
     /**
+     * @brief get the possymbol from symbol factory, if not exsit, a new one will be created
+     * @param s the name of the symbol
+     * @param check true to check exist, and if so, error will be thrown
+     * @return return the found/created symbol
+     */
+    const possymbol & get_possymbol(const string & s) {
+        static map<string, possymbol> directory;
+        map<string, possymbol>::iterator i = directory.find(s);
+        if (i != directory.end()) return i->second;
+        else return directory.insert(make_pair(s, possymbol(s))).first->second;
+    }
+    
+    /**
      * @brief get the symbol from symbol factory, if not exsit, a new one will be created
      * @param s the name of the symbol
      * @param check true to check exist, and if so, error will be thrown
      * @return return the found/created symbol
      */
-    const symbol & get_symbol(const string & s, bool check) {
+    const symbol & get_symbol(const string & s) {
         static map<string, symbol> directory;
         map<string, symbol>::iterator i = directory.find(s);
-        if (i != directory.end()) {
-            if(check) throw std::runtime_error("get_symbol: check failed with name: " + s);
-            return i->second;
-        } else {
-            return directory.insert(make_pair(s, symbol(s))).first->second;
-        }
+        if (i != directory.end()) return i->second;
+        else return directory.insert(make_pair(s, symbol(s))).first->second;
     }
 
     /**
