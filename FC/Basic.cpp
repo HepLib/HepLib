@@ -290,7 +290,6 @@ namespace HepLib::FC {
     
     ex MatrixContract(const ex & expr_in) {
         if(!expr_in.has(Matrix(w1,w2,w3))) return expr_in;
-        if(expr_in.has(coVF(w))) throw Error("MatrixContract: coVF found in expr_in.");
         
         auto expr = expr_in.subs(pow(Matrix(w1,w2,w3),2)==Matrix(w1,w2,w3)*Matrix(w1,w3,w2));
         auto cv_lst = mma_collect_lst(expr, Matrix(w1, w2, w3));
@@ -303,9 +302,10 @@ namespace HepLib::FC {
             } else if(!is_a<mul>(e)) throw Error("MatrixContract: mma_collect error: " + ex2str(e));
             
             lst mats;
+            for(auto item : e) mats.append(item);
+            
             std::map<ex,int,ex_is_less> to_map, from_map;
             std::set<int> todo;
-            for(auto item : e) mats.append(item);
             lst mats_idx;
             for(int i=0; i<mats.nops(); i++) {
                 auto item = mats.op(i);

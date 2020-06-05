@@ -329,9 +329,9 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     ex mma_series(ex const & expr, const symbol &s, int sn);
     
-    ex mma_expand(const ex &expr, std::function<bool(const ex &)>, int depth=0);
-    ex mma_expand(ex const &expr, lst const &pats, int depth=0);
-    ex mma_expand(ex const &expr, ex const &pat, int depth=0);
+    expair mma_expand(const ex &expr, std::function<bool(const ex &)>, int depth=0);
+    expair mma_expand(ex const &expr, lst const &pats, int depth=0);
+    expair mma_expand(ex const &expr, ex const &pat, int depth=0);
     
     ex mma_collect(const ex &expr, std::function<bool(const ex &)>, bool ccf=false, bool cvf=false);
     ex mma_collect(const ex &expr, lst const &pats, bool ccf=false, bool cvf=false);
@@ -378,7 +378,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     DECLARE_FUNCTION_1P(coCF)
     DECLARE_FUNCTION_1P(coVF)
-    DECLARE_FUNCTION_1P(mma_expand_HF)
+    DECLARE_FUNCTION_1P(mmaExp)
     
     DECLARE_FUNCTION_1P(x)
     DECLARE_FUNCTION_1P(y)

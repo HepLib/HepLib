@@ -58,12 +58,7 @@ namespace HepLib::FC {
         ss.clear();
         ss.str("");
         
-        ex nn_chk=1;
-        ss << "res:=1;" << endl;
-        fermat.Execute(ss.str());
-        ss.clear();
-        ss.str("");
-        
+        ex nn_chk(1), num(1), den(1);
         if(!is_a<mul>(expr_in)) expr_in = lst{expr_in};
         for(auto item : expr_in) {
             if(!is_a<add>(item)) item = lst{item};
@@ -85,37 +80,44 @@ namespace HepLib::FC {
                 ss.clear();
                 ss.str("");
             }
-            ss << "res:=res*Sumup([m]);" << endl;
+            ss << "res:=Sumup([m]);" << endl;
             fermat.Execute(ss.str());
             ss.clear();
             ss.str("");
             nn_chk *= nn_chk2;
+            
+            static string bstr("[-begin-]"), estr("[-end-]");
+            ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
+            ss << "!('" <<bstr<< "','{',Numer(res),',',Denom(res),'}','" <<estr<< "')" << endl;
+            auto ostr = fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
+
+            // make sure last char is 0
+            if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
+            ostr = ostr.substr(0, ostr.length()-1);
+            auto cpos = ostr.find(bstr);
+            if(cpos==string::npos) throw Error(bstr+" NOT Found.");
+            ostr = ostr.substr(cpos+bstr.length(),ostr.length()-cpos);
+            cpos = ostr.find(estr);
+            if(cpos==string::npos) throw Error(estr+" NOT Found.");
+            ostr = ostr.substr(0,cpos);
+            string_trim(ostr);       
+
+            symtab st;
+            st["i"] = I; 
+            Parser fp(st);
+            auto ret = fp.Read(ostr);
+            num *= ret.op(0);
+            den *= factor(ret.op(1));
+            
+            ss << "&(U=0);" << endl; // disable ugly printing
+            fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
         }
-                
-        static string bstr("[-begin-]"), estr("[-end-]");
-        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
-        ss << "!('" <<bstr<< "','{',Numer(res),',',Denom(res),'}','" <<estr<< "')" << endl;
-        auto ostr = fermat.Execute(ss.str());
         fermat.Exit();
-
-        // make sure last char is 0
-        if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
-        ostr = ostr.substr(0, ostr.length()-1);
-        auto cpos = ostr.find(bstr);
-        if(cpos==string::npos) throw Error(bstr+" NOT Found.");
-        ostr = ostr.substr(cpos+bstr.length(),ostr.length()-cpos);
-        cpos = ostr.find(estr);
-        if(cpos==string::npos) throw Error(estr+" NOT Found.");
-        ostr = ostr.substr(0,cpos);
-        string_trim(ostr);       
-
-        symtab st;
-        st["i"] = I; 
-        Parser fp(st);
-        auto ret = fp.Read(ostr);
-        auto num = ret.op(0);
-        auto den = factor(ret.op(1));
-
+                
         auto nn_ret = subs(num/den,nn_map);
         if(nn_chk-nn_ret!=0) throw Error("fermat_together: N Check Failed.");
         

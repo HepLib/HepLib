@@ -774,7 +774,7 @@ namespace HepLib {
      * @param expr input expression
      * @param xp the variable, can be an expression, will replace by a symbol and back again
      * @param nth nth-derivative
-     * @param expand true to call mma_expand before diff
+     * @param expand true to call mma_collect before diff
      * @return the corresponding nth-derivative
      */
     ex mma_diff(ex const expr, ex const xp, unsigned nth, bool expand) {
@@ -792,48 +792,64 @@ namespace HepLib {
      * @param expr_in input expression
      * @param isOK only expand the element e, when isOK(e) is true
      * @param depth will be incresed by 1 when each recursively called, when depth>5, GiNaC expand will be used
-     * @return the expanded expression
+     * @return the expanded expression, expair, coeff is constant, rest involving pattern
      */
-    ex mma_expand(ex const &expr_in, std::function<bool(const ex &)> isOK, int depth) {
-        if(depth>15) return expr_in.expand();
-        ex expr;
-        if(is_a<add>(expr_in)) {
-            expr = 0;
+    expair mma_expand(ex const &expr_in, std::function<bool(const ex &)> isOK, int depth) {
+        ex rest, coeff;
+        if(!isOK(expr_in)) {
+            rest = 0;
+            coeff = expr_in;
+        } if(is_a<add>(expr_in)) {
+            coeff = 0;
+            rest = 0;
             for(auto item : expr_in) {
-                if(isOK(item)) expr += mma_expand(item, isOK, depth+1);
-                else expr += item;
+                if(isOK(item)) {
+                    auto rc = mma_expand(item, isOK, depth+1);
+                    coeff += rc.coeff;
+                    rest += rc.rest;
+                } else coeff += item;
             }
-        } else if (is_a<mul>(expr_in)) {
-            expr=1;
+        } else if(is_a<mul>(expr_in)) {
+            coeff = 1;
+            rest = 0;
             for(auto item : expr_in) {
-                if(isOK(item)) expr *= mma_expand(item, isOK, depth+1);
-                else if(is_a<numeric>(item)) expr *= item;
-                else expr *= mma_expand_HF(item.subs(mma_expand_HF(w)==w));
+                auto rc = mma_expand(item, isOK, depth+1);
+                ex iis = rc.rest;
+                if(!is_a<add>(iis)) iis = lst{iis};
+                ex jjs = rest;
+                if(!is_a<add>(jjs)) jjs = lst{jjs};
+                rest = 0;
+                for(auto ii : iis) {
+                    rest += coeff * ii;
+                    for(auto jj : jjs) rest += ii * jj;
+                }
+                for(auto jj : jjs) rest += rc.coeff * jj;
+                coeff *= rc.coeff;
             }
         } else if(is_a<power>(expr_in) && expr_in.op(1).info(info_flags::nonnegint)) {
-            auto item = expr_in.op(0);
-            auto ni = expr_in.op(1);
-            if(isOK(item)) expr = pow(mma_expand(item, isOK, depth+1), ni).expand();
-            else if(is_a<numeric>(item)) expr = expr_in;
-            else expr = mma_expand_HF(expr_in.subs(mma_expand_HF(w)==w));
+            int n = ex_to<numeric>(expr_in.op(1)).to_int();
+            auto rc = mma_expand(expr_in.op(0), isOK, depth+1);
+            ex iis = rc.rest;
+            if(!is_a<add>(iis)) iis = lst{iis};
+            coeff = 1;
+            rest = 0;
+            for(int i=0; i<n; i++) {
+                ex jjs = rest;
+                if(!is_a<add>(jjs)) jjs = lst{jjs};
+                rest = 0;
+                for(auto ii : iis) {
+                    rest += coeff * ii;
+                    for(auto jj : jjs) rest += ii * jj;
+                }
+                for(auto jj : jjs) rest += rc.coeff * jj;
+                coeff *= rc.coeff;
+            }
         } else {
-            if(isOK(expr_in) || is_a<numeric>(expr_in)) expr = expr_in;
-            else expr = mma_expand_HF(expr_in.subs(mma_expand_HF(w)==w));
+            rest = expr_in;
+            coeff = 0;
         }
         
-        expr = expr.expand();
-        ex res = expr;
-        if(is_a<add>(expr)) {
-            res = 0;
-            ex ccf_expr=0;
-            for(auto item : expr) {
-                if(isOK(item)) res += item;
-                else ccf_expr += item;
-            }
-            if(!is_zero(ccf_expr)) res += mma_expand_HF(ccf_expr.subs(mma_expand_HF(w)==w));
-        }
-        if(depth==0) res = res.subs(mma_expand_HF(w)==w);
-        return res;
+        return expair(rest,coeff);
     }
     
     /**
@@ -843,7 +859,7 @@ namespace HepLib {
      * @param depth will be incresed by 1 when each recursively called
      * @return the expanded expression
      */
-    ex mma_expand(ex const &expr_in, lst const &pats, int depth) {
+    expair mma_expand(ex const &expr_in, lst const &pats, int depth) {
         return mma_expand(expr_in, [pats](const ex & e)->bool {
             for(auto pat : pats) {
                 if(e.has(pat)) return true;
@@ -859,7 +875,7 @@ namespace HepLib {
      * @param depth will be incresed by 1 when each recursively called
      * @return the expanded expression
      */
-    ex mma_expand(ex const &expr_in, const ex &pat, int depth) {
+    expair mma_expand(ex const &expr_in, const ex &pat, int depth) {
         return mma_expand(expr_in, [pat](const ex & e)->bool {
             return e.has(pat);
         }, depth);
@@ -874,11 +890,11 @@ namespace HepLib {
      * @return the collected expression
      */
     ex mma_collect(ex const &expr_in, std::function<bool(const ex &)> isOK, bool ccf, bool cvf) {
-        auto res = mma_expand(expr_in, isOK);
+        auto rc = mma_expand(expr_in, isOK);
         lst items;
-        if(is_a<add>(res)) {
-            for(auto item : res) items.append(item);
-        } else items.append(res);
+        items.append(rc.coeff);
+        if(!is_a<add>(rc.rest)) items.append(rc.rest);
+        else for(auto item : rc.rest) items.append(item);
         
         ex cf = 0;
         map<ex, ex, ex_is_less> vc_map;
@@ -895,7 +911,8 @@ namespace HepLib {
                 vc_map[item] += 1;
             }
         }
-        res = 0;
+        
+        ex res = 0;
         if(!is_zero(cf)) res += coCF(cf)*coVF(1);
         for(auto vc : vc_map) {
             if(isOK(vc.second)) {
@@ -917,11 +934,11 @@ namespace HepLib {
      * @return the collected expression in lst
      */
     lst mma_collect_lst(ex const &expr_in, std::function<bool(const ex &)> isOK) {
-        auto res = mma_expand(expr_in, isOK);
+        auto rc = mma_expand(expr_in, isOK);
         lst items;
-        if(is_a<add>(res)) {
-            for(auto item : res) items.append(item);
-        } else items.append(res);
+        items.append(rc.coeff);
+        if(!is_a<add>(rc.rest)) items.append(rc.rest);
+        else for(auto item : rc.rest) items.append(item);
         
         ex cf = 0;
         map<ex, ex, ex_is_less> vc_map;
@@ -938,6 +955,7 @@ namespace HepLib {
                 vc_map[item] += 1;
             }
         }
+        
         lst res_lst;
         if(!is_zero(cf)) res_lst.append(lst{cf,1});
         for(auto vc : vc_map) {
