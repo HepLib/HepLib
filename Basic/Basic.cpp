@@ -813,18 +813,25 @@ namespace HepLib {
             coeff = 1;
             rest = 0;
             for(auto item : expr_in) {
-                auto rc = mma_expand(item, isOK, depth+1);
-                ex iis = rc.rest;
-                if(!is_a<add>(iis)) iis = lst{iis};
-                ex jjs = rest;
+                auto jjs = rest;
                 if(!is_a<add>(jjs)) jjs = lst{jjs};
                 rest = 0;
-                for(auto ii : iis) {
-                    rest += coeff * ii;
-                    for(auto jj : jjs) rest += ii * jj;
+                
+                if(!isOK(item)) {
+                    for(auto jj : jjs) rest += item * jj;
+                    coeff *= item;
+                } else {
+                    auto rc = mma_expand(item, isOK, depth+1);
+                    ex iis = rc.rest;
+                    if(!is_a<add>(iis)) iis = lst{iis};
+                    for(auto ii : iis) {
+                        if(is_zero(ii)) continue;
+                        rest += coeff * ii;
+                        for(auto jj : jjs) rest += ii * jj;
+                    }
+                    for(auto jj : jjs) rest += rc.coeff * jj;
+                    coeff *= rc.coeff;
                 }
-                for(auto jj : jjs) rest += rc.coeff * jj;
-                coeff *= rc.coeff;
             }
         } else if(is_a<power>(expr_in) && expr_in.op(1).info(info_flags::nonnegint)) {
             int n = ex_to<numeric>(expr_in.op(1)).to_int();
@@ -834,10 +841,12 @@ namespace HepLib {
             coeff = 1;
             rest = 0;
             for(int i=0; i<n; i++) {
-                ex jjs = rest;
+                auto jjs = rest;
                 if(!is_a<add>(jjs)) jjs = lst{jjs};
                 rest = 0;
+                
                 for(auto ii : iis) {
+                    if(is_zero(ii)) continue;
                     rest += coeff * ii;
                     for(auto jj : jjs) rest += ii * jj;
                 }

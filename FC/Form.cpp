@@ -378,7 +378,7 @@ Dimension NF;
             }
             
             // two method to handle TR objects
-            if(false) {
+            if(trace_method==1) {
                 mapTR tr;
                 item = tr(item);
                 ff << "L [o]=" << item << ";" << endl;
@@ -389,7 +389,7 @@ Dimension NF;
                     ff << ".sort" << endl;
                     ff << idstr << ".sort" << endl;
                 }
-            } else {
+            } else if(trace_method==2) {
                 exset trs;
                 find(item,TR(w),trs);
                 exmap tr2v;

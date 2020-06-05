@@ -20,6 +20,7 @@ namespace HepLib::FC {
     extern const Symbol NF;
     extern const Symbol gs;
     extern exmap SP_map;
+    extern int trace_method;
     
     class Index;
     class Vector;
