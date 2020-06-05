@@ -178,8 +178,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
 
 ex HCubature::Integrate() {
     if(mpfr_buildopt_tls_p()<=0) {
-        cerr << Color_Error << "Integrate: mpfr_buildopt_tls_p()<=0" << RESET << endl;
-        exit(1);
+        throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
     }
     
     unsigned int xdim = XDim;

@@ -82,7 +82,7 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
     
     if(ret.size()<=0) {
         cerr << Color_Error << "RunQHull: (ret.size()<=0)" << RESET << endl;
-        exit(1);
+        throw Error("SecDecG::RunQHull failed.");
     }
     return ret;
 }
@@ -90,12 +90,12 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
 vector<matrix> SecDecG::ZeroFaces(const matrix &pts) {
     if(pts.rows()<=0) {
         cerr << Color_Error << "ZeroFaces: (pts.rows()<=0)" << RESET << endl;
-        exit(1);
+        throw Error("SecDecG::ZeroFaces failed (1).");
     }
     auto zri = MatHelper::zero_row_index(pts);
     if(zri.size() <= 0) {
         cerr << Color_Error << "ZeroFaces: (zri.size() <= 0)" << RESET << endl;
-        exit(1);
+        throw Error("SecDecG::ZeroFaces failed.");
     }
     int zpos = zri[0];
     auto QH = RunQHull(pts);
@@ -132,7 +132,7 @@ matrix SecDecG::NormalVectors(const vector<matrix> &zfs) {
         matrix tmat = MatHelper::remove_zero_rows(zfs[ii]);
         if(tmat.rows() >= zfs[ii].rows()) {
             cerr << Color_Error << "NormalVectors: (tmat.rows() >= zfs[ii].rows())" << RESET << endl;
-            exit(1);
+            throw Error("SecDecG::NormalVectors failed (1).");
         }
         
         for(int ti=0; ti<tmat.rows(); ti++) {
@@ -158,7 +158,7 @@ matrix SecDecG::NormalVectors(const vector<matrix> &zfs) {
         tmat = MatHelper::remove_zero_rows(tmat);
         if(tmat.rows()!=tmat.cols()-1) {
             cerr << Color_Error << "NormalVectors: (tmat.rows()!=tmat.cols()-1)" << RESET << endl;
-            exit(1);
+            throw Error("SecDecG::NormalVectors failed.");
         }
         matrix tmat2(tmat.cols(), tmat.cols());
         for(int r=0; r<tmat.rows(); r++) {
@@ -270,7 +270,7 @@ vector<vector<int>> SecDecG::QHull(const matrix &dc, int dim) {
 vector<matrix> SecDecG::Simplexify(const matrix &dc, int dim) {
     if(dc.rows()-dim<=0) {
         cerr << Color_Error << "Simplexify: (dc.rows()-dim<=0)" << RESET << endl;
-        exit(1);
+        throw Error("SecDecG::Simplexify failed.");
     }
     vector<matrix> ret;
     if(dc.rows() == dim+1) {
@@ -348,7 +348,7 @@ vector<matrix> SecDecG::SimplexCones(matrix pts) {
     
     if(ds.rows() < ds.cols()) {
         cerr << Color_Error << "SimplexCones: (ds.rows() < ds.cols())" << RESET << endl;
-        exit(1);
+        throw Error("SecDecG::SimplexCones failed.");
     }
     if(ds.rank()<ds.cols()) return vector<matrix>();
     return SimplexifyR(ds, ds.cols()-1);
@@ -358,7 +358,7 @@ vector<matrix> SecDecG::SimplexCones(matrix pts) {
 vector<exmap> SecDecG::x2y(const ex &xpol) {
     if(xpol.has(y(w))) {
         cerr << Color_Error << "SecDecG::x2y, y(w) found @ " << xpol << RESET << endl;
-        exit(1);
+        throw Error("SecDecG::x2y failed.");
     }
     auto xs = get_xy_from(xpol);
     int nx = xs.size();

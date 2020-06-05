@@ -28,7 +28,6 @@ namespace HepLib {
     int Verbose = 0;
     int ParallelProcess = -1;
     const Symbol D("D");
-    pid_t PID = getpid();
     
     lst GiNaC_archive_Symbols = lst{};
     string InstallPrefix = "@PREFIX_DIR@";

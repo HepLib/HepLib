@@ -113,15 +113,15 @@ Dimension NF;
     //-----------------------------------------------------------
     namespace {
     ex runform(const ex &expr_in, int verb) {
-        static HepLib::Form form_proc;
-        static map<pid_t, bool> init_map;
-        if((init_map.find(PID)==init_map.end()) || !init_map[PID]) { // init section
+        static map<pid_t, Form> form_map;
+        auto pid = getpid();
+        if((form_map.find(pid)==form_map.end())) { // init section
             ostringstream ss;
             ss << init_script << endl;
-            form_proc.Init("form");
-            form_proc.Execute(ss.str());
-            init_map[PID] = true;
+            form_map[pid].Init("form");
+            form_map[pid].Execute(ss.str());
         }
+        Form &fprc = form_map[pid];
         
         ex expr = expr_in.subs(SP_map);
         ex all_expr = expr;
@@ -307,7 +307,7 @@ Dimension NF;
             auto script = ss.str();
             string_replace_all(script, "sin(", "sin_(");
             string_replace_all(script, "cos(", "cos_(");
-            auto otmp = form_proc.Execute(script);
+            auto otmp = fprc.Execute(script);
         
             if(verb>2) {
                 cout << "--------------------------------------" << endl;

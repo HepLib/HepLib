@@ -204,7 +204,6 @@ namespace HepLib {
             } 
             
             // child process
-            PID = getpid(); // update PID after fork
             try {
                 lst res_lst;
                 for(int ri=0; ri<nbatch; ri++) {
@@ -1595,8 +1594,7 @@ namespace HepLib {
     // fermat_numer_denom / fermat_normal
     //-----------------------------------------------------------
     ex fermat_numer_denom(const ex & expr, std::function<bool(const ex &)> isOK) {
-        static Fermat fermat;
-        static map<pid_t, bool> init_map;
+        static map<pid_t, Fermat> fermat_map;
         static int v_max = 0;
         static Symbol vi("vi");
         static MapFunction iMap([](const ex & e, MapFunction &self)->ex {
@@ -1605,11 +1603,13 @@ namespace HepLib {
             else if(e.info(info_flags::numeric) && !e.info(info_flags::real)) return real_part(e)+imag_part(e)*vi;
             else return e.map(self);
         });
-        
-        if((init_map.find(PID)==init_map.end()) || !init_map[PID]) { // init section
-            fermat.Init();
-            init_map[PID] = true;
+
+        auto pid = getpid();
+        if((fermat_map.find(pid)==fermat_map.end())) { // init section
+            fermat_map[pid].Init();
+            v_max = 0;
         }
+        Fermat &fermat = fermat_map[pid];
         
         auto expr_in = expr;
         exset sqrt_set;

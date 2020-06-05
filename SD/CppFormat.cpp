@@ -97,8 +97,7 @@ void CppFormat::print_numeric(const numeric & p, const CppFormat & c, unsigned l
             print_real(c, cln::imagpart(p.to_cl_N()));
             c.s << ")";
         } else {
-            cerr << Color_Error << "CppFormat: suffix is Wrong, Abort!" << RESET << endl;
-            exit(1);
+            throw Error("CppFormat: suffix is Wrong.");
         }
     }
 }

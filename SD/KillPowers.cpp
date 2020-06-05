@@ -110,7 +110,7 @@ namespace HepLib::SD {
                 FunExp.push_back(lst{f2,e2,fe.op(2)});
             } else {
                 cerr << Color_Error << "KillPowerWithDelta: Not Expected Region." << RESET << endl;
-                exit(1);
+                throw Error("KillPower WithDelta failed.");
             }
             return true;
         }

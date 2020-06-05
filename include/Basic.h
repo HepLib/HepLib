@@ -367,8 +367,7 @@ namespace HepLib {
     extern const Symbol D;
     extern int Verbose;
     extern int ParallelProcess;
-    extern pid_t PID;
-    
+
     /*-----------------------------------------------------*/
     // Global Colors
     /*-----------------------------------------------------*/
