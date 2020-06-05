@@ -181,8 +181,6 @@ namespace HepLib::FC {
     void clearSP();
     ex SP2sp(const ex & exin);
     exmap sp_map();
-    ex fermat_numer_denom(const ex & expr);
-    ex fermat_normal(const ex & expr);
     
     //-----------------------------------------------------------
     // Eps Class

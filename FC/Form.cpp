@@ -7,130 +7,9 @@
  */
  
 #include "FC.h"
-#include "cln/cln.h"
 
 namespace HepLib::FC {
 
-    ex fermat_numer_denom(const ex & expr) {
-        auto expr_in = expr;
-        exset sqrt_set;
-        find(expr_in,sqrt(w),sqrt_set);
-        exmap sqrt2sym, sym2sqrt;
-        for(auto item : sqrt_set) {
-            symbol s;
-            sqrt2sym[item] = s; 
-            sym2sqrt[s] = item;
-        }
-        expr_in = expr_in.subs(sqrt2sym);
-        
-        lst rep_vs;
-        for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
-            auto e = (*i);
-            if(is_a<symbol>(e) || is_a<Pair>(e) || is_a<Eps>(e)) {
-                rep_vs.append(e);
-            }
-        }
-        rep_vs.sort();
-        rep_vs.unique();        
-        sort_lst(rep_vs);
-        
-        exmap v2f, f2v;
-        exmap nn_map;
-        auto nn_pi = cln::nextprobprime(3);
-        int fvi = 0;
-        for(auto vi : rep_vs) {
-            auto name = "v" + to_string(fvi);
-            Symbol s(name);
-            v2f[vi] = s;
-            f2v[s] = vi;
-            fvi++;
-            nn_pi = cln::nextprobprime(nn_pi+1);
-            nn_map[s] = ex(1)/numeric(nn_pi);
-        }
-        
-        stringstream ss;
-        if(fvi>111) throw Error("Fermat: Too many variables.");
-        for(int i=0; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
-        ss << "&(J=i);" << endl;
-        Fermat fermat;
-        fermat.Init();
-        fermat.Execute(ss.str());
-        ss.clear();
-        ss.str("");
-        
-        ex nn_chk(1), num(1), den(1);
-        if(!is_a<mul>(expr_in)) expr_in = lst{expr_in};
-        for(auto item : expr_in) {
-            if(!is_a<add>(item)) item = lst{item};
-            ss << "Array m[" << item.nops() << "];" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-            
-            ex nn_chk2=0;
-            for(int i=0; i<item.nops(); i++) {
-                ex tt = item.op(i).subs(v2f);
-                nn_chk2 += tt.subs(nn_map);
-                ss << "m[" << (i+1) << "]:=";
-                ss << tt << ";" << endl;
-                auto tmp = ss.str();
-                string_replace_all(tmp,"I*","i*");
-                string_replace_all(tmp,"*I","*i");
-                fermat.Execute(tmp);
-                ss.clear();
-                ss.str("");
-            }
-            ss << "res:=Sumup([m]);" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-            nn_chk *= nn_chk2;
-            
-            static string bstr("[-begin-]"), estr("[-end-]");
-            ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
-            ss << "!('" <<bstr<< "','{',Numer(res),',',Denom(res),'}','" <<estr<< "')" << endl;
-            auto ostr = fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-
-            // make sure last char is 0
-            if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
-            ostr = ostr.substr(0, ostr.length()-1);
-            auto cpos = ostr.find(bstr);
-            if(cpos==string::npos) throw Error(bstr+" NOT Found.");
-            ostr = ostr.substr(cpos+bstr.length(),ostr.length()-cpos);
-            cpos = ostr.find(estr);
-            if(cpos==string::npos) throw Error(estr+" NOT Found.");
-            ostr = ostr.substr(0,cpos);
-            string_trim(ostr);       
-
-            symtab st;
-            st["i"] = I; 
-            Parser fp(st);
-            auto ret = fp.Read(ostr);
-            num *= ret.op(0);
-            den *= factor(ret.op(1));
-            
-            ss << "&(U=0);" << endl; // disable ugly printing
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-        }
-        fermat.Exit();
-                
-        auto nn_ret = subs(num/den,nn_map);
-        if(nn_chk-nn_ret!=0) throw Error("fermat_together: N Check Failed.");
-        
-        num = num.subs(f2v).subs(sym2sqrt);
-        den = den.subs(f2v).subs(sym2sqrt);
-        return lst{num, den};
-    }
-    
-    ex fermat_normal(const ex & expr) {
-        auto nd = fermat_numer_denom(expr);
-        return nd.op(0)/nd.op(1);
-    }
-    
     //-----------------------------------------------------------
     // Extend Parser for form, copied from ginac/parser of GiNaC
     //-----------------------------------------------------------
@@ -232,11 +111,10 @@ Dimension NF;
     //-----------------------------------------------------------
     // form 
     //-----------------------------------------------------------
-    static HepLib::Form form_proc;
-    static map<pid_t, bool> init_map;
-    
     namespace {
     ex runform(const ex &expr_in, int verb) {
+        static HepLib::Form form_proc;
+        static map<pid_t, bool> init_map;
         if((init_map.find(PID)==init_map.end()) || !init_map[PID]) { // init section
             ostringstream ss;
             ss << init_script << endl;

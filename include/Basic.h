@@ -343,6 +343,9 @@ namespace HepLib {
     
     ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
+    ex fermat_numer_denom(const ex & expr, std::function<bool(const ex &)> isOK={});
+    ex fermat_normal(const ex & expr,std::function<bool(const ex &)> isOK={});
+    
     /*-----------------------------------------------------*/
     // Evalf
     /*-----------------------------------------------------*/

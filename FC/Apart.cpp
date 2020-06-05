@@ -536,6 +536,11 @@ namespace HepLib::FC {
                 res += item.op(0) * Apart(item.op(1), sps, sign);
             }
         }
+        
+        // fermat_normal
+        auto cv_lst = mma_collect_lst(res, ApartIR(w1,w2));
+        res = 0;
+        for(auto cv : cv_lst) res += fermat_normal(cv.op(0)) * cv.op(1);
 
         // random check
         lst nlst;
