@@ -177,6 +177,7 @@ namespace HepLib {
         }
         
         auto ppid = getpid();
+        auto pgid = ppid;
         int para_max_run = nproc<0 ? omp_get_num_procs()-1 : nproc;
         if(para_max_run<1) para_max_run = 1;
         ostringstream cmd;
@@ -198,8 +199,9 @@ namespace HepLib {
             
             auto pid = fork();
             if (pid < 0) perror("fork() error");
-            else if (pid != 0) {
-                if(bi+1 >= para_max_run) wait(NULL);
+            setpgid(pid, pgid); // change pgid
+            if (pid != 0) {
+                if(bi+1 >= para_max_run) waitpid(-pgid,NULL,0);
                 continue;
             } 
             
@@ -224,7 +226,7 @@ namespace HepLib {
         
         auto cpid = getpid();
         if(cpid!=ppid) exit(0); // make sure child exit
-        while (wait(NULL) != -1) { }
+        while (waitpid(-pgid,NULL,0) != -1) { }
         if(Verbose > 1 && ntotal > 0) cout << "@" << now(false) << endl;
 
         vector<ex> ovec;

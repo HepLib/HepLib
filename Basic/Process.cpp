@@ -52,33 +52,31 @@ namespace HepLib {
     Fermat::~Fermat() { Exit(); }
         
     void Fermat::Exit() {
+        if(getpid() != pid) return; // happens @ fork child process
         if(inited) {
             ostringstream script;
             script << "&q;" << endl << "&x;" << ENTER;
             string istr = script.str();
             write(P2C[1], istr.c_str(), istr.length());
             int st;
-            waitpid(pid, &st, WUNTRACED);
+            waitpid(fpid, &st, WUNTRACED);
             inited = false;
+            exited = true;
         }
     }
     
     void Fermat::Init(string fer_path) {
-        if(inited) {
-            close(P2C[0]);
-            close(P2C[1]);
-            close(C2P[0]);
-            close(C2P[1]);
-            kill(pid, SIGTERM);
-        }
+        if(inited) return;
         inited = true;
+        pid = getpid();
         
         if (pipe(P2C)==-1 || pipe(C2P)==-1) {
             throw Error("pipe failed in Fermat::Init.");
         }
         
-        pid = fork();
-        if (pid == 0) { // child process
+        fpid = fork();
+        if (fpid == 0) { // child process
+            setpgid(0,0);
             close(P2C[1]);
             close(C2P[0]);
             dup2(C2P[1], 1);
@@ -130,6 +128,8 @@ namespace HepLib {
     
     // out string still contains the last number
     string Fermat::Execute(string expr) {
+        if(exited) throw Error("Fermat has already exited.");
+        if(getpid() != pid) throw Error("Fermat: can not Execute on child process.");
         ostringstream script;
         script << expr << endl;
         script << "!('" << Sentinel << "')" << ENTER;
@@ -166,44 +166,39 @@ namespace HepLib {
     Form::~Form() { Exit(); }
     
     void Form::Exit() {
+        if(getpid() != pid) return; // happens @ fork child process
         if(inited) {
             string exit_cmd = "\n.end\n" + Prompt +"\n";
             write(io[0][1], exit_cmd.c_str(), exit_cmd.length());
             char buffer[8];
             read(io[1][0], buffer, 8);
             int st;
-            waitpid(pid, &st, WUNTRACED);
+            waitpid(fpid, &st, WUNTRACED);
             inited = false;
+            exited = true;
         }
     }
     
     void Form::Init(string form_path) {
-    
-        if(inited) {
-            close(io[0][0]);
-            close(io[0][1]);
-            close(io[1][0]);
-            close(io[1][1]);
-            close(stdo[0]);
-            close(stdo[1]);
-            kill(pid, SIGTERM);
-        }
+        if(inited) return;
         inited = true;
+        pid = getpid();
         
         if (pipe(io[0])==-1 || pipe(io[1])==-1 || pipe(stdo)==-1) {
             throw Error("pipe failed in Form::Init.");
         }
         
-        pid = fork();
-        if (pid == 0) {
+        fpid = fork();
+        if (fpid == 0) {
+            setpgid(0,0);
             close(io[0][1]);
             close(io[1][0]);
             close(stdo[0]);
             dup2(stdo[1], 1);
                         
-            auto pid = getpid(); // current process id
+            auto cpid = getpid(); // current process id
             ostringstream oss;
-            oss << "init-" << pid << ".frm";
+            oss << "init-" << cpid << ".frm";
             
             std::ofstream ofs;
             ofs.open(oss.str().c_str(), ios::out);
@@ -235,7 +230,7 @@ namespace HepLib {
             execlp(form_path.c_str(), form_path.c_str(), 
                 "-pipe", 
                 (to_string(io[0][0])+","+to_string(io[1][1])).c_str(),
-                "-M", ("init-"+to_string(pid)).c_str(),
+                "-M", ("init-"+to_string(cpid)).c_str(),
                 NULL);
             exit(0);
         } 
@@ -252,18 +247,20 @@ namespace HepLib {
             cout << "the return is: <|" << buffer << "|>" << endl;
             throw Error("Init Failed: Expect a Line break!");
         }
-        sprintf(p, ",%d\n\n\0", pid);
+        sprintf(p, ",%d\n\n\0", fpid);
         write(io[0][1], buffer, strlen(buffer));
         read(io[1][0], buffer, sizeof(buffer));
         p = strstr(buffer, "OK");
         if(p==NULL || p!=buffer) throw Error("Init Failed: Expect OK!");
     
         ostringstream oss;
-        oss << "init-" << pid << ".frm";
+        oss << "init-" << fpid << ".frm";
         if(file_exists(oss.str().c_str())) remove(oss.str().c_str());
     }
     
     string Form::Execute(string script, const string & out_var) {
+        if(exited) throw Error("Form has already exited.");
+        if(getpid() != pid) throw Error("Form: can not Execute on child process.");
         string istr = script;
         istr += "\n.sort\n#call put(";
         istr += out_var;

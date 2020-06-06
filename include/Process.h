@@ -41,8 +41,10 @@ namespace HepLib {
                 
     private:
         bool inited = false;
+        bool exited = false;
         int P2C[2];
         int C2P[2];
+        pid_t fpid = 0;
         pid_t pid = 0;
     };
     
@@ -57,8 +59,10 @@ namespace HepLib {
     
     private:
         bool inited = false;
+        bool exited = false;
         int io[2][2];
         int stdo[2];
+        pid_t fpid = 0;
         pid_t pid = 0;
     };
     
