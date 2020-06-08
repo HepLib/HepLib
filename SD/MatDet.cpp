@@ -13,6 +13,8 @@ extern "C" {
 }
 #include "mpreal.h"
 
+int RCLog_NTry = 5;
+
 #define Pi 3.1415926535897932384626433832795028841971693993751L
 #define Euler 0.57721566490153286060651209008240243104215933593992L
 
@@ -74,6 +76,20 @@ dCOMPLEX MatDetL(dCOMPLEX mat[], int n) {
     return ret;
 }
 
+dCOMPLEX RCLogL(dCOMPLEX xs[], int n) {
+    dCOMPLEX ret = log(xs[n-1]);
+    int cutN = 0;
+    for(int k=0; k<n-1; k++) {
+    if(xs[k].real()*xs[k+1].real()<0 && xs[k].imag()*xs[k+1].imag()<0) return nanl("");
+        if(xs[k].real()<0 && xs[k+1].real()<0 && xs[k].imag()*xs[k+1].imag()<0) {
+            if(xs[k].imag()>0) cutN++;
+            else cutN--;
+        }
+    }
+    ret += complex<dREAL>(0,cutN * 2 * Pi);
+    return ret;
+}
+
 #undef Pi
 #undef Euler
 #define Pi 3.1415926535897932384626433832795028841971693993751Q
@@ -109,6 +125,20 @@ qCOMPLEX MatDetQ(qCOMPLEX mat[], int n) {
     return ret;
 }
 
+qCOMPLEX RCLogQ(qCOMPLEX xs[], int n) {
+    qCOMPLEX ret = log(xs[n-1]);
+    int cutN = 0;
+    for(int k=0; k<n-1; k++) {
+        if(crealq(xs[k])*crealq(xs[k+1])<0 && cimagq(xs[k])*cimagq(xs[k+1])<0) return nanl("");
+        if(crealq(xs[k])<0 && crealq(xs[k+1])<0 && cimagq(xs[k])*cimagq(xs[k+1])<0) {
+            if(cimagq(xs[k])>0) cutN++;
+            else cutN--;
+        }
+    }
+    ret += cutN * Pi * 2.Qi;
+    return ret;
+}
+
 #undef Pi
 #undef Euler
 #define Pi mpREAL("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
@@ -141,5 +171,19 @@ mpCOMPLEX MatDetMP(mpCOMPLEX mat[], int n) {
     }
     mpCOMPLEX ret = mpREAL(s);
     for(int k=0; k<n; k++) ret *= mat[k*n+k];
+    return ret;
+}
+
+mpCOMPLEX RCLogMP(mpCOMPLEX xs[], int n) {
+    mpCOMPLEX ret = log(xs[n-1]);
+    int cutN = 0;
+    for(int k=0; k<n-1; k++) {
+        if(xs[k].real()*xs[k+1].real()<0 && xs[k].imag()*xs[k+1].imag()<0) return mpREAL(nanl(""));
+        if(xs[k].real()<0 && xs[k+1].real()<0 && xs[k].imag()*xs[k+1].imag()<0) {
+            if(xs[k].imag()>0) cutN++;
+            else cutN--;
+        }
+    }
+    ret += complex<mpREAL>(0,cutN * 2 * Pi);
     return ret;
 }

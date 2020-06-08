@@ -37,6 +37,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                         break;
                     }
                 }
+
                 if(!ok && (self->IntegrandMP!=NULL)) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             } else {
                 self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
@@ -228,7 +229,7 @@ ex HCubature::Integrate() {
     }
     
     // Check nNAN / NEval
-    if(nNAN * 1000 > NEval) {
+    if(nNAN * 1000 > NEval && RunMAX>0) {
         cout << Color_Error << "NAN=" << nNAN << " v.s. RUN=" << NEval << RESET << endl;
     }
     

@@ -24,6 +24,10 @@ ex cseParser::Parse(ex expr, bool reset) {
     if(is_a<add>(expr)) {
         ret = 0;
         for(auto item : expr) ret += Parse(item,false);
+    } else if(is_a<lst>(expr)) {
+        lst oret;
+        for(auto item : expr) oret.append(Parse(item,false));
+        return oret;
     } else if(is_a<mul>(expr)) {
         ret = 1;
         for(auto item : expr) ret *= Parse(item,false);

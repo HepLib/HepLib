@@ -157,7 +157,8 @@ namespace HepLib::SD {
             MinimizeBase::FunctionType fp;
             fname.clear();
             fname.str("");
-            fname << "imgFQ_"<<ftnxn.op(1);
+            fname << "imgF_"<<ftnxn.op(1);
+            //fname << "imgFQ_"<<ftnxn.op(1);
             fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
             if(fp==NULL) {
                 cerr << Color_Error << "Contours: fp==NULL" << RESET << endl;

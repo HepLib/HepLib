@@ -649,13 +649,15 @@ namespace HepLib::SD {
                 ft_expr.push_back(make_pair(item.op(1), expr.coeff(item)));
             }
             
-            lst cxRepl, czRepl, plRepl;
+            lst cxRepl, czRepl, czzRepl, plRepl;
             for (int i=0; i<fxs.size(); i++) {
-                ostringstream xs, zs;
+                ostringstream xs, zs, zzs;
                 xs << "x[" << i << "]";
                 zs << "z[" << i << "]";
+                zzs << "zz[" << i << "]";
                 cxRepl.append(fxs[i] == symbol(xs.str()));
                 czRepl.append(fxs[i] == symbol(zs.str()));
+                czzRepl.append(fxs[i] == symbol(zzs.str()));
             }
             int count = fxs.size();
             for(auto xi : xs) {
@@ -707,10 +709,15 @@ namespace HepLib::SD {
     typedef complex<long double> dCOMPLEX;
     typedef mpfr::mpreal mpREAL;
     typedef complex<mpREAL> mpCOMPLEX;
-
+    
     dCOMPLEX MatDetL(dCOMPLEX mat[], int n);
     qCOMPLEX MatDetQ(qCOMPLEX mat[], int n);
     mpCOMPLEX MatDetMP(mpCOMPLEX mat[], int n);
+
+    extern int RCLog_NTry;
+    dCOMPLEX RCLogL(dCOMPLEX ys[], int n);
+    qCOMPLEX RCLogQ(qCOMPLEX ys[], int n);
+    mpCOMPLEX RCLogMP(mpCOMPLEX ys[], int n);
 
     dREAL expt(dREAL a, dREAL b);
     dCOMPLEX expt(dCOMPLEX a, dREAL b);
@@ -810,7 +817,7 @@ namespace HepLib::SD {
                 ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
                 
-                ofs << "dCOMPLEX z[xn],r[xn];" << endl;
+                ofs << "dCOMPLEX z[xn],zz[xn],r[xn];" << endl;
                 ofs << "dREAL dff[xn+1];";
                 ofs << "dCOMPLEX yy=0, ytmp, det;" << endl;
                 ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
@@ -837,6 +844,41 @@ namespace HepLib::SD {
                     ofs  << "det = MatDetL(mat, nfxs);" << endl;
                     
                     ex intg = kv.second;
+                    
+                    if(use_RCLog) {
+                        exset logs_set;
+                        find(intg, log(w), logs_set);
+                        if(logs_set.size()>0) {
+                            lst logs;
+                            for(auto item : logs_set) logs.append(item.op(0));
+                            ofs << "int nlog = "<<logs.nops()<<";" << endl;
+                            ofs << "dCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
+                            cseParser cse;
+                            lst clogs = ex_to<lst>(cse.Parse(logs));
+                            
+                            ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
+                            ofs << "for(int i=0; i<xn; i++) zz[i] = complex<dREAL>(z[i].real(), (ti+1)*z[i].imag()/RCLog_NTry);" << endl;
+                            ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                            for(auto kv : cse.os()) {
+                                ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                                Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppL);
+                                ofs << ";" << endl;
+                            }
+                            
+                            exmap log_subs;
+                            for(int i=0; i<clogs.nops(); i++) {
+                                ofs << "CTry["<<i<<"][ti] = ";
+                                Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppL);
+                                ofs << ";" << endl;
+                                log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                            }
+                            ofs << "}" << endl;
+                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLogL(CTry[li],RCLog_NTry);" << endl;
+                            
+                            intg = intg.subs(log_subs);
+                        }
+                    }
+                    
                     cseParser cse;
                     intg = cse.Parse(intg);
                     ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
@@ -909,7 +951,7 @@ namespace HepLib::SD {
                 ofs << "int CSDQ_"<<idx<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
                 
                 ofs << "qREAL x0[xn];" << endl;
-                ofs << "qCOMPLEX z[xn],r[xn];" << endl;
+                ofs << "qCOMPLEX z[xn],zz[xn],r[xn];" << endl;
                 ofs << "qREAL dff[xn+1];";
                 ofs << "qCOMPLEX yy=0, ytmp, det;;" << endl;
                 ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
@@ -934,6 +976,41 @@ namespace HepLib::SD {
                     ofs  << "det = MatDetQ(mat, nfxs);" << endl;
                     
                     ex intg = kv.second;
+                    
+                    if(use_RCLog) {
+                        exset logs_set;
+                        find(intg, log(w), logs_set);
+                        if(logs_set.size()>0) {
+                            lst logs;
+                            for(auto item : logs_set) logs.append(item.op(0));
+                            ofs << "int nlog = "<<logs.nops()<<";" << endl;
+                            ofs << "qCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
+                            cseParser cse;
+                            lst clogs = ex_to<lst>(cse.Parse(logs));
+                            
+                            ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
+                            ofs << "for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi * (ti+1)*cimagq(z[i])/RCLog_NTry;" << endl;
+                            ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                            for(auto kv : cse.os()) {
+                                ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                                Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppQ);
+                                ofs << ";" << endl;
+                            }
+                            
+                            exmap log_subs;
+                            for(int i=0; i<clogs.nops(); i++) {
+                                ofs << "CTry["<<i<<"][ti] = ";
+                                Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppQ);
+                                ofs << ";" << endl;
+                                log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                            }
+                            ofs << "}" << endl;
+                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLogQ(CTry[li],RCLog_NTry);" << endl;
+                            
+                            intg = intg.subs(log_subs);
+                        }
+                    }
+                    
                     cseParser cse;
                     intg = cse.Parse(intg);
                     ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
@@ -1020,7 +1097,7 @@ namespace HepLib::SD {
                 ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
                 
-                ofs << "mpCOMPLEX z[xn],r[xn];" << endl;
+                ofs << "mpCOMPLEX z[xn],zz[xn],r[xn];" << endl;
                 ofs << "mpREAL dff[xn+1];";
                 ofs << "mpCOMPLEX yy=mpREAL(0), ytmp, det;" << endl;
                 ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
@@ -1047,6 +1124,41 @@ namespace HepLib::SD {
                     ofs  << "det = MatDetMP(mat, nfxs);" << endl;
                     
                     ex intg = kv.second;
+                    
+                    if(use_RCLog) {
+                        exset logs_set;
+                        find(intg, log(w), logs_set);
+                        if(logs_set.size()>0) {
+                            lst logs;
+                            for(auto item : logs_set) logs.append(item.op(0));
+                            ofs << "int nlog = "<<logs.nops()<<";" << endl;
+                            ofs << "mpCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
+                            cseParser cse;
+                            lst clogs = ex_to<lst>(cse.Parse(logs));
+                            
+                            ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
+                            ofs << "for(int i=0; i<xn; i++) zz[i] = complex<mpREAL>(z[i].real(), (ti+1)*z[i].imag()/RCLog_NTry);" << endl;
+                            ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                            for(auto kv : cse.os()) {
+                                ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                                Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppMP);
+                                ofs << ";" << endl;
+                            }
+                            
+                            exmap log_subs;
+                            for(int i=0; i<clogs.nops(); i++) {
+                                ofs << "CTry["<<i<<"][ti] = ";
+                                Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppMP);
+                                ofs << ";" << endl;
+                                log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                            }
+                            ofs << "}" << endl;
+                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLogMP(CTry[li],RCLog_NTry);" << endl;
+                            
+                            intg = intg.subs(log_subs);
+                        }
+                    }
+                    
                     cseParser cse;
                     intg = cse.Parse(intg);
                     ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;

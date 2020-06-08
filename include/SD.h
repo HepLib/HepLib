@@ -153,8 +153,8 @@ namespace HepLib::SD {
         int MPXDim = 1;
         qREAL QXLimit = 1E-2Q;
         qREAL MPXLimit = 1E-4Q;
-        qREAL QFLimit = 1E-2Q;
-        qREAL MPFLimit = 1E-4Q;
+        qREAL QFLimit = 1E-4Q;
+        qREAL MPFLimit = 1E-8Q;
         
         bool UseCpp = true;
         long long NEval = 0;
@@ -322,6 +322,7 @@ namespace HepLib::SD {
         bool save_las = false;
         bool use_IBF = false;
         bool use_MP = true;
+        bool use_RCLog = true;
         bool all_in_one = true;
         int CT_method = 0; // 0: original, 1: rescaled
         int MPDigits = 50; // digits in mpREAL for MP
@@ -428,4 +429,6 @@ namespace HepLib::SD {
     };
     
 }
+
+extern int RCLog_NTry;
 

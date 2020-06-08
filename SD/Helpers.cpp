@@ -289,11 +289,16 @@ int IntegratorBase::inDQMP(qREAL const *x) {
     
     qREAL ft = 1E5;
     if(FT!=NULL) {
+        static FT_Type last_ft = NULL;
+        static qREAL ft0;
+        if(last_ft!=FT) {
+            qREAL x0[xdim];
+            for(int i=0; i<xdim; i++) x0[i]=0.512Q;
+            qREAL ft0 = fabsq(FT(x0, Parameter));
+            if(ft0<1E-50) ft0 = 1;
+            last_ft = FT;
+        } 
         ft = fabsq(FT(x, Parameter));
-        qREAL x0[xdim];
-        for(int i=0; i<xdim; i++) x0[xdim]=0;
-        qREAL ft0 = fabsq(FT(x0, Parameter));
-        if(ft0<1E-50) ft0 = 1;
         ft = ft/ft0;
     }
     if(ft<MPFLimit) return 3;
