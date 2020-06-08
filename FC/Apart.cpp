@@ -747,14 +747,16 @@ namespace HepLib::FC {
         
         if(!reduce) {
             auto air_res =
-            GiNaC_Parallel(air_vec.size(), [&](int idx)->ex {
+            GiNaC_Parallel(air_vec.size(), 1, [&](int idx)->ex {
                 auto air = air_vec[idx];
                 air = air.subs(IR2F,subs_options::subs_options::no_pattern);
                 air = air.subs(rules_ints.first,subs_options::subs_options::no_pattern);
                 air = F2ex(air);
-                air = mma_collect(air, F(w1,w2));
+                auto cv_lst = mma_collect_lst(air, F(w1,w2));
+                air = 0;
+                for(auto cv : cv_lst) air += cv.op(1) * fermat_normal(cv.op(0));
                 return air;
-            }, "F2F");
+            }, "AIR2F");
             
             for(auto fp : fvec) delete fp;
             system(("rm -rf "+wdir).c_str());
@@ -772,28 +774,43 @@ namespace HepLib::FC {
         }, "FIRE");
         ParallelProcess = oproc;
         for(auto item : fvec_re) item->Import();
-        
-        exmap F2F;
-        for(int i=0; i<fvec_re.size(); i++) {
-            for(auto item : fvec_re[i]->Rules) F2F[item.op(0)] = item.op(1);
-        }
+        system(("rm -rf "+wdir).c_str());
         
         auto mi_rules = FIRE::FindRules(fvec_re, true, uf);
-        
+                
+        auto rules_vec =
+        GiNaC_Parallel(fvec_re.size(), 10, [&](int idx)->ex {
+            lst rules;
+            for(auto item : fvec_re[idx]->Rules) {
+                auto rr = item.op(1);
+                rr = rr.subs(mi_rules.first,subs_options::subs_options::no_pattern);
+                auto cv_lst = mma_collect_lst(rr, F(w1,w2));
+                rr = 0;
+                for(auto cv : cv_lst) rr += cv.op(1) * fermat_normal(cv.op(0));
+                rules.append(item.op(0)==rr);
+            }
+            return rules;
+        }, "F2F");
+                
+        exmap F2F;
+        for(auto rule : rules_vec) {
+            for(auto lr : rule) F2F[lr.op(0)] = lr.op(1);
+        }
+                
         auto air_res =
-        GiNaC_Parallel(air_vec.size(), [&](int idx)->ex {
+        GiNaC_Parallel(air_vec.size(), 1, [&](int idx)->ex {
             auto air = air_vec[idx];
             air = air.subs(IR2F,subs_options::subs_options::no_pattern);
             air = air.subs(rules_ints.first,subs_options::subs_options::no_pattern);
             air = air.subs(F2F,subs_options::subs_options::no_pattern);
-            air = air.subs(mi_rules.first,subs_options::subs_options::no_pattern);
             air = F2ex(air);
-            air = mma_collect(air, F(w1,w2));
+            auto cv_lst = mma_collect_lst(air, F(w1,w2));
+            air = 0;
+            for(auto cv : cv_lst) air += cv.op(1) * fermat_normal(cv.op(0));
             return air;
-        }, "F2F");
-        
+        }, "AIR2F");
+            
         for(auto fp : fvec) delete fp;
-        system(("rm -rf "+wdir).c_str());
 
         for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];        
     }

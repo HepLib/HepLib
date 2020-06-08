@@ -185,6 +185,7 @@ namespace HepLib {
         if(!dir_exists(to_string(ppid))) system(cmd.str().c_str());
         
         if(nbatch<=0) nbatch = ntotal/para_max_run/10;
+        else if(nbatch > ntotal/para_max_run) nbatch = ntotal/para_max_run;
         if(nbatch<1) nbatch = 1;
         int btotal = ntotal/nbatch + ((ntotal%nbatch)==0 ? 0 : 1);
 
@@ -1710,6 +1711,8 @@ namespace HepLib {
             den *= factor(ret.op(1));
             
             ss << "&(U=0);" << endl; // disable ugly printing
+            ss << "@(res,[m]);" << endl;
+            ss << "&_G;" << endl;
             fermat.Execute(ss.str());
             ss.clear();
             ss.str("");

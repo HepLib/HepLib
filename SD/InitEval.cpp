@@ -29,6 +29,12 @@ namespace HepLib::SD {
     }
 
     void SecDec::Initialize(FeynmanParameter fp) {
+    
+        if(fp.Propagators.nops()<1) {
+            FunExp.clear();
+            FunExp.push_back(lst{lst{fp.Prefactor.subs(Symbol::AssignMap)}, lst{1}});
+            return;
+        }
             
         if(fp.Propagators.nops() != fp.Exponents.nops()) {
             cerr << Color_Error << "Initialize: the length of Propagators and Exponents are NOT equal." << RESET << endl;

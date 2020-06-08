@@ -19,6 +19,10 @@ namespace HepLib::FC {
     extern const Symbol NA;
     extern const Symbol NF;
     extern const Symbol gs;
+    extern const Symbol as;
+    extern const Symbol mu;
+    extern const Symbol nL;
+    extern const Symbol nH;
     extern exmap SP_map;
     extern int trace_method;
     
@@ -416,6 +420,17 @@ namespace HepLib::FC {
         
         ex DoPS(lst moms, ex amp, int si=-1, ex q2=1);
         ex nPS(int n, ex q2=1);
+    }
+    
+    //-----------------------------------------------------------
+    // RC namespace
+    //-----------------------------------------------------------
+    namespace RC {
+        ex Z2(string name, ex m, int loop=2);
+        ex Z2(Symbol n, ex m, int loop=2);
+        ex Zm(ex m, int loop=2);
+        ex asBare(int loop=2);
+        ex asLO();
     }
         
 }
