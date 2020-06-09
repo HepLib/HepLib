@@ -460,7 +460,6 @@ namespace HepLib::FC {
     ex Apart(const ex &expr_ino, const lst &loops, const lst & extps) {
         auto expr_in = expr_ino.subs(SP_map);
         auto expr = expr_in;
-        if(expr.has(coVF(w))) throw Error("Apart: coVF exist.");
         
         lst sps;
         exmap sign;
@@ -531,9 +530,13 @@ namespace HepLib::FC {
         
         if(true) { // naive method
             res = 0;
+cout << ",";
             auto cv_lst = mma_collect_lst(expr, loops);
+cout << ".";
             for(auto item : cv_lst) {
+cout << ",";
                 res += item.op(0) * Apart(item.op(1), sps, sign);
+cout << ".";
             }
         }
         

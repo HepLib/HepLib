@@ -182,6 +182,7 @@ namespace HepLib::FC {
         set_return_type(return_types::commutative).
         expl_derivative_func(expl_TR_diff)
     );
+    REGISTER_FUNCTION(HF, do_not_evalf_params());
     
     ex GAS(ex expr, unsigned rl) {
         if(is_zero(expr-1)) return DiracGamma(1,rl);

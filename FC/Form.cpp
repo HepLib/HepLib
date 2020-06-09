@@ -123,7 +123,7 @@ Dimension NF;
         }
         Form &fprc = form_map[pid];
         
-        ex expr = expr_in.subs(SP_map);
+        ex expr = expr_in.subs(SP_map).subs(HF(w)==w);
         ex all_expr = expr;
         stringstream sss;
         FormFormat ids(sss);

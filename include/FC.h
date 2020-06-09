@@ -250,6 +250,7 @@ namespace HepLib::FC {
     // TR/GAS functions
     //-----------------------------------------------------------
     DECLARE_FUNCTION_1P(TR)
+    DECLARE_FUNCTION_1P(HF)
     
     inline ex GAS(const Vector &p, unsigned rl=0) { return DiracGamma(p,rl); }
     inline ex GAS(const Index &i, unsigned rl=0) { return DiracGamma(i,rl); }
