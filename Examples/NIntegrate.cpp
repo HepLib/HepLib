@@ -9,95 +9,75 @@ using namespace SD;
 string cm_path = "cm"; // input directory
 string SD_path = "SD"; // save directory
 
-Symbol z1("z1"), z2("z2");
-Symbol p("p"), q1("q1"), k1s("k1s"), k2s("k2s");
+numeric sN("111936/1000"), mN("168/100");
+Symbol s("s"), m("m"), p("p"), q1("q1"), q2("q2"), k("k");
+Symbol Chi0("Chi0"), Chi1("Chi1"), Chi2("Chi2");
+Symbol zm("zm");
+int loops;
 int epN = 0;
 
-void ExportNull(const string & fn) {
-    ofstream ofs;
-    ofs.open(fn, ios::out);
-    if (!ofs) throw runtime_error("failed to open final null file!");
-    ofs << "Result is Null." << endl;
-    ofs.close();
-}
-
+void ExportNull(const string & prefix);
 void Prepare(int idx) {
     
-    ex cf = file2ex(cm_path + "/" + to_string(idx) + ".txt");
-    cf = mma_collect(cf,F(w),true,true);
-    if(!is_a<mul>(cf)) throw Error("something is wrong.");
-    auto ps = cf.subs(lst{coVF(w)==w,coCF(w)==1}).op(0);
-    auto pref = cf.subs(lst{coVF(w)==1,coCF(w)==w});
-    exmap ps_map;
-    for(auto item : ps) ps_map[item] += 1;
+    Symbol::Assign(NA,8);
+    Symbol::Assign(NF,3);
+    Symbol::Assign(s,sN);
+    Symbol::Assign(m,mN);
+    Symbol::Assign(D,4-2*ep);
+    Symbol::Assign(gs,sqrt(4*Pi)); // as to ZZ with asBare
     
-    pref *= pow(1-z1,-ep) * pow(z1,1-2*ep) * pow(1-z2,-ep) * pow(z2,-ep) / (3456*pow(Pi,3));
-    pref *= (243*pow(2,2+2*ep)*pow(Pi,1+ep)*pow(16*(-9+pow(Pi,2))+ep*(84-87*pow(Pi,2)+672*zeta(3)),-1)*tgamma(1-ep))/5;
+    if(loops==0) Symbol::Assign(zm,RC::Zm(m,2)-1);
+    else if(loops==1) Symbol::Assign(zm,RC::Zm(m,1)-1);
+    else if(loops==2) Symbol::Assign(zm,RC::Zm(m,0)-1);
+    
+    ex ZZ = 1;
+    if(loops==0) ZZ *= pow(RC::Z2("Q",m,2),2) * pow(RC::asBare(2),0);
+    else if(loops==1) ZZ *= pow(RC::Z2("Q",m,1),2) * pow(RC::asBare(1),1);
+    else if(loops==2) ZZ *= pow(RC::Z2("Q",m,0),2) * pow(RC::asBare(0),2);
+    
+    ex cf = file2ex(cm_path + "/" + to_string(idx) + ".txt");
+    
+    auto cv_lst = mma_collect_lst(cf,F(w1,w2));
+    if(cv_lst.nops()!=1) throw Error("something is wrong.");
+
+    auto pns = cv_lst.op(0).op(1);
+    auto pref = cv_lst.op(0).op(0);
+    pref *= ZZ; // Renormalization Constant
+    pref = pref.subs(Symbol::AssignMap).subs(Symbol::AssignMap);
+    pref = mma_series(pref,as,2);
+    
+    if(is_zero(pns-1)) {
+        auto res = mma_series(pref,ep,epN);
+        cout << res << endl;
+        ostringstream ifn;
+        ifn << SD_path << "/" << idx;
+        ExportNull(ifn.str());
+        return;
+    }
     
     FeynmanParameter fp;
-    for(auto kv : ps_map) {
-        fp.Propagators.append(kv.first);
-        fp.Exponents.append(kv.second);
+    if(loops==1) fp.LoopMomenta = lst{q1};
+    else if(loops==2) fp.LoopMomenta = lst{q1, q2};
+    
+    for(int i=0; i<pns.op(0).nops(); i++) {
+        fp.Propagators.append(pns.op(0).op(i).expand());
+        fp.Exponents.append(pns.op(1).op(i));
     }
-    fp.LoopMomenta = lst{ q1 };
-    fp.lReplacements[p*p] = 1;
-    fp.lReplacements[k1s*k1s] = 0;
-    fp.lReplacements[k2s*k2s] = 0;
-    fp.lReplacements[k1s*p] = z1;
-    fp.lReplacements[k2s*p] = 1-z1*z2;
-    fp.lReplacements[k1s*k2s] = 2*(z1-z1*z2);
+    fp.Prefactor = pref * pow(2*Pi, (2*ep-4)*loops);
+    fp.lReplacements[p*p] = m*m;
+    fp.lReplacements[k*k] = 0;
+    fp.lReplacements[p*k] = s/4-m*m;
     
     SecDec work;       
     work.epN = epN;
     work.CheckEnd = true;
-    
+
     work.Initialize(fp);
     if(work.IsZero) {
         ostringstream ifn;
-        ifn << SD_path << "/" << idx << ".null";
-        ExportNull(ifn.str().c_str());
-        ostringstream cmd;
-        cmd << "rm " << SD_path << "/" << idx << "[-.]*";
-        system(cmd.str().c_str());
+        ifn << SD_path << "/" << idx;
+        ExportNull(ifn.str());
         return;
-    }
-    
-    for(auto &fe : work.FunExp) {
-        int xn = fe.op(2).op(0).nops();
-        exmap z2x;
-        lst zs = {x(xn+1),x(xn+2)};
-        z2x[z1]=x(xn+1);
-        z2x[z2]=x(xn+2);
-        
-        fe.let_op(0).let_op(0) = fe.op(0).op(0) * pref;
-        fe.let_op(0) = subs(fe.op(0), z2x);
-        
-        auto tmp = Factor(fe.op(0).op(0));
-
-        if(tmp.has(x(w)) && is_a<mul>(tmp)) {
-            ex rem = 1;
-            for(auto item : tmp) {
-                if(!item.has(x(w))) {
-                    rem *= item;
-                } else if(item.match(pow(w0, w1))) {
-                    let_op_append(fe, 0, item.op(0));
-                    let_op_append(fe, 1, item.op(1));
-                } else {
-                    if(!item.is_polynomial(zs)) {
-                        cout << item << endl;
-                        throw Error("Factor failed, item is not a polynormial w.r.t zs");
-                    }
-                    let_op_append(fe, 0, item);
-                    let_op_append(fe, 1, 1);
-                }
-            }
-            fe.let_op(0).let_op(0) = rem;
-        } else if(tmp.has(x(w)) && tmp.match(pow(w0, w1))) {
-            fe.let_op(0).let_op(0) = 1;
-            let_op_append(fe, 0, tmp.op(0));
-            let_op_append(fe, 1, tmp.op(1));
-        } 
-        
     }
     
     work.Normalizes();
@@ -136,11 +116,11 @@ ex Integrate(int idx, int ii = -1) {
     ErrMin::MaxRND = 20;
     ErrMin::hjRHO = 0.5;
             
-    work.EpsAbs = 1E-5;
-    work.RunPTS = 1000000;
-    work.RunMAX = 20;
+    work.EpsAbs = 1E-3;
+    work.RunPTS = 300000;
+    work.RunMAX = 10;
     work.LambdaSplit = 5;
-    work.TryPTS = 1000000;
+    work.TryPTS = 300000;
     work.CTryLeft = 1;
     work.CTryRight = 1;
     work.CTry = 1;
@@ -170,13 +150,14 @@ int main(int argc, char** argv) {
     const char* arg_a = NULL;
     const char* arg_n = NULL;
     const char* arg_i = NULL;
-    const char* arg_v = "1";
-    const char* arg_e = "1E-2";
+    const char* arg_v = "0";
+    const char* arg_e = "1";
     bool is_o = false;
     const char* arg_o = "";
+    const char* arg_l = "0";
     
     // handle options
-    for (int opt; (opt = getopt(argc, argv, "a:n:i:o:v:e:")) != -1;) {
+    for (int opt; (opt = getopt(argc, argv, "a:n:i:o:v:e:l:")) != -1;) {
         switch (opt) {
             case 'a': arg_a = optarg; break;
             case 'n': arg_n = optarg; break;
@@ -184,23 +165,29 @@ int main(int argc, char** argv) {
             case 'o': arg_o = optarg; is_o = true; break;
             case 'v': arg_v = optarg; break;
             case 'e': arg_e = optarg; break;
+            case 'l': arg_l = optarg; break;
             default:
-                cout << "supported options: -a A -n N -i I -o O -v V -e E" << endl;
-                cout << "A: can be p(prepare), c(contour), i(integrate), r(result), ar(analyse result)." << endl;
+                cout << "supported options: -a A -n N -i I -o O -v V -e E -l L" << endl;
+                cout << "A: can be p(prepare), c(contour), i(integrate), r(result), a(analyse)" << endl;
                 cout << "N: only apply A on prefix N." << endl;
                 cout << "I: only apply A(=i) on part I in prefix N." << endl;
                 cout << "O: output filename." << endl;
                 cout << "V: verbose level." << endl;
-                cout << "E: print when error > E for specific N." << endl;
+                cout << "E: print when error > E." << endl;
+                cout << "L: the loops: 0, 1 or 2." << endl;
                 exit(1);
         }
     }
     argc -= optind;
     argv += optind;
     
+    loops = stoi(arg_l);
+    cm_path = cm_path + to_string(loops);
+    SD_path = SD_path + to_string(loops);
+    
     ostringstream cmd;
     cmd << "mkdir -p " << SD_path;
-    if(!dir_exists(SD_path)) system(cmd.str().c_str());
+    system(cmd.str().c_str());
     cmd.clear();
     cmd.str("");
     cmd << "ls " << cm_path << "|wc -l";
@@ -223,7 +210,7 @@ int main(int argc, char** argv) {
         for(int i=1; i<=nmi; i++) {
             if(in>0 && i!=in) continue;
             try {
-                cout << WHITE << "-" << i << "/" << nmi << " :" << RESET << endl;
+                cout << "Preparing " << i << "/" << nmi << endl;
                 Prepare(i);
             } catch(exception& e) {
                 cout << e.what() << endl;
@@ -242,7 +229,7 @@ int main(int argc, char** argv) {
             return 0;
         }
     }
-    
+
     // call Prepare(index)
     if(arg_a == NULL || !strcmp(arg_a, "c") || !strcmp(arg_a, "ci")) {
         for(int i=1; i<=nmi; i++) {
@@ -250,7 +237,7 @@ int main(int argc, char** argv) {
             stringstream ss;
             ss << SD_path << "/" << i << ".ci.gar";
             if(!file_exists(ss.str().c_str())) continue;
-            cout << WHITE << "-" << i << "/" << nmi << " :" << RESET << endl;
+            cout << "Contouring - " << i << "/" << nmi << endl;
             Contour(i);
             cout << endl;
         }
@@ -265,14 +252,12 @@ int main(int argc, char** argv) {
             stringstream ss;
             ss << SD_path << "/" << i << ".ci.gar";
             if(!file_exists(ss.str().c_str())) continue;
-            cout << WHITE << "-" << i << "/" << nmi << " :" << RESET << endl;
+            cout << "Integrating - " << i << "/" << nmi << endl;
             auto res = Integrate(i, ii);
             fRes += res;
             cout << endl;
             if(res.has(SD::NaN)) nid.push_back(i);
-            
-            auto err = res.subs(lst{VE(w1,w2)==w2, CV(w1,w2)==w2});
-            if(abs(err.coeff(ep,epN).coeff(eps,0))>ee) {
+            else if(VEMaxErr(res)>ee) {
                 cout << "n = " << i << endl;
                 cout << res << endl << endl;
             }
@@ -313,10 +298,8 @@ int main(int argc, char** argv) {
             }
             auto res = garRead(ss.str());
             fRes += res;
-            if(res.has(SD::NaN)) nid.push_back(i);
-            
-            auto err = res.subs(lst{VE(w1,w2)==w2,CV(w1,w2)==w2});
-            if(abs(err.coeff(ep,epN).coeff(eps,0))>ee) {
+            if(res.has(SD::NaN)) nid.push_back(i);            
+            else if(VEMaxErr(res)>ee) {
                 cout << "n = " << i << endl;
                 cout << res << endl << endl;
             }
@@ -331,7 +314,7 @@ int main(int argc, char** argv) {
         
         fRes = VESimplify(fRes, epN);
         cout << endl << "Final Result";
-        if(in>0) cout << " [ n=" << in << " ]";
+        if(in>0) cout << "[ n=" << in << " ]";
         cout << ":" << endl;
         cout << "------" << endl;
         cout << fRes << endl;
@@ -348,36 +331,45 @@ int main(int argc, char** argv) {
     }
     
     // analyse result
-    if(arg_a != NULL && (!strcmp(arg_a, "ar") || !strcmp(arg_a, "ae"))) {
-        if(in<1) {
-            cout << "n should be setted with -a ar option!" << endl;
-            return 1;
-        }
-        
-        bool ae = !strcmp(arg_a, "ae");
-        stringstream ss;
-        ss << SD_path << "/" << in << ".res.gar";
-        map<string, ex> gar;
-        garRead(ss.str(), gar);
-        auto relst = ex_to<lst>(gar["relst"]);
-        int max_index;
-        ex max_re = -1;
-        for(int i=0; i<relst.nops(); i++) {
-            auto tmp = relst.op(i).subs(lst{VE(w1,w2)==w2,CV(w1,w2)==w2});
-            tmp = tmp.subs(VE(w1, w2)==w2);
-            tmp = tmp.expand().coeff(ep, epN).coeff(eps,0).evalf();
-            if(abs(tmp)>max_re) {
-                max_re = abs(tmp);
-                max_index = i;
+    if(arg_a != NULL && !strcmp(arg_a, "a")) {
+        for(int i=1; i<=nmi; i++) {
+            if(in>0 && i!=in) continue;
+            stringstream ss;
+            ss << SD_path << "/" << i << ".res.gar";
+            map<string, ex> gar;
+            garRead(ss.str(), gar);
+            auto relst = ex_to<lst>(gar["relst"]);
+            int max_index;
+            ex max_re = -1;
+            for(int ii=0; ii<relst.nops(); ii++) {
+                auto tmp = VEMaxErr(relst.op(ii));
+                if(abs(tmp)>max_re) {
+                    max_re = abs(tmp);
+                    max_index = ii;
+                }
+                if(ee>0 && tmp>ee) {
+                    cout << "./NIntegrate -n " << i << " -a i -i " << (ii+1) << endl;
+                    cout << "# " << tmp << endl;
+                    cout << endl;
+                }
             }
-            if(ae && abs(tmp)>ee) {
-                cout << "# " << VESimplify(relst.op(i).expand().coeff(ep, epN)) << endl;
-                cout << "./NIntegrate -n " << arg_n << " -a i -i " << (i+1) << endl;
-            }
+            cout << "# [" << i << "] Max Index: " << max_index+1 << " / " << relst.nops() << endl;
+            cout << "# " << max_re << endl;
+            cout << endl << endl;
         }
-        cout << "# Max Index: " << max_index+1 << " / " << relst.nops() << endl;
-        cout << "# " << VESimplify(relst.op(max_index).expand().coeff(ep, epN)) << endl;
     }
 
     return 0;
+}
+
+void ExportNull(const string & prefix) {
+    ostringstream cmd;
+    cmd << "rm -f " << prefix << "[-.]*";
+    system(cmd.str().c_str());
+    
+    ofstream ofs;
+    ofs.open(prefix+".null", ios::out);
+    if (!ofs) throw runtime_error("failed to open final null file!");
+    ofs << "Result is Null." << endl;
+    ofs.close();
 }

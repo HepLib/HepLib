@@ -293,7 +293,7 @@ int IntegratorBase::inDQMP(qREAL const *x) {
         static qREAL ft0;
         if(last_ft!=FT) {
             qREAL x0[xdim];
-            for(int i=0; i<xdim; i++) x0[i]=0.512Q;
+            for(int i=0; i<xdim; i++) x0[i]=0.521Q;
             qREAL ft0 = fabsq(FT(x0, Parameter));
             if(ft0<1E-50) ft0 = 1;
             last_ft = FT;

@@ -153,8 +153,8 @@ namespace HepLib::SD {
         int MPXDim = 1;
         qREAL QXLimit = 1E-2Q;
         qREAL MPXLimit = 1E-4Q;
-        qREAL QFLimit = 1E-4Q;
-        qREAL MPFLimit = 1E-8Q;
+        qREAL QFLimit = 1E-2Q;
+        qREAL MPFLimit = 1E-4Q;
         
         bool UseCpp = true;
         long long NEval = 0;

@@ -199,14 +199,17 @@ namespace HepLib {
             }
             
             auto pid = fork();
-            if (pid < 0) perror("fork() error");
             setpgid(pid, pgid); // change pgid
+            if (pid < 0) {
+                bi--; 
+                perror("Error @ fork(): ");
+            }
             if (pid != 0) {
-                if(bi+1 >= para_max_run) waitpid(-pgid,NULL,0);
+                if(bi+1 >= para_max_run || pid < 0) waitpid(-pgid,NULL,0);
                 continue;
             } 
             
-            // child process
+            // pid = 0, child process
             try {
                 lst res_lst;
                 for(int ri=0; ri<nbatch; ri++) {
@@ -860,6 +863,24 @@ namespace HepLib {
         } else {
             rest = expr_in;
             coeff = 0;
+        }
+        
+        // combination, simple collect
+        if(is_a<add>(rest)) {
+            exmap pc;
+            auto items = rest;
+            for(auto item : items) {
+                if(!is_a<mul>(item)) item = lst{ item };
+                ex cc = 1;
+                ex vv = 1;
+                for(auto ii : item) {
+                    if(isOK(ii)) vv *= ii;
+                    else cc *= ii;
+                }
+                pc[vv] += cc;
+            }
+            rest = 0;
+            for(auto kv : pc) rest += kv.first * kv.second;
         }
         
         return expair(rest,coeff);
@@ -1649,7 +1670,10 @@ namespace HepLib {
         }
         
         stringstream ss;
-        if(fvi>111) throw Error("Fermat: Too many variables.");
+        if(fvi>111) {
+            cout << rep_vs << endl;
+            throw Error("Fermat: Too many variables.");
+        }
         if(fvi>v_max) {
             if(v_max==0) ss << "&(J=vi);" << endl;
             for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;

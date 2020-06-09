@@ -444,6 +444,9 @@ namespace HepLib::IBP {
                 auto rules = Rules;
                 Rules.remove_all();
                 for(auto r : rules) Rules.append(r.op(0)==subs_naive(r.op(1),fire.Rules));
+                for(auto r : fire.Rules) Rules.append(r);
+                MasterIntegrals.sort();
+                MasterIntegrals.unique();
             }
         }
     }

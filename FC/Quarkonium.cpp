@@ -330,7 +330,8 @@ namespace HepLib::FC {
                 switch (pqi.nops()) {
                     case 2: {
                         if(isn%2!=0) qproj = 0;
-                        else if(isn==2) qproj = SP(q)*(SP(is[0],is[1])-SP(p,is[0])*SP(p,is[1])/SP(p))/(D-1);
+                        else if(isn==2) qproj = -SP(q)/(D-1)*ITD(is[0],is[1],p);
+                        else if(isn==4) qproj = pow(SP(q),2)/((D-1)*(D+1)) * (ITD(is[0],is[1],p)*ITD(is[2],is[3],p)+ITD(is[0],is[2],p)*ITD(is[1],is[3],p)+ITD(is[0],is[3],p)*ITD(is[1],is[2],p));
                         else throw Error("LProj not supported yet in S-wave.");
                         break;
                     } case 3: {

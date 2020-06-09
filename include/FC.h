@@ -280,6 +280,10 @@ namespace HepLib::FC {
     }
     class ApartIR_SERIAL;
     
+    inline bool isFC2Fermat(const ex & e) {
+        return is_a<Pair>(e);
+    }
+    
     //-----------------------------------------------------------
     // Qgraf namespace
     //-----------------------------------------------------------
@@ -393,6 +397,7 @@ namespace HepLib::FC {
         ex AntiQuarkSum(int qi, ex p, ex m);
         ex GhostSum(int qi);
         ex AntiGhostSum(int qi);
+        ex J1Sum(int qi, ex p);
     };
     
     //-----------------------------------------------------------

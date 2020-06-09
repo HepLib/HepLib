@@ -661,5 +661,14 @@ namespace HepLib::FC::Qgraf {
         return -SP(Qgraf::CI(qi), Qgraf::RCI(qi));
     }
     
+    /**
+     * @brief polarization sum for total angular momentum
+     * @param qi qgraf index
+     * @return -g^{qi, rqi} + p^qi p^rqi/p.p
+     */
+    ex J1Sum(int qi, ex p) {
+        return -SP(LI(qi),RLI(qi)) + SP(p,LI(qi)) * SP(RLI(qi)) / SP(p);
+    }
+    
 }
 
