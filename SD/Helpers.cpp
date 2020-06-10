@@ -329,7 +329,7 @@ void SecDec::VEPrint(bool endlQ) {
 }
 
 ex Factor(const ex expr) {
-    if(!is_a<mul>(expr)) {
+    if(is_a<mul>(expr)) {
         ex ret = 1;
         for(auto item : expr) {
             if(item.has(x(w)) || (item.has(y(w))) || (item.has(z(w)))) ret *= Factor(item);
