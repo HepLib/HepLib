@@ -801,89 +801,92 @@ namespace HepLib {
      * @param depth will be incresed by 1 when each recursively called, when depth>5, GiNaC expand will be used
      * @return the expanded expression, expair, coeff is constant, rest involving pattern
      */
-    expair mma_expand(ex const &expr_in, std::function<bool(const ex &)> isOK, int depth) {
-        ex rest, coeff;
+    pair<ex,epvector> mma_expand(ex const &expr_in, std::function<bool(const ex &)> isOK, int depth) {
         if(!isOK(expr_in)) {
-            rest = 0;
-            coeff = expr_in;
+            ex co;
+            epvector epv;
+            co = expr_in;
+            return make_pair(co,epv);
         } if(is_a<add>(expr_in)) {
-            coeff = 0;
-            rest = 0;
+            ex co = 0;
+            epvector epv;
+            exmap pcmap;
             for(auto item : expr_in) {
                 if(isOK(item)) {
-                    auto rc = mma_expand(item, isOK, depth+1);
-                    coeff += rc.coeff;
-                    rest += rc.rest;
-                } else coeff += item;
+                    auto co_epv = mma_expand(item, isOK, depth+1);
+                    co += co_epv.first;
+                    for(auto ep : co_epv.second) pcmap[ep.rest] += ep.coeff;
+                } else co += item;
             }
+            for(auto kv : pcmap) {
+                if(is_zero(kv.first) || is_zero(kv.second)) continue;
+                epv.push_back(expair(kv.first, kv.second));
+            }
+            return make_pair(co,epv);
         } else if(is_a<mul>(expr_in)) {
-            coeff = 1;
-            rest = 0;
+            ex co = 1;
+            epvector epv;
             for(auto item : expr_in) {
-                auto jjs = rest;
-                if(!is_a<add>(jjs)) jjs = lst{jjs};
-                rest = 0;
-                
                 if(!isOK(item)) {
-                    for(auto jj : jjs) rest += item * jj;
-                    coeff *= item;
+                    for(auto & ep : epv) ep.coeff *= item;
+                    co *= item;
                 } else {
-                    auto rc = mma_expand(item, isOK, depth+1);
-                    ex iis = rc.rest;
-                    if(!is_a<add>(iis)) iis = lst{iis};
-                    for(auto ii : iis) {
-                        if(is_zero(ii)) continue;
-                        rest += coeff * ii;
-                        for(auto jj : jjs) rest += ii * jj;
+                    exmap pcmap;
+                    auto co_epv = mma_expand(item, isOK, depth+1);
+                    for(auto ep2 : co_epv.second) {
+                        pcmap[ep2.rest] += ep2.coeff * co;
+                        for(auto ep1 : epv) pcmap[ep1.rest * ep2.rest] += ep1.coeff * ep2.coeff;
                     }
-                    for(auto jj : jjs) rest += rc.coeff * jj;
-                    coeff *= rc.coeff;
+                    for(auto ep1 : epv) pcmap[ep1.rest] += ep1.coeff * co_epv.first;
+                    co *= co_epv.first;
+                    epv.clear();
+                    for(auto kv : pcmap) {
+                        if(is_zero(kv.first) || is_zero(kv.second)) continue;
+                        epv.push_back(expair(kv.first, kv.second));
+                    }
                 }
             }
-        } else if(is_a<power>(expr_in) && expr_in.op(1).info(info_flags::nonnegint)) {
+            return make_pair(co,epv);
+        } else if(is_a<power>(expr_in) && expr_in.op(1).info(info_flags::nonnegint)) { 
+            ex co = 1;
+            epvector epv;
             int n = ex_to<numeric>(expr_in.op(1)).to_int();
-            auto rc = mma_expand(expr_in.op(0), isOK, depth+1);
-            ex iis = rc.rest;
-            if(!is_a<add>(iis)) iis = lst{iis};
-            coeff = 1;
-            rest = 0;
+            auto co_epv = mma_expand(expr_in.op(0), isOK, depth+1);
             for(int i=0; i<n; i++) {
-                auto jjs = rest;
-                if(!is_a<add>(jjs)) jjs = lst{jjs};
-                rest = 0;
-                
-                for(auto ii : iis) {
-                    if(is_zero(ii)) continue;
-                    rest += coeff * ii;
-                    for(auto jj : jjs) rest += ii * jj;
+                exmap pcmap;
+                for(auto ep2 : co_epv.second) {
+                    pcmap[ep2.rest] += ep2.coeff * co;
+                    for(auto ep1 : epv) pcmap[ep1.rest * ep2.rest] += ep1.coeff * ep2.coeff;
                 }
-                for(auto jj : jjs) rest += rc.coeff * jj;
-                coeff *= rc.coeff;
+                for(auto ep1 : epv) pcmap[ep1.rest] += ep1.coeff * co_epv.first;
+                co *= co_epv.first;
+                epv.clear();
+                for(auto kv : pcmap) {
+                    if(is_zero(kv.first) || is_zero(kv.second)) continue;
+                    epv.push_back(expair(kv.first, kv.second));
+                }
             }
+            return make_pair(co,epv);
         } else {
-            rest = expr_in;
-            coeff = 0;
+            ex co = 0;
+            epvector epv;
+            epv.push_back(expair(expr_in, 1));
+            return make_pair(co,epv);
         }
-        
-        // combination, simple collect
-        if(is_a<add>(rest)) {
-            exmap pc;
-            auto items = rest;
-            for(auto item : items) {
-                if(!is_a<mul>(item)) item = lst{ item };
-                ex cc = 1;
-                ex vv = 1;
-                for(auto ii : item) {
-                    if(isOK(ii)) vv *= ii;
-                    else cc *= ii;
-                }
-                pc[vv] += cc;
-            }
-            rest = 0;
-            for(auto kv : pc) rest += kv.first * kv.second;
-        }
-        
-        return expair(rest,coeff);
+        throw Error("mma_expand unexpected region reached.");
+    }
+    
+    /**
+     * @brief the expand like Mathematica
+     * @param expr_in input expression
+     * @param pats only expand the element e, when e has at least one pattern in pats is true
+     * @return the expanded expression
+     */
+    ex mma_expand(ex const &expr_in, std::function<bool(const ex &)> isOK) {
+        auto co_epv = mma_expand(expr_in, isOK, 0);
+        ex ret = co_epv.first;
+        for(auto ep : co_epv.second) ret += ep.coeff * ep.rest;
+        return ret;
     }
     
     /**
@@ -893,13 +896,13 @@ namespace HepLib {
      * @param depth will be incresed by 1 when each recursively called
      * @return the expanded expression
      */
-    expair mma_expand(ex const &expr_in, lst const &pats, int depth) {
+    ex mma_expand(ex const &expr_in, lst const &pats) {
         return mma_expand(expr_in, [pats](const ex & e)->bool {
             for(auto pat : pats) {
                 if(e.has(pat)) return true;
             }
             return false;
-        }, depth);
+        });
     }
     
     /**
@@ -909,10 +912,10 @@ namespace HepLib {
      * @param depth will be incresed by 1 when each recursively called
      * @return the expanded expression
      */
-    expair mma_expand(ex const &expr_in, const ex &pat, int depth) {
+    ex mma_expand(ex const &expr_in, const ex &pat) {
         return mma_expand(expr_in, [pat](const ex & e)->bool {
             return e.has(pat);
-        }, depth);
+        });
     }
 
     /**
@@ -924,11 +927,8 @@ namespace HepLib {
      * @return the collected expression
      */
     ex mma_collect(ex const &expr_in, std::function<bool(const ex &)> isOK, bool ccf, bool cvf) {
-        auto rc = mma_expand(expr_in, isOK);
-        lst items;
-        items.append(rc.coeff);
-        if(!is_a<add>(rc.rest)) items.append(rc.rest);
-        else for(auto item : rc.rest) items.append(item);
+        auto items = mma_expand(expr_in, isOK);
+        if(!is_a<add>(items)) items = lst{ items };
         
         ex cf = 0;
         map<ex, ex, ex_is_less> vc_map;
@@ -968,11 +968,8 @@ namespace HepLib {
      * @return the collected expression in lst
      */
     lst mma_collect_lst(ex const &expr_in, std::function<bool(const ex &)> isOK) {
-        auto rc = mma_expand(expr_in, isOK);
-        lst items;
-        items.append(rc.coeff);
-        if(!is_a<add>(rc.rest)) items.append(rc.rest);
-        else for(auto item : rc.rest) items.append(item);
+        auto items = mma_expand(expr_in, isOK);
+        if(!is_a<add>(items)) items = lst{ items };
         
         ex cf = 0;
         map<ex, ex, ex_is_less> vc_map;

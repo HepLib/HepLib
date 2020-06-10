@@ -329,9 +329,10 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     ex mma_series(ex const & expr, const symbol &s, int sn);
     
-    expair mma_expand(const ex &expr, std::function<bool(const ex &)>, int depth=0);
-    expair mma_expand(ex const &expr, lst const &pats, int depth=0);
-    expair mma_expand(ex const &expr, ex const &pat, int depth=0);
+    pair<ex,epvector> mma_expand(const ex &expr, std::function<bool(const ex &)>, int depth);
+    ex mma_expand(const ex &expr, std::function<bool(const ex &)>);
+    ex mma_expand(ex const &expr, lst const &pats);
+    ex mma_expand(ex const &expr, ex const &pat);
     
     ex mma_collect(const ex &expr, std::function<bool(const ex &)>, bool ccf=false, bool cvf=false);
     ex mma_collect(const ex &expr, lst const &pats, bool ccf=false, bool cvf=false);

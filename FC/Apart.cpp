@@ -530,13 +530,9 @@ namespace HepLib::FC {
         
         if(true) { // naive method
             res = 0;
-cout << ",";
             auto cv_lst = mma_collect_lst(expr, loops);
-cout << ".";
             for(auto item : cv_lst) {
-cout << ",";
                 res += item.op(0) * Apart(item.op(1), sps, sign);
-cout << ".";
             }
         }
         

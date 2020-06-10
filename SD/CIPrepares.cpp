@@ -667,6 +667,7 @@ namespace HepLib::SD {
                     xs << "x[" << count << "]";
                     cxRepl.append(xi == symbol(xs.str()));
                     czRepl.append(xi == symbol(xs.str()));
+                    czzRepl.append(xi == symbol(xs.str()));
                     count++;
                 }
             }

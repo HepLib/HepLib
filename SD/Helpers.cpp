@@ -329,6 +329,15 @@ void SecDec::VEPrint(bool endlQ) {
 }
 
 ex Factor(const ex expr) {
+    if(!is_a<mul>(expr)) {
+        ex ret = 1;
+        for(auto item : expr) {
+            if(item.has(x(w)) || (item.has(y(w))) || (item.has(z(w)))) ret *= Factor(item);
+            else ret *= item;
+        }
+        return ret;
+    }
+
     exset xyset;
     expr.find(x(w), xyset);
     expr.find(y(w), xyset);
