@@ -234,5 +234,49 @@ namespace HepLib {
         Generator g(m,n);
         while (g.doNext()) f(g.a);
     }
+    
+    bool isSorted(const lst & exs) {
+        for(int i=0; i<exs.nops()-1; i++) {
+            if(!ex_less(exs.op(i),exs.op(i+1))) return false;
+        }
+        return true;
+    }
+    
+    bool isSorted(int n, const ex exs[]) {
+        for(int i=0; i<n-1; i++) {
+            if(!ex_less(exs[i],exs[i+1])) return false;
+        }
+        return true;
+    }
+    
+    int ACSort(lst & exs) {
+        int ac = 0;
+        int n = exs.nops();
+        for(int i=0; i<n-1; i++) 
+        for(int j=n-1; j>i; j--) 
+        if(ex_less(exs.op(j),exs.op(j-1))) {
+            auto tmp = exs.op(j-1);
+            exs.let_op(j-1) = exs.op(j);
+            exs.let_op(j) = tmp;
+            ac++;
+        }
+        for(int i=0; i<n-1; i++) if(exs.op(i).is_equal(exs.op(i+1))) return 0;
+        return (ac%2==1) ? -1 : 1;
+    }
+    
+    int ACSort(int n, ex exs[]) {
+        int ac = 0;
+        for(int i=0; i<n-1; i++) 
+        for(int j=n-1; j>i; j--) 
+        if(ex_less(exs[j],exs[j-1])) {
+            auto tmp = exs[j-1];
+            exs[j-1] = exs[j];
+            exs[j] = tmp;
+            ac++;
+        }
+        for(int i=0; i<n-1; i++) if(exs[i].is_equal(exs[i+1])) return 0;
+        return (ac%2==1) ? -1 : 1;
+    }
+    
 }
 

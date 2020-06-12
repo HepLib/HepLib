@@ -123,7 +123,11 @@ namespace HepLib {
         }
         
         string_replace_all(ostr, "*** entry > 30 or < 5 means turn off mono multiply.", "");
-        if(ostr.find("***")!=string::npos) throw Error(ostr.c_str());
+        string_replace_all(ostr, "*** Fermat Warning. Early exit from mod_multivar_Chinese.", "");
+        if(ostr.find("***")!=string::npos) {
+            cout << "Fermat script: " << endl << istr << endl << endl;
+            throw Error(ostr.c_str());
+        }
     }
     
     // out string still contains the last number

@@ -44,6 +44,29 @@ namespace HepLib::FC {
         return 0;
     }
     
+    ex Eps::eval() const {
+        if(flags & status_flags::evaluated) return *this;
+        bool ok = true;
+        int ii = -1;
+        for(int i=0; i<4; i++) {
+            if(is_a<Vector>(pis[i]) && ii!=-1) ok = false; // Vector after Index
+            else if(is_a<Index>(pis[i]) && ii==-1) ii = i;
+            else if(!is_a<Vector>(pis[i]) && !is_a<Index>(pis[i])) ok = false;
+            if(!ok) break;
+        }
+        if(!ok) return LC(pis[0],pis[1],pis[2],pis[3]);
+        
+        if(isSorted(ii,pis) && isSorted(4-ii,pis+ii)) return this->hold();
+        else {
+            ex pis2[4];
+            for(int i=0; i<4; i++) pis2[i] = pis[i];
+            int ac1 = ACSort(ii,pis2);
+            int ac2 = ACSort(4-ii,pis2+ii);
+            if(ac1 * ac2==0) return 0;
+            return ac1 * ac2 * LC(pis2[0],pis2[1],pis2[2],pis2[3]);
+        }
+    }
+    
     void Eps::print(const print_dflt &c, unsigned level) const {
         c.s << "𝜀" << "(";
         for(int i=0; i<3; i++) c.s << pis[i] << ",";
@@ -124,34 +147,22 @@ namespace HepLib::FC {
         }
         
         for(int i=0; i<4; i++) {
-            auto pi = pis.op(i).expand();
-            lst alst;
-            if(is_a<add>(pi)) {
-                for(auto item : pi) alst.append(item);
-            } else alst.append(pi);
-            
-            for(int i=0; i<alst.nops(); i++) {
-                if(!is_a<mul>(alst.op(i))) alst.let_op(i) = lst{alst.op(i)};
-                ex c=1;
-                ex v=1;
-                for(auto ii : alst.op(i)) {
-                    if(is_a<Vector>(ii) || is_a<Index>(ii)) {
-                        if(!is_zero(v-1)) throw Error("Error Found in LC");
-                        v = ii;
-                    } else c *= ii;
+            auto pi = mma_collect_lst(pis.op(i), [](const ex & e)->bool{return Index::has(e) || Vector::has(e);});
+            for(auto item : pi) { // check 
+                if(!is_a<Vector>(item.op(1)) && !is_a<Index>(item.op(1))) {
+                    cout << "pi = " << pi << endl;
+                    throw Error("LC Error: there is no Index or Vector.");
                 }
-                if(is_zero(v-1)) throw Error("Error Found in LC");
-                alst.let_op(i) = lst{c,v};
             }
-            pis.let_op(i) = alst;
+            pis.let_op(i) = pi;
         }
         
         ex res = 0;
-        for(int i0=0; i0<pis.op(0).nops(); i0++)
-        for(int i1=0; i1<pis.op(1).nops(); i1++)
-        for(int i2=0; i2<pis.op(2).nops(); i2++)
-        for(int i3=0; i3<pis.op(3).nops(); i3++) {
-            res + LC(get_op(pis,0,i0), get_op(pis,1,i1), get_op(pis,2,i2), get_op(pis,3,i3));
+        for(auto i0 : pis.op(0))
+        for(auto i1 : pis.op(1))
+        for(auto i2 : pis.op(2))
+        for(auto i3 : pis.op(3)) {
+            res += i0.op(0)*i1.op(0)*i2.op(0)*i3.op(0) * LC(i0.op(1), i1.op(1), i2.op(1), i3.op(1));
         }
         return res;
     }

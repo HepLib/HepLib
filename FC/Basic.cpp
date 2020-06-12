@@ -27,6 +27,10 @@ namespace HepLib::FC {
     GINAC_BIND_UNARCHIVER(SUNF);
     IMPLEMENT_HAS(SUNF)
     IMPLEMENT_ALL(SUNF)
+    DEFAULT_CTOR(SUNF4)
+    GINAC_BIND_UNARCHIVER(SUNF4);
+    IMPLEMENT_HAS(SUNF4)
+    IMPLEMENT_ALL(SUNF4)
 
     //-----------------------------------------------------------
     // FormFormat Output
@@ -165,7 +169,7 @@ namespace HepLib::FC {
     }
     
     //-----------------------------------------------------------
-    // SUNT/SUNF Class
+    // SUNT/SUNF/SUNF4 Class
     //-----------------------------------------------------------
     GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNT, basic,
         print_func<print_dflt>(&SUNT::print).
@@ -239,6 +243,21 @@ namespace HepLib::FC {
         return 0;
     }
     
+    ex SUNF::eval() const { 
+        if(flags & status_flags::evaluated) return *this;
+        if(ijk[0].is_equal(ijk[1]) || ijk[1].is_equal(ijk[2]) || ijk[0].is_equal(ijk[2])) return 0;
+        bool c01 = ex_less(ijk[0],ijk[1]);
+        bool c12 = ex_less(ijk[1],ijk[2]);
+        if(c01 && c12) return this->hold();
+        bool c02 = ex_less(ijk[0],ijk[2]);
+        if(!c01 && c02) return -SUNF(ijk[1],ijk[0],ijk[2]);
+        else if(c02 && !c12) return -SUNF(ijk[0],ijk[2],ijk[1]);
+        else if(!c02 && c01) return SUNF(ijk[2],ijk[0],ijk[1]);
+        else if(c12 && !c02) return SUNF(ijk[1],ijk[2],ijk[0]);
+        else if(!c12 && !c01) return -SUNF(ijk[2],ijk[1],ijk[0]);
+        else return this->hold();
+    }
+    
     void SUNF::print(const print_dflt &c, unsigned) const {
         c.s << "f(" << ijk[0] << "," << ijk[1] << "," << ijk[2] << ")";
     }
@@ -278,15 +297,81 @@ namespace HepLib::FC {
         return 0;
     }
     
+    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNF4, basic,
+        print_func<print_dflt>(&SUNF4::print).
+        print_func<FormFormat>(&SUNF4::form_print)
+    )
+    
+    SUNF4::SUNF4(ex i, ex j, ex k, ex l) : ijkl{i,j,k,l} { }
+    int SUNF4::compare_same_type(const basic &other) const {
+        const SUNF4 &o = static_cast<const SUNF4 &>(other);
+        for(int i=0; i<4; i++) {
+            auto c = ijkl[i].compare(o.ijkl[i]);
+            if(c!=0) return c;
+        }
+        return 0;
+    }
+    
+    ex SUNF4::eval() const {
+        if(flags & status_flags::evaluated) return *this;
+        if(ijkl[0].is_equal(ijkl[1]) || ijkl[2].is_equal(ijkl[3])) return 0;
+        bool c01 = ex_less(ijkl[0],ijkl[1]);
+        bool c23 = ex_less(ijkl[2],ijkl[3]);
+        if(c01 && c23) return this->hold(); // 01-23
+        else if(!c01 && c23) return -SUNF4(ijkl[1],ijkl[0],ijkl[2],ijkl[3]);
+        else if(!c01 && !c23) return SUNF4(ijkl[1],ijkl[0],ijkl[3],ijkl[2]);
+        else if(c01 && !c23) return -SUNF4(ijkl[0],ijkl[1],ijkl[3],ijkl[2]);
+        else return this->hold();
+    }
+    
+    void SUNF4::print(const print_dflt &c, unsigned) const {
+        c.s << "f(" << ijkl[0] << "," << ijkl[1] << "," << ijkl[2] << "," << ijkl[3] << ")";
+    }
+    
+    void SUNF4::form_print(const FormFormat &c, unsigned) const {
+        static int idx=0;
+        Index e("f4i" + to_string(idx++));
+        ex ff = SUNF(ijkl[0], ijkl[1], e) * SUNF(e, ijkl[2], ijkl[3]);
+        c << ff;
+    }
+    
+    size_t SUNF4::nops() const { return 4; }
+    ex SUNF4::op(size_t i) const {
+        return ijkl[i];
+    }
+    ex & SUNF4::let_op(size_t i) {
+        ensure_if_modifiable();
+        return ijkl[i];
+    }
+    
+    void SUNF4::archive(archive_node & n) const {
+        inherited::archive(n);
+        n.add_ex("i", ijkl[0]);
+        n.add_ex("j", ijkl[1]);
+        n.add_ex("k", ijkl[2]);
+        n.add_ex("l", ijkl[3]);
+    }
+    
+    void SUNF4::read_archive(const archive_node& n, lst& sym_lst) {
+        inherited::read_archive(n, sym_lst);
+        ex o;
+        n.find_ex("i", o, sym_lst);
+        ijkl[0] = ex_to<Index>(o);
+        n.find_ex("j", o, sym_lst);
+        ijkl[1] = ex_to<Index>(o);
+        n.find_ex("k", o, sym_lst);
+        ijkl[2] = ex_to<Index>(o);
+        n.find_ex("l", o, sym_lst);
+        ijkl[3] = ex_to<Index>(o);
+    }
+    
+    ex SUNF4::derivative(const symbol & s) const {
+        return 0;
+    }
+    
     //-----------------------------------------------------------
     // Other Helpers
     //-----------------------------------------------------------
-    
-    ex SUNF4(Index i, Index j, Index k, Index l) {
-        static int idx=0;
-        Index e("f4idx" + to_string(idx++));
-        return SUNF(i, j, e) * SUNF(e, k, l);
-    }
     
     ex MatrixContract(const ex & expr_in) {
         if(!expr_in.has(Matrix(w1,w2,w3))) return expr_in;

@@ -766,7 +766,7 @@ namespace HepLib::FC {
         
         for(auto item : fvec_re) item->Export();
         auto oproc = ParallelProcess;
-        ParallelProcess = CpuCores()*3/4;
+        ParallelProcess = CpuCores()/2;
         GiNaC_Parallel(fvec_re.size(), [fvec_re](int idx)->ex {
             fvec_re[idx]->Run();
             return 0;
@@ -778,7 +778,7 @@ namespace HepLib::FC {
         auto mi_rules = FIRE::FindRules(fvec_re, true, uf);
                 
         auto rules_vec =
-        GiNaC_Parallel(fvec_re.size(), 10, [&](int idx)->ex {
+        GiNaC_Parallel(fvec_re.size(), 1, [&](int idx)->ex {
             lst rules;
             for(auto item : fvec_re[idx]->Rules) {
                 auto rr = item.op(1);

@@ -107,7 +107,7 @@ namespace HepLib::FC {
     GINAC_DECLARE_UNARCHIVER(Vector);
     
     //-----------------------------------------------------------
-    // SUNT/SUNF Class
+    // SUNT/SUNF/SUNF4 Class
     //-----------------------------------------------------------
     class SUNT : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(SUNT, basic)
@@ -136,6 +136,7 @@ namespace HepLib::FC {
         size_t nops() const override;
         ex op(size_t i) const override;
         ex& let_op(size_t i) override;
+        ex eval() const override;
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
@@ -146,7 +147,24 @@ namespace HepLib::FC {
     };
     GINAC_DECLARE_UNARCHIVER(SUNF);
     
-    ex SUNF4(Index i, Index j, Index k, Index l);
+    class SUNF4 : public basic {
+    GINAC_DECLARE_REGISTERED_CLASS(SUNF4, basic)
+    public:
+        SUNF4(ex i, ex j, ex k, ex l);
+        ex ijkl[4]; // Index
+        size_t nops() const override;
+        ex op(size_t i) const override;
+        ex& let_op(size_t i) override;
+        ex eval() const override;
+        void print(const print_dflt &c, unsigned level = 0) const;
+        void form_print(const FormFormat &c, unsigned level = 0) const;
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n, lst& sym_lst) override;
+        static bool has(const ex &e);
+        static lst all(const ex &e);
+        ex derivative(const symbol & s) const override;
+    };
+    GINAC_DECLARE_UNARCHIVER(SUNF4);
     
     //-----------------------------------------------------------
     // Pair Class
@@ -202,6 +220,7 @@ namespace HepLib::FC {
         size_t nops() const override;
         ex op(size_t i) const override;
         ex & let_op(size_t i) override;
+        ex eval() const override;
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void fc_print(const FCFormat &c, unsigned level = 0) const;

@@ -344,6 +344,7 @@ namespace HepLib {
     
     ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
+    extern bool fermat_use_array;
     ex fermat_numer_denom(const ex & expr, std::function<bool(const ex &)> isOK={});
     ex fermat_normal(const ex & expr,std::function<bool(const ex &)> isOK={});
     
@@ -508,6 +509,10 @@ namespace HepLib {
     void Permutations(int n, std::function<void(const int*)> f);
     void Permutations(int n, int m, std::function<void(const int*)> f);
     void PermutationsR(int n, int m, std::function<void(const int*)> f);
+    bool isSorted(const lst & exs);
+    bool isSorted(int n, const ex exs[]);
+    int ACSort(lst & exs);
+    int ACSort(int n, ex exs[]);
     
     /*-----------------------------------------------------*/
     // Rationalize

@@ -1684,7 +1684,8 @@ namespace HepLib {
         if(!is_a<mul>(expr_in)) expr_in = lst{expr_in};
         for(auto item : expr_in) {
             if(!is_a<add>(item)) item = lst{item};
-            ss << "Array m[" << item.nops() << "];" << endl;
+            if(fermat_use_array) ss << "Array m[" << item.nops() << "];" << endl;
+            else ss << "res:=0;" << endl;
             fermat.Execute(ss.str());
             ss.clear();
             ss.str("");
@@ -1694,16 +1695,20 @@ namespace HepLib {
                 ex tt = item.op(i).subs(v2f);
                 nn_chk2 += tt.subs(nn_map);
                 tt = iMap(tt);
-                ss << "m[" << (i+1) << "]:=";
+                if(fermat_use_array) ss << "m[" << (i+1) << "]:=";
+                else ss << "item:=";
                 ss << tt << ";" << endl;
+                if(!fermat_use_array) ss << "res:=res+item;" << endl;
                 fermat.Execute(ss.str());
                 ss.clear();
                 ss.str("");
             }
-            ss << "res:=Sumup([m]);" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
+            if(fermat_use_array) {
+                ss << "res:=Sumup([m]);" << endl;
+                fermat.Execute(ss.str());
+                ss.clear();
+                ss.str("");
+            }
             nn_chk *= nn_chk2;
             
             static string bstr("[-begin-]"), estr("[-end-]");
@@ -1732,7 +1737,8 @@ namespace HepLib {
             den *= factor(ret.op(1));
             
             ss << "&(U=0);" << endl; // disable ugly printing
-            ss << "@(res,[m]);" << endl;
+            if(fermat_use_array) ss << "@(res,[m]);" << endl;
+            else ss << "@(res,item);" << endl;
             ss << "&_G;" << endl;
             fermat.Execute(ss.str());
             ss.clear();

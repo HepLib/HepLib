@@ -82,6 +82,7 @@ Tensor colTp;
 Symbols gCF,I2R,NF,NA,D,I,Pi;
 Dimension NA;
 AutoDeclare Index colAj;
+AutoDeclare Index f4i;
 Dimension NF;
 AutoDeclare Index colFi;
 
@@ -367,7 +368,7 @@ Dimension NF;
     ex form(const ex &expr, bool all, int verb) {
         if(all || is_a<lst>(expr)) return runform(expr, verb);
         auto cv_lst = mma_collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
-            return e.has(TR(w)) || SUNT::has(e) || SUNF::has(e) || Index::has(e) || DiracGamma::has(e);
+            return e.has(TR(w)) || SUNT::has(e) || SUNF::has(e) || SUNF4::has(e) || Index::has(e) || DiracGamma::has(e);
         });
         lst to_lst;
         for(auto cv : cv_lst) to_lst.append(cv.op(1));
