@@ -765,20 +765,23 @@ namespace HepLib::FC {
         }
         
         for(auto item : fvec_re) item->Export();
-        auto oproc = ParallelProcess;
-        ParallelProcess = CpuCores()/2;
-        GiNaC_Parallel(fvec_re.size(), [fvec_re](int idx)->ex {
-            fvec_re[idx]->Run();
-            return 0;
-        }, "FIRE");
-        ParallelProcess = oproc;
+        auto nproc = omp_get_num_procs()/2;
+        #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
+        for(int pi=0; pi<fvec_re.size(); pi++) {
+            if(Verbose>1 && pi+1>nproc) {
+                cout << "\r                                        \r";
+                cout << "  \\--FIRE Reduction [" << pi << "/" << fvec.size() << "] " << flush;
+            }
+            fvec_re[pi]->Run();
+        }
+        if(Verbose>1) cout << "@" << now(false) << endl;
         for(auto item : fvec_re) item->Import();
         system(("rm -rf "+wdir).c_str());
         
         auto mi_rules = FIRE::FindRules(fvec_re, true, uf);
-                
+                        
         auto rules_vec =
-        GiNaC_Parallel(fvec_re.size(), 1, [&](int idx)->ex {
+        GiNaC_Parallel(fvec_re.size(), 10, [&](int idx)->ex {
             lst rules;
             for(auto item : fvec_re[idx]->Rules) {
                 auto rr = item.op(1);
