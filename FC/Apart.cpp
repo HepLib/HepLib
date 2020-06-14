@@ -766,11 +766,15 @@ namespace HepLib::FC {
         
         for(auto item : fvec_re) item->Export();
         auto nproc = omp_get_num_procs()/2;
+        int cproc = 0;
         #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
         for(int pi=0; pi<fvec_re.size(); pi++) {
-            if(Verbose>1 && pi+1>nproc) {
+            if(Verbose>1) {
+                #pragma omp critical
+                {
                 cout << "\r                                        \r";
-                cout << "  \\--FIRE Reduction [" << pi << "/" << fvec.size() << "] " << flush;
+                cout << "  \\--FIRE Reduction [" << (++cproc) << "/" << fvec_re.size() << "] " << flush;
+                }
             }
             fvec_re[pi]->Run();
         }

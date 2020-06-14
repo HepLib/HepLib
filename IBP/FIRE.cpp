@@ -324,6 +324,10 @@ namespace HepLib::IBP {
         cmd << " -c " << ProblemNumber << " >/dev/null";
         system(cmd.str().c_str());
         system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());
+        if(!file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) {
+            system(cmd.str().c_str());
+            system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());
+        }
     }
     
     /**
