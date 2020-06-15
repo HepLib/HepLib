@@ -1734,14 +1734,14 @@ namespace HepLib {
         auto expr_in = expr;
         exmap fun2s, s2fun;
         expr_in = MapFunction([&fun2s,&s2fun](const ex & e, MapFunction &self)->ex {
-            if(is_a<GiNaC::function>(e)) {
+            if(is_a<GiNaC::function>(e) || e.match(sqrt(w))) {
                 if(is_zero(fun2s[e])) {
                     symbol s;
                     fun2s[e] = s;
                     s2fun[s] = e;
                 }
                 return fun2s[e];
-            } else if(!has_function(e)) return e;
+            } else if(!has_function(e) && !e.has(sqrt(w))) return e;
             else return e.map(self);
         })(expr_in);
         
