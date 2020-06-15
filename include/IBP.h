@@ -48,6 +48,7 @@ namespace HepLib::IBP {
         
         static int Version;
         static ex VectorDimension;
+        static int Threads;
         
         static lst UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs); 
     private:

@@ -797,12 +797,12 @@ namespace HepLib {
     /**
      * @brief the expand like Mathematica
      * @param expr_in input expression
-     * @param isOK only expand the element e, when isOK(e) is true
+     * @param has only expand the element e, when has(e) is true
      * @param depth will be incresed by 1 when each recursively called, when depth>5, GiNaC expand will be used
      * @return the expanded expression, expair, coeff is constant, rest involving pattern
      */
-    pair<ex,epvector> mma_expand(ex const &expr_in, std::function<bool(const ex &)> isOK, int depth) {
-        if(!isOK(expr_in)) {
+    pair<ex,epvector> mma_expand(ex const &expr_in, std::function<bool(const ex &)> has, int depth) {
+        if(!has(expr_in)) {
             ex co;
             epvector epv;
             co = expr_in;
@@ -812,8 +812,8 @@ namespace HepLib {
             epvector epv;
             exmap pcmap;
             for(auto item : expr_in) {
-                if(isOK(item)) {
-                    auto co_epv = mma_expand(item, isOK, depth+1);
+                if(has(item)) {
+                    auto co_epv = mma_expand(item, has, depth+1);
                     co += co_epv.first;
                     for(auto ep : co_epv.second) pcmap[ep.rest] += ep.coeff;
                 } else co += item;
@@ -827,12 +827,12 @@ namespace HepLib {
             ex co = 1;
             epvector epv;
             for(auto item : expr_in) {
-                if(!isOK(item)) {
+                if(!has(item)) {
                     for(auto & ep : epv) ep.coeff *= item;
                     co *= item;
                 } else {
                     exmap pcmap;
-                    auto co_epv = mma_expand(item, isOK, depth+1);
+                    auto co_epv = mma_expand(item, has, depth+1);
                     for(auto ep2 : co_epv.second) {
                         pcmap[ep2.rest] += ep2.coeff * co;
                         for(auto ep1 : epv) pcmap[ep1.rest * ep2.rest] += ep1.coeff * ep2.coeff;
@@ -851,7 +851,7 @@ namespace HepLib {
             ex co = 1;
             epvector epv;
             int n = ex_to<numeric>(expr_in.op(1)).to_int();
-            auto co_epv = mma_expand(expr_in.op(0), isOK, depth+1);
+            auto co_epv = mma_expand(expr_in.op(0), has, depth+1);
             for(int i=0; i<n; i++) {
                 exmap pcmap;
                 for(auto ep2 : co_epv.second) {
@@ -882,8 +882,8 @@ namespace HepLib {
      * @param pats only expand the element e, when e has at least one pattern in pats is true
      * @return the expanded expression
      */
-    ex mma_expand(ex const &expr_in, std::function<bool(const ex &)> isOK) {
-        auto co_epv = mma_expand(expr_in, isOK, 0);
+    ex mma_expand(ex const &expr_in, std::function<bool(const ex &)> has) {
+        auto co_epv = mma_expand(expr_in, has, 0);
         ex ret = co_epv.first;
         for(auto ep : co_epv.second) ret += ep.coeff * ep.rest;
         return ret;
@@ -921,23 +921,23 @@ namespace HepLib {
     /**
      * @brief the collect function like Mathematica
      * @param expr_in input expression
-     * @param isOK only collect the element e, when isOK(e) is true
+     * @param has only collect the element e, when has(e) is true
      * @param ccf true for wrapping coefficient in coCF
-     * @param cvf true to wrapping isOK-ed element in coVF
+     * @param cvf true to wrapping has-ed element in coVF
      * @return the collected expression
      */
-    ex mma_collect(ex const &expr_in, std::function<bool(const ex &)> isOK, bool ccf, bool cvf) {
-        auto items = mma_expand(expr_in, isOK);
+    ex mma_collect(ex const &expr_in, std::function<bool(const ex &)> has, bool ccf, bool cvf) {
+        auto items = mma_expand(expr_in, has);
         if(!is_a<add>(items)) items = lst{ items };
         
         ex cf = 0;
         map<ex, ex, ex_is_less> vc_map;
         for(auto item : items) {
-            if(!isOK(item)) cf += item;
+            if(!has(item)) cf += item;
             else if(is_a<mul>(item)) {
                 ex tc = 1, tv = 1;
                 for(auto ii : item) {
-                    if(!isOK(ii)) tc *= ii;
+                    if(!has(ii)) tc *= ii;
                     else tv *= ii;
                 }
                 vc_map[tv] += tc;
@@ -949,7 +949,7 @@ namespace HepLib {
         ex res = 0;
         if(!is_zero(cf)) res += coCF(cf)*coVF(1);
         for(auto vc : vc_map) {
-            if(isOK(vc.second)) {
+            if(has(vc.second)) {
                 cerr << Color_Error << "mma_collect: pats founds @ " << vc.second << RESET << endl;
                 throw Error("mma_collect: coefficent has pat.");
             }
@@ -964,21 +964,21 @@ namespace HepLib {
     /**
      * @brief the collect function like Mathematica, reture the lst { {c1,v1}, {c2,v2}, ... }
      * @param expr_in input expression
-     * @param isOK only collect the element e, when isOK(e) is true
+     * @param has only collect the element e, when has(e) is true
      * @return the collected expression in lst
      */
-    lst mma_collect_lst(ex const &expr_in, std::function<bool(const ex &)> isOK) {
-        auto items = mma_expand(expr_in, isOK);
+    lst mma_collect_lst(ex const &expr_in, std::function<bool(const ex &)> has) {
+        auto items = mma_expand(expr_in, has);
         if(!is_a<add>(items)) items = lst{ items };
         
         ex cf = 0;
         map<ex, ex, ex_is_less> vc_map;
         for(auto item : items) {
-            if(!isOK(item)) cf += item;
+            if(!has(item)) cf += item;
             else if(is_a<mul>(item)) {
                 ex tc = 1, tv = 1;
                 for(auto ii : item) {
-                    if(!isOK(ii)) tc *= ii;
+                    if(!has(ii)) tc *= ii;
                     else tv *= ii;
                 }
                 vc_map[tv] += tc;
@@ -990,7 +990,7 @@ namespace HepLib {
         lst res_lst;
         if(!is_zero(cf)) res_lst.append(lst{cf,1});
         for(auto vc : vc_map) {
-            if(isOK(vc.second)) {
+            if(has(vc.second)) {
                 cerr << Color_Error << "mma_collect: pats founds @ " << vc.second << RESET << endl;
                 throw Error("mma_collect: coefficent has pat.");
             }
@@ -1005,7 +1005,7 @@ namespace HepLib {
      * @param expr_in input expression
      * @param pats only collect the element e match at least one patter in pats, like mma_expand
      * @param ccf true for wrapping coefficient in coCF
-     * @param cvf true to wrapping isOK-ed element in coVF
+     * @param cvf true to wrapping has-ed element in coVF
      * @return the collected expression
      */
     ex mma_collect(ex const &expr_in, lst const &pats, bool ccf, bool cvf) {
@@ -1037,7 +1037,7 @@ namespace HepLib {
      * @param expr_in input expression
      * @param pat only collect the element e match the pattern, like mma_expand
      * @param ccf true for wrapping coefficient in coCF
-     * @param cvf true to wrapping isOK-ed element in coVF
+     * @param cvf true to wrapping has-ed element in coVF
      * @return the collected expression
      */
     ex mma_collect(ex const &expr_in, ex const &pat, bool ccf, bool cvf) {
@@ -1604,7 +1604,106 @@ namespace HepLib {
         if(fed.nops()>2) Deltas = fed.op(2);
     }
     
-    XIntegral::XIntegral(ex loops, ex ps, ex ns) {}
+    XIntegral::XIntegral(ex loops, ex ps, ex ns) {
+        ex a = 0;
+        ex pre = 1;
+        ex rem = 0;
+        lst delta;
+        int xni = 0;
+        lst funs, exps;
+        for(int i=0; i<ps.nops(); i++) {
+            if(is_zero(ns.op(i))) continue;
+            auto cpi = ps.op(i).expand().subs(Symbol::AssignMap);
+            bool ltQ = false; 
+            for(auto li : loops) {
+                if(cpi.has(li)) {
+                    ltQ = true;
+                    break;
+                }
+            }
+            
+            ex sgn = 0;
+            if(!ltQ) {
+                pre *= pow(ps.op(i).expand().subs(Symbol::AssignMap), ex(0)-ns.op(i));
+                ns.let_op(i) = 0;
+                ps.let_op(i) = 1;
+                continue;
+            } else if(is_a<numeric>(ns.op(i)) && (ns.op(i)<0)) {
+                throw Error("XIntegral, negative powers not supported yet.");
+            }
+
+            // check loop^2
+            for(auto li : loops) {
+                if(!is_a<numeric>(cpi.coeff(li,2))) continue; // TODO: make sure positive
+                numeric nm = ex_to<numeric>(cpi.coeff(li,2));
+                if(nm.is_zero()) continue;
+                sgn = nm>0 ? -1 : 1;
+                break;
+            }
+            // check iEpsilon
+            if(sgn.is_zero()) {
+                if(!is_a<numeric>(cpi.coeff(iEpsilon))) continue;
+                numeric nm = ex_to<numeric>(cpi.coeff(iEpsilon));
+                if(!nm.is_zero()) sgn = nm>0 ? -1 : 1;
+            }
+            // others
+            if(sgn.is_zero()) {
+                sgn = 1;
+                if(is_a<numeric>(cpi) && ex_to<numeric>(cpi)>0) sgn = -1;
+                else sgn = 1;
+            }
+            
+            cpi = (ps.op(i)*sgn).subs(iEpsilon==0);
+            if(sgn==-1) pre *= exp(I * Pi * ns.op(i));
+            a += ns.op(i);
+            auto xi = x(xni);
+            rem += xi * cpi;
+            delta.append(xi);
+            if(!is_zero(ns.op(i)-1)) {
+                funs.append(xi);
+                exps.append(ns.op(i)-1);
+            }
+            pre /= tgamma(ns.op(i));
+            xni++;
+        }
+        rem = rem.expand().subs(Symbol::AssignMap);
+        ex dl2 = loops.nops()*(4-2*ep)/2;
+        pre *= tgamma(a-dl2) * pow(I,loops.nops()) * pow(Pi,dl2) * pow(2*Pi,loops.nops()*(2*ep-4));
+        
+        // Loop
+        ex u=1;
+        for(int i=0; i<loops.nops(); i++) {
+            ex t2 = rem.coeff(loops.op(i),2);
+            ex t1 = rem.coeff(loops.op(i),1);
+            ex t0 = rem.coeff(loops.op(i),0);
+            u *= (-t2);
+            if(t2==0) {
+                Functions = lst{0};
+                Exponents = lst{1};
+                return;
+            }
+            rem = (t0 - pow(t1,2)/(4*t2)).expand();
+        }
+        rem = (rem.subs(Symbol::AssignMap)).normal();
+        u = (u.subs(Symbol::AssignMap)).normal();
+        rem = (rem * u).normal();
+        
+        funs.prepend(rem);
+        exps.prepend(dl2-a);
+        funs.prepend(u);
+        exps.prepend(a-dl2-(4-2*ep)/2);
+        auto num_den = numer_denom(pre);
+        funs.append(num_den.op(0));
+        exps.append(1);
+        if(!is_zero(num_den.op(1))) {
+            funs.append(num_den.op(1));
+            exps.append(-1);
+        }
+        
+        Functions = funs;
+        Exponents = exps;
+        Deltas = lst{delta};
+    }
     
     int CpuCores() {
         return omp_get_num_procs();
@@ -1614,7 +1713,7 @@ namespace HepLib {
     //-----------------------------------------------------------
     // fermat_numer_denom / fermat_normal
     //-----------------------------------------------------------
-    ex fermat_numer_denom(const ex & expr, std::function<bool(const ex &)> isOK) {
+    ex fermat_numer_denom(const ex & expr) {
         static map<pid_t, Fermat> fermat_map;
         static int v_max = 0;
         static Symbol vi("vi");
@@ -1633,20 +1732,23 @@ namespace HepLib {
         Fermat &fermat = fermat_map[pid];
         
         auto expr_in = expr;
-        exset sqrt_set;
-        find(expr_in,sqrt(w),sqrt_set);
-        exmap sqrt2sym, sym2sqrt;
-        for(auto item : sqrt_set) {
-            symbol s;
-            sqrt2sym[item] = s; 
-            sym2sqrt[s] = item;
-        }
-        expr_in = expr_in.subs(sqrt2sym);
+        exmap fun2s, s2fun;
+        expr_in = MapFunction([&fun2s,&s2fun](const ex & e, MapFunction &self)->ex {
+            if(is_a<GiNaC::function>(e)) {
+                if(is_zero(fun2s[e])) {
+                    symbol s;
+                    fun2s[e] = s;
+                    s2fun[s] = e;
+                }
+                return fun2s[e];
+            } else if(!has_function(e)) return e;
+            else return e.map(self);
+        })(expr_in);
         
         lst rep_vs;
         for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
             auto e = (*i);
-            if(is_a<symbol>(e) || (isOK && isOK(e))) rep_vs.append(e);
+            if(is_a<symbol>(e)) rep_vs.append(e);
         }
         rep_vs.sort();
         rep_vs.unique();        
@@ -1752,13 +1854,13 @@ namespace HepLib {
             throw Error("fermat_together: N Check Failed.");
         }
         
-        num = num.subs(f2v).subs(sym2sqrt);
-        den = den.subs(f2v).subs(sym2sqrt);
+        num = num.subs(f2v).subs(s2fun);
+        den = den.subs(f2v).subs(s2fun);
         return lst{num, den};
     }
     
-    ex fermat_normal(const ex & expr, std::function<bool(const ex &)> isOK) {
-        auto nd = fermat_numer_denom(expr, isOK);
+    ex fermat_normal(const ex & expr) {
+        auto nd = fermat_numer_denom(expr);
         return nd.op(0)/nd.op(1);
     }
     

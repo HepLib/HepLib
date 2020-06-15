@@ -22,7 +22,7 @@ namespace HepLib::SD {
         if(IsZero) return;
         if(Integrator==NULL) Integrator = new HCubature();
                 
-        if(Verbose > 1) cout << Color_HighLight << "  Integrates @ " << now() << RESET << endl;
+        if(Verbose > 0) cout << Color_HighLight << "  Integrates @ " << now() << RESET << endl;
         
         lst lstRE;
         auto pid = getpid();
@@ -130,9 +130,10 @@ namespace HepLib::SD {
         for(auto &item : ciResult) {
             current++;
             if(kid>0 && current != kid) continue;
-            if(Verbose > 1) {
-                cout << "\r  \\--Integrating [" <<current<<"/"<<total<< "] " << flush;
-            }
+            if(Verbose > 0) {
+                cout << "\r                                           \r";
+                cout << "  \\--Integrating [" <<current<<"/"<<total<< "] " << flush;
+            } 
             
             unsigned int xsize = 0;
             ex co, exint, exft;

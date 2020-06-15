@@ -300,10 +300,6 @@ namespace HepLib::FC {
     }
     class ApartIR_SERIAL;
     
-    inline bool isFC2Fermat(const ex & e) {
-        return is_a<Pair>(e);
-    }
-    
     //-----------------------------------------------------------
     // Qgraf namespace
     //-----------------------------------------------------------

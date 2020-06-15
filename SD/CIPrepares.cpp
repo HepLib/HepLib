@@ -25,7 +25,7 @@ namespace HepLib::SD {
         if(IsZero) return;
         if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
         
-        if(Verbose > 1) cout << Color_HighLight << "  CIPrepares @ " << now() << RESET << endl;
+        if(Verbose > 0) cout << Color_HighLight << "  CIPrepares @ " << now() << RESET << endl;
         auto pid = getpid();
                 
         auto resf =
@@ -98,10 +98,7 @@ namespace HepLib::SD {
         map<ex,int,ex_is_less> ftnmap;
         int ft_n = 1;
         FT_N_XN.remove_all();
-        
-        //deleted from GiNaC 1.7.7
-        //FT_N_XN.append(lst{0, 0});
-        
+                
         for(auto item : fts) {
             ftnvec.push_back(lst{item, ft_n});
             ftnmap[item] = ft_n;

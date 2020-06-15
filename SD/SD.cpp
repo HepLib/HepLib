@@ -1082,16 +1082,15 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 if(expn < min_expn) min_expn = expn;
                 
                 int sim_max;
-                if((ex(0)-expn)>=10) sim_max = 2;
-                else if((ex(0)-expn)>=8) sim_max = 3;
-                else if((ex(0)-expn)>=6) sim_max = 5;
-                else if((ex(0)-expn)>=4) sim_max = 10;
-                else if((ex(0)-expn)>=2) sim_max = 50;
-                else sim_max = 100;
+                if(use_expand_numerator) {
+                    if((ex(0)-expn)>=10) sim_max = 2;
+                    else if((ex(0)-expn)>=8) sim_max = 3;
+                    else if((ex(0)-expn)>=6) sim_max = 5;
+                    else if((ex(0)-expn)>=4) sim_max = 10;
+                    else if((ex(0)-expn)>=2) sim_max = 50;
+                    else sim_max = 100;
+                }
                 
-                //sim_max = 1000000; // disable expand
-                //sim_max = 0; // all expand
-                            
                 lst xns = ex_to<lst>(it.op(0));
                 lst pns;
                 ex tmp = 1;
@@ -1099,7 +1098,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                     lst pn = ex_to<lst>(it.op(1).op(i));
                     bool sim = pn.op(0).expand().nops()<=sim_max;
                     bool nni = pn.op(1).info(info_flags::nonnegint);
-                    if(i>1 && (sim||nni)) {
+                    if(i>1 && (!use_expand_numerator || sim || nni)) {
                         tmp *= pow(pn.op(0), pn.op(1));
                     } else if(i<2 || pn.op(0)!=1) {
                         pns.append(pn);
@@ -1246,7 +1245,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 }
             }
         }
-        
+
         auto res =
         GiNaC_Parallel(ibp_res_vec.size(), [&](int idx)->ex {
 
@@ -1294,8 +1293,6 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 para_res_lst.append(it.subs(x2y).subs(y(w)==x(w)));
             }
 
-            //deleted from GiNaC 1.7.7
-            //if(para_res_lst.nops()<1) para_res_lst.append(0);
             return para_res_lst;
         }, "Taylor", true);
         
@@ -1420,7 +1417,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             for(int i=0; i<cv_lst.nops();i++) {
                 auto tmp = cv_lst.op(i).op(0);
                 auto vc = cv_lst.op(i).op(1);
-                if(use_CCF) tmp = collect_common_factors(tmp);
+                //if(use_CCF) tmp = collect_common_factors(tmp);
                 if(!tmp.has(eps) && !ct.has(eps)) {
                     if(tmp.has(epsID(w)) || ct.has(epsID(w))) {
                         cerr << Color_Error << "EpsEpExpands: epsID should be always multipled by eps!" << RESET << endl;
@@ -1437,7 +1434,8 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                         }
                         auto pref = mma_series(ct2, ep, epN-di);
                         if(pref.has(vs)) pref = mma_series(pref, vs, sN);
-                        if(use_CCF) intg = collect_common_factors(intg);
+                        //if(use_CCF) intg = collect_common_factors(intg);
+                        intg = collect_common_factors(intg);
                         para_res_lst.append(lst{pref * pow(ep, di), intg});
                     }
                 } else {
@@ -1446,7 +1444,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                     ex stmp = mma_series(tmp, eps, epsN-sctN);
                     for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
                         tmp = stmp.coeff(eps, sdi);
-                        if(use_CCF) tmp = collect_common_factors(tmp);
+                        //if(use_CCF) tmp = collect_common_factors(tmp);
                         if(tmp.has(eps)) {
                             cerr << Color_Error << "EpsEpExpands: eps found @ tmp = " << tmp << RESET << endl;
                             exit(1);
@@ -1467,7 +1465,8 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                                 }
                                 auto pref = mma_series(ct2, ep, epN-di);
                                 if(pref.has(vs)) pref = mma_series(pref, vs, sN);
-                                if(use_CCF) intg = collect_common_factors(intg);
+                                //if(use_CCF) intg = collect_common_factors(intg);
+                                intg = collect_common_factors(intg);
                                 para_res_lst.append(lst{eps_ci * pref * pow(eps, sdi) * pow(ep, di), intg});
                             }
                         }
@@ -1475,8 +1474,6 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 }
             }
 
-            //deleted from GiNaC 1.7.7
-            //if(para_res_lst.nops()<1) para_res_lst.append(lst{0,0});
             return para_res_lst;
 
         }, "EpsEp", !debug);

@@ -345,8 +345,8 @@ namespace HepLib {
     ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
     extern bool fermat_use_array;
-    ex fermat_numer_denom(const ex & expr, std::function<bool(const ex &)> isOK={});
-    ex fermat_normal(const ex & expr,std::function<bool(const ex &)> isOK={});
+    ex fermat_numer_denom(const ex & expr);
+    ex fermat_normal(const ex & expr);
     
     /*-----------------------------------------------------*/
     // Evalf
@@ -496,6 +496,16 @@ namespace HepLib {
     }
     inline bool isFunction(const ex &e, string func_name, int nargs) {
         return is_a<GiNaC::function>(e) && ex_to<GiNaC::function>(e).get_name()==func_name && e.nops()==nargs;
+    }
+    
+    /*-----------------------------------------------------*/
+    // hasFunction
+    /*-----------------------------------------------------*/
+    inline bool has_function(const ex & expr) {
+        for(const_preorder_iterator i = expr.preorder_begin(); i != expr.preorder_end(); ++i) {
+            if(is_a<GiNaC::function>(*i)) return true;
+        }
+        return false;
     }
     
     /*-----------------------------------------------------*/

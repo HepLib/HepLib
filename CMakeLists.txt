@@ -16,6 +16,8 @@ ENDIF()
 # set the "-I" information for gcc/g++, ignored while not exists
 SET(INC_DIRS
     "/usr/local/feng/include"
+    "/dev/shm/usr/local/include"
+    "/dev/shm/usr/include"
     "$ENV{HOME}/usr/local/include"
     "$ENV{HOME}/usr/include"
 )
@@ -23,6 +25,9 @@ SET(INC_DIRS
 # set the "-L" information for gcc/g++, ignored while not exists
 SET(LIB_DIRS
     "/usr/local/feng/lib"
+    "/dev/shm/usr/local/lib"
+    "/dev/shm/usr/lib"
+    "/dev/shm/glibc/lib"
     "$ENV{HOME}/usr/local/lib"
     "$ENV{HOME}/usr/lib"
     "$ENV{HOME}/glibc/lib"

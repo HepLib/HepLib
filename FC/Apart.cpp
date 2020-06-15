@@ -523,7 +523,7 @@ namespace HepLib::FC {
                 if(s2p.nops() != vars.nops()) throw Error("Apart: lsolve failed.");
                 
                 auto cur_num = num.subs(s2p);
-                cur_num = fermat_normal(cur_num,isFC2Fermat);
+                cur_num = fermat_normal(cur_num);
             }
         
         }
@@ -539,7 +539,7 @@ namespace HepLib::FC {
         // fermat_normal
         auto cv_lst = mma_collect_lst(res, ApartIR(w1,w2));
         res = 0;
-        for(auto cv : cv_lst) res += fermat_normal(cv.op(0),isFC2Fermat) * cv.op(1);
+        for(auto cv : cv_lst) res += fermat_normal(cv.op(0)) * cv.op(1);
 
         // random check
         lst nlst;
@@ -753,7 +753,7 @@ namespace HepLib::FC {
                 air = F2ex(air);
                 auto cv_lst = mma_collect_lst(air, F(w1,w2));
                 air = 0;
-                for(auto cv : cv_lst) air += cv.op(1) * fermat_normal(cv.op(0),isFC2Fermat);
+                for(auto cv : cv_lst) air += cv.op(1) * fermat_normal(cv.op(0));
                 return air;
             }, "A2F");
             
@@ -765,16 +765,17 @@ namespace HepLib::FC {
         }
         
         for(auto item : fvec_re) item->Export();
-        auto nproc = omp_get_num_procs()/2;
+        auto nproc = omp_get_num_procs()/FIRE::Threads;
+        if(nproc>16) {
+            nproc = 16;
+            FIRE::Threads = omp_get_num_procs()/16;
+        }
         int cproc = 0;
         #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
         for(int pi=0; pi<fvec_re.size(); pi++) {
             if(Verbose>1) {
                 #pragma omp critical
-                {
-                cout << "\r                                        \r";
-                cout << "  \\--FIRE Reduction [" << (++cproc) << "/" << fvec_re.size() << "] " << flush;
-                }
+                cout << "\r                                        \r" << "  \\--FIRE Reduction [" << (++cproc) << "/" << fvec_re.size() << "] " << flush;
             }
             fvec_re[pi]->Run();
         }
@@ -792,7 +793,7 @@ namespace HepLib::FC {
                 rr = subs_naive(rr,mi_rules.first);
                 auto cv_lst = mma_collect_lst(rr, F(w1,w2));
                 rr = 0;
-                for(auto cv : cv_lst) rr += cv.op(1) * fermat_normal(cv.op(0),isFC2Fermat);
+                for(auto cv : cv_lst) rr += cv.op(1) * fermat_normal(cv.op(0));
                 rules.append(item.op(0)==rr);
             }
             return rules;
@@ -802,7 +803,7 @@ namespace HepLib::FC {
         for(auto rule : rules_vec) {
             for(auto lr : rule) F2F[lr.op(0)] = lr.op(1);
         }
-                
+        
         auto air_res =
         GiNaC_Parallel(air_vec.size(), 1, [&](int idx)->ex {
             auto air = air_vec[idx];
@@ -813,7 +814,7 @@ namespace HepLib::FC {
             air = F2ex(air);
             auto cv_lst = mma_collect_lst(air, F(w1,w2));
             air = 0;
-            for(auto cv : cv_lst) air += cv.op(1) * fermat_normal(cv.op(0),isFC2Fermat);
+            for(auto cv : cv_lst) air += cv.op(1) * fermat_normal(cv.op(0));
             return air;
         }, "A2F");
             

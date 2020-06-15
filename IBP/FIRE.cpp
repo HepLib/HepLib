@@ -250,8 +250,8 @@ namespace HepLib::IBP {
         // .config
         ostringstream config;
         if(Version>5) config << "#compressor none" << endl;
-        config << "#threads 2" << endl;
-        config << "#fthreads 4" << endl;
+        config << "#threads " << Threads << endl;
+        //config << "#fthreads 4" << endl;
         //config << "#fermat fer64" << endl;
         config << "#variables ";
         bool first = true;
