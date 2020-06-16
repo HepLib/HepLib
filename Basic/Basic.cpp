@@ -199,10 +199,10 @@ namespace HepLib {
             }
             
             auto pid = fork();
-            setpgid(pid, pgid); // change pgid
+            if(setpgid(pid, pgid)) pgid = 1; // so -pgid to -1
             if (pid < 0) {
                 bi--; 
-                perror("Error @ fork(): ");
+                perror("Error @ fork()");
             }
             if (pid != 0) {
                 if(bi+1 >= para_max_run || pid < 0) waitpid(-pgid,NULL,0);
@@ -254,7 +254,8 @@ namespace HepLib {
             ostringstream garfn;
             if(key == "") garfn << ppid << "/" << bi << ".gar";
             else garfn << ppid << "/" << bi << "." << key << ".gar";
-            if(!file_exists(garfn.str().c_str())) {
+            if(!file_exists(garfn.str())) {
+                cout << "File Not Found: " << garfn.str() << endl;
                 cerr << Color_Error << "GiNaC_Parallel: Check the error message above." << RESET << endl;
                 exit(0);
             }
