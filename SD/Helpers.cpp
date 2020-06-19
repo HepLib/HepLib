@@ -142,7 +142,7 @@ namespace HepLib::SD {
         }}
         
         Digits = oDigits;
-        return ret;
+        return ret.collect(lst{eps,ep}, true);
     }
 
     ex VEResult(ex expr) {

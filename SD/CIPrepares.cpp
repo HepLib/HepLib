@@ -709,9 +709,9 @@ namespace HepLib::SD {
     typedef mpfr::mpreal mpREAL;
     typedef complex<mpREAL> mpCOMPLEX;
     
-    dCOMPLEX MatDetL(dCOMPLEX mat[], int n);
-    qCOMPLEX MatDetQ(qCOMPLEX mat[], int n);
-    mpCOMPLEX MatDetMP(mpCOMPLEX mat[], int n);
+    dCOMPLEX MatDet(dCOMPLEX mat[], int n);
+    qCOMPLEX MatDet(qCOMPLEX mat[], int n);
+    mpCOMPLEX MatDet(mpCOMPLEX mat[], int n);
 
     extern int RCLog_NTry;
     dCOMPLEX RCLog(dCOMPLEX ys[], int n);
@@ -880,7 +880,7 @@ namespace HepLib::SD {
                         ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = 0;" << endl;
                         ofs << "mat[ii*nfxs+ii] = 1.L-(1.L-2.L*x[ii])*r[ii];" << endl;
                     }
-                    ofs  << "det = MatDetL(mat, nfxs);" << endl;
+                    ofs  << "det = MatDet(mat, nfxs);" << endl;
                     
                     ex intg = kv.second;
                     
@@ -1052,7 +1052,7 @@ namespace HepLib::SD {
                         ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = 0;" << endl;
                         ofs << "mat[ii*nfxs+ii] = 1.Q-(1.Q-2.Q*x[ii])*r[ii];" << endl;
                     }
-                    ofs  << "det = MatDetQ(mat, nfxs);" << endl;
+                    ofs  << "det = MatDet(mat, nfxs);" << endl;
                     
                     ex intg = kv.second;
                     
@@ -1240,7 +1240,7 @@ namespace HepLib::SD {
                         ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = mpREAL(0);" << endl;
                         ofs << "mat[ii*nfxs+ii] = mpREAL(1)-(1-2*x[ii])*r[ii];" << endl;
                     }
-                    ofs  << "det = MatDetMP(mat, nfxs);" << endl;
+                    ofs  << "det = MatDet(mat, nfxs);" << endl;
                     
                     ex intg = kv.second;
                     

@@ -125,8 +125,8 @@ namespace HepLib::SD {
         
         int total = ciResult.size(), current = 0;
         qREAL stot = sqrtq(total*1.Q);
-        ResultError = 0;
 
+        ResultError = 0;
         for(auto &item : ciResult) {
             current++;
             if(kid>0 && current != kid) continue;
@@ -147,7 +147,6 @@ namespace HepLib::SD {
                     Digits = oDigits;
                     break;
                 }
-                ResultError +=  VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
                 lstRE.append(VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl));
                 Digits = oDigits;
                 continue;
@@ -413,7 +412,6 @@ namespace HepLib::SD {
                                     lstRE.let_op(kid-1) = co * res;
                                     break;
                                 }
-                                ResultError += co * res;
                                 lstRE.append(co * res);
                                 if(Verbose>5) {
                                     cout << Color_HighLight;
@@ -529,35 +527,28 @@ namespace HepLib::SD {
             }
             if(res.has(NaN)) {
                 ResultError = NaN;
-                if(kid>0) {
-                    lstRE.let_op(kid-1) = NaN;
-                } else {
-                    lstRE.append(NaN);
-                }
+                if(kid>0) lstRE.let_op(kid-1) = NaN;
+                else lstRE.append(NaN);
                 break;
             } else {
                 if(kid>0) {
                     lstRE.let_op(kid-1) = co * res;
                     break;
-                } else {
-                    ResultError += co * res;
-                    lstRE.append(co * res);
-                }
+                } else lstRE.append(co * res);
             }
         }
-        
+                
         if(use_dlclose) {
             dlclose(main_module);
             for(auto module : ex_modules) dlclose(module);
         }
         if(total>0 && Verbose > 1) cout << "@" << now(false) << endl;
         
-        if(kid>0) {
+        if(!ResultError.is_equal(NaN)) {
             ResultError = 0;
             for(auto item : lstRE) ResultError += item;
+            ResultError = VESimplify(ResultError,epN,epsN);
         }
-
-        ResultError = VESimplify(ResultError,epN,epsN);
 
         if(key != "") {
             ostringstream garfn;

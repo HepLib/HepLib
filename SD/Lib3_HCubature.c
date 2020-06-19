@@ -799,7 +799,7 @@ static int rulecubature(rule *r, unsigned fdim,
                 if(toExit) {
                     runs = numEval;
                     if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);
-                    return SUCCESS;
+                    goto done;
                 }
                 if(PrintHooker!=NULL && (xmin<1E-8 || (numEval-runs)>runEval)) {
                     if((numEval-runs)>runEval) runs = numEval;
@@ -815,6 +815,7 @@ static int rulecubature(rule *r, unsigned fdim,
     if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);
     }
     
+done:
     /* re-sum integral and errors */
     for (j = 0; j < fdim; ++j) val[j] = err[j] = 0;
     for (i = 0; i < regions.n; ++i) {
@@ -824,7 +825,7 @@ static int rulecubature(rule *r, unsigned fdim,
         }
         destroy_region(&regions.items[i]);
     }
-    
+
     /* printf("regions.nalloc = %d\n", regions.nalloc); */
     free(ee);
     heap_free(&regions);

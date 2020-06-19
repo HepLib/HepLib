@@ -46,7 +46,7 @@ qREAL log(qREAL x) { return logq(x); }
 qCOMPLEX pow(qCOMPLEX x, qREAL y) { return cpowq(x, y); }
 qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
 
-dCOMPLEX MatDetL(dCOMPLEX mat[], int n) {
+dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
@@ -95,7 +95,7 @@ dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
 #define Pi 3.1415926535897932384626433832795028841971693993751Q
 #define Euler 0.57721566490153286060651209008240243104215933593992Q
 
-qCOMPLEX MatDetQ(qCOMPLEX mat[], int n) {
+qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
@@ -144,7 +144,7 @@ qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
 #define Pi mpREAL("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
 #define Euler mpREAL("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
 
-mpCOMPLEX MatDetMP(mpCOMPLEX mat[], int n) {
+mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
