@@ -182,7 +182,7 @@ namespace HepLib::SD {
                                 
                                 if(Verbose>0)
                                 if(eqn.degree(xi)>1 || eqn.degree(xj)>1 || eqn.coeff(xi).has(xj)) {
-                                    cout << Color_Warn << "Warning: Not handled with eqn1=" << eqn << RESET << endl;
+                                    cout << Color_Warn << "  \\--Warning: Not handled with eqn1=" << eqn << RESET << endl;
                                     continue;
                                 }
 
@@ -329,7 +329,7 @@ namespace HepLib::SD {
                 let_op_append(fe, 0, iWF(1));
                 let_op_append(fe, 1, 0);
                 FunExp.push_back(fe);
-                if(Verbose>0) cout << Color_Warn << "Warning: Not handled with eqn2=" << eqn << RESET << endl;
+                if(Verbose>0) cout << Color_Warn << "  \\--Warning: Not handled with eqn2=" << eqn << RESET << endl;
             }
             return true;
         }
@@ -374,7 +374,7 @@ namespace HepLib::SD {
                             if(ook) continue;
                             
                             if(Verbose>0 && eqn.degree(xi)>1) {
-                                cout << Color_Warn << "Warning: Not handled with eqn3=" << eqn << RESET << endl;
+                                cout << Color_Warn << "  \\--Warning: Not handled with eqn3=" << eqn << RESET << endl;
                                 continue;
                             }
                             
@@ -425,7 +425,7 @@ namespace HepLib::SD {
                 }
                 FunExp.push_back(lst{f2,e2});
             } else {
-                if(Verbose>0) cout << Color_Warn << "Warning: Not handled with eqn4=" << eqn << RESET << endl;
+                if(Verbose>0) cout << Color_Warn << "  \\--Warning: Not handled with eqn4=" << eqn << RESET << endl;
                 FunExp.push_back(fe);
             }
             return true;

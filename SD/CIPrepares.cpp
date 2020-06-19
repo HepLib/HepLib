@@ -615,6 +615,7 @@ namespace HepLib::SD {
             // or     lst{ id(SD(D|Q)_id in .so), xn, x-indepent prefactor, ft_n }
             
             auto kvf = res_vec[idx];
+            if(kvf.op(0).has(xwr)) kvf.let_op(0) = kvf.op(0).subs(xwr==exp(I*WickRotationAngle));
             auto expr = kvf.op(1);
             auto xs = get_xy_from(expr);
             auto ft_n = kvf.op(3);
@@ -626,7 +627,7 @@ namespace HepLib::SD {
                 system(cmd.str().c_str());
                 
                 return lst{
-                    expr.subs(FTX(w1,w2)==1).subs(iEpsilon==I*power(10,-50)),
+                    expr.subs(lst{FTX(w1,w2)==1, iEpsilon==I*power(10,-50), xwr==exp(I*WickRotationAngle)}),
                     xs.size(), kvf.op(0), -1
                 };
             }
@@ -713,9 +714,9 @@ namespace HepLib::SD {
     mpCOMPLEX MatDetMP(mpCOMPLEX mat[], int n);
 
     extern int RCLog_NTry;
-    dCOMPLEX RCLogL(dCOMPLEX ys[], int n);
-    qCOMPLEX RCLogQ(qCOMPLEX ys[], int n);
-    mpCOMPLEX RCLogMP(mpCOMPLEX ys[], int n);
+    dCOMPLEX RCLog(dCOMPLEX ys[], int n);
+    qCOMPLEX RCLog(qCOMPLEX ys[], int n);
+    mpCOMPLEX RCLog(mpCOMPLEX ys[], int n);
 
     dREAL expt(dREAL a, dREAL b);
     dCOMPLEX expt(dCOMPLEX a, dREAL b);
@@ -786,6 +787,46 @@ namespace HepLib::SD {
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
+                
+                // WickRotation
+                hasF2 = hasF2 || (!is_zero(WickRotationAngle) && intg.has(xwr));
+                if(!is_zero(WickRotationAngle) && intg.has(xwr)) {
+                    exset logs_set;
+                    find(intg, log(w), logs_set);
+                    lst logs;
+                    for(auto item : logs_set) {
+                        if(item.has(xwr)) logs.append(item.op(0));
+                    }
+                    ofs << "dREAL wra = "; WickRotationAngle.print(cppL); ofs << ";" << endl;
+                    if(logs.nops()>0) {
+                        ofs << "int nlog = "<<logs.nops()<<";" << endl;
+                        ofs << "dCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
+                        cseParser cse;
+                        lst clogs = ex_to<lst>(cse.Parse(logs));
+                        
+                        ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
+                        ofs << "dCOMPLEX xwr = " << "exp(complex<dREAL>(0, (ti+1) * wra/RCLog_NTry));" << endl;
+                        ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                        for(auto kv : cse.os()) {
+                            ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                            Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppL);
+                            ofs << ";" << endl;
+                        }
+                        
+                        exmap log_subs;
+                        for(int i=0; i<clogs.nops(); i++) {
+                            ofs << "CTry["<<i<<"][ti] = ";
+                            Evalf(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppL);
+                            ofs << ";" << endl;
+                            log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                        }
+                        ofs << "}" << endl;
+                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
+                        intg = intg.subs(log_subs);
+                    }
+                    ofs << "dCOMPLEX xwr = exp(complex<dREAL>(0, wra));" << endl; 
+                }
+                
                 cseParser cse;
                 intg = cse.Parse(intg);
                 if(hasF2) ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
@@ -871,7 +912,7 @@ namespace HepLib::SD {
                                 log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                             }
                             ofs << "}" << endl;
-                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLogL(CTry[li],RCLog_NTry);" << endl;
+                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
                             
                             intg = intg.subs(log_subs);
                         }
@@ -923,6 +964,46 @@ namespace HepLib::SD {
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
+                
+                // WickRotation
+                hasF2 = hasF2 || (!is_zero(WickRotationAngle) && intg.has(xwr));
+                if(!is_zero(WickRotationAngle) && intg.has(xwr)) {
+                    exset logs_set;
+                    find(intg, log(w), logs_set);
+                    lst logs;
+                    for(auto item : logs_set) {
+                        if(item.has(xwr)) logs.append(item.op(0));
+                    }
+                    ofs << "qREAL wra = "; WickRotationAngle.print(cppQ); ofs << ";" << endl;
+                    if(logs.nops()>0) {
+                        ofs << "int nlog = "<<logs.nops()<<";" << endl;
+                        ofs << "qCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
+                        cseParser cse;
+                        lst clogs = ex_to<lst>(cse.Parse(logs));
+                        
+                        ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
+                        ofs << "qCOMPLEX xwr = " << "cexpq(1.Qi * (ti+1) * wra/RCLog_NTry);" << endl;
+                        ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                        for(auto kv : cse.os()) {
+                            ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                            Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppQ);
+                            ofs << ";" << endl;
+                        }
+                        
+                        exmap log_subs;
+                        for(int i=0; i<clogs.nops(); i++) {
+                            ofs << "CTry["<<i<<"][ti] = ";
+                            Evalf(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppQ);
+                            ofs << ";" << endl;
+                            log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                        }
+                        ofs << "}" << endl;
+                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
+                        intg = intg.subs(log_subs);
+                    } 
+                    ofs << "qCOMPLEX xwr = cexpq(1.Qi * wra);" << endl;
+                }
+                
                 cseParser cse;
                 intg = cse.Parse(intg);
                 if(hasF2) ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
@@ -1003,7 +1084,7 @@ namespace HepLib::SD {
                                 log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                             }
                             ofs << "}" << endl;
-                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLogQ(CTry[li],RCLog_NTry);" << endl;
+                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
                             
                             intg = intg.subs(log_subs);
                         }
@@ -1066,6 +1147,46 @@ namespace HepLib::SD {
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
+                
+                // WickRotation
+                hasF2 = hasF2 || (!is_zero(WickRotationAngle) && intg.has(xwr));
+                if(!is_zero(WickRotationAngle) && intg.has(xwr)) {
+                    exset logs_set;
+                    find(intg, log(w), logs_set);
+                    lst logs;
+                    for(auto item : logs_set) {
+                        if(item.has(xwr)) logs.append(item.op(0));
+                    }
+                    ofs << "mpREAL wra = "; WickRotationAngle.print(cppMP); ofs << ";" << endl;
+                    if(logs.nops()>0) {
+                        ofs << "int nlog = "<<logs.nops()<<";" << endl;
+                        ofs << "mpCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
+                        cseParser cse;
+                        lst clogs = ex_to<lst>(cse.Parse(logs));
+                        
+                        ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
+                        ofs << "mpCOMPLEX xwr = " << "exp(complex<mpREAL>(0, (ti+1) * wra/RCLog_NTry));" << endl;
+                        ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                        for(auto kv : cse.os()) {
+                            ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                            Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppMP);
+                            ofs << ";" << endl;
+                        }
+                        
+                        exmap log_subs;
+                        for(int i=0; i<clogs.nops(); i++) {
+                            ofs << "CTry["<<i<<"][ti] = ";
+                            Evalf(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppMP);
+                            ofs << ";" << endl;
+                            log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                        }
+                        ofs << "}" << endl;
+                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
+                        intg = intg.subs(log_subs);
+                    } 
+                    ofs << "mpCOMPLEX xwr = exp(complex<mpREAL>(0, wra));" << endl;
+                }
+                
                 cseParser cse;
                 intg = cse.Parse(intg);
                 if(hasF2) ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
@@ -1151,7 +1272,7 @@ namespace HepLib::SD {
                                 log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                             }
                             ofs << "}" << endl;
-                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLogMP(CTry[li],RCLog_NTry);" << endl;
+                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
                             
                             intg = intg.subs(log_subs);
                         }

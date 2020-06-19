@@ -35,6 +35,7 @@ namespace HepLib::SD {
     extern const Symbol vz;
     extern const Symbol epz;
     extern const Symbol NaN;
+    extern const Symbol xwr;
     
     /*-----------------------------------------------------*/
     // Global Functions
@@ -149,12 +150,12 @@ namespace HepLib::SD {
         int nNAN = 0;
         
         int DQMP = 0;
-        int QXDim = 2;
-        int MPXDim = 1;
-        qREAL QXLimit = 1E-2Q;
-        qREAL MPXLimit = 1E-4Q;
-        qREAL QFLimit = 1E-2Q;
-        qREAL MPFLimit = 1E-4Q;
+        int QXDim = 0;
+        int MPXDim = 0;
+        qREAL QXLimit = 1E-8Q;
+        qREAL MPXLimit = -1;
+        qREAL QFLimit = -1;
+        qREAL MPFLimit = -1;
         
         bool UseCpp = true;
         long long NEval = 0;
@@ -325,6 +326,8 @@ namespace HepLib::SD {
         bool use_MP = true;
         bool use_RCLog = true;
         bool all_in_one = true;
+        bool use_XReOrders = false;
+        ex WickRotationAngle = 0;
         int CT_method = 0; // 0: original, 1: rescaled
         int MPDigits = 50; // digits in mpREAL for MP
         lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
@@ -333,7 +336,7 @@ namespace HepLib::SD {
         
         // used in Contours
         bool CTMaxF = true;
-        dREAL CTMax = 1; // CTMax<0 for explict REAL mode
+        dREAL CTMax = 50; // CTMax<0 for explict REAL mode
         int CTTryPTS = 3;
         int CTSavePTS = 3;
         
@@ -432,4 +435,5 @@ namespace HepLib::SD {
 }
 
 extern int RCLog_NTry;
+
 

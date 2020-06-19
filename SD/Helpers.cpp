@@ -83,26 +83,24 @@ namespace HepLib::SD {
     ex VESimplify(ex expr, int epN, int epsN) {
         auto oDigits = Digits;
         Digits = 50;
-        auto expr1 = expr.evalf();
-        if(expr1.has(eps)) expr1 = mma_series(expr1, eps, epsN);
-        expr1 = mma_series(expr1, ep, epN);
-        expr1 = expr1.expand();
+        auto expr1 = Evalf(expr);
+        if(expr1.has(eps) && !expr1.is_polynomial(eps)) expr1 = mma_series(expr1, eps, epsN);
+        if(expr1.has(ep) && !expr1.is_polynomial(ep)) expr1 = mma_series(expr1, ep, epN);
+        expr1 = mma_collect(expr1, lst{eps,ep});
         ex ret = 0;
         for(int si=expr1.ldegree(eps); si<=epsN; si++) {
         for(int i=expr1.ldegree(ep); i<=epN; i++) {
         
-            auto ccRes = expr1.coeff(eps,si).coeff(ep,i).expand();
-            lst ccResList;
-            if(is_a<add>(ccRes)) {
-                for(auto item : ccRes) ccResList.append(item);
-            } else {
-                ccResList.append(ccRes);
-            }
+            auto ccRes = expr1.coeff(eps,si).coeff(ep,i);
+            ccRes = ccRes.evalf().expand();
+            if(!is_a<add>(ccRes)) ccRes = lst{ ccRes };
             
-            ccRes = 0;
-            for(auto item : ccResList) {
+            exmap pvmap;
+            for(auto item : ccRes) {
+                ex cc = 1, cf = 1;
                 if(is_a<mul>(item)) {
-                    ex cc = 1, cf = 1;
+                    cc = 1; 
+                    cf = 1;
                     for(auto ii : item) {
                         if(is_a<numeric>(ii) || ii.match(VE(w1, w2))) {
                             cc *= ii;
@@ -110,51 +108,41 @@ namespace HepLib::SD {
                             cf *= ii;
                         }
                     }
-                    ccRes += cc * iWF(cf);
                 } else if(is_a<numeric>(item) || item.match(VE(w1, w2))) {
-                    ccRes += item*iWF(1);
+                    cc = item;
                 } else {
-                    ccRes += iWF(item);
+                    cf = item;
                 }
+                pvmap[cf] += cc;
             }
         
-            
-            exset vfs;
-            find(ccRes, iWF(w),vfs);
-            
-            for(auto vf : vfs) {
-                auto tmpIR = ccRes.coeff(vf).expand();
-                exset ves;
-                tmpIR.find(VE(w1, w2), ves);
-                auto ntmp = tmpIR.subs(lst{VE(w1, w2)==0});
-                if(!is_a<numeric>(ntmp)) {
-                    cerr << Color_Error << "VESimplify: (!is_a<numeric>(ntmp))" << RESET << endl;
-                    exit(1);
-                }
-                if(abs(ntmp.evalf())>numeric("1E300")) return NaN;
-                ex vIR = ntmp;
-                ex eI2 = 0, eR2 = 0;
-                for(auto ve : ves) {
-                    auto co = tmpIR.coeff(ve);
-                    vIR += co * ve.op(0);
+            for(auto kv : pvmap) {
+                auto vf = kv.first;
+                auto cvs = mma_collect_lst(kv.second, VE(w1,w2));
+                ex vIR=0, eI2 = 0, eR2 = 0;
+                for(auto cv : cvs) {
+                    auto co = cv.op(0).evalf();
+                    auto ve = cv.op(1);
                     if(!is_a<numeric>(co)) {
-                        cerr << Color_Error << "VESimplify: (!is_a<numeric>(co))" << RESET << endl;
-                        exit(1);
+                        cout << cv << endl;
+                        throw Error("VESimplify: coefficient of VE is not numeric.");
                     }
+                    if(abs(co)>numeric("1E300")) return NaN;
+                    vIR += co * ve.op(0);
                     numeric nco = ex_to<numeric>(co);
                     ex ee = ve.op(1) * ve.op(1);
                     eR2 += nco.real_part() * nco.real_part() * ee;
                     eI2 += nco.imag_part() * nco.imag_part() * ee;
                 }
-                ret += VE(ex_to<numeric>(vIR).real_part(), sqrt(eR2)) * pow(eps,si) * pow(ep,i) * vf;
-                ret += VE(ex_to<numeric>(vIR).imag_part(), sqrt(eI2)) * pow(eps,si) * pow(ep,i) * vf * I;
+                if(!is_zero(eR2) || !is_zero(vIR))
+                    ret += VE(ex_to<numeric>(vIR).real_part(), sqrt(eR2)) * pow(eps,si) * pow(ep,i) * vf;
+                if(!is_zero(eI2) || !is_zero(vIR))
+                    ret += VE(ex_to<numeric>(vIR).imag_part(), sqrt(eI2)) * pow(eps,si) * pow(ep,i) * vf * I;
             }
         }}
         
         Digits = oDigits;
-        ret = ret.subs(lst{iWF(w)==w});
-        ret = ret.subs(lst{VE(0,0)==0});
-        return ret.collect(lst{eps,ep}, true);
+        return ret;
     }
 
     ex VEResult(ex expr) {
@@ -287,7 +275,7 @@ int IntegratorBase::inDQMP(qREAL const *x) {
     }
     if(xmin <= MPXLimit) return 3;
     
-    qREAL ft = 1E5;
+    qREAL ft = 1E50;
     if(FT!=NULL) {
         static FT_Type last_ft = NULL;
         static qREAL ft0;

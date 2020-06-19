@@ -1717,13 +1717,6 @@ namespace HepLib {
     ex fermat_numer_denom(const ex & expr) {
         static map<pid_t, Fermat> fermat_map;
         static int v_max = 0;
-        static Symbol vi("vi");
-        static MapFunction iMap([](const ex & e, MapFunction &self)->ex {
-            if(!e.has(I)) return e;
-            else if(e==I) return vi;
-            else if(e.info(info_flags::numeric) && !e.info(info_flags::real)) return real_part(e)+imag_part(e)*vi;
-            else return e.map(self);
-        });
 
         auto pid = getpid();
         if((fermat_map.find(pid)==fermat_map.end())) { // init section
@@ -1733,27 +1726,19 @@ namespace HepLib {
         Fermat &fermat = fermat_map[pid];
         
         auto expr_in = expr;
-        exmap fun2s, s2fun;
-        expr_in = MapFunction([&fun2s,&s2fun](const ex & e, MapFunction &self)->ex {
-            if(is_a<GiNaC::function>(e) || e.match(sqrt(w))) {
-                if(is_zero(fun2s[e])) {
-                    symbol s;
-                    fun2s[e] = s;
-                    s2fun[s] = e;
-                }
-                return fun2s[e];
-            } else if(!has_function(e) && !e.has(sqrt(w))) return e;
-            else return e.map(self);
-        })(expr_in);
+        exmap map_rat;
+        expr_in = expr_in.to_rational(map_rat);
         
-        lst rep_vs;
+        map<ex,long int, ex_is_less> vs_count;
         for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
             auto e = (*i);
-            if(is_a<symbol>(e)) rep_vs.append(e);
+            if(is_a<symbol>(e)) vs_count[e]++;
         }
-        rep_vs.sort();
-        rep_vs.unique();        
-        sort_lst(rep_vs);
+        lst vsc_lst;
+        for(auto kv : vs_count) vsc_lst.append(lst{kv.first, numeric(kv.second)});
+        sort_lst_by(vsc_lst,1,false);
+        lst rep_vs;
+        for(auto item : vsc_lst) rep_vs.append(item.op(0));
         
         exmap v2f, f2v;
         exmap nn_map;
@@ -1775,7 +1760,6 @@ namespace HepLib {
             throw Error("Fermat: Too many variables.");
         }
         if(fvi>v_max) {
-            if(v_max==0) ss << "&(J=vi);" << endl;
             for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
             fermat.Execute(ss.str());
             ss.clear();
@@ -1797,7 +1781,6 @@ namespace HepLib {
             for(int i=0; i<item.nops(); i++) {
                 ex tt = item.op(i).subs(v2f);
                 nn_chk2 += tt.subs(nn_map);
-                tt = iMap(tt);
                 if(fermat_use_array) ss << "m[" << (i+1) << "]:=";
                 else ss << "item:=";
                 ss << tt << ";" << endl;
@@ -1833,7 +1816,6 @@ namespace HepLib {
             string_trim(ostr);       
 
             symtab st;
-            st["vi"] = I; 
             Parser fp(st);
             auto ret = fp.Read(ostr);
             num *= ret.op(0);
@@ -1855,8 +1837,8 @@ namespace HepLib {
             throw Error("fermat_together: N Check Failed.");
         }
         
-        num = num.subs(f2v).subs(s2fun);
-        den = den.subs(f2v).subs(s2fun);
+        num = num.subs(f2v).subs(map_rat);
+        den = den.subs(f2v).subs(map_rat);
         return lst{num, den};
     }
     

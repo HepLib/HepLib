@@ -23,9 +23,9 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
     if(self->UseCpp) {
         #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
         for(int i=0; i<npts; i++) {
-            mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
             int iDQMP = self->inDQMP(x+i*xdim);
             if( (self->IntegrandMP!=NULL) && (self->DQMP>2 || iDQMP>2) ) {
+                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
                 self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             } else if(self->DQMP>1 || iDQMP>1) {
                 self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
@@ -38,7 +38,10 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                     }
                 }
 
-                if(!ok && (self->IntegrandMP!=NULL)) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                if(!ok && (self->IntegrandMP!=NULL)) {
+                    mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
+                    self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                }
             } else {
                 self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
                 bool ok = true;
@@ -49,7 +52,10 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                         break;
                     }
                 }
-                if(!ok) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                
+                if(!ok) {
+                    self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                }
                 
                 ok = true;
                 for(int j=0; j<ydim; j++) {
@@ -59,7 +65,10 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                         break;
                     }
                 }
-                if(!ok && (self->IntegrandMP!=NULL)) self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                if(!ok && (self->IntegrandMP!=NULL)) {
+                    mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
+                    self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                }
             }
             
             // Final Check NaN/Inf
@@ -72,35 +81,56 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 }
             }
             if(!ok && (self->IntegrandMP!=NULL)) {
+                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
                 qREAL xx[xdim];
                 for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.E-30Q ? 1.E-30Q  : x[i*xdim+ii] * 0.95Q;
                 self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
             }
+            
+            // final check
+            for(int j=0; j<ydim; j++) {
+                qREAL ytmp = y[i*ydim+j];
+                if(isnanq(ytmp) || isinfq(ytmp)) {
+                    #pragma omp atomic
+                    self->nNAN++;
+                    if(self->nNAN > self->NANMax) {
+                        NaNQ = true;
+                        break;
+                    } else {
+                        y[i*ydim+j] = 0;
+                    }
+                }
+            }
+            if(self->ReIm == 1) {
+                y[i*ydim+1] = 0;
+            } else if(self->ReIm == 2) {
+                y[i*ydim+0] = 0;
+            }
         }
     } else {
         self->Integrand(xdim+npts*100, x, ydim+npts*100, y, self->Parameter, self->Lambda);
-    } 
-    
-    for(int i=0; i<npts; i++) {
-        for(int j=0; j<ydim; j++) {
-            qREAL ytmp = y[i*ydim+j];
-            if(isnanq(ytmp) || isinfq(ytmp)) {
-                self->nNAN++;
-                if(self->nNAN > self->NANMax) {
-                    NaNQ = true;
-                    break;
-                } else {
-                    y[i*ydim+j] = 0;
+        // final check
+        for(int i=0; i<npts; i++) {
+            for(int j=0; j<ydim; j++) {
+                qREAL ytmp = y[i*ydim+j];
+                if(isnanq(ytmp) || isinfq(ytmp)) {
+                    self->nNAN++;
+                    if(self->nNAN > self->NANMax) {
+                        NaNQ = true;
+                        break;
+                    } else {
+                        y[i*ydim+j] = 0;
+                    }
                 }
             }
+            if(self->ReIm == 1) {
+                y[i*ydim+1] = 0;
+            } else if(self->ReIm == 2) {
+                y[i*ydim+0] = 0;
+            }
         }
-        if(self->ReIm == 1) {
-            y[i*ydim+1] = 0;
-        } else if(self->ReIm == 2) {
-            y[i*ydim+0] = 0;
-        }
-    }
-        
+    } 
+
     return NaNQ ? 1 : 0;
 }
 

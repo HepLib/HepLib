@@ -5,7 +5,7 @@
  * @version 1.0.0
  * @date 2020-04-21
  */
- 
+  
 #include <math.h>
 #include <complex>
 extern "C" {
@@ -76,7 +76,7 @@ dCOMPLEX MatDetL(dCOMPLEX mat[], int n) {
     return ret;
 }
 
-dCOMPLEX RCLogL(dCOMPLEX xs[], int n) {
+dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
     dCOMPLEX ret = log(xs[n-1]);
     int cutN = 0;
     for(int k=0; k<n-1; k++) {
@@ -125,7 +125,7 @@ qCOMPLEX MatDetQ(qCOMPLEX mat[], int n) {
     return ret;
 }
 
-qCOMPLEX RCLogQ(qCOMPLEX xs[], int n) {
+qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
     qCOMPLEX ret = log(xs[n-1]);
     int cutN = 0;
     for(int k=0; k<n-1; k++) {
@@ -174,7 +174,7 @@ mpCOMPLEX MatDetMP(mpCOMPLEX mat[], int n) {
     return ret;
 }
 
-mpCOMPLEX RCLogMP(mpCOMPLEX xs[], int n) {
+mpCOMPLEX RCLog(mpCOMPLEX xs[], int n) {
     mpCOMPLEX ret = log(xs[n-1]);
     int cutN = 0;
     for(int k=0; k<n-1; k++) {

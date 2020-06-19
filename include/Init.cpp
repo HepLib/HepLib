@@ -41,6 +41,7 @@ namespace HepLib {
     const Symbol SD::vz("vz");
     const Symbol SD::epz("epz");
     const Symbol SD::NaN("NaN");
+    const Symbol SD::xwr("xwr");
     
     bool SD::SecDec::use_dlclose = true;
     bool SD::SecDec::debug = false;

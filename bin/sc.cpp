@@ -13,20 +13,23 @@ int main(int argc, char** argv) {
     string arg_c = "echo [i]";
     string cm_path = "cm";
     string sd_path = "SD";
+    bool ignore = false;
     
     // handle options
-    for (int opt; (opt = getopt(argc, argv, "m:p:s:c:")) != -1;) {
+    for (int opt; (opt = getopt(argc, argv, "m:p:s:c:i")) != -1;) {
         switch (opt) {
             case 'm': arg_m = optarg; break;
             case 'p': arg_p = optarg; break;
             case 's': arg_s = optarg; break;
             case 'c': arg_c = optarg; break;
+            case 'i': ignore=true; break;
             default:
                 printf("supported options: -m A -p P -s S -c C.\n");
                 printf("M: s(server), c(client).\n");
                 printf("P: server port.\n");
                 printf("S: server ip or hostname.\n");
                 printf("C: command on client, [i] will be replaced.\n");
+                printf("-i: to ignore file_exist check for res/null.\n");
                 exit(1);
         }
     }
@@ -76,7 +79,7 @@ int main(int argc, char** argv) {
             }  
             
             bool second_run = false;
-            while(file_exists(sd_path + "/" + to_string(current) + ".res.gar") || file_exists(sd_path + "/" + to_string(current) + ".null")) {
+            while(file_exists(to_string(current)+".log") || (!ignore && file_exists(sd_path + "/" + to_string(current) + ".res.gar") || file_exists(sd_path + "/" + to_string(current) + ".null"))) {
                 if(current>=total) {
                     current=0;
                     if(second_run) break;
@@ -149,6 +152,7 @@ int main(int argc, char** argv) {
             if(data=="0") break;
             
             string cmd = arg_c;
+            cmd += " > [i].log;rm [i].log";
             string_replace_all(cmd, "[i]", data);
             system(cmd.c_str());
         }

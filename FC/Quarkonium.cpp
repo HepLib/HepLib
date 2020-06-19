@@ -398,7 +398,7 @@ namespace HepLib::FC {
             auto d = 4-2*ep;
             int nc = moms.nops();
             if(nc==2) {
-                return pow(2*Pi,2-d) * pow(q2,(d-4)/2) * V(d-1)/pow(2,d-1) * amp;
+                return pow(2*Pi,2-d) * pow(q2,-ep) * V(d-1)/pow(2,d-1) * amp;
             } else if(nc==3) {
                 auto p1 = moms.op(0);
                 auto p2 = moms.op(1);
@@ -414,10 +414,9 @@ namespace HepLib::FC {
                 sp2x[p2*p2]=0;
                 sp2x[p3*p3]=0;
 
-                auto ret = pow(2*Pi,3-2*d) * pow(2,-1-d) * pow(q2,(2-d)/2) * V(d-1)*V(d-2) * amp.subs(sp2x,subs_options::algebraic);
+                auto ret = pow(2*Pi,3-2*d) * pow(2,-1-d) * pow(q2,1-2*ep) * V(d-1)*V(d-2) * amp.subs(sp2x,subs_options::algebraic);
 
-                // add (s12 s13 s23)^((d-4)/2) to each F
-                ex ss = s12*s13*s23;
+                ex ss = x(si+0)*x(si+1)*x(si+2);
                 ret = MapFunction([si,ss,d](const ex & e, MapFunction &self)->ex{
                     if(!XIntegral::has(e)) return e;
                     else if(is_a<XIntegral>(e)) {
@@ -455,7 +454,7 @@ namespace HepLib::FC {
                 sp2x[p3*p4]=s34/2;
                 
                 auto ret = pow(2*Pi,4-3*d) * pow(2,1-2*d) * V(d-1)*V(d-2)*V(d-3) *
-                    pow(q2,3*d/2-4) * amp.subs(sp2x,subs_options::algebraic);
+                    pow(q2,2-3*ep) * amp.subs(sp2x,subs_options::algebraic);
                 
                 // add λ(x16,x25,x34)^((d-5)/2) to each F
                 ret = MapFunction([si,d](const ex & e, MapFunction &self)->ex{
@@ -501,7 +500,7 @@ namespace HepLib::FC {
                         fe2_vec[1] = SD::SecDec::Binarize(fe2_vec[1], x(si+0)-x(si+2))[0];
                         
                         ex xsum = x(si+3)+x(si+4)+x(si+5);
-                        xsum = x(si+5);
+                        //xsum = x(si+5);
                         SD::SecDec::Projectivize(fe0_vec[0],xs,xsum);
                         SD::SecDec::Projectivize(fe0_vec[1],xs,xsum);
                         SD::SecDec::Projectivize(fe2_vec[0],xs,xsum);

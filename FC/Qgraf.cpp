@@ -618,7 +618,7 @@ namespace HepLib::FC::Qgraf {
      * @return g^{i ir} delta^{i ir}
      */
     ex GluonSum(int qi) {
-        return SP(Qgraf::LI(qi), Qgraf::RLI(qi)) * SP(Qgraf::CI(qi), Qgraf::RCI(qi));
+        return -SP(Qgraf::LI(qi), Qgraf::RLI(qi)) * SP(Qgraf::CI(qi), Qgraf::RCI(qi));
     }
 
     /**

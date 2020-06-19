@@ -390,6 +390,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             } else if ( ft.match(y(w)) || ft.match(pow(y(w), w1)) ) {
                 ft = 1;
             }
+            if(!is_zero(WickRotationAngle) && ft.has(xwr)) ft = 1;
             
             bool need_contour_deformation = ft.has(PL(w));
             if(ft.has(y(w)) && !need_contour_deformation) {
@@ -653,7 +654,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
     /*-----------------------------------------------------*/
     // working with or without Deltas
     void SecDec::XReOrders() {
-        if(IsZero) return;
+        if(IsZero || !use_XReOrders) return;
         if(Integrands.size()<1) {
             for(auto &fe : FunExp) {
                 auto xs = get_x_from(fe);
@@ -1375,7 +1376,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             Integrands.push_back(CT(kv.second) * kv.first);
         }
         if(Verbose > 1) cout << Integrands.size() << endl;
-            
+
         auto res =
         GiNaC_Parallel(Integrands.size(), [&](int idx)->ex {
             // return { {two elements}, {two elements}, ...},
@@ -1435,7 +1436,11 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                         auto pref = mma_series(ct2, ep, epN-di);
                         if(pref.has(vs)) pref = mma_series(pref, vs, sN);
                         //if(use_CCF) intg = collect_common_factors(intg);
-                        intg = collect_common_factors(intg);
+                        try{
+                            intg = collect_common_factors(intg);
+                        } catch(...) {
+                            intg = collect_common_factors(intg.expand());
+                        }
                         para_res_lst.append(lst{pref * pow(ep, di), intg});
                     }
                 } else {
@@ -1466,7 +1471,11 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                                 auto pref = mma_series(ct2, ep, epN-di);
                                 if(pref.has(vs)) pref = mma_series(pref, vs, sN);
                                 //if(use_CCF) intg = collect_common_factors(intg);
-                                intg = collect_common_factors(intg);
+                                try{
+                                    intg = collect_common_factors(intg);
+                                } catch(...) {
+                                    intg = collect_common_factors(intg.expand());
+                                }
                                 para_res_lst.append(lst{eps_ci * pref * pow(eps, sdi) * pow(ep, di), intg});
                             }
                         }
