@@ -35,7 +35,7 @@ namespace HepLib::SD {
     extern const Symbol vz;
     extern const Symbol epz;
     extern const Symbol NaN;
-    extern const Symbol xwr;
+    extern const symbol xwr;
     
     /*-----------------------------------------------------*/
     // Global Functions
@@ -327,7 +327,7 @@ namespace HepLib::SD {
         bool use_RCLog = true;
         bool all_in_one = true;
         bool use_XReOrders = false;
-        ex WickRotationAngle = 0;
+        ex WickRotationAngle = Pi/2;
         int CT_method = 0; // 0: original, 1: rescaled
         int MPDigits = 50; // digits in mpREAL for MP
         lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };

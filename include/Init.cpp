@@ -41,7 +41,7 @@ namespace HepLib {
     const Symbol SD::vz("vz");
     const Symbol SD::epz("epz");
     const Symbol SD::NaN("NaN");
-    const Symbol SD::xwr("xwr");
+    const symbol SD::xwr("xwr");
     
     bool SD::SecDec::use_dlclose = true;
     bool SD::SecDec::debug = false;
@@ -49,6 +49,8 @@ namespace HepLib {
 
     SD::SecDec::_init::_init() {
         // for later use
+        Symbol::Table["xwr"] = xwr;
+        GiNaC_archive_Symbols.append(xwr);
         GiNaC_archive_Symbols.sort();
         GiNaC_archive_Symbols.unique();
     }
