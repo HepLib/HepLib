@@ -197,48 +197,47 @@ namespace HepLib::SD {
 
     /*----------------------------------------------*/
     ofs << R"EOF(
-    #include <stddef.h>
-    #include <stdlib.h>
-    #include <math.h>
-    #include <complex>
-    #include <iostream>
-    extern "C" {
-    #include <quadmath.h>
-    }
-    #include "mpreal.h"
+#include <stddef.h>
+#include <stdlib.h>
+#include <math.h>
+#include <complex>
+#include <iostream>
+extern "C" {
+#include <quadmath.h>
+}
+#include "mpreal.h"
 
-    using namespace std;
+using namespace std;
 
-    #define Pi 3.1415926535897932384626433832795028841971693993751L
-    #define Euler 0.57721566490153286060651209008240243104215933593992L
+#define Pi 3.1415926535897932384626433832795028841971693993751L
+#define Euler 0.57721566490153286060651209008240243104215933593992L
 
-    typedef __float128 qREAL;
-    typedef __complex128 qCOMPLEX;
-    typedef long double dREAL;
-    typedef complex<long double> dCOMPLEX;
-    typedef mpfr::mpreal mpREAL;
-    typedef complex<mpREAL> mpCOMPLEX;
+typedef __float128 qREAL;
+typedef __complex128 qCOMPLEX;
+typedef long double dREAL;
+typedef complex<long double> dCOMPLEX;
+typedef mpfr::mpreal mpREAL;
+typedef complex<mpREAL> mpCOMPLEX;
 
-    dREAL expt(dREAL a, dREAL b);
-    dCOMPLEX expt(dCOMPLEX a, dREAL b);
-    dREAL recip(dREAL a);
-    dCOMPLEX recip(dCOMPLEX a);
+dREAL expt(dREAL a, dREAL b);
+dCOMPLEX expt(dCOMPLEX a, dREAL b);
+dREAL recip(dREAL a);
+dCOMPLEX recip(dCOMPLEX a);
 
-    qREAL expt(qREAL a, qREAL b);
-    qCOMPLEX expt(qCOMPLEX a, qREAL b);
-    qREAL recip(qREAL a);
-    qCOMPLEX recip(qCOMPLEX a);
+qREAL expt(qREAL a, qREAL b);
+qCOMPLEX expt(qCOMPLEX a, qREAL b);
+qREAL recip(qREAL a);
+qCOMPLEX recip(qCOMPLEX a);
 
-    mpREAL expt(mpREAL a, mpREAL b);
-    mpCOMPLEX expt(mpCOMPLEX a, mpREAL b);
-    mpREAL recip(mpREAL a);
-    mpCOMPLEX recip(mpCOMPLEX a);
+mpREAL expt(mpREAL a, mpREAL b);
+mpCOMPLEX expt(mpCOMPLEX a, mpREAL b);
+mpREAL recip(mpREAL a);
+mpCOMPLEX recip(mpCOMPLEX a);
 
-    qREAL pow(qREAL x, qREAL y);
-    qREAL log(qREAL x);
-    qCOMPLEX pow(qCOMPLEX x, qREAL y);
-    qCOMPLEX log(qCOMPLEX x);
-
+qREAL pow(qREAL x, qREAL y);
+qREAL log(qREAL x);
+qCOMPLEX pow(qCOMPLEX x, qREAL y);
+qCOMPLEX log(qCOMPLEX x);
     )EOF" << endl;
     /*----------------------------------------------*/
             auto cppL = CppFormat(ofs, "L");
@@ -614,8 +613,9 @@ namespace HepLib::SD {
             // return lst{ no-x-result, xn, x-indepent prefactor, ft_n }
             // or     lst{ id(SD(D|Q)_id in .so), xn, x-indepent prefactor, ft_n }
             
+            static symbol xwr("xwr");
             auto kvf = res_vec[idx];
-            if(kvf.op(0).has(xwr)) kvf.let_op(0) = kvf.op(0).subs(xwr==exp(I*WickRotationAngle));
+            if(kvf.op(0).has(WRA(w))) kvf.let_op(0) = kvf.op(0).subs(WRA(w)==exp(I*w));
             auto expr = kvf.op(1);
             auto xs = get_xy_from(expr);
             auto ft_n = kvf.op(3);
@@ -627,7 +627,7 @@ namespace HepLib::SD {
                 system(cmd.str().c_str());
                 
                 return lst{
-                    expr.subs(lst{FTX(w1,w2)==1, iEpsilon==I*power(10,-50), xwr==exp(I*WickRotationAngle)}),
+                    expr.subs(lst{FTX(w1,w2)==1, iEpsilon==I*power(10,-50), WRA(w)==exp(I*w)}),
                     xs.size(), kvf.op(0), -1
                 };
             }
@@ -690,54 +690,53 @@ namespace HepLib::SD {
 
     /*----------------------------------------------*/
     ofs << R"EOF(
-    #include <stddef.h>
-    #include <stdlib.h>
-    #include <math.h>
-    #include <complex>
-    #include <iostream>
-    extern "C" {
-    #include <quadmath.h>
-    }
-    #include "mpreal.h"
+#include <stddef.h>
+#include <stdlib.h>
+#include <math.h>
+#include <complex>
+#include <iostream>
+extern "C" {
+#include <quadmath.h>
+}
+#include "mpreal.h"
 
-    using namespace std;
+using namespace std;
 
-    typedef __float128 qREAL;
-    typedef __complex128 qCOMPLEX;
-    typedef long double dREAL;
-    typedef complex<long double> dCOMPLEX;
-    typedef mpfr::mpreal mpREAL;
-    typedef complex<mpREAL> mpCOMPLEX;
-    
-    dCOMPLEX MatDet(dCOMPLEX mat[], int n);
-    qCOMPLEX MatDet(qCOMPLEX mat[], int n);
-    mpCOMPLEX MatDet(mpCOMPLEX mat[], int n);
+typedef __float128 qREAL;
+typedef __complex128 qCOMPLEX;
+typedef long double dREAL;
+typedef complex<long double> dCOMPLEX;
+typedef mpfr::mpreal mpREAL;
+typedef complex<mpREAL> mpCOMPLEX;
 
-    extern int RCLog_NTry;
-    dCOMPLEX RCLog(dCOMPLEX ys[], int n);
-    qCOMPLEX RCLog(qCOMPLEX ys[], int n);
-    mpCOMPLEX RCLog(mpCOMPLEX ys[], int n);
+dCOMPLEX MatDet(dCOMPLEX mat[], int n);
+qCOMPLEX MatDet(qCOMPLEX mat[], int n);
+mpCOMPLEX MatDet(mpCOMPLEX mat[], int n);
 
-    dREAL expt(dREAL a, dREAL b);
-    dCOMPLEX expt(dCOMPLEX a, dREAL b);
-    dREAL recip(dREAL a);
-    dCOMPLEX recip(dCOMPLEX a);
+extern int RCLog_NTry;
+dCOMPLEX RCLog(dCOMPLEX ys[], int n);
+qCOMPLEX RCLog(qCOMPLEX ys[], int n);
+mpCOMPLEX RCLog(mpCOMPLEX ys[], int n);
 
-    qREAL expt(qREAL a, qREAL b);
-    qCOMPLEX expt(qCOMPLEX a, qREAL b);
-    qREAL recip(qREAL a);
-    qCOMPLEX recip(qCOMPLEX a);
+dREAL expt(dREAL a, dREAL b);
+dCOMPLEX expt(dCOMPLEX a, dREAL b);
+dREAL recip(dREAL a);
+dCOMPLEX recip(dCOMPLEX a);
 
-    mpREAL expt(mpREAL a, mpREAL b);
-    mpCOMPLEX expt(mpCOMPLEX a, mpREAL b);
-    mpREAL recip(mpREAL a);
-    mpCOMPLEX recip(mpCOMPLEX a);
+qREAL expt(qREAL a, qREAL b);
+qCOMPLEX expt(qCOMPLEX a, qREAL b);
+qREAL recip(qREAL a);
+qCOMPLEX recip(qCOMPLEX a);
 
-    qREAL pow(qREAL x, qREAL y);
-    qREAL log(qREAL x);
-    qCOMPLEX pow(qCOMPLEX x, qREAL y);
-    qCOMPLEX log(qCOMPLEX x);
+mpREAL expt(mpREAL a, mpREAL b);
+mpCOMPLEX expt(mpCOMPLEX a, mpREAL b);
+mpREAL recip(mpREAL a);
+mpCOMPLEX recip(mpCOMPLEX a);
 
+qREAL pow(qREAL x, qREAL y);
+qREAL log(qREAL x);
+qCOMPLEX pow(qCOMPLEX x, qREAL y);
+qCOMPLEX log(qCOMPLEX x);
     )EOF" << endl;
     /*----------------------------------------------*/
 
@@ -762,12 +761,12 @@ namespace HepLib::SD {
     // long double
     /*----------------------------------------------*/
     ofs << R"EOF(
-    #undef Pi
-    #undef Euler
-    #undef iEpsilon
-    #define Pi 3.1415926535897932384626433832795028841971693993751L
-    #define Euler 0.57721566490153286060651209008240243104215933593992L
-    #define iEpsilon complex<long double>(0, 1.E-50)
+#undef Pi
+#undef Euler
+#undef iEpsilon
+#define Pi 3.1415926535897932384626433832795028841971693993751L
+#define Euler 0.57721566490153286060651209008240243104215933593992L
+#define iEpsilon complex<long double>(0, 1.E-50)
     )EOF" << endl;
     /*----------------------------------------------*/
             auto cppL =  CppFormat(ofs, "L");
@@ -782,22 +781,29 @@ namespace HepLib::SD {
                 
                 if(SecDec::debug) {
                     auto tmp = expr.subs(FTX(w1,w2)==1).subs(cxRepl).subs(plRepl);
-                    ofs << "//debug-int: " << tmp << endl;
+                    ofs << "//for debug, intg: " << endl << "//" << tmp << endl;
                 }
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation
-                hasF2 = hasF2 || (!is_zero(WickRotationAngle) && intg.has(xwr));
-                if(!is_zero(WickRotationAngle) && intg.has(xwr)) {
+                hasF2 = hasF2 || intg.has(WRA(w));
+                if(intg.has(WRA(w))) {
+                    exset wras;
+                    find(intg, WRA(w), wras);
+                    if(wras.size()!=1) throw Error("CIPrepares: Too many WRA(w).");
+                    auto wra = (*(wras.begin())).op(0);
+                    intg = intg.subs(WRA(w)==xwr);
+                    ofs << "dREAL wra = "; wra.print(cppL); ofs << ";" << endl;
+                    
                     exset logs_set;
                     find(intg, log(w), logs_set);
                     lst logs;
                     for(auto item : logs_set) {
-                        if(item.has(xwr)) logs.append(item.op(0));
+                        if(item.has(WRA(w))) logs.append(item.op(0));
                     }
-                    ofs << "dREAL wra = "; WickRotationAngle.print(cppL); ofs << ";" << endl;
+                    
                     if(logs.nops()>0) {
                         ofs << "int nlog = "<<logs.nops()<<";" << endl;
                         ofs << "dCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
@@ -947,11 +953,11 @@ namespace HepLib::SD {
     // Quadruple
     /*----------------------------------------------*/
     ofs << R"EOF(
-    #undef Pi
-    #undef Euler
-    #undef iEpsilon
-    #define Pi 3.1415926535897932384626433832795028841971693993751Q
-    #define Euler 0.57721566490153286060651209008240243104215933593992Q
+#undef Pi
+#undef Euler
+#undef iEpsilon
+#define Pi 3.1415926535897932384626433832795028841971693993751Q
+#define Euler 0.57721566490153286060651209008240243104215933593992Q
     #define iEpsilon 1.E-50Qi
     )EOF" << endl;
     /*----------------------------------------------*/
@@ -966,15 +972,22 @@ namespace HepLib::SD {
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation
-                hasF2 = hasF2 || (!is_zero(WickRotationAngle) && intg.has(xwr));
-                if(!is_zero(WickRotationAngle) && intg.has(xwr)) {
+                hasF2 = hasF2 || intg.has(WRA(w));
+                if(intg.has(WRA(w))) {
+                    exset wras;
+                    find(intg, WRA(w), wras);
+                    if(wras.size()!=1) throw Error("CIPrepares: Too many WRA(w).");
+                    auto wra = (*(wras.begin())).op(0);
+                    intg = intg.subs(WRA(w)==xwr);
+                    ofs << "qREAL wra = "; wra.print(cppQ); ofs << ";" << endl;
+                    
                     exset logs_set;
                     find(intg, log(w), logs_set);
                     lst logs;
                     for(auto item : logs_set) {
                         if(item.has(xwr)) logs.append(item.op(0));
                     }
-                    ofs << "qREAL wra = "; WickRotationAngle.print(cppQ); ofs << ";" << endl;
+                    
                     if(logs.nops()>0) {
                         ofs << "int nlog = "<<logs.nops()<<";" << endl;
                         ofs << "qCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
@@ -1126,12 +1139,12 @@ namespace HepLib::SD {
     /*----------------------------------------------*/
     if(use_MP || xs.size()<3) {
     ofs << R"EOF(
-    #undef Pi
-    #undef Euler
-    #undef iEpsilon
-    #define Pi mpREAL("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
-    #define Euler mpREAL("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
-    #define iEpsilon complex<mpREAL>(mpREAL(0), mpREAL(1.E-50))
+#undef Pi
+#undef Euler
+#undef iEpsilon
+#define Pi mpREAL("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
+#define Euler mpREAL("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
+#define iEpsilon complex<mpREAL>(mpREAL(0), mpREAL(1.E-50))
     )EOF" << endl;
     /*----------------------------------------------*/
             auto cppMP =  CppFormat(ofs, "MP");
@@ -1149,15 +1162,22 @@ namespace HepLib::SD {
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation
-                hasF2 = hasF2 || (!is_zero(WickRotationAngle) && intg.has(xwr));
-                if(!is_zero(WickRotationAngle) && intg.has(xwr)) {
+                hasF2 = hasF2 || intg.has(WRA(w));
+                if(intg.has(WRA(w))) {
+                    exset wras;
+                    find(intg, WRA(w), wras);
+                    if(wras.size()!=1) throw Error("CIPrepares: Too many WRA(w).");
+                    auto wra = (*(wras.begin())).op(0);
+                    intg = intg.subs(WRA(w)==xwr);
+                    ofs << "mpREAL wra = "; wra.print(cppMP); ofs << ";" << endl;
+                    
                     exset logs_set;
                     find(intg, log(w), logs_set);
                     lst logs;
                     for(auto item : logs_set) {
-                        if(item.has(xwr)) logs.append(item.op(0));
+                        if(item.has(WRA(w))) logs.append(item.op(0));
                     }
-                    ofs << "mpREAL wra = "; WickRotationAngle.print(cppMP); ofs << ";" << endl;
+                    
                     if(logs.nops()>0) {
                         ofs << "int nlog = "<<logs.nops()<<";" << endl;
                         ofs << "mpCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;

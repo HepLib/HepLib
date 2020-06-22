@@ -390,7 +390,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             } else if ( ft.match(y(w)) || ft.match(pow(y(w), w1)) ) {
                 ft = 1;
             }
-            if(ft.has(xwr)) ft = 1;
+            if(ft.has(WRA(w))) ft = 1;
             
             bool need_contour_deformation = ft.has(PL(w));
             if(ft.has(y(w)) && !need_contour_deformation) {
@@ -570,7 +570,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                                 const_term *=  pow(tmp,ntmp);
                             } else if((tmp-vs).is_zero() || tmp.match(pow(vs,w))) {
                                 const_term *=  pow(tmp,ntmp);
-                            } else if(!tmp.has(PL(w)) && !tmp.has(vs) && !tmp.has(xwr)) {
+                            } else if(!tmp.has(PL(w)) && !tmp.has(vs) && !tmp.has(WRA(w))) {
                                 auto tr = tmp.subs(nReplacements).subs(lst{
                                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                                 });

@@ -228,5 +228,5 @@ namespace HepLib::SD {
     REGISTER_FUNCTION(VEO, print_func<print_dflt>(print_VEO))
     REGISTER_FUNCTION(VEO2, print_func<print_dflt>(print_VEO2))
     REGISTER_FUNCTION(epsID, do_not_evalf_params().derivative_func(NoDiff_1P))
-
+    REGISTER_FUNCTION(WRA, do_not_evalf_params())
 }

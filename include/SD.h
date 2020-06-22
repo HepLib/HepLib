@@ -35,7 +35,6 @@ namespace HepLib::SD {
     extern const Symbol vz;
     extern const Symbol epz;
     extern const Symbol NaN;
-    extern const symbol xwr;
     
     /*-----------------------------------------------------*/
     // Global Functions
@@ -66,6 +65,7 @@ namespace HepLib::SD {
     DECLARE_FUNCTION_2P(VEO2)
     DECLARE_FUNCTION_1P(epsID)
     DECLARE_FUNCTION_2P(CV) // not used internally, for user use only
+    DECLARE_FUNCTION_1P(WRA) // for wick rotation
     extern int VEO_Digits;
     
     /*-----------------------------------------------------*/
@@ -152,8 +152,8 @@ namespace HepLib::SD {
         int DQMP = 0;
         int QXDim = 0;
         int MPXDim = 0;
-        qREAL QXLimit = 1E-8Q;
-        qREAL MPXLimit = -1;
+        qREAL QXLimit = 1E-6Q;
+        qREAL MPXLimit = 1E-8Q;
         qREAL QFLimit = -1;
         qREAL MPFLimit = -1;
         
@@ -327,7 +327,6 @@ namespace HepLib::SD {
         bool use_RCLog = true;
         bool all_in_one = true;
         bool use_XReOrders = false;
-        ex WickRotationAngle = Pi/2;
         int CT_method = 0; // 0: original, 1: rescaled
         int MPDigits = 50; // digits in mpREAL for MP
         lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
