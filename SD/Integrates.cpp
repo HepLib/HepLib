@@ -224,10 +224,7 @@ namespace HepLib::SD {
                     Digits = oDigits;
                 }
             }
-            if(cmax<=0) {
-                cerr << Color_Error << "Integrates: cmax<=0 with co = " << co << RESET <<endl;
-                exit(1);
-            }
+            if(cmax<=0) throw Error("Integrates: cmax<=0 with co = "+ex2str(co));
             if(reim!=3 && ReIm!=3) {
                 if(reim==1 && ReIm==2) reim=2;
                 else if(reim==2 && ReIm==2) reim=1;
@@ -323,9 +320,10 @@ namespace HepLib::SD {
                 else if(MinPTS[0]>0) Integrator->MinPTS = MinPTS[0];
                 else Integrator->MinPTS = RunPTS/10;
                                 
-                int smin = -1;
                 int ctryR = 0, ctry = 0, ctryL = 0;
-                ex cerr;
+                int smin = -1;
+                ex min_err, min_res;
+                long long min_eval;
                 qREAL log_lamax = log10q(lamax);
                 qREAL log_lamin = log_lamax-2.Q;
                 
@@ -347,13 +345,13 @@ namespace HepLib::SD {
                     auto res_tmp = res.subs(VE(w1, w2)==w2);
                     auto err = real_part(res_tmp);
                     if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
-                    ErrMin::lastResErr = res;
-                    cerr = err;
+                    min_err = err;
+                    min_res = res;
                 } else {
                 // ---------------------------------------
                 while(true) {
                     smin = -1;
-                    ex emin = 0;
+                    min_err = 0;
                     ex lastResErr = 0;
                     bool err_break = false;
                     for(int s=0; s<=LambdaSplit; s++) {
@@ -378,13 +376,14 @@ namespace HepLib::SD {
                         
                         if(res.has(NaN) && s==0) continue;
                         else if(res.has(NaN)) break;
+                        ex res_abs = abs(res.subs(VE(w1,w2)==w1)).evalf();
                         if(lastResErr.is_zero()) lastResErr = res;
                         auto diff = VESimplify(lastResErr - res);
                         diff = diff.subs(VE(0,0)==0);
                         exset ves;
                         diff.find(VE(w0, w1), ves);
                         for(auto ve : ves) {
-                            if(abs(ve.op(0)) > ve.op(1)) {
+                            if(abs(ve.op(0))>ve.op(1) && res_abs<1.E10*abs(ve.op(0))) { // avoid fluctuation aroud 0
                                 err_break = true;
                                 break;
                             }
@@ -398,23 +397,24 @@ namespace HepLib::SD {
                         auto res_tmp = res.subs(VE(w1, w2)==w2);
                         auto err = real_part(res_tmp);
                         if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
-                        if(smin<0 || err < emin) {
-                            ErrMin::lastResErr = res;
-                            cerr = err;
+                        if(smin<0 || err < min_err) {
+                            min_err = err;
+                            min_res = res;
+                            min_eval = Integrator->NEval;
                             smin = s;
-                            emin = err;
-                            if(s>0 && emin < CppFormat::q2ex(EpsAbs/cmax/stot)) { 
-                                // s>0 make sure at least 2 λs compatiable
-                                if(Verbose>5) {
-                                    cout << Color_HighLight << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::SD::VEResult(VESimplify(res)) << RESET << endl;
-                                }
-                                
-                                smin = -2;
-                                if(kid>0) lstRE.let_op(kid-1) = co * res;
-                                else lstRE.append(co * res);
-                                break;
+                        } 
+                        if(s>0 && min_err < CppFormat::q2ex(EpsAbs/cmax/stot)) { 
+                            // s>0 make sure at least 2 λs compatiable
+                            if(Verbose>5) {
+                                cout << Color_HighLight << "     λ=" << (double)cla << "/" << min_eval << ": " << HepLib::SD::VEResult(VESimplify(min_res)) << RESET << endl;
                             }
-                        } else if(s>0 && err > 100 * emin) break; // s>0 make sure at least 2 λs compatiable
+                            
+                            smin = -2;
+                            if(kid>0) lstRE.let_op(kid-1) = co * min_res;
+                            else lstRE.append(co * min_res);
+                            break;
+                        }
+                        if(err > 100 * min_err) break; // s>0 make sure at least 2 λs compatiable
                     }
                     if(smin == -2) break;
                     if(smin == -1) throw Error("Integrates: smin = -1, too small lambda (<1E-10)!");
@@ -456,7 +456,8 @@ namespace HepLib::SD {
                 // ---------------------------------------
                 // try HookeJeeves
                 // ---------------------------------------
-                if( use_ErrMin && (cerr > CppFormat::q2ex(1E5 * EpsAbs/cmax/stot)) ) {
+                if( use_ErrMin && (min_err > CppFormat::q2ex(1E5 * EpsAbs/cmax/stot)) ) {
+                    ErrMin::lastResErr = min_res;
                     auto miner = new HookeJeeves();
                     ErrMin::miner = miner;
                     ErrMin::Integrator = Integrator;
@@ -464,12 +465,12 @@ namespace HepLib::SD {
                     for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = lambda[i];
                     ErrMin::lambda = oo;
                     ErrMin::err_max = 1E100;
-                    auto err_min = ErrMin::err_min;
-                    ErrMin::err_min = err_min < 0 ? -err_min * CppFormat::ex2q(cerr) : err_min/cmax;
+                    auto oerrmin = ErrMin::err_min;
+                    ErrMin::err_min = oerrmin < 0 ? -oerrmin * CppFormat::ex2q(min_err) : oerrmin/cmax;
                     ErrMin::RunRND = 0;
                     miner->Minimize(las.nops()-1, ErrMin::IntError, ip);
                     delete miner;
-                    ErrMin::err_min = err_min;
+                    ErrMin::err_min = oerrmin;
                     for(int i=0; i<las.nops()-1; i++) {
                         lambda[i] = ErrMin::lambda[i];
                     }
