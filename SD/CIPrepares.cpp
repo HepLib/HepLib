@@ -797,6 +797,16 @@ qCOMPLEX log(qCOMPLEX x);
                     intg = intg.subs(WRA(w)==xwr);
                     ofs << "dREAL wra = "; wra.print(cppL); ofs << ";" << endl;
                     
+                    exset pows_set;
+                    find(intg, pow(w1,w2), pows_set);
+                    lst pow_subs;
+                    for(auto item : pows_set) {
+                        if(item.has(WRA(w)) && !item.op(1).info(info_flags::integer)) {
+                            pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                        }
+                    }
+                    if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
+                    
                     exset logs_set;
                     find(intg, log(w), logs_set);
                     lst logs;
@@ -980,6 +990,16 @@ qCOMPLEX log(qCOMPLEX x);
                     auto wra = (*(wras.begin())).op(0);
                     intg = intg.subs(WRA(w)==xwr);
                     ofs << "qREAL wra = "; wra.print(cppQ); ofs << ";" << endl;
+                    
+                    exset pows_set;
+                    find(intg, pow(w1,w2), pows_set);
+                    lst pow_subs;
+                    for(auto item : pows_set) {
+                        if(item.has(WRA(w)) && !item.op(1).info(info_flags::integer)) {
+                            pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                        }
+                    }
+                    if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
                     
                     exset logs_set;
                     find(intg, log(w), logs_set);
@@ -1170,6 +1190,16 @@ qCOMPLEX log(qCOMPLEX x);
                     auto wra = (*(wras.begin())).op(0);
                     intg = intg.subs(WRA(w)==xwr);
                     ofs << "mpREAL wra = "; wra.print(cppMP); ofs << ";" << endl;
+                    
+                    exset pows_set;
+                    find(intg, pow(w1,w2), pows_set);
+                    lst pow_subs;
+                    for(auto item : pows_set) {
+                        if(item.has(WRA(w)) && !item.op(1).info(info_flags::integer)) {
+                            pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                        }
+                    }
+                    if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
                     
                     exset logs_set;
                     find(intg, log(w), logs_set);

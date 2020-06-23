@@ -301,7 +301,7 @@ namespace HepLib::SD {
     void SecDec::ChengWu(vector<ex> &FunExp, bool sub_cw) {
         vector<ex> FunExp2;
         for(auto fe : FunExp) {
-            if(fe.nops()<3 || xSign(fe.op(0).op(1))!=0) {
+            if(fe.nops()<3 || xSign(fe.op(0).op(1))!=0 || fe.op(0).op(1).has(WRA(w))) {
                 let_op_prepend(fe, 0, 1);
                 let_op_prepend(fe, 1, 0);
                 FunExp2.push_back(fe);

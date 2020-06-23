@@ -316,7 +316,7 @@ namespace HepLib::SD {
                 if(TryPTS<10000) TryPTS = 10000;
                 Integrator->RunMAX = -5;
                 Integrator->RunPTS = TryPTS/5;
-                Integrator->EpsAbs = EpsAbs/cmax/2/stot;
+                Integrator->EpsAbs = EpsAbs/cmax/stot/2;
                 Integrator->EpsRel = 0;
                 
                 if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
@@ -327,7 +327,7 @@ namespace HepLib::SD {
                 int ctryR = 0, ctry = 0, ctryL = 0;
                 ex cerr;
                 qREAL log_lamax = log10q(lamax);
-                qREAL log_lamin = log_lamax-2.5Q;
+                qREAL log_lamin = log_lamax-2.Q;
                 
                 ostringstream las_fn;
                 las_fn << key;
@@ -364,9 +364,7 @@ namespace HepLib::SD {
                         auto log_cla = (log_lamin + s * (log_lamax-log_lamin) / LambdaSplit);
                         auto cla = powq(10.Q, log_cla);
                         if(cla < 1E-10) continue;
-                        for(int i=0; i<las.nops()-1; i++) {
-                            lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
-                        }
+                        for(int i=0; i<las.nops()-1; i++) lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
      
                         auto res = Integrator->Integrate();
                         if(Verbose>10) {
@@ -407,31 +405,24 @@ namespace HepLib::SD {
                             emin = err;
                             if(s>0 && emin < CppFormat::q2ex(EpsAbs/cmax/stot)) { 
                                 // s>0 make sure at least 2 λs compatiable
-                                smin = -2;
-                                if(kid>0) {
-                                    lstRE.let_op(kid-1) = co * res;
-                                    break;
-                                }
-                                lstRE.append(co * res);
                                 if(Verbose>5) {
-                                    cout << Color_HighLight;
-                                    cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::SD::VEResult(VESimplify(res)) << endl;
-                                    cout << RESET;
+                                    cout << Color_HighLight << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::SD::VEResult(VESimplify(res)) << RESET << endl;
                                 }
+                                
+                                smin = -2;
+                                if(kid>0) lstRE.let_op(kid-1) = co * res;
+                                else lstRE.append(co * res);
                                 break;
                             }
-                        } else if(s>0 && err > 1.E3 * emin) break; // s>0 make sure at least 2 λs compatiable
+                        } else if(s>0 && err > 100 * emin) break; // s>0 make sure at least 2 λs compatiable
                     }
                     if(smin == -2) break;
-                    if(smin == -1) {
-                        std::cerr << Color_Error << "Integrates: smin = -1, optimized lambda NOT found!" << RESET << endl;
-                        exit(1);
-                    }
+                    if(smin == -1) throw Error("Integrates: smin = -1, too small lambda (<1E-10)!");
                     
                     if(smin <= 0) {
                         if((!err_break) && (ctryL >= CTryLeft || ctryR>0)) break;
                         log_lamax = log_lamin;
-                        log_lamin -= 1.5Q;
+                        log_lamin -= 1.Q;
                         if(!err_break) ctryL++;
                     } else if(smin >= LambdaSplit) {
                         if(ctryR >= CTryRight || ctryL>0) break;
