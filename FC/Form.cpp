@@ -62,10 +62,13 @@ namespace HepLib::FC {
                 } else if(is_a<add>(e)) {
                     ex res = 0;
                     unsigned gl = gline;
+                    unsigned glmax = gline;
                     for(auto item : e) {
                         gline = gl;
                         res += (*this)(item);
+                        if(glmax<gline) glmax = gline;
                     }
+                    gline = glmax;
                     return res;
                 } else return e.map(*this);
             }

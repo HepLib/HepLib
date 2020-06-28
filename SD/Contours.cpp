@@ -66,6 +66,7 @@ namespace HepLib::SD {
             // return lst{ ft_n, lst{lambda-i, lambda-max} }
             // with I*[lambda-i]*lambda, lambda < lambda-max
             // note that lambda sequence only matches to x sequence in F-term
+            if(Verbose>5) cout << "     λ: " << idx << " / " << ftnxn_vec.size() << flush;
             auto ftnxn = ftnxn_vec[idx];
             int npara = -1;
             for(auto kv : Parameter) if(npara<kv.first) npara = kv.first;
@@ -78,10 +79,10 @@ namespace HepLib::SD {
             
             auto ft = ftnxn.op(0);
             ft = ft.subs(plRepl);
-            if(xSign(ft)!=0 || CTMax<0) {
+            if(xSign(ft)>0 || CTLaMax<0) {
                 if(Verbose>5) {
                     cout << "\r                                                    \r";
-                    cout << "     λ: xSign!=0 or CTMax<0, back to REAL mode!" << endl;
+                    cout << "     λ: xSign>0 or CTLaMax<0, back to REAL mode!" << endl;
                 }
                 return lst{ ftnxn.op(1), 1979 }; // ft_id, las
             }
@@ -102,7 +103,7 @@ namespace HepLib::SD {
                 }
                 
                 dREAL maxf = Minimizer->FindMinimum(nvars, fp, paras);
-                if(maxf>0) {
+                if(maxf>0 && false) {
                     if(Verbose>5) {
                         cout << "\r                                                    \r";
                         cout << "     λ: F>0 is Found, back to REAL mode!" << endl;
@@ -112,41 +113,28 @@ namespace HepLib::SD {
             }
             
             dREAL nlas[nvars];
-            if(CT_method==0 || CT_method==1) {
-                dREAL max_df = -1, max_f;
-                for(int i=0; i<nvars; i++) {
-                    MinimizeBase::FunctionType dfp = NULL;
-                    fname.clear();
-                    fname.str("");
-                    fname << "dirF_"<<ftnxn.op(1)<<"_"<<i;
-                    dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
-                    if(dfp==NULL) {
-                        cerr << Color_Error << "Contours: dfp==NULL" << RESET << endl;
-                        cout << "dlerror(): " << dlerror() << endl;
-                        exit(1);
-                    }
-                    
-                    dREAL maxdf = Minimizer->FindMinimum(nvars, dfp, paras);
-                    maxdf = -maxdf;
-                    nlas[i] = maxdf;
-                    if(max_df<maxdf) max_df = maxdf;
+            dREAL max_df = -1, max_f;
+            for(int i=0; i<nvars; i++) {
+                MinimizeBase::FunctionType dfp = NULL;
+                fname.clear();
+                fname.str("");
+                fname << "dirC_"<<ftnxn.op(1)<<"_"<<i;
+                dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
+                if(dfp==NULL) {
+                    cerr << Color_Error << "Contours: dfp==NULL" << RESET << endl;
+                    cout << "dlerror(): " << dlerror() << endl;
+                    exit(1);
                 }
                 
-                for(int i=0; i<nvars; i++) {
-                    if(nlas[i] > 1E-2 * max_df) nlas[i] = 1/nlas[i];
-                    else nlas[i] = 1/max_df;
-                }
-                
-                if(true) {
-                    dREAL nlas2 = 0;
-                    for(int i=0; i<nvars; i++) {
-                        nlas2 += nlas[i] * nlas[i];
-                    }
-                    if(CT_method==0) nlas2 = sqrt(nlas2);
-                    for(int i=0; i<nvars; i++) {
-                        nlas[i] = nlas[i]/nlas2;
-                    }
-                }
+                dREAL maxdf = Minimizer->FindMinimum(nvars, dfp, paras);
+                maxdf = -maxdf;
+                nlas[i] = maxdf;
+                if(max_df<maxdf) max_df = maxdf;
+            }
+            
+            for(int i=0; i<nvars; i++) { // From FIESTA
+                if(nlas[i] < 1) nlas[i] = 1;
+                else nlas[i] = 1/nlas[i];
             }
             
             lst las;
@@ -158,7 +146,6 @@ namespace HepLib::SD {
             fname.clear();
             fname.str("");
             fname << "imgF_"<<ftnxn.op(1);
-            //fname << "imgFQ_"<<ftnxn.op(1);
             fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
             if(fp==NULL) {
                 cerr << Color_Error << "Contours: fp==NULL" << RESET << endl;
@@ -166,7 +153,7 @@ namespace HepLib::SD {
                 exit(1);
             }
             
-            dREAL laBegin = 0, laEnd = CTMax, min;
+            dREAL laBegin = 0, laEnd = CTLaMax, min;
             dREAL UB[nvars+1];
             for(int i=0; i<nvars+1; i++) UB[i] = 1;
 
@@ -183,7 +170,7 @@ namespace HepLib::SD {
                     break;
                 }
                 
-                if(laEnd-laBegin <= 0.05*laEnd) break;
+                if(laEnd-laBegin <= 0.01*laEnd) break;
                 min = (laBegin + laEnd) / 2.0;
             }
             min = laBegin;

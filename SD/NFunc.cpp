@@ -13,7 +13,7 @@ extern "C" {
 }
 #include "mpreal.h"
 
-int RCLog_NTry = 5;
+int NRCLog = 7;
 
 #define Pi 3.1415926535897932384626433832795028841971693993751L
 #define Euler 0.57721566490153286060651209008240243104215933593992L
@@ -45,6 +45,7 @@ qREAL pow(qREAL x, qREAL y) { return powq(x, y); }
 qREAL log(qREAL x) { return logq(x); }
 qCOMPLEX pow(qCOMPLEX x, qREAL y) { return cpowq(x, y); }
 qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
+qCOMPLEX exp(qCOMPLEX x) { return cexpq(x); }
 
 dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
     bool is_zero = false;
@@ -77,16 +78,31 @@ dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
 }
 
 dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
+    auto eps = LDBL_EPSILON;
     dCOMPLEX ret = log(xs[n-1]);
+    int total=0;
+    int ReIm[n][2];
+    for(int k=0; k<n; k++) {
+        auto curR = xs[k].real();
+        auto curI = xs[k].imag();
+        auto absR = fabs(curR);
+        auto absI = fabs(curI);
+        if(absI<eps*absR && k==0 && absR<0) ReIm[total][1] = -1;
+        else if(absR<eps*absI || absI<eps*absR) continue; 
+        else ReIm[total][1] = curI>0 ? 1 : -1;
+        ReIm[total][0] = curR>0 ? 1 : -1;
+        total++;
+    }
+    
     int cutN = 0;
-    for(int k=0; k<n-1; k++) {
-    if(xs[k].real()*xs[k+1].real()<0 && xs[k].imag()*xs[k+1].imag()<0) return nanl("");
-        if(xs[k].real()<0 && xs[k+1].real()<0 && xs[k].imag()*xs[k+1].imag()<0) {
-            if(xs[k].imag()>0) cutN++;
+    for(int k=0; k<total-1; k++) {
+        if(ReIm[k][0]*ReIm[k+1][0]<0 && ReIm[k][1]*ReIm[k+1][1]<0) return nanl("");
+        if(ReIm[k][0]<0 && ReIm[k+1][0]<0 && ReIm[k][1]*ReIm[k+1][1]<0) {
+            if(ReIm[k][1]>0) cutN++;
             else cutN--;
         }
     }
-    ret += complex<dREAL>(0,cutN * 2 * Pi);
+    if(cutN!=0) ret += complex<dREAL>(0,cutN * 2 * Pi);
     return ret;
 }
 
@@ -126,16 +142,31 @@ qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
 }
 
 qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
+    auto eps = FLT128_EPSILON;
     qCOMPLEX ret = log(xs[n-1]);
+    int total=0;
+    int ReIm[n][2];
+    for(int k=0; k<n; k++) {
+        auto curR = crealq(xs[k]);
+        auto curI = cimagq(xs[k]);
+        auto absR = fabsq(curR);
+        auto absI = fabsq(curI);
+        if(absI<eps*absR && k==0 && absR<0) ReIm[0][1] = -1;
+        else if(absR<eps*absI || absI<eps*absR) continue; 
+        else ReIm[total][1] = curI>0 ? 1 : -1;
+        ReIm[total][0] = curR>0 ? 1 : -1;
+        total++;
+    }
+    
     int cutN = 0;
-    for(int k=0; k<n-1; k++) {
-        if(crealq(xs[k])*crealq(xs[k+1])<0 && cimagq(xs[k])*cimagq(xs[k+1])<0) return nanl("");
-        if(crealq(xs[k])<0 && crealq(xs[k+1])<0 && cimagq(xs[k])*cimagq(xs[k+1])<0) {
-            if(cimagq(xs[k])>0) cutN++;
+    for(int k=0; k<total-1; k++) {
+        if(ReIm[k][0]*ReIm[k+1][0]<0 && ReIm[k][1]*ReIm[k+1][1]<0) return nanl("");
+        if(ReIm[k][0]<0 && ReIm[k+1][0]<0 && ReIm[k][1]*ReIm[k+1][1]<0) {
+            if(ReIm[k][1]>0) cutN++;
             else cutN--;
         }
     }
-    ret += cutN * Pi * 2.Qi;
+    if(cutN!=0) ret += cutN * Pi * 2.Qi;
     return ret;
 }
 
@@ -175,15 +206,30 @@ mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
 }
 
 mpCOMPLEX RCLog(mpCOMPLEX xs[], int n) {
+    auto eps = mpfr::machine_epsilon(xs[0].real());
     mpCOMPLEX ret = log(xs[n-1]);
+    int total=0;
+    int ReIm[n][2];
+    for(int k=0; k<n; k++) {
+        auto curR = xs[k].real();
+        auto curI = xs[k].imag();
+        auto absR = abs(curR);
+        auto absI = abs(curI);
+        if(absI<eps*absR && k==0 && absR<0) ReIm[total][1] = -1;
+        else if(absR<eps*absI || absI<eps*absR) continue; 
+        else ReIm[total][1] = curI>0 ? 1 : -1;
+        ReIm[total][0] = curR>0 ? 1 : -1;
+        total++;
+    }
+    
     int cutN = 0;
-    for(int k=0; k<n-1; k++) {
-        if(xs[k].real()*xs[k+1].real()<0 && xs[k].imag()*xs[k+1].imag()<0) return mpREAL(nanl(""));
-        if(xs[k].real()<0 && xs[k+1].real()<0 && xs[k].imag()*xs[k+1].imag()<0) {
-            if(xs[k].imag()>0) cutN++;
+    for(int k=0; k<total-1; k++) {
+        if(ReIm[k][0]*ReIm[k+1][0]<0 && ReIm[k][1]*ReIm[k+1][1]<0) return mpREAL(nanl(""));
+        if(ReIm[k][0]<0 && ReIm[k+1][0]<0 && ReIm[k][1]*ReIm[k+1][1]<0) {
+            if(ReIm[k][1]>0) cutN++;
             else cutN--;
         }
     }
-    ret += complex<mpREAL>(0,cutN * 2 * Pi);
+    if(cutN!=0) ret += complex<mpREAL>(0,cutN * 2 * Pi);
     return ret;
 }

@@ -362,18 +362,12 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             for(int j=0; j<xs_tmp.size()+ys_tmp.size()+10; j++) {
                 if(!ypolist.has(y(j))) y_free_indexs.push_back(j);
             }
-            if(xs_tmp.size()>y_free_indexs.size()) {
-                cerr << Color_Error << "DS: xsize>ysize" << RESET << endl;
-                exit(1);
-            }
+            if(xs_tmp.size()>y_free_indexs.size()) throw Error("DS: xsize>ysize");
             for(int i=0; i<xs_tmp.size(); i++) {
                 vi[xs_tmp[i]] = y(y_free_indexs[i]);
             }
             if(xs_tmp.size()>0) ypolist = ypolist.subs(vi);
-            if(ypolist.has(x(w))) {
-                cerr << Color_Error << "DS: x(w) found @ " << ypolist << RESET << endl;
-                exit(1);
-            }
+            if(ypolist.has(x(w))) throw Error("DS: x(w) found @ " + ex2str(ypolist));
 
             // need collect_common_factors
             auto ft = collect_common_factors(ypolist.op(1).expand());
@@ -390,7 +384,14 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             } else if ( ft.match(y(w)) || ft.match(pow(y(w), w1)) ) {
                 ft = 1;
             }
-            if(ft.has(WRA(w))) ft = 1;
+            if(ft.has(WRA(w))) {
+                static symbol wr;
+                if(ft.subs(WRA(w)==wr).degree(w)==2) ft = 1;
+                else {
+                    ft = ft.subs(WRA(w)==1);
+                    ypolist = ypolist.subs(WRA(w)==1);
+                }
+            }
             
             bool need_contour_deformation = ft.has(PL(w));
             if(ft.has(y(w)) && !need_contour_deformation) {
@@ -402,8 +403,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                     auto first = tmp.op(0).subs(y(w)==1);
                     for(auto item : tmp) {
                         if(!is_a<numeric>(item.subs(y(w)==1)*first)) {
-                            cerr << Color_Error << "DS: Not a number: " << (item.subs(y(w)==1)*first) << RESET << endl;
-                            exit(1);
+                            throw Error("DS: Not a number: " + ex2str(item.subs(y(w)==1)*first));
                         }
                         if(item.subs(y(w)==1)*first<0) {
                             need_contour_deformation = true;
@@ -418,8 +418,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 });
                 if(!is_a<numeric>(tmp)) {
-                    cerr << Color_Error << "DS: tmp = " << tmp << "tmp is NOT a numeric." << RESET << endl;
-                    exit(1);
+                    throw Error("DS: NOT a numeric with " + ex2str(tmp));
                 }
                 auto oDigits = Digits;
                 Digits = 50;
@@ -436,8 +435,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             // need collect_common_factors
             auto det = collect_common_factors(vi[x(-1)]);
             if(is_a<add>(det)) {
-                cerr << Color_Error << "DS: det is add " << det << RESET << endl;
-                exit(1);
+                throw Error("DS: det is add " + ex2str(det));
             }
             auto ys = get_xy_from(det);
             ex det1 = 1;
@@ -446,8 +444,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 det1 *= pow(ys[i], det.degree(ys[i]));
             }
             if(!(is_a<numeric>(det/det1) && ex_to<numeric>(det/det1).is_integer())) {
-                cerr << Color_Error << "DS: det=" << det << ", det1=" << det1 << RESET << endl;
-                exit(1);
+                throw Error("DS: det=" + ex2str(det) + ", det1=" + ex2str(det1));
             }
             
             lst ftxlst = lst{0};
@@ -495,8 +492,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                             auto oDigits = Digits;
                             Digits = 50;
                             if(!is_a<numeric>(tr.evalf())) {
-                                cerr << Color_Error << "DS: not numeric - item: " << tr << " ; " << item << RESET << endl;
-                                exit(1);
+                                throw Error("DS: not numeric - item: " + ex2str(tr) + " ; " + ex2str(item));
                             }
                             auto nitem = ex_to<numeric>(tr.evalf());
                             if( nitem.is_real() && nitem<0 ) {
@@ -511,8 +507,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                         }
                     } else {
                         if(nchk && item.subs(y(w)==0).subs(iEpsilon==0).normal().is_zero()) {
-                            cerr << Color_Error << "DS: zero item: " << item << endl << "and exlist.op(i) = " << exlist.op(i) << RESET << endl;
-                            exit(1);
+                            throw Error("DS: zero item: " + ex2str(item)  + " and exlist.op(i) = " + ex2str(exlist.op(i)));
                         }
                         rem *= item;
                     }
@@ -534,8 +529,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 if(is_a<numeric>(v)) {
                     auto nv = ex_to<numeric>(v);
                     if(nv<=-1) {
-                        cerr << Color_Error << "DS: " << k << "^(" << nv << ") found, more regularization needed!" << RESET << endl;
-                        exit(1);
+                        throw Error("DS: " + ex2str(k) + "^(" + ex2str(nv) + ") found, more regularization needed!");
                     }
                 }
                 x_n_lst.append(lst{k, v});
@@ -1097,16 +1091,21 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                 ex tmp = 1;
                 for(int i=0; i<it.op(1).nops(); i++) {
                     lst pn = ex_to<lst>(it.op(1).op(i));
-                    bool sim = pn.op(0).expand().nops()<=sim_max;
-                    bool nni = pn.op(1).info(info_flags::nonnegint);
-                    if(i>1 && (!use_expand_numerator || sim || nni)) {
-                        tmp *= pow(pn.op(0), pn.op(1));
-                    } else if(i<2 || pn.op(0)!=1) {
+                    if(i<2) {
                         pns.append(pn);
-                    } else {
-                        cerr << Color_Error << "SDPrepares: UnExpected Region!" << RESET << endl;
-                        exit(1);
+                        continue;
                     }
+                    if(pn.op(0).is_equal(1)) continue;
+                    
+                    if(use_expand_numerator) {
+                        bool sim = pn.op(0).expand().nops()<=sim_max;
+                        bool nni = pn.op(1).info(info_flags::nonnegint);
+                        if(sim || nni) {
+                            tmp *= pow(pn.op(0), pn.op(1));
+                            continue;
+                        }
+                    } 
+                    pns.append(pn);
                 }
                 if(tmp!=1) pns.append(lst{tmp, 1});
                 ibp_in_vec.push_back(lst{xns, pns});

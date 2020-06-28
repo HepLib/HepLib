@@ -327,7 +327,6 @@ namespace HepLib::SD {
         bool use_RCLog = true;
         bool all_in_one = true;
         bool use_XReOrders = false;
-        int CT_method = 0; // 0: original, 1: rescaled
         int MPDigits = 50; // digits in mpREAL for MP
         lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
         
@@ -335,14 +334,14 @@ namespace HepLib::SD {
         
         // used in Contours
         bool CTMaxF = true;
-        dREAL CTMax = 50; // CTMax<0 for explict REAL mode
+        dREAL CTLaMax = 10; // CTLaMax<0 for explict REAL mode
         int CTTryPTS = 3;
         int CTSavePTS = 3;
         
         long long TryPTS = 500000;
         long long LambdaSplit = 5;
-        qREAL LambdaMax = 50;
-        int CTry = 2;
+        qREAL IntLaMax = 50;
+        int CTry = 1;
         int CTryLeft = 1;
         int CTryRight = 1;
         dREAL CTryRightRatio = 1.5;
@@ -433,6 +432,6 @@ namespace HepLib::SD {
     
 }
 
-extern int RCLog_NTry;
+extern int NRCLog;
 
 

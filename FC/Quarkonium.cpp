@@ -248,28 +248,32 @@ namespace HepLib::FC {
             // Un-Contract
             auto expr = expr_in.subs(SP_map);
             expr = mma_collect(expr, q);
-            int lproj=0;
+            int lproj=-1;
 
             expr = MapFunction([&lproj,prefix,q](const ex &e, MapFunction &self)->ex {
                 if(!e.has(q)) return e;
                 else if(is_a<Pair>(e)) {
+                    if(!e.op(0).is_equal(q)) throw Error("LProj: e.op(0) is NOT q.");
                     if(is_a<Index>(e.op(1))) return e;
-                    Index idx(prefix+to_string(lproj++));
+                    Index idx(prefix+to_string(++lproj));
                     return SP(e.op(0), idx) * SP(e.op(1), idx);
                 } else if(is_a<Eps>(e)) {
-                    Index idx(prefix+to_string(lproj++));
                     auto pis0 = ex_to<Eps>(e).pis;
                     ex pis[4];
+                    ex cc = 1;
                     for(int i=0; i<3; i++) {
                         pis[i] = pis0[i];
                         if(is_zero(pis[i]-q)) {
+                            Index idx(prefix+to_string(++lproj));
                             pis[i] = idx;
-                        }
+                            cc *= SP(q, idx);
+                        } else if(pis[i].has(q)) throw Error("LProj: Eps still has q.");
                     }
-                    return LC(pis[0], pis[1], pis[2], pis[3]) * SP(q, idx);
+                    return LC(pis[0], pis[1], pis[2], pis[3]) * cc;
                 } else if(is_a<DiracGamma>(e)) {
-                    Index idx(prefix+to_string(lproj++));
+                    Index idx(prefix+to_string(++lproj));
                     auto g = ex_to<DiracGamma>(e);
+                    if(!g.pi.is_equal(q)) throw Error("LProj: g.pi is NOT q.");
                     return DiracGamma(idx, g.rl) * SP(g.pi, idx);
                 } else if (e.match(TR(w))) {
                     auto ret = self(e.op(0));
@@ -277,12 +281,15 @@ namespace HepLib::FC {
                     ret = ret.subs(coCF(w)==TR(w));
                     return ret;
                 } else if(is_a<add>(e)) {
-                    auto lpj = lproj;
+                    int lpj = lproj;
+                    int lpj_max = -100;
                     ex ret = 0;
                     for(auto item : e) {
                         lproj = lpj;
                         ret += self(item);
+                        if(lpj_max<lproj) lpj_max = lproj;
                     }
+                    lproj = lpj_max;
                     return ret;
                 } else if(is_a<power>(e)) {
                     if(!e.op(1).info(info_flags::posint)) {
@@ -302,6 +309,7 @@ namespace HepLib::FC {
             
             expr = expr.subs(SP_map);
             auto cv_lst = mma_collect_lst(expr, q);
+
             expr = 0;
             for(auto cv : cv_lst) {
                 auto e = cv.op(1);
@@ -315,8 +323,11 @@ namespace HepLib::FC {
                 
                 for(auto item : e) {
                     if(is_a<Pair>(item)) {
+                        if(!item.op(0).is_equal(q)) throw Error("LProj: op(0) is NOT q.");
                         is.push_back(ex_to<Index>(item.op(1)));
                     } else if(item.match(pow(w,2)) && is_a<Pair>(item.op(0))) {
+cout << cv << endl;
+                        if(!item.op(0).op(0).is_equal(q)) throw Error("LProj: op(0) is NOT q.");
                         is.push_back(ex_to<Index>(item.op(0).op(1)));
                         is.push_back(ex_to<Index>(item.op(0).op(1)));
                     } else {

@@ -58,8 +58,7 @@ namespace HepLib::SD {
                 if(is_a<add>(tmp)) {
                     for(auto item : tmp) {
                         if(!is_a<numeric>(item.subs(x(w)==1))) {
-                            cerr << Color_Error << "CIPrepares: (!is_a<numeric>(item.subs(x(w)==1)))" << RESET << endl;
-                            exit(1);
+                            throw Error("CIPrepares: (!is_a<numeric>(item.subs(x(w)==1)))");
                         }
                         if(item.subs(x(w)==1) < 0) {
                             need_contour_deformation = true;
@@ -68,8 +67,7 @@ namespace HepLib::SD {
                     }
                 } else {
                     if(!is_a<numeric>(tmp.subs(x(w)==1))) {
-                        cerr << Color_Error << "CIPrepares: (!is_a<numeric>(tmp.subs(x(w)==1)))" << RESET << endl;
-                        exit(1);
+                        throw Error("CIPrepares: (!is_a<numeric>(tmp.subs(x(w)==1)))");
                     }
                     if(tmp.subs(x(w)==1) < 0) need_contour_deformation = true;
                 }
@@ -117,8 +115,7 @@ namespace HepLib::SD {
             } else {
                 int ft_n = ftnmap[item.op(2)];
                 if(ft_n==0) {
-                    cerr << Color_Error << "CIPrepares: ft_n==0, " << item.op(2) << RESET << endl;
-                    exit(1);
+                    throw Error("CIPrepares: ft_n==0, " + ex2str(item.op(2)));
                 }
                 ii.append(ft_n);
             }
@@ -165,7 +162,7 @@ namespace HepLib::SD {
                 plRepl.append(PL(i) == symbol(pl.str()));
             }
             
-            ex DFs[fxs.size()], DDFs[fxs.size()*fxs.size()];
+            ex DFs[fxs.size()], DDFs[fxs.size()][fxs.size()];
             for(int i=0; i<fxs.size(); i++) {
                 auto df = mma_diff(ft, fxs[i], 1, false);
                 DFs[i] = collect_common_factors(df);
@@ -174,7 +171,7 @@ namespace HepLib::SD {
                 symbol ila(ilaos.str());
                 for(int j=0; j<fxs.size(); j++) {
                     auto ddf = mma_diff(DFs[i], fxs[j], 1, false);
-                    DDFs[fxs.size()*i+j] = collect_common_factors(ddf);
+                    DDFs[i][j] = collect_common_factors(ddf);
                 }
             }
 
@@ -238,6 +235,7 @@ qREAL pow(qREAL x, qREAL y);
 qREAL log(qREAL x);
 qCOMPLEX pow(qCOMPLEX x, qREAL y);
 qCOMPLEX log(qCOMPLEX x);
+qCOMPLEX exp(qCOMPLEX x);
     )EOF" << endl;
     /*----------------------------------------------*/
             auto cppL = CppFormat(ofs, "L");
@@ -312,7 +310,7 @@ qCOMPLEX log(qCOMPLEX x);
             for(int i=0; i<fxs.size(); i++) {
             for(int j=0; j<fxs.size(); j++) {
                 ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
-                DDFs[i*fxs.size()+j].subs(plRepl).subs(cxRepl).print(cppL);
+                DDFs[i][j].subs(plRepl).subs(cxRepl).print(cppL);
                 ofs << ";" << endl;
             }}
             ofs << "return 0;" << endl;
@@ -324,7 +322,7 @@ qCOMPLEX log(qCOMPLEX x);
             for(int i=0; i<fxs.size(); i++) {
             for(int j=0; j<fxs.size(); j++) {
                 ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
-                DDFs[i*fxs.size()+j].subs(plRepl).subs(cxRepl).print(cppQ);
+                DDFs[i][j].subs(plRepl).subs(cxRepl).print(cppQ);
                 ofs << ";" << endl;
             }}
             ofs << "return 0;" << endl;
@@ -337,7 +335,7 @@ qCOMPLEX log(qCOMPLEX x);
                 for(int i=0; i<fxs.size(); i++) {
                 for(int j=0; j<fxs.size(); j++) {
                     ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
-                    DDFs[i*fxs.size()+j].subs(plRepl).subs(cxRepl).print(cppMP);
+                    DDFs[i][j].subs(plRepl).subs(cxRepl).print(cppMP);
                     ofs << ";" << endl;
                 }}
                 ofs << "return 0;" << endl;
@@ -349,17 +347,10 @@ qCOMPLEX log(qCOMPLEX x);
             ofs << "void X2ZL_" << ft_n << "(const dREAL* x, dCOMPLEX* z, dCOMPLEX* r, dREAL* dff, const dREAL* pl, const dREAL* las) {" << endl;
             ofs << "int nfxs="<<fxs.size()<<";" << endl;
             ofs << "dCOMPLEX ilas[nfxs];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>(0.L, las[i]);" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<dREAL>(0.L, las[i]);" << endl;
             ofs << "dff[nfxs] = FL_"<<ft_n<<"(x,pl);" << endl;
             ofs << "for(int i=0; i<nfxs; i++) dff[i] = FL_"<<ft_n<<"(i,x,pl);" << endl;
-            ofs << "dREAL fscale=0.L;" << endl;
-            if(CT_method==1) {
-                ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
-                ofs << "fscale += dff[nfxs]*dff[nfxs];" << endl;
-            } else {
-                ofs << "fscale=1.L;" << endl;
-            }
-            ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]/fscale;" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i];" << endl;
             ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.L-x[i])*r[i];" << endl;
             ofs << "}" << endl;
             ofs << endl;
@@ -371,14 +362,7 @@ qCOMPLEX log(qCOMPLEX x);
             ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;" << endl;
             ofs << "dff[nfxs] = FQ_"<<ft_n<<"(x,pl);" << endl;
             ofs << "for(int i=0; i<nfxs; i++) dff[i] = FQ_"<<ft_n<<"(i,x,pl);" << endl;
-            ofs << "qREAL fscale=0.Q;" << endl;
-            if(CT_method==1) {
-                ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
-                ofs << "fscale += dff[nfxs]*dff[nfxs];" << endl;
-            } else {
-                ofs << "fscale=1.Q;" << endl;
-            }
-            ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]/fscale;" << endl;
+            ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i];" << endl;
             ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.Q-x[i])*r[i];" << endl;
             ofs << "}" << endl;
             ofs << endl;
@@ -391,14 +375,7 @@ qCOMPLEX log(qCOMPLEX x);
                 ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
                 ofs << "dff[nfxs] = FMP_"<<ft_n<<"(x,pl);" << endl;
                 ofs << "for(int i=0; i<nfxs; i++) dff[i] = FMP_"<<ft_n<<"(i,x,pl);" << endl;
-                ofs << "mpREAL fscale=0;" << endl;
-                if(CT_method==1) {
-                    ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
-                    ofs << "fscale += dff[nfxs]*dff[nfxs];" << endl;
-                } else {
-                    ofs << "fscale=1;" << endl;
-                }
-                ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i]/fscale;" << endl;
+                ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i];" << endl;
                 ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1-x[i])*r[i];" << endl;
                 ofs << "}" << endl;
                 ofs << endl;
@@ -409,31 +386,17 @@ qCOMPLEX log(qCOMPLEX x);
             ofs << "int nfxs="<<fxs.size()<<";" << endl;
             ofs << "dCOMPLEX ilas[nfxs];" << endl;
             ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>(0.L, las[i]);" << endl;
-            ofs << "dREAL fscale=0.L;" << endl;
-            if(CT_method==1) {
-                ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
-                ofs << "fscale += dff[nfxs]*dff[nfxs];" << endl;
-            } else {
-                ofs << "fscale=1.L;" << endl;
-            }
-            ofs << "dREAL dff2[nfxs][nfxs];" << endl;
+            ofs << "dREAL ddf[nfxs][nfxs];" << endl;
             ofs << "for(int i=0; i<nfxs; i++) {" << endl;
             ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-            ofs << "dff2[i][j] = FL_"<<ft_n<<"(i,j,x,pl);" << endl;
+            ofs << "ddf[i][j] = FL_"<<ft_n<<"(i,j,x,pl);" << endl;
             ofs << "}}" << endl;
             ofs << "for(int i=0; i<nfxs; i++) {" << endl;
             ofs << "for(int j=0; j<nfxs; j++) {" << endl;
             ofs << "int ij = i*nfxs+j;" << endl;
             ofs << "if(i!=j) mat[ij] = 0;" << endl;
-            ofs << "else mat[ij] = 1.L-(1.L-2.L*x[i])*dff[i]*ilas[i]/fscale;" << endl;
-            ofs << "mat[ij] = mat[ij]-x[i]*(1.L-x[i])*dff2[i][j]*ilas[i]/fscale;" << endl;
-            if(CT_method==1) {
-                ofs << "dREAL dfscale = 0;" << endl;
-                ofs << "for(int ii=0; ii<nfxs; ii++) dfscale -= 2*dff[ii]*dff2[ii][j];" << endl;
-                ofs << "dfscale -= 2*dff[nfxs]*dff[j];" << endl;
-                ofs << "dfscale = dfscale / (fscale*fscale);" << endl;
-                ofs << "mat[ij] = mat[ij]-x[i]*(1.L-x[i])*dff[i]*ilas[i]*dfscale;" << endl;
-            }
+            ofs << "else mat[ij] = 1.L-(1.L-2.L*x[i])*dff[i]*ilas[i];" << endl;
+            ofs << "mat[ij] = mat[ij]-x[i]*(1.L-x[i])*ddf[i][j]*ilas[i];" << endl;
             ofs << "}}" << endl;
             ofs << "}" << endl;
             ofs << endl;
@@ -443,31 +406,17 @@ qCOMPLEX log(qCOMPLEX x);
             ofs << "int nfxs="<<fxs.size()<<";" << endl;
             ofs << "qCOMPLEX ilas[nfxs];" << endl;
             ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;" << endl;
-            ofs << "qREAL fscale=0.Q;" << endl;
-            if(CT_method==1) {
-                ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
-                ofs << "fscale += dff[nfxs]*dff[nfxs];" << endl;
-            } else {
-                ofs << "fscale=1.Q;" << endl;
-            }
-            ofs << "qREAL dff2[nfxs][nfxs];" << endl;
+            ofs << "qREAL ddf[nfxs][nfxs];" << endl;
             ofs << "for(int i=0; i<nfxs; i++) {" << endl;
             ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-            ofs << "dff2[i][j] = FQ_"<<ft_n<<"(i,j,x,pl);" << endl;
+            ofs << "ddf[i][j] = FQ_"<<ft_n<<"(i,j,x,pl);" << endl;
             ofs << "}}" << endl;
             ofs << "for(int i=0; i<nfxs; i++) {" << endl;
             ofs << "for(int j=0; j<nfxs; j++) {" << endl;
             ofs << "int ij = i*nfxs+j;" << endl;
             ofs << "if(i!=j) mat[ij] = 0;" << endl;
-            ofs << "else mat[ij] = 1.Q-(1.Q-2.Q*x[i])*dff[i]*ilas[i]/fscale;" << endl;
-            ofs << "mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*dff2[i][j]*ilas[i]/fscale;" << endl;
-            if(CT_method==1) {
-                ofs << "qREAL dfscale = 0;" << endl;
-                ofs << "for(int ii=0; ii<nfxs; ii++) dfscale -= 2*dff[ii]*dff2[ii][j];" << endl;
-                ofs << "dfscale -= 2*dff[nfxs]*dff[j];" << endl;
-                ofs << "dfscale = dfscale / (fscale*fscale);" << endl;
-                ofs << "mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*dff[i]*ilas[i]*dfscale;" << endl;
-            }
+            ofs << "else mat[ij] = 1.Q-(1.Q-2.Q*x[i])*dff[i]*ilas[i];" << endl;
+            ofs << "mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*ddf[i][j]*ilas[i];" << endl;
             ofs << "}}" << endl;
             ofs << "}" << endl;
             ofs << endl;
@@ -478,31 +427,17 @@ qCOMPLEX log(qCOMPLEX x);
                 ofs << "int nfxs="<<fxs.size()<<";" << endl;
                 ofs << "mpCOMPLEX ilas[nfxs];" << endl;
                 ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
-                ofs << "mpREAL fscale=0;" << endl;
-                if(CT_method==1) {
-                    ofs << "for(int i=0; i<nfxs; i++) fscale += dff[i]*dff[i];" << endl;
-                    ofs << "fscale += dff[nfxs]*dff[nfxs];" << endl;
-                } else {
-                    ofs << "fscale=1;" << endl;
-                }
-                ofs << "mpREAL dff2[nfxs][nfxs];" << endl;
+                ofs << "mpREAL ddf[nfxs][nfxs];" << endl;
                 ofs << "for(int i=0; i<nfxs; i++) {" << endl;
                 ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-                ofs << "dff2[i][j] = FMP_"<<ft_n<<"(i,j,x,pl);" << endl;
+                ofs << "ddf[i][j] = FMP_"<<ft_n<<"(i,j,x,pl);" << endl;
                 ofs << "}}" << endl;
                 ofs << "for(int i=0; i<nfxs; i++) {" << endl;
                 ofs << "for(int j=0; j<nfxs; j++) {" << endl;
                 ofs << "int ij = i*nfxs+j;" << endl;
                 ofs << "if(i!=j) mat[ij] = 0;" << endl;
-                ofs << "else mat[ij] = mpREAL(1)-(1-2*x[i])*dff[i]*ilas[i]/fscale;" << endl;
-                ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff2[i][j]*ilas[i]/fscale;" << endl;
-                if(CT_method==1) {
-                    ofs << "mpREAL dfscale = 0;" << endl;
-                    ofs << "for(int ii=0; ii<nfxs; ii++) dfscale -= 2*dff[ii]*dff2[ii][j];" << endl;
-                    ofs << "dfscale -= 2*dff[nfxs]*dff[j];" << endl;
-                    ofs << "dfscale = dfscale / (fscale*fscale);" << endl;
-                    ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*dff[i]*ilas[i]*dfscale;" << endl;
-                }
+                ofs << "else mat[ij] = mpREAL(1)-(1-2*x[i])*dff[i]*ilas[i];" << endl;
+                ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*ddf[i][j]*ilas[i];" << endl;
                 ofs << "}}" << endl;
                 ofs << "}" << endl;
                 ofs << endl;
@@ -523,27 +458,6 @@ qCOMPLEX log(qCOMPLEX x);
             ofs << "}" << endl;
             ofs << endl;
             
-            // for Minimization of F(z)-image, x[xn-1] is the lambda
-            ofs << "extern \"C\" " << endl;
-            ofs << "dREAL imgFQ_"<<ft_n<<"(const int xn, const dREAL* dx, const dREAL *dpl, const dREAL *dlas_in) {" << endl;
-            ofs << "qREAL x[xn];" <<endl;
-            ofs << "for(int i=0; i<xn; i++) x[i] = dx[i];" <<endl;
-            ofs << "int npls = " << npls << ";" << endl;
-            ofs << "qREAL pl[npls];" <<endl;
-            ofs << "for(int i=0; i<npls; i++) pl[i] = dpl[i];" <<endl;
-            ofs << "qREAL las[xn-1];" <<endl;
-            ofs << "for(int i=0; i<xn-1; i++) las[i] = dlas_in[i]*x[xn-1];" <<endl;
-            ofs << "qCOMPLEX z[xn], r[xn];" << endl;
-            ofs << "qREAL dff[xn+1];" << endl;
-            ofs << "X2ZQ_"<<ft_n<<"(x,z,r,dff,pl,las);" << endl;
-            ofs << "qCOMPLEX zf = ";
-            ft.subs(plRepl).subs(czRepl).print(cppQ);
-            ofs << ";" << endl;
-            ofs << "dREAL dret = -cimagq(zf/x[xn-1]);" << endl;
-            ofs << "return dret;" << endl; // find max image part, check with 0
-            ofs << "}" << endl;
-            ofs << endl;
-            
             // for Minimization of F
             ofs << "extern \"C\" " << endl;
             ofs << "dREAL minF_"<<ft_n<<"(const int xn, const dREAL* x, const dREAL *pl, const dREAL *las_in) {" << endl;
@@ -554,8 +468,9 @@ qCOMPLEX log(qCOMPLEX x);
             // for Minimization of DF-i
             for(int i=0; i<fxs.size(); i++) {
                 ofs << "extern \"C\" " << endl;
-                ofs << "dREAL dirF_"<<ft_n<<"_"<<i<<"(const int xn, const dREAL* x, const dREAL *pl, const dREAL *las) {" << endl;
-                ofs << "dREAL yy = FL_"<<ft_n<<"("<<i<<", x, pl);" << endl;
+                ofs << "dREAL dirC_"<<ft_n<<"_"<<i<<"(const int xn, const dREAL* x, const dREAL *pl, const dREAL *las) {" << endl;
+                ofs << "int i = " << i << ";" << endl;
+                ofs << "dREAL yy = x[i]*(1-x[i])*FL_"<<ft_n<<"(i, x, pl);" << endl;
                 ofs << "return -fabs(yy);" << endl;
                 ofs << "}" << endl;
                 ofs << endl;
@@ -633,8 +548,8 @@ qCOMPLEX log(qCOMPLEX x);
             }
             
             auto ft = kvf.op(2);
-            auto nft = ft.subs(lst{iEpsilon==0,x(w)==0});
-            if(is_a<numeric>(nft) && nft>0) expr = expr.subs(iEpsilon==0);
+            //auto nft = ft.subs(lst{iEpsilon==0,x(w)==0});
+            //if(is_a<numeric>(nft) && nft>0) expr = expr.subs(iEpsilon==0);
             auto fxs = get_xy_from(ft);
             
             exset ftxset;
@@ -713,7 +628,7 @@ dCOMPLEX MatDet(dCOMPLEX mat[], int n);
 qCOMPLEX MatDet(qCOMPLEX mat[], int n);
 mpCOMPLEX MatDet(mpCOMPLEX mat[], int n);
 
-extern int RCLog_NTry;
+extern int NRCLog;
 dCOMPLEX RCLog(dCOMPLEX ys[], int n);
 qCOMPLEX RCLog(qCOMPLEX ys[], int n);
 mpCOMPLEX RCLog(mpCOMPLEX ys[], int n);
@@ -737,6 +652,7 @@ qREAL pow(qREAL x, qREAL y);
 qREAL log(qREAL x);
 qCOMPLEX pow(qCOMPLEX x, qREAL y);
 qCOMPLEX log(qCOMPLEX x);
+qCOMPLEX exp(qCOMPLEX x);
     )EOF" << endl;
     /*----------------------------------------------*/
 
@@ -816,12 +732,12 @@ qCOMPLEX log(qCOMPLEX x);
                     
                     if(logs.nops()>0) {
                         ofs << "int nlog = "<<logs.nops()<<";" << endl;
-                        ofs << "dCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
+                        ofs << "dCOMPLEX CLog[nlog], LogZ[nlog][NRCLog+1];" << endl;
                         cseParser cse;
                         lst clogs = ex_to<lst>(cse.Parse(logs));
                         
-                        ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
-                        ofs << "dCOMPLEX xwr = " << "exp(complex<dREAL>(0, (ti+1) * wra/RCLog_NTry));" << endl;
+                        ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
+                        ofs << "dCOMPLEX xwr = " << "exp(complex<dREAL>(0, ti * wra/NRCLog));" << endl;
                         ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -831,13 +747,13 @@ qCOMPLEX log(qCOMPLEX x);
                         
                         exmap log_subs;
                         for(int i=0; i<clogs.nops(); i++) {
-                            ofs << "CTry["<<i<<"][ti] = ";
+                            ofs << "LogZ["<<i<<"][ti] = ";
                             Evalf(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppL);
                             ofs << ";" << endl;
                             log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                         }
                         ofs << "}" << endl;
-                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
+                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
                         intg = intg.subs(log_subs);
                     }
                     ofs << "dCOMPLEX xwr = exp(complex<dREAL>(0, wra));" << endl; 
@@ -901,36 +817,50 @@ qCOMPLEX log(qCOMPLEX x);
                     ex intg = kv.second;
                     
                     if(use_RCLog) {
+                        exset pows_set;
+                        find(intg, pow(w1,w2), pows_set);
+                        lst pow_subs;
+                        for(auto item : pows_set) {
+                            if(!item.op(0).match(x(w)) && !item.op(1).info(info_flags::integer)) {
+                                pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                            }
+                        }
+                        if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
+                    
                         exset logs_set;
                         find(intg, log(w), logs_set);
                         if(logs_set.size()>0) {
                             lst logs;
-                            for(auto item : logs_set) logs.append(item.op(0));
-                            ofs << "int nlog = "<<logs.nops()<<";" << endl;
-                            ofs << "dCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
-                            cseParser cse;
-                            lst clogs = ex_to<lst>(cse.Parse(logs));
-                            
-                            ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
-                            ofs << "for(int i=0; i<xn; i++) zz[i] = complex<dREAL>(z[i].real(), (ti+1)*z[i].imag()/RCLog_NTry);" << endl;
-                            ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
-                            for(auto kv : cse.os()) {
-                                ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                                Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppL);
-                                ofs << ";" << endl;
+                            for(auto item : logs_set) {
+                                if(!item.op(0).match(x(w))) logs.append(item.op(0));
                             }
-                            
-                            exmap log_subs;
-                            for(int i=0; i<clogs.nops(); i++) {
-                                ofs << "CTry["<<i<<"][ti] = ";
-                                Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppL);
-                                ofs << ";" << endl;
-                                log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                            if(logs.nops()>0) {
+                                ofs << "int nlog = "<<logs.nops()<<";" << endl;
+                                ofs << "dCOMPLEX CLog[nlog], LogZ[nlog][NRCLog+1];" << endl;
+                                cseParser cse;
+                                lst clogs = ex_to<lst>(cse.Parse(logs));
+                                
+                                ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
+                                ofs << "for(int i=0; i<xn; i++) zz[i] = complex<dREAL>(z[i].real(), ti*z[i].imag()/NRCLog);" << endl;
+                                ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                                for(auto kv : cse.os()) {
+                                    ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                                    Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppL);
+                                    ofs << ";" << endl;
+                                }
+                                
+                                exmap log_subs;
+                                for(int i=0; i<clogs.nops(); i++) {
+                                    ofs << "LogZ["<<i<<"][ti] = ";
+                                    Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppL);
+                                    ofs << ";" << endl;
+                                    log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                                }
+                                ofs << "}" << endl;
+                                ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
+                                
+                                intg = intg.subs(log_subs);
                             }
-                            ofs << "}" << endl;
-                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
-                            
-                            intg = intg.subs(log_subs);
                         }
                     }
                     
@@ -1010,12 +940,12 @@ qCOMPLEX log(qCOMPLEX x);
                     
                     if(logs.nops()>0) {
                         ofs << "int nlog = "<<logs.nops()<<";" << endl;
-                        ofs << "qCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
+                        ofs << "qCOMPLEX CLog[nlog], LogZ[nlog][NRCLog+1];" << endl;
                         cseParser cse;
                         lst clogs = ex_to<lst>(cse.Parse(logs));
                         
-                        ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
-                        ofs << "qCOMPLEX xwr = " << "cexpq(1.Qi * (ti+1) * wra/RCLog_NTry);" << endl;
+                        ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
+                        ofs << "qCOMPLEX xwr = " << "cexpq(1.Qi * ti * wra/NRCLog);" << endl;
                         ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -1025,13 +955,13 @@ qCOMPLEX log(qCOMPLEX x);
                         
                         exmap log_subs;
                         for(int i=0; i<clogs.nops(); i++) {
-                            ofs << "CTry["<<i<<"][ti] = ";
+                            ofs << "LogZ["<<i<<"][ti] = ";
                             Evalf(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppQ);
                             ofs << ";" << endl;
                             log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                         }
                         ofs << "}" << endl;
-                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
+                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
                         intg = intg.subs(log_subs);
                     } 
                     ofs << "qCOMPLEX xwr = cexpq(1.Qi * wra);" << endl;
@@ -1090,36 +1020,50 @@ qCOMPLEX log(qCOMPLEX x);
                     ex intg = kv.second;
                     
                     if(use_RCLog) {
+                        exset pows_set;
+                        find(intg, pow(w1,w2), pows_set);
+                        lst pow_subs;
+                        for(auto item : pows_set) {
+                            if(!item.op(0).match(x(w)) && !item.op(1).info(info_flags::integer)) {
+                                pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                            }
+                        }
+                        if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
+                        
                         exset logs_set;
                         find(intg, log(w), logs_set);
                         if(logs_set.size()>0) {
                             lst logs;
-                            for(auto item : logs_set) logs.append(item.op(0));
-                            ofs << "int nlog = "<<logs.nops()<<";" << endl;
-                            ofs << "qCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
-                            cseParser cse;
-                            lst clogs = ex_to<lst>(cse.Parse(logs));
-                            
-                            ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
-                            ofs << "for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi * (ti+1)*cimagq(z[i])/RCLog_NTry;" << endl;
-                            ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
-                            for(auto kv : cse.os()) {
-                                ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                                Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppQ);
-                                ofs << ";" << endl;
+                            for(auto item : logs_set) {
+                                if(!item.op(0).match(x(w))) logs.append(item.op(0));
                             }
-                            
-                            exmap log_subs;
-                            for(int i=0; i<clogs.nops(); i++) {
-                                ofs << "CTry["<<i<<"][ti] = ";
-                                Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppQ);
-                                ofs << ";" << endl;
-                                log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                            if(logs.nops()>0) {
+                                ofs << "int nlog = "<<logs.nops()<<";" << endl;
+                                ofs << "qCOMPLEX CLog[nlog], LogZ[nlog][NRCLog+1];" << endl;
+                                cseParser cse;
+                                lst clogs = ex_to<lst>(cse.Parse(logs));
+                                
+                                ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
+                                ofs << "for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi * ti*cimagq(z[i])/NRCLog;" << endl;
+                                ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                                for(auto kv : cse.os()) {
+                                    ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                                    Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppQ);
+                                    ofs << ";" << endl;
+                                }
+                                
+                                exmap log_subs;
+                                for(int i=0; i<clogs.nops(); i++) {
+                                    ofs << "LogZ["<<i<<"][ti] = ";
+                                    Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppQ);
+                                    ofs << ";" << endl;
+                                    log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                                }
+                                ofs << "}" << endl;
+                                ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
+                                
+                                intg = intg.subs(log_subs);
                             }
-                            ofs << "}" << endl;
-                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
-                            
-                            intg = intg.subs(log_subs);
                         }
                     }
                     
@@ -1210,12 +1154,12 @@ qCOMPLEX log(qCOMPLEX x);
                     
                     if(logs.nops()>0) {
                         ofs << "int nlog = "<<logs.nops()<<";" << endl;
-                        ofs << "mpCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
+                        ofs << "mpCOMPLEX CLog[nlog], LogZ[nlog][NRCLog+1];" << endl;
                         cseParser cse;
                         lst clogs = ex_to<lst>(cse.Parse(logs));
                         
-                        ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
-                        ofs << "mpCOMPLEX xwr = " << "exp(complex<mpREAL>(0, (ti+1) * wra/RCLog_NTry));" << endl;
+                        ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
+                        ofs << "mpCOMPLEX xwr = " << "exp(complex<mpREAL>(0, ti * wra/NRCLog));" << endl;
                         ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -1225,13 +1169,13 @@ qCOMPLEX log(qCOMPLEX x);
                         
                         exmap log_subs;
                         for(int i=0; i<clogs.nops(); i++) {
-                            ofs << "CTry["<<i<<"][ti] = ";
+                            ofs << "LogZ["<<i<<"][ti] = ";
                             Evalf(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppMP);
                             ofs << ";" << endl;
                             log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                         }
                         ofs << "}" << endl;
-                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
+                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
                         intg = intg.subs(log_subs);
                     } 
                     ofs << "mpCOMPLEX xwr = exp(complex<mpREAL>(0, wra));" << endl;
@@ -1295,36 +1239,50 @@ qCOMPLEX log(qCOMPLEX x);
                     ex intg = kv.second;
                     
                     if(use_RCLog) {
+                        exset pows_set;
+                        find(intg, pow(w1,w2), pows_set);
+                        lst pow_subs;
+                        for(auto item : pows_set) {
+                            if(!item.op(0).match(x(w)) && !item.op(1).info(info_flags::integer)) {
+                                pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                            }
+                        }
+                        if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
+                        
                         exset logs_set;
                         find(intg, log(w), logs_set);
                         if(logs_set.size()>0) {
                             lst logs;
-                            for(auto item : logs_set) logs.append(item.op(0));
-                            ofs << "int nlog = "<<logs.nops()<<";" << endl;
-                            ofs << "mpCOMPLEX CLog[nlog], CTry[nlog][RCLog_NTry];" << endl;
-                            cseParser cse;
-                            lst clogs = ex_to<lst>(cse.Parse(logs));
-                            
-                            ofs << "for(int ti=0; ti<RCLog_NTry; ti++) {" << endl;
-                            ofs << "for(int i=0; i<xn; i++) zz[i] = complex<mpREAL>(z[i].real(), (ti+1)*z[i].imag()/RCLog_NTry);" << endl;
-                            ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
-                            for(auto kv : cse.os()) {
-                                ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                                Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppMP);
-                                ofs << ";" << endl;
+                            for(auto item : logs_set) {
+                                if(!item.op(0).match(x(w))) logs.append(item.op(0));
                             }
-                            
-                            exmap log_subs;
-                            for(int i=0; i<clogs.nops(); i++) {
-                                ofs << "CTry["<<i<<"][ti] = ";
-                                Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppMP);
-                                ofs << ";" << endl;
-                                log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                            if(logs.nops()>0) {
+                                ofs << "int nlog = "<<logs.nops()<<";" << endl;
+                                ofs << "mpCOMPLEX CLog[nlog], LogZ[nlog][NRCLog+1];" << endl;
+                                cseParser cse;
+                                lst clogs = ex_to<lst>(cse.Parse(logs));
+                                
+                                ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
+                                ofs << "for(int i=0; i<xn; i++) zz[i] = complex<mpREAL>(z[i].real(), ti*z[i].imag()/NRCLog);" << endl;
+                                ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
+                                for(auto kv : cse.os()) {
+                                    ofs <<cse.oc<< "["<<kv.first<<"] = ";
+                                    Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppMP);
+                                    ofs << ";" << endl;
+                                }
+                                
+                                exmap log_subs;
+                                for(int i=0; i<clogs.nops(); i++) {
+                                    ofs << "LogZ["<<i<<"][ti] = ";
+                                    Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppMP);
+                                    ofs << ";" << endl;
+                                    log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                                }
+                                ofs << "}" << endl;
+                                ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
+                                
+                                intg = intg.subs(log_subs);
                             }
-                            ofs << "}" << endl;
-                            ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(CTry[li],RCLog_NTry);" << endl;
-                            
-                            intg = intg.subs(log_subs);
                         }
                     }
                     

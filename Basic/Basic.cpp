@@ -626,7 +626,7 @@ namespace HepLib {
      */
     string ex2str(const ex &expr) {
         ostringstream oss;
-        oss << expr << endl;
+        oss << expr;
         return oss.str();
     }
     
@@ -767,7 +767,7 @@ namespace HepLib {
                 for(int i=res.ldegree(s); (i<=res.degree(s) && i<=sn); i++) {
                     ret += res.coeff(s,i) * pow(s, i);
                 }
-                ret = ret.subs(pow(s,w)==pow(s0,w/sn_lcm)).subs(s==pow(s0,1/sn_lcm));
+                ret = ret.subs(pow(s,w)==pow(s0,w/sn_lcm)).subs(s==pow(s0,ex(1)/sn_lcm));
                 return ret;
             }
             exN++;
@@ -798,12 +798,12 @@ namespace HepLib {
     /**
      * @brief the expand like Mathematica
      * @param expr_in input expression
-     * @param has only expand the element e, when has(e) is true
+     * @param has_func only expand the element e, when has_func(e) is true
      * @param depth will be incresed by 1 when each recursively called, when depth>5, GiNaC expand will be used
      * @return the expanded expression, expair, coeff is constant, rest involving pattern
      */
-    pair<ex,epvector> mma_expand(ex const &expr_in, std::function<bool(const ex &)> has, int depth) {
-        if(!has(expr_in)) {
+    pair<ex,epvector> mma_expand(ex const &expr_in, std::function<bool(const ex &)> has_func, int depth) {
+        if(!has_func(expr_in)) {
             ex co;
             epvector epv;
             co = expr_in;
@@ -813,8 +813,8 @@ namespace HepLib {
             epvector epv;
             exmap pcmap;
             for(auto item : expr_in) {
-                if(has(item)) {
-                    auto co_epv = mma_expand(item, has, depth+1);
+                if(has_func(item)) {
+                    auto co_epv = mma_expand(item, has_func, depth+1);
                     co += co_epv.first;
                     for(auto ep : co_epv.second) pcmap[ep.rest] += ep.coeff;
                 } else co += item;
@@ -828,12 +828,12 @@ namespace HepLib {
             ex co = 1;
             epvector epv;
             for(auto item : expr_in) {
-                if(!has(item)) {
+                if(!has_func(item)) {
                     for(auto & ep : epv) ep.coeff *= item;
                     co *= item;
                 } else {
                     exmap pcmap;
-                    auto co_epv = mma_expand(item, has, depth+1);
+                    auto co_epv = mma_expand(item, has_func, depth+1);
                     for(auto ep2 : co_epv.second) {
                         pcmap[ep2.rest] += ep2.coeff * co;
                         for(auto ep1 : epv) pcmap[ep1.rest * ep2.rest] += ep1.coeff * ep2.coeff;
@@ -852,7 +852,7 @@ namespace HepLib {
             ex co = 1;
             epvector epv;
             int n = ex_to<numeric>(expr_in.op(1)).to_int();
-            auto co_epv = mma_expand(expr_in.op(0), has, depth+1);
+            auto co_epv = mma_expand(expr_in.op(0), has_func, depth+1);
             for(int i=0; i<n; i++) {
                 exmap pcmap;
                 for(auto ep2 : co_epv.second) {
@@ -880,11 +880,11 @@ namespace HepLib {
     /**
      * @brief the expand like Mathematica
      * @param expr_in input expression
-     * @param pats only expand the element e, when e has at least one pattern in pats is true
+     * @param has_func only expand the element e, when has_func(e) is true
      * @return the expanded expression
      */
-    ex mma_expand(ex const &expr_in, std::function<bool(const ex &)> has) {
-        auto co_epv = mma_expand(expr_in, has, 0);
+    ex mma_expand(ex const &expr_in, std::function<bool(const ex &)> has_func) {
+        auto co_epv = mma_expand(expr_in, has_func, 0);
         ex ret = co_epv.first;
         for(auto ep : co_epv.second) ret += ep.coeff * ep.rest;
         return ret;
@@ -922,23 +922,23 @@ namespace HepLib {
     /**
      * @brief the collect function like Mathematica
      * @param expr_in input expression
-     * @param has only collect the element e, when has(e) is true
+     * @param has_func only collect the element e, when has_func(e) is true
      * @param ccf true for wrapping coefficient in coCF
      * @param cvf true to wrapping has-ed element in coVF
      * @return the collected expression
      */
-    ex mma_collect(ex const &expr_in, std::function<bool(const ex &)> has, bool ccf, bool cvf) {
-        auto items = mma_expand(expr_in, has);
+    ex mma_collect(ex const &expr_in, std::function<bool(const ex &)> has_func, bool ccf, bool cvf) {
+        auto items = mma_expand(expr_in, has_func);
         if(!is_a<add>(items)) items = lst{ items };
         
         ex cf = 0;
         map<ex, ex, ex_is_less> vc_map;
         for(auto item : items) {
-            if(!has(item)) cf += item;
+            if(!has_func(item)) cf += item;
             else if(is_a<mul>(item)) {
                 ex tc = 1, tv = 1;
                 for(auto ii : item) {
-                    if(!has(ii)) tc *= ii;
+                    if(!has_func(ii)) tc *= ii;
                     else tv *= ii;
                 }
                 vc_map[tv] += tc;
@@ -950,7 +950,7 @@ namespace HepLib {
         ex res = 0;
         if(!is_zero(cf)) res += coCF(cf)*coVF(1);
         for(auto vc : vc_map) {
-            if(has(vc.second)) {
+            if(has_func(vc.second)) {
                 cerr << Color_Error << "mma_collect: pats founds @ " << vc.second << RESET << endl;
                 throw Error("mma_collect: coefficent has pat.");
             }
@@ -965,21 +965,21 @@ namespace HepLib {
     /**
      * @brief the collect function like Mathematica, reture the lst { {c1,v1}, {c2,v2}, ... }
      * @param expr_in input expression
-     * @param has only collect the element e, when has(e) is true
+     * @param has_func only collect the element e, when has_func(e) is true
      * @return the collected expression in lst
      */
-    lst mma_collect_lst(ex const &expr_in, std::function<bool(const ex &)> has) {
-        auto items = mma_expand(expr_in, has);
+    lst mma_collect_lst(ex const &expr_in, std::function<bool(const ex &)> has_func) {
+        auto items = mma_expand(expr_in, has_func);
         if(!is_a<add>(items)) items = lst{ items };
         
         ex cf = 0;
         map<ex, ex, ex_is_less> vc_map;
         for(auto item : items) {
-            if(!has(item)) cf += item;
+            if(!has_func(item)) cf += item;
             else if(is_a<mul>(item)) {
                 ex tc = 1, tv = 1;
                 for(auto ii : item) {
-                    if(!has(ii)) tc *= ii;
+                    if(!has_func(ii)) tc *= ii;
                     else tv *= ii;
                 }
                 vc_map[tv] += tc;
@@ -991,7 +991,7 @@ namespace HepLib {
         lst res_lst;
         if(!is_zero(cf)) res_lst.append(lst{cf,1});
         for(auto vc : vc_map) {
-            if(has(vc.second)) {
+            if(has_func(vc.second)) {
                 cerr << Color_Error << "mma_collect: pats founds @ " << vc.second << RESET << endl;
                 throw Error("mma_collect: coefficent has pat.");
             }
@@ -1087,7 +1087,7 @@ namespace HepLib {
      */
     bool xPositive(ex const expr) {
         auto tmp = expr.expand();
-        if(tmp.is_zero()) return true;
+        if(tmp.is_zero()) return false;
         bool ret = false;
         if(is_a<add>(tmp)) {
             for(auto item : tmp) {
@@ -1110,6 +1110,7 @@ namespace HepLib {
      * @return 1 for xPositive exprs, -1 when -expr is xPositive, 0 for others
      */
     int xSign(ex const expr) {
+        if(is_zero(expr)) return 0;
         if(xPositive(expr)) return 1;
         else if(xPositive(ex(0)-expr)) return -1;
         else return 0;

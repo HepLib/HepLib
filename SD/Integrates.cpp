@@ -85,9 +85,8 @@ namespace HepLib::SD {
         
         void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW);
         if(main_module == nullptr) {
-            cerr << Color_Error << "Integrates: could not open main module!" << RESET << endl;
             cout << "dlerror(): " << dlerror() << endl;
-            exit(1);
+            throw Error("Integrates: could not open main module!");
         }
         
         if(!debug && key == "") {
@@ -105,9 +104,8 @@ namespace HepLib::SD {
             if(file_exists(ex_sofn.str().c_str())) {
                 void* module = dlopen(ex_sofn.str().c_str(), RTLD_NOW);
                 if(module == nullptr) {
-                    cerr << Color_Error << "Integrates: could not open ex-module!" << RESET << endl;
                     cout << "dlerror(): " << dlerror() << endl;
-                    exit(1);
+                    throw Error("Integrates: could not open ex-module!");
                 }
                 ex_modules.push_back(module);
                 if(!debug && key == "") remove(ex_sofn.str().c_str());
@@ -185,20 +183,14 @@ namespace HepLib::SD {
                         auto nt = css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{
                             epsID(w)==1, CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                         }).evalf();
-                        if(nt.has(ep)) {
-                            cerr << Color_Error << "Integrates: ep found @ nt = " << nt << RESET << endl;
-                            exit(1);
-                        }
+                        if(nt.has(ep)) throw Error("Integrates: ep found @ nt = "+ex2str(nt));
                         
                         lst nt_lst;
                         if(!is_a<numeric>(nt)) {
                             auto cv_lst = mma_collect_lst(nt,[](const ex &e)->bool{return Symbol::has(e);});
                             for(auto nti : cv_lst) {
                                 auto nnt = nti.op(0);
-                                if(!is_a<numeric>(nnt)) {
-                                    cerr << Color_Error << "Integrates: Not a number with nt = " << nnt << RESET << endl;
-                                    exit(1);
-                                }
+                                if(!is_a<numeric>(nnt)) throw Error("Integrates: Not a number with nt = "+ex2str(nnt));
                                 nt_lst.append(nnt);
                             }
                         } else nt_lst.append(nt);
@@ -241,8 +233,7 @@ namespace HepLib::SD {
             
             if(hasF && !is_a<lst>(las)) {
                 if(!is_zero(las-ex(1979))) { // the convention for xPositive or explict real mode
-                    cerr << Color_Error << "Integrates: something is wrong with the F-term @ ft_n = " << item.op(3) << ", las=" << las << RESET << endl;
-                    exit(1);
+                    throw Error("Integrates: something is wrong with the F-term @ ft_n = "+ex2str(item.op(3)) + ", las=" + ex2str(las));
                 } else {
                     hasF = false;
                 }
@@ -286,9 +277,8 @@ namespace HepLib::SD {
                 fname << "FT_" << idx;
                 ftp = (IntegratorBase::FT_Type)dlsym(module, fname.str().c_str());
                 if(ftp==NULL) {
-                    cerr << Color_Error << "Integrates: ftp==NULL" << RESET << endl;
                     cout << "dlerror(): " << dlerror() << endl;
-                    exit(1);
+                    throw Error("Integrates: ftp==NULL.");
                 }
             }
             
@@ -308,7 +298,7 @@ namespace HepLib::SD {
             
             if(hasF) {
                 qREAL lamax = CppFormat::ex2q(las.op(las.nops()-1));
-                if(lamax > LambdaMax) lamax = LambdaMax;
+                if(lamax > IntLaMax) lamax = IntLaMax;
                 
                 if(TryPTS<10000) TryPTS = 10000;
                 Integrator->RunMAX = -5;
@@ -325,7 +315,7 @@ namespace HepLib::SD {
                 ex min_err, min_res;
                 long long min_eval;
                 qREAL log_lamax = log10q(lamax);
-                qREAL log_lamin = log_lamax-2.Q;
+                qREAL log_lamin = log_lamax-1.Q;
                 
                 ostringstream las_fn;
                 las_fn << key;
@@ -361,7 +351,7 @@ namespace HepLib::SD {
                         }
                         auto log_cla = (log_lamin + s * (log_lamax-log_lamin) / LambdaSplit);
                         auto cla = powq(10.Q, log_cla);
-                        if(cla < 1E-10) continue;
+                        if(cla < 1E-10) throw Error("NIntegrate: too small lambda.");
                         for(int i=0; i<las.nops()-1; i++) lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
      
                         auto res = Integrator->Integrate();
@@ -383,7 +373,10 @@ namespace HepLib::SD {
                         exset ves;
                         diff.find(VE(w0, w1), ves);
                         for(auto ve : ves) {
-                            if(abs(ve.op(0))>ve.op(1) && res_abs<1.E10*abs(ve.op(0))) { // avoid fluctuation aroud 0
+                            auto ve0 = abs(ve.op(0));
+                            if(ve0>ve.op(1)) { 
+                                if(1.E10*ve0<res_abs) continue; // avoid fluctuation aroud 0
+                                if(1.E10*ve0<CppFormat::q2ex(EpsAbs)) continue; // avoid fluctuation aroud 0
                                 err_break = true;
                                 break;
                             }
