@@ -275,8 +275,8 @@ int IntegratorBase::inDQMP(qREAL const *x) {
     }
     if(xmin <= MPXLimit) return 3;
     
-    qREAL ft = 1E50;
     if(FT!=NULL) {
+        qREAL ft = 1E50;
         static FT_Type last_ft = NULL;
         static qREAL ft0;
         if(last_ft!=FT) {
@@ -288,8 +288,8 @@ int IntegratorBase::inDQMP(qREAL const *x) {
         } 
         ft = fabsq(FT(x, Parameter));
         ft = ft/ft0;
+        if(ft<MPFLimit) return 3;
     }
-    if(ft<MPFLimit) return 3;
     
     if(xdim <= QXDim || xmin < QXLimit) return 2;
     if(ft<QFLimit) return 2;

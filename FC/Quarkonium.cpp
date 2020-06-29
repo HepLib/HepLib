@@ -253,7 +253,7 @@ namespace HepLib::FC {
             expr = MapFunction([&lproj,prefix,q](const ex &e, MapFunction &self)->ex {
                 if(!e.has(q)) return e;
                 else if(is_a<Pair>(e)) {
-                    if(!e.op(0).is_equal(q)) throw Error("LProj: e.op(0) is NOT q.");
+                    if(!e.op(0).is_equal(q) && !e.op(1).is_equal(q)) throw Error("LProj: e.op(0) is NOT q with e = " + ex2str(e));
                     if(is_a<Index>(e.op(1))) return e;
                     Index idx(prefix+to_string(++lproj));
                     return SP(e.op(0), idx) * SP(e.op(1), idx);

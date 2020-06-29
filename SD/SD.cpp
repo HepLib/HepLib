@@ -384,15 +384,12 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
             } else if ( ft.match(y(w)) || ft.match(pow(y(w), w1)) ) {
                 ft = 1;
             }
+            bool hasWRA = false;
             if(ft.has(WRA(w))) {
-                static symbol wr;
-                if(ft.subs(WRA(w)==wr).degree(w)==2) ft = 1;
-                else {
-                    ft = ft.subs(WRA(w)==1);
-                    ypolist = ypolist.subs(WRA(w)==1);
-                }
+                ft = 1;
+                hasWRA = true;
             }
-            
+
             bool need_contour_deformation = ft.has(PL(w));
             if(ft.has(y(w)) && !need_contour_deformation) {
                 auto tmp = ft.subs(nReplacements).subs(lst{
@@ -513,7 +510,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                     }
                 }
 
-                ex pnp = rem-(i==1 && ft!=1 ? iEpsilon : ex(0));
+                ex pnp = rem-(i==1 && (ft!=1 || hasWRA) ? iEpsilon : ex(0));
                 pnp = pnp.subs(y(w)==x(w));
                 ex pnn = exlist.op(i);
                 pnn = pnn.subs(y(w)==x(w));

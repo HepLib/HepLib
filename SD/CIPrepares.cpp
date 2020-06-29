@@ -548,8 +548,6 @@ qCOMPLEX exp(qCOMPLEX x);
             }
             
             auto ft = kvf.op(2);
-            //auto nft = ft.subs(lst{iEpsilon==0,x(w)==0});
-            //if(is_a<numeric>(nft) && nft>0) expr = expr.subs(iEpsilon==0);
             auto fxs = get_xy_from(ft);
             
             exset ftxset;
@@ -717,7 +715,7 @@ qCOMPLEX exp(qCOMPLEX x);
                     find(intg, pow(w1,w2), pows_set);
                     lst pow_subs;
                     for(auto item : pows_set) {
-                        if(item.has(WRA(w)) && !item.op(1).info(info_flags::integer)) {
+                        if(item.has(xwr) && !item.op(1).info(info_flags::integer)) {
                             pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
                         }
                     }
@@ -727,7 +725,7 @@ qCOMPLEX exp(qCOMPLEX x);
                     find(intg, log(w), logs_set);
                     lst logs;
                     for(auto item : logs_set) {
-                        if(item.has(WRA(w))) logs.append(item.op(0));
+                        if(item.has(xwr)) logs.append(item.op(0));
                     }
                     
                     if(logs.nops()>0) {
@@ -925,7 +923,7 @@ qCOMPLEX exp(qCOMPLEX x);
                     find(intg, pow(w1,w2), pows_set);
                     lst pow_subs;
                     for(auto item : pows_set) {
-                        if(item.has(WRA(w)) && !item.op(1).info(info_flags::integer)) {
+                        if(item.has(xwr) && !item.op(1).info(info_flags::integer)) {
                             pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
                         }
                     }
@@ -1139,7 +1137,7 @@ qCOMPLEX exp(qCOMPLEX x);
                     find(intg, pow(w1,w2), pows_set);
                     lst pow_subs;
                     for(auto item : pows_set) {
-                        if(item.has(WRA(w)) && !item.op(1).info(info_flags::integer)) {
+                        if(item.has(xwr) && !item.op(1).info(info_flags::integer)) {
                             pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
                         }
                     }
@@ -1149,7 +1147,7 @@ qCOMPLEX exp(qCOMPLEX x);
                     find(intg, log(w), logs_set);
                     lst logs;
                     for(auto item : logs_set) {
-                        if(item.has(WRA(w))) logs.append(item.op(0));
+                        if(item.has(xwr)) logs.append(item.op(0));
                     }
                     
                     if(logs.nops()>0) {
