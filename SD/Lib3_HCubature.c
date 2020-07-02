@@ -808,8 +808,38 @@ static int rulecubature(rule *r, unsigned fdim,
             }
         } else { /* minimize number of function evaluations */
             R[0] = heap_pop(&regions); /* get worst region */
+            
+            REAL xmin = 10;
+            // Feng : check xmin
+            for(j=0; j<R[0].h.dim; j++) {
+                if(R[0].h.data[j] < xmin) xmin = R[0].h.data[j];
+            }
+            
             if (cut_region(R, R+1) || eval_regions(2, R, f, fdata, r) || heap_push_many(&regions, 2, R)) goto bad;
             numEval += r->num_points * 2;
+            
+            {// Feng
+                for (j = 0; j < fdim; ++j) val[j] = err[j] = 0;
+                for (i = 0; i < regions.n; ++i) {
+                    for (j = 0; j < fdim; ++j) {
+                        val[j] += regions.items[i].ee[j].val;
+                        err[j] += regions.items[i].ee[j].err;
+                    }
+                }
+                                
+                int toExit = (numEval>minEval);
+                for (j = 0; j < fdim; ++j) toExit = toExit && (err[j] <= reqAbsError);
+                if(toExit) {
+                    runs = numEval;
+                    if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);
+                    goto done;
+                }
+                if(PrintHooker!=NULL && (xmin<1E-8 || (numEval-runs)>runEval)) {
+                    if((numEval-runs)>runEval) runs = numEval;
+                    PrintHooker(val, err, &numEval, fdata);
+                }
+            }
+            
         }
     }
     if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);

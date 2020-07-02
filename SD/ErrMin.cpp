@@ -38,7 +38,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     try {
         nerr = ex_to<numeric>(abs(err).evalf());
         if(nerr > numeric(1.E100)) nerr = numeric(1.E100);
-        if(err_max > CppFormat::ex2q(nerr)) {
+        if(err_max > ex2q(nerr)) {
             auto diff = VESimplify(lastResErr - res);
             diff = diff.subs(VE(0,0)==0);
             exset ves;
@@ -55,7 +55,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
                 for(int i=0; i<nvars; i++) cout << las[i] << " ";
                 cout << endl << "     " << res.subs(VE(0,0)==0).subs(VE(w1,w2)==VEO(w1,w2)) << endl;
             }
-            err_max = CppFormat::ex2q(nerr);
+            err_max = ex2q(nerr);
             for(int i=0; i<nvars; i++) lambda[i] = las[i];
             if(err_max<=err_min) {
                 cout << "\r                             \r";
@@ -95,7 +95,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
         miner->ForceStop();
         return 0.;
     }
-    dREAL ret = CppFormat::ex2q(nerr);
+    dREAL ret = ex2q(nerr);
     Digits = oDigits;
     return ret;
 }

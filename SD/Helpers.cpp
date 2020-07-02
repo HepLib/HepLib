@@ -289,10 +289,10 @@ int IntegratorBase::inDQMP(qREAL const *x) {
         ft = fabsq(FT(x, Parameter));
         ft = ft/ft0;
         if(ft<MPFLimit) return 3;
+        else if(ft<QFLimit) return 2;
     }
     
     if(xdim <= QXDim || xmin < QXLimit) return 2;
-    if(ft<QFLimit) return 2;
     
     return 1;
 }
@@ -316,13 +316,20 @@ void SecDec::VEPrint(bool endlQ) {
     if(endlQ) cout << endl;
 }
 
-ex Factor(const ex expr) {
+ex Factor(const ex expr_in) {
+    ex expr = collect_common_factors(expr_in);
     if(is_a<mul>(expr)) {
         ex ret = 1;
         for(auto item : expr) {
             if(item.has(x(w)) || (item.has(y(w))) || (item.has(z(w)))) ret *= Factor(item);
             else ret *= item;
         }
+        return ret;
+    } else if(is_a<power>(expr) || expr.match(pow(w1,w2))) {
+        ex res = Factor(expr.op(0));
+        if(!is_a<mul>(res)) res = lst{res};
+        ex ret = 1;
+        for(auto item : res) ret *= pow(item, expr.op(1));
         return ret;
     }
 
@@ -466,7 +473,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     system(cmd.str().c_str());
     
     void* module = nullptr;
-    module = dlopen(sofn.str().c_str(), RTLD_NOW);
+    module = dlopen(sofn.str().c_str(), RTLD_NOW | RTLD_DEEPBIND | RTLD_GLOBAL);
     if(module == nullptr) {
         cerr << Color_Error << "FindMinimum: could not open compiled module!" << RESET << endl;
         cout << "dlerror(): " << dlerror() << endl;

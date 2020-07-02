@@ -521,7 +521,7 @@ namespace HepLib::FC::Qgraf {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        if(mode==0) return -I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)+iEpsilon);
+        if(mode==0) return -I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)-iEpsilon);
         else return -I * Matrix(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)-iEpsilon);
     }
     

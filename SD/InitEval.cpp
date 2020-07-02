@@ -314,8 +314,7 @@ namespace HepLib::SD {
         for(int i=0; i<xn; i++) {
         if(is_a<numeric>(ns.op(i)) && ns.op(i)<0) {
             if(!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer()) {
-                cerr << Color_Error << "Initialize: (!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer())" << RESET << endl;
-                exit(1);
+                throw Error("Initialize: (!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer())");
             }
 
             for(int j=0; j<ex(0)-ns.op(i); j++) {

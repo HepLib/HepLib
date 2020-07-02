@@ -143,8 +143,8 @@ ex CUBA::Integrate() {
     if(isnanq(result[0]) || isnanq(result[1])) FResult += NaN;
     else {
         try{
-            FResult += VE(CppFormat::q2ex(result[0]), CppFormat::q2ex(estabs[0]));
-            FResult += VE(CppFormat::q2ex(result[1]), CppFormat::q2ex(estabs[1])) * I;
+            FResult += VE(q2ex(result[0]), q2ex(estabs[0]));
+            FResult += VE(q2ex(result[1]), q2ex(estabs[1])) * I;
         } catch(...) {
             FResult += NaN;
         }

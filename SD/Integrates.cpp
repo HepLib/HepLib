@@ -83,7 +83,7 @@ namespace HepLib::SD {
             }
         }
         
-        void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW);
+        void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW | RTLD_DEEPBIND | RTLD_GLOBAL);
         if(main_module == nullptr) {
             cout << "dlerror(): " << dlerror() << endl;
             throw Error("Integrates: could not open main module!");
@@ -102,7 +102,7 @@ namespace HepLib::SD {
                 ex_sofn << key << "X" << n << ".so";
             }
             if(file_exists(ex_sofn.str().c_str())) {
-                void* module = dlopen(ex_sofn.str().c_str(), RTLD_NOW);
+                void* module = dlopen(ex_sofn.str().c_str(), RTLD_NOW | RTLD_DEEPBIND | RTLD_GLOBAL);
                 if(module == nullptr) {
                     cout << "dlerror(): " << dlerror() << endl;
                     throw Error("Integrates: could not open ex-module!");
@@ -209,7 +209,7 @@ namespace HepLib::SD {
                             }
                             nnt = abs(nnt).evalf(); // no PL here, then nReplacements
                             
-                            qREAL qnt = CppFormat::ex2q(nnt);
+                            qREAL qnt = ex2q(nnt);
                             if(qnt > cmax) cmax = qnt;
                         }
                     }
@@ -284,7 +284,7 @@ namespace HepLib::SD {
             
             qREAL lambda[las.nops()];
             qREAL paras[npara+1];
-            for(auto kv : Parameter) paras[kv.first] = CppFormat::ex2q(kv.second);
+            for(auto kv : Parameter) paras[kv.first] = ex2q(kv.second);
             
             Integrator->ReIm = reim;
             Integrator->MPDigits = MPDigits;
@@ -297,7 +297,7 @@ namespace HepLib::SD {
             Integrator->XDim = xsize;
             
             if(hasF) {
-                qREAL lamax = CppFormat::ex2q(las.op(las.nops()-1));
+                qREAL lamax = ex2q(las.op(las.nops()-1));
                 if(lamax > IntLaMax) lamax = IntLaMax;
                 
                 if(TryPTS<10000) TryPTS = 10000;
@@ -352,7 +352,7 @@ namespace HepLib::SD {
                         auto log_cla = (log_lamin + s * (log_lamax-log_lamin) / LambdaSplit);
                         auto cla = powq(10.Q, log_cla);
                         if(cla < 1E-10) throw Error("NIntegrate: too small lambda.");
-                        for(int i=0; i<las.nops()-1; i++) lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
+                        for(int i=0; i<las.nops()-1; i++) lambda[i] = ex2q(las.op(i)) * cla;
      
                         auto res = Integrator->Integrate();
                         if(Verbose>10) {
@@ -376,7 +376,7 @@ namespace HepLib::SD {
                             auto ve0 = abs(ve.op(0));
                             if(ve0>ve.op(1)) { 
                                 if(1.E10*ve0<res_abs) continue; // avoid fluctuation aroud 0
-                                if(1.E10*ve0<CppFormat::q2ex(EpsAbs)) continue; // avoid fluctuation aroud 0
+                                if(1.E10*ve0<q2ex(EpsAbs)) continue; // avoid fluctuation aroud 0
                                 err_break = true;
                                 break;
                             }
@@ -396,7 +396,7 @@ namespace HepLib::SD {
                             min_eval = Integrator->NEval;
                             smin = s;
                         } 
-                        if(s>0 && min_err < CppFormat::q2ex(EpsAbs/cmax/stot)) { 
+                        if(s>0 && min_err < q2ex(EpsAbs/cmax/stot)) { 
                             // s>0 make sure at least 2 λs compatiable
                             if(Verbose>5) {
                                 cout << Color_HighLight << "     λ=" << (double)cla << "/" << min_eval << ": " << HepLib::SD::VEResult(VESimplify(min_res)) << RESET << endl;
@@ -441,7 +441,7 @@ namespace HepLib::SD {
                 auto cla = powq(10.Q, log_cla);
                 if(Verbose > 7) cout << Color_HighLight << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
                 for(int i=0; i<las.nops()-1; i++) {
-                    lambda[i] = CppFormat::ex2q(las.op(i)) * cla;
+                    lambda[i] = ex2q(las.op(i)) * cla;
                 }
                 // ---------------------------------------
                 }
@@ -449,7 +449,7 @@ namespace HepLib::SD {
                 // ---------------------------------------
                 // try HookeJeeves
                 // ---------------------------------------
-                if( use_ErrMin && (min_err > CppFormat::q2ex(1E5 * EpsAbs/cmax/stot)) ) {
+                if( use_ErrMin && (min_err > q2ex(1E5 * EpsAbs/cmax/stot)) ) {
                     ErrMin::lastResErr = min_res;
                     auto miner = new HookeJeeves();
                     ErrMin::miner = miner;
@@ -459,7 +459,7 @@ namespace HepLib::SD {
                     ErrMin::lambda = oo;
                     ErrMin::err_max = 1E100;
                     auto oerrmin = ErrMin::err_min;
-                    ErrMin::err_min = oerrmin < 0 ? -oerrmin * CppFormat::ex2q(min_err) : oerrmin/cmax;
+                    ErrMin::err_min = oerrmin < 0 ? -oerrmin * ex2q(min_err) : oerrmin/cmax;
                     ErrMin::RunRND = 0;
                     miner->Minimize(las.nops()-1, ErrMin::IntError, ip);
                     delete miner;

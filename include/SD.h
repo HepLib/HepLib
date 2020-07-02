@@ -159,7 +159,7 @@ namespace HepLib::SD {
         
         bool UseCpp = true;
         long long NEval = 0;
-        int MPDigits = 50;
+        int MPDigits = 100;
     };
 
     class HCubature : public IntegratorBase {
@@ -250,10 +250,7 @@ namespace HepLib::SD {
         GINAC_DECLARE_PRINT_CONTEXT(CppFormat, print_csrc_cl_N)
     public:
         CppFormat(ostream &os, const string & s = "L", unsigned opt = 0);
-        static ex q2ex(qREAL);
-        static qREAL ex2q(ex);
         string suffix;
-        static void QPrint(qREAL qr);
         string MQuote = "\"";
         // static initialization
         class _init {
@@ -327,7 +324,7 @@ namespace HepLib::SD {
         bool use_RCLog = true;
         bool all_in_one = true;
         bool use_XReOrders = false;
-        int MPDigits = 50; // digits in mpREAL for MP
+        int MPDigits = 100; // digits in mpREAL for MP
         lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
         
         map<int, numeric> Parameter; // used Contours and Integrates, use PL in Prepares part
@@ -433,5 +430,6 @@ namespace HepLib::SD {
 }
 
 extern int NRCLog;
+
 
 

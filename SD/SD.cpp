@@ -566,11 +566,10 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                                 });
                                 if(!is_a<numeric>(tr)) {
-                                    cerr << Color_Error << "Normalize: tr is NOT numeric with nReplacements." << RESET << endl;
                                     cerr << "tmp: " << tmp << endl;
                                     cerr << "tr: " << tr << endl;
                                     cerr << "nReplacements: " << nReplacements << endl;
-                                    exit(1);
+                                    throw Error("Normalize: tr is NOT numeric with nReplacements.");
                                 }
                                 if(ex_to<numeric>(tr)>0) {
                                     const_term *=  pow(tmp,ntmp);

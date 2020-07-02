@@ -10,6 +10,10 @@
 #include "Process.h"
 #include "cln/cln.h"
 
+extern "C" {
+    #include <quadmath.h>
+}
+
 namespace HepLib {
 
     /**
@@ -664,6 +668,27 @@ namespace HepLib {
         ofs.close();
     }
     
+    ex q2ex(__float128 num) {
+        char buffer[128];
+        quadmath_snprintf(buffer, sizeof buffer, "%.36QG", num);
+        numeric ret(buffer);
+        return ret;
+    }
+
+    __float128 ex2q(ex num) {
+        ostringstream nss;
+        auto oDigits = Digits;
+        Digits = 40;
+        nss << num.evalf() << endl;
+        __float128 ret = strtoflt128(nss.str().c_str(), NULL);
+        Digits = oDigits;
+        return ret;
+    }
+    
+    int ex2int(ex num) {
+        return ex_to<numeric>(num).to_int();
+    }
+    
     /**
      * @brief convert exvector to lst
      * @param exvec input exvector
@@ -1060,7 +1085,7 @@ namespace HepLib {
     }
 
     /**
-     * @brief the nuerical evaluation, Digits=50 will be used
+     * @brief the nuerical evaluation, Digits=100 will be used
      * @param expr input expression
      * @return the nuerical expression
      */
@@ -1072,12 +1097,25 @@ namespace HepLib {
         
         lst repl;
         auto oDigits = Digits;
-        Digits = 50;
+        Digits = 100;
         for(auto zi : zs) {
             repl.append(zi==zi.evalf());
         }
         Digits = oDigits;
         return expr.subs(repl);
+    }
+    
+    ex EvalL(ex expr) {
+        lst repl = lst{Pi==symbol("dPi"), Euler==symbol("dEuler"),iEpsilon==symbol("diEpsilon")};
+        return Evalf(expr.subs(repl));
+    }
+    ex EvalQ(ex expr) {
+        lst repl = lst{Pi==symbol("qPi"), Euler==symbol("qEuler"),iEpsilon==symbol("qiEpsilon")};
+        return Evalf(expr.subs(repl));
+    }
+    ex EvalMP(ex expr) {
+        lst repl = lst{Pi==symbol("mpPi"), Euler==symbol("mpEuler"),iEpsilon==symbol("mpiEpsilon")};
+        return Evalf(expr.subs(repl));
     }
 
     /**

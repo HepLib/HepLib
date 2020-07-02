@@ -13,29 +13,6 @@ namespace HepLib::SD {
 
 GINAC_IMPLEMENT_PRINT_CONTEXT(CppFormat, print_csrc_cl_N)
 
-ex CppFormat::q2ex(qREAL num) {
-    char buffer[128];
-    quadmath_snprintf(buffer, sizeof buffer, "%.36QG", num);
-    numeric ret(buffer);
-    return ret;
-}
-
-qREAL CppFormat::ex2q(ex num) {
-    ostringstream nss;
-    auto oDigits = Digits;
-    Digits = 40;
-    nss << num.evalf() << endl;
-    qREAL ret = strtoflt128(nss.str().c_str(), NULL);
-    Digits = oDigits;
-    return ret;
-}
-
-void CppFormat::QPrint(qREAL num) {
-    char buffer[128];
-    quadmath_snprintf(buffer, sizeof buffer, "%.36QG", num);
-    cout << buffer << endl;
-}
-
 void CppFormat::print_integer(const CppFormat & c, const cln::cl_I & x) {
     const int max_cln_int = 536870911; // 2^29-1
     if (x >= cln::cl_I(-max_cln_int) && x <= cln::cl_I(max_cln_int)) {

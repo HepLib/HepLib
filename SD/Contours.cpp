@@ -52,7 +52,7 @@ namespace HepLib::SD {
         } else {
             fsofn << pid << "F.so";
         }
-        void* module = dlopen(fsofn.str().c_str(), RTLD_NOW);
+        void* module = dlopen(fsofn.str().c_str(), RTLD_NOW | RTLD_DEEPBIND | RTLD_GLOBAL);
         if (module == nullptr) {
             cerr << Color_Error << "Contours: could not open compiled module!" << RESET << endl;
             cout << "dlerror(): " << dlerror() << endl;
@@ -73,7 +73,7 @@ namespace HepLib::SD {
             dREAL paras[npara+1];
             lst plRepl;
             for(auto kv : Parameter) {
-                paras[kv.first] = CppFormat::ex2q(kv.second);
+                paras[kv.first] = ex2q(kv.second);
                 plRepl.append(PL(kv.first)==kv.second);
             }
             
@@ -139,7 +139,7 @@ namespace HepLib::SD {
             
             lst las;
             for(int i=0; i<nvars; i++) {
-                las.append(CppFormat::q2ex(nlas[i]));
+                las.append(q2ex(nlas[i]));
             }
             
             MinimizeBase::FunctionType fp;
@@ -175,7 +175,7 @@ namespace HepLib::SD {
             }
             min = laBegin;
         
-            las.append(CppFormat::q2ex(min));
+            las.append(q2ex(min));
             if(Verbose>5) {
                 auto oDigits = Digits;
                 Digits = 3;

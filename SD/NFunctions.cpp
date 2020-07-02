@@ -15,9 +15,6 @@ extern "C" {
 
 int NRCLog = 7;
 
-#define Pi 3.1415926535897932384626433832795028841971693993751L
-#define Euler 0.57721566490153286060651209008240243104215933593992L
-
 using namespace std;
 typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
@@ -46,6 +43,10 @@ qREAL log(qREAL x) { return logq(x); }
 qCOMPLEX pow(qCOMPLEX x, qREAL y) { return cpowq(x, y); }
 qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
 qCOMPLEX exp(qCOMPLEX x) { return cexpq(x); }
+
+dREAL dPi = 3.1415926535897932384626433832795028841971693993751L;
+dREAL dEuler = 0.57721566490153286060651209008240243104215933593992L;
+dCOMPLEX diEpsilon = complex<dREAL>(0, 1.E-50);
 
 dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
     bool is_zero = false;
@@ -80,6 +81,7 @@ dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
 dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
     auto eps = LDBL_EPSILON;
     dCOMPLEX ret = log(xs[n-1]);
+    if(n<2) return ret;
     int total=0;
     int ReIm[n][2];
     for(int k=0; k<n; k++) {
@@ -87,8 +89,8 @@ dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
         auto curI = xs[k].imag();
         auto absR = fabs(curR);
         auto absI = fabs(curI);
-        if(absI<eps*absR && k==0 && absR<0) ReIm[total][1] = -1;
-        else if(absR<eps*absI || absI<eps*absR) continue; 
+        if(absI<10*eps*absR && k==0 && absR<0) ReIm[total][1] = -1;
+        else if(absR<10*eps*absI || absI<10*eps*absR) continue; 
         else ReIm[total][1] = curI>0 ? 1 : -1;
         ReIm[total][0] = curR>0 ? 1 : -1;
         total++;
@@ -102,14 +104,13 @@ dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
             else cutN--;
         }
     }
-    if(cutN!=0) ret += complex<dREAL>(0,cutN * 2 * Pi);
+    if(cutN!=0) ret += complex<dREAL>(0,cutN * 2 * dPi);
     return ret;
 }
 
-#undef Pi
-#undef Euler
-#define Pi 3.1415926535897932384626433832795028841971693993751Q
-#define Euler 0.57721566490153286060651209008240243104215933593992Q
+qREAL qPi = 3.1415926535897932384626433832795028841971693993751Q;
+qREAL qEuler = 0.57721566490153286060651209008240243104215933593992Q;
+qCOMPLEX qiEpsilon = 1.E-50Qi;
 
 qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
     bool is_zero = false;
@@ -144,6 +145,7 @@ qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
 qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
     auto eps = FLT128_EPSILON;
     qCOMPLEX ret = log(xs[n-1]);
+    if(n<2) return ret;
     int total=0;
     int ReIm[n][2];
     for(int k=0; k<n; k++) {
@@ -151,8 +153,8 @@ qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
         auto curI = cimagq(xs[k]);
         auto absR = fabsq(curR);
         auto absI = fabsq(curI);
-        if(absI<eps*absR && k==0 && absR<0) ReIm[0][1] = -1;
-        else if(absR<eps*absI || absI<eps*absR) continue; 
+        if(absI<10*eps*absR && k==0 && absR<0) ReIm[0][1] = -1;
+        else if(absR<10*eps*absI || absI<10*eps*absR) continue; 
         else ReIm[total][1] = curI>0 ? 1 : -1;
         ReIm[total][0] = curR>0 ? 1 : -1;
         total++;
@@ -166,14 +168,13 @@ qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
             else cutN--;
         }
     }
-    if(cutN!=0) ret += cutN * Pi * 2.Qi;
+    if(cutN!=0) ret += cutN * qPi * 2.Qi;
     return ret;
 }
 
-#undef Pi
-#undef Euler
-#define Pi mpREAL("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
-#define Euler mpREAL("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
+mpREAL mpPi;
+mpREAL mpEuler;
+mpCOMPLEX mpiEpsilon = complex<mpREAL>(0, 1.E-50);
 
 mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
     bool is_zero = false;
@@ -208,6 +209,7 @@ mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
 mpCOMPLEX RCLog(mpCOMPLEX xs[], int n) {
     auto eps = mpfr::machine_epsilon(xs[0].real());
     mpCOMPLEX ret = log(xs[n-1]);
+    if(n<2) return ret;
     int total=0;
     int ReIm[n][2];
     for(int k=0; k<n; k++) {
@@ -215,8 +217,8 @@ mpCOMPLEX RCLog(mpCOMPLEX xs[], int n) {
         auto curI = xs[k].imag();
         auto absR = abs(curR);
         auto absI = abs(curI);
-        if(absI<eps*absR && k==0 && absR<0) ReIm[total][1] = -1;
-        else if(absR<eps*absI || absI<eps*absR) continue; 
+        if(absI<10*eps*absR && k==0 && absR<0) ReIm[total][1] = -1;
+        else if(absR<10*eps*absI || absI<10*eps*absR) continue; 
         else ReIm[total][1] = curI>0 ? 1 : -1;
         ReIm[total][0] = curR>0 ? 1 : -1;
         total++;
@@ -230,6 +232,7 @@ mpCOMPLEX RCLog(mpCOMPLEX xs[], int n) {
             else cutN--;
         }
     }
-    if(cutN!=0) ret += complex<mpREAL>(0,cutN * 2 * Pi);
+    if(cutN!=0) ret += complex<mpREAL>(0,cutN * 2 * mpPi);
     return ret;
 }
+

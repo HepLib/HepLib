@@ -283,8 +283,11 @@ namespace HepLib {
     lst str2lst(const string &expr);
     string file2str(string filename);
     ex file2ex(string filename);
+    int ex2int(ex);
     void ex2file(const ex &, string filename);
     string ex2str(const ex &expr);
+    ex q2ex(__float128);
+    __float128 ex2q(ex);
     lst exvec2lst(const exvector & exvec);
     exvector lst2exvec(const lst & alst);
     lst xlst(int ei);
@@ -349,9 +352,12 @@ namespace HepLib {
     ex fermat_normal(const ex & expr);
     
     /*-----------------------------------------------------*/
-    // Evalf
+    // Evalf/D/Q/MP
     /*-----------------------------------------------------*/
     ex Evalf(ex);
+    ex EvalL(ex);
+    ex EvalQ(ex);
+    ex EvalMP(ex);
 
     /*-----------------------------------------------------*/
     // xPositive

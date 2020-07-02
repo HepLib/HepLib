@@ -9,6 +9,9 @@
 #include "SD.h"
 #include "mpreal.h"
 
+extern mpfr::mpreal mpPi;
+extern mpfr::mpreal mpEuler;
+
 namespace HepLib::SD {
 
 /*-----------------------------------------------------*/
@@ -211,6 +214,9 @@ ex HCubature::Integrate() {
     if(mpfr_buildopt_tls_p()<=0) {
         throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
     }
+    mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
+    mpPi = mpfr::const_pi();
+    mpEuler = mpfr::const_euler();
     
     unsigned int xdim = XDim;
     unsigned int ydim = 2;
@@ -251,8 +257,8 @@ ex HCubature::Integrate() {
     if(isnanq(result[0]) || isnanq(result[1])) FResult += NaN;
     else {
         try{
-            FResult += VE(CppFormat::q2ex(result[0]), CppFormat::q2ex(estabs[0]));
-            FResult += VE(CppFormat::q2ex(result[1]), CppFormat::q2ex(estabs[1])) * I;
+            FResult += VE(q2ex(result[0]), q2ex(estabs[0]));
+            FResult += VE(q2ex(result[1]), q2ex(estabs[1])) * I;
         } catch(...) {
             FResult += NaN;
         }

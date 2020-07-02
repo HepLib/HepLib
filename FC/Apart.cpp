@@ -665,7 +665,7 @@ namespace HepLib::FC {
         
         lst loops, exts;
         bool reduce = false;
-        if(loops_exts.nops()==2) {
+        if(loops_exts.nops()>=2) {
             for(auto li : loops_exts.op(0)) {
                 if(is_a<Vector>(li)) loops.append(ex_to<Vector>(li).name);
                 else loops.append(li);
@@ -674,8 +674,9 @@ namespace HepLib::FC {
                 if(is_a<Vector>(li)) exts.append(ex_to<Vector>(li).name);
                 else exts.append(li);
             }
-            reduce = true;
-        }
+            if(loops_exts.nops()==2) reduce = true;
+            else reduce = false;
+        } else throw Error("loops_exts size() < 2;");
         
         exmap IR2F;
         std::map<ex, FIRE*, ex_is_less> p2f;

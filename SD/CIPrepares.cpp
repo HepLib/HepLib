@@ -241,12 +241,11 @@ qCOMPLEX exp(qCOMPLEX x);
             auto cppL = CppFormat(ofs, "L");
             auto cppQ = CppFormat(ofs, "Q");
             auto cppMP = CppFormat(ofs, "MP");
-            ft = Evalf(ft);
             
             // FL_fid
             ofs << "dREAL FL_" << ft_n << "(const dREAL* x, const dREAL *pl) {" << endl;
             ofs << "dREAL yy = ";
-            ft.subs(plRepl).subs(cxRepl).print(cppL);
+            EvalL(ft.subs(plRepl).subs(cxRepl)).print(cppL);
             ofs << ";" << endl;
             ofs << "return yy;" << endl;
             ofs << "}" << endl;
@@ -255,7 +254,7 @@ qCOMPLEX exp(qCOMPLEX x);
             // FQ_fid
             ofs << "qREAL FQ_" << ft_n << "(const qREAL* x, const qREAL *pl) {" << endl;
             ofs << "qREAL yy = ";
-            ft.subs(plRepl).subs(cxRepl).print(cppQ);
+            EvalQ(ft.subs(plRepl).subs(cxRepl)).print(cppQ);
             ofs << ";" << endl;
             ofs << "return yy;" << endl;
             ofs << "}" << endl;
@@ -264,7 +263,7 @@ qCOMPLEX exp(qCOMPLEX x);
             // FMP_fid
             ofs << "mpREAL FMP_" << ft_n << "(const mpREAL* x, const mpREAL *pl) {" << endl;
             ofs << "mpREAL yy = ";
-            ft.subs(plRepl).subs(cxRepl).print(cppMP);
+            EvalMP(ft.subs(plRepl).subs(cxRepl)).print(cppMP);
             ofs << ";" << endl;
             ofs << "return yy;" << endl;
             ofs << "}" << endl;
@@ -274,7 +273,7 @@ qCOMPLEX exp(qCOMPLEX x);
             ofs << "dREAL FL_" << ft_n << "(const int i, const dREAL* x, const dREAL *pl) {" << endl;
             for(int i=0; i<fxs.size(); i++) {
                 ofs << "if("<<i<<"==i) return ";
-                DFs[i].subs(plRepl).subs(cxRepl).print(cppL);
+                EvalL(DFs[i].subs(plRepl).subs(cxRepl)).print(cppL);
                 ofs << ";" << endl;
             }
             ofs << "return 0;" << endl;
@@ -285,7 +284,7 @@ qCOMPLEX exp(qCOMPLEX x);
             ofs << "qREAL FQ_" << ft_n << "(const int i, const qREAL* x, const qREAL *pl) {" << endl;
             for(int i=0; i<fxs.size(); i++) {
                 ofs << "if("<<i<<"==i) return ";
-                DFs[i].subs(plRepl).subs(cxRepl).print(cppQ);
+                EvalQ(DFs[i].subs(plRepl).subs(cxRepl)).print(cppQ);
                 ofs << ";" << endl;
             }
             ofs << "return 0;" << endl;
@@ -297,7 +296,7 @@ qCOMPLEX exp(qCOMPLEX x);
                 ofs << "mpREAL FMP_" << ft_n << "(const int i, const mpREAL* x, const mpREAL *pl) {" << endl;
                 for(int i=0; i<fxs.size(); i++) {
                     ofs << "if("<<i<<"==i) return ";
-                    DFs[i].subs(plRepl).subs(cxRepl).print(cppMP);
+                    EvalMP(DFs[i].subs(plRepl).subs(cxRepl)).print(cppMP);
                     ofs << ";" << endl;
                 }
                 ofs << "return 0;" << endl;
@@ -310,7 +309,7 @@ qCOMPLEX exp(qCOMPLEX x);
             for(int i=0; i<fxs.size(); i++) {
             for(int j=0; j<fxs.size(); j++) {
                 ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
-                DDFs[i][j].subs(plRepl).subs(cxRepl).print(cppL);
+                EvalL(DDFs[i][j].subs(plRepl).subs(cxRepl)).print(cppL);
                 ofs << ";" << endl;
             }}
             ofs << "return 0;" << endl;
@@ -322,7 +321,7 @@ qCOMPLEX exp(qCOMPLEX x);
             for(int i=0; i<fxs.size(); i++) {
             for(int j=0; j<fxs.size(); j++) {
                 ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
-                DDFs[i][j].subs(plRepl).subs(cxRepl).print(cppQ);
+                EvalQ(DDFs[i][j].subs(plRepl).subs(cxRepl)).print(cppQ);
                 ofs << ";" << endl;
             }}
             ofs << "return 0;" << endl;
@@ -335,7 +334,7 @@ qCOMPLEX exp(qCOMPLEX x);
                 for(int i=0; i<fxs.size(); i++) {
                 for(int j=0; j<fxs.size(); j++) {
                     ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
-                    DDFs[i][j].subs(plRepl).subs(cxRepl).print(cppMP);
+                    EvalMP(DDFs[i][j].subs(plRepl).subs(cxRepl)).print(cppMP);
                     ofs << ";" << endl;
                 }}
                 ofs << "return 0;" << endl;
@@ -452,7 +451,7 @@ qCOMPLEX exp(qCOMPLEX x);
             ofs << "dREAL dff[xn+1];" << endl;
             ofs << "X2ZL_"<<ft_n<<"(x,z,r,dff,pl,las);" << endl;
             ofs << "dCOMPLEX zf = ";
-            ft.subs(plRepl).subs(czRepl).print(cppL);
+            EvalL(ft.subs(plRepl).subs(czRepl)).print(cppL);
             ofs << ";" << endl;
             ofs << "return -zf.imag()/x[xn-1];" << endl; // find max image part, check with 0
             ofs << "}" << endl;
@@ -627,6 +626,16 @@ qCOMPLEX MatDet(qCOMPLEX mat[], int n);
 mpCOMPLEX MatDet(mpCOMPLEX mat[], int n);
 
 extern int NRCLog;
+extern const dREAL dPi;
+extern const dREAL dEuler;
+extern const dCOMPLEX diEpsilon;
+extern const qREAL qPi;
+extern const qREAL qEuler;
+extern const qCOMPLEX qiEpsilon;
+extern mpREAL mpPi;
+extern mpREAL mpEuler;
+extern const mpCOMPLEX mpiEpsilon;
+
 dCOMPLEX RCLog(dCOMPLEX ys[], int n);
 qCOMPLEX RCLog(qCOMPLEX ys[], int n);
 mpCOMPLEX RCLog(mpCOMPLEX ys[], int n);
@@ -671,18 +680,9 @@ qCOMPLEX exp(qCOMPLEX x);
                 ofs << endl << endl;
             }
 
-    /*----------------------------------------------*/
-    // long double
-    /*----------------------------------------------*/
-    ofs << R"EOF(
-#undef Pi
-#undef Euler
-#undef iEpsilon
-#define Pi 3.1415926535897932384626433832795028841971693993751L
-#define Euler 0.57721566490153286060651209008240243104215933593992L
-#define iEpsilon complex<long double>(0, 1.E-50)
-    )EOF" << endl;
-    /*----------------------------------------------*/
+            /*----------------------------------------------*/
+            // long double
+            /*----------------------------------------------*/
             auto cppL =  CppFormat(ofs, "L");
             // alwasy export non-complex function
             if(true) {
@@ -709,7 +709,7 @@ qCOMPLEX exp(qCOMPLEX x);
                     if(wras.size()!=1) throw Error("CIPrepares: Too many WRA(w).");
                     auto wra = (*(wras.begin())).op(0);
                     intg = intg.subs(WRA(w)==xwr);
-                    ofs << "dREAL wra = "; wra.print(cppL); ofs << ";" << endl;
+                    ofs << "dREAL wra = "; EvalL(wra).print(cppL); ofs << ";" << endl;
                     
                     exset pows_set;
                     find(intg, pow(w1,w2), pows_set);
@@ -739,14 +739,14 @@ qCOMPLEX exp(qCOMPLEX x);
                         ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                            Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppL);
+                            EvalL(kv.second.subs(cxRepl).subs(plRepl)).print(cppL);
                             ofs << ";" << endl;
                         }
                         
                         exmap log_subs;
                         for(int i=0; i<clogs.nops(); i++) {
                             ofs << "LogZ["<<i<<"][ti] = ";
-                            Evalf(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppL);
+                            EvalL(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppL);
                             ofs << ";" << endl;
                             log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                         }
@@ -763,12 +763,12 @@ qCOMPLEX exp(qCOMPLEX x);
                 else ofs << "dREAL "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                    Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppL);
+                    EvalL(kv.second.subs(cxRepl).subs(plRepl)).print(cppL);
                     ofs << ";" << endl;
                 }
                 
                 ofs << "dCOMPLEX yy = ";
-                Evalf(intg.subs(cxRepl).subs(plRepl)).print(cppL);
+                EvalL(intg.subs(cxRepl).subs(plRepl)).print(cppL);
                 ofs << ";" << endl;
                 
                 ofs << "y[0] = yy.real();" << endl;
@@ -843,14 +843,14 @@ qCOMPLEX exp(qCOMPLEX x);
                                 ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                                 for(auto kv : cse.os()) {
                                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                                    Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppL);
+                                    EvalL(kv.second.subs(czzRepl).subs(plRepl)).print(cppL);
                                     ofs << ";" << endl;
                                 }
                                 
                                 exmap log_subs;
                                 for(int i=0; i<clogs.nops(); i++) {
                                     ofs << "LogZ["<<i<<"][ti] = ";
-                                    Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppL);
+                                    EvalL(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppL);
                                     ofs << ";" << endl;
                                     log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                                 }
@@ -867,12 +867,12 @@ qCOMPLEX exp(qCOMPLEX x);
                     ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                     for(auto kv : cse.os()) {
                         ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                        Evalf(kv.second.subs(czRepl).subs(plRepl)).print(cppL);
+                        EvalL(kv.second.subs(czRepl).subs(plRepl)).print(cppL);
                         ofs << ";" << endl;
                     }
                     
                     ofs << "ytmp = ";
-                    Evalf(intg.subs(czRepl).subs(plRepl)).print(cppL);
+                    EvalL(intg.subs(czRepl).subs(plRepl)).print(cppL);
                     ofs << ";" << endl;
                     ofs << "yy += det * ytmp;" << endl << endl;
                     ofs << "}" << endl;
@@ -887,18 +887,9 @@ qCOMPLEX exp(qCOMPLEX x);
             
             
             
-    /*----------------------------------------------*/
-    // Quadruple
-    /*----------------------------------------------*/
-    ofs << R"EOF(
-#undef Pi
-#undef Euler
-#undef iEpsilon
-#define Pi 3.1415926535897932384626433832795028841971693993751Q
-#define Euler 0.57721566490153286060651209008240243104215933593992Q
-    #define iEpsilon 1.E-50Qi
-    )EOF" << endl;
-    /*----------------------------------------------*/
+            /*----------------------------------------------*/
+            // Quadruple
+            /*----------------------------------------------*/
             auto cppQ = CppFormat(ofs, "Q");
             
             // always export non-complex function
@@ -917,7 +908,7 @@ qCOMPLEX exp(qCOMPLEX x);
                     if(wras.size()!=1) throw Error("CIPrepares: Too many WRA(w).");
                     auto wra = (*(wras.begin())).op(0);
                     intg = intg.subs(WRA(w)==xwr);
-                    ofs << "qREAL wra = "; wra.print(cppQ); ofs << ";" << endl;
+                    ofs << "qREAL wra = "; EvalQ(wra).print(cppQ); ofs << ";" << endl;
                     
                     exset pows_set;
                     find(intg, pow(w1,w2), pows_set);
@@ -947,14 +938,14 @@ qCOMPLEX exp(qCOMPLEX x);
                         ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                            Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppQ);
+                            EvalQ(kv.second.subs(cxRepl).subs(plRepl)).print(cppQ);
                             ofs << ";" << endl;
                         }
                         
                         exmap log_subs;
                         for(int i=0; i<clogs.nops(); i++) {
                             ofs << "LogZ["<<i<<"][ti] = ";
-                            Evalf(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppQ);
+                            EvalQ(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppQ);
                             ofs << ";" << endl;
                             log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                         }
@@ -971,12 +962,12 @@ qCOMPLEX exp(qCOMPLEX x);
                 else ofs << "qREAL "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                    Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppQ);
+                    EvalQ(kv.second.subs(cxRepl).subs(plRepl)).print(cppQ);
                     ofs << ";" << endl;
                 }
                 
                 ofs << "qCOMPLEX yy = ";
-                Evalf(intg.subs(cxRepl).subs(plRepl)).print(cppQ);
+                EvalQ(intg.subs(cxRepl).subs(plRepl)).print(cppQ);
                 ofs << ";" << endl;
                 
                 ofs << "y[0] = crealq(yy);" << endl;
@@ -1046,14 +1037,14 @@ qCOMPLEX exp(qCOMPLEX x);
                                 ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                                 for(auto kv : cse.os()) {
                                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                                    Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppQ);
+                                    EvalQ(kv.second.subs(czzRepl).subs(plRepl)).print(cppQ);
                                     ofs << ";" << endl;
                                 }
                                 
                                 exmap log_subs;
                                 for(int i=0; i<clogs.nops(); i++) {
                                     ofs << "LogZ["<<i<<"][ti] = ";
-                                    Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppQ);
+                                    EvalQ(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppQ);
                                     ofs << ";" << endl;
                                     log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                                 }
@@ -1070,12 +1061,12 @@ qCOMPLEX exp(qCOMPLEX x);
                     ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                     for(auto kv : cse.os()) {
                         ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                        Evalf(kv.second.subs(czRepl).subs(plRepl)).print(cppQ);
+                        EvalQ(kv.second.subs(czRepl).subs(plRepl)).print(cppQ);
                         ofs << ";" << endl;
                     }
                     
                     ofs << "ytmp = ";
-                    Evalf(intg.subs(czRepl).subs(plRepl)).print(cppQ);
+                    EvalQ(intg.subs(czRepl).subs(plRepl)).print(cppQ);
                     ofs << ";" << endl;
                     ofs << "yy += det * ytmp;" << endl << endl;
                     ofs << "}" << endl;
@@ -1096,19 +1087,10 @@ qCOMPLEX exp(qCOMPLEX x);
             }
             
             
-    /*----------------------------------------------*/
-    // Multiple Precision
-    /*----------------------------------------------*/
-    if(use_MP || xs.size()<3) {
-    ofs << R"EOF(
-#undef Pi
-#undef Euler
-#undef iEpsilon
-#define Pi mpREAL("3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117068")
-#define Euler mpREAL("0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495")
-#define iEpsilon complex<mpREAL>(mpREAL(0), mpREAL(1.E-50))
-    )EOF" << endl;
-    /*----------------------------------------------*/
+            /*----------------------------------------------*/
+            // Multiple Precision
+            /*----------------------------------------------*/
+            if(use_MP || xs.size()<3) {
             auto cppMP =  CppFormat(ofs, "MP");
             
             // always export non-complex function
@@ -1131,7 +1113,7 @@ qCOMPLEX exp(qCOMPLEX x);
                     if(wras.size()!=1) throw Error("CIPrepares: Too many WRA(w).");
                     auto wra = (*(wras.begin())).op(0);
                     intg = intg.subs(WRA(w)==xwr);
-                    ofs << "mpREAL wra = "; wra.print(cppMP); ofs << ";" << endl;
+                    ofs << "mpREAL wra = "; EvalMP(wra).print(cppMP); ofs << ";" << endl;
                     
                     exset pows_set;
                     find(intg, pow(w1,w2), pows_set);
@@ -1161,14 +1143,14 @@ qCOMPLEX exp(qCOMPLEX x);
                         ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                            Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppMP);
+                            EvalMP(kv.second.subs(cxRepl).subs(plRepl)).print(cppMP);
                             ofs << ";" << endl;
                         }
                         
                         exmap log_subs;
                         for(int i=0; i<clogs.nops(); i++) {
                             ofs << "LogZ["<<i<<"][ti] = ";
-                            Evalf(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppMP);
+                            EvalMP(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppMP);
                             ofs << ";" << endl;
                             log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                         }
@@ -1185,12 +1167,12 @@ qCOMPLEX exp(qCOMPLEX x);
                 else ofs << "mpREAL "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                 for(auto kv : cse.os()) {
                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                    Evalf(kv.second.subs(cxRepl).subs(plRepl)).print(cppMP);
+                    EvalMP(kv.second.subs(cxRepl).subs(plRepl)).print(cppMP);
                     ofs << ";" << endl;
                 }
                 
                 ofs << "mpCOMPLEX yy = ";
-                Evalf(intg.subs(cxRepl).subs(plRepl)).print(cppMP);
+                EvalMP(intg.subs(cxRepl).subs(plRepl)).print(cppMP);
                 ofs << ";" << endl;
                 
                 ofs << "y[0] = yy.real().toFloat128();" << endl;
@@ -1265,14 +1247,14 @@ qCOMPLEX exp(qCOMPLEX x);
                                 ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                                 for(auto kv : cse.os()) {
                                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                                    Evalf(kv.second.subs(czzRepl).subs(plRepl)).print(cppMP);
+                                    EvalMP(kv.second.subs(czzRepl).subs(plRepl)).print(cppMP);
                                     ofs << ";" << endl;
                                 }
                                 
                                 exmap log_subs;
                                 for(int i=0; i<clogs.nops(); i++) {
                                     ofs << "LogZ["<<i<<"][ti] = ";
-                                    Evalf(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppMP);
+                                    EvalMP(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppMP);
                                     ofs << ";" << endl;
                                     log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                                 }
@@ -1289,12 +1271,12 @@ qCOMPLEX exp(qCOMPLEX x);
                     ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                     for(auto kv : cse.os()) {
                         ofs <<cse.oc<< "["<<kv.first<<"] = ";
-                        Evalf(kv.second.subs(czRepl).subs(plRepl)).print(cppMP);
+                        EvalMP(kv.second.subs(czRepl).subs(plRepl)).print(cppMP);
                         ofs << ";" << endl;
                     }
                     
                     ofs << "ytmp = ";
-                    Evalf(intg.subs(czRepl).subs(plRepl)).print(cppMP);
+                    EvalMP(intg.subs(czRepl).subs(plRepl)).print(cppMP);
                     ofs << ";" << endl;
                     ofs << "yy += det * ytmp;" << endl << endl;
                     ofs << "}" << endl;
@@ -1306,9 +1288,9 @@ qCOMPLEX exp(qCOMPLEX x);
                 ofs << "}" << endl;
                 ofs << endl;
             }
-        // -----------------------
-        } // end of if(use_MP)
-        // -----------------------
+            // -----------------------
+            } // end of if(use_MP)
+            // -----------------------
             
             ofs.close();
             ostringstream ofn, cmd;
