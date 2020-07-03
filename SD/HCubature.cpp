@@ -7,10 +7,25 @@
  */
  
 #include "SD.h"
+#include <math.h>
+#include <complex>
+extern "C" {
+#include <quadmath.h>
+}
 #include "mpreal.h"
 
-extern mpfr::mpreal mpPi;
-extern mpfr::mpreal mpEuler;
+using namespace std;
+typedef __float128 qREAL;
+typedef __complex128 qCOMPLEX;
+typedef long double dREAL;
+typedef complex<long double> dCOMPLEX;
+typedef mpfr::mpreal mpREAL;
+typedef complex<mpREAL> mpCOMPLEX;
+
+extern mpREAL mpPi;
+extern mpREAL mpEuler;
+extern const qCOMPLEX qiEpsilon;
+extern mpCOMPLEX mpiEpsilon;
 
 namespace HepLib::SD {
 
@@ -26,9 +41,10 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
     if(self->UseCpp) {
         #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
         for(int i=0; i<npts; i++) {
+            mpfr_free_cache();
+            mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
             int iDQMP = self->inDQMP(x+i*xdim);
             if( (self->IntegrandMP!=NULL) && (self->DQMP>2 || iDQMP>2) ) {
-                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
                 self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
             } else if(self->DQMP>1 || iDQMP>1) {
                 self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
@@ -42,7 +58,6 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 }
 
                 if(!ok && (self->IntegrandMP!=NULL)) {
-                    mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
                     self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
                 }
             } else {
@@ -69,7 +84,6 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                     }
                 }
                 if(!ok && (self->IntegrandMP!=NULL)) {
-                    mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
                     self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
                 }
             }
@@ -84,7 +98,6 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 }
             }
             if(!ok && (self->IntegrandMP!=NULL)) {
-                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
                 qREAL xx[xdim];
                 for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.E-30Q ? 1.E-30Q  : x[i*xdim+ii] * 0.95Q;
                 self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
@@ -109,6 +122,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
             } else if(self->ReIm == 2) {
                 y[i*ydim+0] = 0;
             }
+            mpfr_free_cache();
         }
     } else {
         self->Integrand(xdim+npts*100, x, ydim+npts*100, y, self->Parameter, self->Lambda);
@@ -214,9 +228,11 @@ ex HCubature::Integrate() {
     if(mpfr_buildopt_tls_p()<=0) {
         throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
     }
+    mpfr_free_cache();
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     mpPi = mpfr::const_pi();
     mpEuler = mpfr::const_euler();
+    mpiEpsilon = complex<mpREAL>(0,cimagq(qiEpsilon));
     
     unsigned int xdim = XDim;
     unsigned int ydim = 2;

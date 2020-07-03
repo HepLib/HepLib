@@ -273,7 +273,7 @@ int IntegratorBase::inDQMP(qREAL const *x) {
     for(int i=0; i<xdim; i++) {
         if(x[i] < xmin) xmin = x[i];
     }
-    if(xmin <= MPXLimit) return 3;
+    if(xmin < MPXLimit) return 3;
     
     if(FT!=NULL) {
         qREAL ft = 1E50;
@@ -473,7 +473,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     system(cmd.str().c_str());
     
     void* module = nullptr;
-    module = dlopen(sofn.str().c_str(), RTLD_NOW | RTLD_DEEPBIND | RTLD_GLOBAL);
+    module = dlopen(sofn.str().c_str(), RTLD_NOW | RTLD_GLOBAL);
     if(module == nullptr) {
         cerr << Color_Error << "FindMinimum: could not open compiled module!" << RESET << endl;
         cout << "dlerror(): " << dlerror() << endl;

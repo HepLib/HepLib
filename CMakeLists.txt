@@ -34,7 +34,7 @@ SET(LIB_DIRS
 )
 
 # Other things:
-# -MPFR: need to be compiled with option: --enable-float128
+# -MPFR: need to be compiled with option: --enable-float128 --enable-thread-safe
 # -Cuba: need to be compile with CFLAGS="-fPIC" CXXFLAGS="-fPIC"
 #
 #-----------------------------------------------

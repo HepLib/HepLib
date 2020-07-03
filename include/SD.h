@@ -429,7 +429,4 @@ namespace HepLib::SD {
     
 }
 
-extern int NRCLog;
-
-
 

@@ -7,7 +7,25 @@
  */
  
 #include "SD.h"
+#include <math.h>
+#include <complex>
+extern "C" {
+#include <quadmath.h>
+}
 #include "mpreal.h"
+
+using namespace std;
+typedef __float128 qREAL;
+typedef __complex128 qCOMPLEX;
+typedef long double dREAL;
+typedef complex<long double> dCOMPLEX;
+typedef mpfr::mpreal mpREAL;
+typedef complex<mpREAL> mpCOMPLEX;
+
+extern mpREAL mpPi;
+extern mpREAL mpEuler;
+extern const qCOMPLEX qiEpsilon;
+extern mpCOMPLEX mpiEpsilon;
 
 namespace HepLib::SD {
 
@@ -102,7 +120,11 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
 }
 
 ex CUBA::Integrate() {
+    mpfr_free_cache();
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
+    mpPi = mpfr::const_pi();
+    mpiEpsilon = complex<mpREAL>(0,cimagq(qiEpsilon));
+    mpEuler = mpfr::const_euler();
     if(mpfr_buildopt_tls_p()<=0) {
         throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
     }

@@ -16,9 +16,9 @@ GINAC_IMPLEMENT_PRINT_CONTEXT(CppFormat, print_csrc_cl_N)
 void CppFormat::print_integer(const CppFormat & c, const cln::cl_I & x) {
     const int max_cln_int = 536870911; // 2^29-1
     if (x >= cln::cl_I(-max_cln_int) && x <= cln::cl_I(max_cln_int)) {
-        if(c.suffix=="MP") c.s << "mpREAL(" << c.MQuote;
+        if(c.suffix=="MP") c.s << "mpREAL(";
         c.s << cln::cl_I_to_int(x);
-        if(c.suffix=="MP") c.s << c.MQuote << ")";
+        if(c.suffix=="MP") c.s << ")";
         else c.s << ".0" << c.suffix;
     } else {
         print_real(c, cln::cl_float(x));

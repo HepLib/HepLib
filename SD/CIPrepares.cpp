@@ -634,7 +634,7 @@ extern const qREAL qEuler;
 extern const qCOMPLEX qiEpsilon;
 extern mpREAL mpPi;
 extern mpREAL mpEuler;
-extern const mpCOMPLEX mpiEpsilon;
+extern mpCOMPLEX mpiEpsilon;
 
 dCOMPLEX RCLog(dCOMPLEX ys[], int n);
 qCOMPLEX RCLog(qCOMPLEX ys[], int n);
@@ -713,10 +713,15 @@ qCOMPLEX exp(qCOMPLEX x);
                     
                     exset pows_set;
                     find(intg, pow(w1,w2), pows_set);
+                    find(intg, sqrt(w), pows_set);
                     lst pow_subs;
                     for(auto item : pows_set) {
-                        if(item.has(xwr) && !item.op(1).info(info_flags::integer)) {
-                            pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                        if(item.has(xwr)) {
+                            if(item.match(pow(w1,w2)) && !item.op(1).info(info_flags::integer)) {
+                                pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                            } else if(item.match(sqrt(w))) {
+                                pow_subs.append(item == exp(log(item.op(0))/2));
+                            }
                         }
                     }
                     if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
@@ -817,10 +822,15 @@ qCOMPLEX exp(qCOMPLEX x);
                     if(use_RCLog) {
                         exset pows_set;
                         find(intg, pow(w1,w2), pows_set);
+                        find(intg, sqrt(w), pows_set);
                         lst pow_subs;
                         for(auto item : pows_set) {
-                            if(!item.op(0).match(x(w)) && !item.op(1).info(info_flags::integer)) {
-                                pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                            if(!item.op(0).match(x(w))) {
+                                if(item.match(pow(w1,w2)) && !item.op(1).info(info_flags::integer)) {
+                                    pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                                } else if(item.match(sqrt(w))) {
+                                    pow_subs.append(item == exp(log(item.op(0))/2));
+                                }
                             }
                         }
                         if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
@@ -912,10 +922,15 @@ qCOMPLEX exp(qCOMPLEX x);
                     
                     exset pows_set;
                     find(intg, pow(w1,w2), pows_set);
+                    find(intg, sqrt(w), pows_set);
                     lst pow_subs;
                     for(auto item : pows_set) {
-                        if(item.has(xwr) && !item.op(1).info(info_flags::integer)) {
-                            pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                        if(item.has(xwr)) {
+                            if(item.match(pow(w1,w2)) && !item.op(1).info(info_flags::integer)) {
+                                pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                            } else if(item.match(sqrt(w))) {
+                                pow_subs.append(item == exp(log(item.op(0))/2));
+                            }
                         }
                     }
                     if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
@@ -1011,10 +1026,15 @@ qCOMPLEX exp(qCOMPLEX x);
                     if(use_RCLog) {
                         exset pows_set;
                         find(intg, pow(w1,w2), pows_set);
+                        find(intg, sqrt(w), pows_set);
                         lst pow_subs;
                         for(auto item : pows_set) {
-                            if(!item.op(0).match(x(w)) && !item.op(1).info(info_flags::integer)) {
-                                pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                            if(!item.op(0).match(x(w))) {
+                                if(item.match(pow(w1,w2)) && !item.op(1).info(info_flags::integer)) {
+                                    pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                                } else if(item.match(sqrt(w))) {
+                                    pow_subs.append(item == exp(log(item.op(0))/2));
+                                }
                             }
                         }
                         if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
@@ -1117,10 +1137,15 @@ qCOMPLEX exp(qCOMPLEX x);
                     
                     exset pows_set;
                     find(intg, pow(w1,w2), pows_set);
+                    find(intg, sqrt(w), pows_set);
                     lst pow_subs;
                     for(auto item : pows_set) {
-                        if(item.has(xwr) && !item.op(1).info(info_flags::integer)) {
-                            pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                        if(item.has(xwr)) {
+                            if(item.match(pow(w1,w2)) && !item.op(1).info(info_flags::integer)) {
+                                pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                            } else if(item.match(sqrt(w))) {
+                                pow_subs.append(item == exp(log(item.op(0))/2));
+                            }
                         }
                     }
                     if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
@@ -1174,7 +1199,6 @@ qCOMPLEX exp(qCOMPLEX x);
                 ofs << "mpCOMPLEX yy = ";
                 EvalMP(intg.subs(cxRepl).subs(plRepl)).print(cppMP);
                 ofs << ";" << endl;
-                
                 ofs << "y[0] = yy.real().toFloat128();" << endl;
                 ofs << "y[1] = yy.imag().toFloat128();" << endl;
                 ofs << "return 0;" << endl;
@@ -1221,10 +1245,15 @@ qCOMPLEX exp(qCOMPLEX x);
                     if(use_RCLog) {
                         exset pows_set;
                         find(intg, pow(w1,w2), pows_set);
+                        find(intg, sqrt(w), pows_set);
                         lst pow_subs;
                         for(auto item : pows_set) {
-                            if(!item.op(0).match(x(w)) && !item.op(1).info(info_flags::integer)) {
-                                pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                            if(!item.op(0).match(x(w))) {
+                                if(item.match(pow(w1,w2)) && !item.op(1).info(info_flags::integer)) {
+                                    pow_subs.append(item == exp(item.op(1)*log(item.op(0))));
+                                } else if(item.match(sqrt(w))) {
+                                    pow_subs.append(item == exp(log(item.op(0))/2));
+                                }
                             }
                         }
                         if(pow_subs.nops()>0) intg = intg.subs(pow_subs);

@@ -13,8 +13,6 @@ extern "C" {
 }
 #include "mpreal.h"
 
-int NRCLog = 7;
-
 using namespace std;
 typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
@@ -22,6 +20,19 @@ typedef long double dREAL;
 typedef complex<long double> dCOMPLEX;
 typedef mpfr::mpreal mpREAL;
 typedef complex<mpREAL> mpCOMPLEX;
+
+extern int NRCLog;
+extern const dREAL dPi;
+extern const dREAL dEuler;
+extern const dCOMPLEX diEpsilon;
+extern const qREAL qPi;
+extern const qREAL qEuler;
+extern const qCOMPLEX qiEpsilon;
+extern mpREAL mpPi;
+extern mpREAL mpEuler;
+extern mpCOMPLEX mpiEpsilon;
+
+int NRCLog = 10;
 
 dREAL expt(dREAL a, dREAL b) { return pow(a,b); }
 dCOMPLEX expt(dCOMPLEX a, dREAL b) { return pow(a,b); }
@@ -44,9 +55,9 @@ qCOMPLEX pow(qCOMPLEX x, qREAL y) { return cpowq(x, y); }
 qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
 qCOMPLEX exp(qCOMPLEX x) { return cexpq(x); }
 
-dREAL dPi = 3.1415926535897932384626433832795028841971693993751L;
-dREAL dEuler = 0.57721566490153286060651209008240243104215933593992L;
-dCOMPLEX diEpsilon = complex<dREAL>(0, 1.E-50);
+const dREAL dPi = 3.1415926535897932384626433832795028841971693993751L;
+const dREAL dEuler = 0.57721566490153286060651209008240243104215933593992L;
+const dCOMPLEX diEpsilon = complex<dREAL>(0, 1.E-50);
 
 dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
     bool is_zero = false;
@@ -108,9 +119,9 @@ dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
     return ret;
 }
 
-qREAL qPi = 3.1415926535897932384626433832795028841971693993751Q;
-qREAL qEuler = 0.57721566490153286060651209008240243104215933593992Q;
-qCOMPLEX qiEpsilon = 1.E-50Qi;
+const qREAL qPi = 3.1415926535897932384626433832795028841971693993751Q;
+const qREAL qEuler = 0.57721566490153286060651209008240243104215933593992Q;
+const qCOMPLEX qiEpsilon = 1.E-50Qi;
 
 qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
     bool is_zero = false;
@@ -174,7 +185,7 @@ qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
 
 mpREAL mpPi;
 mpREAL mpEuler;
-mpCOMPLEX mpiEpsilon = complex<mpREAL>(0, 1.E-50);
+mpCOMPLEX mpiEpsilon;
 
 mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
     bool is_zero = false;
