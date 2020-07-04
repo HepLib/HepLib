@@ -55,13 +55,16 @@ namespace HepLib::SD {
         return SecDecBase::VerifySD(map_vec, quick);
     }
 
-    vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one) {
+    vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one, bool x2y_use_factor) {
         if(in_xpols.has(y(w))) {
             cerr << Color_Error << "SecDecBase::x2y: y(w) found @ " << in_xpols << RESET << endl;
             exit(1);
         }
         ex xpol_all = 1;
-        for(auto item : in_xpols) xpol_all *= collect_common_factors(item);
+        for(auto item : in_xpols) {
+            if(x2y_use_factor) xpol_all *= Factor(item);
+            else xpol_all *= collect_common_factors(item);
+        }
         
         lst xpols;
         if(is_a<mul>(xpol_all)) {
@@ -150,7 +153,6 @@ namespace HepLib::SD {
                 }
                 
                 auto vec_map3 = x2y(cxpol);
-cout << "vec_map3.size = " << vec_map3.size() << endl;
                 for(auto map3 : vec_map3) {
                     exmap new_map;
                     lst xy_lst;
@@ -295,7 +297,7 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
                     if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
                     sdList.append(tmp);
                 }
-                vector<exmap> vmap = SecDec->x2y(sdList, all_in_one);
+                vector<exmap> vmap = SecDec->x2y(sdList, all_in_one, x2y_use_factor);
                 
                 for(int ni=0; ni<polist.nops(); ni++) {
                     auto po = polist.op(ni);
@@ -339,13 +341,13 @@ cout << "vec_map3.size = " << vec_map3.size() << endl;
         for(int i=0; i<polist.nops(); i++) {
             auto tmp = polist.op(i);
             auto ntmp = exlist.op(i);
-            if(!tmp.subs(lst{x(w)==0, y(w)==0}).normal().is_zero()) continue;
+            if(!tmp.subs(lst{x(w)==0, y(w)==0}).normal().is_zero() || is_zero(ntmp)) continue;
             if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
             sdList.append(tmp);
         }
         Digits = oDigits;
 
-        vector<exmap> vmap = SecDec->x2y(sdList, all_in_one);
+        vector<exmap> vmap = SecDec->x2y(sdList, all_in_one, x2y_use_factor);
         if(!VerifySD(vmap)) {
             cerr << Color_Error << "VerifySD Failed!" << RESET << endl;
             for(auto vi : vmap) cout << vi << endl;

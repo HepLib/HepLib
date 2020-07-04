@@ -98,7 +98,7 @@ namespace HepLib::SD {
     class SecDecBase {
     public:
         virtual vector<exmap> x2y(const ex &xpol) =0;
-        vector<exmap> x2y(const lst &xpols, bool all_in_one);
+        vector<exmap> x2y(const lst &xpols, bool all_in_one, bool x2y_use_factor);
         static bool VerifySD(vector<exmap> vmap, bool quick = true);
     };
 
@@ -159,7 +159,7 @@ namespace HepLib::SD {
         
         bool UseCpp = true;
         long long NEval = 0;
-        int MPDigits = 100;
+        int MPDigits = 80;
     };
 
     class HCubature : public IntegratorBase {
@@ -323,8 +323,9 @@ namespace HepLib::SD {
         bool use_MP = true;
         bool use_RCLog = true;
         bool all_in_one = true;
+        bool x2y_use_factor = false;
         bool use_XReOrders = false;
-        int MPDigits = 100; // digits in mpREAL for MP
+        int MPDigits = 80; // digits in mpREAL for MP
         lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
         
         map<int, numeric> Parameter; // used Contours and Integrates, use PL in Prepares part

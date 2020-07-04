@@ -192,52 +192,9 @@ namespace HepLib::SD {
                 czRepl.append(fxs[i] == symbol(sz.str()));
             }
 
-    /*----------------------------------------------*/
-    ofs << R"EOF(
-#include <stddef.h>
-#include <stdlib.h>
-#include <math.h>
-#include <complex>
-#include <iostream>
-extern "C" {
-#include <quadmath.h>
-}
-#include "mpreal.h"
-
-using namespace std;
-
-#define Pi 3.1415926535897932384626433832795028841971693993751L
-#define Euler 0.57721566490153286060651209008240243104215933593992L
-
-typedef __float128 qREAL;
-typedef __complex128 qCOMPLEX;
-typedef long double dREAL;
-typedef complex<long double> dCOMPLEX;
-typedef mpfr::mpreal mpREAL;
-typedef complex<mpREAL> mpCOMPLEX;
-
-dREAL expt(dREAL a, dREAL b);
-dCOMPLEX expt(dCOMPLEX a, dREAL b);
-dREAL recip(dREAL a);
-dCOMPLEX recip(dCOMPLEX a);
-
-qREAL expt(qREAL a, qREAL b);
-qCOMPLEX expt(qCOMPLEX a, qREAL b);
-qREAL recip(qREAL a);
-qCOMPLEX recip(qCOMPLEX a);
-
-mpREAL expt(mpREAL a, mpREAL b);
-mpCOMPLEX expt(mpCOMPLEX a, mpREAL b);
-mpREAL recip(mpREAL a);
-mpCOMPLEX recip(mpCOMPLEX a);
-
-qREAL pow(qREAL x, qREAL y);
-qREAL log(qREAL x);
-qCOMPLEX pow(qCOMPLEX x, qREAL y);
-qCOMPLEX log(qCOMPLEX x);
-qCOMPLEX exp(qCOMPLEX x);
-    )EOF" << endl;
-    /*----------------------------------------------*/
+            /*----------------------------------------------*/
+            ofs << "#include \"NFunctions.h\"" << endl;
+            /*----------------------------------------------*/
             auto cppL = CppFormat(ofs, "L");
             auto cppQ = CppFormat(ofs, "Q");
             auto cppMP = CppFormat(ofs, "MP");
@@ -344,100 +301,40 @@ qCOMPLEX exp(qCOMPLEX x);
             
             // X2ZL_fid
             ofs << "void X2ZL_" << ft_n << "(const dREAL* x, dCOMPLEX* z, dCOMPLEX* r, dREAL* dff, const dREAL* pl, const dREAL* las) {" << endl;
-            ofs << "int nfxs="<<fxs.size()<<";" << endl;
-            ofs << "dCOMPLEX ilas[nfxs];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<dREAL>(0.L, las[i]);" << endl;
-            ofs << "dff[nfxs] = FL_"<<ft_n<<"(x,pl);" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) dff[i] = FL_"<<ft_n<<"(i,x,pl);" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.L-x[i])*r[i];" << endl;
+            ofs << "X2Z("<<fxs.size()<<",FL_"<<ft_n<<",FL_"<<ft_n<<",x,z,r,dff,pl,las);" << endl;
             ofs << "}" << endl;
             ofs << endl;
             
             // X2ZQ_fid
             ofs << "void X2ZQ_" << ft_n << "(const qREAL* x, qCOMPLEX* z, qCOMPLEX* r, qREAL* dff, const qREAL* pl, const qREAL* las) {" << endl;
-            ofs << "int nfxs="<<fxs.size()<<";" << endl;
-            ofs << "qCOMPLEX ilas[nfxs];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;" << endl;
-            ofs << "dff[nfxs] = FQ_"<<ft_n<<"(x,pl);" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) dff[i] = FQ_"<<ft_n<<"(i,x,pl);" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.Q-x[i])*r[i];" << endl;
+            ofs << "X2Z("<<fxs.size()<<",FQ_"<<ft_n<<",FQ_"<<ft_n<<",x,z,r,dff,pl,las);" << endl;
             ofs << "}" << endl;
             ofs << endl;
             
             // X2ZMP_fid
             if(use_MP || fxs.size()<3) {
                 ofs << "void X2ZMP_" << ft_n << "(const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {" << endl;
-                ofs << "int nfxs="<<fxs.size()<<";" << endl;
-                ofs << "mpCOMPLEX ilas[nfxs];" << endl;
-                ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
-                ofs << "dff[nfxs] = FMP_"<<ft_n<<"(x,pl);" << endl;
-                ofs << "for(int i=0; i<nfxs; i++) dff[i] = FMP_"<<ft_n<<"(i,x,pl);" << endl;
-                ofs << "for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i];" << endl;
-                ofs << "for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1-x[i])*r[i];" << endl;
+                ofs << "X2Z("<<fxs.size()<<",FMP_"<<ft_n<<",FMP_"<<ft_n<<",x,z,r,dff,pl,las);" << endl;
                 ofs << "}" << endl;
                 ofs << endl;
             }
             
             // MatL_id
             ofs << "void MatL_"<<ft_n<<"(dCOMPLEX* mat, const dREAL* x, const dREAL* dff, const dREAL* pl, const dREAL* las) {" << endl;
-            ofs << "int nfxs="<<fxs.size()<<";" << endl;
-            ofs << "dCOMPLEX ilas[nfxs];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>(0.L, las[i]);" << endl;
-            ofs << "dREAL ddf[nfxs][nfxs];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) {" << endl;
-            ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-            ofs << "ddf[i][j] = FL_"<<ft_n<<"(i,j,x,pl);" << endl;
-            ofs << "}}" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) {" << endl;
-            ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-            ofs << "int ij = i*nfxs+j;" << endl;
-            ofs << "if(i!=j) mat[ij] = 0;" << endl;
-            ofs << "else mat[ij] = 1.L-(1.L-2.L*x[i])*dff[i]*ilas[i];" << endl;
-            ofs << "mat[ij] = mat[ij]-x[i]*(1.L-x[i])*ddf[i][j]*ilas[i];" << endl;
-            ofs << "}}" << endl;
+            ofs << "Mat("<<fxs.size()<<",FL_"<<ft_n<<",mat,x,dff,pl,las);" << endl;
             ofs << "}" << endl;
             ofs << endl;
             
             // MatQ_fid
             ofs << "void MatQ_"<<ft_n<<"(qCOMPLEX *mat, const qREAL* x, const qREAL* dff, const qREAL *pl, const qREAL *las) {" << endl;
-            ofs << "int nfxs="<<fxs.size()<<";" << endl;
-            ofs << "qCOMPLEX ilas[nfxs];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;" << endl;
-            ofs << "qREAL ddf[nfxs][nfxs];" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) {" << endl;
-            ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-            ofs << "ddf[i][j] = FQ_"<<ft_n<<"(i,j,x,pl);" << endl;
-            ofs << "}}" << endl;
-            ofs << "for(int i=0; i<nfxs; i++) {" << endl;
-            ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-            ofs << "int ij = i*nfxs+j;" << endl;
-            ofs << "if(i!=j) mat[ij] = 0;" << endl;
-            ofs << "else mat[ij] = 1.Q-(1.Q-2.Q*x[i])*dff[i]*ilas[i];" << endl;
-            ofs << "mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*ddf[i][j]*ilas[i];" << endl;
-            ofs << "}}" << endl;
+            ofs << "Mat("<<fxs.size()<<",FQ_"<<ft_n<<",mat,x,dff,pl,las);" << endl;
             ofs << "}" << endl;
             ofs << endl;
             
             // MatMP_fid
             if(use_MP || fxs.size()<3) {
                 ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX *mat, const mpREAL* x, const mpREAL* dff, const mpREAL *pl, const mpREAL *las) {" << endl;
-                ofs << "int nfxs="<<fxs.size()<<";" << endl;
-                ofs << "mpCOMPLEX ilas[nfxs];" << endl;
-                ofs << "for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);" << endl;
-                ofs << "mpREAL ddf[nfxs][nfxs];" << endl;
-                ofs << "for(int i=0; i<nfxs; i++) {" << endl;
-                ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-                ofs << "ddf[i][j] = FMP_"<<ft_n<<"(i,j,x,pl);" << endl;
-                ofs << "}}" << endl;
-                ofs << "for(int i=0; i<nfxs; i++) {" << endl;
-                ofs << "for(int j=0; j<nfxs; j++) {" << endl;
-                ofs << "int ij = i*nfxs+j;" << endl;
-                ofs << "if(i!=j) mat[ij] = 0;" << endl;
-                ofs << "else mat[ij] = mpREAL(1)-(1-2*x[i])*dff[i]*ilas[i];" << endl;
-                ofs << "mat[ij] = mat[ij]-x[i]*(1-x[i])*ddf[i][j]*ilas[i];" << endl;
-                ofs << "}}" << endl;
+                ofs << "Mat("<<fxs.size()<<",FMP_"<<ft_n<<",mat,x,dff,pl,las);" << endl;
                 ofs << "}" << endl;
                 ofs << endl;
             }
@@ -600,68 +497,9 @@ qCOMPLEX exp(qCOMPLEX x);
             ofs.open(cppfn.str(), ios::out);
             if (!ofs) throw runtime_error("failed to open *.cpp file! (2)");
 
-    /*----------------------------------------------*/
-    ofs << R"EOF(
-#include <stddef.h>
-#include <stdlib.h>
-#include <math.h>
-#include <complex>
-#include <iostream>
-extern "C" {
-#include <quadmath.h>
-}
-#include "mpreal.h"
-
-using namespace std;
-
-typedef __float128 qREAL;
-typedef __complex128 qCOMPLEX;
-typedef long double dREAL;
-typedef complex<long double> dCOMPLEX;
-typedef mpfr::mpreal mpREAL;
-typedef complex<mpREAL> mpCOMPLEX;
-
-dCOMPLEX MatDet(dCOMPLEX mat[], int n);
-qCOMPLEX MatDet(qCOMPLEX mat[], int n);
-mpCOMPLEX MatDet(mpCOMPLEX mat[], int n);
-
-extern int NRCLog;
-extern const dREAL dPi;
-extern const dREAL dEuler;
-extern const dCOMPLEX diEpsilon;
-extern const qREAL qPi;
-extern const qREAL qEuler;
-extern const qCOMPLEX qiEpsilon;
-extern mpREAL mpPi;
-extern mpREAL mpEuler;
-extern mpCOMPLEX mpiEpsilon;
-
-dCOMPLEX RCLog(dCOMPLEX ys[], int n);
-qCOMPLEX RCLog(qCOMPLEX ys[], int n);
-mpCOMPLEX RCLog(mpCOMPLEX ys[], int n);
-
-dREAL expt(dREAL a, dREAL b);
-dCOMPLEX expt(dCOMPLEX a, dREAL b);
-dREAL recip(dREAL a);
-dCOMPLEX recip(dCOMPLEX a);
-
-qREAL expt(qREAL a, qREAL b);
-qCOMPLEX expt(qCOMPLEX a, qREAL b);
-qREAL recip(qREAL a);
-qCOMPLEX recip(qCOMPLEX a);
-
-mpREAL expt(mpREAL a, mpREAL b);
-mpCOMPLEX expt(mpCOMPLEX a, mpREAL b);
-mpREAL recip(mpREAL a);
-mpCOMPLEX recip(mpCOMPLEX a);
-
-qREAL pow(qREAL x, qREAL y);
-qREAL log(qREAL x);
-qCOMPLEX pow(qCOMPLEX x, qREAL y);
-qCOMPLEX log(qCOMPLEX x);
-qCOMPLEX exp(qCOMPLEX x);
-    )EOF" << endl;
-    /*----------------------------------------------*/
+            /*----------------------------------------------*/
+            ofs << "#include \"NFunctions.h\"" << endl;
+            /*----------------------------------------------*/
 
             if(hasF) {
                 ofs << "qREAL FQ_"<<ft_n<<"(const qREAL*, const qREAL*);" << endl; // for FT only

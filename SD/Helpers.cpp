@@ -473,7 +473,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     system(cmd.str().c_str());
     
     void* module = nullptr;
-    module = dlopen(sofn.str().c_str(), RTLD_NOW | RTLD_GLOBAL);
+    module = dlopen(sofn.str().c_str(), RTLD_NOW);
     if(module == nullptr) {
         cerr << Color_Error << "FindMinimum: could not open compiled module!" << RESET << endl;
         cout << "dlerror(): " << dlerror() << endl;

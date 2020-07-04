@@ -1,63 +1,39 @@
-/**
- * @file
- * @brief Matrix Determinat, used in Numerical Integration
- * @author F. Feng
- * @version 1.0.0
- * @date 2020-04-21
- */
-  
-#include <math.h>
-#include <complex>
-extern "C" {
-#include <quadmath.h>
-}
-#include "mpreal.h"
 
-using namespace std;
-typedef __float128 qREAL;
-typedef __complex128 qCOMPLEX;
-typedef long double dREAL;
-typedef complex<long double> dCOMPLEX;
-typedef mpfr::mpreal mpREAL;
-typedef complex<mpREAL> mpCOMPLEX;
-
-extern int NRCLog;
-extern const dREAL dPi;
-extern const dREAL dEuler;
-extern const dCOMPLEX diEpsilon;
-extern const qREAL qPi;
-extern const qREAL qEuler;
-extern const qCOMPLEX qiEpsilon;
-extern mpREAL mpPi;
-extern mpREAL mpEuler;
-extern mpCOMPLEX mpiEpsilon;
+#include "NFunctions.h"
 
 int NRCLog = 10;
-
-dREAL expt(dREAL a, dREAL b) { return pow(a,b); }
-dCOMPLEX expt(dCOMPLEX a, dREAL b) { return pow(a,b); }
-dREAL recip(dREAL a) { return 1.L/a; }
-dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
-
-qREAL expt(qREAL a, qREAL b) { return powq(a,b); }
-qCOMPLEX expt(qCOMPLEX a, qREAL b) { return cpowq(a,b); }
-qREAL recip(qREAL a) { return 1.Q/a; }
-qCOMPLEX recip(qCOMPLEX a) { return 1.Q/a; }
-
-mpREAL expt(mpREAL a, mpREAL b) { return pow(a,b); }
-mpCOMPLEX expt(mpCOMPLEX a, mpREAL b) { return pow(a,b); }
-mpREAL recip(mpREAL a) { return mpREAL(1)/a; }
-mpCOMPLEX recip(mpCOMPLEX a) { return mpREAL(1)/a; }
-
-qREAL pow(qREAL x, qREAL y) { return powq(x, y); }
-qREAL log(qREAL x) { return logq(x); }
-qCOMPLEX pow(qCOMPLEX x, qREAL y) { return cpowq(x, y); }
-qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
-qCOMPLEX exp(qCOMPLEX x) { return cexpq(x); }
 
 const dREAL dPi = 3.1415926535897932384626433832795028841971693993751L;
 const dREAL dEuler = 0.57721566490153286060651209008240243104215933593992L;
 const dCOMPLEX diEpsilon = complex<dREAL>(0, 1.E-50);
+
+void X2Z(int nfxs, dREAL(*f)(const dREAL*,const dREAL*), dREAL(*Df)(const int,const dREAL*,const dREAL*),
+    const dREAL* x, dCOMPLEX* z, dCOMPLEX* r, dREAL* dff, const dREAL* pl, const dREAL* las) {
+    dCOMPLEX ilas[nfxs];
+    for(int i=0; i<nfxs; i++) ilas[i] = complex<dREAL>(0.L, las[i]);
+    dff[nfxs] = f(x,pl);
+    for(int i=0; i<nfxs; i++) dff[i] = Df(i,x,pl);
+    for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i];
+    for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.L-x[i])*r[i];
+}
+
+void Mat(int nfxs, dREAL(*DDf)(const int,const int,const dREAL*,const dREAL*), 
+    dCOMPLEX* mat, const dREAL* x, const dREAL* dff, const dREAL* pl, const dREAL* las) {
+    dCOMPLEX ilas[nfxs];
+    for(int i=0; i<nfxs; i++) ilas[i] = complex<long double>(0.L, las[i]);
+    dREAL ddf[nfxs][nfxs];
+    for(int i=0; i<nfxs; i++) {
+        for(int j=0; j<nfxs; j++) ddf[i][j] = DDf(i,j,x,pl);
+    }
+    for(int i=0; i<nfxs; i++) {
+        for(int j=0; j<nfxs; j++) {
+            int ij = i*nfxs+j;
+            if(i!=j) mat[ij] = 0;
+            else mat[ij] = 1.L-(1.L-2.L*x[i])*dff[i]*ilas[i];
+            mat[ij] = mat[ij]-x[i]*(1.L-x[i])*ddf[i][j]*ilas[i];
+        }
+    }
+}
 
 dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
     bool is_zero = false;
@@ -123,6 +99,34 @@ const qREAL qPi = 3.1415926535897932384626433832795028841971693993751Q;
 const qREAL qEuler = 0.57721566490153286060651209008240243104215933593992Q;
 const qCOMPLEX qiEpsilon = 1.E-50Qi;
 
+void X2Z(int nfxs, qREAL(*f)(const qREAL*,const qREAL*), qREAL(*Df)(const int,const qREAL*,const qREAL*),
+    const qREAL* x, qCOMPLEX* z, qCOMPLEX* r, qREAL* dff, const qREAL* pl, const qREAL* las) {
+    qCOMPLEX ilas[nfxs];
+    for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;
+    dff[nfxs] = f(x,pl);
+    for(int i=0; i<nfxs; i++) dff[i] = Df(i,x,pl);
+    for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i];
+    for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.Q-x[i])*r[i];
+}
+
+void Mat(int nfxs, qREAL(*DDf)(const int,const int,const qREAL*,const qREAL*), 
+    qCOMPLEX *mat, const qREAL* x, const qREAL* dff, const qREAL *pl, const qREAL *las) {
+    qCOMPLEX ilas[nfxs];
+    for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;
+    qREAL ddf[nfxs][nfxs];
+    for(int i=0; i<nfxs; i++) {
+        for(int j=0; j<nfxs; j++) ddf[i][j] = DDf(i,j,x,pl);
+    }
+    for(int i=0; i<nfxs; i++) {
+        for(int j=0; j<nfxs; j++) {
+            int ij = i*nfxs+j;
+            if(i!=j) mat[ij] = 0;
+            else mat[ij] = 1.Q-(1.Q-2.Q*x[i])*dff[i]*ilas[i];
+            mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*ddf[i][j]*ilas[i];
+        }
+    }
+}
+
 qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
@@ -186,6 +190,34 @@ qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
 mpREAL mpPi;
 mpREAL mpEuler;
 mpCOMPLEX mpiEpsilon;
+
+void X2Z(int nfxs, mpREAL(*f)(const mpREAL*,const mpREAL*), mpREAL(*Df)(const int,const mpREAL*,const mpREAL*),
+    const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {
+    mpCOMPLEX ilas[nfxs];
+    for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);
+    dff[nfxs] = f(x,pl);
+    for(int i=0; i<nfxs; i++) dff[i] = Df(i,x,pl);
+    for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i];
+    for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1-x[i])*r[i];
+}
+
+void Mat(int nfxs, mpREAL(*DDf)(const int, const int,const mpREAL*,const mpREAL*), 
+    mpCOMPLEX *mat, const mpREAL* x, const mpREAL* dff, const mpREAL *pl, const mpREAL *las) {
+    mpCOMPLEX ilas[nfxs];
+    for(int i=0; i<nfxs; i++) ilas[i] = complex<mpREAL>(mpREAL(0), las[i]);
+    mpREAL ddf[nfxs][nfxs];
+    for(int i=0; i<nfxs; i++) {
+        for(int j=0; j<nfxs; j++) ddf[i][j] = DDf(i,j,x,pl);
+    }
+    for(int i=0; i<nfxs; i++) {
+        for(int j=0; j<nfxs; j++) {
+            int ij = i*nfxs+j;
+            if(i!=j) mat[ij] = 0;
+            else mat[ij] = mpREAL(1)-(1-2*x[i])*dff[i]*ilas[i];
+            mat[ij] = mat[ij]-x[i]*(1-x[i])*ddf[i][j]*ilas[i];
+        }
+    }
+}
 
 mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
     bool is_zero = false;

@@ -52,7 +52,7 @@ namespace HepLib::SD {
         } else {
             fsofn << pid << "F.so";
         }
-        void* module = dlopen(fsofn.str().c_str(), RTLD_NOW | RTLD_GLOBAL);
+        void* module = dlopen(fsofn.str().c_str(), RTLD_NOW);
         if (module == nullptr) {
             cerr << Color_Error << "Contours: could not open compiled module!" << RESET << endl;
             cout << "dlerror(): " << dlerror() << endl;
