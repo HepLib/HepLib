@@ -417,7 +417,7 @@ namespace HepLib::SD {
                     throw Error("MB: vz Found.");
                 }
                 
-                auto tmp = fe.op(0).op(i).subs(lst{WRA(w)==1,x(w)==1,PL(w)==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
+                auto tmp = fe.op(0).op(i).subs(lst{WRA(w)==0,x(w)==1,PL(w)==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
                 if(!is_a<numeric>(tmp.evalf())) {
                     cout << Color_Error << tmp << RESET << endl;
                     throw Error("MB: Extra Variable(^[ep,eps,PL,x]) Found.");

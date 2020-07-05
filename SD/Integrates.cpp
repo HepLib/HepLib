@@ -154,20 +154,14 @@ namespace HepLib::SD {
             if(co.is_zero()) continue;
             co = mma_collect(co, eps);
             if(co.is_zero()) continue;
-            if(co.has(PL(w))) {
-                cerr << Color_Error << "Integrates: PL found @ " << co << RESET << endl;
-                exit(1);
-            }
+            if(co.has(PL(w))) throw Error("Integrates: PL found @ " + ex2str(co));
             qREAL cmax = -1;
             int reim = 0;
             if(ReIm==3) reim = 3;
             
             for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
                 auto tmp = co.coeff(eps, si);
-                if(tmp.has(eps)) {
-                    cerr << Color_Error << "Integrates: eps found @ " << tmp << RESET << endl;
-                    exit(1);
-                }
+                if(tmp.has(eps)) throw Error("Integrates: eps found @ " + ex2str(tmp));
                 tmp = mma_collect(tmp, ep);
                 for(int i=tmp.ldegree(ep); i<=tmp.degree(ep); i++) {
                     auto oDigits = Digits;
@@ -218,18 +212,17 @@ namespace HepLib::SD {
             }
             if(cmax<=0) throw Error("Integrates: cmax<=0 with co = "+ex2str(co));
             if(reim!=3 && ReIm!=3) {
-                if(reim==1 && ReIm==2) reim=2;
-                else if(reim==2 && ReIm==2) reim=1;
+                if(ReIm==2) {
+                    if(reim==1) reim=2;
+                    else if(reim==2) reim=1;
+                }
             }
             
             if(Verbose > 3) cout << "XDim=" << xsize << ", EpsAbs=" << (double)(EpsAbs/cmax/stot) << "/" << (double)cmax << endl;
             
             auto las = LambdaMap[item.op(3)];
             bool hasF = item.op(3)>0;
-            if(hasF && las.is_zero()) {
-                cerr << Color_Error << "Integrates: lambda with the key(ft_n=" << item.op(3) << ") is NOT found!" << RESET << endl;
-                exit(1);
-            }
+            if(hasF && las.is_zero()) throw Error("Integrates: lambda with the key(ft_n=" + ex2str(item.op(3)) + ") is NOT found!");
             
             if(hasF && !is_a<lst>(las)) {
                 if(!is_zero(las-ex(1979))) { // the convention for xPositive or explict real mode
@@ -249,9 +242,8 @@ namespace HepLib::SD {
             fname << "SDD_" << idx;
             fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             if(fp==NULL) {
-                cerr << Color_Error << "Integrates: fp==NULL" << RESET << endl;
                 cout << "dlerror(): " << dlerror() << endl;
-                exit(1);
+                throw Error("Integrates: fp==NULL");
             }
             
             fname.clear();
@@ -260,9 +252,8 @@ namespace HepLib::SD {
             fname << "SDQ_" << idx;
             fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
             if(fpQ==NULL) {
-                cerr << Color_Error << "Integrates: fpQ==NULL" << RESET << endl;
                 cout << "dlerror(): " << dlerror() << endl;
-                exit(1);
+                throw Error("Integrates: fpQ==NULL");
             }
 
             fname.clear();

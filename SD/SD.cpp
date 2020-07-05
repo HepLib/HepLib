@@ -1256,10 +1256,7 @@ namespace HepLib::SD {
             symbol dx;
             for(auto xn : xns) {
                 auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0,epz==0}).normal();
-                if(!is_a<numeric>(expn)) {
-                    cerr << Color_Error << "SDPrepares: Not a number with expn = " << expn << RESET << endl;
-                    exit(1);
-                }
+                if(!is_a<numeric>(expn)) throw Error("SDPrepares: Not a number with expn = " + ex2str(expn));
                 
                 lst exprs2;
                 for(auto it : exprs) {
@@ -1356,10 +1353,9 @@ namespace HepLib::SD {
             exset cts;
             item.find(CT(w), cts);
             if(cts.size() != 1) {
-                cerr << Color_Error << "EpsEpExpands: CT size is NOT 1: " RESET << endl;
                 cerr << "cts: " << cts << endl;
                 cerr << "item: " << item << endl;
-                exit(1);
+                throw Error("EpsEpExpands: CT size is NOT 1: ");
             }
             ex ct = (*(cts.begin())).subs(CT(w)==w).subs(iEpsilon==0);
             auto it = item.subs(CT(w)==1);
@@ -1384,10 +1380,9 @@ namespace HepLib::SD {
             exset cts;
             item.find(CT(w), cts);
             if(cts.size() != 1) {
-                cerr << Color_Error << "EpsEpExpands: CT size is NOT 1: " << RESET << endl;
                 cerr << "cts: " << cts << endl;
                 cerr << "item: " << item << endl;
-                exit(1);
+                throw Error("EpsEpExpands: CT size is NOT 1: ");
             }
             ex ct = (*(cts.begin())).subs(CT(w)==w).subs(iEpsilon==0);
             auto it = item.subs(CT(w)==1);
@@ -1418,8 +1413,7 @@ namespace HepLib::SD {
                 //if(use_CCF) tmp = collect_common_factors(tmp);
                 if(!tmp.has(eps) && !ct.has(eps)) {
                     if(tmp.has(epsID(w)) || ct.has(epsID(w))) {
-                        cerr << Color_Error << "EpsEpExpands: epsID should be always multipled by eps!" << RESET << endl;
-                        exit(1);
+                        throw Error("EpsEpExpands: epsID should be always multipled by eps!");
                     }
                     auto ct2 = vc * ct;
                     int ctN = epRank(ct2);
@@ -1427,8 +1421,7 @@ namespace HepLib::SD {
                     for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                         auto intg = tmp.coeff(ep, di);
                         if(intg.has(ep)) {
-                            cerr << Color_Error << "EpsEpExpands: ep found @ intg = " << intg << RESET << endl;
-                            exit(1);
+                            throw Error("EpsEpExpands: ep found @ intg = " + ex2str(intg));
                         }
                         auto pref = mma_series(ct2, ep, epN-di);
                         if(pref.has(vs)) pref = mma_series(pref, vs, sN);

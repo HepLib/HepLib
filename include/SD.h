@@ -388,6 +388,7 @@ namespace HepLib::SD {
         static bool VerifySD(vector<exmap> vmap, bool quick = true);
         static ex RefinedFT(ex const & ft);
         static lst RefinedFT_lst(ex const & ft);
+        static ex ContinuousWRA(ex expr_in, int nc=25);
         
         static void ChengWu(vector<ex> &FunExp, bool sub_cw=false);
         static vector<ex> ChengWu_Internal(ex fe);
