@@ -534,8 +534,8 @@ namespace HepLib::SD {
                 auto intg = expr.subs(FTX(w1,w2)==1);
                 intg = intg.subs(pow(exp(w1),w2)==exp(w1*w2));
                 intg = intg.subs(sqrt(exp(w1))==exp(w1/2));
-                intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
-                intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
+//                intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
+//                intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation
@@ -561,7 +561,11 @@ namespace HepLib::SD {
                             }
                         }
                     }
-                    if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
+                    if(pow_subs.nops()>0) {
+                        intg = intg.subs(pow_subs);
+                        intg = intg.subs(pow(exp(w1),w2)==exp(w1*w2));
+                        intg = intg.subs(sqrt(exp(w1))==exp(w1/2));
+                    }
                     
                     exset logs_set;
                     find(intg, log(w), logs_set);
@@ -745,8 +749,8 @@ namespace HepLib::SD {
                 auto intg = expr.subs(FTX(w1,w2)==1);
                 intg = intg.subs(pow(exp(w1),w2)==exp(w1*w2));
                 intg = intg.subs(sqrt(exp(w1))==exp(w1/2));
-                intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
-                intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
+//                intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
+//                intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation
@@ -772,7 +776,11 @@ namespace HepLib::SD {
                             }
                         }
                     }
-                    if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
+                    if(pow_subs.nops()>0) {
+                        intg = intg.subs(pow_subs);
+                        intg = intg.subs(pow(exp(w1),w2)==exp(w1*w2));
+                        intg = intg.subs(sqrt(exp(w1))==exp(w1/2));
+                    }
                     
                     exset logs_set;
                     find(intg, log(w), logs_set);
@@ -964,8 +972,8 @@ namespace HepLib::SD {
                 auto intg = expr.subs(FTX(w1,w2)==1);
                 intg = intg.subs(pow(exp(w1),w2)==exp(w1*w2));
                 intg = intg.subs(sqrt(exp(w1))==exp(w1/2));
-                intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
-                intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
+//                intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
+//                intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation
@@ -991,7 +999,11 @@ namespace HepLib::SD {
                             }
                         }
                     }
-                    if(pow_subs.nops()>0) intg = intg.subs(pow_subs);
+                    if(pow_subs.nops()>0) {
+                        intg = intg.subs(pow_subs);
+                        intg = intg.subs(pow(exp(w1),w2)==exp(w1*w2));
+                        intg = intg.subs(sqrt(exp(w1))==exp(w1/2));
+                    }
                     
                     exset logs_set;
                     find(intg, log(w), logs_set);

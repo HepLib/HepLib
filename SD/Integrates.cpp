@@ -34,34 +34,39 @@ namespace HepLib::SD {
         ex wra = (*(wra_set.begin())).op(0);
         static symbol xwra("xwra");
         expr = expr.subs(WRA(w)==xwra);
-        exset log_pow_set;
-        expr.find(log(w), log_pow_set);
-        expr.find(sqrt(w), log_pow_set);
-        expr.find(pow(w1,w2), log_pow_set);
-        lst id_logz_lst;
-        exmap log_pow_map;
-        int log_id = 0;
-        for(auto item : log_pow_set) {
+        exset pows_set;
+        expr.find(sqrt(w), pows_set);
+        expr.find(pow(w1,w2), pows_set);
+        exmap pow_map;
+        for(auto item : pows_set) {
             if(item.has(xwra)) {
                 if(item.match(pow(w1,w2)) && !item.op(1).info(info_flags::integer)) {
-                    log_id++;
-                    id_logz_lst.append(iWF(log_id,item.op(0)));
-                    log_pow_map[item] = exp(iWF(log_id) * item.op(1));
-                } else if(item.match(log(w))) {
-                    log_id++;
-                    id_logz_lst.append(iWF(log_id,item.op(0)));
-                    log_pow_map[item] = iWF(log_id);
+                    pow_map[item] = exp(log(item.op(0)) * item.op(1));
                 } else if(item.match(sqrt(w))) {
-                    log_id++;
-                    id_logz_lst.append(iWF(log_id,item.op(0)));
-                    log_pow_map[item] = exp(iWF(log_id)/2);
+                    pow_map[item] = exp(log(item.op(0))/2);
                 }
             }
         }
-        expr = expr.subs(log_pow_map); 
+        expr = expr.subs(pow_map); 
+        expr = expr.subs(pow(exp(w1),w2)==exp(w1*w2));
+        expr = expr.subs(sqrt(exp(w1))==exp(w1/2));
+        
+        int log_id = 0;
+        exset logs_set;
+        expr.find(log(w), logs_set);
+        exmap log_map;
+        lst id_logz_lst;
+        for(auto item : logs_set){
+            if(item.has(xwra)) {
+                log_id++;
+                id_logz_lst.append(iWF(log_id,item.op(0)));
+                log_map[item] = iWF(log_id);
+            }
+        }
+        
         expr = expr.subs(xwra==wra);
         if(id_logz_lst.nops()<1) return expr;
-        exmap log_map;
+        exmap log_map2;
         auto oDigits = Digits;
         Digits = 100;
         for(auto id_logz : id_logz_lst) {
@@ -69,7 +74,7 @@ namespace HepLib::SD {
             auto zz = id_logz.op(1);
             ex ret = log(zz.subs(lst{iEpsilon==iEpsilonN, xwra==wra}));
             if(nc<1) {
-                log_map[iWF(id)] = ret;
+                log_map2[iWF(id)] = ret;
                 break;
             }
             int total=0;
@@ -96,7 +101,7 @@ namespace HepLib::SD {
                 }
             }
             if(cutN!=0) ret += I * cutN * 2 * Pi;
-            log_map[iWF(id)] = ret;
+            log_map2[iWF(id)] = ret;
         }
         Digits = oDigits;
         return expr.subs(log_map);
@@ -112,7 +117,7 @@ namespace HepLib::SD {
         if(IsZero) return;
         if(Integrator==NULL) Integrator = new HCubature();
                 
-        if(Verbose > 0) cout << Color_HighLight << "  Integrates @ " << now() << RESET << endl;
+        if(Verbose>0) cout << Color_HighLight << "  Integrates @ " << now() << RESET << endl;
         
         lst lstRE;
         auto pid = getpid();
@@ -218,7 +223,7 @@ namespace HepLib::SD {
         for(auto &item : ciResult) {
             current++;
             if(kid>0 && current != kid) continue;
-            if(Verbose > 0) {
+            if(Verbose>0) {
                 cout << "\r                                           \r";
                 cout << "  \\--Integrating [" <<current<<"/"<<total<< "] " << flush;
             } 
@@ -228,7 +233,7 @@ namespace HepLib::SD {
             vector<ex> xs, fxs;
             xsize = ex_to<numeric>(item.op(1)).to_int();
             co = item.op(2).subs(plRepl).subs(iEpsilon==iEpsilonN);
-            if(co.has(WRA(w))) co = ContinuousWRA(co.subs(plRepl));
+            if(co.has(WRA(w))) co = ContinuousWRA(co);
             
             if(xsize<1) { 
                 // { expr, xs.size(), kvf.op(0), -1}
@@ -236,12 +241,17 @@ namespace HepLib::SD {
                 if(exint.has(WRA(w))) exint = ContinuousWRA(exint);
                 auto oDigits = Digits;
                 Digits = 35;
+                ex res = VE(exint.evalf(),0);
+                if(Verbose>5) {
+                    cout << "XDim=" << xsize << endl;
+                    cout << Color_HighLight << "     IRes = "<< HepLib::SD::VEResult(VESimplify(res)) << RESET << endl;
+                }
                 if(kid>0) {
-                    lstRE.let_op(kid-1) = VE(exint.evalf(),0) * co;
+                    lstRE.let_op(kid-1) = res*co;
                     Digits = oDigits;
                     break;
                 }
-                lstRE.append(VE(exint.evalf(),0) * co);
+                lstRE.append(res*co);
                 Digits = oDigits;
                 continue;
             }
@@ -317,7 +327,7 @@ namespace HepLib::SD {
                 }
             }
             
-            if(Verbose > 3) cout << "XDim=" << xsize << ", EpsAbs=" << (double)(EpsAbs/cmax/stot) << "/" << (double)cmax << endl;
+            if(Verbose>5) cout << "XDim=" << xsize << ", EpsAbs=" << (double)(EpsAbs/cmax/stot) << "/" << (double)cmax << endl;
             
             auto las = LambdaMap[ftid];
             bool hasF = (ftid>0);
@@ -529,7 +539,7 @@ namespace HepLib::SD {
                 
                 auto log_cla = (log_lamin + smin * (log_lamax-log_lamin) / LambdaSplit);
                 auto cla = powq(10.Q, log_cla);
-                if(Verbose > 7) cout << Color_HighLight << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
+                if(Verbose>5) cout << Color_HighLight << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
                 for(int i=0; i<las.nops()-1; i++) {
                     lambda[i] = ex2q(las.op(i)) * cla;
                 }
@@ -559,7 +569,7 @@ namespace HepLib::SD {
                     }
                     
                     Integrator->Lambda = lambda; // Integrator->Lambda changed in ErrMin
-                    if(Verbose > 7) {
+                    if(Verbose>5) {
                         cout << Color_HighLight << "     Final λs: " << RESET;
                         for(int i=0; i<xsize; i++) {
                             char buffer[128];
@@ -596,9 +606,7 @@ namespace HepLib::SD {
             
             auto res = Integrator->Integrate();
             if(Verbose>5) {
-                cout << Color_HighLight;
-                cout << "     Res = "<< HepLib::SD::VEResult(VESimplify(res)) << endl;
-                cout << RESET;
+                cout << Color_HighLight << "     IRes = "<< HepLib::SD::VEResult(VESimplify(res)) << RESET << endl;
             }
             if(res.has(NaN)) {
                 ResultError = NaN;
@@ -618,7 +626,7 @@ namespace HepLib::SD {
             for(auto module : ex_modules) dlclose(module);
             dlclose(main_module);
         }
-        if(total>0 && Verbose > 1) cout << "@" << now(false) << endl;
+        if(total>0 && Verbose>1) cout << "@" << now(false) << endl;
         
         if(!ResultError.is_equal(NaN)) {
             ResultError = 0;
