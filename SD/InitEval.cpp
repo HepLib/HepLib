@@ -37,8 +37,7 @@ namespace HepLib::SD {
         }
             
         if(fp.Propagators.nops() != fp.Exponents.nops()) {
-            cerr << Color_Error << "Initialize: the length of Propagators and Exponents are NOT equal." << RESET << endl;
-            exit(1);
+            throw Error("Initialize: the length of Propagators and Exponents are NOT equal.");
         }
         
         if(fp.Prefactor.subs(Symbol::AssignMap).is_zero()) {
@@ -52,20 +51,17 @@ namespace HepLib::SD {
         
         for(auto kv: fp.lReplacements) {
             if((lst{kv.first, kv.second}).has(iEpsilon)) {
-                cerr << Color_Error << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /1" << RESET << endl;
-                exit(1);
+                throw Error("Initialize: (lst{kv.first, kv.second}).has(iEpsilon) @1");
             }
         }
         for(auto kv: fp.tReplacements) {
             if((lst{kv.first, kv.second}).has(iEpsilon)) {
-                cerr << Color_Error << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /2" << RESET << endl;
-                exit(1);
+                throw Error("Initialize: (lst{kv.first, kv.second}).has(iEpsilon) @2");
             }
         }
         for(auto kv: fp.nReplacements) {
             if((lst{kv.first, kv.second}).has(iEpsilon)) {
-                cerr << Color_Error << "Initialize: (lst{kv.first, kv.second}).has(iEpsilon) /3" << RESET << endl;
-                exit(1);
+                throw Error("Initialize: (lst{kv.first, kv.second}).has(iEpsilon) @3");
             }
         }
         
@@ -156,8 +152,7 @@ namespace HepLib::SD {
             // check iEpsilon
             if(sgn.is_zero()) {
                 if(!is_a<numeric>(p.coeff(iEpsilon))) {
-                    cerr << Color_Error << "Initialize: (!is_a<numeric>(p.coeff(iEpsilon)))" << RESET << endl;
-                    exit(1);
+                    throw Error("Initialize: (!is_a<numeric>(p.coeff(iEpsilon)))");
                 }
                 numeric nm = ex_to<numeric>(p.coeff(iEpsilon));
                 if(!nm.is_zero()) sgn = nm>0 ? -1 : 1;
@@ -166,8 +161,7 @@ namespace HepLib::SD {
             if(sgn.is_zero()) {
                 for(auto m : tls) {
                     if(!is_a<numeric>(p.coeff(m,2))) {
-                        cerr << Color_Error << "not numeric: " << p.coeff(m,2) << RESET << endl;
-                        exit(1);
+                        throw Error("Initialize: NOT numeric: " + ex2str(p.coeff(m,2)));
                     }
                     numeric nm = ex_to<numeric>(p.coeff(m,2));
                     if(nm.is_zero()) continue;

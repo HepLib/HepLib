@@ -11,6 +11,96 @@
 #include <cmath>
 
 namespace HepLib::SD {
+
+    /**
+     * @brief ContinuousWRA, note that here we need to provide the specific Parameter
+     * @param expr_in expression containing WRA
+     * @param nc similar to NRCLog, the number of try
+     * @return result with WRA removed
+     */
+    ex SecDec::ContinuousWRA(ex expr_in, int nc) {
+        auto expr = expr_in;
+        expr = expr.subs(pow(exp(w1),w2)==exp(w1*w2));
+        expr = expr.subs(sqrt(exp(w1))==exp(w1/2));
+        expr = expr.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
+        expr = expr.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
+        exset wra_set;
+        expr.find(WRA(w), wra_set);
+        if(wra_set.size()<1) return expr;
+        if(wra_set.size()!=1) {
+            cout << expr << endl;
+            throw Error("ContinuousWRA: too many WRA.");
+        }
+        ex wra = (*(wra_set.begin())).op(0);
+        static symbol xwra("xwra");
+        expr = expr.subs(WRA(w)==xwra);
+        exset log_pow_set;
+        expr.find(log(w), log_pow_set);
+        expr.find(sqrt(w), log_pow_set);
+        expr.find(pow(w1,w2), log_pow_set);
+        lst id_logz_lst;
+        exmap log_pow_map;
+        int log_id = 0;
+        for(auto item : log_pow_set) {
+            if(item.has(xwra)) {
+                if(item.match(pow(w1,w2)) && !item.op(1).info(info_flags::integer)) {
+                    log_id++;
+                    id_logz_lst.append(iWF(log_id,item.op(0)));
+                    log_pow_map[item] = exp(iWF(log_id) * item.op(1));
+                } else if(item.match(log(w))) {
+                    log_id++;
+                    id_logz_lst.append(iWF(log_id,item.op(0)));
+                    log_pow_map[item] = iWF(log_id);
+                } else if(item.match(sqrt(w))) {
+                    log_id++;
+                    id_logz_lst.append(iWF(log_id,item.op(0)));
+                    log_pow_map[item] = exp(iWF(log_id)/2);
+                }
+            }
+        }
+        expr = expr.subs(log_pow_map); 
+        expr = expr.subs(xwra==wra);
+        if(id_logz_lst.nops()<1) return expr;
+        exmap log_map;
+        auto oDigits = Digits;
+        Digits = 100;
+        for(auto id_logz : id_logz_lst) {
+            auto id = id_logz.op(0);
+            auto zz = id_logz.op(1);
+            ex ret = log(zz.subs(lst{iEpsilon==iEpsilonN, xwra==wra}));
+            if(nc<1) {
+                log_map[iWF(id)] = ret;
+                break;
+            }
+            int total=0;
+            int ReIm[nc][2];
+            for(int k=0; k<=nc; k++) {
+                auto zzk = evalf(zz.subs(lst{iEpsilon==iEpsilonN, xwra==k*wra/nc}));
+                if(!is_a<numeric>(zzk)) throw Error("ContinuousWRA: zzk is not numeric: "+ex2str(zzk));
+                auto nzzk = ex_to<numeric>(zzk);
+                auto curR = real(nzzk);
+                auto curI = imag(nzzk);
+                if(is_zero(curI) && k==0 && curR<0) ReIm[total][1] = -1;
+                else if(is_zero(curR) || is_zero(curR)) continue; 
+                else ReIm[total][1] = curI>0 ? 1 : -1;
+                ReIm[total][0] = curR>0 ? 1 : -1;
+                total++;
+            }
+            
+            int cutN = 0;
+            for(int k=0; k<total-1; k++) {
+                if(ReIm[k][0]*ReIm[k+1][0]<0 && ReIm[k][1]*ReIm[k+1][1]<0) throw Error("ContinuousWRA: 1<->3 or 2<->4 happened.");
+                if(ReIm[k][0]<0 && ReIm[k+1][0]<0 && ReIm[k][1]*ReIm[k+1][1]<0) {
+                    if(ReIm[k][1]>0) cutN++;
+                    else cutN--;
+                }
+            }
+            if(cutN!=0) ret += I * cutN * 2 * Pi;
+            log_map[iWF(id)] = ret;
+        }
+        Digits = oDigits;
+        return expr.subs(log_map);
+    }
     
     /**
      * @brief Contours, note that here we need to provide the specific Parameter
@@ -134,22 +224,31 @@ namespace HepLib::SD {
             } 
             
             unsigned int xsize = 0;
-            ex co, exint, exft;
+            ex co;
             vector<ex> xs, fxs;
             xsize = ex_to<numeric>(item.op(1)).to_int();
-            if(xsize<1) {
+            co = item.op(2).subs(plRepl).subs(iEpsilon==iEpsilonN);
+            if(co.has(WRA(w))) co = ContinuousWRA(co.subs(plRepl));
+            
+            if(xsize<1) { 
+                // { expr, xs.size(), kvf.op(0), -1}
+                ex exint = item.op(0).subs(plRepl);
+                if(exint.has(WRA(w))) exint = ContinuousWRA(exint);
                 auto oDigits = Digits;
                 Digits = 35;
                 if(kid>0) {
-                    lstRE.let_op(kid-1) = VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl);
+                    lstRE.let_op(kid-1) = VE(exint.evalf(),0) * co;
                     Digits = oDigits;
                     break;
                 }
-                lstRE.append(VE(item.op(0).subs(plRepl).evalf(),0) * item.op(2).subs(plRepl));
+                lstRE.append(VE(exint.evalf(),0) * co);
                 Digits = oDigits;
                 continue;
             }
-            co = item.op(2).subs(plRepl).subs(iEpsilon==0);
+            
+            //{ idx, xs.size(), kvf.op(0), ft_n }
+            ex intid = item.op(0);
+            ex ftid = item.op(3);
             
             if(co.is_zero()) continue;
             co = mma_collect(co, eps);
@@ -220,13 +319,13 @@ namespace HepLib::SD {
             
             if(Verbose > 3) cout << "XDim=" << xsize << ", EpsAbs=" << (double)(EpsAbs/cmax/stot) << "/" << (double)cmax << endl;
             
-            auto las = LambdaMap[item.op(3)];
-            bool hasF = item.op(3)>0;
-            if(hasF && las.is_zero()) throw Error("Integrates: lambda with the key(ft_n=" + ex2str(item.op(3)) + ") is NOT found!");
+            auto las = LambdaMap[ftid];
+            bool hasF = (ftid>0);
+            if(hasF && las.is_zero()) throw Error("Integrates: lambda with the key(ft_n=" + ex2str(ftid) + ") is NOT found!");
             
             if(hasF && !is_a<lst>(las)) {
                 if(!is_zero(las-ex(1979))) { // the convention for xPositive or explict real mode
-                    throw Error("Integrates: something is wrong with the F-term @ ft_n = "+ex2str(item.op(3)) + ", las=" + ex2str(las));
+                    throw Error("Integrates: something is wrong with the F-term @ ft_n = "+ex2str(ftid) + ", las=" + ex2str(las));
                 } else {
                     hasF = false;
                 }
@@ -234,7 +333,7 @@ namespace HepLib::SD {
             
             IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr, fpMP = nullptr;
             IntegratorBase::FT_Type ftp = nullptr;
-            int idx = ex_to<numeric>(item.op(0)).to_int();
+            int idx = ex_to<numeric>(intid).to_int();
             auto module = main_module;
             if(idx>=GccLimit) module = ex_modules[idx/GccLimit-1];
             ostringstream fname;

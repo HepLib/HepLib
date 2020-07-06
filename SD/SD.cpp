@@ -1357,7 +1357,7 @@ namespace HepLib::SD {
                 cerr << "item: " << item << endl;
                 throw Error("EpsEpExpands: CT size is NOT 1: ");
             }
-            ex ct = (*(cts.begin())).subs(CT(w)==w).subs(iEpsilon==0);
+            ex ct = (*(cts.begin())).subs(CT(w)==w);
             auto it = item.subs(CT(w)==1);
             int_map[it] = int_map[it]+ct;
         }
@@ -1384,7 +1384,7 @@ namespace HepLib::SD {
                 cerr << "item: " << item << endl;
                 throw Error("EpsEpExpands: CT size is NOT 1: ");
             }
-            ex ct = (*(cts.begin())).subs(CT(w)==w).subs(iEpsilon==0);
+            ex ct = (*(cts.begin())).subs(CT(w)==w);
             auto it = item.subs(CT(w)==1);
             
             if(ct.has(epz)) {

@@ -371,6 +371,7 @@ namespace HepLib {
     extern ex w, w0, w1, w2, w3, w4, w5;
     extern string InstallPrefix;
     extern const iSymbol iEpsilon;
+    extern const ex iEpsilonN;
     extern const Symbol ep;
     extern const Symbol D;
     extern int Verbose;

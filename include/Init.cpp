@@ -25,6 +25,7 @@ namespace HepLib {
     
     const Symbol ep("ep");
     const iSymbol iEpsilon("iEpsilon");
+    const ex iEpsilonN = I*pow(ex(10), -50);
     int Verbose = 0;
     int ParallelProcess = -1;
     const Symbol D("D");
