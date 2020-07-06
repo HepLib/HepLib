@@ -29,7 +29,7 @@ namespace HepLib::SD {
             in >> ar;
             in.close();
             auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
-            if(c!=19790923) throw runtime_error("*.ci.gar error!");
+            if(c!=19790923) throw Error("Contours: *.ci.gar error!");
             FT_N_XN = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "ftnxn"));
         }
         

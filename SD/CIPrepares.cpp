@@ -181,7 +181,7 @@ namespace HepLib::SD {
             sofn << pid << "/F" << ft_n << ".o";
             std::ofstream ofs;
             ofs.open(cppfn.str(), ios::out);
-            if (!ofs) throw runtime_error("failed to open *.cpp file! (1)");
+            if (!ofs) throw Error("failed to open *.cpp file! (1)");
             
             lst cxRepl, czRepl;
             for (int i=0; i<fxs.size(); i++) {
@@ -491,7 +491,7 @@ namespace HepLib::SD {
             cppfn << pid << "/" << idx << ".cpp";
             std::ofstream ofs;
             ofs.open(cppfn.str(), ios::out);
-            if (!ofs) throw runtime_error("failed to open *.cpp file! (2)");
+            if (!ofs) throw Error("failed to open *.cpp file! (2)");
 
             /*----------------------------------------------*/
             ofs << "#include \"NFunctions.h\"" << endl;

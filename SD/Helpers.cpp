@@ -231,7 +231,7 @@ namespace HepLib::SD {
                 return tmp.ldegree(ep);
             } else p++;
         }
-        throw runtime_error("epRank error!");
+        throw Error("epRank error!");
     }
 
     int epsRank(ex expr_in) {
@@ -245,7 +245,7 @@ namespace HepLib::SD {
                 return tmp.ldegree(eps);
             } else p++;
         }
-        throw runtime_error("epsRank error!");
+        throw Error("epsRank error!");
     }
 
     int vsRank(ex expr_in) {
@@ -259,7 +259,7 @@ namespace HepLib::SD {
                 return tmp.ldegree(vs);
             } else p++;
         }
-        throw runtime_error("vsRank error!");
+        throw Error("vsRank error!");
     }
 
 /*-----------------------------------------------------*/
@@ -413,7 +413,7 @@ double SecDec::FindMinimum(ex expr, bool compare0) {
     sofn << "/tmp/" << pid << "-" << fid << "-min.so";
     std::ofstream ofs;
     ofs.open(cppfn.str(), ios::out);
-    if (!ofs) throw runtime_error("failed to open *.cpp file! (3)");
+    if (!ofs) throw Error("FindMinimum: failed to open *.cpp file! (3)");
     
     auto xs = get_xy_from(expr);
     dREAL UB[xs.size()], LB[xs.size()];

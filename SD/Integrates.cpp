@@ -129,7 +129,7 @@ namespace HepLib::SD {
             in >> ar;
             in.close();
             auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
-            if(c!=19790923) throw runtime_error("*.ci.gar error!");
+            if(c!=19790923) throw Error("Integrates: *.ci.gar error!");
             auto res = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
             ciResult.clear();
             for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
@@ -145,7 +145,7 @@ namespace HepLib::SD {
                 la_in.close();
                 auto la_c = la_ar.unarchive_ex(GiNaC_archive_Symbols, "c");
                 auto la_res = la_ar.unarchive_ex(GiNaC_archive_Symbols, "res");
-                if(la_c!=19790923) throw runtime_error("*.ci.gar error!");
+                if(la_c!=19790923) throw Error("Integrates: *.ci.gar error!");
                 for(auto item : ex_to<lst>(la_res)) {
                     LambdaMap[item.op(0)] = item.op(1);
                 }
@@ -158,8 +158,7 @@ namespace HepLib::SD {
                 if(pkey != "") garfn << "-" << pkey;
                 garfn << ".res.gar";
                 if(!file_exists(garfn.str().c_str())) {
-                    cerr << Color_Error << "Integrates: File Not Found: " << garfn.str() << RESET << endl;
-                    exit(1);
+                    throw Error("Integrates: File Not Found: " + garfn.str());
                 }
                 
                 archive res_ar;
@@ -168,7 +167,7 @@ namespace HepLib::SD {
                 res_in.close();
                 auto res_c = res_ar.unarchive_ex(GiNaC_archive_Symbols, "c");
                 auto relst = res_ar.unarchive_ex(GiNaC_archive_Symbols, "relst");
-                if(res_c!=19790923) throw runtime_error("*.res.gar error with kid!");
+                if(res_c!=19790923) throw Error("*.res.gar error with kid!");
                 lstRE = ex_to<lst>(relst);
             }
         }
@@ -215,6 +214,7 @@ namespace HepLib::SD {
         qREAL stot = sqrtq(total*1.Q);
 
         ResultError = 0;
+        //----------------------------------------------------------------
         for(auto &item : ciResult) {
             current++;
             if(kid>0 && current != kid) continue;
@@ -232,7 +232,7 @@ namespace HepLib::SD {
             
             if(xsize<1) { 
                 // { expr, xs.size(), kvf.op(0), -1}
-                ex exint = item.op(0).subs(plRepl);
+                ex exint = item.op(0).subs(plRepl).subs(iEpsilon==iEpsilonN);
                 if(exint.has(WRA(w))) exint = ContinuousWRA(exint);
                 auto oDigits = Digits;
                 Digits = 35;
@@ -414,7 +414,7 @@ namespace HepLib::SD {
                 if(use_las && file_exists(las_fn.str().c_str())) {
                     std::ifstream las_ifs;
                     las_ifs.open(las_fn.str(), ios::in);
-                    if (!las_ifs) throw runtime_error("failed to open *.las file!");
+                    if (!las_ifs) throw Error("Integrates: failed to open *.las file!");
                     for(int i=0; i<las.nops()-1; i++) {
                         dREAL la_tmp;
                         las_ifs >> la_tmp;
@@ -612,10 +612,11 @@ namespace HepLib::SD {
                 } else lstRE.append(co * res);
             }
         }
+        //----------------------------------------------------------------
                 
         if(use_dlclose) {
-            dlclose(main_module);
             for(auto module : ex_modules) dlclose(module);
+            dlclose(main_module);
         }
         if(total>0 && Verbose > 1) cout << "@" << now(false) << endl;
         
@@ -640,5 +641,4 @@ namespace HepLib::SD {
         }
     }
     
-
 }
