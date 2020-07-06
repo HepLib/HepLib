@@ -18,9 +18,7 @@ namespace HepLib::SD {
      * @param key used to save intermidete result
      */
     void SecDec::CIPrepares(const string & key) {
-        if(expResult.size()<1) {
-            IsZero = true;
-        }
+        if(expResult.size()<1) IsZero = true;
         
         if(IsZero) return;
         if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
@@ -114,9 +112,7 @@ namespace HepLib::SD {
                 ii.append(-1);
             } else {
                 int ft_n = ftnmap[item.op(2)];
-                if(ft_n==0) {
-                    throw Error("CIPrepares: ft_n==0, " + ex2str(item.op(2)));
-                }
+                if(ft_n==0) throw Error("CIPrepares: ft_n==0, " + ex2str(item.op(2)));
                 ii.append(ft_n);
             }
             if(ii.op(0).is_zero() || ii.op(1).subs(FTX(w1,w2)==1).is_zero()) continue;
@@ -526,7 +522,7 @@ namespace HepLib::SD {
                 ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
                 
-                if(SecDec::debug) {
+                if(debug) {
                     auto tmp = expr.subs(FTX(w1,w2)==1).subs(cxRepl).subs(plRepl);
                     ofs << "//for debug, intg: " << endl << "//" << tmp << endl;
                 }
@@ -1252,8 +1248,9 @@ namespace HepLib::SD {
         }
         cmd.clear();
         cmd.str("");
-        cmd << "rm -rf " << pid;
-        if(!debug) system(cmd.str().c_str());
+        if(debug) cmd << "mv -f " << pid << " " << key << "_debug";
+        else cmd << "rm -rf " << pid;
+        system(cmd.str().c_str());
 
     }
     

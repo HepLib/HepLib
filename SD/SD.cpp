@@ -57,8 +57,7 @@ namespace HepLib::SD {
 
     vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one, bool x2y_use_factor) {
         if(in_xpols.has(y(w))) {
-            cerr << Color_Error << "SecDecBase::x2y: y(w) found @ " << in_xpols << RESET << endl;
-            exit(1);
+            throw Error("SecDecBase::x2y: y(w) found @ " + ex2str(in_xpols));
         }
         ex xpol_all = 1;
         for(auto item : in_xpols) {
@@ -127,8 +126,7 @@ namespace HepLib::SD {
             for(auto map : vec_map) {
                 auto cxpol = xpol.subs(map);
                 if(cxpol.has(x(w))) {
-                    cerr << Color_Error << "SecDecBase::x2y: x(w) found @ " << cxpol << RESET << endl;
-                    exit(1);
+                    throw Error("SecDecBase::x2y: x(w) found @ " + ex2str(cxpol));
                 }
                 cxpol = cxpol.subs(y(w)==x(w));
                 if(!cxpol.subs(x(w)==0).normal().is_zero()) cxpol=1;
@@ -149,7 +147,7 @@ namespace HepLib::SD {
                         cxpol = ret_mul;
                     } else if(cxpol.match(pow(w1,w2))) {
                         cxpol = cxpol.op(0);
-                    }
+                    } else throw Error("SecDecBase::x2y reach the un-reached region");
                 }
                 
                 auto vec_map3 = x2y(cxpol);
@@ -173,8 +171,7 @@ namespace HepLib::SD {
                         auto xs = get_x_from(xy_lst);
                         lst xRepl;
                         if(xs.size()>y_free_indexs.size()) {
-                            cerr << Color_Error << "SecDecBase::x2y: xsize > ysize" << cxpol << RESET << endl;
-                            exit(1);
+                            throw Error("SecDecBase::x2y: xsize > ysize " + ex2str(cxpol));
                         }
                         for(int j=0; j<xs.size(); j++) {
                             xRepl.append(xs[j]==y(y_free_indexs[j]));
@@ -202,10 +199,7 @@ namespace HepLib::SD {
             for(int j=0; j<ys_tmp.size()+10; j++) {
                 if(!ft.has(y(j))) y_free_indexs.push_back(j);
             }
-            if(xs_tmp.size()>y_free_indexs.size()) {
-                cerr << Color_Error << "IsBad: xsize>ysize" << RESET << endl;
-                exit(1);
-            }
+            if(xs_tmp.size()>y_free_indexs.size()) throw Error("IsBad: xsize>ysize"));
             for(int i=0; i<xs_tmp.size(); i++) {
                 vi[xs_tmp[i]] = y(y_free_indexs[i]);
             }
@@ -223,7 +217,7 @@ namespace HepLib::SD {
                 ft = ret;
             } else if ( ft.match(y(w)) || ft.match(pow(y(w), w1)) ) {
                 ft = 1;
-            }
+            } // else ft not changed
 
             ys_tmp = get_y_from(ft);
             for(int pi=1; pi<std::pow(2, ys_tmp.size()); pi++) {
@@ -233,24 +227,16 @@ namespace HepLib::SD {
                     yrepl.append(ys_tmp[i] == ((ci%2)==1 ? 1 : 0));
                     ci /= 2;
                 }
-                if(normal(ft.subs(yrepl)).is_zero()) {
-                    return true;
-                }
+                if(normal(ft.subs(yrepl)).is_zero()) return true;
             }
         }
         return false;
     }
 
     vector<ex> SecDec::AutoEnd(ex po_ex) {
-        if(po_ex.nops()>2) {
-            cerr << Color_Error << "AutoEnd: Deltas found @ " << po_ex << RESET << endl;
-            exit(1);
-        }
+        if(po_ex.nops()>2) throw Error("AutoEnd: Deltas found @ " + ex2str(po_ex));
         lst const exlist = ex_to<lst>(po_ex.op(1));
-        if(!(exlist.op(0)-1).is_zero()) {
-            cerr << Color_Error << "AutoEnd: (!(exlist.op(0)-1).is_zero())" << RESET << endl;
-            exit(1);
-        }
+        if(!(exlist.op(0)-1).is_zero()) throw Error("AutoEnd: (!(exlist.op(0)-1).is_zero())"));
         auto xs = get_x_from(po_ex.op(0));
         if(xs.size()<1) xs = get_y_from(po_ex.op(0));
         int nx = xs.size();
@@ -349,9 +335,8 @@ namespace HepLib::SD {
 
         vector<exmap> vmap = SecDec->x2y(sdList, all_in_one, x2y_use_factor);
         if(!VerifySD(vmap)) {
-            cerr << Color_Error << "VerifySD Failed!" << RESET << endl;
             for(auto vi : vmap) cout << vi << endl;
-            exit(1);
+            throw Error("VerifySD Failed!");
         }
 
         vector<ex> sd;
@@ -385,7 +370,7 @@ namespace HepLib::SD {
                 ft = ret;
             } else if ( ft.match(y(w)) || ft.match(pow(y(w), w1)) ) {
                 ft = 1;
-            }
+            } // else ft not changed
             bool hasWRA = false;
             if(ft.has(WRA(w))) {
                 ft = 1;
@@ -917,11 +902,10 @@ namespace HepLib::SD {
                             auto fun = fe.op(0).op(j);
                             fun = fun.subs(repl).normal();
                             if(!fun.is_polynomial(xj)) {
-                                cerr << Color_Error << "RemoveDeltas: fun is NOT polynormial of xj." << RESET << endl;
                                 cerr << "xj: " << xj << endl;
                                 cerr << "fun: " << fun << endl;
                                 cerr << funexp << endl;
-                                std::exit(1);
+                                throw Error("RemoveDeltas: fun is NOT polynormial of xj.") << endl;
                             }
                             auto expn = expand(fun).degree(xj);
                             fun = pow(xj, -expn) * fun;
@@ -1075,7 +1059,7 @@ namespace HepLib::SD {
                 if(expn < min_expn) min_expn = expn;
                 
                 int sim_max;
-                if(use_expand_numerator) {
+                if(use_pow_numerator) {
                     if((ex(0)-expn)>=10) sim_max = 2;
                     else if((ex(0)-expn)>=8) sim_max = 3;
                     else if((ex(0)-expn)>=6) sim_max = 5;
@@ -1095,7 +1079,7 @@ namespace HepLib::SD {
                     }
                     if(pn.op(0).is_equal(1)) continue;
                     
-                    if(use_expand_numerator) {
+                    if(use_pow_numerator) {
                         bool sim = pn.op(0).expand().nops()<=sim_max;
                         bool nni = pn.op(1).info(info_flags::nonnegint);
                         if(sim || nni) {
@@ -1141,8 +1125,7 @@ namespace HepLib::SD {
                     ex xn = xns.op(n);
                     auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0,epz==0}).normal();
                     if(!is_a<numeric>(expn)) {
-                        cout << Color_Error << "SDPrepares: expn NOT numeric: " << expn << RESET << endl;
-                        exit(1);
+                        throw Error("SDPrepares: expn NOT numeric: " + ex2str(expn));
                     }
 
                     if(ex_to<numeric>(expn) < pole_requested) {

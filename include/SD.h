@@ -319,7 +319,7 @@ namespace HepLib::SD {
         bool use_las = false;
         bool save_las = false;
         bool use_IBF = false;
-        bool use_expand_numerator = false;
+        bool use_pow_numerator = false;
         bool use_MP = true;
         bool use_RCLog = true;
         bool all_in_one = true;

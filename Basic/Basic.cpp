@@ -225,7 +225,7 @@ namespace HepLib {
                 if(key == "") garfn << ppid << "/" << bi << ".gar";
                 else garfn << ppid << "/" << bi << "." << key << ".gar";
                 garWrite(garfn.str(), res_lst);
-            } catch(exception &p) {
+            } catch(exception &p) { // NOT use Error
                 cout << Color_Error << "Failed in GiNaC_Parallel!" << RESET << endl;
                 cout << Color_Error << p.what() << RESET << endl;
             }
@@ -258,11 +258,7 @@ namespace HepLib {
             ostringstream garfn;
             if(key == "") garfn << ppid << "/" << bi << ".gar";
             else garfn << ppid << "/" << bi << "." << key << ".gar";
-            if(!file_exists(garfn.str())) {
-                cout << "File Not Found: " << garfn.str() << endl;
-                cerr << Color_Error << "GiNaC_Parallel: Check the error message above." << RESET << endl;
-                exit(0);
-            }
+            if(!file_exists(garfn.str())) throw Error("File Not Found: " + garfn.str());
             auto res_lst = garRead(garfn.str());
             remove(garfn.str().c_str());
             for(auto res : res_lst) ovec.push_back(res);
@@ -348,10 +344,7 @@ namespace HepLib {
      * @return return r-th row of matrix is zero or not
      */
     bool MatHelper::is_zero_row(const matrix &mat, int r) {
-        if(r>=mat.rows()) {
-            cerr << Color_Error << "r>=mat.rows()" << RESET << endl;
-            exit(1);
-        }
+        if(r>=mat.rows()) throw Error("MatHelper::is_zero_row, r>=mat.rows()");
         for(int c=0; c<mat.cols(); c++) {
             if(mat(r, c) !=0 ) return false;
         }
@@ -540,11 +533,7 @@ namespace HepLib {
         in.close();
         auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
         auto res = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
-        if(c!=19790923) {
-            cerr << Color_Error << "gar file: " << garfn << endl;
-            cerr << "c=" << c << ", different from 19790923!" << RESET << endl;
-            exit(1);
-        }
+        if(c!=19790923) throw Error("garRead: check faild for file: " + garfn);
         return res;
     }
     
@@ -749,18 +738,14 @@ namespace HepLib {
         for(auto pi : sset) {
             auto sn = pi.op(1);
             if(!(is_a<numeric>(sn) && ex_to<numeric>(sn).is_rational())) {
-                cerr << Color_Error << "mma_series: Not rational sn = " << sn << RESET << endl;
                 cerr << "s = " << s0 << endl;
                 cerr << "expr_in = " << expr_in << endl;
-                exit(1);
+                throw Error("mma_series: Not rational sn = " + ex2str(sn));
             }
             sn_lcm = lcm(sn_lcm, ex_to<numeric>(sn).denom());
         }
         symbol s;
-        if(!sn_lcm.is_integer()) {
-            cerr << Color_Error << "Not integer: " << sn_lcm << RESET << endl;
-            exit(1);
-        }
+        if(!sn_lcm.is_integer()) throw Error("mma_series: Not integer with " + ex2str(sn_lcm));
         if(sn_lcm<0) sn_lcm = numeric(0)-sn_lcm;
         int sn = sn0 * sn_lcm.to_int();
         expr = expr.subs(pow(s0,w)==pow(s,w*sn_lcm)).subs(s0==pow(s, sn_lcm));
@@ -780,10 +765,9 @@ namespace HepLib {
                 }
             }
             if(!is_order_function(ot)) {
-                cerr << Color_Error << "Not an Order term: " << ot << RESET << endl;
                 cerr << "expr = " << expr << endl;
                 cerr << "res = " << res << endl;
-                exit(1);
+                throw Error("mma_series: Not an Order term with " + ex2str(ot));
             }
             if(ot.op(0).degree(s)>sn) {
                 res = series_to_poly(res);
@@ -976,7 +960,7 @@ namespace HepLib {
         if(!is_zero(cf)) res += coCF(cf)*coVF(1);
         for(auto vc : vc_map) {
             if(has_func(vc.second)) {
-                cerr << Color_Error << "mma_collect: pats founds @ " << vc.second << RESET << endl;
+                cout << vc.second << endl;
                 throw Error("mma_collect: coefficent has pat.");
             }
             res += coVF(vc.first) * coCF(vc.second);
@@ -1017,7 +1001,7 @@ namespace HepLib {
         if(!is_zero(cf)) res_lst.append(lst{cf,1});
         for(auto vc : vc_map) {
             if(has_func(vc.second)) {
-                cerr << Color_Error << "mma_collect: pats founds @ " << vc.second << RESET << endl;
+                cout << vc.second << endl;
                 throw Error("mma_collect: coefficent has pat.");
             }
             res_lst.append(lst{vc.second, vc.first});
