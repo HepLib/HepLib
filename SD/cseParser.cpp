@@ -18,8 +18,10 @@ ex cseParser::Parse(ex expr, bool reset) {
         no = 0;
         o_ex_vec.clear();
     }
-    if(is_a<numeric>(expr) || is_a<symbol>(expr)) return expr;
-    if(!ex_var_map[expr].is_zero()) return ex_var_map[expr];
+    
+    if(is_a<numeric>(expr) || is_a<symbol>(expr) || is_a<symbol>(-expr) || isFunction(expr,"x") || isFunction(-expr,"x") || isFunction(expr,"PL") || isFunction(-expr,"PL")) return expr;
+    if(!is_zero(ex_var_map[expr])) return ex_var_map[expr];
+    
     ex ret = expr;
     if(is_a<add>(expr)) {
         ret = 0;
@@ -35,7 +37,9 @@ ex cseParser::Parse(ex expr, bool reset) {
         ret = power(Parse(expr.op(0),false), expr.op(1));
     } else if(expr.match(log(w))) {
         ret = log(Parse(expr.op(0),false));
-    }
+    } else if(expr.match(sqrt(w))) {
+        ret = sqrt(Parse(expr.op(0),false));
+    } // else ret is expr
     stringstream ss;
     ss << oc << "[" << no << "]";
     symbol so(ss.str().c_str());

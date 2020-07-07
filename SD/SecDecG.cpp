@@ -356,28 +356,28 @@ vector<matrix> SecDecG::SimplexCones(matrix pts) {
 
 // return a replacement/transformation, using x(-1) as key for determinant
 vector<exmap> SecDecG::x2y(const ex &xpol) {
-    if(xpol.has(y(w))) {
-        cerr << Color_Error << "SecDecG::x2y, y(w) found @ " << xpol << RESET << endl;
-        throw Error("SecDecG::x2y failed.");
+    if(xpol.has(y(w))) throw Error("SecDecG::x2y failed with y(w) found.");
+    auto cvs = mma_collect_lst(xpol, x(w));
+    vector<ex> vpols;
+    ex xpol2=1;
+    for(auto cv : cvs) {
+        if(is_zero(cv.op(0).normal())) continue;
+        vpols.push_back(cv.op(1));
+        xpol2 *= cv.op(1);
     }
-    auto xs = get_xy_from(xpol);
-    int nx = xs.size();
-    auto pol = mma_collect(xpol, x(w), true);
-    pol = pol.subs(coCF(w)==1);
-    int np = is_a<add>(pol) ? pol.nops() : 1;
+    auto xs = get_xy_from(xpol2);
+    auto nx = xs.size();
+    auto np = vpols.size();
     
     if(nx<2 || np<2) {
         vector<exmap> vmap;
         exmap nmap;
         nmap[x(-1)] = 1;
-        int i=0;
-        for(auto xi : xs) nmap[xi] = y(i++);
+        for(int i=0; i<xs.size(); i++) nmap[xs[i]] = y(i);
         vmap.push_back(nmap);
         return vmap;
     }
     
-    vector<ex> vpols;
-    for(auto item : pol) vpols.push_back(item);
     sort(vpols.begin(), vpols.end(), [&](const auto &ain, const auto &bin){
         //auto a=ain; auto b=bin; // < < <
         auto a=bin; auto b=ain; // > > >

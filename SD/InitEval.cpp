@@ -472,7 +472,7 @@ namespace HepLib::SD {
         Normalizes();
         if(xint.isAsy) DoAsy();
         XReOrders();
-        Normalizes();
+        //Normalizes();
     }
     
     void SecDec::Evaluate(FeynmanParameter fp, const string & key) {

@@ -98,7 +98,7 @@ namespace HepLib::SD {
     class SecDecBase {
     public:
         virtual vector<exmap> x2y(const ex &xpol) =0;
-        vector<exmap> x2y(const lst &xpols, bool all_in_one, bool x2y_use_factor);
+        vector<exmap> x2y(const lst &xpols, bool x2y_use_factor);
         static bool VerifySD(vector<exmap> vmap, bool quick = true);
     };
 
@@ -322,7 +322,6 @@ namespace HepLib::SD {
         bool use_pow_numerator = false;
         bool use_MP = true;
         bool use_RCLog = true;
-        bool all_in_one = true;
         bool x2y_use_factor = false;
         bool use_XReOrders = false;
         int MPDigits = 80; // digits in mpREAL for MP

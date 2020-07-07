@@ -55,10 +55,8 @@ namespace HepLib::SD {
         return SecDecBase::VerifySD(map_vec, quick);
     }
 
-    vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool all_in_one, bool x2y_use_factor) {
-        if(in_xpols.has(y(w))) {
-            throw Error("SecDecBase::x2y: y(w) found @ " + ex2str(in_xpols));
-        }
+    vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool x2y_use_factor) {
+        if(in_xpols.has(y(w))) throw Error("SecDecBase::x2y: y(w) found @ " + ex2str(in_xpols));
         ex xpol_all = 1;
         for(auto item : in_xpols) {
             if(x2y_use_factor) xpol_all *= Factor(item);
@@ -84,106 +82,11 @@ namespace HepLib::SD {
         }
         xpols.sort();
         xpols.unique();
-        sort_lst(xpols);
         
-        if(all_in_one) {
-            ex xpol = 1;
-            for(auto item : xpols) xpol *= item;
-            return x2y(xpol);
-        }
-        
-        vector<ex> xpol_vec;
-        auto xs = get_x_from(xpols);
-        for(auto item : xpols) xpol_vec.push_back(item);
-        sort(xpol_vec.begin(), xpol_vec.end(), [&](const auto &a, const auto &b){            
-            bool iz = (a.nops() != a.nops());
-            if(iz) return (a.nops() < a.nops());
-            int na=0, nb=0;
-            for(auto xi : xs) {
-                na += a.degree(xi);
-                nb += b.degree(xi);
-            }
-            if(na!=nb) return na<nb;
-            return ex_is_less()(a,b);
-        });
-        
-        xpols.remove_all();
-        xpols.append(xpol_vec[xpol_vec.size()-1]);
-        ex mul_xpol = 1;
-        for(int i=0; i<xpol_vec.size()-1; i++) mul_xpol *= xpol_vec[i];
-        if(!is_zero(mul_xpol-1)) xpols.append(mul_xpol);
-        xpol_vec.clear();
+        ex xpol = 1;
+        for(auto item : xpols) xpol *= item;
+        return x2y(xpol);
 
-        vector<exmap> vec_map;
-        exmap map0;
-        map0[x(-1)] = 1;
-        int yi=0;
-        for(auto xi : xs) map0[xi] = y(yi++);
-        vec_map.push_back(map0);
-        for(int i=0; i<xpols.nops(); i++) {
-            auto xpol = xpols.op(i);
-            vector<exmap> vec_map2;
-            for(auto map : vec_map) {
-                auto cxpol = xpol.subs(map);
-                if(cxpol.has(x(w))) {
-                    throw Error("SecDecBase::x2y: x(w) found @ " + ex2str(cxpol));
-                }
-                cxpol = cxpol.subs(y(w)==x(w));
-                if(!cxpol.subs(x(w)==0).normal().is_zero()) cxpol=1;
-                else {
-                    cxpol = collect_common_factors(cxpol);
-                    if(is_a<mul>(cxpol)) {
-                        ex ret_mul = 1;
-                        for(auto item : cxpol) {
-                            if(is_a<numeric>(item)) continue;
-                            else if(item.match(x(w))) continue;
-                            else if(item.match(pow(x(w1),w2))) continue;
-                            else if(item.match(pow(w1,w2))) {
-                                ret_mul *= item.op(0);
-                            } else {
-                                ret_mul *= item;
-                            }
-                        }
-                        cxpol = ret_mul;
-                    } else if(cxpol.match(pow(w1,w2))) {
-                        cxpol = cxpol.op(0);
-                    } else throw Error("SecDecBase::x2y reach the un-reached region");
-                }
-                
-                auto vec_map3 = x2y(cxpol);
-                for(auto map3 : vec_map3) {
-                    exmap new_map;
-                    lst xy_lst;
-                    for(auto kv : map) {
-                        auto tmp = kv.second.subs(y(w)==x(w));
-                        tmp = tmp.subs(map3);
-                        if(is_zero(kv.first-x(-1))) tmp *= map3[x(-1)];
-                        new_map[kv.first] = tmp;
-                        xy_lst.append(tmp);
-                    }
-                    
-                    // handle remaining x's
-                    if(xy_lst.has(x(w))) {
-                        vector<int> y_free_indexs;
-                        for(int j=0; j<xs.size()+10; j++) {
-                            if(!xy_lst.has(y(j))) y_free_indexs.push_back(j);
-                        }
-                        auto xs = get_x_from(xy_lst);
-                        lst xRepl;
-                        if(xs.size()>y_free_indexs.size()) {
-                            throw Error("SecDecBase::x2y: xsize > ysize " + ex2str(cxpol));
-                        }
-                        for(int j=0; j<xs.size(); j++) {
-                            xRepl.append(xs[j]==y(y_free_indexs[j]));
-                        }
-                        for(auto &kv : new_map) kv.second = kv.second.subs(xRepl);
-                    }
-                    vec_map2.push_back(new_map);
-                }
-            }
-            vec_map = vec_map2;
-        }
-        return vec_map;
     }
 
     /*-----------------------------------------------------*/
@@ -199,7 +102,7 @@ namespace HepLib::SD {
             for(int j=0; j<ys_tmp.size()+10; j++) {
                 if(!ft.has(y(j))) y_free_indexs.push_back(j);
             }
-            if(xs_tmp.size()>y_free_indexs.size()) throw Error("IsBad: xsize>ysize"));
+            if(xs_tmp.size()>y_free_indexs.size()) throw Error("IsBad: xsize>ysize");
             for(int i=0; i<xs_tmp.size(); i++) {
                 vi[xs_tmp[i]] = y(y_free_indexs[i]);
             }
@@ -236,7 +139,7 @@ namespace HepLib::SD {
     vector<ex> SecDec::AutoEnd(ex po_ex) {
         if(po_ex.nops()>2) throw Error("AutoEnd: Deltas found @ " + ex2str(po_ex));
         lst const exlist = ex_to<lst>(po_ex.op(1));
-        if(!(exlist.op(0)-1).is_zero()) throw Error("AutoEnd: (!(exlist.op(0)-1).is_zero())"));
+        if(!(exlist.op(0)-1).is_zero()) throw Error("AutoEnd: (!(exlist.op(0)-1).is_zero())");
         auto xs = get_x_from(po_ex.op(0));
         if(xs.size()<1) xs = get_y_from(po_ex.op(0));
         int nx = xs.size();
@@ -283,7 +186,7 @@ namespace HepLib::SD {
                     if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
                     sdList.append(tmp);
                 }
-                vector<exmap> vmap = SecDec->x2y(sdList, all_in_one, x2y_use_factor);
+                vector<exmap> vmap = SecDec->x2y(sdList, x2y_use_factor);
                 
                 for(int ni=0; ni<polist.nops(); ni++) {
                     auto po = polist.op(ni);
@@ -333,7 +236,7 @@ namespace HepLib::SD {
         }
         Digits = oDigits;
 
-        vector<exmap> vmap = SecDec->x2y(sdList, all_in_one, x2y_use_factor);
+        vector<exmap> vmap = SecDec->x2y(sdList, x2y_use_factor);
         if(!VerifySD(vmap)) {
             for(auto vi : vmap) cout << vi << endl;
             throw Error("VerifySD Failed!");
@@ -525,8 +428,8 @@ namespace HepLib::SD {
         return sd;
     }
 
-    // 1st element in [output 1st] is the constant term
-    // 2nd element in both [input 1st] and [output 1st] is the F-term
+    // 1st element in output is the constant term
+    // 2nd element in both input and output is the F-term
     lst SecDec::Normalize(const ex &input) {
         ex const_term = 1;
         lst plst, nlst;
@@ -544,7 +447,7 @@ namespace HepLib::SD {
                     for(int j=0; j<ptmp.nops(); j++) {
                         auto tmp = ptmp.op(j);
                         if(!tmp.has(x(w)) && !tmp.has(y(w))) { // constant terms
-                            if(is_a<numeric>(ntmp) && ex_to<numeric>(ntmp).is_integer()) {
+                            if(ntmp.info(info_flags::integer)) {
                                 const_term *=  pow(tmp,ntmp);
                             } else if((tmp-vs).is_zero() || tmp.match(pow(vs,w))) {
                                 const_term *=  pow(tmp,ntmp);
@@ -552,17 +455,22 @@ namespace HepLib::SD {
                                 auto tr = tmp.subs(nReplacements).subs(lst{
                                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                                 });
-                                if(!is_a<numeric>(tr)) {
+                                auto oDigits = Digits;
+                                Digits = 100;
+                                tr = tr.evalf();
+                                Digits = oDigits;
+                                if(!is_a<numeric>(tr) || !tr.info(info_flags::real)) {
                                     cerr << "tmp: " << tmp << endl;
                                     cerr << "tr: " << tr << endl;
                                     cerr << "nReplacements: " << nReplacements << endl;
                                     throw Error("Normalize: tr is NOT numeric with nReplacements.");
                                 }
-                                if(ex_to<numeric>(tr)>0) {
+                                
+                                if(tr>0) {
                                     const_term *=  pow(tmp,ntmp);
                                 } else {
                                     const_term *= pow(-tmp,ntmp);
-                                    tmul *= -1;
+                                    tmul = ex(0) - tmul;
                                 }
                             } else {
                                 tmul *= tmp;
@@ -623,6 +531,11 @@ namespace HepLib::SD {
             }
         }
         
+        if(nlst_comb.op(0)!=1) {
+            plst_comb.let_op(0) = pow(plst_comb.op(0),nlst_comb.op(0));
+            nlst_comb.let_op(0) = 1;
+        }
+        
         return (input.nops()>2) ? lst{plst_comb, nlst_comb, input.op(2)} : lst{plst_comb, nlst_comb};
     }
 
@@ -653,7 +566,7 @@ namespace HepLib::SD {
     void SecDec::Normalizes() {
         for(int ri=0; ri<2; ri++) { // run twice, needs to check in more details
             if(IsZero) return;
-
+            
             vector<ex> funexp;
             for(auto fe : FunExp) {
                 funexp.push_back(Normalize(fe));
@@ -664,26 +577,30 @@ namespace HepLib::SD {
             exmap fn;
             for(auto fe : funexp) {
                 ex key = 1;
-                if(fe.nops()>2) key = iWF(fe.op(2));
+                if(fe.nops()>2) key = iWF(fe.op(2)); // deltas
+                if(fe.op(1).op(0)!=1) {
+                    cout << fe << endl;
+                    throw Error("Normalizes: fe.op(0).op(0) is NOT 1.");
+                }
                 for(int i=1; i<fe.op(0).nops(); i++) key *= pow(fe.op(0).op(i), fe.op(1).op(i));
                 fn[key] += fe.op(0).op(0);
             }
             
-            exmap ifn;
+            map<ex,int,ex_is_less> ifn;
             for(auto fe : funexp) {
                 ex key = 1;
                 if(fe.nops()>2) key = iWF(fe.op(2));
                 for(int i=1; i<fe.op(0).nops(); i++) key *= pow(fe.op(0).op(i), fe.op(1).op(i));
-                if(ifn[key]>0) continue;
-                lst fun, exp;
-                fun.append(fn[key]);
-                exp.append(1);
+                if(ifn[key]==1) continue;
+                lst funs, exps;
+                funs.append(fn[key]);
+                exps.append(1);
                 for(int i=1; i<fe.op(0).nops(); i++) {
-                    fun.append(fe.op(0).op(i));
-                    exp.append(fe.op(1).op(i));
+                    funs.append(fe.op(0).op(i));
+                    exps.append(fe.op(1).op(i));
                 }
-                if(fe.nops()>2) FunExp.push_back(lst{fun, exp, fe.op(2)});
-                else FunExp.push_back(lst{fun, exp});
+                if(fe.nops()>2) FunExp.push_back(lst{funs, exps, fe.op(2)});
+                else FunExp.push_back(lst{funs, exps});
                 ifn[key] = 1;
             }
         }
@@ -905,7 +822,7 @@ namespace HepLib::SD {
                                 cerr << "xj: " << xj << endl;
                                 cerr << "fun: " << fun << endl;
                                 cerr << funexp << endl;
-                                throw Error("RemoveDeltas: fun is NOT polynormial of xj.") << endl;
+                                throw Error("RemoveDeltas: fun is NOT polynormial of xj.");
                             }
                             auto expn = expand(fun).degree(xj);
                             fun = pow(xj, -expn) * fun;

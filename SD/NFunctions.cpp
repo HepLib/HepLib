@@ -67,11 +67,11 @@ dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
 
 dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
     auto eps = LDBL_EPSILON;
-    dCOMPLEX ret = log(xs[n-1]);
+    dCOMPLEX ret = log(xs[n]);
     if(n<2) return ret;
     int total=0;
-    int ReIm[n][2];
-    for(int k=0; k<n; k++) {
+    int ReIm[n+1][2];
+    for(int k=0; k<=n; k++) {
         auto curR = xs[k].real();
         auto curI = xs[k].imag();
         auto absR = fabs(curR);
@@ -159,11 +159,11 @@ qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
 
 qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
     auto eps = FLT128_EPSILON;
-    qCOMPLEX ret = log(xs[n-1]);
+    qCOMPLEX ret = log(xs[n]);
     if(n<2) return ret;
     int total=0;
-    int ReIm[n][2];
-    for(int k=0; k<n; k++) {
+    int ReIm[n+1][2];
+    for(int k=0; k<=n; k++) {
         auto curR = crealq(xs[k]);
         auto curI = cimagq(xs[k]);
         auto absR = fabsq(curR);
@@ -251,11 +251,11 @@ mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
 
 mpCOMPLEX RCLog(mpCOMPLEX xs[], int n) {
     auto eps = mpfr::machine_epsilon(xs[0].real());
-    mpCOMPLEX ret = log(xs[n-1]);
+    mpCOMPLEX ret = log(xs[n]);
     if(n<2) return ret;
     int total=0;
-    int ReIm[n][2];
-    for(int k=0; k<n; k++) {
+    int ReIm[n+1][2];
+    for(int k=0; k<=n; k++) {
         auto curR = xs[k].real();
         auto curI = xs[k].imag();
         auto absR = abs(curR);

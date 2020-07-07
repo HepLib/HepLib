@@ -517,7 +517,7 @@ namespace HepLib::SD {
             if(true) {
                 ofs << "extern \"C\" " << endl;
                 ofs << "int SDD_"<<idx<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
-                ofs << "dREAL x[xn], x0[xn];" << endl;
+                ofs << "dREAL x[xn];" << endl;
                 ofs << "for(int i=0; i<xn; i++) x[i] = qx[i];" << endl;
                 ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
@@ -575,7 +575,7 @@ namespace HepLib::SD {
                         lst clogs = ex_to<lst>(cse.Parse(logs));
                         
                         ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
-                        ofs << "dCOMPLEX xwra = ti*wra/NRCLog;" << endl;
+                        ofs << "dREAL xwra = ti*wra/NRCLog;" << endl;
                         ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -591,10 +591,10 @@ namespace HepLib::SD {
                             log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                         }
                         ofs << "}" << endl;
-                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
+                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
                         intg = intg.subs(log_subs);
                     }
-                    ofs << "dCOMPLEX xwra = wra;" << endl; 
+                    ofs << "dREAL xwra = wra;" << endl; 
                 }
                 
                 cseParser cse;
@@ -700,7 +700,7 @@ namespace HepLib::SD {
                                     log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                                 }
                                 ofs << "}" << endl;
-                                ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
+                                ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
                                 
                                 intg = intg.subs(log_subs);
                             }
@@ -792,7 +792,7 @@ namespace HepLib::SD {
                         lst clogs = ex_to<lst>(cse.Parse(logs));
                         
                         ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
-                        ofs << "qCOMPLEX xwra = ti*wra/NRCLog;" << endl;
+                        ofs << "qREAL xwra = ti*wra/NRCLog;" << endl;
                         ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -808,10 +808,10 @@ namespace HepLib::SD {
                             log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                         }
                         ofs << "}" << endl;
-                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
+                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
                         intg = intg.subs(log_subs);
                     } 
-                    ofs << "qCOMPLEX xwra = wra;" << endl;
+                    ofs << "qREAL xwra = wra;" << endl;
                 }
                 
                 cseParser cse;
@@ -912,7 +912,7 @@ namespace HepLib::SD {
                                     log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                                 }
                                 ofs << "}" << endl;
-                                ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
+                                ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
                                 
                                 intg = intg.subs(log_subs);
                             }
@@ -960,7 +960,7 @@ namespace HepLib::SD {
             if(true) {
                 ofs << "extern \"C\" " << endl;
                 ofs << "int SDMP_"<<idx<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
-                ofs << "mpREAL x[xn], x0[xn];" << endl;
+                ofs << "mpREAL x[xn];" << endl;
                 ofs << "for(int i=0; i<xn; i++) x[i] = mpREAL(qx[i]);" << endl;
                 ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
@@ -1015,7 +1015,7 @@ namespace HepLib::SD {
                         lst clogs = ex_to<lst>(cse.Parse(logs));
                         
                         ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
-                        ofs << "mpCOMPLEX xwra = ti*wra/NRCLog;" << endl;
+                        ofs << "mpREAL xwra = ti*wra/NRCLog;" << endl;
                         ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -1031,10 +1031,10 @@ namespace HepLib::SD {
                             log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                         }
                         ofs << "}" << endl;
-                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
+                        ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
                         intg = intg.subs(log_subs);
                     } 
-                    ofs << "mpCOMPLEX xwra = wra;" << endl;
+                    ofs << "mpREAL xwra = wra;" << endl;
                 }
                 
                 cseParser cse;
@@ -1139,7 +1139,7 @@ namespace HepLib::SD {
                                     log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
                                 }
                                 ofs << "}" << endl;
-                                ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog+1);" << endl;
+                                ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
                                 
                                 intg = intg.subs(log_subs);
                             }
@@ -1248,7 +1248,7 @@ namespace HepLib::SD {
         }
         cmd.clear();
         cmd.str("");
-        if(debug) cmd << "mv -f " << pid << " " << key << "_debug";
+        if(debug) cmd << "rm -rf " << key << "_debug;mv -f " << pid << " " << key << "_debug;rm -f " << key << "_debug/*.o";
         else cmd << "rm -rf " << pid;
         system(cmd.str().c_str());
 
