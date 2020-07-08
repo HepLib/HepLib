@@ -18,13 +18,13 @@ using namespace std;
 typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
-typedef complex<long double> dCOMPLEX;
+typedef complex<dREAL> dCOMPLEX;
 typedef mpfr::mpreal mpREAL;
 typedef complex<mpREAL> mpCOMPLEX;
 
+extern const qCOMPLEX qiEpsilon;
 extern mpREAL mpPi;
 extern mpREAL mpEuler;
-extern const qCOMPLEX qiEpsilon;
 extern mpCOMPLEX mpiEpsilon;
 
 namespace HepLib::SD {

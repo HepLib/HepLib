@@ -95,7 +95,7 @@ int HookeJeeves::hooke(int nvars, dREAL* startpt, dREAL* endpt, dREAL rho, dREAL
 
 dREAL HookeJeeves::ObjectWrapper(int nvars, dREAL* x) {
     for(int i=0; i<nvars; i++) {
-        if(x[i]<LowerBound[i] || (UpperBound[i]>0 && x[i]>UpperBound[i])) return 1.E101;
+        if(x[i]<LowerBound[i] || (UpperBound[i]>0 && x[i]>UpperBound[i])) return 1.E101L;
     }
     return ObjectFunction(nvars, x, PL, LAS);
 }

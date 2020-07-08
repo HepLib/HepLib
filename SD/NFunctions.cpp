@@ -5,7 +5,15 @@ int NRCLog = 10;
 
 const dREAL dPi = 3.1415926535897932384626433832795028841971693993751L;
 const dREAL dEuler = 0.57721566490153286060651209008240243104215933593992L;
-const dCOMPLEX diEpsilon = complex<dREAL>(0, 1.E-50);
+const dCOMPLEX diEpsilon = complex<dREAL>(0, 1.E-50L);
+
+const qREAL qPi = 3.1415926535897932384626433832795028841971693993751Q;
+const qREAL qEuler = 0.57721566490153286060651209008240243104215933593992Q;
+const qCOMPLEX qiEpsilon = 1.E-50Qi;
+
+mpREAL mpPi;
+mpREAL mpEuler;
+mpCOMPLEX mpiEpsilon;
 
 void X2Z(int nfxs, dREAL(*f)(const dREAL*,const dREAL*), dREAL(*Df)(const int,const dREAL*,const dREAL*),
     const dREAL* x, dCOMPLEX* z, dCOMPLEX* r, dREAL* dff, const dREAL* pl, const dREAL* las) {
@@ -39,10 +47,10 @@ dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
-        if(fabs(mat[i*n+i])<1.0E-15) {
+        if(fabs(mat[i*n+i])<1.0E-15L) {
             bool is_zero = true;
             for(int j=i+1; j<n; j++) {
-                if(fabs(mat[i*n+j])>1.0E-15) {
+                if(fabs(mat[i*n+j])>1.0E-15L) {
                     for(int k=0; k<n; k++) {
                         auto tmp = mat[k*n+j];
                         mat[k*n+j] = mat[k*n+i];
@@ -92,12 +100,9 @@ dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
         }
     }
     if(cutN!=0) ret += complex<dREAL>(0,cutN * 2 * dPi);
+if(cutN!=0) cout << "d" << endl;
     return ret;
 }
-
-const qREAL qPi = 3.1415926535897932384626433832795028841971693993751Q;
-const qREAL qEuler = 0.57721566490153286060651209008240243104215933593992Q;
-const qCOMPLEX qiEpsilon = 1.E-50Qi;
 
 void X2Z(int nfxs, qREAL(*f)(const qREAL*,const qREAL*), qREAL(*Df)(const int,const qREAL*,const qREAL*),
     const qREAL* x, qCOMPLEX* z, qCOMPLEX* r, qREAL* dff, const qREAL* pl, const qREAL* las) {
@@ -131,10 +136,10 @@ qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
-        if(cabsq(mat[i*n+i])<1.0E-25) {
+        if(cabsq(mat[i*n+i])<1.0E-25Q) {
             bool is_zero = true;
             for(int j=i+1; j<n; j++) {
-                if(cabsq(mat[i*n+j])>1.0E-25) {
+                if(cabsq(mat[i*n+j])>1.0E-25Q) {
                     for(int k=0; k<n; k++) {
                         auto tmp = mat[k*n+j];
                         mat[k*n+j] = mat[k*n+i];
@@ -184,12 +189,9 @@ qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
         }
     }
     if(cutN!=0) ret += cutN * qPi * 2.Qi;
+if(cutN!=0) cout << "q" << endl;
     return ret;
 }
-
-mpREAL mpPi;
-mpREAL mpEuler;
-mpCOMPLEX mpiEpsilon;
 
 void X2Z(int nfxs, mpREAL(*f)(const mpREAL*,const mpREAL*), mpREAL(*Df)(const int,const mpREAL*,const mpREAL*),
     const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {
@@ -223,10 +225,10 @@ mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
-        if(abs(mat[i*n+i])<1.0E-35) {
+        if(abs(mat[i*n+i])<mpREAL(1.0E-35Q)) {
             bool is_zero = true;
             for(int j=i+1; j<n; j++) {
-                if(abs(mat[i*n+j])>1.0E-35) {
+                if(abs(mat[i*n+j])>mpREAL(1.0E-35Q)) {
                     for(int k=0; k<n; k++) {
                         auto tmp = mat[k*n+j];
                         mat[k*n+j] = mat[k*n+i];
@@ -276,6 +278,7 @@ mpCOMPLEX RCLog(mpCOMPLEX xs[], int n) {
         }
     }
     if(cutN!=0) ret += complex<mpREAL>(0,cutN * 2 * mpPi);
+if(cutN!=0) cout << "mp" << endl;
     return ret;
 }
 

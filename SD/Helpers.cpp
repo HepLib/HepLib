@@ -376,21 +376,21 @@ ex PowerExpand(const ex expr) {
     ex expo = expr;
     while(true) {
         auto expr2 = expo;
-        expr2 = expr2.subs(pow(x(w1)*w2,w3)==pow(x(w1),w3)*pow(w2,w3), subs_options::algebraic);
-        expr2 = expr2.subs(pow(y(w1)*w2,w3)==pow(y(w1),w3)*pow(w2,w3), subs_options::algebraic);
-        expr2 = expr2.subs(pow(z(w1)*w2,w3)==pow(z(w1),w3)*pow(w2,w3), subs_options::algebraic);
+        expr2 = expr2.subs(pow(x(w1)*w2,w3)==pow(x(w1),w3)*pow(w2,w3));
+        expr2 = expr2.subs(pow(y(w1)*w2,w3)==pow(y(w1),w3)*pow(w2,w3));
+        expr2 = expr2.subs(pow(z(w1)*w2,w3)==pow(z(w1),w3)*pow(w2,w3));
         
-        expr2 = expr2.subs(pow(pow(x(w1),w2),w3)==pow(x(w1),w2*w3), subs_options::algebraic);
-        expr2 = expr2.subs(pow(pow(y(w1),w2),w3)==pow(y(w1),w2*w3), subs_options::algebraic);
-        expr2 = expr2.subs(pow(pow(z(w1),w2),w3)==pow(z(w1),w2*w3), subs_options::algebraic);
+        expr2 = expr2.subs(pow(pow(x(w1),w2),w3)==pow(x(w1),w2*w3));
+        expr2 = expr2.subs(pow(pow(y(w1),w2),w3)==pow(y(w1),w2*w3));
+        expr2 = expr2.subs(pow(pow(z(w1),w2),w3)==pow(z(w1),w2*w3));
         
-        expr2 = expr2.subs(pow(sqrt(x(w1)),w2)==pow(x(w1),w2/2), subs_options::algebraic);
-        expr2 = expr2.subs(pow(sqrt(y(w1)),w2)==pow(y(w1),w2/2), subs_options::algebraic);
-        expr2 = expr2.subs(pow(sqrt(z(w1)),w2)==pow(z(w1),w2/2), subs_options::algebraic);
+        expr2 = expr2.subs(pow(sqrt(x(w1)),w2)==pow(x(w1),w2/2));
+        expr2 = expr2.subs(pow(sqrt(y(w1)),w2)==pow(y(w1),w2/2));
+        expr2 = expr2.subs(pow(sqrt(z(w1)),w2)==pow(z(w1),w2/2));
         
-        expr2 = expr2.subs(sqrt(pow(x(w1),w2))==pow(x(w1),w2/2), subs_options::algebraic);
-        expr2 = expr2.subs(sqrt(pow(y(w1),w2))==pow(y(w1),w2/2), subs_options::algebraic);
-        expr2 = expr2.subs(sqrt(pow(z(w1),w2))==pow(z(w1),w2/2), subs_options::algebraic);
+        expr2 = expr2.subs(sqrt(pow(x(w1),w2))==pow(x(w1),w2/2));
+        expr2 = expr2.subs(sqrt(pow(y(w1),w2))==pow(y(w1),w2/2));
+        expr2 = expr2.subs(sqrt(pow(z(w1),w2))==pow(z(w1),w2/2));
         
         expr2 = expr2.subs(pow(w0,w1)*pow(w0,w2)==pow(w0,w1+w2),subs_options::algebraic);
         expr2 = expr2.subs(w0*pow(w0,w1)==pow(w0,w1+1),subs_options::algebraic);
@@ -399,6 +399,36 @@ ex PowerExpand(const ex expr) {
         expo = expr2;
     }
     return expo;
+}
+
+ex exp_simplify(const ex expr_in) {
+    auto sop = subs_options::algebraic;
+    auto expr = expr_in;
+    while(true) {
+        auto expo = expr;
+        expr = expr.subs(pow(exp(w1)*w2,w3)==exp(w1*w3)*pow(w2,w3), sop);
+        expr = expr.subs(pow(exp(w1),w2)==exp(w1*w2));
+        expr = expr.subs(sqrt(exp(w1))==exp(w1/2));
+        expr = expr.subs(exp(w1)*exp(w2)==exp(w1+w2), sop);
+        if(is_zero(expo-expr)) break;
+    }
+    return expr;
+}
+
+ex pow_simplify(const ex expr_in) {
+    auto sop = subs_options::algebraic;
+    auto expr = expr_in;
+    while(true) {
+        auto expo = expr;
+        expr = expr.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
+        expr = expr.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
+        expr = expr.subs(pow(sqrt(w1),w2)==pow(w1,w2/2));
+        expr = expr.subs(pow(w1,w2)*pow(w1,w3)==pow(w1,w2+w3), sop);
+        expr = expr.subs(pow(w1,w2)*w==pow(w1,w2+1), sop);
+        expr = expr.subs(pow(w1,w2)/w==pow(w1,w2-1), sop);
+        if(is_zero(expo-expr)) break;
+    }
+    return expr;
 }
 
 ex SecDec::PrefactorFIESTA(int nLoop) {

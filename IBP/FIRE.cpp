@@ -71,7 +71,7 @@ namespace HepLib::IBP {
             auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
             eq = eq.subs(sp2s, subs_options::algebraic);
             eq = eq.subs(Replacements, subs_options::algebraic);
-            if(eq.has(iWF(w))) throw Error("iWF used in eq.");
+            if(eq.has(iWF(w))) throw Error("FIRE::Export, iWF used in eq.");
             eqns.append(eq == iWF(i));
         }
         auto s2p = lsolve(eqns, ss);

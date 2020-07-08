@@ -104,7 +104,7 @@ namespace HepLib::SD {
         //ftnvec item: lst { ft, ft-id }
         
         vector<ex> res_vec;
-        map<ex, ex, ex_is_less> cf_int;
+        exmap cf_int;
         
         for(auto &item : resf) {
             auto ii = ex_to<lst>(item);

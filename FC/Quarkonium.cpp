@@ -326,7 +326,6 @@ namespace HepLib::FC {
                         if(!item.op(0).is_equal(q)) throw Error("LProj: op(0) is NOT q.");
                         is.push_back(ex_to<Index>(item.op(1)));
                     } else if(item.match(pow(w,2)) && is_a<Pair>(item.op(0))) {
-cout << cv << endl;
                         if(!item.op(0).op(0).is_equal(q)) throw Error("LProj: op(0) is NOT q.");
                         is.push_back(ex_to<Index>(item.op(0).op(1)));
                         is.push_back(ex_to<Index>(item.op(0).op(1)));

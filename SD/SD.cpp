@@ -393,7 +393,7 @@ namespace HepLib::SD {
                             rem *= item;
                         }
                     } else {
-                        if(nchk && item.subs(y(w)==0).subs(iEpsilon==0).normal().is_zero()) {
+                        if(nchk && item.subs(lst{y(w)==0,iEpsilon==0}).normal().is_zero()) {
                             throw Error("DS: zero item: " + ex2str(item)  + " and exlist.op(i) = " + ex2str(nexp));
                         }
                         rem *= item;
@@ -969,19 +969,8 @@ namespace HepLib::SD {
                 }
                 if(expn < min_expn) min_expn = expn;
                 
-                int sim_max;
-                if(use_pow_numerator) {
-                    if((ex(0)-expn)>=10) sim_max = 2;
-                    else if((ex(0)-expn)>=8) sim_max = 3;
-                    else if((ex(0)-expn)>=6) sim_max = 5;
-                    else if((ex(0)-expn)>=4) sim_max = 10;
-                    else if((ex(0)-expn)>=2) sim_max = 50;
-                    else sim_max = 100;
-                }
-                
                 lst xns = ex_to<lst>(it.op(0));
                 lst pns;
-                ex tmp = 1;
                 for(int i=0; i<it.op(1).nops(); i++) {
                     lst pn = ex_to<lst>(it.op(1).op(i));
                     if(i<2) {
@@ -989,23 +978,17 @@ namespace HepLib::SD {
                         continue;
                     }
                     if(pn.op(0).is_equal(1)) continue;
-                    
-                    if(use_pow_numerator) {
-                        bool sim = pn.op(0).expand().nops()<=sim_max;
-                        bool nni = pn.op(1).info(info_flags::nonnegint);
-                        if(sim || nni) {
-                            tmp *= pow(pn.op(0), pn.op(1));
-                            continue;
-                        }
-                    } 
+                    if(is_zero(pn.op(1))) {
+                        if(is_zero(pn.op(0))) throw Error("SDPrepares: 0^0 found.");
+                        continue;
+                    }
                     pns.append(pn);
                 }
-                if(tmp!=1) pns.append(lst{tmp, 1});
                 ibp_in_vec.push_back(lst{xns, pns});
             }
         }
 
-        if(Verbose > 1) cout << "  \\--" << Color_HighLight << "Maximum x^-n: (" << ex(0)-min_expn << "+1) / " << (ex(0)-min_expn2) << RESET << endl;
+        if(Verbose > 1) cout << "  \\--" << Color_HighLight << "Maximum x^-n: All(" << ex(0)-min_expn << "+1*N) & Max(" << (ex(0)-min_expn2) << "+1)" << RESET << endl;
 
         int pn = 0;
         vector<ex> ibp_res_vec;
@@ -1132,7 +1115,8 @@ namespace HepLib::SD {
                 } else {
                     auto item = ii.op(1);
                     ex expr = 1;
-                    for(auto pn : item.op(1)) expr *= pow(pn.op(0), pn.op(1));
+                    for(auto pn : item.op(1)) expr *= exp(log(pn.op(0)) * pn.op(1));
+                    expr = exp_simplify(expr);
                     ibp_res_vec.push_back(lst{ item.op(0), expr });
                 }
             }
@@ -1146,6 +1130,8 @@ namespace HepLib::SD {
             lst para_res_lst;
             auto xns = xns_expr.op(0);
             auto expr = xns_expr.op(1);
+ostringstream oss;
+oss << xns << endl << expr << endl;
             lst exprs = { expr };
             symbol dx;
             for(auto xn : xns) {
@@ -1159,20 +1145,27 @@ namespace HepLib::SD {
                         ex dit = it;
                         ex dit0 = dit.subs(xn.op(0)==0);
                         ex ifact = 1;
-                        rem -= pow(xn.op(0), xn.op(1)) * dit0 / ifact;
-                        exprs2.append(dit0/(xn.op(1)+1)/ifact);
+                        if(!is_zero(dit0)) {
+                            rem -= pow(xn.op(0), xn.op(1)) * dit0 / ifact;
+                            exprs2.append(dit0/(xn.op(1)+1)/ifact);
+                        }
                         for(int i=1; i+expn<0; i++) {
                             dit = mma_diff(dit, xn.op(0), 1, false);
+                            if(is_zero(dit)) break;
                             dit0 = dit.subs(xn.op(0)==0);
                             ifact *= i;
-                            rem -= pow(xn.op(0), xn.op(1)+i) * dit0 / ifact;
-                            exprs2.append(dit0/(xn.op(1)+i+1)/ifact);
+                            if(!is_zero(dit0)) {
+                                rem -= pow(xn.op(0), xn.op(1)+i) * dit0 / ifact;
+                                exprs2.append(dit0/(xn.op(1)+i+1)/ifact);
+                            }
                         }
                     }
                     exprs2.append(rem);
                 }
                 exprs = exprs2;
             }
+oss << exprs << endl << endl;
+cout << oss.str() << endl;
 
             for(auto const &it : exprs) {
                 if(it.is_zero()) continue;
@@ -1270,7 +1263,7 @@ namespace HepLib::SD {
             // 1st: x-independent coefficient, expanded in ep/eps
             // 2nd: x-integrand
             auto item = Integrands[idx];
-            if(item.is_zero()) return lst{ lst{ 0, 0} };
+            if(item.is_zero()) return lst{ lst{0, 0} };
             exset cts;
             item.find(CT(w), cts);
             if(cts.size() != 1) {
@@ -1335,8 +1328,7 @@ namespace HepLib::SD {
                         tmp = stmp.coeff(eps, sdi);
                         //if(use_CCF) tmp = collect_common_factors(tmp);
                         if(tmp.has(eps)) {
-                            cerr << Color_Error << "EpsEpExpands: eps found @ tmp = " << tmp << RESET << endl;
-                            exit(1);
+                            throw Error("EpsEpExpands: eps found @ tmp = " + ex2str(tmp));
                         }
                         
                         auto cv_lst = mma_collect_lst(tmp, epsID(w));
@@ -1349,8 +1341,7 @@ namespace HepLib::SD {
                             for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                                 auto intg = tmp.coeff(ep, di);
                                 if(intg.has(ep)) {
-                                    cerr << Color_Error << "EpsEpExpands: ep found @ intg = " << intg << RESET << endl;
-                                    exit(1);
+                                    throw Error("EpsEpExpands: ep found @ intg = " + ex2str(intg));
                                 }
                                 auto pref = mma_series(ct2, ep, epN-di);
                                 if(pref.has(vs)) pref = mma_series(pref, vs, sN);
@@ -1374,10 +1365,12 @@ namespace HepLib::SD {
         if(Verbose > 1) cout << "  \\--Collecting: ";
         map<ex, ex, ex_is_less> int_pref;
         long long ncollect = 0;
+        ex expr_nox = 0;
         for(auto &item : res) {
             ncollect += item.nops();
             for(auto &kv : ex_to<lst>(item)) {
-                int_pref[kv.op(1)] += kv.op(0);
+                if(!kv.op(1).has(x(w))) expr_nox += kv.op(0) * kv.op(1);
+                else int_pref[kv.op(1)] += kv.op(0);
             }
         }
         
@@ -1388,6 +1381,7 @@ namespace HepLib::SD {
             if(kv.second.is_zero()) continue;
             expResult.push_back(lst{kv.second, kv.first});
         }
+        if(!is_zero(expr_nox)) expResult.push_back(lst{expr_nox, 1});
         if(Verbose > 1) cout << expResult.size() << endl;
     }
 

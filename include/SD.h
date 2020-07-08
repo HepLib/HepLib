@@ -51,7 +51,8 @@ namespace HepLib::SD {
     ex Factor(const ex expr);
     ex FactorOutX(const ex expr);
     ex PowerExpand(const ex expr);
-    
+    ex exp_simplify(const ex);
+    ex pow_simplify(const ex);
     
     /*-----------------------------------------------------*/
     // Customized GiNaC Function
@@ -319,7 +320,6 @@ namespace HepLib::SD {
         bool use_las = false;
         bool save_las = false;
         bool use_IBF = false;
-        bool use_pow_numerator = false;
         bool use_MP = true;
         bool use_RCLog = true;
         bool x2y_use_factor = false;
@@ -402,8 +402,8 @@ namespace HepLib::SD {
         vector<ex> DS(const ex po_ex);
         lst Normalize(const ex &input);
         void DoAsy();
-        bool KillPowersWithDelta(ex fe, int kpi);
-        bool KillPowersWithoutDelta(ex fe, int kpi, int bits);
+        bool KillPowerD(ex fe, int kpi);
+        bool KillPower(ex fe, int kpi, int bits);
 
         void CompileMatDet();
         vector<lst> ciResult;

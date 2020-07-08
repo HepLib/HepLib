@@ -749,46 +749,49 @@ namespace HepLib {
             }
             sn_lcm = lcm(sn_lcm, ex_to<numeric>(sn).denom());
         }
+        if(expr.has(sqrt(s0))) sn_lcm = lcm(sn_lcm, numeric(2));
+        
         symbol s;
         if(!sn_lcm.is_integer()) throw Error("mma_series: Not integer with " + ex2str(sn_lcm));
         if(sn_lcm<0) sn_lcm = numeric(0)-sn_lcm;
         int sn = sn0 * sn_lcm.to_int();
-        expr = expr.subs(pow(s0,w)==pow(s,w*sn_lcm)).subs(s0==pow(s, sn_lcm));
+        expr = expr.subs(pow(s0,w)==pow(s,w*sn_lcm)).subs(sqrt(s0)==pow(s,sn_lcm/2)).subs(s0==pow(s,sn_lcm));
         
-        int exN = 1;
-        ex expr_input = mma_collect(expr,s,true);
-            
-        while(exN<10) {
-            expr = expr_input + pow(s,sn+exN+2)+pow(s,sn+exN+3);
-            ex res = expr.series(s, sn+exN);
-            res = res.subs(coCF(w)==w); // remove coCF
-            ex ot = 0;
-            for(int i=0; i<res.nops(); i++) {
-                if(is_order_function(res.op(i))) {
-                    ot = res.op(i);
+        ex cvs = mma_collect_lst(expr,s);
+        ex ret = 0;
+        for(auto cv : cvs) {
+            bool ok = false; 
+            int exN = 1;
+            while(exN<10) {
+                expr = cv.op(1) + pow(s,sn+exN+2)+pow(s,sn+exN+3);
+                expr = expr.series(s, sn+exN);
+                ex ot = 0;
+                for(int i=0; i<expr.nops(); i++) {
+                    if(is_order_function(res.op(i))) {
+                        ot = res.op(i);
+                        break;
+                    }
+                }
+                if(!is_order_function(ot)) {
+                    cerr << "expr = " << expr << endl;
+                    cerr << "res = " << res << endl;
+                    throw Error("mma_series: Not an Order term with " + ex2str(ot));
+                }
+                if(ot.op(0).degree(s)>sn) {
+                    expr = series_to_poly(expr);
+                    expr = mma_collect(expr,s);
+                    for(int i=expr.ldegree(s); (i<=expr.degree(s) && i<=sn); i++) {
+                        ret += cv.op(0) * expr.coeff(s,i) * pow(s0,ex(i)/sn_lcm);
+                    }
+                    ok = true;
                     break;
                 }
+                exN++;
             }
-            if(!is_order_function(ot)) {
-                cerr << "expr = " << expr << endl;
-                cerr << "res = " << res << endl;
-                throw Error("mma_series: Not an Order term with " + ex2str(ot));
-            }
-            if(ot.op(0).degree(s)>sn) {
-                res = series_to_poly(res);
-                res = mma_collect(res,s);
-                ex ret = 0;
-                for(int i=res.ldegree(s); (i<=res.degree(s) && i<=sn); i++) {
-                    ret += res.coeff(s,i) * pow(s, i);
-                }
-                ret = ret.subs(pow(s,w)==pow(s0,w/sn_lcm)).subs(s==pow(s0,ex(1)/sn_lcm));
-                return ret;
-            }
-            exN++;
+            if(!ok) throw Error("mma_series seems not working!");
         }
-        cerr << Color_Error << "mma_series seems not working!" << RESET << endl;
-        exit(1);
-        return 0;
+        ret = mma_collect(ret,s0);
+        return ret;
     }
 
     /**
@@ -1090,15 +1093,18 @@ namespace HepLib {
     }
     
     ex EvalL(ex expr) {
-        lst repl = lst{Pi==symbol("dPi"), Euler==symbol("dEuler"),iEpsilon==symbol("diEpsilon")};
+        static symbol sPi("dPi"), sEuler("dEuler"), siEpsilon("diEpsilon");
+        lst repl = lst{Pi==sPi, Euler==sEuler,iEpsilon==siEpsilon};
         return EvalF(expr.subs(repl));
     }
     ex EvalQ(ex expr) {
-        lst repl = lst{Pi==symbol("qPi"), Euler==symbol("qEuler"),iEpsilon==symbol("qiEpsilon")};
+        static symbol sPi("qPi"), sEuler("qEuler"), siEpsilon("qiEpsilon");
+        lst repl = lst{Pi==sPi, Euler==sEuler,iEpsilon==siEpsilon};
         return EvalF(expr.subs(repl));
     }
     ex EvalMP(ex expr) {
-        lst repl = lst{Pi==symbol("mpPi"), Euler==symbol("mpEuler"),iEpsilon==symbol("mpiEpsilon")};
+        static symbol sPi("mpPi"), sEuler("mpEuler"), siEpsilon("mpiEpsilon");
+        lst repl = lst{Pi==sPi, Euler==sEuler,iEpsilon==siEpsilon};
         return EvalF(expr.subs(repl));
     }
     ex NN(ex expr, int digits) {

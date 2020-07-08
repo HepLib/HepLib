@@ -16,7 +16,7 @@ using namespace std;
 typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
-typedef complex<long double> dCOMPLEX;
+typedef complex<dREAL> dCOMPLEX;
 typedef mpfr::mpreal mpREAL;
 typedef complex<mpREAL> mpCOMPLEX;
 
@@ -71,6 +71,7 @@ inline mpCOMPLEX recip(mpCOMPLEX a) { return mpREAL(1)/a; }
 
 inline qREAL pow(qREAL x, qREAL y) { return powq(x, y); }
 inline qREAL log(qREAL x) { return logq(x); }
+inline qREAL exp(qREAL x) { return expq(x); }
 inline qCOMPLEX pow(qCOMPLEX x, qREAL y) { return cpowq(x, y); }
 inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
 inline qCOMPLEX exp(qCOMPLEX x) { return cexpq(x); }

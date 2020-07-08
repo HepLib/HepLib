@@ -100,6 +100,7 @@ namespace HepLib::SD {
                 }
             }
             if(cutN!=0) ret += I * cutN * 2 * Pi;
+if(cutN!=0) cout << "CutN!=0" << endl;
             log_map2[iWF(id)] = ret;
         }
         expr = expr.subs(log_map2);
@@ -452,12 +453,9 @@ namespace HepLib::SD {
      
                         auto res = Integrator->Integrate();
                         if(Verbose>10) {
-                            auto oDigits = Digits;
-                            Digits = 3;
                             cout << "\r                                                    \r";
                             if(res.has(NaN)) cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << NaN << endl;
-                            else cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << HepLib::SD::VEResult2(VESimplify(res)) << endl;
-                            Digits = oDigits;
+                            else cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << VEResult2(VESimplify(res)) << endl;
                         }
                         
                         if(res.has(NaN) && s==0) continue;
@@ -471,8 +469,8 @@ namespace HepLib::SD {
                         for(auto ve : ves) {
                             auto ve0 = abs(ve.op(0));
                             if(ve0>ve.op(1)) { 
-                                if(1.E10*ve0<res_abs) continue; // avoid fluctuation aroud 0
-                                if(1.E10*ve0<q2ex(EpsAbs)) continue; // avoid fluctuation aroud 0
+                                if(numeric("1.E10")*ve0<res_abs) continue; // avoid fluctuation aroud 0
+                                if(numeric("1.E10")*ve0<q2ex(EpsAbs)) continue; // avoid fluctuation aroud 0
                                 err_break = true;
                                 break;
                             }

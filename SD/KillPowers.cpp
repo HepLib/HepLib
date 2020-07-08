@@ -12,13 +12,15 @@
 namespace HepLib::SD {
 
     /**
-     * @brief Kill Powers With Delta
+     * @brief KillPower With Delta
      * @param fe is the function list
      * @param kpi is a counter
      * @return true for sucess, false for nothing changed
      */
-    bool SecDec::KillPowersWithDelta(ex fe, int kpi) {
-        if(fe.op(0).op(fe.op(0).nops()-1)==iWF(1) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
+    bool SecDec::KillPowerD(ex fe, int kpi) {
+        // check last element p-n is iWF(1)^1
+        auto nlast = fe.op(0).nops()-1;
+        if(fe.op(0).op(nlast)==iWF(1) && fe.op(1).op(nlast).is_zero()) {
             FunExp.push_back(fe);
             return false;
         }
@@ -48,18 +50,15 @@ namespace HepLib::SD {
 
                     for(auto item : fts2) {
                         if(!item.has(xi) || !item.has(xj)) continue;
-                        if(item.has(xi) && item.has(xj)) {
-                            if(item.match(pow(w1,w2))) eqn = item.op(0).expand();
-                            else eqn = item;
-                            if(eqn.degree(xi)==1 && eqn.degree(xj)==1) {
-                                ex ci = eqn.coeff(xi);
-                                ex cj = eqn.coeff(xj);
-                                if((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci*cj) && (ci*cj)<0) {
-                                    eqn = eqn.subs(lst{xi==xs[i], xj==xs[j]});
-                                    ok2 = false;
-                                    goto OK2;
-                                }
-                            }
+                        if(item.match(pow(w1,w2))) eqn = item.op(0).expand();
+                        else eqn = item;
+                        if(eqn.degree(xi)!=1 || eqn.degree(xj)!=1) continue;
+                        ex ci = eqn.coeff(xi);
+                        ex cj = eqn.coeff(xj);
+                        if((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci*cj) && (ci*cj)<0) {
+                            eqn = eqn.subs(lst{xi==xs[i], xj==xs[j]});
+                            ok2 = false;
+                            goto OK2;
                         }
                     }
                 }
@@ -76,7 +75,7 @@ namespace HepLib::SD {
             
             // handle eqn==ci xi - cj xj
             if((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0) {
-                if(Verbose>10) cout << "  \\--" << Color_HighLight << "KillPowers-δ ["<<kpi<<"]: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << "  \\--" << Color_HighLight << "KillPowerD ["<<kpi<<"]: "  << eqn << RESET << endl;
                 ci = abs(ci);
                 cj = abs(cj);
                 symbol yi,yj;
@@ -129,8 +128,10 @@ namespace HepLib::SD {
      * @param bits each bit for an option, bit2 for (a xi-b xj), bit1 for (a xi-c), with other x's=0
      * @return true for sucess, false for nothing changed
      */
-    bool SecDec::KillPowersWithoutDelta(ex fe, int kpi, int bits) {
-        if(is_zero(fe.op(0).op(fe.op(0).nops()-1)-iWF(1)) && fe.op(1).op(fe.op(1).nops()-1).is_zero()) {
+    bool SecDec::KillPower(ex fe, int kpi, int bits) {
+        // check last element p-n is iWF(1)^1
+        auto nlast = fe.op(0).nops()-1;
+        if(is_zero(fe.op(0).op(nlast)-iWF(1)) && fe.op(1).op(nlast).is_zero()) {
             FunExp.push_back(fe);
             return false;
         }
@@ -161,8 +162,9 @@ namespace HepLib::SD {
                         int NN = 100;
                         for(auto item : fts2) {
                             if(!item.has(xi) || !item.has(xj)) continue;
-                            if(item.match(pow(w1,w2)) && (item.has(xi) || item.has(xj))) {
-                                eqn = item.op(0);
+                            if(item.match(pow(w1,w2)) || (item.degree(xi)==1 && item.degree(xj)==1)) {
+                                if(item.match(pow(w1,w2))) eqn = item.op(0);
+                                else eqn = item;
                                 auto t1 = eqn.subs(lst{xi==1/ex(11), xj==1/ex(19)});
                                 if(t1.is_zero()) t1 = eqn.subs(lst{xi==1/ex(3), xj==1/ex(23)});
                                 if(t1.is_zero()) t1 = eqn.subs(lst{xi==1/ex(13), xj==1/ex(37)});
@@ -180,26 +182,16 @@ namespace HepLib::SD {
                                 }
                                 if(ook) continue;
                                 
-                                if(Verbose>0)
+                                if(item.match(pow(w1,w2)) && Verbose>0) {
                                 if(eqn.degree(xi)>1 || eqn.degree(xj)>1 || eqn.coeff(xi).has(xj)) {
                                     cout << Color_Warn << "  \\--Warning: Not handled with eqn1=" << eqn << RESET << endl;
                                     continue;
-                                }
+                                }}
 
-                                if(!ook) {
-                                    eqn = eqn.subs(lst{xi==xs[i], xj==xs[j]});
-                                    ok2 = false;
-                                    goto OK2;
-                                }
-                            } else if(item.degree(xi)==1 && item.degree(xj)==1) {
-                                ex ci = item.coeff(xi);
-                                ex cj = item.coeff(xj);
-                                if((ci*xi+cj*xj-item).is_zero() && is_a<numeric>(ci*cj) && (ci*cj)<0) {
-                                    eqn = item.subs(lst{xi==xs[i], xj==xs[j]});
-                                    ok2 = false;
-                                    goto OK2;
-                                }
-                            }
+                                eqn = eqn.subs(lst{xi==xs[i], xj==xs[j]});
+                                ok2 = false;
+                                goto OK2;
+                            } 
                         }
                     }
                 }
@@ -439,8 +431,8 @@ namespace HepLib::SD {
     }
 
     /**
-     * @brief Kill Powers will call KillPowersWithDelta or KillPowersWithoutDelta
-     * @param bits only for KillPowersWithoutDelta
+     * @brief Kill Powers will call KillPowerD or KillPower
+     * @param bits only for KillPower
      */
     void SecDec::KillPowers(int bits) {
         MB(); // make sure MB first, if possible
@@ -461,8 +453,8 @@ namespace HepLib::SD {
             bool repeat = false;
             for(auto &fe : funexp) {
                 bool ret;
-                if(fe.nops()>2) ret = KillPowersWithDelta(fe, kpi);
-                else ret = KillPowersWithoutDelta(fe, kpi, bits);
+                if(fe.nops()>2) ret = KillPowerD(fe, kpi);
+                else ret = KillPower(fe, kpi, bits);
                 if(ret) repeat = true;
             }
             if(!repeat) break;

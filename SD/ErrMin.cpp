@@ -27,7 +27,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     for(int i=0; i<nvars; i++) qlas[i] = las[i];
     Integrator->Lambda = qlas;
     auto res = Integrator->Integrate();
-    if(res.has(NaN)) return 1.E100;
+    if(res.has(NaN)) return 1.E100L;
 
     auto err = res.subs(VE(w0, w1)==w1);
     numeric nerr = numeric(1.E100);
@@ -40,7 +40,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
             exset ves;
             diff.find(VE(w0, w1), ves);
             for(auto ve : ves) {
-                if(abs(ve.op(0)) > ve.op(1)) return 1.E100;
+                if(abs(ve.op(0)) > ve.op(1)) return 1.E100L;
             }
             if(Verbose > 3) {
                 cout << "\r                             \r";
