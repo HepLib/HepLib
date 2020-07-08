@@ -251,9 +251,6 @@ namespace HepLib {
                 }
             }
 
-            int oDigits = Digits;
-            Digits = 50; // a fix to float overflow
-            
             archive ar;
             ostringstream garfn;
             if(key == "") garfn << ppid << "/" << bi << ".gar";
@@ -262,7 +259,6 @@ namespace HepLib {
             auto res_lst = garRead(garfn.str());
             remove(garfn.str().c_str());
             for(auto res : res_lst) ovec.push_back(res);
-            Digits = oDigits;
         }
         
         if(rm) {
@@ -495,6 +491,8 @@ namespace HepLib {
      * @param resMap will be update, a string key map
      */
     void garRead(const string &garfn, map<string, ex> &resMap) {
+        auto oDigits = Digits;
+        Digits = NNDigits; // a fix to float overflow
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -504,6 +502,7 @@ namespace HepLib {
             ex res = ar.unarchive_ex(GiNaC_archive_Symbols, name, i);
             resMap[name] = res;
         }
+        Digits = oDigits;
     }
     
     /**
@@ -513,11 +512,14 @@ namespace HepLib {
      * @return the expression w.r.t. key
      */
     ex garRead(const string &garfn, const char* key) { // use the const char *, not string
+        auto oDigits = Digits;
+        Digits = NNDigits; // a fix to float overflow
         archive ar;
         ifstream in(garfn);
         in >> ar;
         in.close();
         auto res = ar.unarchive_ex(GiNaC_archive_Symbols, key);
+        Digits = oDigits;
         return res;
     }
 
@@ -527,6 +529,8 @@ namespace HepLib {
      * @return the expression w.r.t. key "res"
      */
     ex garRead(const string &garfn) {
+        auto oDigits = Digits;
+        Digits = NNDigits; // a fix to float overflow
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -534,6 +538,7 @@ namespace HepLib {
         auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
         auto res = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
         if(c!=19790923) throw Error("garRead: check faild for file: " + garfn);
+        Digits = oDigits;
         return res;
     }
     
@@ -1073,33 +1078,35 @@ namespace HepLib {
      * @param expr input expression
      * @return the nuerical expression
      */
-    ex Evalf(ex expr) {
+    ex EvalF(ex expr) {
         exset zs;
         //patterns needing evalf()
         expr.find(zeta(w), zs);
         expr.find(zeta(w,w), zs);
         
         lst repl;
-        auto oDigits = Digits;
-        Digits = 100;
-        for(auto zi : zs) {
-            repl.append(zi==zi.evalf());
-        }
-        Digits = oDigits;
+        for(auto zi : zs) repl.append(zi==NN(zi));
         return expr.subs(repl);
     }
     
     ex EvalL(ex expr) {
         lst repl = lst{Pi==symbol("dPi"), Euler==symbol("dEuler"),iEpsilon==symbol("diEpsilon")};
-        return Evalf(expr.subs(repl));
+        return EvalF(expr.subs(repl));
     }
     ex EvalQ(ex expr) {
         lst repl = lst{Pi==symbol("qPi"), Euler==symbol("qEuler"),iEpsilon==symbol("qiEpsilon")};
-        return Evalf(expr.subs(repl));
+        return EvalF(expr.subs(repl));
     }
     ex EvalMP(ex expr) {
         lst repl = lst{Pi==symbol("mpPi"), Euler==symbol("mpEuler"),iEpsilon==symbol("mpiEpsilon")};
-        return Evalf(expr.subs(repl));
+        return EvalF(expr.subs(repl));
+    }
+    ex NN(ex expr, int digits) {
+        auto oDigits = Digits;
+        Digits = digits;
+        auto nexpr = evalf(expr);
+        Digits = oDigits;
+        return nexpr;
     }
 
     /**
@@ -1113,15 +1120,13 @@ namespace HepLib {
         bool ret = false;
         if(is_a<add>(tmp)) {
             for(auto item : tmp) {
-                auto nit = item.subs(x(w)==1).normal();
-                if(!(is_a<numeric>(nit) && ex_to<numeric>(nit).is_positive())) {
-                    return false;
-                }
+                auto nit = NN(item.subs(x(w)==1).normal());
+                if(!is_a<numeric>(nit) || nit<0) return false;
             }
             ret = true;
         } else {
-            auto ntmp = tmp.subs(x(w)==1).normal();
-            ret = (is_a<numeric>(ntmp) && ex_to<numeric>(ntmp).is_positive());
+            auto ntmp = NN(tmp.subs(x(w)==1).normal());
+            ret = (is_a<numeric>(ntmp) && ntmp>0);
         }
         return ret;
     }

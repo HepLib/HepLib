@@ -63,16 +63,15 @@ namespace HepLib::SD {
                 log_map[item] = iWF(log_id);
             }
         }
+        if(log_id<1) return expr.subs(xwra==wra);
         
-        expr = expr.subs(xwra==wra);
-        if(id_logz_lst.nops()<1) return expr;
+        expr = expr.subs(log_map).subs(xwra==wra);
+        
         exmap log_map2;
-        auto oDigits = Digits;
-        Digits = 100;
         for(auto id_logz : id_logz_lst) {
             auto id = id_logz.op(0);
             auto zz = id_logz.op(1);
-            ex ret = log(zz.subs(lst{iEpsilon==iEpsilonN, xwra==wra}));
+            ex ret = log(zz.subs(xwra==wra));
             if(nc<1) {
                 log_map2[iWF(id)] = ret;
                 break;
@@ -80,7 +79,7 @@ namespace HepLib::SD {
             int total=0;
             int ReIm[nc][2];
             for(int k=0; k<=nc; k++) {
-                auto zzk = evalf(zz.subs(lst{iEpsilon==iEpsilonN, xwra==k*wra/nc}));
+                auto zzk = NN(zz.subs(xwra==k*wra/nc));
                 if(!is_a<numeric>(zzk)) throw Error("ContinuousWRA: zzk is not numeric: "+ex2str(zzk));
                 auto nzzk = ex_to<numeric>(zzk);
                 auto curR = real(nzzk);
@@ -103,8 +102,9 @@ namespace HepLib::SD {
             if(cutN!=0) ret += I * cutN * 2 * Pi;
             log_map2[iWF(id)] = ret;
         }
-        Digits = oDigits;
-        return expr.subs(log_map);
+        expr = expr.subs(log_map2);
+        if(expr.has(iWF(w))) throw Error("ContinuousWRA: iWF(w) still exists in final result.");
+        return expr;
     }
     
     /**
@@ -126,6 +126,8 @@ namespace HepLib::SD {
             sofn << pid << ".so";
             fsofn << pid << "F.so";
         } else {
+            auto oDigits = Digits;
+            Digits = NNDigits; // a fix to float overflow
             sofn << key << ".so";
             ostringstream garfn;
             garfn << key << ".ci.gar";
@@ -175,6 +177,7 @@ namespace HepLib::SD {
                 if(res_c!=19790923) throw Error("*.res.gar error with kid!");
                 lstRE = ex_to<lst>(relst);
             }
+            Digits = oDigits;
         }
         
         void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW);
@@ -239,20 +242,16 @@ namespace HepLib::SD {
                 // { expr, xs.size(), kvf.op(0), -1}
                 ex exint = item.op(0).subs(plRepl).subs(iEpsilon==iEpsilonN);
                 if(exint.has(WRA(w))) exint = ContinuousWRA(exint);
-                auto oDigits = Digits;
-                Digits = 35;
-                ex res = VE(exint.evalf(),0);
+                ex res = VE(NN(exint),0);
                 if(Verbose>5) {
                     cout << "XDim=" << xsize << endl;
                     cout << Color_HighLight << "     IRes = "<< HepLib::SD::VEResult(VESimplify(res)) << RESET << endl;
                 }
                 if(kid>0) {
                     lstRE.let_op(kid-1) = res*co;
-                    Digits = oDigits;
                     break;
                 }
                 lstRE.append(res*co);
-                Digits = oDigits;
                 continue;
             }
             
@@ -273,9 +272,7 @@ namespace HepLib::SD {
                 if(tmp.has(eps)) throw Error("Integrates: eps found @ " + ex2str(tmp));
                 tmp = mma_collect(tmp, ep);
                 for(int i=tmp.ldegree(ep); i<=tmp.degree(ep); i++) {
-                    auto oDigits = Digits;
-                    Digits = 50;
-                    auto ccRes = tmp.coeff(ep, i).evalf().expand();
+                    auto ccRes = NN(tmp.coeff(ep, i)).expand();
                     lst css;
                     css.append(ccRes);
                     if(is_a<add>(ccRes)) {
@@ -283,9 +280,9 @@ namespace HepLib::SD {
                     }
 
                     for(int ci=0; ci<css.nops(); ci++) {
-                        auto nt = css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{
+                        auto nt = NN(css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{
                             epsID(w)==1, CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                        }).evalf();
+                        }));
                         if(nt.has(ep)) throw Error("Integrates: ep found @ nt = "+ex2str(nt));
                         
                         lst nt_lst;
@@ -310,13 +307,12 @@ namespace HepLib::SD {
                                     reim = 3;
                                 }
                             }
-                            nnt = abs(nnt).evalf(); // no PL here, then nReplacements
+                            nnt = NN(abs(nnt)); // no PL here, then nReplacements
                             
                             qREAL qnt = ex2q(nnt);
                             if(qnt > cmax) cmax = qnt;
                         }
                     }
-                    Digits = oDigits;
                 }
             }
             if(cmax<=0) throw Error("Integrates: cmax<=0 with co = "+ex2str(co));
@@ -466,7 +462,7 @@ namespace HepLib::SD {
                         
                         if(res.has(NaN) && s==0) continue;
                         else if(res.has(NaN)) break;
-                        ex res_abs = abs(res.subs(VE(w1,w2)==w1)).evalf();
+                        ex res_abs = NN(abs(res.subs(VE(w1,w2)==w1)));
                         if(lastResErr.is_zero()) lastResErr = res;
                         auto diff = VESimplify(lastResErr - res);
                         diff = diff.subs(VE(0,0)==0);

@@ -81,9 +81,7 @@ namespace HepLib::SD {
     // VE
     /*-----------------------------------------------------*/
     ex VESimplify(ex expr, int epN, int epsN) {
-        auto oDigits = Digits;
-        Digits = 50;
-        auto expr1 = Evalf(expr);
+        auto expr1 = EvalF(expr);
         if(expr1.has(eps) && !expr1.is_polynomial(eps)) expr1 = mma_series(expr1, eps, epsN);
         if(expr1.has(ep) && !expr1.is_polynomial(ep)) expr1 = mma_series(expr1, ep, epN);
         expr1 = mma_collect(expr1, lst{eps,ep});
@@ -92,7 +90,7 @@ namespace HepLib::SD {
         for(int i=expr1.ldegree(ep); i<=epN; i++) {
         
             auto ccRes = expr1.coeff(eps,si).coeff(ep,i);
-            ccRes = ccRes.evalf().expand();
+            ccRes = NN(ccRes).expand();
             if(!is_a<add>(ccRes)) ccRes = lst{ ccRes };
             
             exmap pvmap;
@@ -121,7 +119,7 @@ namespace HepLib::SD {
                 auto cvs = mma_collect_lst(kv.second, VE(w1,w2));
                 ex vIR=0, eI2 = 0, eR2 = 0;
                 for(auto cv : cvs) {
-                    auto co = cv.op(0).evalf();
+                    auto co = NN(cv.op(0));
                     auto ve = cv.op(1);
                     if(!is_a<numeric>(co)) {
                         cout << cv << endl;
@@ -141,7 +139,6 @@ namespace HepLib::SD {
             }
         }}
         
-        Digits = oDigits;
         return ret.collect(lst{eps,ep}, true);
     }
 
@@ -154,8 +151,6 @@ namespace HepLib::SD {
     }
     
     ex VEMaxErr(ex expr) {
-        auto oDigits = Digits;
-        Digits = 50;
         
         auto ccRes = expr.expand();
         lst ccResList;
@@ -178,11 +173,10 @@ namespace HepLib::SD {
             } else if(is_a<numeric>(item) || item.match(VE(w1, w2))) {
                 ntmp = item;
             }
-            ntmp = abs(ntmp.subs(VE(w1,w2)==w2)).evalf();
+            ntmp = NN(abs(ntmp.subs(VE(w1,w2)==w2)));
             if(ntmp>ccRes) ccRes = ntmp;
         }
         
-        Digits = oDigits;
         return ccRes;
     }
 
@@ -389,6 +383,14 @@ ex PowerExpand(const ex expr) {
         expr2 = expr2.subs(pow(pow(x(w1),w2),w3)==pow(x(w1),w2*w3), subs_options::algebraic);
         expr2 = expr2.subs(pow(pow(y(w1),w2),w3)==pow(y(w1),w2*w3), subs_options::algebraic);
         expr2 = expr2.subs(pow(pow(z(w1),w2),w3)==pow(z(w1),w2*w3), subs_options::algebraic);
+        
+        expr2 = expr2.subs(pow(sqrt(x(w1)),w2)==pow(x(w1),w2/2), subs_options::algebraic);
+        expr2 = expr2.subs(pow(sqrt(y(w1)),w2)==pow(y(w1),w2/2), subs_options::algebraic);
+        expr2 = expr2.subs(pow(sqrt(z(w1)),w2)==pow(z(w1),w2/2), subs_options::algebraic);
+        
+        expr2 = expr2.subs(sqrt(pow(x(w1),w2))==pow(x(w1),w2/2), subs_options::algebraic);
+        expr2 = expr2.subs(sqrt(pow(y(w1),w2))==pow(y(w1),w2/2), subs_options::algebraic);
+        expr2 = expr2.subs(sqrt(pow(z(w1),w2))==pow(z(w1),w2/2), subs_options::algebraic);
         
         expr2 = expr2.subs(pow(w0,w1)*pow(w0,w2)==pow(w0,w1+w2),subs_options::algebraic);
         expr2 = expr2.subs(w0*pow(w0,w1)==pow(w0,w1+1),subs_options::algebraic);

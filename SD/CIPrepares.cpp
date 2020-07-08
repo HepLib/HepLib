@@ -530,8 +530,8 @@ namespace HepLib::SD {
                 auto intg = expr.subs(FTX(w1,w2)==1);
                 intg = intg.subs(pow(exp(w1),w2)==exp(w1*w2));
                 intg = intg.subs(sqrt(exp(w1))==exp(w1/2));
-//                intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
-//                intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
+                //intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
+                //intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation
@@ -566,7 +566,9 @@ namespace HepLib::SD {
                     exset logs_set;
                     find(intg, log(w), logs_set);
                     lst logs;
-                    for(auto item : logs_set) if(item.has(xwra)) logs.append(item.op(0));
+                    for(auto item : logs_set) {
+                        if(item.has(xwra)) logs.append(item.op(0));
+                    }
                     
                     if(logs.nops()>0) {
                         ofs << "int nlog = "<<logs.nops()<<";" << endl;
@@ -745,8 +747,8 @@ namespace HepLib::SD {
                 auto intg = expr.subs(FTX(w1,w2)==1);
                 intg = intg.subs(pow(exp(w1),w2)==exp(w1*w2));
                 intg = intg.subs(sqrt(exp(w1))==exp(w1/2));
-//                intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
-//                intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
+                //intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
+                //intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation
@@ -968,8 +970,8 @@ namespace HepLib::SD {
                 auto intg = expr.subs(FTX(w1,w2)==1);
                 intg = intg.subs(pow(exp(w1),w2)==exp(w1*w2));
                 intg = intg.subs(sqrt(exp(w1))==exp(w1/2));
-//                intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
-//                intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
+                //intg = intg.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
+                //intg = intg.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation

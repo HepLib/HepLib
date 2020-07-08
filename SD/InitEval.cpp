@@ -45,8 +45,6 @@ namespace HepLib::SD {
             return;
         }
         
-        auto oDigits = Digits;
-        Digits = 50;
         IsZero = false;
         
         for(auto kv: fp.lReplacements) {
@@ -197,7 +195,6 @@ namespace HepLib::SD {
                 auto t0 = rem.coeff(ls.op(i),0);
                 u *= (-t2);
                 if(t2==0) {
-                    Digits = oDigits;
                     IsZero = true;
                     return;
                 }
@@ -239,7 +236,6 @@ namespace HepLib::SD {
                 u *= (-t2);
                 if(t2.is_zero()) {
                     IsZero = true;
-                    Digits = oDigits;
                     return;
                 }
                 rem = expand(t0 - pow(t1,2)/(4*t2));
@@ -441,15 +437,12 @@ namespace HepLib::SD {
             }
         }
         
-        Digits = oDigits;
         if(fp.isAsy) DoAsy();
         XReOrders();
         Normalizes();
     }
     
     void SecDec::Initialize(XIntegrand xint) {
-        auto oDigits = Digits;
-        Digits = 50;
         IsZero = false;
         Replacements2(xint.nReplacements);
         nReplacements = xint.nReplacements;
@@ -467,12 +460,11 @@ namespace HepLib::SD {
         if(xint.Deltas.nops()>0) FunExp.push_back(lst{xint.Functions, xint.Exponents, xint.Deltas});
         else FunExp.push_back(lst{xint.Functions, xint.Exponents});
         
-        Digits = oDigits;
         GiNaC_archive_Symbols_from(FunExp);
         Normalizes();
         if(xint.isAsy) DoAsy();
         XReOrders();
-        //Normalizes();
+        Normalizes();
     }
     
     void SecDec::Evaluate(FeynmanParameter fp, const string & key) {

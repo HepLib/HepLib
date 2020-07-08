@@ -30,6 +30,7 @@ namespace HepLib {
     int ParallelProcess = -1;
     const Symbol D("D");
     bool fermat_use_array = true;
+    int NNDigits = 100;
     
     lst GiNaC_archive_Symbols = lst{};
     string InstallPrefix = "@PREFIX_DIR@";

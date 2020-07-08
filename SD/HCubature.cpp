@@ -98,6 +98,8 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 }
             }
             if(!ok && (self->IntegrandMP!=NULL)) {
+                mpfr_free_cache();
+                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*10));
                 qREAL xx[xdim];
                 for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.E-30Q ? 1.E-30Q  : x[i*xdim+ii] * 0.95Q;
                 self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);

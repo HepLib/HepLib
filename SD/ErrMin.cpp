@@ -23,20 +23,16 @@ ex ErrMin::lastResErr;
 
 dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     RunRND++;
-    auto oDigits = Digits;
-    Digits = 50;
     qREAL qlas[nvars];
     for(int i=0; i<nvars; i++) qlas[i] = las[i];
     Integrator->Lambda = qlas;
     auto res = Integrator->Integrate();
-    if(res.has(NaN)) {
-        Digits = oDigits;
-        return 1.E100;
-    }
+    if(res.has(NaN)) return 1.E100;
+
     auto err = res.subs(VE(w0, w1)==w1);
     numeric nerr = numeric(1.E100);
     try {
-        nerr = ex_to<numeric>(abs(err).evalf());
+        nerr = ex_to<numeric>(NN(abs(err)));
         if(nerr > numeric(1.E100)) nerr = numeric(1.E100);
         if(err_max > ex2q(nerr)) {
             auto diff = VESimplify(lastResErr - res);
@@ -44,10 +40,7 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
             exset ves;
             diff.find(VE(w0, w1), ves);
             for(auto ve : ves) {
-                if(abs(ve.op(0)) > ve.op(1)) {
-                    Digits = oDigits;
-                    return 1.E100;
-                }
+                if(abs(ve.op(0)) > ve.op(1)) return 1.E100;
             }
             if(Verbose > 3) {
                 cout << "\r                             \r";
@@ -60,7 +53,6 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
             if(err_max<=err_min) {
                 cout << "\r                             \r";
                 cout << "     ------------------------------" << endl;
-                Digits = oDigits;
                 miner->ForceStop();
                 return 0.;
             }
@@ -76,7 +68,6 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     if(RunRND>=MaxRND) {
         cout << "\r                             \r";
         cout << "     ------------------------------" << endl;
-        Digits = oDigits;
         miner->ForceStop();
         return 0.;
     }
@@ -91,12 +82,10 @@ dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
         cout << "\r                             \r";
         if(Verbose>3) cout << "     Exit: " << fn.str() << endl;
         cout << "     ------------------------------" << endl;
-        Digits = oDigits;
         miner->ForceStop();
         return 0.;
     }
     dREAL ret = ex2q(nerr);
-    Digits = oDigits;
     return ret;
 }
 

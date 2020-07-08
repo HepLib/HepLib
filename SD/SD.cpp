@@ -86,7 +86,6 @@ namespace HepLib::SD {
         ex xpol = 1;
         for(auto item : xpols) xpol *= item;
         return x2y(xpol);
-
     }
 
     /*-----------------------------------------------------*/
@@ -175,15 +174,13 @@ namespace HepLib::SD {
                 cpi /= 2;
             }
             bool OK = true;
-            auto oDigits = Digits;
-            Digits = 50;
             for(auto polist : polists) {
                 lst sdList;
                 for(int i=0; i<polist.nops(); i++) {
                     auto tmp = polist.op(i);
-                    auto ntmp = exlist.op(i);
+                    auto ntmp = NN(exlist.op(i));
                     if(!tmp.subs(lst{x(w)==0, y(w)==0}).normal().is_zero()) continue;
-                    if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
+                    if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp>0) ) continue;
                     sdList.append(tmp);
                 }
                 vector<exmap> vmap = SecDec->x2y(sdList, x2y_use_factor);
@@ -199,7 +196,6 @@ namespace HepLib::SD {
                 }
                 if(!OK) break;
             }
-            Digits = oDigits;
 
             if(OK) {
                 vector<ex> res;
@@ -209,8 +205,7 @@ namespace HepLib::SD {
         }}
         
         cerr << Color_Error << "polynormial list: " << po_ex.op(0) << RESET << endl;
-        cerr << Color_Error << "AutoEnd Failed @ ALL possible bisections!" << RESET << endl;
-        exit(1);
+        throw Error("AutoEnd Failed @ ALL possible bisections!");
         return vector<ex>();
     }
 
@@ -225,16 +220,14 @@ namespace HepLib::SD {
         lst const polist = ex_to<lst>(po_ex.op(0));
         lst const exlist = ex_to<lst>(po_ex.op(1));
         lst sdList;
-        auto oDigits = Digits;
-        Digits = 50;
         for(int i=0; i<polist.nops(); i++) {
             auto tmp = polist.op(i);
             auto ntmp = exlist.op(i);
-            if(!tmp.subs(lst{x(w)==0, y(w)==0}).normal().is_zero() || is_zero(ntmp)) continue;
-            if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp.evalf()>0) ) continue;
+            if(!tmp.subs(lst{x(w)==0, y(w)==0}).normal().is_zero()) continue;
+            ntmp = NN(ntmp);
+            if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp>0) ) continue;
             sdList.append(tmp);
         }
-        Digits = oDigits;
 
         vector<exmap> vmap = SecDec->x2y(sdList, x2y_use_factor);
         if(!VerifySD(vmap)) {
@@ -271,7 +264,7 @@ namespace HepLib::SD {
                     }
                 }
                 ft = ret;
-            } else if ( ft.match(y(w)) || ft.match(pow(y(w), w1)) ) {
+            } else if( ft.match(y(w)) || ft.match(pow(y(w), w1)) ) {
                 ft = 1;
             } // else ft not changed
             bool hasWRA = false;
@@ -289,10 +282,11 @@ namespace HepLib::SD {
                     need_contour_deformation = false;
                     auto first = tmp.op(0).subs(y(w)==1);
                     for(auto item : tmp) {
-                        if(!is_a<numeric>(item.subs(y(w)==1)*first)) {
+                        auto chk = NN(item.subs(y(w)==1)*first);
+                        if(!is_a<numeric>(chk)) {
                             throw Error("DS: Not a number: " + ex2str(item.subs(y(w)==1)*first));
                         }
-                        if(item.subs(y(w)==1)*first<0) {
+                        if(chk<0) {
                             need_contour_deformation = true;
                             break;
                         }
@@ -301,19 +295,15 @@ namespace HepLib::SD {
             }
 
             if(!need_contour_deformation) {
-                auto tmp = ft.subs(y(w)==1).subs(nReplacements).subs(lst{
+                auto tmp = NN(ft.subs(y(w)==1).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                });
-                if(!is_a<numeric>(tmp)) {
-                    throw Error("DS: NOT a numeric with " + ex2str(tmp));
-                }
-                auto oDigits = Digits;
-                Digits = 50;
-                if( tmp.evalf() < 0 ) {
+                }));
+                
+                if(!is_a<numeric>(tmp)) throw Error("DS: NOT a numeric with " + ex2str(tmp));
+                if(tmp<0) {
                     ct = exp(-I * Pi * exlist.op(1));
                     fsgin = -1;
                 }
-                Digits = oDigits;
                 ft = 1;
             }
 
@@ -321,20 +311,20 @@ namespace HepLib::SD {
             
             // need collect_common_factors
             auto det = collect_common_factors(vi[x(-1)]);
-            if(is_a<add>(det)) {
-                throw Error("DS: det is add " + ex2str(det));
-            }
+            if(is_a<add>(det)) throw Error("DS: det is add " + ex2str(det));
             auto ys = get_xy_from(det);
             ex det1 = 1;
             for(int i=0; i<ys.size(); i++) {
-                ymol[ys[i]] = ymol[ys[i]] + det.degree(ys[i]);
-                det1 *= pow(ys[i], det.degree(ys[i]));
+                auto ndeg = det.degree(ys[i]);
+                if(ndeg!=det.ldegree(ys[i])) throw Error("DS: det is not a monomial with det = "+ex2str(det));
+                ymol[ys[i]] = ymol[ys[i]] + ndeg;
+                det1 *= pow(ys[i], ndeg);
             }
             if(!(is_a<numeric>(det/det1) && ex_to<numeric>(det/det1).is_integer())) {
                 throw Error("DS: det=" + ex2str(det) + ", det1=" + ex2str(det1));
             }
             
-            lst ftxlst = lst{0};
+            lst ftxlst;
             for(auto xi : get_xy_from(ft)) ftxlst.append(xi);
             
             lst pol_exp_lst;
@@ -342,19 +332,29 @@ namespace HepLib::SD {
 
             for(int i=0; i<ypolist.nops(); i++) {
                 auto tmp = ypolist.op(i);
-                auto nex = exlist.op(i);
-                bool nchk = (!is_a<numeric>(nex) || ex_to<numeric>(nex)<0);
+                auto nexp = exlist.op(i).normal();
+                bool nchk = (!is_a<numeric>(nexp) || ex_to<numeric>(nexp)<0);
+                if(nexp.has(x(w)) || nexp.has(y(w))) throw Error("DS: x or y found in exp: "+ex2str(nexp));
+                
+                if(tmp.has(y(w))) {
+                    lst ys;
+                    for(auto yi : get_y_from(tmp)) ys.append(yi);
+                    if(!tmp.is_polynomial(ys)) throw Error("DS: NOT a polynomial with "+ex2str(tmp));
+                }
         
-                if(i==1 && fsgin<0) tmp = -tmp; // check complete negtive F-term
+                if(i==1 && fsgin<0) tmp = ex(0)-tmp; // check complete negtive F-term
                 auto tmp1 = tmp;
                 while(true) {
                     tmp=tmp1.subs(pow(y(w1)*w2, w3)==pow(y(w1),w3) * pow(w2, w3));
+                    tmp = tmp.subs(pow(pow(y(w1),w2),w3)==pow(y(w1),w2*w3));
+                    tmp = tmp.subs(pow(sqrt(y(w1)),w2)==pow(y(w1),w2/2));
+                    tmp = tmp.subs(sqrt(pow(y(w1),w2))==pow(y(w1),w2/2));
                     if((tmp1-tmp).is_zero()) break;
                     tmp1 = tmp;
                 }
                 
                 // need collect_common_factors
-                if(tmp.has(y(w))) tmp = collect_common_factors(tmp.expand());
+                if(tmp.has(y(w))) tmp = collect_common_factors(tmp);
 
                 lst tmps;
                 if(is_exactly_a<mul>(tmp)) {
@@ -366,35 +366,35 @@ namespace HepLib::SD {
                 ex rem = 1;
                 ex ct = 1;
                 for (auto item : tmps) {
-                    if( item.match(y(w)) || item.match(pow(y(w), w1)) ) {
-                        auto yi = get_xy_from(item)[0];
-                        ymol[yi] = ymol[yi] + (item.nops()<2 ? 1 : item.op(1)) * exlist.op(i);
+                    if(item.match(y(w))) {
+                        auto yi = item;
+                        ymol[yi] = ymol[yi] + nexp;
+                    } else if(item.match(pow(y(w1), w2))) {
+                        auto yi = item.op(0);
+                        ymol[yi] = ymol[yi] + item.op(1) * nexp;
                     } else if(!item.has(y(w)) && !item.has(x(w))) {
-                        if(is_a<numeric>(exlist.op(i)) && ex_to<numeric>(exlist.op(i)).is_integer()) {
+                        if(is_a<numeric>(nexp) && ex_to<numeric>(nexp).is_integer()) {
                             ct *= item;
                         } else if(!item.has(PL(w))) {
-                            auto tr = item.subs(nReplacements).subs(lst{
+                            auto tr = NN(item.subs(nReplacements).subs(lst{
                                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                            });
-                            auto oDigits = Digits;
-                            Digits = 50;
-                            if(!is_a<numeric>(tr.evalf())) {
+                            }));
+                            if(!is_a<numeric>(tr)) {
                                 throw Error("DS: not numeric - item: " + ex2str(tr) + " ; " + ex2str(item));
                             }
-                            auto nitem = ex_to<numeric>(tr.evalf());
+                            auto nitem = ex_to<numeric>(tr);
                             if( nitem.is_real() && nitem<0 ) {
-                                ct *= -ex(1)*item;
-                                rem *= -ex(1);
+                                ct *= ex(-1)*item;
+                                rem *= ex(-1);
                             } else {
                                 ct *= item;
                             }
-                            Digits = oDigits;
                         } else {
                             rem *= item;
                         }
                     } else {
                         if(nchk && item.subs(y(w)==0).subs(iEpsilon==0).normal().is_zero()) {
-                            throw Error("DS: zero item: " + ex2str(item)  + " and exlist.op(i) = " + ex2str(exlist.op(i)));
+                            throw Error("DS: zero item: " + ex2str(item)  + " and exlist.op(i) = " + ex2str(nexp));
                         }
                         rem *= item;
                     }
@@ -402,17 +402,15 @@ namespace HepLib::SD {
 
                 ex pnp = rem-(i==1 && (ft!=1 || hasWRA) ? iEpsilon : ex(0));
                 pnp = pnp.subs(y(w)==x(w));
-                ex pnn = exlist.op(i);
-                pnn = pnn.subs(y(w)==x(w));
                 
-                pol_exp_lst.append(lst{pnp, pnn});
-                pol_exp_lst.let_op(0) = pol_exp_lst.op(0).subs(CT(w) == CT(w*pow(ct, exlist.op(i)))).subs(CT(0)==0);
+                pol_exp_lst.append(lst{pnp, nexp});
+                pol_exp_lst.let_op(0) = pol_exp_lst.op(0).subs(CT(w)==CT(w*pow(ct,nexp))).subs(CT(0)==0);
             }
 
             lst x_n_lst;
             for(auto & kv : ymol) {
                 auto k = kv.first.subs(y(w)==x(w));
-                auto v = kv.second.subs(y(w)==x(w));
+                auto v = kv.second;
                 if(is_a<numeric>(v)) {
                     auto nv = ex_to<numeric>(v);
                     if(nv<=-1) {
@@ -452,13 +450,9 @@ namespace HepLib::SD {
                             } else if((tmp-vs).is_zero() || tmp.match(pow(vs,w))) {
                                 const_term *=  pow(tmp,ntmp);
                             } else if(!tmp.has(PL(w)) && !tmp.has(vs) && !tmp.has(WRA(w))) {
-                                auto tr = tmp.subs(nReplacements).subs(lst{
+                                auto tr = NN(tmp.subs(nReplacements).subs(lst{
                                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                                });
-                                auto oDigits = Digits;
-                                Digits = 100;
-                                tr = tr.evalf();
-                                Digits = oDigits;
+                                }));
                                 if(!is_a<numeric>(tr) || !tr.info(info_flags::real)) {
                                     cerr << "tmp: " << tmp << endl;
                                     cerr << "tr: " << tr << endl;
@@ -524,7 +518,7 @@ namespace HepLib::SD {
                 plst_comb.append(plst[1]);
                 nlst_comb.append(nlst[1]);
             } else {
-                if(inp[plst[i]]!=0) continue;
+                if(inp[plst[i]]==1) continue;
                 plst_comb.append(plst[i]);
                 nlst_comb.append(np[plst[i]]);
                 inp[plst[i]] = 1;

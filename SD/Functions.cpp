@@ -16,8 +16,6 @@ namespace HepLib::SD {
         // Functions used in GiNaC
         /*-----------------------------------------------------*/
         static void print_VEO(const ex & ex1_in, const ex & ex2_in, const print_context & c) {
-            auto oDigits = Digits;
-            Digits = 50;
             static ex log10 = log(numeric("10"));
             if(is_zero(ex1_in) && is_zero(ex2_in)) {
                 c.s << "0(0)";
@@ -35,19 +33,19 @@ namespace HepLib::SD {
                 int n1 = floor(ex_to<numeric>(log(ex1)/log10).to_double());
                 int n12 = VEO_Digits;
                 ostringstream oss;
-                oss << evalf(ex1/power(10,n1));
+                oss << NN(ex1/power(10,n1));
                 string sd1 = oss.str();
                 if(sd1.length()<2+n12) {
                     oss.clear();
                     oss.str("");
-                    oss << evalf(ex1/power(10,n1)+power(10,-3-n12));
+                    oss << NN(ex1/power(10,n1)+power(10,-3-n12));
                     sd1 = oss.str();
                 } else {
                     int ci = stoi(sd1.substr(2+n12,1));
                     if(ci>4) {
                         oss.clear();
                         oss.str("");
-                        oss << evalf(ex1/power(10,n1)+power(10,-n12));
+                        oss << NN(ex1/power(10,n1)+power(10,-n12));
                         sd1 = oss.str();
                     }
                 }
@@ -80,19 +78,19 @@ namespace HepLib::SD {
                         d2 = 0;
                     }
                     ostringstream oss;
-                    oss << evalf(ex1/power(10,n1));
+                    oss << NN(ex1/power(10,n1));
                     string sd1 = oss.str();
                     if(sd1.length()<3+n12) {
                         oss.clear();
                         oss.str("");
-                        oss << evalf(ex1/power(10,n1)+power(10,-4-n12));
+                        oss << NN(ex1/power(10,n1)+power(10,-4-n12));
                         sd1 = oss.str();
                     } else {
                         int ci = stoi(sd1.substr(2+n12,1));
                         if(ci>4) {
                             oss.clear();
                             oss.str("");
-                            oss << evalf(ex1/power(10,n1)+power(10,-n12));
+                            oss << NN(ex1/power(10,n1)+power(10,-n12));
                             sd1 = oss.str();
                         }
                     }
@@ -104,13 +102,10 @@ namespace HepLib::SD {
                     if(neg) c.s << ")";
                 }
             }
-            Digits = oDigits;
             return;
         }
         
         static void print_VEO2(const ex & ex1_in, const ex & ex2_in, const print_context & c) {
-            auto oDigits = Digits;
-            Digits = 50;
             static ex log10 = log(numeric("10"));
             if(is_zero(ex1_in) && is_zero(ex2_in)) {
                 c.s << "00(00)";
@@ -128,19 +123,19 @@ namespace HepLib::SD {
                 int n1 = floor(ex_to<numeric>(log(ex1)/log10).to_double());
                 int n12 = VEO_Digits;
                 ostringstream oss;
-                oss << evalf(ex1/power(10,n1));
+                oss << NN(ex1/power(10,n1));
                 string sd1 = oss.str();
                 if(sd1.length()<2+n12) {
                     oss.clear();
                     oss.str("");
-                    oss << evalf(ex1/power(10,n1)+power(10,-3-n12));
+                    oss << NN(ex1/power(10,n1)+power(10,-3-n12));
                     sd1 = oss.str();
                 } else {
                     int ci = stoi(sd1.substr(2+n12,1));
                     if(ci>4) {
                         oss.clear();
                         oss.str("");
-                        oss << evalf(ex1/power(10,n1)+power(10,-n12));
+                        oss << NN(ex1/power(10,n1)+power(10,-n12));
                         sd1 = oss.str();
                     }
                 }
@@ -179,19 +174,19 @@ namespace HepLib::SD {
                         d2 = 0;
                     }
                     ostringstream oss;
-                    oss << evalf(ex1/power(10,n1));
+                    oss << NN(ex1/power(10,n1));
                     string sd1 = oss.str();
                     if(sd1.length()<4+n12) {
                         oss.clear();
                         oss.str("");
-                        oss << evalf(ex1/power(10,n1)+power(10,-5-n12));
+                        oss << NN(ex1/power(10,n1)+power(10,-5-n12));
                         sd1 = oss.str();
                     } else {
                         int ci = stoi(sd1.substr(3+n12,1));
                         if(ci>4) {
                             oss.clear();
                             oss.str("");
-                            oss << evalf(ex1/power(10,n1)+power(10,-1-n12));
+                            oss << NN(ex1/power(10,n1)+power(10,-1-n12));
                             sd1 = oss.str();
                         }
                     }
@@ -208,7 +203,6 @@ namespace HepLib::SD {
                     if(neg) c.s << ")";
                 }
             }
-            Digits = oDigits;
             return;
         }
                 

@@ -352,12 +352,14 @@ namespace HepLib {
     ex fermat_normal(const ex & expr);
     
     /*-----------------------------------------------------*/
-    // Evalf/D/Q/MP
+    // EvalF/D/Q/MP
     /*-----------------------------------------------------*/
-    ex Evalf(ex);
+    ex EvalF(ex);
     ex EvalL(ex);
     ex EvalQ(ex);
     ex EvalMP(ex);
+    extern int NNDigits;
+    ex NN(ex expr,int digits=NNDigits);
 
     /*-----------------------------------------------------*/
     // xPositive
