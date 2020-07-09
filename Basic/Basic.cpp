@@ -764,17 +764,16 @@ namespace HepLib {
             int exN = 1;
             while(exN<10) {
                 expr = cv.op(1) + pow(s,sn+exN+2)+pow(s,sn+exN+3);
-                expr = expr.series(s, sn+exN);
+                expr = expr.series(s,sn+exN);
                 ex ot = 0;
                 for(int i=0; i<expr.nops(); i++) {
-                    if(is_order_function(res.op(i))) {
-                        ot = res.op(i);
+                    if(is_order_function(expr.op(i))) {
+                        ot = expr.op(i);
                         break;
                     }
                 }
                 if(!is_order_function(ot)) {
                     cerr << "expr = " << expr << endl;
-                    cerr << "res = " << res << endl;
                     throw Error("mma_series: Not an Order term with " + ex2str(ot));
                 }
                 if(ot.op(0).degree(s)>sn) {
@@ -805,10 +804,12 @@ namespace HepLib {
     ex mma_diff(ex const expr, ex const xp, unsigned nth, bool expand) {
         symbol s;
         ex res = expr.subs(xp==s);
-        if(expand) res = mma_collect(res, s, true);
-        res = res.diff(s, nth);
-        if(expand) res = res.subs(coCF(w)==w); // remove coCF
-        res = res.subs(s==xp);
+        if(!expand) return res.diff(s,nth).subs(s==xp);
+        auto cvs = mma_collect_lst(res, s);
+        res = 0;
+        for(auto cv : cvs) {
+            res += cv.op(0) * cv.op(1).diff(s,nth).subs(s==xp);
+        }
         return res;
     }
 

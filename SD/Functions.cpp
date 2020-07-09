@@ -205,22 +205,27 @@ namespace HepLib::SD {
             }
             return;
         }
-                
-        static ex NoDiff_1P(const ex & x, unsigned diff_param) {return 0;}
-        static ex NoDiff_2P(const ex & x, const ex & y, unsigned diff_param) {return 0;}
-        static ex VE_Conjugate(const ex & x, const ex & y) { return VE(x,y).hold(); }
-        static ex Diff_ID(const ex & x, unsigned diff_param) {return 1;}
         
     }
-
+    
+    namespace {
+        static ex conjVE(const ex & x, const ex & y) { return VE(x,y).hold(); }
+        static ex zp1D(const ex & x, unsigned diff_param) {return 0;}
+        static ex zd1D(const ex & x, const symbol & s) {return 0;} 
+        static ex zp2D(const ex & x, const ex & y, unsigned diff_param) {return 0;}
+        static ex zd2D(const ex & x, const ex & y, const symbol & s) {return 0;}   
+        static ex dCT(const ex & x, const symbol & s) {return x.diff(s);}
+        static ex pCT(const ex & x, unsigned diff_param) {return 1;}     
+    }
+    
     REGISTER_FUNCTION(CV, do_not_evalf_params()) // for use symbol
     REGISTER_FUNCTION(fabs, dummy())
-    REGISTER_FUNCTION(PL, do_not_evalf_params())
-    REGISTER_FUNCTION(FTX, do_not_evalf_params().derivative_func(NoDiff_2P))
-    REGISTER_FUNCTION(CT, do_not_evalf_params().derivative_func(Diff_ID))
-    REGISTER_FUNCTION(VE, conjugate_func(VE_Conjugate))
+    REGISTER_FUNCTION(PL, do_not_evalf_params().expl_derivative_func(zd1D).derivative_func(zp1D))
+    REGISTER_FUNCTION(FTX, do_not_evalf_params().expl_derivative_func(zd2D).derivative_func(zp2D))
+    REGISTER_FUNCTION(CT, do_not_evalf_params().expl_derivative_func(dCT).derivative_func(pCT))
+    REGISTER_FUNCTION(epsID, do_not_evalf_params().expl_derivative_func(zd1D).derivative_func(zp1D))
+    REGISTER_FUNCTION(WRA, do_not_evalf_params().expl_derivative_func(zd1D).derivative_func(zp1D))
+    REGISTER_FUNCTION(VE, conjugate_func(conjVE))
     REGISTER_FUNCTION(VEO, print_func<print_dflt>(print_VEO))
     REGISTER_FUNCTION(VEO2, print_func<print_dflt>(print_VEO2))
-    REGISTER_FUNCTION(epsID, do_not_evalf_params().derivative_func(NoDiff_1P))
-    REGISTER_FUNCTION(WRA, do_not_evalf_params())
 }

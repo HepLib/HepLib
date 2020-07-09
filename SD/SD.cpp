@@ -1042,7 +1042,7 @@ namespace HepLib::SD {
                             lst xns3 = ex_to<lst>(xns);
                             xns3.let_op(n).let_op(1) = xn.op(1)+1;
                             
-                            ex tmp = ex(0)-pns.op(i).op(1)*mma_diff(pns.op(i).op(0),xx,1,false);
+                            ex tmp = ex(0)-pns.op(i).op(1)*mma_diff(pns.op(i).op(0),xx);
                             if(tmp.is_zero()) continue;
                             
                             auto xs = get_x_from(tmp);
@@ -1150,7 +1150,7 @@ oss << xns << endl << expr << endl;
                             exprs2.append(dit0/(xn.op(1)+1)/ifact);
                         }
                         for(int i=1; i+expn<0; i++) {
-                            dit = mma_diff(dit, xn.op(0), 1, false);
+                            dit = mma_diff(dit, xn.op(0));
                             if(is_zero(dit)) break;
                             dit0 = dit.subs(xn.op(0)==0);
                             ifact *= i;
@@ -1381,7 +1381,10 @@ cout << oss.str() << endl;
             if(kv.second.is_zero()) continue;
             expResult.push_back(lst{kv.second, kv.first});
         }
-        if(!is_zero(expr_nox)) expResult.push_back(lst{expr_nox, 1});
+        if(!is_zero(expr_nox)) {
+            expr_nox = expr_nox.subs(FTX(w1,w2)==1);
+            expResult.push_back(lst{expr_nox, 1});
+        }
         if(Verbose > 1) cout << expResult.size() << endl;
     }
 

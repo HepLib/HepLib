@@ -345,7 +345,7 @@ namespace HepLib {
     lst mma_collect_lst(const ex &expr, lst const &pats);
     lst mma_collect_lst(const ex &expr, ex const &pat);
     
-    ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
+    ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=true);
     
     extern bool fermat_use_array;
     ex fermat_numer_denom(const ex & expr);
@@ -390,9 +390,7 @@ namespace HepLib {
     // Customized GiNaC Function
     /*-----------------------------------------------------*/
     DECLARE_FUNCTION_1P(coCF)
-    DECLARE_FUNCTION_1P(coVF)
-    DECLARE_FUNCTION_1P(mmaExp)
-    
+    DECLARE_FUNCTION_1P(coVF)    
     DECLARE_FUNCTION_1P(x)
     DECLARE_FUNCTION_1P(y)
     DECLARE_FUNCTION_1P(z)

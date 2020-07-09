@@ -1,18 +1,9 @@
 #include "Basic.h"
 
 namespace HepLib {
-
-    namespace {
-        static ex coCF_Diff(const ex & x, unsigned diff_param) {return 0;}
-        static ex coCF_Expand(const ex & x, unsigned expand_options) {return coCF(x).hold();}
-        static ex expl_coCF_diff(const ex & arg, const symbol & s) {return 0;}        
-    }
     
-    REGISTER_FUNCTION(mmaExp, do_not_evalf_params())
-
-    REGISTER_FUNCTION(coCF, expl_derivative_func(expl_coCF_diff).derivative_func(coCF_Diff).expand_func(coCF_Expand))
+    REGISTER_FUNCTION(coCF, do_not_evalf_params())
     REGISTER_FUNCTION(coVF, do_not_evalf_params())
-
     REGISTER_FUNCTION(x, do_not_evalf_params())
     REGISTER_FUNCTION(y, do_not_evalf_params())
     REGISTER_FUNCTION(z, do_not_evalf_params())

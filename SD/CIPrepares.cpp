@@ -160,13 +160,13 @@ namespace HepLib::SD {
             
             ex DFs[fxs.size()], DDFs[fxs.size()][fxs.size()];
             for(int i=0; i<fxs.size(); i++) {
-                auto df = mma_diff(ft, fxs[i], 1, false);
+                auto df = mma_diff(ft, fxs[i]);
                 DFs[i] = collect_common_factors(df);
                 ostringstream ilaos;
                 ilaos << "ilas[" << i << "]";
                 symbol ila(ilaos.str());
                 for(int j=0; j<fxs.size(); j++) {
-                    auto ddf = mma_diff(DFs[i], fxs[j], 1, false);
+                    auto ddf = mma_diff(DFs[i], fxs[j]);
                     DDFs[i][j] = collect_common_factors(ddf);
                 }
             }

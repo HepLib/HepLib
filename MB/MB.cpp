@@ -203,7 +203,7 @@ void MB::Initialize(FeynmanParameter fp) {
                 auto plst = kv.first;
                 auto nlst = kv.second;
                 for(int ij=0; ij<nlst.nops(); ij++) {
-                    auto dtmp = nlst.op(ij) * mma_diff(plst.op(ij),x(i),1,false);
+                    auto dtmp = nlst.op(ij) * mma_diff(plst.op(ij),x(i));
                     if(dtmp.is_zero()) continue;
                     auto plst2 = plst;
                     auto nlst2 = nlst;

@@ -328,7 +328,7 @@ namespace HepLib::SD {
                     }
                     
                     for(int ij=0; ij<nlst.nops(); ij++) { // note the "-" sign
-                        auto dtmp = ex(0)-nlst.op(ij) * mma_diff(plst.op(ij),x(i),1,false);
+                        auto dtmp = ex(0)-nlst.op(ij) * mma_diff(plst.op(ij),x(i));
                         if(is_zero(dtmp)) continue;
                         auto plst2 = plst;
                         auto nlst2 = nlst;

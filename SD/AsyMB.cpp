@@ -368,7 +368,7 @@ namespace HepLib::SD {
                             for(int ii=0; ii<fs3.nops(); ii++) {
                                 lst fs4 = fs3;
                                 lst es4 = es3;
-                                auto dit = mma_diff(fs4.op(ii),vs,1,false);
+                                auto dit = mma_diff(fs4.op(ii),vs);
                                 if(!dit.is_zero()) {
                                     if((es4.op(ii)-1).is_zero()) {
                                         fs4.let_op(ii) = dit;
