@@ -127,7 +127,7 @@ namespace HepLib::SD {
                 ns.let_op(i) = 0;
                 ps.let_op(i) = 1;
                 continue;
-            } else if(is_a<numeric>(ns.op(i)) && (ns.op(i)<=0)) {
+            } else if(ns.op(i).info(info_flags::negint) || is_zero(ns.op(i))) {
                 xtNeg[x(i)]=0;
                 if(is_zero(ns.op(i))) continue;
             }
@@ -302,11 +302,7 @@ namespace HepLib::SD {
 
         // negative index
         for(int i=0; i<xn; i++) {
-        if(is_a<numeric>(ns.op(i)) && ns.op(i)<0) {
-            if(!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer()) {
-                throw Error("Initialize: (!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer())");
-            }
-
+        if(ns.op(i).info(info_flags::negint)) {
             for(int j=0; j<ex(0)-ns.op(i); j++) {
                 vector<ex> nret;
                 for(auto fe : ret) {
@@ -428,7 +424,7 @@ namespace HepLib::SD {
             auto fs = fe.op(0);
             auto ns = fe.op(1);
             for(int i=0; i<fs.nops(); i++) {
-                if(i==1 || (is_a<numeric>(ns.op(i)) && ex_to<numeric>(ns.op(i)).is_pos_integer())) continue;
+                if(i==1 || ns.op(i).info(info_flags::posint)) continue;
                 auto nv = fs.op(i).subs(Symbol::AssignMap).subs(nReplacements).subs(lst{CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111});
                 if(!xPositive(nv)) {
                     cout << "fs = " << fs << endl << "ns = " << ns << endl;

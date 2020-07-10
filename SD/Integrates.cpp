@@ -20,10 +20,6 @@ namespace HepLib::SD {
      */
     ex SecDec::ContinuousWRA(ex expr_in, int nc) {
         auto expr = expr_in;
-        expr = expr.subs(pow(exp(w1),w2)==exp(w1*w2));
-        expr = expr.subs(sqrt(exp(w1))==exp(w1/2));
-        expr = expr.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
-        expr = expr.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
         exset wra_set;
         expr.find(WRA(w), wra_set);
         if(wra_set.size()<1) return expr;
@@ -47,9 +43,9 @@ namespace HepLib::SD {
                 }
             }
         }
+if(pow_map.size()>0) cout << pow_map << endl;
         expr = expr.subs(pow_map); 
-        expr = expr.subs(pow(exp(w1),w2)==exp(w1*w2));
-        expr = expr.subs(sqrt(exp(w1))==exp(w1/2));
+        expr = exp_simplify(expr);;
         
         int log_id = 0;
         exset logs_set;
@@ -100,7 +96,6 @@ namespace HepLib::SD {
                 }
             }
             if(cutN!=0) ret += I * cutN * 2 * Pi;
-if(cutN!=0) cout << "CutN!=0" << endl;
             log_map2[iWF(id)] = ret;
         }
         expr = expr.subs(log_map2);

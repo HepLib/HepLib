@@ -188,7 +188,7 @@ namespace HepLib::SD {
                 for(int ni=0; ni<polist.nops(); ni++) {
                     auto po = polist.op(ni);
                     auto expo = exlist.op(ni); // note that expo may decrease when using diff
-                    if(is_a<numeric>(expo) && ex_to<numeric>(expo).is_pos_integer()) continue;
+                    if(expo.info(info_flags::posint)) continue;
                     if(IsBad(po, vmap)) {
                         OK = false;
                         break;
@@ -436,7 +436,8 @@ namespace HepLib::SD {
         for(int i=0; i<in_plst.nops(); i++) {
             if(i!=1 && (in_nlst.op(i).is_zero() || in_plst.op(i)==ex(1))) continue;
             if(i!=1 && !in_plst.op(i).has(x(w)) && !in_plst.op(i).has(y(w))) {
-                const_term *= pow(in_plst.op(i), in_nlst.op(i));
+                if(in_nlst.op(i).info(info_flags::integer)) const_term *= pow(in_plst.op(i), in_nlst.op(i));
+                else const_term *= exp(log(in_plst.op(i)) * in_nlst.op(i));
             } else {
                 auto ptmp = collect_common_factors(in_plst.op(i));
                 auto ntmp = in_nlst.op(i);
@@ -526,7 +527,8 @@ namespace HepLib::SD {
         }
         
         if(nlst_comb.op(0)!=1) {
-            plst_comb.let_op(0) = pow(plst_comb.op(0),nlst_comb.op(0));
+            if(nlst_comb.op(0).info(info_flags::integer)) plst_comb.let_op(0) = pow(plst_comb.op(0),nlst_comb.op(0));
+            else plst_comb.let_op(0) = exp(log(plst_comb.op(0))*nlst_comb.op(0));
             nlst_comb.let_op(0) = 1;
         }
         
@@ -621,7 +623,7 @@ namespace HepLib::SD {
                 if(i==1) continue;
                 auto expi = fe.op(1).op(i);
                 if(expi.info(info_flags::nonnegint)) {
-                    rem *= pow(fe.op(0).op(i), fe.op(1).op(i));
+                    rem *= pow(fe.op(0).op(i), expi);
                 } else {
                     fun.append(fe.op(0).op(i));
                     exp.append(fe.op(1).op(i));
@@ -657,7 +659,7 @@ namespace HepLib::SD {
             for(int i=2; i<fe.op(1).nops(); i++) {
                 auto expi = fe.op(1).op(i);
                 if(expi.info(info_flags::nonnegint)) {
-                    rem *= pow(fe.op(0).op(i), fe.op(1).op(i));
+                    rem *= pow(fe.op(0).op(i), expi);
                 } else {
                     fun.append(fe.op(0).op(i));
                     exp.append(fe.op(1).op(i));
@@ -988,7 +990,7 @@ namespace HepLib::SD {
             }
         }
 
-        if(Verbose > 1) cout << "  \\--" << Color_HighLight << "Maximum x^-n: All(" << ex(0)-min_expn << "+1*N) & Max(" << (ex(0)-min_expn2) << "+1)" << RESET << endl;
+        if(Verbose > 1) cout << "  \\--" << Color_HighLight << "Maximum x^-n: All(" << ex(0)-min_expn << "+1X), Max(" << (ex(0)-min_expn2) << "+1)" << RESET << endl;
 
         int pn = 0;
         vector<ex> ibp_res_vec;
@@ -1018,9 +1020,7 @@ namespace HepLib::SD {
                 for(int n=0; n<xns.nops(); n++) {
                     ex xn = xns.op(n);
                     auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0,epz==0}).normal();
-                    if(!is_a<numeric>(expn)) {
-                        throw Error("SDPrepares: expn NOT numeric: " + ex2str(expn));
-                    }
+                    if(!is_a<numeric>(expn)) throw Error("SDPrepares: expn NOT numeric: " + ex2str(expn));
 
                     if(ex_to<numeric>(expn) < pole_requested) {
                         auto xx = xn.op(0);
@@ -1115,7 +1115,12 @@ namespace HepLib::SD {
                 } else {
                     auto item = ii.op(1);
                     ex expr = 1;
-                    for(auto pn : item.op(1)) expr *= exp(log(pn.op(0)) * pn.op(1));
+                    for(auto pn : item.op(1)) {
+                        if(pn.op(0).has(CT(w)) || pn.op(0).has(FTX(w1,w2))) {
+                            if(pn.op(1)!=1) throw Error("SDPrepares: exponent of CT is NOT 1.");
+                            expr *= pn.op(0);
+                        } else expr *= exp(log(pn.op(0)) * pn.op(1));
+                    }
                     expr = exp_simplify(expr);
                     ibp_res_vec.push_back(lst{ item.op(0), expr });
                 }
@@ -1130,8 +1135,6 @@ namespace HepLib::SD {
             lst para_res_lst;
             auto xns = xns_expr.op(0);
             auto expr = xns_expr.op(1);
-ostringstream oss;
-oss << xns << endl << expr << endl;
             lst exprs = { expr };
             symbol dx;
             for(auto xn : xns) {
@@ -1164,8 +1167,6 @@ oss << xns << endl << expr << endl;
                 }
                 exprs = exprs2;
             }
-oss << exprs << endl << endl;
-cout << oss.str() << endl;
 
             for(auto const &it : exprs) {
                 if(it.is_zero()) continue;

@@ -38,8 +38,9 @@ namespace HepLib::SD {
                 if(sd1.length()<2+n12) {
                     oss.clear();
                     oss.str("");
-                    oss << NN(ex1/power(10,n1)+power(10,-3-n12));
+                    oss << NN(ex1/power(10,n1)+power(10,-4-n12));
                     sd1 = oss.str();
+                    if(sd1.length()<2+n12) throw Error("VEO: sd1.length()<2+n12");
                 } else {
                     int ci = stoi(sd1.substr(2+n12,1));
                     if(ci>4) {
@@ -83,8 +84,9 @@ namespace HepLib::SD {
                     if(sd1.length()<3+n12) {
                         oss.clear();
                         oss.str("");
-                        oss << NN(ex1/power(10,n1)+power(10,-4-n12));
+                        oss << NN(ex1/power(10,n1)+power(10,-5-n12));
                         sd1 = oss.str();
+                        if(sd1.length()<3+n12) throw Error("VEO2: sd1.length()<3+n12");
                     } else {
                         int ci = stoi(sd1.substr(2+n12,1));
                         if(ci>4) {
@@ -128,8 +130,9 @@ namespace HepLib::SD {
                 if(sd1.length()<2+n12) {
                     oss.clear();
                     oss.str("");
-                    oss << NN(ex1/power(10,n1)+power(10,-3-n12));
+                    oss << NN(ex1/power(10,n1)+power(10,-4-n12));
                     sd1 = oss.str();
+                    if(sd1.length()<2+n12) throw Error("VEO2: sd1.length()<2+n12");
                 } else {
                     int ci = stoi(sd1.substr(2+n12,1));
                     if(ci>4) {
@@ -179,8 +182,9 @@ namespace HepLib::SD {
                     if(sd1.length()<4+n12) {
                         oss.clear();
                         oss.str("");
-                        oss << NN(ex1/power(10,n1)+power(10,-5-n12));
+                        oss << NN(ex1/power(10,n1)+power(10,-6-n12));
                         sd1 = oss.str();
+                        if(sd1.length()<4+n12) throw Error("VEO2: sd1.length()<4+n12");
                     } else {
                         int ci = stoi(sd1.substr(3+n12,1));
                         if(ci>4) {

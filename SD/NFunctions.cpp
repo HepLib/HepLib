@@ -100,7 +100,6 @@ dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
         }
     }
     if(cutN!=0) ret += complex<dREAL>(0,cutN * 2 * dPi);
-if(cutN!=0) cout << "d" << endl;
     return ret;
 }
 
@@ -189,7 +188,6 @@ qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
         }
     }
     if(cutN!=0) ret += cutN * qPi * 2.Qi;
-if(cutN!=0) cout << "q" << endl;
     return ret;
 }
 
@@ -278,7 +276,6 @@ mpCOMPLEX RCLog(mpCOMPLEX xs[], int n) {
         }
     }
     if(cutN!=0) ret += complex<mpREAL>(0,cutN * 2 * mpPi);
-if(cutN!=0) cout << "mp" << endl;
     return ret;
 }
 

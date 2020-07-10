@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
         cout << "  eigen values of A0 summary:" << endl;
         for(auto &gi : ev_groups) {
             sort(gi.begin(),gi.end(),[&](const auto &a, const auto &b){
-                return ex_to<numeric>(normal(a-b)).is_positive();
+                return normal(a-b).info(info_flags::positive);
             });
             ostringstream ostr;
             cout << "    ";

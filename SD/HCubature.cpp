@@ -227,9 +227,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
 }
 
 ex HCubature::Integrate() {
-    if(mpfr_buildopt_tls_p()<=0) {
-        throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
-    }
+    if(mpfr_buildopt_tls_p()<=0) throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
     mpfr_free_cache();
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     mpPi = mpfr::const_pi();

@@ -308,7 +308,7 @@ pair<matrix,matrix> normalize(const matrix &mat, const symbol &x) {
         cout << "  eigen values of A0 summary:" << endl;
         for(auto &gi : ev_groups) {
             sort(gi.begin(),gi.end(),[&](const auto &a, const auto &b){
-                return ex_to<numeric>(normal(a-b)).is_positive();
+                return normal(a-b).info(info_flags::positive);
             });
             ostringstream ostr;
             cout << "    ";
@@ -326,7 +326,7 @@ pair<matrix,matrix> normalize(const matrix &mat, const symbol &x) {
             is_normalized = false;
             auto last_ev = gi[gi.size()-1];
             for_each(gi.begin(), gi.end()-1, [&](const auto &ev) {
-                if(ex_to<numeric>(last_ev-ev).is_positive()) {
+                if((last_ev-ev).info(info_flags::positive)) {
                     cout << "  " << now(false) << " - raising ev = " << ev << " ..." << endl;
                     matrix vec_u = eigenvectors(a0, ev)[0];
                     matrix vec_v  = dual_basis(vec_u)[0];
@@ -409,7 +409,7 @@ pair<matrix, matrix> shearing(const matrix &mat, const symbol &x, const symbol e
         int max_dep = -1;
         for(auto &gi : ev_groups) {
             sort(gi.begin(),gi.end(),[&](const auto &a, const auto &b){
-                return ex_to<numeric>(normal(a-b)).is_positive();
+                return normal(a-b).info(info_flags::positive);
             });
             ostringstream ostr;
             ostr << "    ";

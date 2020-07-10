@@ -63,9 +63,9 @@ void MB::Initialize(FeynmanParameter fp) {
             ns.let_op(i) = 0;
             ps.let_op(i) = 1;
             continue;
-        } else if(is_a<numeric>(ns.op(i)) && (ns.op(i)<=0)) {
+        } else if(ns.op(i).info(info_flags::negint) && is_zero(ns.op(i))) {
             xtNeg[x(i)]=0;
-            if(ns.op(i)<0) {
+            if(!is_zero(ns.op(i))) {
                 asgn *= pow(-1, ns.op(i));
                 rem += x(i) * ps.op(i);
             }
@@ -192,11 +192,7 @@ void MB::Initialize(FeynmanParameter fp) {
 
     // negative index
     for(int i=0; i<xn; i++) {
-    if(is_a<numeric>(ns.op(i)) && ns.op(i)<0) {
-        if(!ex_to<numeric>(ex(0)-ns.op(i)).is_pos_integer()) {
-            cerr << Color_Error << "Not positive integer: " << (ex(0)-ns.op(i)) << RESET << endl;
-            exit(1);
-        }
+    if(ns.op(i).info(info_flags::negint)) {
         for(int j=0; j<-ns.op(i); j++) {
             vector<pair<lst, lst>> nret;
             for(auto kv : ret) {

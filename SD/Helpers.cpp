@@ -27,7 +27,7 @@ namespace HepLib::SD {
         vector<ex> xys(xyset.size());
         copy(xyset.begin(), xyset.end(), xys.begin());
         sort(xys.begin(), xys.end(), [&](const auto &a, const auto &b){
-            return ex_to<numeric>(normal((b-a)).subs(lst{ x(w)==w, y(w)==w })).is_positive();
+            return normal((b-a)).subs(lst{ x(w)==w, y(w)==w }).info(info_flags::positive);
         });
         return xys;
     }
@@ -42,7 +42,7 @@ namespace HepLib::SD {
         vector<ex> xs(xset.size());
         copy(xset.begin(), xset.end(), xs.begin());
         sort(xs.begin(), xs.end(), [&](const auto &a, const auto &b){
-            return ex_to<numeric>(normal((b-a)).subs(lst{ x(w)==w })).is_positive();
+            return normal((b-a)).subs(lst{ x(w)==w }).info(info_flags::positive);
         });
         return xs;
     }
@@ -57,7 +57,7 @@ namespace HepLib::SD {
         vector<ex> ys(yset.size());
         copy(yset.begin(), yset.end(), ys.begin());
         sort(ys.begin(), ys.end(), [&](const auto &a, const auto &b){
-            return ex_to<numeric>(normal((b-a)).subs(lst{ y(w)==w })).is_positive();
+            return normal((b-a)).subs(lst{ y(w)==w }).info(info_flags::positive);
         });
         return ys;
     }
@@ -72,7 +72,7 @@ namespace HepLib::SD {
         vector<ex> pls(plset.size());
         copy(plset.begin(), plset.end(), pls.begin());
         sort(pls.begin(), pls.end(), [&](const auto &a, const auto &b){
-            return ex_to<numeric>(normal((b-a)).subs(lst{ PL(w)==w })).is_positive();
+            return normal((b-a)).subs(lst{ PL(w)==w }).info(info_flags::positive);
         });
         return pls;
     }
