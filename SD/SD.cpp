@@ -27,7 +27,6 @@ namespace HepLib::SD {
         for(auto xi : xs) chk_total *= 1/(nxs[xi]+1);
         
         ex int_total = 0;
-        auto sop = subs_options::algebraic;
         for(auto imap : map_vec) {
             ex intg = 1;
             for(auto kv : imap) {
@@ -38,10 +37,8 @@ namespace HepLib::SD {
             }
             while(true) {
                 auto tmp = intg;
-                tmp = tmp.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3),sop);
-                tmp = tmp.subs(pow(w1*w2,w3)==pow(w1,w3)*pow(w2,w3),sop);
-                tmp = tmp.subs(pow(w1,w2)*pow(w1,w3)==pow(w1,w2+w3),sop);
-                tmp = tmp.subs(w1*pow(w1,w2)==pow(w1,1+w2),sop);
+                tmp = tmp.subs(w0*pow(w1*w2,w3)==w0*pow(w1,w3)*pow(w2,w3));
+                tmp = xyz_pow_simplify(tmp);
                 if(is_zero(tmp-intg)) break;
                 intg = tmp;
             }

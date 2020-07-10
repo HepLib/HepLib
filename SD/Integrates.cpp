@@ -30,6 +30,7 @@ namespace HepLib::SD {
         ex wra = (*(wra_set.begin())).op(0);
         static symbol xwra("xwra");
         expr = expr.subs(WRA(w)==xwra);
+        expr = xyz_pow_simplify(expr);
         exset pows_set;
         expr.find(sqrt(w), pows_set);
         expr.find(pow(w1,w2), pows_set);
@@ -43,7 +44,7 @@ namespace HepLib::SD {
                 }
             }
         }
-if(pow_map.size()>0) cout << pow_map << endl;
+if(pow_map.size()>0) cout << "pow_map=" << pow_map << endl;
         expr = expr.subs(pow_map); 
         expr = exp_simplify(expr);;
         

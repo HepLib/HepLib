@@ -528,7 +528,7 @@ namespace HepLib::SD {
                 }
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
-                intg = pow_simplify(intg);
+                intg = xyz_pow_simplify(intg);
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation
@@ -556,7 +556,7 @@ namespace HepLib::SD {
                     }
                     if(pow_subs.nops()>0) {
                         intg = exp_simplify(intg);
-cout << pow_subs << endl;
+cout << "pow_subs=" << pow_subs << endl;
                     }
                     
                     exset logs_set;
@@ -744,7 +744,7 @@ cout << pow_subs << endl;
                 ofs << "int SDQ_"<<idx<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
-                intg = pow_simplify(intg);
+                intg = xyz_pow_simplify(intg);
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation
@@ -966,7 +966,7 @@ cout << pow_subs << endl;
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
                 
                 auto intg = expr.subs(FTX(w1,w2)==1);
-                intg = pow_simplify(intg);
+                intg = xyz_pow_simplify(intg);
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
                 
                 // WickRotation
@@ -994,7 +994,7 @@ cout << pow_subs << endl;
                     }
                     if(pow_subs.nops()>0) {
                         intg = exp_simplify(intg);
-cout << pow_subs << endl;
+cout << "pow_subs=" << pow_subs << endl;
                     }
                     
                     exset logs_set;
@@ -1105,7 +1105,7 @@ cout << pow_subs << endl;
                         }
                         if(pow_subs.nops()>0) {
                             intg = exp_simplify(intg);
-cout << pow_subs << endl;
+cout << "pow_subs=" << pow_subs << endl;
                         }
                         
                         exset logs_set;

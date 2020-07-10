@@ -50,9 +50,9 @@ namespace HepLib::SD {
     int y_free_index(ex expr);
     ex Factor(const ex expr);
     ex FactorOutX(const ex expr);
-    ex PowerExpand(const ex expr);
     ex exp_simplify(const ex);
     ex pow_simplify(const ex);
+    ex xyz_pow_simplify(const ex expr);
     
     /*-----------------------------------------------------*/
     // Customized GiNaC Function
