@@ -384,6 +384,8 @@ namespace HepLib::SD {
         static void Scalelize(ex &fe, const lst xs, const ex cy);
         static void Scalelize(ex &fe, const ex xi, const ex cy);
         static vector<ex> Binarize(ex const fe, ex const eqn);
+        static bool isLinearizable(const ex ft, const ex delta, lst & xcs);
+        static void Linearize(const lst xcs, ex & fe, ex & ft);
         static bool VerifySD(vector<exmap> vmap, bool quick = true);
         static ex RefinedFT(ex const & ft);
         static lst RefinedFT_lst(ex const & ft);

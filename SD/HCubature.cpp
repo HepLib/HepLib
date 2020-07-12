@@ -162,7 +162,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         if(used_time>self->RunTime) {
             self->NEval = *nrun;
             *nrun = self->MaxPTS + 1979;
-            if(Verbose>10) cout << Color_Warn << "     Exit with Run out of Time: " << used_time << RESET << endl;
+            if(Verbose>10) cout << WarnColor << "     Exit with Run out of Time: " << used_time << RESET << endl;
             return;
         }
     }
@@ -183,7 +183,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         self->NEval = *nrun;
         *nrun = self->MaxPTS + 1979;
         if(self->LastState>0) self->LastState = -1;
-        if(Verbose>10 && self->RunMAX>0) cout << Color_Error << "     Exit with NaN, LastN=" << self->lastNRUN << RESET << endl;
+        if(Verbose>10 && self->RunMAX>0) cout << ErrColor << "     Exit with NaN, LastN=" << self->lastNRUN << RESET << endl;
         return;
     }
     
@@ -191,7 +191,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         self->NEval = *nrun;
         *nrun = self->MaxPTS + 1979;
         if(self->LastState>0) self->LastState = -1;
-        if(Verbose>10 && self->RunMAX>0) cout << Color_Warn << "     Exit with EpsAbs, LastN=" << self->lastNRUN << RESET << endl;
+        if(Verbose>10 && self->RunMAX>0) cout << WarnColor << "     Exit with EpsAbs, LastN=" << self->lastNRUN << RESET << endl;
         return;
     }
     
@@ -255,7 +255,7 @@ ex HCubature::Integrate() {
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, MinPTS, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
     if(nok) {
         if( (cabsq(result[0]+result[1]*1.Qi) < FLT128_EPSILON) && (cabsq(estabs[0]+estabs[1]*1.Qi) < FLT128_EPSILON) ) {
-            cout << Color_Error << "HCubature Failed with 0 result returned!" << RESET << endl;
+            cout << ErrColor << "HCubature Failed with 0 result returned!" << RESET << endl;
             return NaN;
         }
     }
@@ -282,7 +282,7 @@ ex HCubature::Integrate() {
     
     // Check nNAN / NEval
     if(nNAN * 1000 > NEval && RunMAX>0) {
-        cout << Color_Error << "NAN=" << nNAN << " v.s. RUN=" << NEval << RESET << endl;
+        cout << ErrColor << "NAN=" << nNAN << " v.s. RUN=" << NEval << RESET << endl;
     }
     
     return FResult;

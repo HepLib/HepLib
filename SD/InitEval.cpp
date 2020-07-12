@@ -138,7 +138,7 @@ namespace HepLib::SD {
             // check loop^2
             for(auto m : ls) {
                 if(!is_a<numeric>(p.coeff(m,2))) {
-                    cout << Color_Error << "not numeric: " << p.coeff(m,2) << endl;
+                    cout << ErrColor << "not numeric: " << p.coeff(m,2) << endl;
                     cout << "nsubs = " << nsubs << RESET << endl;
                     exit(1);
                 }
@@ -172,8 +172,8 @@ namespace HepLib::SD {
                 sgn = 1;
                 if(is_a<numeric>(p) && ex_to<numeric>(p)>0) sgn = -1;
                 if(Verbose>0 && (!is_a<numeric>(ns.op(i)) || ns.op(i)>0)) {
-                    cout << Color_Warn << " - Warning: Can NOT determine the iEpsilon sign." << RESET << endl;
-                    cout << " - " << p << " from " << ps.op(i) << endl;
+                    cout << WarnColor << " - Warning: Can NOT determine the iEpsilon sign." << RESET << endl;
+                    cout << WarnColor << " - " << p << " from " << ps.op(i) << RESET << endl;
                 }
             }
             
@@ -204,7 +204,7 @@ namespace HepLib::SD {
             u = normal(u.subs(lsubs,sop).subs(Symbol::AssignMap));
             for(auto m: tls) {
                 if(u.has(m)) {
-                    cerr << Color_Error << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
+                    cerr << ErrColor << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
                     exit(1);
                 }
             }
@@ -244,7 +244,7 @@ namespace HepLib::SD {
             u = normal(u.subs(lsubs,sop).subs(Symbol::AssignMap));
             for(auto m: tls) {
                 if(u.has(m)) {
-                    cerr << Color_Error << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
+                    cerr << ErrColor << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
                     exit(1);
                 }
             }
@@ -446,7 +446,7 @@ namespace HepLib::SD {
         for(int di=0; di<xint.Deltas.nops(); di++) {
             auto delta = xint.Deltas.op(di);
             if(!is_a<lst>(delta) || delta.nops()<1) {
-                cout << Color_Error << "Deltas is NOT valide: " << xint.Deltas << RESET << endl;
+                cout << ErrColor << "Deltas is NOT valide: " << xint.Deltas << RESET << endl;
                 exit(1);
             }
         }
@@ -498,6 +498,7 @@ namespace HepLib::SD {
         ChengWu();
         RemoveDeltas();
         KillPowers();
+cout << FunExp << endl;
         SDPrepares();
         EpsEpExpands();
         CIPrepares(key);

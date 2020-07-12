@@ -382,8 +382,8 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Global Colors
     /*-----------------------------------------------------*/
-    extern const char* Color_Error;
-    extern const char* Color_Warn;
+    extern const char* ErrColor;
+    extern const char* WarnColor;
     extern const char* Color_HighLight;
 
     /*-----------------------------------------------------*/

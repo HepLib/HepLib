@@ -74,9 +74,10 @@ dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
 }
 
 dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
-    auto eps = LDBL_EPSILON;
+ostringstream oss;
     dCOMPLEX ret = log(xs[n]);
     if(n<2) return ret;
+    auto eps = LDBL_EPSILON;
     int total=0;
     int ReIm[n+1][2];
     for(int k=0; k<=n; k++) {
@@ -84,10 +85,9 @@ dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
         auto curI = xs[k].imag();
         auto absR = fabs(curR);
         auto absI = fabs(curI);
-        if(absI<10*eps*absR && k==0 && absR<0) ReIm[total][1] = -1;
-        else if(absR<10*eps*absI || absI<10*eps*absR) continue; 
-        else ReIm[total][1] = curI>0 ? 1 : -1;
+        if(absR<10*eps*absI || absI<10*eps*absR) continue; 
         ReIm[total][0] = curR>0 ? 1 : -1;
+        ReIm[total][1] = curI>0 ? 1 : -1;
         total++;
     }
     
@@ -162,9 +162,9 @@ qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
 }
 
 qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
-    auto eps = FLT128_EPSILON;
     qCOMPLEX ret = log(xs[n]);
     if(n<2) return ret;
+    auto eps = FLT128_EPSILON;
     int total=0;
     int ReIm[n+1][2];
     for(int k=0; k<=n; k++) {
@@ -172,10 +172,9 @@ qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
         auto curI = cimagq(xs[k]);
         auto absR = fabsq(curR);
         auto absI = fabsq(curI);
-        if(absI<10*eps*absR && k==0 && absR<0) ReIm[0][1] = -1;
-        else if(absR<10*eps*absI || absI<10*eps*absR) continue; 
-        else ReIm[total][1] = curI>0 ? 1 : -1;
+        if(absR<10*eps*absI || absI<10*eps*absR) continue; 
         ReIm[total][0] = curR>0 ? 1 : -1;
+        ReIm[total][1] = curI>0 ? 1 : -1;
         total++;
     }
     
@@ -250,9 +249,9 @@ mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
 }
 
 mpCOMPLEX RCLog(mpCOMPLEX xs[], int n) {
-    auto eps = mpfr::machine_epsilon(xs[0].real());
     mpCOMPLEX ret = log(xs[n]);
     if(n<2) return ret;
+    auto eps = mpfr::machine_epsilon(xs[0].real());
     int total=0;
     int ReIm[n+1][2];
     for(int k=0; k<=n; k++) {
@@ -260,10 +259,9 @@ mpCOMPLEX RCLog(mpCOMPLEX xs[], int n) {
         auto curI = xs[k].imag();
         auto absR = abs(curR);
         auto absI = abs(curI);
-        if(absI<10*eps*absR && k==0 && absR<0) ReIm[total][1] = -1;
-        else if(absR<10*eps*absI || absI<10*eps*absR) continue; 
-        else ReIm[total][1] = curI>0 ? 1 : -1;
+        if(absR<10*eps*absI || absI<10*eps*absR) continue; 
         ReIm[total][0] = curR>0 ? 1 : -1;
+        ReIm[total][1] = curI>0 ? 1 : -1;
         total++;
     }
     

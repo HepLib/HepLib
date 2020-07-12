@@ -20,23 +20,14 @@ namespace HepLib::SD {
      */
     ex SecDec::ContinuousWRA(ex expr_in, int nc) {
         auto expr = expr_in;
-        exset wra_set;
-        expr.find(WRA(w), wra_set);
-        if(wra_set.size()<1) return expr;
-        if(wra_set.size()!=1) {
-            cout << expr << endl;
-            throw Error("ContinuousWRA: too many WRA.");
-        }
-        ex wra = (*(wra_set.begin())).op(0);
         static symbol xwra("xwra");
-        expr = expr.subs(WRA(w)==xwra);
         expr = xyz_pow_simplify(expr);
         exset pows_set;
         expr.find(sqrt(w), pows_set);
         expr.find(pow(w1,w2), pows_set);
         exmap pow_map;
         for(auto item : pows_set) {
-            if(item.has(xwra)) {
+            if(item.has(WRA(w))) {
                 if(item.match(pow(w1,w2)) && !item.op(1).info(info_flags::integer)) {
                     pow_map[item] = exp(log(item.op(0)) * item.op(1));
                 } else if(item.match(sqrt(w))) {
@@ -44,7 +35,7 @@ namespace HepLib::SD {
                 }
             }
         }
-if(pow_map.size()>0) cout << "pow_map=" << pow_map << endl;
+
         expr = expr.subs(pow_map); 
         expr = exp_simplify(expr);;
         
@@ -54,20 +45,30 @@ if(pow_map.size()>0) cout << "pow_map=" << pow_map << endl;
         exmap log_map;
         lst id_logz_lst;
         for(auto item : logs_set){
-            if(item.has(xwra)) {
+            if(item.has(WRA(w))) {
                 log_id++;
                 id_logz_lst.append(iWF(log_id,item.op(0)));
                 log_map[item] = iWF(log_id);
             }
         }
-        if(log_id<1) return expr.subs(xwra==wra);
+        if(log_id<1) return expr.subs(WRA(w)==w);
         
-        expr = expr.subs(log_map).subs(xwra==wra);
+        expr = expr.subs(log_map).subs(WRA(w)==w);
         
         exmap log_map2;
         for(auto id_logz : id_logz_lst) {
             auto id = id_logz.op(0);
             auto zz = id_logz.op(1);
+            exset wra_set;
+            zz.find(WRA(w), wra_set);
+            if(wra_set.size()<1) return expr;
+            if(wra_set.size()!=1) {
+                cout << zz << endl;
+                throw Error("ContinuousWRA: too many WRA.");
+            }
+            zz = zz.subs(WRA(w)==xwra);
+            ex wra = (*(wra_set.begin())).op(0);
+
             ex ret = log(zz.subs(xwra==wra));
             if(nc<1) {
                 log_map2[iWF(id)] = ret;
@@ -76,7 +77,9 @@ if(pow_map.size()>0) cout << "pow_map=" << pow_map << endl;
             int total=0;
             int ReIm[nc][2];
             for(int k=0; k<=nc; k++) {
-                auto zzk = NN(zz.subs(xwra==k*wra/nc));
+                ex zzk;
+                if(k==0) zzk = NN(zz.subs(xwra==wra/(25*nc)));
+                else zzk = NN(zz.subs(xwra==k*wra/nc));
                 if(!is_a<numeric>(zzk)) throw Error("ContinuousWRA: zzk is not numeric: "+ex2str(zzk));
                 auto nzzk = ex_to<numeric>(zzk);
                 auto curR = real(nzzk);

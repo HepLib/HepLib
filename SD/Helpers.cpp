@@ -473,7 +473,7 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     ofs << "dREAL minFunc(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
     auto tmp = expr.subs(cxRepl);
     if(tmp.has(PL(w))) {
-        cerr << Color_Error << "FindMinimum: PL found @ " << tmp << RESET << endl;
+        cerr << ErrColor << "FindMinimum: PL found @ " << tmp << RESET << endl;
         exit(1);
     }
     ofs << "dREAL yy = ";
@@ -490,14 +490,14 @@ dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
     void* module = nullptr;
     module = dlopen(sofn.str().c_str(), RTLD_NOW);
     if(module == nullptr) {
-        cerr << Color_Error << "FindMinimum: could not open compiled module!" << RESET << endl;
+        cerr << ErrColor << "FindMinimum: could not open compiled module!" << RESET << endl;
         cout << "dlerror(): " << dlerror() << endl;
         exit(1);
     }
     
     auto fp = (MinimizeBase::FunctionType)dlsym(module, "minFunc");
     if(fp==NULL) {
-        cerr << Color_Error << "FindMinimum: fp==NULL" << RESET << endl;
+        cerr << ErrColor << "FindMinimum: fp==NULL" << RESET << endl;
         cout << "dlerror(): " << dlerror() << endl;
         exit(1);
     }

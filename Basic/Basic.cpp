@@ -131,8 +131,8 @@ namespace HepLib {
     // Global varibales
     /*-----------------------------------------------------*/
     
-    const char* Color_Error = RED;
-    const char* Color_Warn = MAGENTA;
+    const char* ErrColor = RED;
+    const char* WarnColor = MAGENTA;
     const char* Color_HighLight = WHITE;
 
     /**
@@ -226,8 +226,8 @@ namespace HepLib {
                 else garfn << ppid << "/" << bi << "." << key << ".gar";
                 garWrite(garfn.str(), res_lst);
             } catch(exception &p) { // NOT use Error
-                cout << Color_Error << "Failed in GiNaC_Parallel!" << RESET << endl;
-                cout << Color_Error << p.what() << RESET << endl;
+                cout << ErrColor << "Failed in GiNaC_Parallel!" << RESET << endl;
+                cout << ErrColor << p.what() << RESET << endl;
             }
             exit(0);
         }

@@ -57,7 +57,7 @@ namespace HepLib::SD {
         }
         void* module = dlopen(fsofn.str().c_str(), RTLD_NOW);
         if (module == nullptr) {
-            cerr << Color_Error << "Contours: could not open compiled module!" << RESET << endl;
+            cerr << ErrColor << "Contours: could not open compiled module!" << RESET << endl;
             cout << "dlerror(): " << dlerror() << endl;
             exit(1);
         }
@@ -100,7 +100,7 @@ namespace HepLib::SD {
                 fname << "minF_"<<ftnxn.op(1);
                 fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
                 if(fp==NULL) {
-                    cerr << Color_Error << "Contours: fp==NULL" << RESET << endl;
+                    cerr << ErrColor << "Contours: fp==NULL" << RESET << endl;
                     cout << "dlerror(): " << dlerror() << endl;
                     exit(1);
                 }
@@ -124,7 +124,7 @@ namespace HepLib::SD {
                 fname << "dirC_"<<ftnxn.op(1)<<"_"<<i;
                 dfp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
                 if(dfp==NULL) {
-                    cerr << Color_Error << "Contours: dfp==NULL" << RESET << endl;
+                    cerr << ErrColor << "Contours: dfp==NULL" << RESET << endl;
                     cout << "dlerror(): " << dlerror() << endl;
                     exit(1);
                 }
@@ -151,7 +151,7 @@ namespace HepLib::SD {
             fname << "imgF_"<<ftnxn.op(1);
             fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
             if(fp==NULL) {
-                cerr << Color_Error << "Contours: fp==NULL" << RESET << endl;
+                cerr << ErrColor << "Contours: fp==NULL" << RESET << endl;
                 cout << "dlerror(): " << dlerror() << endl;
                 exit(1);
             }
@@ -169,7 +169,7 @@ namespace HepLib::SD {
                 
                 if(laEnd < 1E-10) {
                     cout << "\r                                                    \r";
-                    cout << "     λ: " << Color_Error << "too small lambda!" << RESET << endl;
+                    cout << "     λ: " << ErrColor << "too small lambda!" << RESET << endl;
                     break;
                 }
                 

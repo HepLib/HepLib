@@ -471,9 +471,7 @@ namespace HepLib::SD {
                     count++;
                 }
             }
-            if(count!=xs.size()) {
-                throw Error("CIPrepares: (count!=xs.size())");
-            }
+            if(count!=xs.size()) throw Error("CIPrepares: (count!=xs.size())");
             auto pls = get_pl_from(expr);
             int npls = pls.size()>0 ? ex_to<numeric>(pls[pls.size()-1].subs(lst{PL(w)==w})).to_int() : -1;
             for(int i=0; i<npls+1; i++) {
@@ -554,10 +552,7 @@ namespace HepLib::SD {
                             }
                         }
                     }
-                    if(pow_subs.nops()>0) {
-                        intg = exp_simplify(intg);
-cout << "pow_subs=" << pow_subs << endl;
-                    }
+                    if(pow_subs.nops()>0) intg = exp_simplify(intg);
                     
                     exset logs_set;
                     find(intg, log(w), logs_set);
@@ -573,7 +568,9 @@ cout << "pow_subs=" << pow_subs << endl;
                         lst clogs = ex_to<lst>(cse.Parse(logs));
                         
                         ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
-                        ofs << "dREAL xwra = ti*wra/NRCLog;" << endl;
+                        ofs << "dREAL xwra;" << endl;
+                        ofs << "if(ti==0) xwra = wra/(25*NRCLog);" << endl;
+                        ofs << "else xwra = ti*wra/NRCLog;" << endl;
                         ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -625,7 +622,7 @@ cout << "pow_subs=" << pow_subs << endl;
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
                 
                 ofs << "dCOMPLEX z[xn],zz[xn],r[xn];" << endl;
-                ofs << "dREAL dff[xn+1];";
+                ofs << "dREAL dff[xn+1];" << endl;
                 ofs << "dCOMPLEX yy=0, ytmp, det;" << endl;
                 ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
                 ofs << "dREAL las[nfxs];" << endl;
@@ -666,10 +663,7 @@ cout << "pow_subs=" << pow_subs << endl;
                                 }
                             }
                         }
-                        if(pow_subs.nops()>0) {
-                            intg = exp_simplify(intg);
-cout << pow_subs << endl;
-                        }
+                        if(pow_subs.nops()>0) intg = exp_simplify(intg);
                     
                         exset logs_set;
                         find(intg, log(w), logs_set);
@@ -685,7 +679,8 @@ cout << pow_subs << endl;
                                 lst clogs = ex_to<lst>(cse.Parse(logs));
                                 
                                 ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
-                                ofs << "for(int i=0; i<xn; i++) zz[i] = complex<dREAL>(z[i].real(), ti*z[i].imag()/NRCLog);" << endl;
+                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = complex<dREAL>(z[i].real(), z[i].imag()/(25*NRCLog));" << endl;
+                                ofs << "else for(int i=0; i<xn; i++) zz[i] = complex<dREAL>(z[i].real(), ti*z[i].imag()/NRCLog);" << endl;
                                 ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                                 for(auto kv : cse.os()) {
                                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -702,7 +697,6 @@ cout << pow_subs << endl;
                                 }
                                 ofs << "}" << endl;
                                 ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
-                                
                                 intg = intg.subs(log_subs);
                             }
                         }
@@ -770,10 +764,7 @@ cout << pow_subs << endl;
                             }
                         }
                     }
-                    if(pow_subs.nops()>0) {
-                        intg = exp_simplify(intg);
-cout << pow_subs << endl;
-                    }
+                    if(pow_subs.nops()>0) intg = exp_simplify(intg);
                     
                     exset logs_set;
                     find(intg, log(w), logs_set);
@@ -789,7 +780,9 @@ cout << pow_subs << endl;
                         lst clogs = ex_to<lst>(cse.Parse(logs));
                         
                         ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
-                        ofs << "qREAL xwra = ti*wra/NRCLog;" << endl;
+                        ofs << "qREAL xwra;" << endl;
+                        ofs << "if(ti==0) xwra = wra/(25*NRCLog);" << endl;
+                        ofs << "else xwra = ti*wra/NRCLog;" << endl;
                         ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -838,7 +831,7 @@ cout << pow_subs << endl;
                 
                 ofs << "qREAL x0[xn];" << endl;
                 ofs << "qCOMPLEX z[xn],zz[xn],r[xn];" << endl;
-                ofs << "qREAL dff[xn+1];";
+                ofs << "qREAL dff[xn+1];" << endl;
                 ofs << "qCOMPLEX yy=0, ytmp, det;;" << endl;
                 ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
                 ofs << "qCOMPLEX mat[nfxs*nfxs];" << endl;
@@ -877,10 +870,7 @@ cout << pow_subs << endl;
                                 }
                             }
                         }
-                        if(pow_subs.nops()>0) {
-                            intg = exp_simplify(intg);
-cout << pow_subs << endl;
-                        }
+                        if(pow_subs.nops()>0) intg = exp_simplify(intg);
                         
                         exset logs_set;
                         find(intg, log(w), logs_set);
@@ -896,7 +886,8 @@ cout << pow_subs << endl;
                                 lst clogs = ex_to<lst>(cse.Parse(logs));
                                 
                                 ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
-                                ofs << "for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi * ti*cimagq(z[i])/NRCLog;" << endl;
+                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*cimagq(z[i])/(25*NRCLog);" << endl;
+                                ofs << "else for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*ti*cimagq(z[i])/NRCLog;" << endl;
                                 ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                                 for(auto kv : cse.os()) {
                                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -913,7 +904,6 @@ cout << pow_subs << endl;
                                 }
                                 ofs << "}" << endl;
                                 ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
-                                
                                 intg = intg.subs(log_subs);
                             }
                         }
@@ -992,10 +982,7 @@ cout << pow_subs << endl;
                             }
                         }
                     }
-                    if(pow_subs.nops()>0) {
-                        intg = exp_simplify(intg);
-cout << "pow_subs=" << pow_subs << endl;
-                    }
+                    if(pow_subs.nops()>0) intg = exp_simplify(intg);
                     
                     exset logs_set;
                     find(intg, log(w), logs_set);
@@ -1011,7 +998,9 @@ cout << "pow_subs=" << pow_subs << endl;
                         lst clogs = ex_to<lst>(cse.Parse(logs));
                         
                         ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
-                        ofs << "mpREAL xwra = ti*wra/NRCLog;" << endl;
+                        ofs << "mpREAL xwra;" << endl;
+                        ofs << "if(ti==0) xwra = wra/(25*NRCLog);" << endl;
+                        ofs << "else xwra = ti*wra/NRCLog;" << endl; 
                         ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                         for(auto kv : cse.os()) {
                             ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -1062,7 +1051,7 @@ cout << "pow_subs=" << pow_subs << endl;
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
                 
                 ofs << "mpCOMPLEX z[xn],zz[xn],r[xn];" << endl;
-                ofs << "mpREAL dff[xn+1];";
+                ofs << "mpREAL dff[xn+1];" << endl;
                 ofs << "mpCOMPLEX yy=mpREAL(0), ytmp, det;" << endl;
                 ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
                 ofs << "mpREAL las[nfxs];" << endl;
@@ -1103,10 +1092,7 @@ cout << "pow_subs=" << pow_subs << endl;
                                 }
                             }
                         }
-                        if(pow_subs.nops()>0) {
-                            intg = exp_simplify(intg);
-cout << "pow_subs=" << pow_subs << endl;
-                        }
+                        if(pow_subs.nops()>0) intg = exp_simplify(intg);
                         
                         exset logs_set;
                         find(intg, log(w), logs_set);
@@ -1122,7 +1108,8 @@ cout << "pow_subs=" << pow_subs << endl;
                                 lst clogs = ex_to<lst>(cse.Parse(logs));
                                 
                                 ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
-                                ofs << "for(int i=0; i<xn; i++) zz[i] = complex<mpREAL>(z[i].real(), ti*z[i].imag()/NRCLog);" << endl;
+                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = complex<mpREAL>(z[i].real(), z[i].imag()/(25*NRCLog));" << endl;
+                                ofs << "else for(int i=0; i<xn; i++) zz[i] = complex<mpREAL>(z[i].real(), ti*z[i].imag()/NRCLog);" << endl;
                                 ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                                 for(auto kv : cse.os()) {
                                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -1139,7 +1126,6 @@ cout << "pow_subs=" << pow_subs << endl;
                                 }
                                 ofs << "}" << endl;
                                 ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
-                                
                                 intg = intg.subs(log_subs);
                             }
                         }

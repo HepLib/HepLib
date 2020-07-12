@@ -182,9 +182,9 @@ void MinUit::Minimize(int nvars, FunctionType func, dREAL *ip) {
         ROOT::Minuit2::MnMigrad minizer(fcn, upar);
         minizer();
     } catch(exception& e) {
-        cerr << Color_Error << e.what() << RESET << endl;
+        cerr << ErrColor << e.what() << RESET << endl;
     } catch(...) {
-        cerr << Color_Error << "other uncatch error" << RESET << endl;
+        cerr << ErrColor << "other uncatch error" << RESET << endl;
     }
 }
 

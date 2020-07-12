@@ -47,7 +47,7 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
         sprintf(opts, "qhull QbB Fv");
         exit_code = qh_new_qhull(dim, npts, cpts, 0, opts, NULL, dev_null);
         if(exit_code) {
-            cout << Color_Error << "qhull return code : " << exit_code << RESET << endl;
+            cout << ErrColor << "qhull return code : " << exit_code << RESET << endl;
             cout << "input for qhull Fv:" << endl;
             cout << dim << endl;
             cout << npts << endl;
@@ -81,7 +81,7 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
     //qh_freeqhull(qh_ALL);
     
     if(ret.size()<=0) {
-        cerr << Color_Error << "RunQHull: (ret.size()<=0)" << RESET << endl;
+        cerr << ErrColor << "RunQHull: (ret.size()<=0)" << RESET << endl;
         throw Error("SecDecG::RunQHull failed.");
     }
     return ret;
@@ -89,12 +89,12 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
 
 vector<matrix> SecDecG::ZeroFaces(const matrix &pts) {
     if(pts.rows()<=0) {
-        cerr << Color_Error << "ZeroFaces: (pts.rows()<=0)" << RESET << endl;
+        cerr << ErrColor << "ZeroFaces: (pts.rows()<=0)" << RESET << endl;
         throw Error("SecDecG::ZeroFaces failed (1).");
     }
     auto zri = MatHelper::zero_row_index(pts);
     if(zri.size() <= 0) {
-        cerr << Color_Error << "ZeroFaces: (zri.size() <= 0)" << RESET << endl;
+        cerr << ErrColor << "ZeroFaces: (zri.size() <= 0)" << RESET << endl;
         throw Error("SecDecG::ZeroFaces failed.");
     }
     int zpos = zri[0];
@@ -131,7 +131,7 @@ matrix SecDecG::NormalVectors(const vector<matrix> &zfs) {
         
         matrix tmat = MatHelper::remove_zero_rows(zfs[ii]);
         if(tmat.rows() >= zfs[ii].rows()) {
-            cerr << Color_Error << "NormalVectors: (tmat.rows() >= zfs[ii].rows())" << RESET << endl;
+            cerr << ErrColor << "NormalVectors: (tmat.rows() >= zfs[ii].rows())" << RESET << endl;
             throw Error("SecDecG::NormalVectors failed (1).");
         }
         
@@ -157,7 +157,7 @@ matrix SecDecG::NormalVectors(const vector<matrix> &zfs) {
         
         tmat = MatHelper::remove_zero_rows(tmat);
         if(tmat.rows()!=tmat.cols()-1) {
-            cerr << Color_Error << "NormalVectors: (tmat.rows()!=tmat.cols()-1)" << RESET << endl;
+            cerr << ErrColor << "NormalVectors: (tmat.rows()!=tmat.cols()-1)" << RESET << endl;
             throw Error("SecDecG::NormalVectors failed.");
         }
         matrix tmat2(tmat.cols(), tmat.cols());
@@ -269,7 +269,7 @@ vector<vector<int>> SecDecG::QHull(const matrix &dc, int dim) {
 
 vector<matrix> SecDecG::Simplexify(const matrix &dc, int dim) {
     if(dc.rows()-dim<=0) {
-        cerr << Color_Error << "Simplexify: (dc.rows()-dim<=0)" << RESET << endl;
+        cerr << ErrColor << "Simplexify: (dc.rows()-dim<=0)" << RESET << endl;
         throw Error("SecDecG::Simplexify failed.");
     }
     vector<matrix> ret;
@@ -347,7 +347,7 @@ vector<matrix> SecDecG::SimplexCones(matrix pts) {
     if(ds.rows() == 0) return vector<matrix>();
     
     if(ds.rows() < ds.cols()) {
-        cerr << Color_Error << "SimplexCones: (ds.rows() < ds.cols())" << RESET << endl;
+        cerr << ErrColor << "SimplexCones: (ds.rows() < ds.cols())" << RESET << endl;
         throw Error("SecDecG::SimplexCones failed.");
     }
     if(ds.rank()<ds.cols()) return vector<matrix>();

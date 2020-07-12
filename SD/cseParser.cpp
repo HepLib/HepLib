@@ -37,6 +37,8 @@ ex cseParser::Parse(ex expr, bool reset) {
         ret = power(Parse(expr.op(0),false), expr.op(1));
     } else if(expr.match(log(w))) {
         ret = log(Parse(expr.op(0),false));
+    } else if(expr.match(exp(w))) {
+        ret = exp(Parse(expr.op(0),false));
     } else if(expr.match(sqrt(w))) {
         ret = sqrt(Parse(expr.op(0),false));
     } // else ret is expr

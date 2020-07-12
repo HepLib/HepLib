@@ -201,7 +201,7 @@ namespace HepLib::SD {
             }
         }}
         
-        cerr << Color_Error << "polynormial list: " << po_ex.op(0) << RESET << endl;
+        cerr << ErrColor << "polynormial list: " << po_ex.op(0) << RESET << endl;
         throw Error("AutoEnd Failed @ ALL possible bisections!");
         return vector<ex>();
     }
@@ -922,7 +922,7 @@ namespace HepLib::SD {
                         ex c0 = xn_op1.subs(vz==0);
                         
                         if(!is_a<numeric>(c1)) {
-                            cerr << Color_Error << "SDPrepares: c1 is not a number: " << c1 << RESET << endl;
+                            cerr << ErrColor << "SDPrepares: c1 is not a number: " << c1 << RESET << endl;
                             exit(1);
                         }
                         
@@ -932,7 +932,7 @@ namespace HepLib::SD {
                                 ex zp = (pxn-c0)/c1;
                                 ex zpn = zp.subs(lst{eps==0,ep==0,epz==0});
                                 if(!is_a<numeric>(zpn)) {
-                                    cerr << Color_Error << "SDPrepares: zpn is not a number: " << zpn << RESET << endl;
+                                    cerr << ErrColor << "SDPrepares: zpn is not a number: " << zpn << RESET << endl;
                                     exit(1);
                                 }
                                 if(zpn>sNN) break;

@@ -5,7 +5,7 @@ namespace HepLib::IBP {
 
 lst Laporta::F2lst(ex f) {
     if(!f.match(F(w))) {
-        cerr << Color_Error << "Not F(w) form: " << f << RESET << endl;
+        cerr << ErrColor << "Not F(w) form: " << f << RESET << endl;
         exit(1);
     }
     if(ccF[f].nops()>0) return ccF[f];
@@ -70,7 +70,7 @@ lst Laporta::I2lst(ex ibp) {
 
 ex Laporta::collectF(ex expr) {
     if(!expr.subs(F(w)==0).is_zero()) {
-        cerr << Color_Error << "expr is NOT zero with F(w)==0: " << expr << RESET << endl;
+        cerr << ErrColor << "expr is NOT zero with F(w)==0: " << expr << RESET << endl;
         exit(1);
     }
     exset fs;

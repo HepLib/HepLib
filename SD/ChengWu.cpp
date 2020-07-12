@@ -75,7 +75,7 @@ namespace HepLib::SD {
         lst x2y, y2x;
         for(auto xi : xs) {
             if(cy.has(xi)) {
-                cerr << Color_Error << "Scalelize: cy has xi: " << cy << "/" << xi << RESET << endl;
+                cerr << ErrColor << "Scalelize: cy has xi: " << cy << "/" << xi << RESET << endl;
                 exit(1);
             }
             auto yi = xi.subs(x(w)==y(w));
@@ -126,7 +126,7 @@ namespace HepLib::SD {
         vector<ex> add_to;
         auto xij = get_x_from(eqn);
         if(xij.size()!=2) {
-            cerr << Color_Error << "Binarize: xij.size()!=2, " << xij << RESET << endl;
+            cerr << ErrColor << "Binarize: xij.size()!=2, " << xij << RESET << endl;
             exit(1);
         }
         ex xi = xij[0];
@@ -134,7 +134,7 @@ namespace HepLib::SD {
         ex ci = eqn.coeff(xi);
         ex cj = eqn.coeff(xj);
         if(!((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0)) {
-            cerr << Color_Error << "Binarize: ((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0)" << RESET << endl;
+            cerr << ErrColor << "Binarize: ((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0)" << RESET << endl;
             exit(1);
         }
         
@@ -186,6 +186,95 @@ namespace HepLib::SD {
             add_to.push_back(fe1);
         }
         return add_to;
+    }
+    
+    /**
+     * @brief Linearize w.r.t. F-term
+     * @param ft the F-term
+     * @param delta the delta list
+     * @param xcs a list of format: { {x1,c1}, {x2,c2} ... }
+     * @return true for success
+     */
+    bool SecDec::isLinearizable(const ex ft, const ex delta, lst & xcs) {
+        for(auto xi : delta) {
+            ex f = ft;
+            if(!f.has(xi) || f.degree(xi)!=1) continue;
+            auto cxi = f.coeff(xi);
+            f = f.subs(xi==0);
+            int cxi_sgn = xSign(cxi);
+
+            if(cxi_sgn!=0) {
+                if(cxi_sgn<0) cxi = ex(0)-cxi;
+                lst ret;
+                if(is_zero(f) || isLinearizable(f, delta, ret)) {
+                    for(auto xc : ret) xcs.append(xc);
+                    xcs.append(lst{xi, cxi});
+                    return true;
+                }
+            } 
+        }
+        return false;
+    }
+    
+    /**
+     * @brief Linearize w.r.t. xcs_in
+     * @param xcs_in from isLinerizable function
+     * @param fe the input/ouput fe
+     * @param ft other expression needs to be transformed
+     */
+    void SecDec::Linearize(const lst xcs_in, ex & fe, ex & ft) {
+        lst xcs = xcs_in;
+        ex inv_det = 1;
+        auto nnn = xcs.nops();
+        for(int i=0; i<nnn; i++) {
+            auto xi = xcs.op(i).op(0);
+            auto s = xcs.op(i).op(1);
+            auto yi = xi.subs(x(w)==y(w));
+            inv_det *= s;
+            xcs.let_op(i).let_op(1) = yi/s;
+            for(int j=i+1; j<nnn; j++) {
+                xcs.let_op(j) = xcs.op(j).subs(xi==yi/s);
+            }
+        }
+        exmap x2y;
+        for(auto ss : xcs) x2y[ss.op(0)]=ss.op(1);
+        
+        // rescaling ft
+        if(ft.has(x(w))) ft = ft.subs(x2y).subs(y(w)==x(w));
+        
+        // rescaling each item
+        nnn = fe.op(0).nops();
+        for(int i=0; i<nnn; i++) {
+            if(!fe.op(0).op(i).has(x(w))) continue;
+            auto tmp = fe.op(0).op(i).subs(x2y);
+            tmp = tmp.subs(y(w)==x(w));
+            auto num_den = numer_denom(tmp);
+            if(num_den.op(1).subs(x(w)==1)<0) {
+                num_den.let_op(0) = ex(0)-num_den.op(0);
+                num_den.let_op(1) = ex(0)-num_den.op(1);
+            }
+            fe.let_op(0).let_op(i) = num_den.op(0);
+            if(num_den.op(1)!=1) {
+                let_op_append(fe, 0, num_den.op(1));
+                let_op_append(fe, 1, ex(0)-fe.op(1).op(i));
+            }
+        }
+
+        // determinant
+        inv_det = inv_det.subs(y(w)==x(w));
+        auto idet_num_den = numer_denom(inv_det);
+        if(idet_num_den.op(1).subs(x(w)==1)<0) {
+            idet_num_den.let_op(0) = ex(0)-idet_num_den.op(0);
+            idet_num_den.let_op(1) = ex(0)-idet_num_den.op(1);
+        }
+        if(idet_num_den.op(0)!=1) {
+            let_op_append(fe, 0, idet_num_den.op(0));
+            let_op_append(fe, 1, -1);
+        }
+        if(idet_num_den.op(1)!=1) {
+            let_op_append(fe, 0, idet_num_den.op(1));
+            let_op_append(fe, 1, 1);
+        }
     }
 
     /**
@@ -383,7 +472,7 @@ namespace HepLib::SD {
                 auto ft = get_op(fe, 0, 0);
                 // make sure, otherwise Projectivise may change things
                 if(!get_op(fe, 1, 0).is_zero()) {
-                    cerr << Color_Error << "ChengWu_Internal: (!get_op(fe, 1, 0).is_zero())" << RESET << endl;
+                    cerr << ErrColor << "ChengWu_Internal: (!get_op(fe, 1, 0).is_zero())" << RESET << endl;
                     exit(1);
                 }
                 ft = RefinedFT(ft);
@@ -474,7 +563,7 @@ namespace HepLib::SD {
                                 }
                             }
                             if(xs0.is_zero()) {
-                                cerr << Color_Error << "ChengWu_Internal: (xs0.is_zero())" << RESET << endl;
+                                cerr << ErrColor << "ChengWu_Internal: (xs0.is_zero())" << RESET << endl;
                                 exit(1);
                             }
                             delta.append(xfi);
@@ -543,7 +632,7 @@ namespace HepLib::SD {
                     }
                     if(re_xi.is_zero()) {
                         if(rm_xs.nops()!=delta.nops()) {
-                            cerr << Color_Error << "rm_xs = " << rm_xs << endl << "delta = " << delta << RESET << endl;
+                            cerr << ErrColor << "rm_xs = " << rm_xs << endl << "delta = " << delta << RESET << endl;
                             exit(1);
                         }
                         re_xi = rm_xs.op(0);
@@ -558,7 +647,7 @@ namespace HepLib::SD {
                         else xNeg.append(xi);
                     }
                     if(!is_zero(new_ft.subs(x(w)==1)-xPos.nops()+xNeg.nops()) && abs(new_ft)!=1) {
-                        cerr << Color_Error << "ChengWu_Internal: new_ft = " << new_ft << RESET << endl;
+                        cerr << ErrColor << "ChengWu_Internal: new_ft = " << new_ft << RESET << endl;
                         exit(1);
                     }
                     

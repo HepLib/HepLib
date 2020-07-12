@@ -117,7 +117,7 @@ namespace HepLib::SD {
                     }
                     ex chk = eqn-vs2.op(id);
                     if(!is_a<numeric>(chk)) {
-                        cerr << Color_Error << "chk is NOT a number: " << chk << RESET << endl;
+                        cerr << ErrColor << "chk is NOT a number: " << chk << RESET << endl;
                         throw Error("PExpand: chk is NOT a number.");
                     }
                     if(chk<0) {
@@ -159,7 +159,7 @@ namespace HepLib::SD {
             bool ret = false;
             for(auto fe : funexp) {
                 if(fe.nops()<=2) {
-                    cerr << Color_Error << "needs 3 elements: " << fe << RESET << endl;
+                    cerr << ErrColor << "needs 3 elements: " << fe << RESET << endl;
                     throw Error("DoAsy: we needs 3 elements.");
                 }
                 ex ft = fe.op(0).op(1).subs(vs==0);
@@ -272,14 +272,14 @@ namespace HepLib::SD {
                 if(!item.has(s)) continue;
                 item = mma_collect(item, s);
                 if(item.ldegree(s)!=item.degree(s)) {
-                    cerr << Color_Error << "Not Homogeneous: " << s << RESET << endl;
+                    cerr << ErrColor << "Not Homogeneous: " << s << RESET << endl;
                     throw Error("DoAsy: Not Homogeneous");
                 }
                 expn += item.degree(s) * fe.op(1).op(i);
             }
             auto xsize = get_x_from(fe.op(0)).size();
             if(!normal(expn+xsize).is_zero()) {
-                cout << Color_Error << "expn=" << expn << ", xsize=" << xsize << RESET << endl;
+                cout << ErrColor << "expn=" << expn << ", xsize=" << xsize << RESET << endl;
                 throw Error("DoAsy: expn + xsize != 0.");
             }
         }
@@ -333,7 +333,7 @@ namespace HepLib::SD {
                 auto es = fe.op(1);
                 ex fpre = fs.op(0);
                 if(!(es.op(0)-1).is_zero()) {
-                    cerr << Color_Error << "op(0) is Not 1: " << es << RESET << endl;
+                    cerr << ErrColor << "op(0) is Not 1: " << es << RESET << endl;
                     throw Error("DoAsy: op(0) is Not 1");
                 }
                 
@@ -404,7 +404,7 @@ namespace HepLib::SD {
             
             // check epz
             if(fe.has(epz)) {
-                cout << Color_Error << "MB: epz found at fe = " << fe << RESET << endl;
+                cout << ErrColor << "MB: epz found at fe = " << fe << RESET << endl;
                 throw Error("MB: epz found at fe.");
             }
             
@@ -419,7 +419,7 @@ namespace HepLib::SD {
                 
                 auto tmp = fe.op(0).op(i).subs(lst{WRA(w)==0,x(w)==1,PL(w)==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
                 if(!is_a<numeric>(NN(tmp))) {
-                    cout << Color_Error << tmp << RESET << endl;
+                    cout << ErrColor << tmp << RESET << endl;
                     throw Error("MB: Extra Variable(^[ep,eps,PL,x]) Found.");
                 }
             }
@@ -428,7 +428,7 @@ namespace HepLib::SD {
             if(ft.has(vs)) {
                 ft = mma_collect(ft, vs);
                 if(!ft.is_polynomial(vs) || (ft.degree(vs)-1)!=0) {
-                    cout << Color_Error << "Not supported F-term with s: " << ft << RESET << endl;
+                    cout << ErrColor << "Not supported F-term with s: " << ft << RESET << endl;
                     throw Error("MB: Not supported F-term with s.");
                 }
                 ex expn = ex(0)-fe.op(1).op(1);
@@ -448,7 +448,7 @@ namespace HepLib::SD {
                         fe.let_op(0).let_op(1) = w1;
                         fe.let_op(1).let_op(1) = vz;
                     } else if(xPositive(ex(0)-w1)) {
-                        cout << Color_Warn << "MB(): Negtive w1 found!" << RESET << endl;
+                        cout << WarnColor << "MB(): Negtive w1 found!" << RESET << endl;
                         let_op_append(fe, 0, ex(0)-w1);
                         let_op_append(fe, 1, vz);
                         let_op_append(fe, 0, exp(-I*Pi*vz));
@@ -456,7 +456,7 @@ namespace HepLib::SD {
                         fe.let_op(0).let_op(1) = w2;
                         fe.let_op(1).let_op(1) = fe.op(1).op(1)-vz-epz;
                     } else if(xPositive(ex(0)-w2)) {
-                        cout << Color_Warn << "MB(): Negtive w2 found!" << RESET << endl;
+                        cout << WarnColor << "MB(): Negtive w2 found!" << RESET << endl;
                         let_op_append(fe, 0, ex(0)-w2);
                         let_op_append(fe, 1, fe.op(1).op(1)-vz-epz);
                         let_op_append(fe, 0, exp(-I*Pi*(fe.op(1).op(1)-vz-epz)));
