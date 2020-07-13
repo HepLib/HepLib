@@ -320,11 +320,7 @@ ex Factor(const ex expr_in) {
         }
         return ret;
     } else if(is_a<power>(expr) || expr.match(pow(w1,w2))) {
-        ex res = Factor(expr.op(0));
-        if(!is_a<mul>(res)) res = lst{res};
-        ex ret = 1;
-        for(auto item : res) ret *= pow(item, expr.op(1));
-        return ret;
+        return pow(Factor(expr.op(0)), expr.op(1));
     }
 
     exset xyset;
@@ -416,100 +412,6 @@ ex xyz_pow_simplify(const ex expr_in) {
 
 ex SecDec::PrefactorFIESTA(int nLoop) {
     return  pow(I*pow(Pi,2-ep)*exp(ex(0)-ep*Euler), ex(0)-ex(nLoop));
-}
-
-double SecDec::FindMinimum(ex expr, bool compare0) {
-    if(CFLAGS=="") CFLAGS = getenv("SD_CFLAGS");
-    static long long fid = 0;
-    fid++;
-    ostringstream cppfn, sofn, cmd;
-    auto pid = getpid();
-    cppfn << "/tmp/" << pid << "-" << fid << "-min.cpp";
-    sofn << "/tmp/" << pid << "-" << fid << "-min.so";
-    std::ofstream ofs;
-    ofs.open(cppfn.str(), ios::out);
-    if (!ofs) throw Error("FindMinimum: failed to open *.cpp file! (3)");
-    
-    auto xs = get_xy_from(expr);
-    dREAL UB[xs.size()], LB[xs.size()];
-    lst cxRepl;
-    int count = 0;
-    for (auto xi : xs) {
-        ostringstream xs;
-        xs << "x[" << count << "]";
-        cxRepl.append(xi == symbol(xs.str()));
-        UB[count] = 1;
-        LB[count] = 0;
-        count++;
-    }
-    
-/*----------------------------------------------*/
-ofs << R"EOF(
-#include <stddef.h>
-#include <stdlib.h>
-#include <math.h>
-#include <complex>
-#include <iostream>
-using namespace std;
-
-typedef long double dREAL;
-typedef complex<long double> dCOMPLEX;
-
-#define Pi 3.1415926535897932384626433832795028841971693993751L
-#define Euler 0.57721566490153286060651209008240243104215933593992L
-
-//#define expt(a,b) pow(a,b)
-//#define recip(a) pow(a,-1)
-dREAL expt(dREAL a, dREAL b) { return pow(a,b); }
-dCOMPLEX expt(dCOMPLEX a, dREAL b) { return pow(a,b); }
-dREAL recip(dREAL a) { return 1.L/a; }
-dCOMPLEX recip(dCOMPLEX a) { return 1.L/a; }
-
-)EOF" << endl;
-/*----------------------------------------------*/
-
-    auto cppL = CppFormat(ofs, "L");
-    ofs << "extern \"C\" " << endl;
-    ofs << "dREAL minFunc(int xn, dREAL* x, dREAL *pl, dREAL *las) {" << endl;
-    auto tmp = expr.subs(cxRepl);
-    if(tmp.has(PL(w))) {
-        cerr << ErrColor << "FindMinimum: PL found @ " << tmp << RESET << endl;
-        exit(1);
-    }
-    ofs << "dREAL yy = ";
-    tmp.print(cppL);
-    ofs << ";" << endl;
-    ofs << "return yy;" << endl;
-    ofs << "}" << endl;
-    
-    cmd.clear();
-    cmd.str("");
-    cmd << cpp << " -rdynamic -fPIC -shared " << CFLAGS << " -o " << sofn.str() << " " << cppfn.str();
-    system(cmd.str().c_str());
-    
-    void* module = nullptr;
-    module = dlopen(sofn.str().c_str(), RTLD_NOW);
-    if(module == nullptr) {
-        cerr << ErrColor << "FindMinimum: could not open compiled module!" << RESET << endl;
-        cout << "dlerror(): " << dlerror() << endl;
-        exit(1);
-    }
-    
-    auto fp = (MinimizeBase::FunctionType)dlsym(module, "minFunc");
-    if(fp==NULL) {
-        cerr << ErrColor << "FindMinimum: fp==NULL" << RESET << endl;
-        cout << "dlerror(): " << dlerror() << endl;
-        exit(1);
-    }
-    
-    double min = Minimizer->FindMinimum(count, fp, NULL, NULL, UB, LB, NULL, compare0);
-    
-    if(use_dlclose) dlclose(module);
-    cmd.clear();
-    cmd.str("");
-    cmd << "rm " << cppfn.str() << " " << sofn.str();
-    system(cmd.str().c_str());
-    return min;
 }
 
 

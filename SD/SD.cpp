@@ -52,37 +52,39 @@ namespace HepLib::SD {
         return SecDecBase::VerifySD(map_vec, quick);
     }
 
-    vector<exmap> SecDecBase::x2y(const lst &in_xpols, bool x2y_use_factor) {
+    vector<exmap> SecDecBase::x2y(const lst &in_xpols) {
         if(in_xpols.has(y(w))) throw Error("SecDecBase::x2y: y(w) found @ " + ex2str(in_xpols));
-        ex xpol_all = 1;
-        for(auto item : in_xpols) {
-            if(x2y_use_factor) xpol_all *= Factor(item);
-            else xpol_all *= collect_common_factors(mma_expand(item,x(w)));
-        }
-        
-        lst xpols;
-        if(is_a<mul>(xpol_all)) {
-            for(auto item : xpol_all) {
+        lst xpols_lst = in_xpols;
+        while(true) {
+            ex xpols = 1;
+            for(auto item : xpols_lst) {
+                exmap pmap;
+                item = item.to_rational(pmap);
+                xpols *= factor(item).subs(pmap);
+            }
+            if(!is_a<mul>(xpols)) xpols = lst{ xpols };
+            
+            xpols_lst.remove_all();
+            for(auto item : xpols) {
                 if(is_a<numeric>(item)) continue;
                 else if(item.match(x(w))) continue;
                 else if(item.match(pow(x(w1),w2))) continue;
                 else if(item.match(pow(w1,w2))) {
-                    xpols.append(item.op(0));
+                    xpols_lst.append(item.op(0));
                 } else {
-                    xpols.append(item);
+                    xpols_lst.append(item);
                 }
             }
-        } else if(xpol_all.match(pow(w1,w2))) {
-            xpols.append(xpol_all.op(0));
-        } else {
-            xpols.append(xpol_all);
+            xpols_lst.sort();
+            xpols_lst.unique();
+            
+            ex xpols2 = 1;
+            for(auto item : xpols_lst) xpols2 *= item;
+            if(is_a<lst>(xpols)) xpols = xpols.op(0);
+            if(is_zero(xpols2-xpols)) return x2y(xpols);
         }
-        xpols.sort();
-        xpols.unique();
-        
-        ex xpol = 1;
-        for(auto item : xpols) xpol *= item;
-        return x2y(xpol);
+        throw Error("SecDecBase::x2y: unexpected region reached.");
+        return vector<exmap>();
     }
 
     /*-----------------------------------------------------*/
@@ -180,7 +182,7 @@ namespace HepLib::SD {
                     if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp>0) ) continue;
                     sdList.append(tmp);
                 }
-                vector<exmap> vmap = SecDec->x2y(sdList, x2y_use_factor);
+                vector<exmap> vmap = SecDec->x2y(sdList);
                 
                 for(int ni=0; ni<polist.nops(); ni++) {
                     auto po = polist.op(ni);
@@ -226,7 +228,7 @@ namespace HepLib::SD {
             sdList.append(tmp);
         }
 
-        vector<exmap> vmap = SecDec->x2y(sdList, x2y_use_factor);
+        vector<exmap> vmap = SecDec->x2y(sdList);
         if(!VerifySD(vmap)) {
             for(auto vi : vmap) cout << vi << endl;
             throw Error("VerifySD Failed!");

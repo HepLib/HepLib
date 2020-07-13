@@ -359,12 +359,14 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     if(xpol.has(y(w))) throw Error("SecDecG::x2y failed with y(w) found.");
     auto cvs = mma_collect_lst(xpol, x(w));
     vector<ex> vpols;
-    ex xpol2=1;
+    lst xpol2;
     for(auto cv : cvs) {
         if(is_zero(cv.op(0).normal())) continue;
         vpols.push_back(cv.op(1));
-        xpol2 *= cv.op(1);
+        xpol2.append(cv.op(1));
     }
+    xpol2.sort();
+    xpol2.unique();
     auto xs = get_xy_from(xpol2);
     auto nx = xs.size();
     auto np = vpols.size();

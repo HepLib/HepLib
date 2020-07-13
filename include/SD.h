@@ -99,7 +99,7 @@ namespace HepLib::SD {
     class SecDecBase {
     public:
         virtual vector<exmap> x2y(const ex &xpol) =0;
-        vector<exmap> x2y(const lst &xpols, bool x2y_use_factor);
+        vector<exmap> x2y(const lst &xpols);
         static bool VerifySD(vector<exmap> vmap, bool quick = true);
     };
 
@@ -340,7 +340,6 @@ namespace HepLib::SD {
         bool use_IBF = false;
         bool use_MP = true;
         bool use_RCLog = true;
-        bool x2y_use_factor = false;
         bool use_XReOrders = false;
         int MPDigits = 80; // digits in mpREAL for MP
         lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };
@@ -397,7 +396,6 @@ namespace HepLib::SD {
         static ex PrefactorFIESTA(int nLoop);
         ex VEResult();
         void VEPrint(bool endlQ=true);
-        double FindMinimum(ex expr, bool compare0 = false);
         static ex PExpand(ex xpol, bool delta=true);
         static int PRank(matrix m);
         static ex ContinuousWRA(ex expr_in, int nc=15);

@@ -465,7 +465,7 @@ namespace HepLib::SD {
      */
     void ChengWu::Partilize(const lst xcs, const lst delta_in, const ex fe_in, exvector & ret_lst) {
         if(Verbose>10) {
-            cout << "  \\--" << Color_HighLight << "Cheng-Wu @xcs ="  << xcs.nops() << RESET << endl;
+            cout << "  \\--" << Color_HighLight << "Cheng-Wu @xcs="  << xcs.nops() << RESET << endl;
         }
         lst ret = xcs;
         auto fe = fe_in;
