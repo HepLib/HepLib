@@ -315,7 +315,10 @@ namespace HepLib::SD {
                     }
                 }
             }
-            if(cmax<=0) throw Error("Integrates: cmax<=0 with co = "+ex2str(co));
+            if(cmax<=0) {
+                if(normal(co).is_zero()) continue;
+                throw Error("Integrates: cmax<=0 with co = "+ex2str(co));
+            }
             if(reim!=3 && ReIm!=3) {
                 if(ReIm==2) {
                     if(reim==1) reim=2;

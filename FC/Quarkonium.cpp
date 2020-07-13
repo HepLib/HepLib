@@ -480,41 +480,41 @@ namespace HepLib::FC {
                         let_op_append(xint.Deltas,xs);
                         
                         ex fe = lst{xint.Functions, xint.Exponents, xint.Deltas};
-                        SD::SecDec::Projectivize(fe,xs);
+                        SD::ChengWu::Projectivize(fe,xs);
                         
                         // cheng-wu: change x(0,1,2) from 0 to ∞, and rescale
-                        SD::SecDec::Scalelize(fe,x(si+0),1/x(si+5));
-                        SD::SecDec::Scalelize(fe,x(si+1),1/x(si+4));
-                        SD::SecDec::Scalelize(fe,x(si+2),1/x(si+3));
-                        auto fe_vec = SD::SecDec::Binarize(fe, x(si+0)-x(si+2));
+                        SD::ChengWu::Scalelize(fe,x(si+0),1/x(si+5));
+                        SD::ChengWu::Scalelize(fe,x(si+1),1/x(si+4));
+                        SD::ChengWu::Scalelize(fe,x(si+2),1/x(si+3));
+                        auto fe_vec = SD::ChengWu::Binarize(fe, x(si+0)-x(si+2));
                         auto fe0 = fe_vec[0];
                         auto fe2 = fe_vec[1];
                         
-                        auto fe0_vec = SD::SecDec::Binarize(fe0, x(si+0)-x(si+1));
-                        auto fe2_vec = SD::SecDec::Binarize(fe2, x(si+2)-x(si+1));
+                        auto fe0_vec = SD::ChengWu::Binarize(fe0, x(si+0)-x(si+1));
+                        auto fe2_vec = SD::ChengWu::Binarize(fe2, x(si+2)-x(si+1));
                         
-                        SD::SecDec::Scalelize(fe0_vec[0],x(si+2),pow(x(si+0)/x(si+1),2));
+                        SD::ChengWu::Scalelize(fe0_vec[0],x(si+2),pow(x(si+0)/x(si+1),2));
                         // now Θ refers to x(2)>x(1)
-                        fe0_vec[0] = SD::SecDec::Binarize(fe0_vec[0], x(si+2)-x(si+1))[0];
+                        fe0_vec[0] = SD::ChengWu::Binarize(fe0_vec[0], x(si+2)-x(si+1))[0];
                         
-                        SD::SecDec::Scalelize(fe0_vec[1],x(si+2),pow(x(si+1),2)/(x(si+0)+2*x(si+1))/x(si+0));
+                        SD::ChengWu::Scalelize(fe0_vec[1],x(si+2),pow(x(si+1),2)/(x(si+0)+2*x(si+1))/x(si+0));
                         // now Θ refers to x(2)>x(0)
-                        fe0_vec[1] = SD::SecDec::Binarize(fe0_vec[1], x(si+2)-x(si+0))[0];
+                        fe0_vec[1] = SD::ChengWu::Binarize(fe0_vec[1], x(si+2)-x(si+0))[0];
 
-                        SD::SecDec::Scalelize(fe2_vec[0],x(si+0),pow(x(si+2)/x(si+1),2));
+                        SD::ChengWu::Scalelize(fe2_vec[0],x(si+0),pow(x(si+2)/x(si+1),2));
                         // now Θ refers to x(0)>x(1)
-                        fe2_vec[0] = SD::SecDec::Binarize(fe2_vec[0], x(si+0)-x(si+1))[0];
+                        fe2_vec[0] = SD::ChengWu::Binarize(fe2_vec[0], x(si+0)-x(si+1))[0];
                         
-                        SD::SecDec::Scalelize(fe2_vec[1],x(si+0),pow(x(si+1),2)/(x(si+2)+2*x(si+1))/x(si+2));
+                        SD::ChengWu::Scalelize(fe2_vec[1],x(si+0),pow(x(si+1),2)/(x(si+2)+2*x(si+1))/x(si+2));
                         // now Θ refers to x(0)>x(2)
-                        fe2_vec[1] = SD::SecDec::Binarize(fe2_vec[1], x(si+0)-x(si+2))[0];
+                        fe2_vec[1] = SD::ChengWu::Binarize(fe2_vec[1], x(si+0)-x(si+2))[0];
                         
                         ex xsum = x(si+3)+x(si+4)+x(si+5);
                         //xsum = x(si+5);
-                        SD::SecDec::Projectivize(fe0_vec[0],xs,xsum);
-                        SD::SecDec::Projectivize(fe0_vec[1],xs,xsum);
-                        SD::SecDec::Projectivize(fe2_vec[0],xs,xsum);
-                        SD::SecDec::Projectivize(fe2_vec[1],xs,xsum);
+                        SD::ChengWu::Projectivize(fe0_vec[0],xs,xsum);
+                        SD::ChengWu::Projectivize(fe0_vec[1],xs,xsum);
+                        SD::ChengWu::Projectivize(fe2_vec[0],xs,xsum);
+                        SD::ChengWu::Projectivize(fe2_vec[1],xs,xsum);
                         
                         return XIntegral(fe0_vec[0]) + XIntegral(fe0_vec[1]) + XIntegral(fe2_vec[0]) + XIntegral(fe2_vec[1]);
                     } else return e.map(self);

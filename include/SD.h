@@ -289,6 +289,24 @@ namespace HepLib::SD {
         static ex lastResErr;
         static dREAL IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2);
     };
+    
+    /*-----------------------------------------------------*/
+    // ChengWu Class
+    /*-----------------------------------------------------*/
+    class ChengWu {
+    public:
+        static void Projectivize(ex &fe, ex delta, ex xsum=0);
+        static void Scalelize(ex &fe, const lst xs, const ex cy);
+        static void Scalelize(ex &fe, const ex xi, const ex cy);
+        static vector<ex> Binarize(ex const fe, ex const eqn);
+        static bool isLinearizable(const ex ft, const ex delta, lst & xcs);
+        static void Linearize(const lst xcs, ex & fe, ex & ft);
+        static bool isPartilizable(const ex ft, const ex delta, lst &xcs, int mode=0);
+        static void Partilize(const lst xcs, const lst delta, const ex fe, exvector & ret_lst);
+        
+        static vector<ex> Evaluate(ex fe);
+        static void Apply(vector<ex> &FunExp, bool sub_cw=false);
+    };
 
     /*-----------------------------------------------------*/
     // SecDec Class
@@ -373,26 +391,16 @@ namespace HepLib::SD {
         void XEnd();
         void ChengWu(bool sub_cw=false);
         
+        static bool VerifySD(vector<exmap> vmap, bool quick = true);
+        static ex RefinedFT(ex const & ft);
+        static lst RefinedFT_lst(ex const & ft);
         static ex PrefactorFIESTA(int nLoop);
         ex VEResult();
         void VEPrint(bool endlQ=true);
         double FindMinimum(ex expr, bool compare0 = false);
         static ex PExpand(ex xpol, bool delta=true);
         static int PRank(matrix m);
-        static bool Partilize(ex f0, lst delta, lst &in_ret, int mode=0);
-        static void Projectivize(ex &fe, ex delta, ex xsum=0);
-        static void Scalelize(ex &fe, const lst xs, const ex cy);
-        static void Scalelize(ex &fe, const ex xi, const ex cy);
-        static vector<ex> Binarize(ex const fe, ex const eqn);
-        static bool isLinearizable(const ex ft, const ex delta, lst & xcs);
-        static void Linearize(const lst xcs, ex & fe, ex & ft);
-        static bool VerifySD(vector<exmap> vmap, bool quick = true);
-        static ex RefinedFT(ex const & ft);
-        static lst RefinedFT_lst(ex const & ft);
         static ex ContinuousWRA(ex expr_in, int nc=15);
-        
-        static void ChengWu(vector<ex> &FunExp, bool sub_cw=false);
-        static vector<ex> ChengWu_Internal(ex fe);
         
         // static initialization
         class _init {

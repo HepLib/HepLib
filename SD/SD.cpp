@@ -432,17 +432,17 @@ namespace HepLib::SD {
         lst in_nlst = ex_to<lst>(input.op(1));
         for(int i=0; i<in_plst.nops(); i++) {
             if(i!=1 && (in_nlst.op(i).is_zero() || in_plst.op(i)==ex(1))) continue;
-            if(i!=1 && !in_plst.op(i).has(x(w)) && !in_plst.op(i).has(y(w))) {
+            if(i!=1 && !in_plst.op(i).has(x(w)) && !in_plst.op(i).has(y(w)) && !in_plst.op(i).has(z(w))) {
                 if(in_nlst.op(i).info(info_flags::integer)) const_term *= pow(in_plst.op(i), in_nlst.op(i));
                 else const_term *= exp(log(in_plst.op(i)) * in_nlst.op(i));
             } else {
-                auto ptmp = collect_common_factors(mma_expand(in_plst.op(i),{x(w),y(w)}));
+                auto ptmp = collect_common_factors(mma_expand(in_plst.op(i),{x(w),y(w),z(w)}));
                 auto ntmp = in_nlst.op(i);
                 if(is_a<mul>(ptmp)) {
                     ex tmul = 1;
                     for(int j=0; j<ptmp.nops(); j++) {
                         auto tmp = ptmp.op(j);
-                        if(!tmp.has(x(w)) && !tmp.has(y(w))) { // constant terms
+                        if(!tmp.has(x(w)) && !tmp.has(y(w)) && !tmp.has(z(w))) { // constant terms
                             if(ntmp.info(info_flags::integer)) {
                                 const_term *=  pow(tmp,ntmp);
                             } else if((tmp-vs).is_zero() || tmp.match(pow(vs,w))) {
@@ -470,8 +470,8 @@ namespace HepLib::SD {
                         } else if(tmp.match(pow(w1,w2)) && xPositive(tmp.op(0))) {
                             plst.append(tmp.op(0));
                             nlst.append(ntmp * tmp.op(1));
-                        } else if(xSign(tmp)!=0 || xSign(tmp.subs(y(w)==x(w)))!=0) {
-                            if(tmp.subs(lst{x(w)==1, y(w)==1})>0) {
+                        } else if(xSign(tmp)!=0 || xSign(tmp.subs(lst{y(w)==x(w),z(w)==x(w)}))!=0) {
+                            if(tmp.subs(lst{x(w)==1, y(w)==1, z(w)==1})>0) {
                                 plst.append(tmp);
                                 nlst.append(ntmp);
                             } else {
