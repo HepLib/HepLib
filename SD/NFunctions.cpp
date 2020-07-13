@@ -1,7 +1,7 @@
 
 #include "NFunctions.h"
 
-int NRCLog = 10;
+int NRCLog = 5;
 
 const dREAL dPi = 3.1415926535897932384626433832795028841971693993751L;
 const dREAL dEuler = 0.57721566490153286060651209008240243104215933593992L;
@@ -74,7 +74,6 @@ dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
 }
 
 dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
-ostringstream oss;
     dCOMPLEX ret = log(xs[n]);
     if(n<2) return ret;
     auto eps = LDBL_EPSILON;

@@ -57,7 +57,7 @@ namespace HepLib::SD {
         ex xpol_all = 1;
         for(auto item : in_xpols) {
             if(x2y_use_factor) xpol_all *= Factor(item);
-            else xpol_all *= collect_common_factors(item);
+            else xpol_all *= collect_common_factors(mma_expand(item,x(w)));
         }
         
         lst xpols;
@@ -105,7 +105,7 @@ namespace HepLib::SD {
             if(xs_tmp.size()>0) ft = ft.subs(vi);
 
             // need collect_common_factors
-            ft = collect_common_factors(ft.expand());
+            ft = collect_common_factors(mma_expand(ft,y(w)));
             if(is_exactly_a<mul>(ft)) {
                 ex ret = 1;
                 for (auto item : ft) {
@@ -250,7 +250,7 @@ namespace HepLib::SD {
             if(ypolist.has(x(w))) throw Error("DS: x(w) found @ " + ex2str(ypolist));
 
             // need collect_common_factors
-            auto ft = collect_common_factors(ypolist.op(1).expand());
+            auto ft = collect_common_factors(mma_expand(ypolist.op(1),y(w)));
             
             ex ct = 1, fsgin = 1;
             if(is_a<mul>(ft)) {
@@ -330,7 +330,7 @@ namespace HepLib::SD {
             for(int i=0; i<ypolist.nops(); i++) {
                 auto tmp = ypolist.op(i);
                 auto nexp = exlist.op(i).normal();
-                bool nchk = (!is_a<numeric>(nexp) || ex_to<numeric>(nexp)<0);
+                bool nchk = (!is_a<numeric>(nexp) || (is_a<numeric>(nexp) && nexp<0));
                 if(nexp.has(x(w)) || nexp.has(y(w))) throw Error("DS: x or y found in exp: "+ex2str(nexp));
                 
                 if(tmp.has(y(w))) {
@@ -351,7 +351,7 @@ namespace HepLib::SD {
                 }
                 
                 // need collect_common_factors
-                if(tmp.has(y(w))) tmp = collect_common_factors(tmp);
+                if(tmp.has(y(w))) tmp = collect_common_factors(mma_expand(tmp,y(w)));
 
                 lst tmps;
                 if(is_exactly_a<mul>(tmp)) {
@@ -372,7 +372,7 @@ namespace HepLib::SD {
                     } else if(!item.has(y(w)) && !item.has(x(w))) {
                         if(is_a<numeric>(nexp) && ex_to<numeric>(nexp).is_integer()) {
                             ct *= item;
-                        } else if(!item.has(PL(w))) {
+                        } else if(!item.has(PL(w)) && !item.has(WRA(w))) {
                             auto tr = NN(item.subs(nReplacements).subs(lst{
                                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                             }));
@@ -436,7 +436,7 @@ namespace HepLib::SD {
                 if(in_nlst.op(i).info(info_flags::integer)) const_term *= pow(in_plst.op(i), in_nlst.op(i));
                 else const_term *= exp(log(in_plst.op(i)) * in_nlst.op(i));
             } else {
-                auto ptmp = collect_common_factors(in_plst.op(i));
+                auto ptmp = collect_common_factors(mma_expand(in_plst.op(i),{x(w),y(w)}));
                 auto ntmp = in_nlst.op(i);
                 if(is_a<mul>(ptmp)) {
                     ex tmul = 1;
@@ -1051,7 +1051,7 @@ namespace HepLib::SD {
                                 }
                             }
                             // need collect_common_factors
-                            if(tz) tmp = collect_common_factors(tmp);
+                            if(tz) tmp = collect_common_factors(mma_expand(tmp,x(w)));
                             if(tmp.is_zero()) continue;
                             
                             if(tz && is_a<mul>(tmp)) {
