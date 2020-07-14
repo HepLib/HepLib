@@ -66,8 +66,7 @@ namespace HepLib::SD {
             
             xpols_lst.remove_all();
             for(auto item : xpols) {
-                if(is_a<numeric>(item)) continue;
-                else if(item.match(x(w))) continue;
+                if(item.match(x(w))) continue;
                 else if(item.match(pow(x(w1),w2))) continue;
                 else if(item.match(pow(w1,w2))) {
                     xpols_lst.append(item.op(0));
@@ -847,7 +846,7 @@ namespace HepLib::SD {
         GiNaC_Parallel(FunExp.size(), [&](int idx)->ex {
             auto fe = FunExp[idx];
             lst para_res_lst;
-            if(xSign(fe.op(0).op(1))==0) {
+            if(xSign(fe.op(0).op(1))==0 && !fe.has(WRA(w))) {
                 auto fes = AutoEnd(fe);
                 for(auto fei : fes) para_res_lst.append(fei);
             } else {

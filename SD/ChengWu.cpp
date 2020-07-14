@@ -471,9 +471,8 @@ namespace HepLib::SD {
         auto fe = fe_in;
         auto delta = delta_in;
         auto ilast = ret.nops()-1;
-        lst rm_xs;
         ex inv_det = 1;
-        if(get_op(ret,ilast,0).is_zero()) {
+        if(is_zero(get_op(ret,ilast,0))) {
             lst rep_xs;
             for(int i=ilast-1; i>=0; i--) rep_xs.append(get_op(ret,i,0));
             ex xfi=0;
@@ -494,7 +493,15 @@ namespace HepLib::SD {
                 }
                 if(xs0.is_zero()) throw Error("Partilize: (xs0.is_zero())");
                 delta.append(xfi);
-                let_op_append(fe, 2, 0, xfi);
+                int dlti = -1;
+                for(int i=0; i<fe.op(2).nops(); i++) {
+                    if(fe.op(2).op(i).has(xs0)) {
+                        dlti = i;
+                        break;
+                    }
+                }
+                if(dlti<0) throw Error("Partilize: dlti<0 found.");
+                let_op_append(fe, 2, dlti, xfi);
                 let_op_append(fe, 0, xs0);
                 let_op_append(fe, 0, xfi+xs0);
                 let_op_append(fe, 1, 1);
@@ -504,6 +511,7 @@ namespace HepLib::SD {
             let_op(ret, ilast, 0, xfi);
             for(int i=ilast-1; i>=0; i--) let_op(ret, i, 1, get_op(ret,i,1)*xfi);
         }
+        lst rm_xs;
         for(int i=ilast; i>=0; i--) {
             auto xi = ret.op(i).op(0);
             rm_xs.append(xi);
@@ -557,12 +565,7 @@ namespace HepLib::SD {
                 break;
             }
         }
-        if(re_xi.is_zero()) {
-            if(rm_xs.nops()!=delta.nops()) {
-                throw Error("rm_xs = " + ex2str(rm_xs) + "delta = " + ex2str(delta));
-            }
-            re_xi = rm_xs.op(0);
-        }
+        if(is_zero(re_xi)) throw Error("Partilize: rm_xs = " + ex2str(rm_xs) + "delta = " + ex2str(delta));
         Projectivize(fe, delta, re_xi);
         
         auto new_ft = SecDec::RefinedFT(get_op(fe, 0, 0));

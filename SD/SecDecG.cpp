@@ -404,17 +404,44 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     }
 
     vector<matrix> vmat;
-    for(int r=0; r<deg_mat.rows(); r++) {
-        matrix tmp(deg_mat.rows()+xs.size(), deg_mat.cols());
-        for(int rr=0; rr<deg_mat.rows(); rr++) {
-            for(int c=0; c<deg_mat.cols(); c++) tmp(rr,c) = deg_mat(rr,c) - deg_mat(r, c);
+    if(deg_mat.rows()<100) {
+        for(int r=0; r<deg_mat.rows(); r++) {
+            matrix tmp(deg_mat.rows()+xs.size(), deg_mat.cols());
+            for(int rr=0; rr<deg_mat.rows(); rr++) {
+                for(int c=0; c<deg_mat.cols(); c++) tmp(rr,c) = deg_mat(rr,c) - deg_mat(r, c);
+            }
+            
+            for(int rr=0; rr<tmp.cols(); rr++) {
+                tmp(rr+deg_mat.rows(),rr) = 1;
+            }
+            auto sc = SimplexCones(tmp);
+            for(auto isc : sc) vmat.push_back(isc);
         }
-        
-        for(int rr=0; rr<tmp.cols(); rr++) {
-            tmp(rr+deg_mat.rows(),rr) = 1;
-        }
-        auto sc = SimplexCones(tmp);
-        for(auto isc : sc) vmat.push_back(isc);
+    } else {
+        auto npp = ParallelProcess;
+        ParallelProcess = CpuCores()/8;
+        if(deg_mat.rows()>5000) ParallelProcess = CpuCores()/4;
+        auto verb = Verbose;
+        Verbose = 0;
+        auto scs = 
+        GiNaC_Parallel(deg_mat.rows(), [&](int idx)->ex {
+            int r = idx;
+            matrix tmp(deg_mat.rows()+xs.size(), deg_mat.cols());
+            for(int rr=0; rr<deg_mat.rows(); rr++) {
+                for(int c=0; c<deg_mat.cols(); c++) tmp(rr,c) = deg_mat(rr,c) - deg_mat(r, c);
+            }
+            
+            for(int rr=0; rr<tmp.cols(); rr++) {
+                tmp(rr+deg_mat.rows(),rr) = 1;
+            }
+            auto sc = SimplexCones(tmp);
+            lst scs;
+            for(auto isc : sc) scs.append(isc);
+            return scs;
+        }, "x2y", true);
+        Verbose = verb;
+        ParallelProcess = npp;
+        for(auto isc_lst : scs) for(auto isc : isc_lst) vmat.push_back(ex_to<matrix>(isc));
     }
 
     vector<map<ex,ex,ex_is_less>> ret;

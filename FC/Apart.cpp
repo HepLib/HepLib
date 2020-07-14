@@ -663,20 +663,18 @@ namespace HepLib::FC {
         auto sps = sp_map();
         for(auto kv : sps) repls.append(kv.first == kv.second);
         
+        if(loops_exts.nops()<2) throw Error("loops_exts size() < 2;");
         lst loops, exts;
+        for(auto li : loops_exts.op(0)) {
+            if(is_a<Vector>(li)) loops.append(ex_to<Vector>(li).name);
+            else loops.append(li);
+        }
+        for(auto li : loops_exts.op(1)) {
+            if(is_a<Vector>(li)) exts.append(ex_to<Vector>(li).name);
+            else exts.append(li);
+        }
         bool reduce = false;
-        if(loops_exts.nops()>=2) {
-            for(auto li : loops_exts.op(0)) {
-                if(is_a<Vector>(li)) loops.append(ex_to<Vector>(li).name);
-                else loops.append(li);
-            }
-            for(auto li : loops_exts.op(1)) {
-                if(is_a<Vector>(li)) exts.append(ex_to<Vector>(li).name);
-                else exts.append(li);
-            }
-            if(loops_exts.nops()==2) reduce = true;
-            else reduce = false;
-        } else throw Error("loops_exts size() < 2;");
+        if(loops_exts.nops()==2) reduce = true;
         
         exmap IR2F;
         std::map<ex, FIRE*, ex_is_less> p2f;
@@ -766,7 +764,7 @@ namespace HepLib::FC {
         }
         
         for(auto item : fvec_re) item->Export();
-        auto nproc = omp_get_num_procs()/FIRE::Threads;
+        auto nproc = CpuCores()/FIRE::Threads;
         if(nproc>16) {
             nproc = 16;
             FIRE::Threads = omp_get_num_procs()/16;

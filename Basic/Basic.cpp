@@ -266,7 +266,6 @@ namespace HepLib {
             cmd.str("");
             cmd << "rm -fr " << ppid;
             system(cmd.str().c_str());
-            system(cmd.str().c_str());
         }
         if(Verbose > 1 && ntotal > 0) cout << "@" << now(false) << endl;
         return ovec;
