@@ -370,42 +370,58 @@ ex FactorOutX(const ex expr) {
 
 ex exp_simplify(const ex expr_in) {
     auto expr = expr_in;
+    exmap sub_exp;
+    sub_exp[pow(exp(w1),w2)]=exp(w1*w2);
+    sub_exp[sqrt(exp(w1))]=exp(w1/2);
+    sub_exp[exp(w1)*exp(w2)*w0]=exp(w1+w2)*w0;
     while(true) {
-        auto expo = expr;
-        expr = expr.subs(pow(exp(w1),w2)==exp(w1*w2));
-        expr = expr.subs(sqrt(exp(w1))==exp(w1/2));
-        expr = expr.subs(exp(w1)*exp(w2)*w0==exp(w1+w2)*w0);
+        auto expo = expr.subs(sub_exp);
         if(is_zero(expo-expr)) break;
+        expr = expo;
     }
     return expr;
 }
 
 ex pow_simplify(const ex expr_in) {
     auto expr = expr_in;
+    exmap sub_pow;
+    sub_pow[pow(pow(w1,w2),w3)] = pow(w1,w2*w3);
+    sub_pow[sqrt(pow(w1,w2))] = pow(w1,w2/2);
+    sub_pow[pow(sqrt(w1),w2)] = pow(w1,w2/2);
+    sub_pow[pow(w1,w2)*pow(w1,w3)*w0] = pow(w1,w2+w3)*w0;
+    sub_pow[pow(w1,w2)*w1*w0] = pow(w1,w2+1)*w0;
+    sub_pow[pow(w1,w2)/w1*w0] = pow(w1,w2-1)*w0;
+    sub_pow[pow(w1,w2)*sqrt(w1)] = pow(w1,w2+1/ex(2));
+    sub_pow[pow(w1,w2)/sqrt(w1)] = pow(w1,w2-1/ex(2));
     while(true) {
-        auto expo = expr;
-        expr = expr.subs(pow(pow(w1,w2),w3)==pow(w1,w2*w3));
-        expr = expr.subs(sqrt(pow(w1,w2))==pow(w1,w2/2));
-        expr = expr.subs(pow(sqrt(w1),w2)==pow(w1,w2/2));
-        expr = expr.subs(pow(w1,w2)*pow(w1,w3)*w0==pow(w1,w2+w3)*w0);
-        expr = expr.subs(pow(w1,w2)*w1*w0==pow(w1,w2+1)*w0);
-        expr = expr.subs(pow(w1,w2)/w1*w0==pow(w1,w2-1)*w0);
-        expr = expr.subs(pow(w1,w2)*sqrt(w1)==pow(w1,w2+1/ex(2)));
-        expr = expr.subs(pow(w1,w2)/sqrt(w1)==pow(w1,w2-1/ex(2)));
+        auto expo = expr.subs(sub_pow);
         if(is_zero(expo-expr)) break;
+        expr = expo;
     }
     return expr;
 }
 
 ex xyz_pow_simplify(const ex expr_in) {
     ex expr = expr_in;
+    
+    //copied from pow_simplify
+    exmap sub_pow;
+    sub_pow[pow(pow(w1,w2),w3)] = pow(w1,w2*w3);
+    sub_pow[sqrt(pow(w1,w2))] = pow(w1,w2/2);
+    sub_pow[pow(sqrt(w1),w2)] = pow(w1,w2/2);
+    sub_pow[pow(w1,w2)*pow(w1,w3)*w0] = pow(w1,w2+w3)*w0;
+    sub_pow[pow(w1,w2)*w1*w0] = pow(w1,w2+1)*w0;
+    sub_pow[pow(w1,w2)/w1*w0] = pow(w1,w2-1)*w0;
+    sub_pow[pow(w1,w2)*sqrt(w1)] = pow(w1,w2+1/ex(2));
+    sub_pow[pow(w1,w2)/sqrt(w1)] = pow(w1,w2-1/ex(2));
+    
+    sub_pow[pow(x(w1)*w2,w3)] = pow(x(w1),w3)*pow(w2,w3);
+    sub_pow[pow(y(w1)*w2,w3)] = pow(y(w1),w3)*pow(w2,w3);
+    sub_pow[pow(z(w1)*w2,w3)] = pow(z(w1),w3)*pow(w2,w3);
     while(true) {
-        auto expo = expr;
-        expr = pow_simplify(expr);
-        expr = expr.subs(pow(x(w1)*w2,w3)==pow(x(w1),w3)*pow(w2,w3));
-        expr = expr.subs(pow(y(w1)*w2,w3)==pow(y(w1),w3)*pow(w2,w3));
-        expr = expr.subs(pow(z(w1)*w2,w3)==pow(z(w1),w3)*pow(w2,w3));
+        auto expo = expr.subs(sub_pow);
         if(is_zero(expo-expr)) break;
+        expr = expo;
     }
     return expr;
 }

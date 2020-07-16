@@ -380,7 +380,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
         return vmap;
     }
     
-    sort(vpols.begin(), vpols.end(), [&](const auto &ain, const auto &bin){
+    sort(vpols.begin(), vpols.end(), [&](const auto &ain, const auto &bin) {
         //auto a=ain; auto b=bin; // < < <
         auto a=bin; auto b=ain; // > > >
         int tai=0, tbi=0;
@@ -420,7 +420,8 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     } else {
         auto npp = ParallelProcess;
         ParallelProcess = CpuCores()/8;
-        if(deg_mat.rows()>5000) ParallelProcess = CpuCores()/4;
+        if(deg_mat.rows()>1000) ParallelProcess = CpuCores()/4;
+        else if(deg_mat.rows()>5000) ParallelProcess = CpuCores()/2;
         auto verb = Verbose;
         Verbose = 0;
         auto scs = 

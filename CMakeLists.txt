@@ -69,6 +69,7 @@ AUX_SOURCE_DIRECTORY(Basic BASIC_SRCS)
 AUX_SOURCE_DIRECTORY(SD SD_SRCS)
 AUX_SOURCE_DIRECTORY(FC FC_SRCS)
 AUX_SOURCE_DIRECTORY(IBP IBP_SRCS)
+AUX_SOURCE_DIRECTORY(GiNaC GiNaC_SRCS)
 AUX_SOURCE_DIRECTORY("${CMAKE_CURRENT_BINARY_DIR}/OTHER" OTHER)
 #-----------------------------------------------
 # check WSTP
@@ -92,7 +93,7 @@ ENDIF(APPLE)
 #-----------------------------------------------
 # install library HepLib
 #-----------------------------------------------
-ADD_LIBRARY(HepLib SHARED ${BASIC_SRCS} ${SD_SRCS} ${FC_SRCS} ${IBP_SRCS} ${OTHER})
+ADD_LIBRARY(HepLib SHARED ${BASIC_SRCS} ${SD_SRCS} ${FC_SRCS} ${IBP_SRCS} ${GiNaC_SRCS} ${OTHER})
 INSTALL(TARGETS HepLib DESTINATION lib)
 
 #-----------------------------------------------

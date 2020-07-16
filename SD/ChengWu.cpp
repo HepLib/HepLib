@@ -90,6 +90,30 @@ namespace HepLib::SD {
             let_op_remove_first(fe, 1);
         }
     }
+    
+    /**
+     * @brief to check the input fe is Projective or NOT w.r.t. delta
+     * @param fe is the { function list, exponet list }
+     * @param delta is a list of x's in Delta function
+     * @return true if fe is Projective
+     */
+    bool ChengWu::isProjective(const ex fe, const ex delta) {
+        static symbol s;
+        lst sRepl;
+        for(int j=0; j<delta.nops(); j++) sRepl.append(delta.op(j)==delta.op(j)*s);
+        ex over_all_sn = 0;
+        int nnn = fe.op(0).nops();
+        for(int i=0; i<nnn; i++) {
+            auto func = fe.op(0).op(i);
+            if(!func.has(x(w))) continue;
+            func = mma_expand(func.subs(sRepl),s);
+            auto sn = func.degree(s);
+            if(sn!=func.ldegree(s)) return false;
+            over_all_sn += sn*fe.op(1).op(i);
+        }
+        over_all_sn = normal(over_all_sn+delta.nops());
+        return over_all_sn.is_zero();
+    }
 
     /**
      * @brief to Projectivize the input fe, the fe will be updated
@@ -97,10 +121,11 @@ namespace HepLib::SD {
      * @param delta is a list of x's in Delta function
      * @param xsum is used to balance the powers, xsum refers to Delta(1-xsum), if xsum=0, then xsum=SUM(delta list)
      */
-    void ChengWu::Projectivize(ex &fe, ex delta, ex xsum) {
-        symbol s;
+    void ChengWu::Projectivize(ex &fe, const ex delta, const ex xsum_in) {
+        static symbol s;
         lst sRepl;
         for(int j=0; j<delta.nops(); j++) sRepl.append(delta.op(j)==delta.op(j)*s);
+        ex xsum = xsum_in;
         if(xsum.is_zero()) {
             for(auto xi : delta) xsum += xi;
         }
@@ -108,21 +133,17 @@ namespace HepLib::SD {
         ex over_all_sn = 0;
         int nnn = fe.op(0).nops();
         for(int i=0; i<nnn; i++) {
-            if(!fe.op(0).op(i).has(x(w))) continue;
-            auto tmp = expand(fe.op(0).op(i));
-            auto sn = tmp.subs(sRepl).degree(s);
+            auto func = fe.op(0).op(i);
+            if(!func.has(x(w))) continue;
+            func = mma_expand(func.subs(sRepl),s);
+            auto sn = func.degree(s);
             over_all_sn += sn*fe.op(1).op(i);
-            lst items;
-            if(is_a<add>(tmp)) {
-                for(auto ii : tmp) items.append(ii);
-            } else {
-                items.append(tmp);
-            }
-            tmp = 0;
-            for(auto ii : items) {
-                auto sni = ii.subs(sRepl).degree(s);
-                if(sni!=sn) tmp += ii * pow(xsum, sn-sni);
-                else tmp += ii;
+            if(!is_a<add>(func)) func = lst{func};
+            ex tmp = 0;
+            for(auto ii : func) {
+                auto sni = ii.degree(s);
+                if(sni!=sn) tmp += ii.subs(s==1) * pow(xsum, sn-sni);
+                else tmp += ii.subs(s==1);
             }
             fe.let_op(0).let_op(i) = tmp;
         }
@@ -558,15 +579,21 @@ namespace HepLib::SD {
             let_op_append(fe, 1, 1);
         }
         
-        ex re_xi = 0;
-        for(auto xi : delta) {
-            if(!rm_xs.has(xi)) {
-                re_xi = xi;
-                break;
+        if(!isProjective(fe,delta)) {
+            ex re_xi = 0;
+            for(auto xi : delta) {
+                if(!rm_xs.has(xi)) {
+                    re_xi = xi;
+                    break;
+                }
             }
+            if(is_zero(re_xi)) {
+                cout << "xcs = " << xcs << endl;
+                cout << "fe = " << fe_in << endl;
+                throw Error("Partilize: rm_xs = " + ex2str(rm_xs) + " & delta = " + ex2str(delta));
+            }
+            Projectivize(fe, delta, re_xi);
         }
-        if(is_zero(re_xi)) throw Error("Partilize: rm_xs = " + ex2str(rm_xs) + "delta = " + ex2str(delta));
-        Projectivize(fe, delta, re_xi);
         
         auto new_ft = SecDec::RefinedFT(get_op(fe, 0, 0));
         symbol ss;

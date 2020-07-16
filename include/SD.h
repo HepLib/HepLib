@@ -101,6 +101,7 @@ namespace HepLib::SD {
         virtual vector<exmap> x2y(const ex &xpol) =0;
         vector<exmap> x2y(const lst &xpols);
         static bool VerifySD(vector<exmap> vmap, bool quick = true);
+        static ex XMonomials(const ex & expr);
     };
 
     class SecDecG : public SecDecBase {
@@ -295,7 +296,8 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     class ChengWu {
     public:
-        static void Projectivize(ex &fe, ex delta, ex xsum=0);
+        static bool isProjective(const ex fe, const ex delta);
+        static void Projectivize(ex &fe, const ex delta, const ex xsum=0);
         static void Scalelize(ex &fe, const lst xs, const ex cy);
         static void Scalelize(ex &fe, const ex xi, const ex cy);
         static vector<ex> Binarize(ex const fe, ex const eqn);

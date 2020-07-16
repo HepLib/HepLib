@@ -61,6 +61,13 @@ lst classname::all(const ex &e) { \
         s << v; \
         return *this; \
     }
+    
+/*-----------------------------------------------------*/
+// Extend GiNaC 
+/*-----------------------------------------------------*/
+namespace GiNaC {
+    ex exfactor(const ex& poly, unsigned options=0);
+}
 
 namespace HepLib {
 

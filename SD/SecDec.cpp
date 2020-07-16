@@ -13,6 +13,92 @@
 
 namespace HepLib::SD {
 
+    ex SecDecBase::XMonomials(const ex & expr_in) {
+        auto expr = expr_in;
+        auto xs = get_x_from(expr);
+        auto nx = xs.size();
+        if(nx<1) return expr;
+        if(!is_polynomial(expr, exvec2lst(xs))) return expr;
+        auto cvs = mma_collect_lst(expr,x(w));
+        vector<exvector> degs_vec;
+        for(auto cv : cvs) {
+            if(is_zero(cv.op(0))) continue;
+            exvector degs;
+            for(auto xi : xs) degs.push_back(cv.op(1).degree(xi));
+            degs_vec.push_back(degs);
+        }
+        
+        map<int,bool> flag;
+        auto nn = degs_vec.size();
+        for(int i=0; i<nn; i++) flag[i] = false;
+        
+        if(false) {
+            map<int,vector<int>> si_map;
+            for(int i=0; i<nn; i++) {
+                exvector & degs = degs_vec[i];
+                int s = 0;
+                for(auto n : degs) s += ex2int(n);
+                si_map[s].push_back(i);
+            }
+            
+            //re-initialize flag
+            for(int i=0; i<nn; i++) flag[i] = true;
+            
+            for(auto kv : si_map) {
+                vector<int> & ivec = kv.second;
+                if(ivec.size()<1) continue;
+                for(int c=0; c<nx; c++) {
+                    ex min = 10000000;
+                    ex max = -1000000;
+                    for(auto ii : ivec) {
+                        auto ci = degs_vec[ii][c];
+                        if(ci<min) min = ci;
+                        if(ci>max) max = ci;
+                    }
+                    for(auto ii : ivec) {
+                        if(!flag[ii]) continue;
+                        auto ci = degs_vec[ii][c];
+                        if(is_zero(ci-min)) flag[ii]=false;
+                    }
+                }
+            }
+        }
+        
+        for(int i=0; i<nn; i++) {
+            if(flag[i]) continue;
+            exvector & ti = degs_vec[i];
+            for(int j=i+1; j<nn; j++) {
+                if(flag[j]) continue;
+                exvector & tj = degs_vec[j];
+                int comp = 0;
+                for(int c=0; c<nx; c++) {
+                    if(ti[c]<tj[c]) {
+                        if(comp>0) { comp=0; break; }
+                        comp = -1;
+                    } else if(ti[c]>tj[c]) {
+                        if(comp<0) { comp=0; break; }
+                        comp = 1;
+                    } 
+                }
+                if(comp>0) {
+                    flag[i]=true;
+                    break;
+                } else if(comp<0) {
+                    flag[j]=true;
+                }
+            }
+        }
+        
+        ex ret = 0;
+        for(int i=0; i<nn; i++) {
+            if(flag[i]) continue;
+            ex res = 1;
+            for(int c=0; c<nx; c++) res *= pow(xs[c],degs_vec[i][c]);
+            ret += res;
+        }
+        return ret;
+    }
+
     bool SecDecBase::VerifySD(vector<exmap> map_vec, bool quick) {
         lst xs;
         exmap nxs;
@@ -52,15 +138,18 @@ namespace HepLib::SD {
         return SecDecBase::VerifySD(map_vec, quick);
     }
 
-    vector<exmap> SecDecBase::x2y(const lst &in_xpols) {
+    vector<exmap> SecDecBase::x2y(const lst & in_xpols) {
         if(in_xpols.has(y(w))) throw Error("SecDecBase::x2y: y(w) found @ " + ex2str(in_xpols));
         lst xpols_lst = in_xpols;
         while(true) {
             ex xpols = 1;
             for(auto item : xpols_lst) {
+                if(item.match(x(w))) continue;
+                else if(item.match(pow(x(w1),w2))) continue;
+                else if(item.match(pow(w1,w2))) item = item.op(0);
                 exmap pmap;
                 item = item.to_rational(pmap);
-                xpols *= factor(item).subs(pmap);
+                xpols *= exfactor(item).subs(pmap);
             }
             if(!is_a<mul>(xpols)) xpols = lst{ xpols };
             
@@ -68,11 +157,8 @@ namespace HepLib::SD {
             for(auto item : xpols) {
                 if(item.match(x(w))) continue;
                 else if(item.match(pow(x(w1),w2))) continue;
-                else if(item.match(pow(w1,w2))) {
-                    xpols_lst.append(item.op(0));
-                } else {
-                    xpols_lst.append(item);
-                }
+                else if(item.match(pow(w1,w2))) xpols_lst.append(item.op(0));
+                else xpols_lst.append(item);
             }
             xpols_lst.sort();
             xpols_lst.unique();
@@ -80,7 +166,10 @@ namespace HepLib::SD {
             ex xpols2 = 1;
             for(auto item : xpols_lst) xpols2 *= item;
             if(is_a<lst>(xpols)) xpols = xpols.op(0);
-            if(is_zero(xpols2-xpols)) return x2y(xpols);
+            if(is_zero(xpols2-xpols)) {
+                xpols = XMonomials(xpols);
+                return x2y(xpols);
+            }
         }
         throw Error("SecDecBase::x2y: unexpected region reached.");
         return vector<exmap>();

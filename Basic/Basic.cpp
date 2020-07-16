@@ -1853,7 +1853,7 @@ namespace HepLib {
             Parser fp(st);
             auto ret = fp.Read(ostr);
             num *= ret.op(0);
-            den *= factor(ret.op(1));
+            den *= exfactor(ret.op(1));
             
             ss << "&(U=0);" << endl; // disable ugly printing
             if(fermat_use_array) ss << "@(res,[m]);" << endl;

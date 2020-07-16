@@ -283,7 +283,7 @@ int main(int argc, char** argv) {
                 ostringstream ifn;
                 ifn << SD_path << "/" << i << ".null";
                 if(!file_exists(ifn.str().c_str())) {
-                    cout << Color_Error << "File NOT Found: " << ifn.str() << RESET << endl;
+                    cout << ErrColor << "File NOT Found: " << ifn.str() << RESET << endl;
                     exit(1);
                 }
                 continue;
@@ -293,7 +293,7 @@ int main(int argc, char** argv) {
             ss.str("");
             ss << SD_path << "/" << i << ".res.gar";
             if(!file_exists(ss.str().c_str())) {
-                cout << Color_Error << "File NOT Found: " << ss.str() << RESET << endl;
+                cout << ErrColor << "File NOT Found: " << ss.str() << RESET << endl;
                 exit(1);
             }
             auto res = garRead(ss.str());
@@ -324,7 +324,7 @@ int main(int argc, char** argv) {
         if(is_o) {
             ofstream ofs;
             ofs.open(arg_o, ios::out);
-            if (!ofs) throw runtime_error("failed to open final out file!");
+            if (!ofs) throw Error("failed to open final out file!");
             ofs << fRes << endl;
             ofs.close();
         }
@@ -369,7 +369,7 @@ void ExportNull(const string & prefix) {
     
     ofstream ofs;
     ofs.open(prefix+".null", ios::out);
-    if (!ofs) throw runtime_error("failed to open final null file!");
+    if (!ofs) throw Error("failed to open final null file!");
     ofs << "Result is Null." << endl;
     ofs.close();
 }
