@@ -352,7 +352,7 @@ namespace HepLib {
     lst mma_collect_lst(const ex &expr, lst const &pats);
     lst mma_collect_lst(const ex &expr, ex const &pat);
     
-    ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=true);
+    ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
     extern bool fermat_use_array;
     ex fermat_numer_denom(const ex & expr);

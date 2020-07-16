@@ -2369,13 +2369,30 @@ static ex factor_sqrfree(const ex& poly)
         exvector svec;
         for(auto si : findsymbols.syms) svec.push_back(si);
         int n = svec.size();
+        
+        // cycle
+        for(int c=1; c<n; c++) {
+            exmap s2s, s2s_inv;
+            for(int i=0; i<n; i++) {
+                auto eo = svec[i];
+                auto ep = svec[(i+c)%n];
+                s2s[eo] = ep;
+                s2s_inv[ep] = eo;
+            }
+            auto poly2 = poly.subs(s2s);
+            auto res2 = factor_multivariate(poly2, findsymbols.syms);
+            if(!is_zero(res2-poly2)) return res2.subs(s2s_inv);
+        }
+        
+        // permutation
+        /*
         int pis[n];
         for(int i=0; i<n; i++) pis[i]=i;
         do { 
             exmap s2s, s2s_inv;
             for(int i=0; i<n; i++) {
                 auto eo = svec[i];
-                auto ep = svec[n-1-pis[i]]; // reversed
+                auto ep = svec[pis[i]];
                 if(eo==ep) continue;
                 s2s[eo] = ep;
                 s2s_inv[ep] = eo;
@@ -2385,6 +2402,8 @@ static ex factor_sqrfree(const ex& poly)
             auto res2 = factor_multivariate(poly2, findsymbols.syms);
             if(!is_zero(res2-poly2)) return res2.subs(s2s_inv);
         } while(std::next_permutation(pis,pis+n));
+        */
+        
     }
 	return res;
 }
