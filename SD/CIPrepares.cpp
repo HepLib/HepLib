@@ -245,17 +245,15 @@ namespace HepLib::SD {
             ofs << endl;
             
             // D's FMP_fid
-            if(use_MP || fxs.size()<3) {
-                ofs << "mpREAL FMP_" << ft_n << "(const int i, const mpREAL* x, const mpREAL *pl) {" << endl;
-                for(int i=0; i<fxs.size(); i++) {
-                    ofs << "if("<<i<<"==i) return ";
-                    EvalMP(DFs[i].subs(plRepl).subs(cxRepl)).print(cppMP);
-                    ofs << ";" << endl;
-                }
-                ofs << "return 0;" << endl;
-                ofs << "}" << endl;
-                ofs << endl;
+            ofs << "mpREAL FMP_" << ft_n << "(const int i, const mpREAL* x, const mpREAL *pl) {" << endl;
+            for(int i=0; i<fxs.size(); i++) {
+                ofs << "if("<<i<<"==i) return ";
+                EvalMP(DFs[i].subs(plRepl).subs(cxRepl)).print(cppMP);
+                ofs << ";" << endl;
             }
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
             
             // DD's FL_fid
             ofs << "dREAL FL_" << ft_n << "(const int i, const int j, const dREAL* x, const dREAL *pl) {" << endl;
@@ -282,18 +280,16 @@ namespace HepLib::SD {
             ofs << endl;
             
             // DD's FMP_fid
-            if(use_MP || fxs.size()<3) {
-                ofs << "mpREAL FMP_" << ft_n << "(const int i, const int j, const mpREAL* x, const mpREAL *pl) {" << endl;
-                for(int i=0; i<fxs.size(); i++) {
-                for(int j=0; j<fxs.size(); j++) {
-                    ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
-                    EvalMP(DDFs[i][j].subs(plRepl).subs(cxRepl)).print(cppMP);
-                    ofs << ";" << endl;
-                }}
-                ofs << "return 0;" << endl;
-                ofs << "}" << endl;
-                ofs << endl;
-            }
+            ofs << "mpREAL FMP_" << ft_n << "(const int i, const int j, const mpREAL* x, const mpREAL *pl) {" << endl;
+            for(int i=0; i<fxs.size(); i++) {
+            for(int j=0; j<fxs.size(); j++) {
+                ofs << "if("<<i<<"==i && "<<j<<"==j) return ";
+                EvalMP(DDFs[i][j].subs(plRepl).subs(cxRepl)).print(cppMP);
+                ofs << ";" << endl;
+            }}
+            ofs << "return 0;" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
             
             // X2ZL_fid
             ofs << "void X2ZL_" << ft_n << "(const dREAL* x, dCOMPLEX* z, dCOMPLEX* r, dREAL* dff, const dREAL* pl, const dREAL* las) {" << endl;
@@ -308,12 +304,10 @@ namespace HepLib::SD {
             ofs << endl;
             
             // X2ZMP_fid
-            if(use_MP || fxs.size()<3) {
-                ofs << "void X2ZMP_" << ft_n << "(const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {" << endl;
-                ofs << "X2Z("<<fxs.size()<<",FMP_"<<ft_n<<",FMP_"<<ft_n<<",x,z,r,dff,pl,las);" << endl;
-                ofs << "}" << endl;
-                ofs << endl;
-            }
+            ofs << "void X2ZMP_" << ft_n << "(const mpREAL* x, mpCOMPLEX* z, mpCOMPLEX* r, mpREAL* dff, const mpREAL* pl, const mpREAL* las) {" << endl;
+            ofs << "X2Z("<<fxs.size()<<",FMP_"<<ft_n<<",FMP_"<<ft_n<<",x,z,r,dff,pl,las);" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
             
             // MatL_id
             ofs << "void MatL_"<<ft_n<<"(dCOMPLEX* mat, const dREAL* x, const dREAL* dff, const dREAL* pl, const dREAL* las) {" << endl;
@@ -328,12 +322,10 @@ namespace HepLib::SD {
             ofs << endl;
             
             // MatMP_fid
-            if(use_MP || fxs.size()<3) {
-                ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX *mat, const mpREAL* x, const mpREAL* dff, const mpREAL *pl, const mpREAL *las) {" << endl;
-                ofs << "Mat("<<fxs.size()<<",FMP_"<<ft_n<<",mat,x,dff,pl,las);" << endl;
-                ofs << "}" << endl;
-                ofs << endl;
-            }
+            ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX *mat, const mpREAL* x, const mpREAL* dff, const mpREAL *pl, const mpREAL *las) {" << endl;
+            ofs << "Mat("<<fxs.size()<<",FMP_"<<ft_n<<",mat,x,dff,pl,las);" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
             
             // for Minimization of F(z)-image, x[xn-1] is the lambda
             ofs << "extern \"C\" " << endl;
@@ -494,16 +486,16 @@ namespace HepLib::SD {
                 ofs << "qREAL FQ_"<<ft_n<<"(const qREAL*, const qREAL*);" << endl; // for FT only
                 ofs << "dREAL FL_"<<ft_n<<"(const int, const dREAL*, const dREAL*);" << endl;
                 ofs << "qREAL FQ_"<<ft_n<<"(const int, const qREAL*, const qREAL*);" << endl;
-                if(use_MP || xs.size()<3) ofs << "qREAL FMP_"<<ft_n<<"(const int, const mpREAL*, const mpREAL*);" << endl;
+                ofs << "qREAL FMP_"<<ft_n<<"(const int, const mpREAL*, const mpREAL*);" << endl;
                 ofs << "dREAL FL_"<<ft_n<<"(const int, const int, const dREAL*, const dREAL*);" << endl;
                 ofs << "qREAL FQ_"<<ft_n<<"(const int, const int, const qREAL*, const qREAL*);" << endl;
-                if(use_MP || xs.size()<3) ofs << "qREAL FMP_"<<ft_n<<"(const int, const int, const mpREAL*, const mpREAL*);" << endl;
+                ofs << "qREAL FMP_"<<ft_n<<"(const int, const int, const mpREAL*, const mpREAL*);" << endl;
                 ofs << "void X2ZL_"<<ft_n<<"(const dREAL*, dCOMPLEX*, dCOMPLEX*, dREAL*, const dREAL*, const dREAL*);" << endl;
                 ofs << "void X2ZQ_"<<ft_n<<"(const qREAL*, qCOMPLEX*, qCOMPLEX*, qREAL*, const qREAL*, const qREAL*);" << endl;
-                if(use_MP || xs.size()<3) ofs << "void X2ZMP_"<<ft_n<<"(const mpREAL*, mpCOMPLEX*, mpCOMPLEX*, mpREAL*, const mpREAL*, const mpREAL*);" << endl;
+                ofs << "void X2ZMP_"<<ft_n<<"(const mpREAL*, mpCOMPLEX*, mpCOMPLEX*, mpREAL*, const mpREAL*, const mpREAL*);" << endl;
                 ofs << "void MatL_"<<ft_n<<"(dCOMPLEX*, const dREAL*, const dREAL*, const dREAL*, const dREAL*);" << endl;
                 ofs << "void MatQ_"<<ft_n<<"(qCOMPLEX*, const qREAL*, const qREAL*, const qREAL*, const qREAL*);" << endl;
-                if(use_MP || xs.size()<3) ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX*, const mpREAL*, const mpREAL*, const mpREAL*, const mpREAL*);" << endl;
+                ofs << "void MatMP_"<<ft_n<<"(mpCOMPLEX*, const mpREAL*, const mpREAL*, const mpREAL*, const mpREAL*);" << endl;
                 ofs << endl << endl;
             }
 
@@ -649,7 +641,7 @@ namespace HepLib::SD {
                     
                     ex intg = kv.second;
                     
-                    if(use_RCLog) {
+                    if(true) { // RCLog
                         exset pows_set;
                         find(intg, pow(w1,w2), pows_set);
                         find(intg, sqrt(w), pows_set);
@@ -856,7 +848,7 @@ namespace HepLib::SD {
                     
                     ex intg = kv.second;
                     
-                    if(use_RCLog) {
+                    if(true) { // RCLog
                         exset pows_set;
                         find(intg, pow(w1,w2), pows_set);
                         find(intg, sqrt(w), pows_set);
@@ -943,7 +935,6 @@ namespace HepLib::SD {
             /*----------------------------------------------*/
             // Multiple Precision
             /*----------------------------------------------*/
-            if(use_MP || xs.size()<3) {
             auto cppMP =  CppFormat(ofs, "MP");
             
             // always export non-complex function
@@ -1078,7 +1069,7 @@ namespace HepLib::SD {
                     
                     ex intg = kv.second;
                     
-                    if(use_RCLog) {
+                    if(true) { // RCLog
                         exset pows_set;
                         find(intg, pow(w1,w2), pows_set);
                         find(intg, sqrt(w), pows_set);
@@ -1153,9 +1144,6 @@ namespace HepLib::SD {
                 ofs << "}" << endl;
                 ofs << endl;
             }
-            // -----------------------
-            } // end of if(use_MP)
-            // -----------------------
             
             ofs.close();
             ostringstream ofn, cmd;

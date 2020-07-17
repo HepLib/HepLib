@@ -1401,11 +1401,7 @@ namespace HepLib::SD {
                         auto pref = mma_series(ct2, ep, epN-di);
                         if(pref.has(vs)) pref = mma_series(pref, vs, sN);
                         //if(use_CCF) intg = collect_common_factors(intg);
-                        try{
-                            intg = collect_common_factors(intg);
-                        } catch(...) {
-                            intg = collect_common_factors(intg.expand());
-                        }
+                        intg = fermat_normal(intg);
                         para_res_lst.append(lst{pref * pow(ep, di), intg});
                     }
                 } else {
@@ -1434,11 +1430,7 @@ namespace HepLib::SD {
                                 auto pref = mma_series(ct2, ep, epN-di);
                                 if(pref.has(vs)) pref = mma_series(pref, vs, sN);
                                 //if(use_CCF) intg = collect_common_factors(intg);
-                                try{
-                                    intg = collect_common_factors(intg);
-                                } catch(...) {
-                                    intg = collect_common_factors(intg.expand());
-                                }
+                                intg = fermat_normal(intg);
                                 para_res_lst.append(lst{eps_ci * pref * pow(eps, sdi) * pow(ep, di), intg});
                             }
                         }
