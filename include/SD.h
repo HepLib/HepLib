@@ -306,8 +306,8 @@ namespace HepLib::SD {
         static bool isPartilizable(const ex ft, const ex delta, lst &xcs, int mode=0);
         static void Partilize(const lst xcs, const lst delta, const ex fe, exvector & ret_lst);
         
-        static vector<ex> Evaluate(ex fe);
-        static void Apply(vector<ex> &FunExp, bool sub_cw=false);
+        static exvector Evaluate(ex fe);
+        static exvector Apply(const vector<ex> & FunExp);
     };
 
     /*-----------------------------------------------------*/
@@ -388,7 +388,7 @@ namespace HepLib::SD {
         void Evaluate(vector<ex> FunExp, const string & key = "");
         void MB();
         void XEnd();
-        void ChengWu(bool sub_cw=false);
+        void ChengWu();
         
         static bool VerifySD(vector<exmap> vmap, bool quick = true);
         static ex RefinedFT(ex const & ft);

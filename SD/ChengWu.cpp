@@ -13,82 +13,40 @@ namespace HepLib::SD {
 
     /**
      * @brief ChengWu for SecDec class
-     * @param sub_cw     
      */
-    void SecDec::ChengWu(bool sub_cw) {
-        ChengWu::Apply(FunExp, sub_cw);
+    void SecDec::ChengWu() {
+        FunExp = ChengWu::Apply(FunExp);
     }
     
     /**
      * @brief ChengWu, note that FunExp is now local
      * @param FunExp will be updated
-     * @param sub_cw     
      */
-    void ChengWu::Apply(vector<ex> &FunExp, bool sub_cw) {
-        vector<ex> FunExp2;
+    exvector ChengWu::Apply(const vector<ex> & FunExp) {
+        vector<ex> fe_vec;
         for(auto fe : FunExp) {
             if(fe.nops()<3 || xSign(fe.op(0).op(1))!=0 || fe.op(0).op(1).has(WRA(w))) {
                 let_op_prepend(fe, 0, 1);
                 let_op_prepend(fe, 1, 0);
-                FunExp2.push_back(fe);
+                fe_vec.push_back(fe);
                 continue;
             }
             auto deltas = fe.op(2);
-            for(int di=0; di<deltas.nops(); di++) Projectivize(fe, deltas.op(di)); //make sure projective
+            for(int di=0; di<deltas.nops(); di++) {
+                Projectivize(fe, deltas.op(di)); //make sure projective
+            }
             let_op_prepend(fe, 0, fe.op(0).op(1));
             let_op_prepend(fe, 1, 0);
             auto ret = Evaluate(fe);
-            for(auto item : ret) FunExp2.push_back(item);
+            for(auto item : ret) fe_vec.push_back(item);
         }
-        
-        // fe.op(0).op(0) : 1-ok, 2-nok
-        // handle x_i P + Q, with Q: positive, P will apply Cheng-Wu 1st.
-        FunExp.clear();
-        for(auto fe : FunExp2) {
-            if(!sub_cw || is_zero(get_op(fe,0,0)-1)) {
-                FunExp.push_back(fe);
-                continue;
-            }
-
-            auto ft = SecDec::RefinedFT(get_op(fe,0,2)).expand();
-            auto xs = get_x_from(ft);
-
-            for(auto xi : xs) {
-                if(ft.degree(xi)==1 && xSign(ft.subs(xi==0))!=0) {
-                    auto fe2 = fe;
-                    let_op(fe2, 0, 0, ft.coeff(xi));
-                    auto ret1 = Evaluate(fe2);
-                    for(auto item : ret1) {
-                        if(get_op(item,0,0)!=1) goto inner_loop_end;
-                    }
-                    
-                    for(auto item : ret1) {
-                        auto ft0 = get_op(item,0,2); // actual F-term
-                        if(xSign(ft0)!=0) {
-                            let_op(item, 0, 0, 1);
-                            FunExp.push_back(item);
-                            continue;
-                        }
-                        let_op(item, 0, 0, ft0); // actual F-term
-                        if(Verbose>10) cout << "  \\--Cheng-Wu Subsection" << endl;
-                        auto ret2 = Evaluate(item);
-                        for(auto item2 : ret2) FunExp.push_back(item2);
-                    }
-                    goto loop_end;
-                }
-                inner_loop_end: ;
-            }
-            FunExp.push_back(fe);
-            loop_end: ;
-        }
-        
-        // TODO: add more cases
-        
+                        
         //remove the first item in op.(0) and op(1)
-        for(auto &fe : FunExp) {
+        for(auto &fe : fe_vec) {
             let_op_remove_first(fe, 0);
             let_op_remove_first(fe, 1);
         }
+        return fe_vec;
     }
     
     /**
@@ -505,14 +463,14 @@ namespace HepLib::SD {
             }
             if(is_zero(xfi)) {
                 ex xs0=0;
-                xfi = x(x_free_index(fe));
                 for(auto xi : delta) {
                     if(!rep_xs.has(xi)) {
                         xs0 = xi;
                         break;
                     }
                 }
-                if(xs0.is_zero()) throw Error("Partilize: (xs0.is_zero())");
+                if(is_zero(xs0)) throw Error("Partilize: (xs0.is_zero())");
+                xfi = x(x_free_index(fe));
                 delta.append(xfi);
                 int dlti = -1;
                 for(int i=0; i<fe.op(2).nops(); i++) {
@@ -611,11 +569,26 @@ namespace HepLib::SD {
             }
         }
         if(is_zero(sPos*sNeg)) throw Error("Partilize: sPos * sNeg = 0");
-        ex s = sNeg/xNeg.op(0);
-        if(s!=1) Scalelize(fe,xPos,s);
-        s = sPos/xPos.op(0);
-        if(s!=1) Scalelize(fe,xNeg.op(0),s);
-        ex eqn = xPos.op(0)-xNeg.op(0);
+        ex px = 0;
+        ex nx = 0;
+        for(int i=rm_xs.nops(); i>0; i--) {
+            auto xi = rm_xs.op(i-1);
+            if(is_zero(nx) && xNeg.has(xi)) nx = xi;
+            else if(is_zero(px) && xPos.has(xi)) px = xi;
+            if(!is_zero(px) && !is_zero(nx)) break;
+        }
+        if(sNeg<sPos) {
+            ex s = sNeg/nx;
+            if(s!=1) Scalelize(fe,xPos,s);
+            s = sPos/px;
+            if(s!=1) Scalelize(fe,nx,s);
+        } else {
+            ex s = sPos/px;
+            if(s!=1) Scalelize(fe,xNeg,s);
+            s = sNeg/nx;
+            if(s!=1) Scalelize(fe,px,s);
+        }
+        ex eqn = px-nx;
         auto bilst = Binarize(fe, eqn);
         for(auto item : bilst) {
             let_op(item, 0, 0, 1);
