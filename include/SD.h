@@ -307,7 +307,7 @@ namespace HepLib::SD {
         static void Partilize(const lst xcs, const lst delta, const ex fe, exvector & ret_lst);
         
         static exvector Evaluate(ex fe);
-        static exvector Apply(const vector<ex> & FunExp);
+        static exvector Apply(const vector<ex> & fe_vec);
     };
 
     /*-----------------------------------------------------*/
@@ -391,8 +391,8 @@ namespace HepLib::SD {
         void ChengWu();
         
         static bool VerifySD(vector<exmap> vmap, bool quick = true);
-        static ex RefinedFT(ex const & ft);
-        static lst RefinedFT_lst(ex const & ft);
+        static ex XRefined(ex const & ft);
+        static lst XRefined_lst(ex const & ft);
         static ex PrefactorFIESTA(int nLoop);
         ex VEResult();
         void VEPrint(bool endlQ=true);

@@ -16,19 +16,29 @@ namespace HepLib::SD {
      */
     void SecDec::ChengWu() {
         FunExp = ChengWu::Apply(FunExp);
+        
+        //remove the first item in op.(0) and op(1)
+        for(auto &fe : FunExp) {
+            let_op_remove_first(fe, 0);
+            let_op_remove_first(fe, 1);
+        }
     }
     
     /**
-     * @brief ChengWu, note that FunExp is now local
-     * @param FunExp will be updated
+     * @brief ChengWu-rized on the vector of fe, 
+     * note that 1st element of the output, 
+     * which needs to be droped, its information is used to label the ChengWu is successful or NOT.
+     * also check the Evaluate function for more information.
+     * @param fe_vec the input vector of fe
+     * @return ChengWu-rized vector of fe
      */
-    exvector ChengWu::Apply(const vector<ex> & FunExp) {
-        vector<ex> fe_vec;
-        for(auto fe : FunExp) {
+    exvector ChengWu::Apply(const vector<ex> & fe_vec) {
+        vector<ex> ret_fe_vec;
+        for(auto fe : fe_vec) {
             if(fe.nops()<3 || xSign(fe.op(0).op(1))!=0 || fe.op(0).op(1).has(WRA(w))) {
                 let_op_prepend(fe, 0, 1);
                 let_op_prepend(fe, 1, 0);
-                fe_vec.push_back(fe);
+                ret_fe_vec.push_back(fe);
                 continue;
             }
             auto deltas = fe.op(2);
@@ -38,15 +48,10 @@ namespace HepLib::SD {
             let_op_prepend(fe, 0, fe.op(0).op(1));
             let_op_prepend(fe, 1, 0);
             auto ret = Evaluate(fe);
-            for(auto item : ret) fe_vec.push_back(item);
+            for(auto item : ret) ret_fe_vec.push_back(item);
         }
-                        
-        //remove the first item in op.(0) and op(1)
-        for(auto &fe : fe_vec) {
-            let_op_remove_first(fe, 0);
-            let_op_remove_first(fe, 1);
-        }
-        return fe_vec;
+
+        return ret_fe_vec;
     }
     
     /**
@@ -342,39 +347,39 @@ namespace HepLib::SD {
      * @param delta the delta list
      * @param xcs a list of format: { {x1,c1}, {x2,c2} ... }, will be updated by its append method
      * @param mode 
-     * - mode=0: x_i P_i, with P_i positive
-     * - mode=1: x_i P_i + G_0, with P_i and G_0 positive
-     * - mode=2: x_i P_i + G_0, with P-i positive, G_0 ~ (xm-xn)^n
-     * - mode=3: x_i P_i + x_0 G_0 + Q_0, with P-i positive, G_0 ~ (xm-xn)^n & Q_0 positive
-     * - mode=4: x_i P_i + x_0 G_0 + Q_0, with P-i positive, G_0/Q_0 ~ (xm-xn)^n
+     * in the following, the repeated i implies summation on it.
+     * - mode=0: x_i P_i, with P_i same-sign
+     * - mode=1: x_i P_i + G_0, with P_i and G_0 same-sign
+     * - mode=2: x_i P_i + G_0, with P-i same-sign, G_0 ~ (xm-xn)^n
+     * - mode=3: x_i P_i + x_0 G_0 + Q_0, with P-i same-sign, G_0 ~ (xm-xn)^n & Q_0 same-sign
+     * - mode=4: x_i P_i + x_0 G_0 + Q_0, with P-i same-sign, G_0/Q_0 ~ (xm-xn)^n
      * @return 2 elements of { function list, exponet list }, just like fe
      */
     bool ChengWu::isPartilizable(const ex ft, const ex delta, lst &xcs, int mode) {
         for(auto xi : delta) {
-            ex f = ft;
-            if(!f.has(xi) || f.degree(xi)!=1) continue;
+            if(!ft.has(xi) || ft.degree(xi)!=1) continue;
 
-            auto cxi = f.coeff(xi);
-            f = f.subs(xi==0);
+            auto cxi = ft.coeff(xi);
             int cxi_sgn = xSign(cxi);
+            auto re_ft = ft.subs(xi==0);
 
             if(cxi_sgn!=0) {
                 if(cxi_sgn<0) cxi = ex(0)-cxi;
             
                 lst ret;
                 ret.append(lst{xi, cxi});
-                if(f.is_zero() || isPartilizable(f, delta, ret, mode)) { // mode=0
+                if(is_zero(re_ft) || isPartilizable(re_ft, delta, ret, mode)) { // mode=0
                     for(int i=0; i<ret.nops(); i++) xcs.append(ret.op(i));
                     return true;
                 }
                 
-                if((mode>0) && (xSign(f)!=0)) { // mode=1: x_i P_i + G_0, with P_i and G_0 positive
+                if((mode>0) && (xSign(re_ft)!=0)) { // mode=1: x_i P_i + G_0, with P_i and G_0 same-sign
                     xcs.append(lst{xi, cxi});
-                    if(f.subs(x(w)==1)<0) f = ex(0)-f;
-                    xcs.append(lst{0, f});
+                    if(re_ft.subs(x(w)==1)<0) re_ft = ex(0)-re_ft;
+                    xcs.append(lst{0, re_ft});
                     return true;
-                } else if(mode>1) { // mode=2: x_i P_i + G_0, with P-i positive, G_0 ~ (xm-xn)^n
-                    auto fflst = SecDec::RefinedFT_lst(f);
+                } else if(mode>1) { // mode=2: x_i P_i + G_0, with P-i same-sign, G_0 ~ (xm-xn)^n
+                    auto fflst = SecDec::XRefined_lst(re_ft);
                     if(fflst.nops()==1) {
                         symbol s;
                         auto ff = fflst.op(0).subs(x(w)==s*x(w));
@@ -387,7 +392,7 @@ namespace HepLib::SD {
                 }
             } else if(mode>2) {
                 lst bilst;
-                auto cclst = SecDec::RefinedFT_lst(cxi);
+                auto cclst = SecDec::XRefined_lst(cxi);
                 if(cclst.nops()==1) {
                     symbol s;
                     auto cc = cclst.op(0).subs(x(w)==s*x(w));
@@ -397,15 +402,15 @@ namespace HepLib::SD {
                 } else continue;
                 if(bilst.nops()!=1) continue;
                 
-                if(mode==3 && xSign(f)!=0) { 
-                    // mode=3: x_i P_i + x_0 G_0 + Q_0, with P-i positive, G_0 ~ (xm-xn)^n & Q_0 positive
+                if(mode==3 && xSign(re_ft)!=0) { 
+                    // mode=3: x_i P_i + x_0 G_0 + Q_0, with P-i same-sign, G_0 ~ (xm-xn)^n & Q_0 same-sign
                     xcs.append(bilst.op(0));
                     return true;
                 }
             
                 if(mode==4) { 
-                    // mode=4: x_i P_i + x_0 G_0 + Q_0, with P-i positive, G_0/Q_0 ~ (xm-xn)^n
-                    auto fflst = SecDec::RefinedFT_lst(f);
+                    // mode=4: x_i P_i + x_0 G_0 + Q_0, with P-i same-sign, G_0~(xm-xn)^n & Q_0~(xm'-xn')^n'
+                    auto fflst = SecDec::XRefined_lst(re_ft);
                     if(fflst.nops()==1) {
                         symbol s;
                         auto ff = fflst.op(0).subs(x(w)==s*x(w));
@@ -553,7 +558,7 @@ namespace HepLib::SD {
             Projectivize(fe, delta, re_xi);
         }
         
-        auto new_ft = SecDec::RefinedFT(get_op(fe, 0, 0));
+        auto new_ft = SecDec::XRefined(get_op(fe, 0, 0));
         symbol ss;
         auto sft = new_ft.subs(x(w)==ss*x(w));
         if(sft.degree(ss)!=1 || sft.ldegree(ss)!=1) throw Error("Partilize: ldegree/degree is NOT 1.");
@@ -615,7 +620,7 @@ namespace HepLib::SD {
                 if(!get_op(fe, 1, 0).is_zero()) {
                     throw Error("Evaluate: (!get_op(fe, 1, 0).is_zero())");
                 }
-                ft = SecDec::RefinedFT(ft);
+                ft = SecDec::XRefined(ft);
                 
                 if(fe.nops()<3 || xSign(ft)!=0) {
                     let_op(fe, 0, 0, 1);

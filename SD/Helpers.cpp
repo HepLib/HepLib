@@ -434,7 +434,7 @@ ex SecDec::PrefactorFIESTA(int nLoop) {
 /*-----------------------------------------------------*/
 // Refined F-Term
 /*-----------------------------------------------------*/
-ex SecDec::RefinedFT(ex const & in_ft) {
+ex SecDec::XRefined(ex const & in_ft) {
     auto ft = Factor(in_ft);
     while(true) {
         auto ft0 = ft;
@@ -457,8 +457,8 @@ ex SecDec::RefinedFT(ex const & in_ft) {
     return ft;
 }
 
-lst SecDec::RefinedFT_lst(ex const & in_ft) {
-    auto ft = RefinedFT(in_ft);
+lst SecDec::XRefined_lst(ex const & in_ft) {
+    auto ft = XRefined(in_ft);
     lst ret;
     if(is_a<mul>(ft)) {
         for(auto const &item : ft) ret.append(item);

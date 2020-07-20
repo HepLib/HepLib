@@ -25,7 +25,7 @@ namespace HepLib::SD {
             return false;
         }
         ex ft = fe.op(0).op(1);
-        lst fts = RefinedFT_lst(ft);
+        lst fts = XRefined_lst(ft);
         ex eqn;
         
         //-----------------------------------------------------
@@ -46,7 +46,7 @@ namespace HepLib::SD {
                     symbol xi, xj;
                     auto ftij = ftitem.subs(lst{xs[i]==xi, xs[j]==xj});
                     auto xs2 = get_x_from(ftij);
-                    auto fts2 = RefinedFT_lst(ftij.subs(x(w)==0));
+                    auto fts2 = XRefined_lst(ftij.subs(x(w)==0));
 
                     for(auto item : fts2) {
                         if(!item.has(xi) || !item.has(xj)) continue;
@@ -135,7 +135,7 @@ namespace HepLib::SD {
             return false;
         }
         ex ft = fe.op(0).op(1);
-        lst fts = RefinedFT_lst(ft);
+        lst fts = XRefined_lst(ft);
         ex eqn;
         
         //-----------------------------------------------------
@@ -156,7 +156,7 @@ namespace HepLib::SD {
                             else xsubs.append(xs2[ni]==0);
                             tnn /= 2;
                         }
-                        auto fts2 = RefinedFT_lst(ftij.subs(xsubs));
+                        auto fts2 = XRefined_lst(ftij.subs(xsubs));
                         
                         int NN = 100;
                         for(auto item : fts2) {
@@ -342,7 +342,7 @@ namespace HepLib::SD {
                         else xsubs.append(xs2[ni]==0);
                         tnn /= 2;
                     }
-                    auto fts2 = RefinedFT_lst(fti.subs(xsubs));
+                    auto fts2 = XRefined_lst(fti.subs(xsubs));
                     
                     int NN = 100;
                     for(auto item : fts2) {
