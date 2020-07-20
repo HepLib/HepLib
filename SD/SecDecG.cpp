@@ -30,7 +30,7 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
     coordT cpts[npts * dim];
     for(int r=0; r<npts; r++) {
         for(int c=0; c<dim; c++) {
-            if(imax<1000) cpts[r*dim + c] = ex_to<numeric>(pts(r,c)).to_int();
+            if(imax<500) cpts[r*dim + c] = ex_to<numeric>(pts(r,c)).to_int();
             else cpts[r*dim + c] = ex_to<numeric>(pts(r,c)).to_double();
         }
     }
@@ -47,18 +47,17 @@ vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
         sprintf(opts, "qhull QbB Fv");
         exit_code = qh_new_qhull(dim, npts, cpts, 0, opts, NULL, dev_null);
         if(exit_code) {
-            cout << ErrColor << "qhull return code : " << exit_code << RESET << endl;
-            cout << "input for qhull Fv:" << endl;
-            cout << dim << endl;
-            cout << npts << endl;
-            for(int r=0; r<npts; r++) {
-                for(int c=0; c<dim; c++) cout << pts(r,c) << " ";
-                cout << endl;
-            }
-            fclose(dev_null);
             qh_freeqhull(!qh_ALL);
             qh_memfreeshort(&curlong, &totlong);
-            throw "Qhull Error!";
+            char opts[32];
+            sprintf(opts, "qhull QJ Fv");
+            exit_code = qh_new_qhull(dim, npts, cpts, 0, opts, NULL, dev_null);
+            if(exit_code) {
+                fclose(dev_null);
+                qh_freeqhull(!qh_ALL);
+                qh_memfreeshort(&curlong, &totlong);
+                throw Error("RuhQHull: qhull exit code "+to_string(exit_code));
+            }
         }
     }
     fclose(dev_null);
@@ -420,8 +419,8 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     } else {
         auto npp = ParallelProcess;
         ParallelProcess = CpuCores()/8;
-        if(deg_mat.rows()>1000) ParallelProcess = CpuCores()/4;
-        else if(deg_mat.rows()>5000) ParallelProcess = CpuCores()/2;
+        if(deg_mat.rows()>250) ParallelProcess = CpuCores()/4;
+        else if(deg_mat.rows()>500) ParallelProcess = CpuCores()/2;
         auto verb = Verbose;
         Verbose = 0;
         auto scs = 

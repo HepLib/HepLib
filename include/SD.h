@@ -306,7 +306,8 @@ namespace HepLib::SD {
         static bool isPartilizable(const ex ft, const ex delta, lst &xcs, int mode=0);
         static void Partilize(const lst xcs, const lst delta, const ex fe, exvector & ret_lst);
         
-        static exvector Evaluate(ex fe);
+        static exvector Evaluate(const ex & fe);
+        static exvector WickRotation(const exvector & fe_vec);
         static exvector Apply(const vector<ex> & fe_vec);
     };
 

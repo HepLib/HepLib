@@ -30,38 +30,15 @@ namespace HepLib::SD {
         
         map<int,bool> flag;
         auto nn = degs_vec.size();
-        for(int i=0; i<nn; i++) flag[i] = false;
         
-        if(false) {
-            map<int,vector<int>> si_map;
-            for(int i=0; i<nn; i++) {
-                exvector & degs = degs_vec[i];
-                int s = 0;
-                for(auto n : degs) s += ex2int(n);
-                si_map[s].push_back(i);
-            }
-            
-            //re-initialize flag
-            for(int i=0; i<nn; i++) flag[i] = true;
-            
-            for(auto kv : si_map) {
-                vector<int> & ivec = kv.second;
-                if(ivec.size()<1) continue;
-                for(int c=0; c<nx; c++) {
-                    ex min = 10000000;
-                    ex max = -1000000;
-                    for(auto ii : ivec) {
-                        auto ci = degs_vec[ii][c];
-                        if(ci<min) min = ci;
-                        if(ci>max) max = ci;
-                    }
-                    for(auto ii : ivec) {
-                        if(!flag[ii]) continue;
-                        auto ci = degs_vec[ii][c];
-                        if(is_zero(ci-min)) flag[ii]=false;
-                    }
-                }
-            }
+        for(int i=0; i<nn; i++) flag[i] = true;
+        try {
+            matrix mat(nn,nx);
+            for(int ri=0; ri<nn; ri++) for(int ci=0; ci<nx; ci++) mat(ri,ci) = degs_vec[ri][ci];
+            auto vvi = SecDecG::RunQHull(mat);
+            for(auto vi : vvi) for(auto ii : vi) flag[ii] = false;
+        } catch(...) { 
+            for(int i=0; i<nn; i++) flag[i] = false;
         }
         
         for(int i=0; i<nn; i++) {
@@ -96,6 +73,7 @@ namespace HepLib::SD {
             for(int c=0; c<nx; c++) res *= pow(xs[c],degs_vec[i][c]);
             ret += res;
         }
+
         return ret;
     }
 
@@ -524,6 +502,7 @@ namespace HepLib::SD {
             if(i!=1 && (in_nlst.op(i).is_zero() || in_plst.op(i)==ex(1))) continue;
             if(i!=1 && !in_plst.op(i).has(x(w)) && !in_plst.op(i).has(y(w)) && !in_plst.op(i).has(z(w))) {
                 if(in_nlst.op(i).info(info_flags::integer)) const_term *= pow(in_plst.op(i), in_nlst.op(i));
+                else if(xPositive(in_plst.op(i))) const_term *= pow(in_plst.op(i), in_nlst.op(i));
                 else const_term *= exp(log(in_plst.op(i)) * in_nlst.op(i));
             } else {
                 auto ptmp = collect_common_factors(mma_expand(in_plst.op(i),{x(w),y(w),z(w)}));
@@ -615,6 +594,7 @@ namespace HepLib::SD {
         
         if(nlst_comb.op(0)!=1) {
             if(nlst_comb.op(0).info(info_flags::integer)) plst_comb.let_op(0) = pow(plst_comb.op(0),nlst_comb.op(0));
+            else if(xPositive(plst_comb.op(0))) plst_comb.let_op(0) = pow(plst_comb.op(0),nlst_comb.op(0));
             else plst_comb.let_op(0) = exp(log(plst_comb.op(0))*nlst_comb.op(0));
             nlst_comb.let_op(0) = 1;
         }
@@ -1206,7 +1186,8 @@ namespace HepLib::SD {
                         if(pn.op(0).has(CT(w)) || pn.op(0).has(FTX(w1,w2))) {
                             if(pn.op(1)!=1) throw Error("SDPrepares: exponent of CT is NOT 1.");
                             expr *= pn.op(0);
-                        } else expr *= exp(log(pn.op(0)) * pn.op(1));
+                        } else if(xPositive(pn.op(0))) expr *= pow(pn.op(0), pn.op(1));
+                        else expr *= exp(log(pn.op(0)) * pn.op(1));
                     }
                     expr = exp_simplify(expr);
                     ibp_res_vec.push_back(lst{ item.op(0), expr });
@@ -1400,8 +1381,12 @@ namespace HepLib::SD {
                         }
                         auto pref = mma_series(ct2, ep, epN-di);
                         if(pref.has(vs)) pref = mma_series(pref, vs, sN);
-                        //if(use_CCF) intg = collect_common_factors(intg);
-                        intg = fermat_normal(intg);
+                        if(is_zero(intg.subs(x(w)==ex(1)/5))) intg = fermat_normal(intg);
+                        try {
+                            intg = collect_common_factors(intg);
+                        } catch(...) {
+                            intg = collect_common_factors(intg.expand());
+                        }
                         para_res_lst.append(lst{pref * pow(ep, di), intg});
                     }
                 } else {
@@ -1429,8 +1414,12 @@ namespace HepLib::SD {
                                 }
                                 auto pref = mma_series(ct2, ep, epN-di);
                                 if(pref.has(vs)) pref = mma_series(pref, vs, sN);
-                                //if(use_CCF) intg = collect_common_factors(intg);
-                                intg = fermat_normal(intg);
+                                if(is_zero(intg.subs(x(w)==ex(1)/5))) intg = fermat_normal(intg);
+                                try {
+                                    intg = collect_common_factors(intg);
+                                } catch(...) {
+                                    intg = collect_common_factors(intg.expand());
+                                }
                                 para_res_lst.append(lst{eps_ci * pref * pow(eps, sdi) * pow(ep, di), intg});
                             }
                         }

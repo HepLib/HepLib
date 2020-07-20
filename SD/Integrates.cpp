@@ -316,6 +316,11 @@ namespace HepLib::SD {
                 }
             }
             if(cmax<=0) {
+                while(true) {
+                    auto co2 = subs(co,lst{exp(w1*log(w2)+w3)==pow(w2,w1)*exp(w3),exp(w1*log(w2))==pow(w2,w1)});
+                    if(is_zero(co2-co)) break;
+                    co = co2;
+                }
                 if(normal(co).is_zero()) continue;
                 throw Error("Integrates: cmax<=0 with co = "+ex2str(co));
             }

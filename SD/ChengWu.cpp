@@ -10,7 +10,7 @@
 #include <cmath>
 
 namespace HepLib::SD {
-
+    
     /**
      * @brief ChengWu for SecDec class
      */
@@ -449,7 +449,7 @@ namespace HepLib::SD {
      */
     void ChengWu::Partilize(const lst xcs, const lst delta_in, const ex fe_in, exvector & ret_lst) {
         if(Verbose>10) {
-            cout << "  \\--" << Color_HighLight << "Cheng-Wu @xcs="  << xcs.nops() << RESET << endl;
+            cout << "  \\--" << Color_HighLight << "ChengWu @xcs="  << xcs.nops() << RESET << endl;
         }
         lst ret = xcs;
         auto fe = fe_in;
@@ -606,7 +606,7 @@ namespace HepLib::SD {
      * @param in_fe input fe, ft = in_fe.op(0).op(0), and in_fe.op(1).op(0) should be 0
      * @return vector of fe, and fe_op(0).op(0) replaced by 1-ok, 2-nok
      */
-    vector<ex> ChengWu::Evaluate(ex in_fe) {
+    vector<ex> ChengWu::Evaluate(const ex & in_fe) {
         vector<ex> fe_lst, ret_lst;
         fe_lst.push_back(in_fe);
         static int total_modes = 5;
@@ -684,5 +684,189 @@ namespace HepLib::SD {
 
         return ret_lst;
     }
-
+    
+    namespace {
+        int maxn(const ex pols, const ex xi) {
+            int max_xn = -1;
+            for(auto item : pols) {
+                auto cxn = item.degree(xi);
+                if(max_xn<cxn) max_xn = cxn;
+            }
+            return max_xn;
+        }
+    }
+    
+    /**
+     * @brief WickRotation, just check WRA exist or NOT to see successful or NOT. Still Experimental
+     * @param in_fe input fe
+     * @return vector of fe
+     */
+    exvector ChengWu::WickRotation(const exvector & fe_vec) {
+        vector<ex> ret_vec, run_vec, run2_vec;
+        run_vec = fe_vec;
+        ReRun:
+        for(auto fe : run_vec) {
+            ex ft = fe.op(0).op(1);        
+            auto xs = get_x_from(ft);
+            
+            // Case: x(cx!=0) + (c0!=0)
+            for(auto xi : xs) {
+                auto ftx = mma_collect(ft,xi);
+                auto c0 = ftx.subs(xi==0);
+                
+                auto cx = ftx-c0;
+                if(xSign(cx)!=0) {
+                    if(xSign(c0)!=0) {
+                        auto max_xn = maxn(fe.op(0),xi)+1;
+                        auto wra = WRA(-xSign(cx) * Pi/max_xn);
+                        fe.let_op(0) = fe.op(0).subs(xi==exp(I*wra)*xi);
+                        if(fe.op(1).op(0)!=1) throw Error("WickRotation: fe.op(0).op(0)!=1.");
+                        fe.let_op(0).let_op(0) = fe.op(0).op(0) * exp(I*wra);
+                        ret_vec.push_back(fe);
+                        goto next_fe;
+                    } else {
+                        auto item = SecDec::XRefined(c0);
+                        auto xs2 = get_x_from(item);
+                        for(auto xi2 : xs2) {
+                            if(item.degree(xi2)!=1) continue;
+                            auto xc0 = item.subs(xi2==0);
+                            auto xc1 = item.coeff(xi2);
+                            if(xSign(xc0)*xSign(xc1)<0) {
+                                ex xx = 0;
+                                for(auto xi3 : xs2) {
+                                    if(xi3==xi || xi3==xi2) continue;
+                                    xx = xi3;
+                                    break;
+                                } 
+                                if(is_zero(xx)) continue;
+                                Scalelize(fe,xi2,-xc0/xc1/xx);
+                                auto bfe = Binarize(fe, xi2-xx);
+                                for(auto item2 : bfe) run2_vec.push_back(item2);
+                                goto next_fe;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Case: a*x^2+b*x+c with a*c<0 or b*c>0
+            for(auto xi : xs) {
+                auto ftx = mma_collect(ft,xi);
+                if(ftx.degree(xi)!=2) continue;
+                
+                auto c0 = ftx.coeff(xi,0);
+                auto c1 = ftx.coeff(xi,1);
+                auto c2 = ftx.coeff(xi,2);
+                
+                if(xSign(c2) * xSign(c0) <0) {
+                    if(xSign(c1)!=0) {
+                        auto max_xn = maxn(fe.op(0),xi)+1;
+                        auto wra = WRA(-xSign(c2) * Pi/max_xn);
+                        fe.let_op(0) = fe.op(0).subs(xi==exp(I*wra)*xi);
+                        fe.let_op(0).let_op(1) = c2*pow(xi,2)*exp(I*wra)+c1*xi+c0*exp(-I*wra);
+                        if(fe.op(1).op(0)!=1) throw Error("WickRotation: fe.op(0).op(0)!=1.");
+                        fe.let_op(0).let_op(0) = fe.op(0).op(0) * exp(I*wra*(1+fe.op(1).op(1)));
+                        ret_vec.push_back(fe);
+                        goto next_fe;
+                    } else {
+                        auto item = SecDec::XRefined(c1);
+                        auto xs2 = get_x_from(item);
+                        for(auto xi2 : xs2) {
+                            if(item.degree(xi2)!=1) continue;
+                            auto xc0 = item.subs(xi2==0);
+                            auto xc1 = item.coeff(xi2);
+                            if(xSign(xc0)*xSign(xc1)<0) {
+                                ex xx = 0;
+                                for(auto xi3 : xs2) {
+                                    if(xi3==xi || xi3==xi2) continue;
+                                    xx = xi3;
+                                    break;
+                                } 
+                                if(is_zero(xx)) continue;
+                                Scalelize(fe,xi2,-xc0/xc1/xx);
+                                auto bfe = Binarize(fe, xi2-xx);
+                                for(auto item2 : bfe) run2_vec.push_back(item2);
+                                goto next_fe;
+                            }
+                        }
+                    }
+                }
+                
+                if(xSign(c1) * xSign(c0) >0) {
+                    if(xSign(c2)!=0) {
+                        auto max_xn = maxn(fe.op(0),xi)+1;
+                        auto wra = WRA(xSign(c0) * Pi/max_xn);
+                        fe.let_op(0) = fe.op(0).subs(xi==exp(I*wra)*xi);
+                        fe.let_op(0).let_op(1) = c2*pow(xi,2)+c1*xi*exp(-I*wra)+c0*exp(-2*I*wra);
+                        if(fe.op(1).op(0)!=1) throw Error("WickRotation: fe.op(0).op(0)!=1.");
+                        fe.let_op(0).let_op(0) = fe.op(0).op(0) * exp(I*wra*(1+2*fe.op(1).op(1)));
+                        ret_vec.push_back(fe);
+                        goto next_fe;
+                    } else {
+                        auto item = SecDec::XRefined(c2);
+                        auto xs2 = get_x_from(item);
+                        for(auto xi2 : xs2) {
+                            if(item.degree(xi2)!=1) continue;
+                            auto xc0 = item.subs(xi2==0);
+                            auto xc1 = item.coeff(xi2);
+                            if(xSign(xc0)*xSign(xc1)<0) {
+                                ex xx = 0;
+                                for(auto xi3 : xs2) {
+                                    if(xi3==xi || xi3==xi2) continue;
+                                    xx = xi3;
+                                    break;
+                                } 
+                                if(is_zero(xx)) continue;
+                                Scalelize(fe,xi2,-xc0/xc1/xx);
+                                auto bfe = Binarize(fe, xi2-xx);
+                                for(auto item2 : bfe) run2_vec.push_back(item2);
+                                goto next_fe;
+                            }
+                        }
+                    }
+                }
+                
+                auto c0x = Factor(c0);
+                if(is_a<mul>(c0x)) {
+                    ex cc = 1;
+                    for(auto item : c0x) {
+                        if(!is_a<numeric>(item) && !item.match(x(w))) cc *= item;
+                    }
+                    c0x = cc;
+                }
+                if(Factor(c0x).match(pow(w,2))) {
+                    auto item = SecDec::XRefined(c0x);
+                    auto xs2 = get_x_from(item);
+                    for(auto xi2 : xs2) {
+                        if(item.degree(xi2)!=1) continue;
+                        auto xc0 = item.subs(xi2==0);
+                        auto xc1 = item.coeff(xi2);
+                        if(xSign(xc0)*xSign(xc1)<0) {
+                            ex xx = 0;
+                            for(auto xi3 : xs2) {
+                                if(xi3==xi || xi3==xi2) continue;
+                                xx = xi3;
+                                break;
+                            } 
+                            if(is_zero(xx)) continue;
+                            Scalelize(fe,xi2,-xc0/xc1/xx);
+                            auto bfe = Binarize(fe, xi2-xx);
+                            for(auto item2 : bfe) run2_vec.push_back(item2);
+                            goto next_fe;
+                        }
+                    }
+                }
+            }
+            
+            ret_vec.push_back(fe);
+            next_fe: ;
+        }
+        if(run2_vec.size()>0) {
+            run_vec = run2_vec;
+            run2_vec.clear();
+            goto ReRun;
+        }
+        return ret_vec;
+    }
+    
 }
