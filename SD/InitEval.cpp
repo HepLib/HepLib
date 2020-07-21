@@ -424,7 +424,7 @@ namespace HepLib::SD {
             auto fs = fe.op(0);
             auto ns = fe.op(1);
             for(int i=0; i<fs.nops(); i++) {
-                if(i==1 || ns.op(i).info(info_flags::posint)) continue;
+                if(i==1 || ns.op(i).info(info_flags::integer)) continue;
                 auto nv = fs.op(i).subs(Symbol::AssignMap).subs(nReplacements).subs(lst{CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111});
                 if(!xPositive(nv)) {
                     cout << "fs = " << fs << endl << "ns = " << ns << endl;

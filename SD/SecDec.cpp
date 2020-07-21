@@ -536,6 +536,9 @@ namespace HepLib::SD {
                             } else {
                                 tmul *= tmp;
                             }
+                        } else if(tmp.match(pow(w1,w2)) && ntmp.info(info_flags::integer) && tmp.op(1).info(info_flags::integer)) {
+                            plst.append(tmp.op(0));
+                            nlst.append(ntmp * tmp.op(1));
                         } else if(tmp.match(pow(w1,w2)) && xPositive(tmp.op(0))) {
                             plst.append(tmp.op(0));
                             nlst.append(ntmp * tmp.op(1));
@@ -591,7 +594,7 @@ namespace HepLib::SD {
                 inp[plst[i]] = 1;
             }
         }
-        
+
         if(nlst_comb.op(0)!=1) {
             if(nlst_comb.op(0).info(info_flags::integer)) plst_comb.let_op(0) = pow(plst_comb.op(0),nlst_comb.op(0));
             else if(xPositive(plst_comb.op(0))) plst_comb.let_op(0) = pow(plst_comb.op(0),nlst_comb.op(0));
@@ -636,7 +639,7 @@ namespace HepLib::SD {
             }
             FunExp.clear();
             FunExp.shrink_to_fit();
-            
+
             exmap fn;
             for(auto fe : funexp) {
                 ex key = 1;
