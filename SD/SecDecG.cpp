@@ -403,7 +403,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     }
 
     vector<matrix> vmat;
-    if(deg_mat.rows()<100) {
+    if(deg_mat.rows()<50) {
         for(int r=0; r<deg_mat.rows(); r++) {
             matrix tmp(deg_mat.rows()+xs.size(), deg_mat.cols());
             for(int rr=0; rr<deg_mat.rows(); rr++) {
@@ -419,8 +419,8 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     } else {
         auto npp = ParallelProcess;
         ParallelProcess = CpuCores()/8;
-        if(deg_mat.rows()>250) ParallelProcess = CpuCores()/4;
-        else if(deg_mat.rows()>500) ParallelProcess = CpuCores()/2;
+        if(deg_mat.rows()>100) ParallelProcess = CpuCores()/4;
+        else if(deg_mat.rows()>200) ParallelProcess = CpuCores()/2;
         auto verb = Verbose;
         Verbose = 0;
         auto scs = 

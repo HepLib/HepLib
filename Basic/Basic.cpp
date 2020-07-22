@@ -1881,5 +1881,12 @@ namespace HepLib {
         return nd.op(0)/nd.op(1);
     }
     
+    ex collect_factors(const ex & expr) {
+        try {
+            return collect_common_factors(expr);
+        } catch(...) { }
+        return expr;
+    }
+    
 }
 

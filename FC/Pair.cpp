@@ -166,6 +166,8 @@ namespace HepLib::FC {
 
         lst alst, blst;
         auto aex = a.expand();
+        auto bex = b.expand();
+        if(is_zero(aex) || is_zero(bex)) return 0;
         if(is_a<add>(aex)) {
             for(auto item : aex) alst.append(item);
         } else alst.append(aex);
@@ -175,15 +177,14 @@ namespace HepLib::FC {
             ex v=1;
             for(auto ii : alst.op(i)) {
                 if(is_a<Vector>(ii) || is_a<Index>(ii)) {
-                    if(!is_zero(v-1)) throw Error("Error Found in SP @1");
+                    if(!is_zero(v-1)) throw Error("Error Found in SP @1 : "+ex2str(alst));
                     v = ii;
                 } else c *= ii;
             }
-            if(is_zero(v-1)) throw Error("Error Found in SP @2");
+            if(is_zero(v-1)) throw Error("Error Found in SP @2 : "+ex2str(alst));
             alst.let_op(i) = lst{c,v};
         }
         
-        auto bex = b.expand();
         if(is_a<add>(bex)) {
             for(auto item : bex) blst.append(item);
         } else blst.append(bex);

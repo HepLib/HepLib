@@ -358,6 +358,8 @@ namespace HepLib {
     ex fermat_numer_denom(const ex & expr);
     ex fermat_normal(const ex & expr);
     
+    ex collect_factors(const ex & expr);
+    
     /*-----------------------------------------------------*/
     // EvalF/D/Q/MP
     /*-----------------------------------------------------*/

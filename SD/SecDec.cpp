@@ -115,7 +115,7 @@ namespace HepLib::SD {
     bool SecDec::VerifySD(vector<exmap> map_vec, bool quick) {
         return SecDecBase::VerifySD(map_vec, quick);
     }
-
+    
     vector<exmap> SecDecBase::x2y(const lst & in_xpols) {
         if(in_xpols.has(y(w))) throw Error("SecDecBase::x2y: y(w) found @ " + ex2str(in_xpols));
         lst xpols_lst = in_xpols;
@@ -501,9 +501,9 @@ namespace HepLib::SD {
         for(int i=0; i<in_plst.nops(); i++) {
             if(i!=1 && (in_nlst.op(i).is_zero() || in_plst.op(i)==ex(1))) continue;
             if(i!=1 && !in_plst.op(i).has(x(w)) && !in_plst.op(i).has(y(w)) && !in_plst.op(i).has(z(w))) {
-                if(in_nlst.op(i).info(info_flags::integer)) const_term *= pow(in_plst.op(i), in_nlst.op(i));
-                else if(xPositive(in_plst.op(i))) const_term *= pow(in_plst.op(i), in_nlst.op(i));
-                else const_term *= exp(log(in_plst.op(i)) * in_nlst.op(i));
+                if(in_nlst.op(i).info(info_flags::integer) || xPositive(in_plst.op(i))) {
+                    const_term *= pow(in_plst.op(i), in_nlst.op(i));
+                } else const_term *= exp(log(in_plst.op(i)) * in_nlst.op(i));
             } else {
                 auto ptmp = collect_common_factors(mma_expand(in_plst.op(i),{x(w),y(w),z(w)}));
                 auto ntmp = in_nlst.op(i);
@@ -596,9 +596,9 @@ namespace HepLib::SD {
         }
 
         if(nlst_comb.op(0)!=1) {
-            if(nlst_comb.op(0).info(info_flags::integer)) plst_comb.let_op(0) = pow(plst_comb.op(0),nlst_comb.op(0));
-            else if(xPositive(plst_comb.op(0))) plst_comb.let_op(0) = pow(plst_comb.op(0),nlst_comb.op(0));
-            else plst_comb.let_op(0) = exp(log(plst_comb.op(0))*nlst_comb.op(0));
+            if(nlst_comb.op(0).info(info_flags::integer) || xPositive(plst_comb.op(0))) {
+                plst_comb.let_op(0) = pow(plst_comb.op(0),nlst_comb.op(0));
+            } else plst_comb.let_op(0) = exp(log(plst_comb.op(0))*nlst_comb.op(0));
             nlst_comb.let_op(0) = 1;
         }
         
@@ -1067,7 +1067,7 @@ namespace HepLib::SD {
         while(ibp_in_vec.size()>0) {
             pn++;
             ostringstream spn;
-            spn << "IBP-" << (pn-1);
+            spn << "XIBP-" << (pn-1);
             auto ibp_res =
             GiNaC_Parallel(ibp_in_vec.size(), [&](int idx)->ex {
                 // return lst
@@ -1189,8 +1189,9 @@ namespace HepLib::SD {
                         if(pn.op(0).has(CT(w)) || pn.op(0).has(FTX(w1,w2))) {
                             if(pn.op(1)!=1) throw Error("SDPrepares: exponent of CT is NOT 1.");
                             expr *= pn.op(0);
-                        } else if(xPositive(pn.op(0))) expr *= pow(pn.op(0), pn.op(1));
-                        else expr *= exp(log(pn.op(0)) * pn.op(1));
+                        } else if(xPositive(pn.op(0)) || pn.op(1).info(info_flags::integer)) {
+                            expr *= pow(pn.op(0), pn.op(1));
+                        } else expr *= exp(log(pn.op(0)) * pn.op(1));
                     }
                     expr = exp_simplify(expr);
                     ibp_res_vec.push_back(lst{ item.op(0), expr });
@@ -1248,7 +1249,7 @@ namespace HepLib::SD {
             }
 
             return para_res_lst;
-        }, "Taylor", true);
+        }, "XTaylor", true);
         
         // Take z-residues
         bool zResides = false;
@@ -1369,7 +1370,6 @@ namespace HepLib::SD {
             for(int i=0; i<cv_lst.nops();i++) {
                 auto tmp = cv_lst.op(i).op(0);
                 auto vc = cv_lst.op(i).op(1);
-                //if(use_CCF) tmp = collect_common_factors(tmp);
                 if(!tmp.has(eps) && !ct.has(eps)) {
                     if(tmp.has(epsID(w)) || ct.has(epsID(w))) {
                         throw Error("EpsEpExpands: epsID should be always multipled by eps!");
@@ -1384,11 +1384,8 @@ namespace HepLib::SD {
                         }
                         auto pref = mma_series(ct2, ep, epN-di);
                         if(pref.has(vs)) pref = mma_series(pref, vs, sN);
-                        if(is_zero(intg.subs(x(w)==ex(1)/5))) intg = fermat_normal(intg);
-                        try {
-                            intg = collect_common_factors(intg);
-                        } catch(...) {
-                            intg = collect_common_factors(intg.expand());
+                        if(is_zero(intg.subs(x(w)==ex(1)/7)) && is_zero(intg.subs(x(w)==ex(1)/13))) {
+                            intg = fermat_normal(intg);
                         }
                         para_res_lst.append(lst{pref * pow(ep, di), intg});
                     }
@@ -1398,7 +1395,6 @@ namespace HepLib::SD {
                     ex stmp = mma_series(tmp, eps, epsN-sctN);
                     for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
                         tmp = stmp.coeff(eps, sdi);
-                        //if(use_CCF) tmp = collect_common_factors(tmp);
                         if(tmp.has(eps)) {
                             throw Error("EpsEpExpands: eps found @ tmp = " + ex2str(tmp));
                         }
@@ -1417,11 +1413,8 @@ namespace HepLib::SD {
                                 }
                                 auto pref = mma_series(ct2, ep, epN-di);
                                 if(pref.has(vs)) pref = mma_series(pref, vs, sN);
-                                if(is_zero(intg.subs(x(w)==ex(1)/5))) intg = fermat_normal(intg);
-                                try {
-                                    intg = collect_common_factors(intg);
-                                } catch(...) {
-                                    intg = collect_common_factors(intg.expand());
+                                if(is_zero(intg.subs(x(w)==ex(1)/7)) || is_zero(intg.subs(x(w)==ex(1)/13))) {
+                                    intg = fermat_normal(intg);
                                 }
                                 para_res_lst.append(lst{eps_ci * pref * pow(eps, sdi) * pow(ep, di), intg});
                             }
