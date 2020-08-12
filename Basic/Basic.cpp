@@ -270,19 +270,6 @@ namespace HepLib {
         if(Verbose > 1 && ntotal > 0) cout << "@" << now(false) << endl;
         return ovec;
     }
-
-    /**
-     * @brief get the possymbol from symbol factory, if not exsit, a new one will be created
-     * @param s the name of the symbol
-     * @param check true to check exist, and if so, error will be thrown
-     * @return return the found/created symbol
-     */
-    const possymbol & get_possymbol(const string & s) {
-        static map<string, possymbol> directory;
-        map<string, possymbol>::iterator i = directory.find(s);
-        if (i != directory.end()) return i->second;
-        else return directory.insert(make_pair(s, possymbol(s))).first->second;
-    }
     
     /**
      * @brief get the symbol from symbol factory, if not exsit, a new one will be created

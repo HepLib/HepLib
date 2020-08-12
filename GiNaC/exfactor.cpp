@@ -1385,6 +1385,9 @@ static ex factor_univariate(const ex& poly, const ex& x, unsigned int& prime)
 	poly.unitcontprim(x, unit, cont, prim_ex);
 	upoly prim;
 	upoly_from_ex(prim, prim_ex, x);
+	if (prim_ex.is_equal(1)) {
+		return poly;
+	}
 
 	// determine proper prime and minimize number of modular factors
 	prime = 3;
@@ -2123,14 +2126,13 @@ static ex factor_sqrfree(const ex& poly);
  */
 static ex factor_multivariate(const ex& poly, const exset& syms)
 {
-	exset::const_iterator s;
 	const ex& x = *syms.begin();
 
 	// make polynomial primitive
 	ex unit, cont, pp;
 	poly.unitcontprim(x, unit, cont, pp);
 	if ( !is_a<numeric>(cont) ) {
-		return factor_sqrfree(cont) * factor_sqrfree(pp);
+		return unit * factor_sqrfree(cont) * factor_sqrfree(pp);
 	}
 
 	// factor leading coefficient
@@ -2149,7 +2151,7 @@ static ex factor_multivariate(const ex& poly, const exset& syms)
 	vector<numeric> a(syms.size()-1, 0);
 
 	// try now to factorize until we are successful
-    int nlimit = 0;   
+        int nlimit = 0;   
 	while ( (nlimit++)<3 ) {
 
 		unsigned int trialcount = 0;
@@ -2204,7 +2206,7 @@ static ex factor_multivariate(const ex& poly, const exset& syms)
 			vector<numeric> ftilde(vnlst.nops()-1);
 			for ( size_t i=0; i<ftilde.size(); ++i ) {
 				ex ft = vnlst.op(i+1);
-				s = syms.begin();
+				auto s = syms.begin();
 				++s;
 				for ( size_t j=0; j<a.size(); ++j ) {
 					ft = ft.subs(*s == a[j]);
@@ -2278,7 +2280,7 @@ static ex factor_multivariate(const ex& poly, const exset& syms)
 		// set up evaluation points
 		EvalPoint ep;
 		vector<EvalPoint> epv;
-		s = syms.begin();
+		auto s = syms.begin();
 		++s;
 		for ( size_t i=0; i<a.size(); ++i ) {
 			ep.x = *s++;
@@ -2351,9 +2353,9 @@ static ex factor_sqrfree(const ex& poly)
 	if ( findsymbols.syms.size() == 1 ) {
 		// univariate case
 		const ex& x = *(findsymbols.syms.begin());
-		if ( poly.ldegree(x) > 0 ) {
+		int ld = poly.ldegree(x);
+		if ( ld > 0 ) {
 			// pull out direct factors
-			int ld = poly.ldegree(x);
 			ex res = factor_univariate(expand(poly/pow(x, ld)), x);
 			return res * pow(x,ld);
 		} else {
@@ -2523,6 +2525,21 @@ ex exfactor(const ex& poly, unsigned options)
 					result *= pow(f2, k1*k2);
 				});
 		});
+    
+    find_symbols_map findsymbols;
+	findsymbols(poly);
+    exmap nmap;
+    auto nn_pi = cln::nextprobprime(3);
+	for (auto sym : findsymbols.syms) {
+		nmap[sym] = 1/numeric(nn_pi);
+        nn_pi = cln::nextprobprime(nn_pi);
+	}
+    if(!is_zero(normal(poly.subs(nmap)-result.subs(nmap)))) {
+        cout << poly << endl;
+        cout << result << endl;
+        throw runtime_error("exfactor failed, check details above.");
+    }
+  
 	return result;
 }
 

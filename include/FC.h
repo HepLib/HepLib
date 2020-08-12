@@ -24,7 +24,10 @@ namespace HepLib::FC {
     extern const Symbol nL;
     extern const Symbol nH;
     extern exmap SP_map;
+    
     extern int trace_method;
+    extern const int trace_all;
+    extern const int trace_each;
     
     class Index;
     class Vector;
@@ -276,6 +279,7 @@ namespace HepLib::FC {
     ex GAS(ex expr, unsigned rl=0);
     
     // Form, TIR, Apart
+    ex charge_conjugate(const ex &);
     ex form(const ex &expr, bool all_in_one=true, int verb=0);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
@@ -428,12 +432,12 @@ namespace HepLib::FC {
         ex ColorProj(int i, int j, Index a);
         ex ColorProj(int i, int j);
         
-        ex SL1Proj(ex si, ex qi, ex p);
-        ex SL1Proj(ex si, ex qi, ex mu, ex p);
-        ex SL1Proj(ex si, ex qi, ex mu1, ex mu2, ex p);
-        ex SL2Proj(ex si, ex qi1, ex qi2, ex mu, ex p);
-        ex SL2Proj(ex si, ex qi1, ex qi2, ex mu1, ex mu2, ex p);
-        ex SLSum(ex si, ex siR, ex qi, ex qiR, ex p, int L);
+        ex S1L1Proj(ex si, ex qi, ex p);
+        ex S1L1Proj(ex si, ex qi, ex mu, ex p);
+        ex S1L1Proj(ex si, ex qi, ex mu1, ex mu2, ex p);
+        ex S1L2Proj(ex si, ex qi1, ex qi2, ex mu, ex p);
+        ex S1L2Proj(ex si, ex qi1, ex qi2, ex mu1, ex mu2, ex p);
+        ex S1L1Sum(ex si, ex siR, ex qi, ex qiR, ex p, int L);
         
         ex LProj(const ex &expr_in, const lst &pqi, string prefix="lpj");
         

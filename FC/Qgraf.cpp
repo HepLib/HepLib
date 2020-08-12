@@ -667,7 +667,8 @@ namespace HepLib::FC::Qgraf {
      * @return -g^{qi, rqi} + p^qi p^rqi/p.p
      */
     ex J1Sum(int qi, ex p) {
-        return -SP(LI(qi),RLI(qi)) + SP(p,LI(qi)) * SP(p,RLI(qi)) / SP(p);
+        if(is_zero(p)) return -SP(LI(qi),RLI(qi));
+        else return -SP(LI(qi),RLI(qi)) + SP(p,LI(qi)) * SP(p,RLI(qi)) / SP(p);
     }
     
 }

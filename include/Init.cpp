@@ -87,7 +87,9 @@ namespace HepLib {
     }
     FC::FormFormat::_init FC::FormFormat::FormFormat_init;
     FC::FCFormat FC::FCout(cout);
-    int FC::trace_method = 1;
+    const int FC::trace_all = 0;
+    const int FC::trace_each = 1;
+    int FC::trace_method = FC::trace_each;
     
     //----------------------------------------
     // Process _init

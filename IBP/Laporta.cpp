@@ -178,7 +178,7 @@ void Laporta::Generate2(lst seed) {
     lst ns, a2s;
     for(int i=0; i<seed.nops(); i++) {
         Symbol s("a"+to_string(i));
-        a2s.append(a(i)==s);
+        a2s.append(a(i)==s+Symbol("eps"));
         ns.append(s);
     }
     lst seeds;
@@ -281,7 +281,7 @@ void Laporta::Reduce() {
     for(auto item : IBPs) {
         if(item.is_zero()) continue;
         I2lst(item);
-        if(F2lst(F(lst{1,1,1,0,1,1,1})).op(2)+2<ccImax[item].op(2)) continue;
+        //if(F2lst(F(lst{1,1,1,0,1,1,1})).op(2)+2<ccImax[item].op(2)) continue;
         ibps.push_back(item);
     }
 
@@ -313,8 +313,9 @@ void Laporta::Reduce() {
     Fermat fermat;
     fermat.Init();
     
+    auto Variables = gather_symbols(ibps);
     ostringstream ss;
-    //for(auto j : Variables) ss << "&(J="<<j<<");" << endl;
+    for(auto j : Variables) ss << "&(J="<<j<<");" << endl;
     fermat.Execute(ss.str());
     ss.clear();
     ss.str("");

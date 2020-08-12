@@ -65,9 +65,9 @@ int main() {
         
         auto tmpRL = tmpL*tmpR*(-SP(LI(-1),RLI(-1)))*(-SP(LI(-6),RLI(-6)));
         
-        tmpRL = Chi0/tree_res.op(0)*tmpRL*SLSum(LI(-11), RLI(-11), LI(-13), RLI(-13), p, 0)
-            +Chi1/tree_res.op(1)*tmpRL*SLSum(LI(-11), RLI(-11), LI(-13), RLI(-13), p, 1)
-            +Chi2/tree_res.op(2)*tmpRL*SLSum(LI(-11), RLI(-11), LI(-13), RLI(-13), p, 2);
+        tmpRL = Chi0/tree_res.op(0)*tmpRL*S1L1Sum(LI(-11), RLI(-11), LI(-13), RLI(-13), p, 0)
+            +Chi1/tree_res.op(1)*tmpRL*S1L1Sum(LI(-11), RLI(-11), LI(-13), RLI(-13), p, 1)
+            +Chi2/tree_res.op(2)*tmpRL*S1L1Sum(LI(-11), RLI(-11), LI(-13), RLI(-13), p, 2);
         
         tmpRL = MatrixContract(tmpRL).subs(SP_map);
         tmpRL = form(tmpRL, false);

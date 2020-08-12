@@ -260,7 +260,7 @@ Dimension NF;
             }
             
             // two method to handle TR objects
-            if(trace_method==1) {
+            if(trace_method==trace_all) {
                 mapTR tr;
                 item = tr(item);
                 ff << "L [o]=" << item << ";" << endl;
@@ -271,7 +271,7 @@ Dimension NF;
                     ff << ".sort" << endl;
                     ff << idstr << ".sort" << endl;
                 }
-            } else if(trace_method==2) {
+            } else if(trace_method==trace_each) {
                 exset trs;
                 find(item,TR(w),trs);
                 exmap tr2v;
@@ -292,7 +292,7 @@ Dimension NF;
                 }
                 ff << "L [o]=" << item << ";" << endl;
                 ff << ".sort" << endl;
-            }
+            } else throw Error("runform: the supplied trace_method is NOT supported yet.");
             ff << idstr << ".sort" << endl;
             ff << "contract 0;" << endl;
             ff << ".sort" << endl;
@@ -383,6 +383,33 @@ Dimension NF;
         return ret.subs(SP_map);
     }
 
+    ex charge_conjugate(const ex & expr) {
+        if(expr.has(Qgraf::Matrix(w1,w2,w3))) throw Error("charge_conjugate: Matrix found.");
+        if(!DiracGamma::has(expr)) return expr;
+        if(is_a<DiracGamma>(expr)) {
+            DiracGamma g = ex_to<DiracGamma>(expr);
+            if(is_a<Vector>(g.pi) || is_a<Index>(g.pi)) return -expr;
+            else if(is_zero(g.pi-1) || is_zero(g.pi-5)) return expr;
+        }
+        
+        if(is_a<add>(expr)) {
+            ex ret = 0;
+            for(auto item : expr) ret += charge_conjugate(item);
+            return ret;
+        } else if(is_a<mul>(expr)) {
+            ex ret = 1;
+            for(auto item : expr) ret *= charge_conjugate(item);
+            return ret;
+        } else if(is_a<ncmul>(expr)) {
+            ex ret = 1;
+            int n = expr.nops();
+            for(int i=n-1; i>-1; i--) ret *= charge_conjugate(expr.op(i));
+            return ret;
+        }
+        cout << DiracGamma::has(expr) << " : " << expr << endl;
+        throw Error("charge_conjugate: unexpected region.");
+        return 0;
+    }
 
 }
 
