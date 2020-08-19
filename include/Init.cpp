@@ -127,7 +127,6 @@ namespace HepLib {
     //----------------------------------------
     const Symbol IBP::d("d");
     int IBP::FIRE::Version = 6;
-    ex IBP::FIRE::VectorDimension = d;
     int IBP::FIRE::Threads = 8;
     
     //----------------------------------------

@@ -289,6 +289,7 @@ namespace HepLib {
     lst str2lst(const string &expr, symtab stab);
     lst str2lst(const string &expr);
     string file2str(string filename);
+    vector<string> file2vec(string filename, bool skip_empty=false);
     ex file2ex(string filename);
     int ex2int(ex);
     void ex2file(const ex &, string filename);

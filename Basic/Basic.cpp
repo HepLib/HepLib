@@ -626,6 +626,17 @@ namespace HepLib {
         return ostr;
     }
     
+    vector<string> file2vec(string filename, bool skip_empty) {
+        ifstream fs(filename);
+        vector<string> ovec;
+        std::string line;
+        while (std::getline(fs, line)) {
+            if(!skip_empty || line.size()>0) ovec.push_back(line);
+        }
+        fs.close();
+        return ovec;
+    }
+    
     /**
      * @brief read file content to ex
      * @param filename file name

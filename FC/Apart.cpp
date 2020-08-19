@@ -634,7 +634,7 @@ namespace HepLib::FC {
      * @return nothing returned, the input air_vec will be updated
      */
     void Apart2FIRE(exvector &air_vec, const lst & loops_exts, const lst & cut_props, 
-        std::function<lst(const FIRE &, const ex &)> uf) {
+        std::function<lst(const Base &, const ex &)> uf) {
         string wdir = to_string(getpid()) + "_FIRE";
         
         auto air_intg = 
@@ -716,7 +716,9 @@ namespace HepLib::FC {
         
         if(Verbose>0) cout << "  \\--Total Problems: " << fvec.size() << " @ " << now(false) << endl;
         
-        auto rules_ints = FIRE::FindRules(fvec, false, uf);        
+        vector<Base*> base_vec;
+        for(auto f : fvec) base_vec.push_back(f);
+        auto rules_ints = FindRules(base_vec, false, uf);        
 
         map<int,lst> pn_ints_map;
         for(auto item : rules_ints.second) {
@@ -782,7 +784,9 @@ namespace HepLib::FC {
         for(auto item : fvec_re) item->Import();
         system(("rm -rf "+wdir).c_str());
         
-        auto mi_rules = FIRE::FindRules(fvec_re, true, uf);
+        vector<Base*> base_re;
+        for(auto f : fvec_re) base_re.push_back(f);
+        auto mi_rules = FindRules(base_re, true, uf);
                         
         auto rules_vec =
         GiNaC_Parallel(fvec_re.size(), 10, [&](int idx)->ex {

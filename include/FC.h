@@ -289,7 +289,7 @@ namespace HepLib::FC {
     ex ApartIR2F(const ex & expr_in);
     ex F2ex(const ex & expr_in);
     ex ApartIRC(const ex & expr_in, const ex & cut_props=lst{});
-    void Apart2FIRE(exvector &air_vec, const lst & loops_exts=lst{}, const lst & cut_props=lst{}, std::function<lst(const FIRE &, const ex &)> uf=FIRE::LoopUF);
+    void Apart2FIRE(exvector &air_vec, const lst & loops_exts=lst{}, const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
     
     // ApartIR function upto 2 arguments
     class ApartIR1_SERIAL { public: static unsigned serial; };

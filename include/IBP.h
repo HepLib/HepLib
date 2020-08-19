@@ -14,10 +14,9 @@ namespace HepLib::IBP {
     using namespace HepLib;
     
     extern const Symbol d;
-    
     DECLARE_FUNCTION_1P(a)
-
-    class FIRE {
+    
+    class Base {
     public:
         lst Internal;
         lst External;
@@ -25,69 +24,54 @@ namespace HepLib::IBP {
         lst Propagators;
         lst Integrals;
         lst Cuts;
+        
+        string WorkingDir;
+        int ProblemNumber = 0;
+        ex VectorDimension = d;
+        
+        int ProblemDimension;
+        lst MasterIntegrals;
+        lst Rules;
+        lst Pairs;
+        
+        virtual void Export() = 0;
+        virtual void Run() = 0;
+        virtual void Import() = 0;
+        void Reduce();
+        
+    };
+
+    class FIRE : public Base {
+    public:
+    
+        void Export() override;
+        void Run() override;
+        void Import() override;
+    
         int pos_pref = 1;
         lst mi_pref;
         
-        string WorkingDir;
-        int ProblemNumber;
-        
-        int ProblemDimension;
-        lst MasterIntegrals;
-        lst Rules;
-        lst Pairs;
-        
-        void Export();
-        void Run();
-        void Import();
-        void Reduce();
-        
-        static lst SortPermutation(const ex & in_expr, const lst & xs);
-        static lst LoopUF(const FIRE & fire, const ex & corner);
-        static pair<exmap,lst> FindRules(vector<FIRE> &fs, bool mi=true, std::function<lst(const FIRE &, const ex &)> uf=LoopUF);
-        static pair<exmap,lst> FindRules(vector<FIRE*> &fs, bool mi=true, std::function<lst(const FIRE &, const ex &)> uf=LoopUF); 
-        
         static int Version;
-        static ex VectorDimension;
         static int Threads;
-        
-        static lst UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs); 
-    private:
-        vector<exmap> IBPs;
         
     };
             
-    class Laporta {
-    private:
-        map<ex,lst,ex_is_less> ccF;
-        map<ex,lst,ex_is_less> ccI;
-        map<lst,ex,ex_is_less> ccFinv;
-        map<ex,lst,ex_is_less> ccImax;
+    class KIRA : public Base {
     public:
         
-        lst F2lst(ex f);
-        lst I2lst(ex ibp);
+        int SeedRuns = 2;
         
-        lst Internal;
-        lst External;
-        lst Replacements;
-        lst Propagators;
-        lst Integrals;
-        lst Cuts;
+        void Export() override;
+        void Run() override;
+        void Import() override;
         
-        int ProblemDimension;
-        lst MasterIntegrals;
-        lst Rules;
-        lst Pairs;
-                
-        void Prepare(lst loop, lst ext, lst prop, lst repl);
-        void Generate(vector<lst> seeds);
-        void Generate2(lst seed);
-        void Reduce();
-        
-        lst preIBPs;
-        lst IBPs;
-        static ex collectF(ex);
     };
+    
+    
+    lst SortPermutation(const ex & in_expr, const lst & xs);
+    lst LoopUF(const Base & fire, const ex & corner);
+    pair<exmap,lst> FindRules(vector<Base*> &fs, bool mi=true, std::function<lst(const Base &, const ex &)> uf=LoopUF); 
+    lst UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs);
 
 
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $prefix == '' ]; then
+if [ -z $prefix ]; then
     export prefix=/usr/local
 fi
 
