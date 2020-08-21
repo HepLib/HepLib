@@ -59,7 +59,7 @@ namespace HepLib::IBP {
     class KIRA : public Base {
     public:
     
-        static int Rounds = 3;
+        static int Rounds;
         
         string cmd_args = "";
         map<int,ex> Shift;
@@ -72,7 +72,10 @@ namespace HepLib::IBP {
         
     private:
         int Round = 0;
-        
+        lst ibps;
+        lst _Integrals;
+        lst _Rules;
+        lst RIntegrals;
     };
     
     

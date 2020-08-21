@@ -28,124 +28,128 @@ namespace HepLib::IBP {
     void KIRA::Export() {
 
         if(Integrals.nops()<1) return;
-        int pn = 0; // to avoid unsigned short overflow in FIRE
-        int pdim = Propagators.nops();
-        lst InExternal;
-        for(auto ii : Internal) InExternal.append(ii);
-        for(auto ii : External) InExternal.append(ii);
         
-        if(Pairs.nops()<1) {
-            for(auto it : Internal) {
-                for(auto ii : InExternal) Pairs.append(it*ii);
-            }
-            Pairs.sort();
-            Pairs.unique();
+        if(Round==0 || ibps.nops()<1) {
+            _Integrals = Integrals;
+            for(auto intg : Integrals) RIntegrals.append(F(ProblemNumber, intg));
+            int pdim = Propagators.nops();
+            lst InExternal;
+            for(auto ii : Internal) InExternal.append(ii);
+            for(auto ii : External) InExternal.append(ii);
             
-            if(Pairs.nops()<pdim) {
-                lst sps_ext;
-                for(auto it : External) {
-                    for(auto ii : External) sps_ext.append(it*ii);
-                }
-                sps_ext.sort();
-                sps_ext.unique();
-                for(auto item : sps_ext) {
-                    auto item2 = subs_all(item,Replacements);
-                    if(is_zero(item-item2)) Pairs.append(item);
+            if(Pairs.nops()<1) {
+                for(auto it : Internal) {
+                    for(auto ii : InExternal) Pairs.append(it*ii);
                 }
                 Pairs.sort();
                 Pairs.unique();
+                
+                if(Pairs.nops()<pdim) {
+                    lst sps_ext;
+                    for(auto it : External) {
+                        for(auto ii : External) sps_ext.append(it*ii);
+                    }
+                    sps_ext.sort();
+                    sps_ext.unique();
+                    for(auto item : sps_ext) {
+                        auto item2 = subs_all(item,Replacements);
+                        if(is_zero(item-item2)) Pairs.append(item);
+                    }
+                    Pairs.sort();
+                    Pairs.unique();
+                }
             }
-        }
-        
-        if(Pairs.nops() != pdim) {
-            cout << "Pairs = " << Pairs << endl;
-            cout << "Propagators = " << Propagators << endl;
-            throw Error("KIRA::Export: Pairs failed.");
-        }
-        
-        lst sp2s, s2sp, ss;
-        for(auto item : Pairs) {
-            symbol si;
-            ss.append(si);
-            sp2s.append(item==si);
-            s2sp.append(si==item);
-        }
-        
-        lst ibp_eqns;
-        for(int i=0; i<Propagators.nops(); i++) {
-            auto eq = Propagators.op(i).expand();
-            eq = eq.subs(sp2s, subs_options::algebraic);
-            eq = eq.subs(Replacements, subs_options::algebraic);
-            ibp_eqns.append(eq == iWF(i));
-        }
-        auto s2p = lsolve(ibp_eqns, ss);
-        if(s2p.nops() != pdim) throw Error("KIRA::Export: lsolve failed.");
-
-        lst ibps;
-        for(auto l : Internal) {
-            lst ns;
-            for(int i=0; i<Propagators.nops(); i++) ns.append(a(i));
-            ex ibp = 0;
-            symbol sl;
+            
+            if(Pairs.nops() != pdim) {
+                cout << "Pairs = " << Pairs << endl;
+                cout << "Propagators = " << Propagators << endl;
+                throw Error("KIRA::Export: Pairs failed.");
+            }
+            
+            lst sp2s, s2sp, ss;
+            for(auto item : Pairs) {
+                symbol si;
+                ss.append(si);
+                sp2s.append(item==si);
+                s2sp.append(si==item);
+            }
+            
+            lst ibp_eqns;
             for(int i=0; i<Propagators.nops(); i++) {
-                auto ns_tmp = ns;
-                ns_tmp.let_op(i) = ns.op(i) + 1;
-                auto dp = Propagators.op(i).subs(l==sl).diff(sl).subs(sl==l);
-                ibp -= (a(i)+Shift[i]) * F(ns_tmp) * dp;
+                auto eq = Propagators.op(i).expand();
+                eq = eq.subs(sp2s, subs_options::algebraic);
+                eq = eq.subs(Replacements, subs_options::algebraic);
+                ibp_eqns.append(eq == iWF(i));
             }
-            
-            for(auto ii : External) {
-                auto ibp_tmp = ibp * ii;
-                ibp_tmp = ibp_tmp.expand();
-                ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
-                ibp_tmp = ibp_tmp.subs(Replacements, subs_options::algebraic);
-                ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
-                ex res = 0;
+            auto s2p = lsolve(ibp_eqns, ss);
+            if(s2p.nops() != pdim) throw Error("KIRA::Export: lsolve failed.");
+
+            ibps.remove_all();
+            for(auto l : Internal) {
+                lst ns;
+                for(int i=0; i<Propagators.nops(); i++) ns.append(a(i));
+                ex ibp = 0;
+                symbol sl;
                 for(int i=0; i<Propagators.nops(); i++) {
-                    auto ci = ibp_tmp.coeff(iWF(i), 1);
-                    ci = MapFunction([i](const ex & e, MapFunction &self)->ex{
-                        if(e.match(F(w))) {
-                            auto tmp = e.op(0);
-                            tmp.let_op(i) = tmp.op(i)-1;
-                            return F(tmp);
-                        } else if(!e.has(F(w))) return e;
-                        else return e.map(self);
-                    })(ci);
-                    res += ci;
+                    auto ns_tmp = ns;
+                    ns_tmp.let_op(i) = ns.op(i) + 1;
+                    auto dp = Propagators.op(i).subs(l==sl).diff(sl).subs(sl==l);
+                    ibp -= (a(i)+Shift[i]) * F(ns_tmp) * dp;
                 }
-                res += ibp_tmp.subs(lst{iWF(w)==0});
-                ibps.append(res);
-            }
-            
-            for(auto ii : Internal) {
-                auto ibp_tmp = ibp * ii;
-                ibp_tmp = ibp_tmp.expand();
-                ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
-                ibp_tmp = ibp_tmp.subs(Replacements, subs_options::algebraic);
-                ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
-                ex res = 0;
-                for(int i=0; i<Propagators.nops(); i++) {
-                    auto ci = ibp_tmp.coeff(iWF(i), 1);
-                    ci = MapFunction([i](const ex &e, MapFunction &self)->ex {
-                        if(e.match(F(w))) {
-                            auto tmp = e.op(0);
-                            tmp.let_op(i) = tmp.op(i)-1;
-                            return F(tmp);
-                        } else if(!e.has(F(w))) return e;
-                        else return e.map(self);
-                    })(ci);
-                    res += ci;
+                
+                for(auto ii : External) {
+                    auto ibp_tmp = ibp * ii;
+                    ibp_tmp = ibp_tmp.expand();
+                    ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
+                    ibp_tmp = ibp_tmp.subs(Replacements, subs_options::algebraic);
+                    ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
+                    ex res = 0;
+                    for(int i=0; i<Propagators.nops(); i++) {
+                        auto ci = ibp_tmp.coeff(iWF(i), 1);
+                        ci = MapFunction([i](const ex & e, MapFunction &self)->ex{
+                            if(e.match(F(w))) {
+                                auto tmp = e.op(0);
+                                tmp.let_op(i) = tmp.op(i)-1;
+                                return F(tmp);
+                            } else if(!e.has(F(w))) return e;
+                            else return e.map(self);
+                        })(ci);
+                        res += ci;
+                    }
+                    res += ibp_tmp.subs(lst{iWF(w)==0});
+                    ibps.append(res);
                 }
-                res += ibp_tmp.subs(lst{iWF(w)==0});
-                if(ii==l) res += d*F(ns);
-                ibps.append(res);
+                
+                for(auto ii : Internal) {
+                    auto ibp_tmp = ibp * ii;
+                    ibp_tmp = ibp_tmp.expand();
+                    ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
+                    ibp_tmp = ibp_tmp.subs(Replacements, subs_options::algebraic);
+                    ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
+                    ex res = 0;
+                    for(int i=0; i<Propagators.nops(); i++) {
+                        auto ci = ibp_tmp.coeff(iWF(i), 1);
+                        ci = MapFunction([i](const ex &e, MapFunction &self)->ex {
+                            if(e.match(F(w))) {
+                                auto tmp = e.op(0);
+                                tmp.let_op(i) = tmp.op(i)-1;
+                                return F(tmp);
+                            } else if(!e.has(F(w))) return e;
+                            else return e.map(self);
+                        })(ci);
+                        res += ci;
+                    }
+                    res += ibp_tmp.subs(lst{iWF(w)==0});
+                    if(ii==l) res += d*F(ns);
+                    ibps.append(res);
+                }
             }
         }
         
         // seeds generation
         exvector eqns;
         exset seeds;
-        for(auto seed : Integrals) {
+        for(auto seed : _Integrals) {
             for(auto const & item : ibps) {
                 exset fs;
                 item.find(F(w), fs);
@@ -168,38 +172,34 @@ namespace HepLib::IBP {
             }
         }
         
-        for(int r=0; r<2; r++) {
-            auto seeds_tmp = seeds;
-            for(auto const & item : ibps) {
-                exset fs;
-                item.find(F(w), fs);
-                for(auto fi : fs) {
-                    int tot = fi.op(0).nops();
-                    ex cc[tot][2];
+        for(auto const & item : ibps) {
+            exset fs;
+            item.find(F(w), fs);
+            for(auto fi : fs) {
+                int tot = fi.op(0).nops();
+                ex cc[tot][2];
+                for(int i=0; i<tot; i++) {
+                    auto expn = fi.op(0).op(i);
+                    auto ca = expn.coeff(a(i),1);
+                    auto c0 = expn.coeff(a(i),0);
+                    cc[i][0] = ca;
+                    cc[i][1] = c0;
+                }
+                
+                for(auto seed : seeds) {
+                    lst sol, as;
                     for(int i=0; i<tot; i++) {
-                        auto expn = fi.op(0).op(i);
-                        auto ca = expn.coeff(a(i),1);
-                        auto c0 = expn.coeff(a(i),0);
-                        cc[i][0] = ca;
-                        cc[i][1] = c0;
+                        auto ai = (seed.op(i)-cc[i][1])/cc[i][0];
+                        sol.append(a(i)==ai);
+                        as.append(ai);
                     }
-                    
-                    for(auto seed : seeds_tmp) {
-                        lst sol, as;
-                        for(int i=0; i<tot; i++) {
-                            auto ai = (seed.op(i)-cc[i][1])/cc[i][0];
-                            sol.append(a(i)==ai);
-                            as.append(ai);
-                        }
-                        seeds.insert(as);
-                        auto ii = item.subs(sol);
-                        if(ii.is_zero()) continue;
-                        eqns.push_back(ii);
-                    }
+                    auto ii = item.subs(sol);
+                    if(ii.is_zero()) continue;
+                    eqns.push_back(ii);
                 }
             }
         }
-        
+
         if(Cuts.nops()>1) {
             int total = eqns.size();
             for(int i=0; i<total; i++) {
@@ -266,7 +266,7 @@ namespace HepLib::IBP {
         
         oss.str("");
         oss.clear();
-        for(auto integral : Integrals) oss << Fout(integral) << endl;
+        for(auto integral : _Integrals) oss << Fout(integral) << endl;
         ofstream intg_out(job_dir+"/integrals");
         intg_out << oss.str() << endl;
         intg_out.close();
@@ -289,11 +289,12 @@ namespace HepLib::IBP {
         ex exL=0, exR=0;
         map<ex,int,ex_is_less> flags;
         lst exRs;
-        for(auto intg : Integrals) flags[F(ProblemNumber,intg)] = 1;
+        for(auto intg : _Integrals) flags[F(ProblemNumber,intg)] = 1;
+        _Rules.remove_all();
         for(auto line : strvec) {
             if(line.size()==0) {
                 if(!is_zero(exL)) {
-                    Rules.append(exL==exR);
+                    _Rules.append(exL==exR);
                     flags[exL] = 0;
                     exRs.append(exR);
                 }
@@ -309,110 +310,33 @@ namespace HepLib::IBP {
             }
         }
         if(!is_zero(exL)) {
-            Rules.append(exL==exR);
+            _Rules.append(exL==exR);
             flags[exL] = 0;
             exRs.append(exR);
         }
         MasterIntegrals.remove_all();
-        for(auto kv : flags) {
-            if(kv.second!=0) MasterIntegrals.append(kv.first);
-        }
+        for(auto kv : flags) if(kv.second!=0) MasterIntegrals.append(kv.first);
         exset miset;
         find(exRs,F(w1,w2),miset);
         for(auto mi : miset) MasterIntegrals.append(mi);
         MasterIntegrals.sort();
         MasterIntegrals.unique();
+        
+        for(int i=0; i< RIntegrals.nops(); i++) {
+            RIntegrals.let_op(i) = RIntegrals.op(i).subs(_Rules);
+        }
      
-        // handle Cuts not equal 1, using preferred_masters
-        if(Cuts.nops()>0 && mi_pref.nops()<1) {
-            lst cIntegrals;
-            auto mis = MasterIntegrals;
-            MasterIntegrals.remove_all();
-            for(auto item : mis) {
-                lst mi = ex_to<lst>(item.op(1));
-                bool isOK = true;
-                for(auto cx : Cuts) {
-                    int idx = ex_to<numeric>(cx).to_int()-1;
-                    if(!is_zero(mi.op(idx)-1)) {
-                        isOK = false;
-                        break;
-                    }
-                }
-                if(isOK) MasterIntegrals.append(item);
-                else {
-                    cIntegrals.append(mi);
-                    auto pi = mi;
-                    vector<int> ipos, ineg;
-                    for(int i=0; i<mi.nops(); i++) {
-                        bool isCut = false;
-                        for(auto cx : Cuts) {
-                            if(is_zero(cx-1-i)) {
-                                isCut = true;
-                                break;
-                            }
-                        }
-                        if(isCut) pi.let_op(i)=1;
-                        else if(mi.op(i)<=0) ineg.push_back(i);
-                        else ipos.push_back(i);
-                    }
-                    
-                    lst mi_pref_tmp;
-                    int max = 2;
-                    ex total = pow(numeric(max), ineg.size());
-                    for(numeric in=0; in<total; in++) {
-                        auto cin = in;
-                        auto pi2 = pi;
-                        for(int i=0; i<ineg.size(); i++) {
-                            int re = mod(cin,max).to_int();
-                            pi2.let_op(ineg[i]) = ex(0)-re;
-                            cin = (cin-re)/max;
-                        }
-                        mi_pref_tmp.append(pi2);
-                    }
-                    
-                    int max2 = 2*max+1;
-                    total = pow(numeric(max2), ipos.size());
-                    for(auto pi : mi_pref_tmp) {
-                        for(numeric in=0; in<total; in++) {
-                            auto cin = in;
-                            auto pi2 = pi;
-                            for(int i=0; i<ipos.size(); i++) {
-                                int re = mod(cin,max2).to_int();
-                                pi2.let_op(ipos[i]) = re-max;
-                                cin = (cin-re)/max2;
-                            }
-                            mi_pref.append(pi2);
-                        }
-                    }
-                }
-            }
-
-            // Reduce again
-            mi_pref.sort();
-            mi_pref.unique();
-            if(mi_pref.nops()>0) {
-                KIRA kira;
-                kira.Propagators = Propagators;
-                kira.Internal = Internal;
-                kira.External = External;
-                kira.Replacements = Replacements;
-                kira.Pairs = Pairs;
-                kira.ProblemNumber = ProblemNumber;
-                kira.Cuts = Cuts;
-                kira.Shift = Shift;
-                kira.Integrals = cIntegrals;
-                //kira.mi_pref = mi_pref;
-                mi_pref.remove_all();
-                kira.WorkingDir = WorkingDir + "_C"+to_string(ProblemNumber);
-                kira.Reduce();
-                system(("rm -rf " + kira.WorkingDir).c_str());
-                for(auto item : kira.MasterIntegrals) MasterIntegrals.append(item);
-                auto rules = Rules;
-                Rules.remove_all();
-                for(auto r : rules) Rules.append(r.op(0)==subs_naive(r.op(1),kira.Rules));
-                for(auto r : kira.Rules) Rules.append(r);
-                MasterIntegrals.sort();
-                MasterIntegrals.unique();
+        Round++;
+        if(Round < Rounds && _Rules.nops()>0 && _Integrals.nops()>0) {
+            _Integrals.remove_all();
+            for(auto mi : MasterIntegrals) _Integrals.append(mi.op(1));
+            Reduce();
+        } else {
+            Rules.remove_all();
+            for(int i=0; i<Integrals.nops(); i++) {
+                auto ii = F(ProblemNumber,Integrals.op(i));
+                auto ri = RIntegrals.op(i);
+                if(!is_zero(ii-ri)) Rules.append(ii==ri);
             }
         }
         
