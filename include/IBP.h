@@ -22,14 +22,13 @@ namespace HepLib::IBP {
         lst External;
         lst Replacements;
         lst Propagators;
-        lst Integrals;
-        lst Cuts;
+        lst Integrals; // lst of index lst
+        lst Cuts; // index start from 1
         
         string WorkingDir;
         int ProblemNumber = 0;
         ex VectorDimension = d;
         
-        int ProblemDimension;
         lst MasterIntegrals;
         lst Rules;
         lst Pairs;
@@ -48,6 +47,7 @@ namespace HepLib::IBP {
         void Run() override;
         void Import() override;
     
+        int ProblemDimension;
         int pos_pref = 1;
         lst mi_pref;
         
@@ -58,12 +58,20 @@ namespace HepLib::IBP {
             
     class KIRA : public Base {
     public:
+    
+        static int Rounds = 3;
         
-        int SeedRuns = 2;
+        string cmd_args = "";
+        map<int,ex> Shift;
+        int pos_pref = 1;
+        lst mi_pref;
         
         void Export() override;
         void Run() override;
         void Import() override;
+        
+    private:
+        int Round = 0;
         
     };
     

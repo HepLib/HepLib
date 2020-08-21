@@ -507,71 +507,64 @@ namespace HepLib::SD {
             } else {
                 auto ptmp = collect_common_factors(mma_expand(in_plst.op(i),{x(w),y(w),z(w)}));
                 auto ntmp = in_nlst.op(i);
-                if(is_a<mul>(ptmp)) {
-                    ex tmul = 1;
-                    for(int j=0; j<ptmp.nops(); j++) {
-                        auto tmp = ptmp.op(j);
-                        if(!tmp.has(x(w)) && !tmp.has(y(w)) && !tmp.has(z(w))) { // constant terms
-                            if(ntmp.info(info_flags::integer)) {
-                                const_term *=  pow(tmp,ntmp);
-                            } else if((tmp-vs).is_zero() || tmp.match(pow(vs,w))) {
-                                const_term *=  pow(tmp,ntmp);
-                            } else if(!tmp.has(PL(w)) && !tmp.has(vs) && !tmp.has(WRA(w))) {
-                                auto tr = NN(tmp.subs(nReplacements).subs(lst{
-                                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                                }));
-                                if(!is_a<numeric>(tr) || !tr.info(info_flags::real)) {
-                                    cerr << "tmp: " << tmp << endl;
-                                    cerr << "tr: " << tr << endl;
-                                    cerr << "nReplacements: " << nReplacements << endl;
-                                    throw Error("Normalize: tr is NOT numeric with nReplacements.");
-                                }
-                                
-                                if(tr>0) {
-                                    const_term *=  pow(tmp,ntmp);
-                                } else {
-                                    const_term *= pow(-tmp,ntmp);
-                                    tmul = ex(0) - tmul;
-                                }
-                            } else {
-                                tmul *= tmp;
+                if(!is_a<mul>(ptmp)) ptmp = lst{ ptmp };
+                
+                ex tmul = 1;
+                for(int j=0; j<ptmp.nops(); j++) {
+                    auto tmp = ptmp.op(j);
+                    if(!tmp.has(x(w)) && !tmp.has(y(w)) && !tmp.has(z(w))) { // constant terms
+                        if(ntmp.info(info_flags::integer)) {
+                            const_term *=  pow(tmp,ntmp);
+                        } else if((tmp-vs).is_zero() || tmp.match(pow(vs,w))) {
+                            const_term *=  pow(tmp,ntmp);
+                        } else if(!tmp.has(PL(w)) && !tmp.has(vs) && !tmp.has(WRA(w))) {
+                            auto tr = NN(tmp.subs(nReplacements).subs(lst{
+                                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
+                            }));
+                            if(!is_a<numeric>(tr) || !tr.info(info_flags::real)) {
+                                cerr << "tmp: " << tmp << endl;
+                                cerr << "tr: " << tr << endl;
+                                cerr << "nReplacements: " << nReplacements << endl;
+                                throw Error("Normalize: tr is NOT numeric with nReplacements.");
                             }
-                        } else if(tmp.match(pow(w1,w2)) && ntmp.info(info_flags::integer) && tmp.op(1).info(info_flags::integer)) {
-                            plst.append(tmp.op(0));
-                            nlst.append(ntmp * tmp.op(1));
-                        } else if(tmp.match(pow(w1,w2)) && xPositive(tmp.op(0))) {
-                            plst.append(tmp.op(0));
-                            nlst.append(ntmp * tmp.op(1));
-                        } else if(xSign(tmp)!=0 || xSign(tmp.subs(lst{y(w)==x(w),z(w)==x(w)}))!=0) {
-                            if(tmp.subs(lst{x(w)==1, y(w)==1, z(w)==1})>0) {
-                                plst.append(tmp);
-                                nlst.append(ntmp);
+                            
+                            if(tr>0) {
+                                const_term *=  pow(tmp,ntmp);
                             } else {
-                                plst.append(ex(0)-tmp);
-                                nlst.append(ntmp);
+                                const_term *= pow(-tmp,ntmp);
                                 tmul = ex(0) - tmul;
                             }
                         } else {
                             tmul *= tmp;
                         }
-                    }
-                    
-                    if(i==1) {
-                        plst.prepend(tmul);
-                        nlst.prepend(ntmp);
-                    } else if(tmul != 1) {
-                        plst.append(tmul);
-                        nlst.append(ntmp);
-                    }
-                } else {
-                    if(i==1) {
-                        plst.prepend(ptmp);
-                        nlst.prepend(ntmp);
+                    } else if(tmp.match(pow(w1,w2)) && ntmp.info(info_flags::integer) && tmp.op(1).info(info_flags::integer)) {
+                        plst.append(tmp.op(0));
+                        nlst.append(ntmp * tmp.op(1));
+                    } else if(tmp.match(pow(w1,w2)) && xPositive(tmp.op(0))) {
+                        plst.append(tmp.op(0));
+                        nlst.append(ntmp * tmp.op(1));
+                    } else if(xSign(tmp)!=0 || xSign(tmp.subs(lst{y(w)==x(w),z(w)==x(w)}))!=0) {
+                        if(tmp.subs(lst{x(w)==1, y(w)==1, z(w)==1})>0) {
+                            plst.append(tmp);
+                            nlst.append(ntmp);
+                        } else {
+                            plst.append(ex(0)-tmp);
+                            nlst.append(ntmp);
+                            tmul = ex(0) - tmul;
+                        }
                     } else {
-                        plst.append(ptmp);
-                        nlst.append(ntmp);
+                        tmul *= tmp;
                     }
                 }
+                
+                if(i==1) {
+                    plst.prepend(tmul);
+                    nlst.prepend(ntmp);
+                } else if(tmul != 1) {
+                    plst.append(tmul);
+                    nlst.append(ntmp);
+                }
+                
             }
         }
         plst.prepend(const_term);

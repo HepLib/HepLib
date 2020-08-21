@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
 SET(CMAKE_C_COMPILER gcc)
 SET(CMAKE_CXX_COMPILER g++)
-SET(CMAKE_Fortran_COMPILER gfortran)
+SET(CMAKE_FORTRAN_COMPILER gfortran)
 
 #-----------------------------------------------
 # Configure

@@ -498,7 +498,6 @@ namespace HepLib::SD {
         ChengWu();
         RemoveDeltas();
         KillPowers();
-cout << FunExp << endl;
         SDPrepares();
         EpsEpExpands();
         CIPrepares(key);

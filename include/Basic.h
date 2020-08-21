@@ -487,6 +487,7 @@ namespace HepLib {
     public:
         ex operator()(const ex &e);
         MapFunction(std::function<ex(const ex &, MapFunction &)>);
+        static ex subs(const ex & expr, const ex & pat, std::function<ex(const ex &)> f);
     private:
         std::function<ex(const ex &, MapFunction &)> Function;
     };
