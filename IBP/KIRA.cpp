@@ -60,11 +60,12 @@ namespace HepLib::IBP {
                 }
             }
             
-            if(Pairs.nops() != pdim) {
+            if(Pairs.nops() > pdim) {
                 cout << "Pairs = " << Pairs << endl;
                 cout << "Propagators = " << Propagators << endl;
-                throw Error("KIRA::Export: Pairs failed.");
+                throw Error("KIRA::Export: Pairs more than Propagators.");
             }
+            pdim = Pairs.nops();
             
             lst sp2s, s2sp, ss;
             for(auto item : Pairs) {
@@ -75,14 +76,18 @@ namespace HepLib::IBP {
             }
             
             lst ibp_eqns;
-            for(int i=0; i<Propagators.nops(); i++) {
+            for(int i=0; i<pdim; i++) {
                 auto eq = Propagators.op(i).expand();
                 eq = eq.subs(sp2s, subs_options::algebraic);
                 eq = eq.subs(Replacements, subs_options::algebraic);
                 ibp_eqns.append(eq == iWF(i));
             }
             auto s2p = lsolve(ibp_eqns, ss);
-            if(s2p.nops() != pdim) throw Error("KIRA::Export: lsolve failed.");
+            if(s2p.nops() != pdim) {
+                cout << ibp_eqns << endl;
+                cout << s2p << endl;
+                throw Error("KIRA::Export: lsolve failed.");
+            }
 
             ibps.remove_all();
             for(auto l : Internal) {
@@ -170,6 +175,12 @@ namespace HepLib::IBP {
                     eqns.push_back(ii);
                 }
             }
+        }
+        
+        if(true) {
+            exset fs;
+            find(exvec2lst(eqns), F(w), fs);
+            for(auto fi : fs) seeds.insert(fi.op(0));
         }
         
         for(auto const & item : ibps) {
@@ -276,7 +287,7 @@ namespace HepLib::IBP {
     void KIRA::Run() {
         string job_dir = WorkingDir + "/" + to_string(ProblemNumber);
         ostringstream cmd;
-        cmd << "cd " << job_dir << " && kira " << cmd_args << " jobs > /dev/null 2>/dev/null";
+        cmd << "cd " << job_dir << " && kira " << cmd_args << " --silent jobs >/dev/null 2>&1";
         system(cmd.str().c_str());
     }
 
@@ -322,16 +333,22 @@ namespace HepLib::IBP {
         MasterIntegrals.sort();
         MasterIntegrals.unique();
         
+        auto _RIntegrals = RIntegrals;
         for(int i=0; i< RIntegrals.nops(); i++) {
             RIntegrals.let_op(i) = RIntegrals.op(i).subs(_Rules);
         }
-     
+        
+        auto integrals = _Integrals;
+        _Integrals.remove_all();
+        for(auto mi : MasterIntegrals) _Integrals.append(mi.op(1));
+        
+        bool red = _Rules.nops()>0 && _Integrals.nops()>0;
+        red = red && !is_zero(_Integrals-integrals);
+        red = red && !is_zero(_RIntegrals-RIntegrals);
+        
         Round++;
-        if(Round < Rounds && _Rules.nops()>0 && _Integrals.nops()>0) {
-            _Integrals.remove_all();
-            for(auto mi : MasterIntegrals) _Integrals.append(mi.op(1));
-            Reduce();
-        } else {
+        if(Round<Rounds && red) Reduce();
+        else {
             Rules.remove_all();
             for(int i=0; i<Integrals.nops(); i++) {
                 auto ii = F(ProblemNumber,Integrals.op(i));
