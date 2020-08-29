@@ -32,6 +32,9 @@
       location = "group:GiNaC">
    </FileRef>
    <FileRef
+      location = "group:doc">
+   </FileRef>
+   <FileRef
       location = "group:Examples">
    </FileRef>
 </Workspace>

@@ -382,6 +382,8 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     extern ex w, w0, w1, w2, w3, w4, w5;
     extern string InstallPrefix;
+    extern string INC_FLAGS;
+    extern string LIB_FLAGS;
     extern const iSymbol iEpsilon;
     extern const ex iEpsilonN;
     extern const Symbol ep;

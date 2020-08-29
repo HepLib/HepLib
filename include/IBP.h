@@ -61,9 +61,9 @@ namespace HepLib::IBP {
     
         static int Rounds;
         
+        bool use_weight = false;
         string cmd_args = "";
         map<int,ex> Shift;
-        int pos_pref = 1;
         lst mi_pref;
         
         void Export() override;
@@ -76,6 +76,11 @@ namespace HepLib::IBP {
         lst _Integrals;
         lst _Rules;
         lst RIntegrals;
+        
+        string Fout(const ex & expr);
+        ex Fin(const string & expr);
+        map<ex,unsigned long long,ex_is_less> i2w;
+        map<unsigned long long,ex> w2i;
     };
     
     

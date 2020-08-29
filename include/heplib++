@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+g++ @INC_FLAGS@ @LIB_FLAGS@ -lHepLib -lcln -lginac -lMinuit2 -lcubaq -lqhullstatic -lquadmath $@

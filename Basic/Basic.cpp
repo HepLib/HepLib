@@ -1841,7 +1841,7 @@ namespace HepLib {
             ostr = ostr.substr(0, ostr.length()-1);
             auto cpos = ostr.find(bstr);
             if(cpos==string::npos) throw Error(bstr+" NOT Found.");
-            ostr = ostr.substr(cpos+bstr.length(),ostr.length()-cpos);
+            ostr = ostr.substr(cpos+bstr.length(),string::npos);
             cpos = ostr.find(estr);
             if(cpos==string::npos) throw Error(estr+" NOT Found.");
             ostr = ostr.substr(0,cpos);

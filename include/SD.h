@@ -333,7 +333,6 @@ namespace HepLib::SD {
         IntegratorBase *Integrator = NULL;
         MinimizeBase *Minimizer = NULL;
         ex ResultError;
-        string CFLAGS = "";
         bool IsZero = false;
         bool CheckEnd = false;
         //bool use_CCF = false;

@@ -1,27 +1,45 @@
 #include "Process.h"
 #include "IBP.h"
+#include <cmath>
 
 namespace HepLib::IBP {
 
-    namespace {
-        string Fout(const ex expr) {
+    string KIRA::Fout(const ex & expr) {
+        if(!use_weight) {
             ex f = expr;
             if(is_a<lst>(f)) f = F(f);
             else if(expr.match(F(w1,w2))) f = F(f.op(1));
-            
             string fstr = ex2str(f);
             string_replace_all(fstr,"{","");
             string_replace_all(fstr,"}","");
             string_replace_all(fstr,"(","[");
             string_replace_all(fstr,")","]");
             return fstr;
+        } else {
+            ex idx;
+            if(expr.match(F(w1,w2))) idx = expr.op(1);
+            else if(expr.match(F(w))) idx = expr.op(0);
+            else idx = expr;
+            return to_string(i2w[idx]);
         }
-        
-        ex Fin(const string & expr, int pn=0) {
+    }
+    
+    ex KIRA::Fin(const string & expr) {
+        if(!use_weight) {
             string fstr = expr;
-            string_replace_all(fstr,"[","("+to_string(pn)+",{");
+            string_replace_all(fstr,"[","("+to_string(ProblemNumber)+",{");
             string_replace_all(fstr,"]","})");
             return str2ex(fstr);
+        } else {
+            auto cpos = expr.find("*");
+            if(cpos==string::npos) {
+                if(expr=="0") return 0;
+                throw Error("KIRA::Fin with 0 or * NOT Found.");
+            }
+            auto wstr = expr.substr(0,cpos);
+            unsigned long long weight = stoull(wstr,NULL,0);
+            auto oex = str2ex(expr.substr(cpos+1,string::npos));
+            return F(ProblemNumber, w2i[weight]) * oex;
         }
     }
 
@@ -153,8 +171,16 @@ namespace HepLib::IBP {
         
         // seeds generation
         exvector eqns;
-        exset seeds;
+        ex rmax=-1, smax=-1, rsmax=-1;
         for(auto seed : _Integrals) {
+            ex rs=0, ss=0, rss=0;
+            for(auto ii : seed) {
+                if(ii>0) { rs += ii; rss += ii;}
+                else { ss -= ii; rss -= ii;}
+            }
+            if(rmax<rs) rmax=rs;
+            if(smax<ss) smax=ss;
+            if(rsmax<rss) rsmax=rss;
             for(auto const & item : ibps) {
                 exset fs;
                 item.find(F(w), fs);
@@ -168,8 +194,6 @@ namespace HepLib::IBP {
                         sol.append(a(i)==ai);
                         as.append(ai);
                     }
-
-                    seeds.insert(as);
                     auto ii = item.subs(sol);
                     if(ii.is_zero()) continue;
                     eqns.push_back(ii);
@@ -177,36 +201,48 @@ namespace HepLib::IBP {
             }
         }
         
+        static int max = 3;
         if(true) {
+            exset seeds;
             exset fs;
             find(exvec2lst(eqns), F(w), fs);
-            for(auto fi : fs) seeds.insert(fi.op(0));
-        }
-        
-        for(auto const & item : ibps) {
-            exset fs;
-            item.find(F(w), fs);
             for(auto fi : fs) {
-                int tot = fi.op(0).nops();
-                ex cc[tot][2];
-                for(int i=0; i<tot; i++) {
-                    auto expn = fi.op(0).op(i);
-                    auto ca = expn.coeff(a(i),1);
-                    auto c0 = expn.coeff(a(i),0);
-                    cc[i][0] = ca;
-                    cc[i][1] = c0;
+                ex rs=0, ss=0, rss=0;
+                for(auto ii : fi.op(0)) {
+                    if(ii>0) { rs += ii; rss += ii;}
+                    else { ss -= ii; rss -= ii;}
                 }
-                
-                for(auto seed : seeds) {
-                    lst sol, as;
+                if(rs>rmax+max) continue;
+                if(ss>smax+max) continue;
+                if(rss>rsmax+max) continue;
+                seeds.insert(fi.op(0));
+            }
+        
+            for(auto const & item : ibps) {
+                exset fs;
+                item.find(F(w), fs);
+                for(auto fi : fs) {
+                    int tot = fi.op(0).nops();
+                    ex cc[tot][2];
                     for(int i=0; i<tot; i++) {
-                        auto ai = (seed.op(i)-cc[i][1])/cc[i][0];
-                        sol.append(a(i)==ai);
-                        as.append(ai);
+                        auto expn = fi.op(0).op(i);
+                        auto ca = expn.coeff(a(i),1);
+                        auto c0 = expn.coeff(a(i),0);
+                        cc[i][0] = ca;
+                        cc[i][1] = c0;
                     }
-                    auto ii = item.subs(sol);
-                    if(ii.is_zero()) continue;
-                    eqns.push_back(ii);
+                    
+                    for(auto seed : seeds) {
+                        lst sol, as;
+                        for(int i=0; i<tot; i++) {
+                            auto ai = (seed.op(i)-cc[i][1])/cc[i][0];
+                            sol.append(a(i)==ai);
+                            as.append(ai);
+                        }
+                        auto ii = item.subs(sol);
+                        if(ii.is_zero()) continue;
+                        eqns.push_back(ii);
+                    }
                 }
             }
         }
@@ -229,6 +265,50 @@ namespace HepLib::IBP {
                     }
                 }
                 eqns[i] = tmp.subs(repl);
+            }
+        }
+        
+        if(use_weight) {
+            exset fs;
+            find(exvec2lst(eqns), F(w), fs);
+            exvector intg_vec;
+            for(auto fi : fs) {
+                lst rs,ss;
+                int sid=0, rsum=0, ssum=0;
+                auto idx_lst = fi.op(0);
+                for(int i=0; i<idx_lst.nops(); i++) {
+                    auto idx = ex_to<numeric>(idx_lst.op(i)).to_int();
+                    if(idx!=0) sid += std::pow(2,idx_lst.nops()-i-1);
+                    if(idx>0) {
+                        rs.append(idx);
+                        rsum += idx;
+                    } else {
+                        ss.append(-idx);
+                        ssum -= idx;
+                    }
+                }
+                lst item = lst{rsum+ssum,rsum,ssum};
+                for(auto ii : ss) item.append(ii);
+                for(auto ii : rs) item.append(ii);
+                item.append(sid);
+                item.append(fi);
+                intg_vec.push_back(item);
+            }
+            sort_vec(intg_vec);
+            unsigned long long int64 = 100000000000000;
+            for(auto intg : intg_vec) {
+                int64++;
+                unsigned long long weight = int64;
+                auto idx = intg.op(intg.nops()-1).op(0);
+                for(auto ic : Cuts) {
+                    int j = ex_to<numeric>(ic).to_int()-1;
+                    if(idx.op(j)>1) {
+                        weight += 100000000000000;
+                        break;
+                    }
+                }
+                i2w[idx] = weight;
+                w2i[weight] = idx;
             }
         }
         
@@ -256,9 +336,13 @@ namespace HepLib::IBP {
         
         oss.str("");
         oss.clear();
+        oss << "#Round: " << Round << endl;
         oss << "jobs:" << endl;
-        oss << "    - reduce_user_defined_system:" << endl;
-        oss << "        input_system: equations" << endl;
+        oss << "  - reduce_user_defined_system:" << endl;
+        oss << "      input_system: " << endl;
+        oss << "        config: false" << endl;
+        oss << "        files: [equations]" << endl;
+        oss << "        otf: true" << endl;
         if(mi_pref.nops()>0) {
             ostringstream oss2;
             int nn = mi_pref.nops();
@@ -266,11 +350,12 @@ namespace HepLib::IBP {
             ofstream pref_out(job_dir+"/preferred");
             pref_out << oss2.str() << endl;
             pref_out.close();
-            oss << "        preferred_masters: preferred" << endl;
+            oss << "      preferred_masters: preferred" << endl;
         }
-        oss << "    - kira2file:" << endl;
-        oss << "        target:" << endl;
-        oss << "            - [F,integrals]" << endl;
+        oss << "  - kira2file:" << endl;
+        oss << "      target:" << endl;
+        if(!use_weight) oss << "        - [F,integrals]" << endl;
+        else oss << "        - [Tuserweight,integrals]" << endl;
         ofstream job_out(job_dir+"/jobs");
         job_out << oss.str() << endl;
         job_out.close();
@@ -294,7 +379,8 @@ namespace HepLib::IBP {
     void KIRA::Import() {
         string job_dir = WorkingDir + "/" + to_string(ProblemNumber);
         ostringstream fn;
-        fn << job_dir << "/results/F/kira_integrals.kira";
+        if(!use_weight) fn << job_dir << "/results/F/kira_integrals.kira";
+        else fn << job_dir << "/results/Tuserweight/kira_integrals.kira";
         auto strvec = file2vec(fn.str());
         
         ex exL=0, exR=0;
@@ -311,13 +397,13 @@ namespace HepLib::IBP {
                 }
                 exL = exR = 0;
             } else if(is_zero(exL)) {
-                exL -= Fin(line,ProblemNumber);
+                exL -= Fin(line);
                 if(!exL.match(F(w1,w2))) {
                     cout << line << endl;
                     throw Error("KIRA::Import error found.");
                 }
             } else {
-                exR += Fin(line,ProblemNumber).subs(d==D);
+                exR += Fin(line).subs(d==D);
             }
         }
         if(!is_zero(exL)) {
@@ -345,10 +431,11 @@ namespace HepLib::IBP {
         bool red = _Rules.nops()>0 && _Integrals.nops()>0;
         red = red && !is_zero(_Integrals-integrals);
         red = red && !is_zero(_RIntegrals-RIntegrals);
-        
         Round++;
-        if(Round<Rounds && red) Reduce();
-        else {
+        if(Round<Rounds && red) {
+            Reduce();
+            return;
+        } else {
             Rules.remove_all();
             for(int i=0; i<Integrals.nops(); i++) {
                 auto ii = F(ProblemNumber,Integrals.op(i));
@@ -356,7 +443,6 @@ namespace HepLib::IBP {
                 if(!is_zero(ii-ri)) Rules.append(ii==ri);
             }
         }
-        
     }
 
 }

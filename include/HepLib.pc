@@ -1,4 +1,4 @@
-prefix="@PREFIX_DIR@"
+prefix="@CMAKE_INSTALL_PREFIX@"
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
@@ -6,6 +6,6 @@ includedir=${prefix}/include
 Name: HepLib
 Description: Library for HighEnergyPhysics
 Version: 1.0
-Libs: -L${libdir} -lHepLib
-Libs.private:  -lcln -lginac -lMinuit2 -lcubaq -lquallstatic -lquadmath
-Cflags: -I${includedir}
+Libs: @LIB_FLAGS@ -lHepLib -lcln -lginac -lMinuit2 -lcubaq -lqhullstatic -lquadmath
+Libs.private:  -lcln -lginac -lMinuit2 -lcubaq -lqhullstatic -lquadmath
+Cflags: @INC_FLAGS@

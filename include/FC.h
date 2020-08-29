@@ -280,7 +280,7 @@ namespace HepLib::FC {
     
     // Form, TIR, Apart
     ex charge_conjugate(const ex &);
-    ex form(const ex &expr, bool all_in_one=true, int verb=0);
+    ex form(const ex &expr, bool all_in_one=false, int verb=0);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
     ex Apart(const ex &expr_in, const lst &vars, exmap sign_map=exmap());
@@ -289,7 +289,7 @@ namespace HepLib::FC {
     ex ApartIR2F(const ex & expr_in);
     ex F2ex(const ex & expr_in);
     ex ApartIRC(const ex & expr_in, const ex & cut_props=lst{});
-    void Apart2FIRE(exvector &air_vec, const lst & loops_exts=lst{}, const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
+    void ApartIBP(int IBPmethod, exvector &air_vec, const lst & loops_exts=lst{}, const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
     
     // ApartIR function upto 2 arguments
     class ApartIR1_SERIAL { public: static unsigned serial; };

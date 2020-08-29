@@ -33,7 +33,9 @@ namespace HepLib {
     int NNDigits = 100;
     
     lst GiNaC_archive_Symbols = lst{};
-    string InstallPrefix = "@PREFIX_DIR@";
+    string InstallPrefix = "@CMAKE_INSTALL_PREFIX@";
+    string INC_FLAGS = "@INC_FLAGS@";
+    string LIB_FLAGS = "@LIB_FLAGS@";
 
     //----------------------------------------
     // HepLib::SD

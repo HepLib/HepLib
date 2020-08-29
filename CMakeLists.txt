@@ -1,67 +1,51 @@
+# usage 
+# cmake -DCMAKE_INSTALL_PREFIX=p0 -DINC_PATH="p1;p2" -DLIB_PATH="p3;p4" path
+
 CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
 SET(CMAKE_C_COMPILER gcc)
 SET(CMAKE_CXX_COMPILER g++)
 SET(CMAKE_FORTRAN_COMPILER gfortran)
 
 #-----------------------------------------------
-# Configure
+# INC_PATH & LIB_PATH
 #-----------------------------------------------
-# set the install prefix
-IF(APPLE)
-    SET(PREFIX_DIR "/usr/local/feng")
-ELSE()
-    SET(PREFIX_DIR "$ENV{HOME}/usr/local")
-ENDIF()
-
-# set the "-I" information for gcc/g++, ignored while not exists
-SET(INC_DIRS
-    "/usr/local/feng/include"
-    "/dev/shm/usr/local/include"
-    "/dev/shm/usr/include"
-    "$ENV{HOME}/usr/local/include"
-    "$ENV{HOME}/usr/include"
-)
-
-# set the "-L" information for gcc/g++, ignored while not exists
-SET(LIB_DIRS
-    "/usr/local/feng/lib"
-    "/dev/shm/usr/local/lib"
-    "/dev/shm/usr/lib"
-    "/dev/shm/glibc/lib"
-    "$ENV{HOME}/usr/local/lib"
-    "$ENV{HOME}/usr/lib"
-    "$ENV{HOME}/glibc/lib"
-)
-
-# Other things:
-# -MPFR: need to be compiled with option: --enable-float128 --enable-thread-safe
-# -Cuba: need to be compile with CFLAGS="-fPIC" CXXFLAGS="-fPIC"
-#
-#-----------------------------------------------
-# Configure End
-#-----------------------------------------------
-
-SET(CMAKE_INSTALL_PREFIX "${PREFIX_DIR}" CACHE PATH "install prefix" FORCE)
-
-CONFIGURE_FILE(include/Init.cpp "${CMAKE_CURRENT_BINARY_DIR}/OTHER/Init.cpp" @ONLY)
-CONFIGURE_FILE(include/HepLib.pc "${CMAKE_CURRENT_BINARY_DIR}/OTHER/HepLib.pc" @ONLY)
-
-INCLUDE_DIRECTORIES(BEFORE include)
-FOREACH(dir ${INC_DIRS})
+SET(INC_PATH "${INC_PATH};${CMAKE_INSTALL_PREFIX}/include")
+LIST(REMOVE_DUPLICATES INC_PATH)
+SET(INC_FLAGS "")
+FOREACH(dir ${INC_PATH})
 IF(EXISTS ${dir})
     INCLUDE_DIRECTORIES(${dir})
+    SET(INC_FLAGS "${INC_FLAGS} -I${dir}")
 ENDIF()
 ENDFOREACH()
+STRING(FIND "${INC_FLAGS}" "${CMAKE_INSTALL_PREFIX}/include" INC_POS)
+IF( "${INC_POS}" STREQUAL "-1" )
+    SET(INC_FLAGS "${INC_FLAGS} -I${CMAKE_INSTALL_PREFIX}/include")
+ENDIF()
 
-FOREACH(dir ${LIB_DIRS})
+SET(LIB_PATH "${LIB_PATH};${CMAKE_INSTALL_PREFIX}/lib")
+LIST(REMOVE_DUPLICATES LIB_PATH)
+SET(LIB_FLAGS "")
+FOREACH(dir ${LIB_PATH})
 IF(EXISTS ${dir})
     LINK_DIRECTORIES(${dir})
+    SET(LIB_FLAGS "${LIB_FLAGS} -L${dir}")
 ENDIF()
 ENDFOREACH()
+STRING(FIND "${LIB_FLAGS}" "${CMAKE_INSTALL_PREFIX}/lib" LIB_POS)
+IF( "${LIB_POS}" STREQUAL "-1" )
+    SET(LIB_FLAGS "${LIB_FLAGS} -L${CMAKE_INSTALL_PREFIX}/lib")
+ENDIF()
 
-LINK_LIBRARIES(
-    ginac cln Minuit2 mpfr qhullstatic quadmath gomp cubaq
-)
+INCLUDE_DIRECTORIES(BEFORE include)
+CONFIGURE_FILE(include/Init.cpp "${CMAKE_CURRENT_BINARY_DIR}/OTHER/Init.cpp" @ONLY)
+CONFIGURE_FILE(include/HepLib.pc "${CMAKE_CURRENT_BINARY_DIR}/OTHER/HepLib.pc" @ONLY)
+CONFIGURE_FILE(include/heplib++ "${CMAKE_CURRENT_BINARY_DIR}/OTHER/heplib++" @ONLY)
+
+#-----------------------------------------------
+# External Libraries
+#-----------------------------------------------
+LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic quadmath gomp cubaq)
 
 #-----------------------------------------------
 PROJECT(HepLib VERSION 1.0 LANGUAGES C CXX Fortran)
@@ -71,8 +55,9 @@ AUX_SOURCE_DIRECTORY(FC FC_SRCS)
 AUX_SOURCE_DIRECTORY(IBP IBP_SRCS)
 AUX_SOURCE_DIRECTORY(GiNaC GiNaC_SRCS)
 AUX_SOURCE_DIRECTORY("${CMAKE_CURRENT_BINARY_DIR}/OTHER" OTHER)
+
 #-----------------------------------------------
-# check WSTP
+# WSTP - Wolfram Symbolic Transfer Protocol
 #-----------------------------------------------
 IF(APPLE)
     FIND_LIBRARY(HAS_WSTP WSTPi4 ${LINK_DIRECTORIES})
@@ -117,10 +102,9 @@ ENDFOREACH()
 ADD_EXECUTABLE(qgraf "bin/qgraf-3.1.4.f")
 INSTALL(TARGETS qgraf DESTINATION bin)
 INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/OTHER/HepLib.pc" DESTINATION "lib/pkgconfig")
+INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/OTHER/heplib++" DESTINATION "bin" 
+    PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ)
 
 # OpenMP
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -std=gnu++14")
-
-MESSAGE(STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}")
-
