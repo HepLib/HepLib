@@ -1,5 +1,6 @@
 /**
- * @file 
+ * @file
+ * @brief Process header file
  */
  
 #pragma once
@@ -15,6 +16,9 @@ namespace HepLib {
     
     using namespace std;
     
+    /**
+     * @brief interface to communicate with other process
+     */
     class Process {
     public:
         static const redi::pstreams::pmode pm_in = redi::pstreams::pstdin;
@@ -31,6 +35,9 @@ namespace HepLib {
         redi::pstream pio;
     };
     
+    /**
+     * @brief interface to communicate with Fermat program
+     */
     class Fermat {
     public:
         string Sentinel = "---EOF---";
@@ -48,6 +55,9 @@ namespace HepLib {
         pid_t pid = 0;
     };
     
+    /**
+     * @brief interface to communicate with Form program
+     */
     class Form {
     public:
         string Sentinel = "---EOF---";

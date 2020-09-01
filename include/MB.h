@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief MB header file
+ */
+
 #pragma once
 
 #include "Basic.h"
@@ -19,21 +24,9 @@ extern "C" {
 
 namespace HepLib {
 
-    /*-----------------------------------------------------*/
-    // MB Input
-    /*-----------------------------------------------------*/
-    struct FeynmanParameter {
-        lst LoopMomenta;
-        lst Propagators;
-        lst Exponents;
-        ex Prefactor = 1;
-        exmap lReplacements;
-        exmap nReplacements;
-    };
-
-    /*-----------------------------------------------------*/
-    // MB Class
-    /*-----------------------------------------------------*/
+    /**
+     * @brief MB class still under development
+     */
     class MB {
 
     public:

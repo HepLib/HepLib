@@ -217,6 +217,7 @@ namespace HepLib {
             ofs << "    .end;" << endl;
             ofs << "#endif" << endl;
             ofs << "#procedure put(mexp)" << endl;
+            ofs << "    #write \""<<Sentinel<<"\\n\"" << endl;
             ofs << "    #toexternal \"%E\", `mexp'" << endl;
             ofs << "    #toexternal \""<<Sentinel<<"\"" << endl;
             ofs << "    #toexternal \"\\n\"" << endl;
@@ -260,6 +261,22 @@ namespace HepLib {
         ostringstream oss;
         oss << "init-" << fpid << ".frm";
         if(file_exists(oss.str().c_str())) remove(oss.str().c_str());
+        
+        if(true) { // read the terminal output
+            string estr;
+            int n = 1024;
+            char buffer[n+1]; // make sure the last one is '\0'
+            int nio;
+            while(true) {
+                for(int i=0; i<n+1; i++) buffer[i] = '\0';
+                nio = read(stdo[0], buffer, n);
+                if(nio>0) estr += buffer;
+                auto cpos = estr.find(Sentinel);
+                if(cpos!=string::npos) break;
+                cpos = estr.find("-->");
+                if(cpos!=string::npos) throw Error(estr);
+            }
+        }
     }
     
     string Form::Execute(string script, const string & out_var) {
@@ -277,19 +294,31 @@ namespace HepLib {
         int n = 1024;
         char buffer[n+1]; // make sure the last one is '\0'
         int nio;
+        
+        string estr;
+        while(true) {
+            for(int i=0; i<n+1; i++) buffer[i] = '\0';
+            nio = read(stdo[0], buffer, n);
+            if(nio>0) estr += buffer;
+            auto cpos = estr.find(Sentinel);
+            if(cpos!=string::npos) break;
+            cpos = estr.find("-->");
+            if(cpos!=string::npos) throw Error(estr);
+        }
+        
         while(true) {
             for(int i=0; i<n+1; i++) buffer[i] = '\0';
             nio = read(io[1][0], buffer, n);
             if(nio>0) ostr += buffer;
             else {
-                string err_str;
+                string estr;
                 while(true) {
                     for(int i=0; i<n+1; i++) buffer[i] = '\0';
                     nio = read(stdo[0], buffer, n);
                     if(nio<=0) break;
-                    err_str += buffer;
+                    estr += buffer;
                 }
-                throw Error(err_str.c_str());
+                throw Error(estr.c_str());
             }
             auto cpos = ostr.find(Sentinel);
             if(cpos!=string::npos) {

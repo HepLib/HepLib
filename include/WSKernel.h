@@ -13,8 +13,14 @@ namespace HepLib {
 
     using namespace std;
     
+    /**
+     * @brief interface to Wolfram Mathematica
+     */
     class WSKernel {
     public:
+        /**
+         * @brief inner Error class for WSKernel
+         */
         class Error : public exception {
         public:
             string msg;

@@ -7,6 +7,9 @@
 
 #include "Basic.h"
 
+/**
+ * @brief namespace for IBP reduction
+ */
 namespace HepLib::IBP {
 
     using namespace std;
@@ -16,6 +19,9 @@ namespace HepLib::IBP {
     extern const Symbol d;
     DECLARE_FUNCTION_1P(a)
     
+    /**
+     * @brief Base class for IBP reduction
+     */
     class Base {
     public:
         lst Internal;
@@ -40,6 +46,9 @@ namespace HepLib::IBP {
         
     };
 
+    /**
+     * @brief IBP reduction using FIRE program
+     */
     class FIRE : public Base {
     public:
     
@@ -55,7 +64,10 @@ namespace HepLib::IBP {
         static int Threads;
         
     };
-            
+    
+    /**
+     * @brief IBP reduction using KIRA program
+     */
     class KIRA : public Base {
     public:
     

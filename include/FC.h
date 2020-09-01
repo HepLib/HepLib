@@ -9,6 +9,9 @@
 #include "Process.h"
 #include "IBP.h"
 
+/**
+ * @brief namespace for Index, Vector, DiracGamma, etc.
+ */
 namespace HepLib::FC {
 
     using namespace std;
@@ -33,16 +36,18 @@ namespace HepLib::FC {
     class Vector;
     class Pair;
     
-    //-----------------------------------------------------------
-    // FormFormat Output
-    //-----------------------------------------------------------
+    /**
+     * @brief class for FormFormat Output
+     */
     class FormFormat : public print_dflt {
         GINAC_DECLARE_PRINT_CONTEXT(FormFormat, print_dflt)
     public:
         FormFormat(ostream &os, unsigned opt=0);
         static void power_print(const power & p, const FormFormat & c, unsigned level=0);
         OUT_FORMAT_DECLARE(FormFormat)
-        // static initialization
+        /**
+         * @brief inner class for some static initializations
+         */
         class _init {
             public: _init();
         };
@@ -50,16 +55,18 @@ namespace HepLib::FC {
         static _init FormFormat_init;
     };
         
-    //-----------------------------------------------------------
-    // FCFormat Output
-    //-----------------------------------------------------------
+    /**
+     * @brief class for FCFormat Output
+     */
     class FCFormat : public print_dflt {
         GINAC_DECLARE_PRINT_CONTEXT(FCFormat, print_dflt)
     public:
         FCFormat(ostream &os, unsigned opt=0);
         static void ncmul_print(const ncmul & p, const FCFormat & c, unsigned level=0);
         OUT_FORMAT_DECLARE(FCFormat)
-        // static initialization
+        /**
+         * @brief inner class for some static initializations
+         */
         class _init {
             public: _init();
         };
@@ -68,9 +75,9 @@ namespace HepLib::FC {
     };
     extern FCFormat FCout;
     
-    //-----------------------------------------------------------
-    // Index Class
-    //-----------------------------------------------------------
+    /**
+     * @brief class for index object
+     */
     class Index : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(Index, basic)
     public:
@@ -90,9 +97,9 @@ namespace HepLib::FC {
     };
     GINAC_DECLARE_UNARCHIVER(Index);
     
-    //-----------------------------------------------------------
-    // Vector Class
-    //-----------------------------------------------------------
+    /**
+     * @brief class for vector object
+     */
     class Vector : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(Vector, basic)
     public:
@@ -109,9 +116,9 @@ namespace HepLib::FC {
     };
     GINAC_DECLARE_UNARCHIVER(Vector);
     
-    //-----------------------------------------------------------
-    // SUNT/SUNF/SUNF4 Class
-    //-----------------------------------------------------------
+    /**
+     * @brief class for SUNT object
+     */
     class SUNT : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(SUNT, basic)
     public:
@@ -131,6 +138,9 @@ namespace HepLib::FC {
     };
     GINAC_DECLARE_UNARCHIVER(SUNT);
     
+    /**
+     * @brief class for SUNF object
+     */
     class SUNF : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(SUNF, basic)
     public:
@@ -150,6 +160,9 @@ namespace HepLib::FC {
     };
     GINAC_DECLARE_UNARCHIVER(SUNF);
     
+    /**
+     * @brief class for SUNF4 object
+     */
     class SUNF4 : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(SUNF4, basic)
     public:
@@ -169,9 +182,9 @@ namespace HepLib::FC {
     };
     GINAC_DECLARE_UNARCHIVER(SUNF4);
     
-    //-----------------------------------------------------------
-    // Pair Class
-    //-----------------------------------------------------------
+    /**
+     * @brief class for Pair object
+     */
     class Pair : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(Pair, basic)
     public:
@@ -207,9 +220,9 @@ namespace HepLib::FC {
     ex SP2sp(const ex & exin);
     exmap sp_map();
     
-    //-----------------------------------------------------------
-    // Eps Class
-    //-----------------------------------------------------------
+    /**
+     * @brief class for Levi-Civita object
+     */
     class Eps : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(Eps, basic)
     public:
@@ -236,9 +249,9 @@ namespace HepLib::FC {
     GINAC_DECLARE_UNARCHIVER(Eps);
     ex LC(ex pi1, ex pi2, ex pi3, ex pi4);
     
-    //-----------------------------------------------------------
-    // DiracGamma Class
-    //-----------------------------------------------------------
+    /**
+     * @brief class for DiracGamma object
+     */
     class DiracGamma : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(DiracGamma, basic)
     public:
@@ -291,22 +304,27 @@ namespace HepLib::FC {
     ex ApartIRC(const ex & expr_in, const ex & cut_props=lst{});
     void ApartIBP(int IBPmethod, exvector &air_vec, const lst & loops_exts=lst{}, const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
     
-    // ApartIR function upto 2 arguments
+    /**
+     * @brief ApartIR function with 1 argument
+     */
     class ApartIR1_SERIAL { public: static unsigned serial; };
     template<typename T1>
     inline GiNaC::function ApartIR(const T1 & p1) {
         return GiNaC::function(ApartIR1_SERIAL::serial, ex(p1));
     }
+    
+    /**
+     * @brief ApartIR function with 2 arguments
+     */
     class ApartIR2_SERIAL { public: static unsigned serial; };
     template<typename T1, typename T2>
     inline GiNaC::function ApartIR(const T1 & p1, const T2 & p2) {
         return GiNaC::function(ApartIR2_SERIAL::serial, ex(p1), ex(p2));
     }
-    class ApartIR_SERIAL;
     
-    //-----------------------------------------------------------
-    // Qgraf namespace
-    //-----------------------------------------------------------
+    /**
+     * @brief interface to qgraf program
+     */
     namespace Qgraf {
         
         //-----------------------------------------------------------
@@ -317,45 +335,72 @@ namespace HepLib::FC {
         DECLARE_FUNCTION_3P(OutField)
         DECLARE_FUNCTION_3P(Matrix)
         
-        // Field function 2-3
+        /**
+         * @brief Field function with 2 arguments
+         */
         class Field2_SERIAL { public: static unsigned serial; };
         template<typename T1, typename T2>
         inline GiNaC::function Field(const T1 & p1, const T2 & p2) {
             return GiNaC::function(Field2_SERIAL::serial, ex(p1), ex(p2));
         }
+        
+        /**
+         * @brief Field function with 3 arguments
+         */
         class Field3_SERIAL { public: static unsigned serial; };
         template<typename T1, typename T2, typename T3>
         inline GiNaC::function Field(const T1 & p1, const T2 & p2, const T3 & p3) {
             return GiNaC::function(Field3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
         }
         
-        // Vertex function 2-6
+        /**
+         * @brief Vertex function with 2 arguments
+         */
         class Vertex2_SERIAL { public: static unsigned serial; };
         template<typename T1, typename T2>
         inline GiNaC::function Vertex(const T1 & p1, const T2 & p2) {
             return GiNaC::function(Vertex2_SERIAL::serial, ex(p1), ex(p2));
         }
+        
+        /**
+         * @brief Vertex function with 3 arguments
+         */
         class Vertex3_SERIAL { public: static unsigned serial; };
         template<typename T1, typename T2, typename T3>
         inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3) {
             return GiNaC::function(Vertex3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
         }
+        
+        /**
+         * @brief Vertex function with 4 arguments
+         */
         class Vertex4_SERIAL { public: static unsigned serial; };
         template<typename T1, typename T2, typename T3, typename T4>
         inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4) {
             return GiNaC::function(Vertex4_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4));
         }
+        
+        /**
+         * @brief Vertex function with 5 arguments
+         */
         class Vertex5_SERIAL { public: static unsigned serial; };
         template<typename T1, typename T2, typename T3, typename T4, typename T5>
         inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5) {
             return GiNaC::function(Vertex5_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5));
         }
+        
+        /**
+         * @brief Vertex function with 6 arguments
+         */
         class Vertex6_SERIAL { public: static unsigned serial; };
         template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
         inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5, const T6 & p6) {
             return GiNaC::function(Vertex6_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5), ex(p6));
         }
         
+        /**
+         * @brief main interface to qgraf program
+         */
         class Process {
         public:
             string Model;
@@ -366,6 +411,9 @@ namespace HepLib::FC {
             string Options;
             vector<string> Others;
             lst Amplitudes(symtab st, bool debug=false);
+            /**
+             * @brief inner class for some initialization
+             */
             class _init {
                 public: _init();
             };
@@ -420,9 +468,9 @@ namespace HepLib::FC {
         ex J1Sum(int qi, ex p);
     };
     
-    //-----------------------------------------------------------
-    // Quarkonium namespace
-    //-----------------------------------------------------------
+    /**
+     * @brief namespace for functions helpful in Heavy Quarkonium
+     */
     namespace Quarkonium {
         enum IO {In, Out};
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu);
@@ -447,9 +495,9 @@ namespace HepLib::FC {
         ex nPS(int n, ex q2=1);
     }
     
-    //-----------------------------------------------------------
-    // RC namespace
-    //-----------------------------------------------------------
+    /**
+     * @brief namespace for Renormalization Constant
+     */
     namespace RC {
         ex Z2(string name, ex m, int loop=2);
         ex Z2(Symbol n, ex m, int loop=2);

@@ -1,9 +1,6 @@
 /**
  * @file
  * @brief Helpers to call FORM in FC
- * @author F. Feng
- * @version 1.0.0
- * @date 2020-04-21
  */
  
 #include "FC.h"
@@ -82,8 +79,9 @@ namespace HepLib::FC {
 CFunction pow,sqrt,gamma;
 Tensor T,f(antisymmetric);
 Tensor colTp;
-Symbols gCF,I2R,NF,NA,D,I,Pi;
+Symbols I2R,NF,NA,D,I,Pi;
 Dimension NA;
+AutoDeclare Symbols gCF;
 AutoDeclare Index colAj;
 AutoDeclare Index f4i;
 Dimension NF;
@@ -234,13 +232,15 @@ Dimension NF;
         int gid = 1;
         ostr = "{";
         int c = 1;
+        int kid = 0;
         for(auto it : expr_lst) {
+            string gCF = "gCF" + to_string(++kid);
             ex item = it;
             // pull out global common factor
             item = collect_common_factors(item);
             item = CoPat(item,[](const ex &e)->bool{return Index::has(e) || DiracGamma::has(e);});
-            st["gCF"] = item.op(0);
-            item = Symbol("gCF") * item.op(1);
+            st[gCF] = item.op(0);
+            item = Symbol(gCF) * item.op(1);
             // pull out color factor
             auto cv_lst = mma_collect_lst(item, [](const ex &e)->bool{return Index::hasc(e);});
             item=0;

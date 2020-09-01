@@ -1,4 +1,8 @@
- 
+/**
+ * @file
+ * @brief Functions used in generated C++ numerical code
+ */
+  
 #pragma once
 
 #include <stddef.h>

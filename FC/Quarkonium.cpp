@@ -1,9 +1,6 @@
 /**
  * @file
  * @brief Helpers for Quarkonium
- * @author F. Feng
- * @version 1.0.0
- * @date 2020-04-20
  */
  
 #include "FC.h"

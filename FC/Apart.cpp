@@ -1,9 +1,6 @@
 /**
  * @file
  * @brief Functions to perform partial fraction
- * @author F. Feng
- * @version 1.0.0
- * @date 2020-04-08
  */
 
 #include "FC.h"

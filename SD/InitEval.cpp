@@ -1,9 +1,6 @@
 /**
  * @file
  * @brief Functions for Initialize and Evaluate
- * @author F. Feng
- * @version 1.0.0
- * @date 2020-04-21
  */
  
 #include "SD.h"

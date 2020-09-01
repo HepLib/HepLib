@@ -1,9 +1,6 @@
 /**
  * @file 
  * @brief Functions to Kill terms like (a xi - b xj )^n
- * @author F. Feng
- * @version 1.0.0
- * @date 2020-04-09
  */
  
 #include "SD.h"

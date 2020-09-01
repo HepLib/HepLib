@@ -1,9 +1,6 @@
 /**
  * @file
  * @brief Basic Functions, extend GiNaC
- * @author F. Feng
- * @version 1.0.0
- * @date 2020-04-20
  */
 
 #include "Basic.h"
@@ -786,6 +783,7 @@ namespace HepLib {
             }
             if(!ok) throw Error("mma_series seems not working!");
         }
+        ret = ret.subs(s==pow(s0,ex(1)/sn_lcm)); // need this for log-terms
         ret = mma_collect(ret,s0);
         return ret;
     }

@@ -1,3 +1,7 @@
+/**
+ * @file
+ * @brief Functions used in generated C++ numerical code
+ */
 
 #include "NFunctions.h"
 

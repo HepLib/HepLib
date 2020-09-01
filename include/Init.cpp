@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Initailization for global objects
+ */
+ 
 #include "cln/cln.h"
 #include "SD.h"
 #include "FC.h"

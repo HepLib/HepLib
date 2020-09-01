@@ -1,9 +1,6 @@
 /**
  * @file
  * @brief MinUit to find minimum
- * @author F. Feng
- * @version 1.0.0
- * @date 2020-04-21
  */
  
 #include "SD.h"
@@ -20,6 +17,9 @@
 
 namespace HepLib::SD {
 
+/**
+ * @brief wrap class for MinUit
+ */
 class FCN : public ROOT::Minuit2::FCNBase {
 private:
     MinimizeBase::FunctionType InnerFunction;

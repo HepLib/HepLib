@@ -1,4 +1,7 @@
-
+/**
+ * @file
+ * @brief HookeJeeves to find a minimum
+ */
 #include "SD.h"
 #include <math.h>
 #include <cmath>

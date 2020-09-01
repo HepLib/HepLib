@@ -22,6 +22,9 @@ extern "C" {
     #include <quadmath.h>
 }
 
+/**
+ * @brief namespace for Numerical integration with Sector Decomposition method
+ */
 namespace HepLib::SD {
     
     using namespace HepLib;
@@ -69,9 +72,9 @@ namespace HepLib::SD {
     DECLARE_FUNCTION_1P(WRA) // for wick rotation
     extern int VEO_Digits;
     
-    /*-----------------------------------------------------*/
-    // SD Input
-    /*-----------------------------------------------------*/
+    /**
+     * @brief wrap parameters for loop integrals
+     */
     struct FeynmanParameter {
         lst LoopMomenta;
         lst tLoopMomenta;
@@ -85,6 +88,9 @@ namespace HepLib::SD {
         bool isAsy = false;
     };
 
+    /**
+     * @brief wrap parameters for generic parameter integrals
+     */
     struct XIntegrand {
         lst Functions;
         lst Exponents;
@@ -93,9 +99,9 @@ namespace HepLib::SD {
         bool isAsy = false;
     };
 
-    /*-----------------------------------------------------*/
-    // SecDecBase Classes
-    /*-----------------------------------------------------*/
+    /**
+     * @brief base class of SecDec
+     */
     class SecDecBase {
     public:
         virtual vector<exmap> x2y(const ex &xpol) =0;
@@ -104,6 +110,9 @@ namespace HepLib::SD {
         static ex XMonomials(const ex & expr);
     };
 
+    /**
+     * @brief SecDec by geometric method
+     */
     class SecDecG : public SecDecBase {
     public:
         vector<exmap> x2y(const ex &xpol) override;
@@ -124,6 +133,9 @@ namespace HepLib::SD {
     typedef __float128 qREAL;
     typedef __complex128 qCOMPLEX;
 
+    /**
+     * @brief base for numerical integrator
+     */
     class IntegratorBase {
     public:
         typedef int (*SD_Type) (const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
@@ -164,6 +176,9 @@ namespace HepLib::SD {
         int MPDigits = 80;
     };
 
+    /**
+     * @brief numerical integrator using HCubature
+     */
     class HCubature : public IntegratorBase {
     public:
         static int Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y);
@@ -182,6 +197,9 @@ namespace HepLib::SD {
         int LastState = 0;
     };
 
+    /**
+     * @brief numerical integrator using CUBA
+     */
     class CUBA : public IntegratorBase {
     public:
         
@@ -207,10 +225,11 @@ namespace HepLib::SD {
         qREAL LastAbsErr[2];
     };
 
-    /*-----------------------------------------------------*/
-    // Minimize Classes
-    /*-----------------------------------------------------*/
+
     typedef long double dREAL;
+    /**
+     * @brief base for class to minimize a function
+     */
     class MinimizeBase {
     public:
         typedef dREAL (*FunctionType)(int nvars, dREAL* x, dREAL* pl, dREAL *las);
@@ -220,6 +239,9 @@ namespace HepLib::SD {
         virtual void ForceStop()=0;
     };
 
+    /**
+     * @brief class to minimize a function using HookeJeeves
+     */
     class HookeJeeves : public MinimizeBase {
     public:
         virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false, int TryPTS=0, int SavePTS=0) override;
@@ -238,6 +260,9 @@ namespace HepLib::SD {
         dREAL *LAS;
     };
 
+    /**
+     * @brief class to minimize a function using MinUit
+     */
     class MinUit : public MinimizeBase {
     public:
         virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false, int TryPTS=0, int SavePTS=0) override;
@@ -245,16 +270,18 @@ namespace HepLib::SD {
         virtual void ForceStop() override;
     };
 
-    /*-----------------------------------------------------*/
-    // CppFormat Class
-    /*-----------------------------------------------------*/
+    /**
+     * @brief class to export GiNaC expression to cpp format
+     */
     class CppFormat : public print_csrc_cl_N {
         GINAC_DECLARE_PRINT_CONTEXT(CppFormat, print_csrc_cl_N)
     public:
         CppFormat(ostream &os, const string & s = "L", unsigned opt = 0);
         string suffix;
         string MQuote = "\"";
-        // static initialization
+        /**
+         * @brief inner class for some static initializations
+         */
         class _init {
             public: _init();
         };
@@ -273,9 +300,9 @@ namespace HepLib::SD {
     ex VEResult2(ex expr); // keep two digits in error
     ex VEMaxErr(ex expr);
 
-    /*-----------------------------------------------------*/
-    // ErrMin with HookeJeeves
-    /*-----------------------------------------------------*/
+    /**
+     * @brief ErrMin with HookeJeeves
+     */
     class ErrMin {
     public:
         static IntegratorBase *Integrator;
@@ -291,9 +318,9 @@ namespace HepLib::SD {
         static dREAL IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2);
     };
     
-    /*-----------------------------------------------------*/
-    // ChengWu Class
-    /*-----------------------------------------------------*/
+    /**
+     * @brief class to manipulate with Cheng-Wu theorem
+     */
     class ChengWu {
     public:
         static bool isProjective(const ex fe, const ex delta);
@@ -311,9 +338,9 @@ namespace HepLib::SD {
         static exvector Apply(const vector<ex> & fe_vec);
     };
 
-    /*-----------------------------------------------------*/
-    // SecDec Class
-    /*-----------------------------------------------------*/
+    /**
+     * @brief SecDec the main class to use Sector Decompostion method
+     */
     class SecDec {
 
     public:
@@ -400,7 +427,9 @@ namespace HepLib::SD {
         static int PRank(matrix m);
         static ex ContinuousWRA(ex expr_in, int nc=15);
         
-        // static initialization
+        /**
+         * @brief inner class for some static initializations
+         */
         class _init {
             public: _init();
         };
@@ -421,9 +450,9 @@ namespace HepLib::SD {
         static _init SD_init;
     };
 
-    /*-----------------------------------------------------*/
-    // Common SubExpression Parser
-    /*-----------------------------------------------------*/
+    /**
+     * @brief class for  Common SubExpression Parser
+     */
     class cseParser {
     public:
         ex Parse(ex expr, bool reset=true);

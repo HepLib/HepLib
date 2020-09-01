@@ -1,9 +1,6 @@
 /**
  * @file
  * @brief Functions to perform Tensor Index Reduction
- * @author F. Feng
- * @version 1.0.0
- * @date 2020-04-20
  */
  
 #include "FC.h"
@@ -111,7 +108,7 @@ namespace HepLib::FC {
                     for(auto bi : bis) {
                         for(auto bj : bis) mat.append(bi*bj);
                     }
-                    for(auto bi : bis) mat.append(eqL*bi);
+                    for(auto bj : bis) mat.append(eqL*bj);
                     mat = ex_to<lst>(form(mat));
 
                     lst rep_vs;
