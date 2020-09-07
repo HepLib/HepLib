@@ -66,7 +66,7 @@ lst classname::all(const ex &e) { \
  * @brief Extension to GiNaC
  */
 namespace GiNaC {
-    ex exfactor(const ex& poly, unsigned options=0);
+    ex ginac_factor(const ex& poly, unsigned options=0);
 }
 
 /**
@@ -364,6 +364,11 @@ namespace HepLib {
     extern bool fermat_use_array;
     ex fermat_numer_denom(const ex & expr);
     ex fermat_normal(const ex & expr);
+    
+    ex form_factor(const ex & expr);
+    
+    enum FactorMethod { GiNaC, FORM };
+    ex exfactor(const ex & expr, FactorMethod fm = FORM);
     
     ex collect_factors(const ex & expr);
     

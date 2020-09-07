@@ -1884,5 +1884,58 @@ namespace HepLib {
         return expr;
     }
     
+    ex exfactor(const ex & expr, FactorMethod fm) {
+        if(fm == FactorMethod::FORM) return form_factor(expr);
+        else return ginac_factor(expr);
+    }
+    
+    ex form_factor(const ex & expr) {
+        static map<pid_t, Form> form_map;
+        auto pid = getpid();
+        if((form_map.find(pid)==form_map.end())) { // init section
+            ostringstream ss;
+            ss << "AutoDeclare Symbols vwf;" << endl;
+            ss << "CFunction WF;" << endl;
+            form_map[pid].Init("form");
+            form_map[pid].Execute(ss.str());
+        }
+        Form &fprc = form_map[pid];
+        
+        auto expr_in = expr;
+        exmap map_rat;
+        expr_in = expr_in.to_rational(map_rat);
+        
+        exvector vs;
+        for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
+            auto e = (*i);
+            if(is_a<symbol>(e)) vs.push_back(e);
+        }
+        
+        exmap s2v;
+        symtab st;
+        int cid = 0;
+        for(auto ss : vs) {
+            cid++;
+            string cvv = "vwf"+to_string(cid);
+            s2v[ss] = Symbol(cvv);
+            st[cvv] = ss.subs(map_rat);
+        }
+        ostringstream oss;
+        expr_in = expr_in.subs(s2v);
+        oss << "L oFF = WF(" << expr_in << ");" << endl;
+        oss << "FactArg WF;" << endl;
+        oss << ".sort" << endl;
+        auto ostr = fprc.Execute(oss.str(), "oFF");
+        string_replace_all(ostr, "[", "({");
+        string_replace_all(ostr, "]", "})");
+        
+        Parser fp(st);
+        ex res = fp.Read(ostr); 
+        if(!res.match(WF(w)) || !is_a<lst>(res.op(0))) throw Error("Error in form_facto: "+ostr);
+        ex ret = 1;
+        for(auto item : res.op(0)) ret *= item;
+        return ret;
+    }
+    
 }
 

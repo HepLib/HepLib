@@ -25,7 +25,7 @@ using namespace cln;
 
 namespace GiNaC {
 
-ex exfactor(const ex& poly, unsigned options=0);
+ex ginac_factor(const ex& poly, unsigned options=0);
 
 // anonymous namespace to hide all utility functions
 namespace {
@@ -2142,7 +2142,7 @@ static ex factor_multivariate(const ex& poly, const exset& syms)
 		vnlst = lst{vn};
 	}
 	else {
-		ex vnfactors = exfactor(vn);
+		ex vnfactors = ginac_factor(vn);
 		vnlst = put_factors_into_lst(vnfactors);
 	}
 
@@ -2419,7 +2419,7 @@ struct apply_factor_map : public map_function {
 	ex operator()(const ex& e) override
 	{
 		if ( e.info(info_flags::polynomial) ) {
-			return exfactor(e, options);
+			return ginac_factor(e, options);
 		}
 		if ( is_a<add>(e) ) {
 			ex s1, s2;
@@ -2430,7 +2430,7 @@ struct apply_factor_map : public map_function {
 					s2 += e.op(i);
 				}
 			}
-			return exfactor(s1, options) + s2.map(*this);
+			return ginac_factor(s1, options) + s2.map(*this);
 		}
 		return e.map(*this);
 	}
@@ -2515,7 +2515,7 @@ static ex factor1(const ex& poly, unsigned options)
 /** Interface function to the outside world. It uses factor1()
  *  on each of the explicitly present factors of poly.
  */
-ex exfactor(const ex& poly, unsigned options)
+ex ginac_factor(const ex& poly, unsigned options)
 {
 	ex result = 1;
 	factor_iter(poly,
@@ -2537,7 +2537,7 @@ ex exfactor(const ex& poly, unsigned options)
     if(!is_zero(normal(poly.subs(nmap)-result.subs(nmap)))) {
         cout << poly << endl;
         cout << result << endl;
-        throw runtime_error("exfactor failed, check details above.");
+        throw runtime_error("ginac_factor failed, check details above.");
     }
   
 	return result;
