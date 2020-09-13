@@ -71,6 +71,31 @@ namespace HepLib::IBP {
     class KIRA : public Base {
     public:
     
+        string cmd_args = "";
+        lst mi_pref;
+        
+        int ra = 2;
+        int sa = 3;
+        int dmax = 0;
+        
+        void Export() override;
+        void Run() override;
+        void Import() override;
+        
+    private:
+        string Fout(const ex & expr);
+        ex Fin(const string & expr);
+        map<ex,unsigned long long,ex_is_less> i2w;
+        map<unsigned long long,ex> w2i;
+    };
+
+    
+    /**
+     * @brief IBP reduction using KIRA program with user-defined equations
+     */
+    class UKIRA : public Base {
+    public:
+    
         static int Rounds;
         
         bool use_weight = false;
