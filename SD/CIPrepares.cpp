@@ -357,7 +357,7 @@ namespace HepLib::SD {
             }
             
             ostringstream cmd;
-            cmd << cpp << " -Wl,-rpath=. -Wl,-rpath=\"" << InstallPrefix << "/lib\" -fPIC -c " << INC_FLAGS << " -o " << sofn.str() << " " << cppfn.str();
+            cmd << cpp << " -Wl,-rpath,. -Wl,-rpath,\"" << InstallPrefix << "/lib\" -fPIC -c " << INC_FLAGS << " -o " << sofn.str() << " " << cppfn.str();
             system(cmd.str().c_str());
             
             if(!file_exists(sofn.str().c_str())) {
@@ -379,7 +379,7 @@ namespace HepLib::SD {
             } else {
                 sofn << pid << "F.so";
             }
-            cmd << cpp << " -Wl,-rpath=. -Wl,-rpath=\"" << InstallPrefix << "/lib\" " << LIB_FLAGS <<  " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << " -o " << sofn.str() << " " << pid << "/F*.o";
+            cmd << cpp << " -Wl,-rpath,. -Wl,-rpath,\"" << InstallPrefix << "/lib\" " << LIB_FLAGS <<  " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << " -o " << sofn.str() << " " << pid << "/F*.o";
             system(cmd.str().c_str());
             
             cmd.clear();
@@ -398,7 +398,7 @@ namespace HepLib::SD {
             cmd.clear();
             cmd.str("");
             cmd << "echo ''>" << pid << "/null.cpp;";
-            cmd << cpp << " -Wl,-rpath=. -Wl,-rpath=\"" << InstallPrefix << "/lib\" -fPIC -c -o " << pid << "/null.o " << pid << "/null.cpp";
+            cmd << cpp << " -Wl,-rpath,. -Wl,-rpath,\"" << InstallPrefix << "/lib\" -fPIC -c -o " << pid << "/null.o " << pid << "/null.cpp";
             system(cmd.str().c_str());
         }
 
@@ -1144,7 +1144,7 @@ namespace HepLib::SD {
             ofs.close();
             ostringstream ofn, cmd;
             ofn << pid << "/" << idx << ".o";
-            cmd << cpp << " -Wl,-rpath=. -Wl,-rpath=\"" << InstallPrefix << "/lib\" -fPIC " << INC_FLAGS <<  " -c -o " << ofn.str() << " " << cppfn.str();
+            cmd << cpp << " -Wl,-rpath,. -Wl,-rpath,\"" << InstallPrefix << "/lib\" -fPIC " << INC_FLAGS <<  " -c -o " << ofn.str() << " " << cppfn.str();
             system(cmd.str().c_str());
             if(!debug) remove(cppfn.str().c_str());
             return lst{ idx, xs.size(), kvf.op(0), ft_n };
@@ -1186,7 +1186,7 @@ namespace HepLib::SD {
         if(res_size>GccLimit) {
             cmd.clear();
             cmd.str("");
-            cmd << cpp << " -Wl,-rpath=. -Wl,-rpath=\"" << InstallPrefix << "/lib\" " << LIB_FLAGS <<  " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp ";
+            cmd << cpp << " -Wl,-rpath,. -Wl,-rpath,\"" << InstallPrefix << "/lib\" " << LIB_FLAGS <<  " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp ";
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 0 " << (GccLimit-1) << ")";
             system(cmd.str().c_str());
@@ -1201,7 +1201,7 @@ namespace HepLib::SD {
                 else sofn << pid << "X" << n << ".so";
                 cmd.clear();
                 cmd.str("");
-                cmd << cpp << " -Wl,-rpath=. -Wl,-rpath=\"" << InstallPrefix << "/lib\" " << LIB_FLAGS <<  " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp ";
+                cmd << cpp << " -Wl,-rpath,. -Wl,-rpath,\"" << InstallPrefix << "/lib\" " << LIB_FLAGS <<  " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp ";
                 if(hasF) cmd << " " << fsofn.str();
                 cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' " << start << " " << end << ")";
                 system(cmd.str().c_str());
@@ -1210,7 +1210,7 @@ namespace HepLib::SD {
         } else {
             cmd.clear();
             cmd.str("");
-            cmd << cpp << " -Wl,-rpath=. -Wl,-rpath=\"" << InstallPrefix << "/lib\" " << LIB_FLAGS <<  " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp ";
+            cmd << cpp << " -Wl,-rpath,. -Wl,-rpath,\"" << InstallPrefix << "/lib\" " << LIB_FLAGS <<  " -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp ";
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -o " << sofn.str() << " " << pid << "/*.o";
             system(cmd.str().c_str());
