@@ -7,6 +7,7 @@
 #include "SD.h"
 #include "FC.h"
 #include "IBP.h"
+#include <cstdlib>
 
 namespace HepLib {
 
@@ -154,6 +155,24 @@ namespace HepLib {
     });
     
     
+    // global init class
+    _global_init::_init::_init() {
+        ostringstream oss;
+        string path = InstallPrefix + "/bin";
+        if(dir_exists(path)) oss << path;
+        
+        path = InstallPrefix + "/FIRE5/bin";
+        if(dir_exists(path)) oss << ":" << path;
+        
+        path = InstallPrefix + "/FIRE6/bin";
+        if(dir_exists(path)) oss << ":" << path;
+        
+        auto opath = getenv("PATH");
+        if(opath != NULL) oss << ":" << opath;
+        setenv("PATH", oss.str().c_str(), true);
+        
+    }
+    _global_init::_init _global_init::init_object;
     
 }
 

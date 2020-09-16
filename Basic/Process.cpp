@@ -75,7 +75,7 @@ namespace HepLib {
         }
         
         fpid = fork();
-        if (fpid == 0) { // child process
+        if (fpid == 0) { // child process            
             setpgid(0,0);
             close(P2C[1]);
             close(C2P[0]);

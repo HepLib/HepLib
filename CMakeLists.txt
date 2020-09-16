@@ -7,6 +7,11 @@ SET(CMAKE_CXX_COMPILER g++)
 SET(CMAKE_FORTRAN_COMPILER gfortran)
 
 #-----------------------------------------------
+# qgraf
+#-----------------------------------------------
+ADD_EXECUTABLE(qgraf "bin/qgraf-3.1.4.f")
+
+#-----------------------------------------------
 # INC_PATH & LIB_PATH
 #-----------------------------------------------
 SET(INC_PATH "${INC_PATH};${CMAKE_INSTALL_PREFIX}/include")
@@ -99,7 +104,6 @@ FOREACH(exe_cpp ${cpp_files})
     INSTALL(TARGETS ${exe} DESTINATION bin)
 ENDFOREACH()
 
-ADD_EXECUTABLE(qgraf "bin/qgraf-3.1.4.f")
 INSTALL(TARGETS qgraf DESTINATION bin)
 INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/OTHER/HepLib.pc" DESTINATION "lib/pkgconfig")
 INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/OTHER/heplib++" DESTINATION "bin" 

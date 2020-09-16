@@ -642,4 +642,14 @@ namespace HepLib {
     };
     GINAC_DECLARE_UNARCHIVER(XIntegral);
     
+    // global init class
+    class _global_init {
+    public:
+        class _init {
+            public: _init();
+        };
+    private:
+        static _init init_object;
+    };
+    
 }
