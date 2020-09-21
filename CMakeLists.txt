@@ -51,7 +51,7 @@ CONFIGURE_FILE(include/heplib++ "${CMAKE_CURRENT_BINARY_DIR}/OTHER/heplib++" @ON
 # External Libraries
 #-----------------------------------------------
 LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic quadmath gomp cubaq)
-
+ 
 #-----------------------------------------------
 PROJECT(HepLib VERSION 1.0 LANGUAGES C CXX Fortran)
 AUX_SOURCE_DIRECTORY(Basic BASIC_SRCS)
@@ -84,6 +84,7 @@ ENDIF(APPLE)
 # install library HepLib
 #-----------------------------------------------
 ADD_LIBRARY(HepLib SHARED ${BASIC_SRCS} ${SD_SRCS} ${FC_SRCS} ${IBP_SRCS} ${GiNaC_SRCS} ${OTHER})
+SET_TARGET_PROPERTIES(HepLib PROPERTIES INSTALL_RPATH "${LIB_PATH}")
 INSTALL(TARGETS HepLib DESTINATION lib)
 
 #-----------------------------------------------
@@ -100,6 +101,7 @@ FILE(GLOB cpp_files "bin/*.cpp")
 FOREACH(exe_cpp ${cpp_files})
     GET_FILENAME_COMPONENT(exe ${exe_cpp} NAME_WE)
     ADD_EXECUTABLE(${exe} bin/${exe}.cpp)
+    SET_TARGET_PROPERTIES(${exe} PROPERTIES INSTALL_RPATH "${LIB_PATH}")
     TARGET_LINK_LIBRARIES(${exe} HepLib)
     INSTALL(TARGETS ${exe} DESTINATION bin)
 ENDFOREACH()
