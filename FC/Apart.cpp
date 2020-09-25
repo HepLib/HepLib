@@ -627,10 +627,9 @@ namespace HepLib::FC {
     
     /**
      * @brief perform IBP reduction on the Aparted input
-     * @param IBPmethod ibp method used, 1-FIRE, 2-KIRA
+     * @param IBPmethod ibp method used, 0-No IBP, 1-FIRE, 2-KIRA
      * @param air_vec vector contains aparted input, ApartIRC will be call internally 
-     * @param vloops loop vectors, vloops will be differentialized in FIRE
-     * @param vexts external vectors
+     * @param loops_exts lst { loop vectors, external vectors, }
      * @param cut_props cut propagators, default is { }
      * @return nothing returned, the input air_vec will be updated
      */
@@ -676,8 +675,6 @@ namespace HepLib::FC {
             if(is_a<Vector>(li)) exts.append(ex_to<Vector>(li).name);
             else exts.append(li);
         }
-        bool reduce = false;
-        if(loops_exts.nops()==2) reduce = true;
         
         exmap IR2F;
         std::map<ex, IBP::Base*, ex_is_less> p2IBP;
@@ -699,7 +696,8 @@ namespace HepLib::FC {
 
             if(p2IBP[props]==NULL) {
                 IBP::Base* ibp;
-                if(IBPmethod==1) ibp = new FIRE();
+                if(IBPmethod==0) ibp = new Base();
+                else if(IBPmethod==1) ibp = new FIRE();
                 else if(IBPmethod==1) ibp = new KIRA();
                 
                 p2IBP[props] = ibp;
@@ -724,7 +722,7 @@ namespace HepLib::FC {
         
         vector<Base*> base_vec;
         for(auto ibp : ibp_vec) base_vec.push_back(ibp);
-        auto rules_ints = FindRules(base_vec, false, uf);        
+        auto rules_ints = FindRules(base_vec, false, uf);
 
         map<int,lst> pn_ints_map;
         for(auto item : rules_ints.second) {
@@ -751,7 +749,7 @@ namespace HepLib::FC {
             } else return e.map(self);
         });
         
-        if(!reduce) {
+        if(IBPmethod==0) {
             auto air_res =
             GiNaC_Parallel(air_vec.size(), 1, [&](int idx)->ex {
                 auto air = air_vec[idx];

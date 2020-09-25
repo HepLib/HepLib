@@ -39,9 +39,9 @@ namespace HepLib::IBP {
         lst Rules;
         lst Pairs;
         
-        virtual void Export() = 0;
-        virtual void Run() = 0;
-        virtual void Import() = 0;
+        virtual void Export() { throw Error("Export() not implemented!"); };
+        virtual void Run() { throw Error("Run() not implemented!"); };
+        virtual void Import() { throw Error("Import() not implemented!"); };
         void Reduce();
         
     };
