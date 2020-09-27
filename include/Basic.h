@@ -362,8 +362,8 @@ namespace HepLib {
     ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
     extern bool fermat_use_array;
-    ex fermat_numer_denom(const ex & expr);
-    ex fermat_normal(const ex & expr);
+    ex fermat_numer_denom(const ex & expr, bool factor=false);
+    ex fermat_normal(const ex & expr, bool factor=false);
     
     ex form_factor(const ex & expr);
     

@@ -382,11 +382,35 @@ namespace HepLib::FC {
             map2[s]=v;
             vars.append(s);
         }
-        ex pref = 1;
+        
         ex expr = expr_in.subs(map1);
         if(!is_a<mul>(expr)) expr = lst{expr};
         
+        // check only, try fermat_normal if faild
+        bool ok = true;
+        for(auto item : expr) {
+            bool has_var=false;
+            for(auto v : vars) {
+                if(item.has(v)) {
+                    has_var=true;
+                    break;
+                }
+            }
+            if(has_var) {
+                if(!isOK(item,vars)) {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+        if(!ok) {
+            expr = expr_in.subs(map1);
+            expr = fermat_normal(expr,true); // need option factor=true
+            if(!is_a<mul>(expr)) expr = lst{expr};
+        }
+        
         lst plst;
+        ex pref = 1;
         for(auto item : expr) {
             bool has_var=false;
             for(auto v : vars) {
@@ -398,6 +422,7 @@ namespace HepLib::FC {
             if(has_var) {
                 if(!isOK(item,vars)) {
                     cout << expr_in << endl;
+                    cout << item << endl;
                     throw Error("Apart: item is not linear wrt vars.");
                 }
                 plst.append(item);
@@ -481,7 +506,7 @@ namespace HepLib::FC {
         ex res;
         
         if(false) { // new method
-            auto dn = fermat_numer_denom(expr);
+            auto dn = fermat_numer_denom(expr,true);
             auto den = Apart(1/dn.op(1), sps, sign);
             den = ApartIRC(den);
             den = mma_collect_lst(den,ApartIR(w1,w2));

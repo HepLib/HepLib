@@ -1744,7 +1744,7 @@ namespace HepLib {
     //-----------------------------------------------------------
     // fermat_numer_denom / fermat_normal
     //-----------------------------------------------------------
-    ex fermat_numer_denom(const ex & expr) {
+    ex fermat_numer_denom(const ex & expr, bool factor) {
         static map<pid_t, Fermat> fermat_map;
         static int v_max = 0;
 
@@ -1849,7 +1849,8 @@ namespace HepLib {
             Parser fp(st);
             auto ret = fp.Read(ostr);
             num *= ret.op(0);
-            den *= exfactor(ret.op(1));
+            if(factor) den *= exfactor(ret.op(1));
+            else den *= ret.op(1);
             
             ss << "&(U=0);" << endl; // disable ugly printing
             if(fermat_use_array) ss << "@(res,[m]);" << endl;
@@ -1872,8 +1873,8 @@ namespace HepLib {
         return lst{num, den};
     }
     
-    ex fermat_normal(const ex & expr) {
-        auto nd = fermat_numer_denom(expr);
+    ex fermat_normal(const ex & expr, bool factor) {
+        auto nd = fermat_numer_denom(expr, factor);
         return nd.op(0)/nd.op(1);
     }
     
