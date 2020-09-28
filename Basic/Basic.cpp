@@ -623,7 +623,7 @@ namespace HepLib {
         return ostr;
     }
     
-    vector<string> file2vec(string filename, bool skip_empty) {
+    vector<string> file2strvec(string filename, bool skip_empty) {
         ifstream fs(filename);
         vector<string> ovec;
         std::string line;
@@ -641,6 +641,16 @@ namespace HepLib {
      */
     ex file2ex(string filename) {
         return str2ex(file2str(filename));
+    }
+    
+    /**
+     * @brief read file content to ex
+     * @param filename file name
+     * @param st symtab
+     * @return the file content in ex
+     */
+    ex file2ex(string filename, symtab st) {
+        return str2ex(file2str(filename), st);
     }
     
     /**

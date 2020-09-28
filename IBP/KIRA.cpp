@@ -194,7 +194,7 @@ namespace HepLib::IBP {
         string job_dir = WorkingDir + "/" + to_string(ProblemNumber);
         ostringstream fn;
         fn << job_dir << "/results/F/kira_integrals.kira";
-        auto strvec = file2vec(fn.str());
+        auto strvec = file2strvec(fn.str());
         
         ex exL=0, exR=0;
         map<ex,int,ex_is_less> flags;
