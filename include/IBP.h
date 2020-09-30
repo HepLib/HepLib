@@ -107,6 +107,9 @@ namespace HepLib::IBP {
         void Run() override;
         void Import() override;
         
+        int ra = 2;
+        int sa = 1;
+        
     private:
         int Round = 0;
         lst ibps;

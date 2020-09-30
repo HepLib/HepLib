@@ -184,107 +184,99 @@ namespace HepLib::IBP {
         }
         
         // seeds generation
-        exvector eqns;
-        ex rmax=-1, smax=-1, rsmax=-1;
-        for(auto seed : _Integrals) {
-            ex rs=0, ss=0, rss=0;
-            for(auto ii : seed) {
-                if(ii>0) { rs += ii; rss += ii;}
-                else { ss -= ii; rss -= ii;}
-            }
-            if(rmax<rs) rmax=rs;
-            if(smax<ss) smax=ss;
-            if(rsmax<rss) rsmax=rss;
-            for(auto const & item : ibps) {
-                exset fs;
-                item.find(F(w), fs);
-                for(auto fi : fs) {
-                    lst sol, as;
-                    for(int i=0; i<fi.op(0).nops(); i++) {
-                        auto expn = fi.op(0).op(i);
-                        auto ca = expn.coeff(a(i),1);
-                        auto c0 = expn.coeff(a(i),0);
-                        auto ai = (seed.op(i)-c0)/ca;
-                        sol.append(a(i)==ai);
-                        as.append(ai);
-                    }
-                    auto ii = item.subs(sol);
-                    if(ii.is_zero()) continue;
-                    eqns.push_back(ii);
+        int pgDIM = Propagators.nops();
+        int rmax = -1, smax = -1;
+        int rrmax[pgDIM], ssmax[pgDIM];
+        for(int i=0; i<pgDIM; i++) rrmax[i] = ssmax[i] = -1;
+        for(auto integral : Integrals) {
+            if(integral.nops()!=pgDIM) throw Error("UKIRA::Export, integral dimension not match propagators.");
+            int rr = 0;
+            int ss = 0;
+            for(int i=0; i<pgDIM; i++) {
+                auto item = ex2int(integral.op(i));
+                if(item>0) {
+                    if(rrmax[i]<item) rrmax[i] = item;
+                    rr += item;
+                } else {
+                    item = 0-item;
+                    if(ssmax[i]<item) ssmax[i] = item;
+                    ss += item;
                 }
             }
+            if(rmax<rr) rmax = rr;
+            if(smax<ss) smax = ss;
         }
+        for(int i=0; i<pgDIM; i++) {
+            rrmax[i] += ra;
+            ssmax[i] += sa;
+        }
+        rmax += ra;
+        smax += sa;
         
-        static int max = 3;
-        if(true) {
-            exset seeds;
-            exset fs;
-            find(exvec2lst(eqns), F(w), fs);
-            for(auto fi : fs) {
-                ex rs=0, ss=0, rss=0;
-                for(auto ii : fi.op(0)) {
-                    if(ii>0) { rs += ii; rss += ii;}
-                    else { ss -= ii; rss -= ii;}
+        int as[pgDIM];
+        for(int i=0; i<pgDIM; i++) as[i] = -ssmax[i];
+        vector<vector<int>> asvec;
+        while(true) {
+            for(int i=0; i<pgDIM; i++) {
+                if(as[i]+1>rrmax[i]) {
+                    if(i+1 == pgDIM) goto done;
+                    as[i] = -ssmax[i];
+                } else {
+                    as[i] = as[i] + 1;
+                    break;
                 }
-                if(rs>rmax+max) continue;
-                if(ss>smax+max) continue;
-                if(rss>rsmax+max) continue;
-                seeds.insert(fi.op(0));
             }
+            int _rmax = 0, _smax = 0;
+            for(int i=0; i<pgDIM; i++) {
+                if(as[i]>0) _rmax += as[i];
+                else _smax -= as[i];
+            }
+            if(_rmax>rmax || _smax>smax) continue;
+            vector<int> asv;
+            for(int i=0; i<pgDIM; i++) asv.push_back(as[i]);
+            asvec.push_back(asv);
+        }
+        done: ;
         
+        bool hasCut = (Cuts.nops()>1);
+        auto eqns_result =
+        GiNaC_Parallel(asvec.size(), [&](int idx)->ex {
+            auto as = asvec[idx];
+            exmap sol;
+            for(int i=0; i<pgDIM; i++) sol[a(i)]=as[i];
+            lst eqns;
             for(auto const & item : ibps) {
-                exset fs;
-                item.find(F(w), fs);
-                for(auto fi : fs) {
-                    int tot = fi.op(0).nops();
-                    ex cc[tot][2];
-                    for(int i=0; i<tot; i++) {
-                        auto expn = fi.op(0).op(i);
-                        auto ca = expn.coeff(a(i),1);
-                        auto c0 = expn.coeff(a(i),0);
-                        cc[i][0] = ca;
-                        cc[i][1] = c0;
-                    }
-                    
-                    for(auto seed : seeds) {
-                        lst sol, as;
-                        for(int i=0; i<tot; i++) {
-                            auto ai = (seed.op(i)-cc[i][1])/cc[i][0];
-                            sol.append(a(i)==ai);
-                            as.append(ai);
+                auto ii = item.subs(sol);
+                if(ii.is_zero()) continue;
+                if(hasCut) {
+                    exset fs;
+                    find(ii, F(w), fs);
+                    exmap repl;
+                    for(auto fi : fs) {
+                        lst ns = ex_to<lst>(fi.op(0));
+                        for(auto ic : Cuts) {
+                            int j = ex_to<numeric>(ic).to_int()-1;
+                            if(ns.op(j)<=0) {
+                                repl[fi]=0;
+                                break;
+                            }
                         }
-                        auto ii = item.subs(sol);
-                        if(ii.is_zero()) continue;
-                        eqns.push_back(ii);
                     }
+                    ii = ii.subs(repl);
                 }
+                if(ii.is_zero()) continue;
+                eqns.append(ii);
             }
-        }
+            return eqns;
+        }, "UKira");
+        
+        lst eqns;
+        for(auto ilst : eqns_result)
+            for(auto eqn : ilst) eqns.append(eqn);
 
-        if(Cuts.nops()>1) {
-            int total = eqns.size();
-            for(int i=0; i<total; i++) {
-                auto tmp = eqns[i];
-                exset fs;
-                find(tmp, F(w), fs);
-                exmap repl;
-                for(auto fi : fs) {
-                    lst ns = ex_to<lst>(fi.op(0));
-                    for(auto ic : Cuts) {
-                        int j = ex_to<numeric>(ic).to_int()-1;
-                        if(ns.op(j)<=0) {
-                            repl[fi]=0;
-                            break;
-                        }
-                    }
-                }
-                eqns[i] = tmp.subs(repl);
-            }
-        }
-        
         if(use_weight) {
             exset fs;
-            find(exvec2lst(eqns), F(w), fs);
+            find(eqns, F(w), fs);
             exvector intg_vec;
             for(auto fi : fs) {
                 lst rs,ss;
@@ -301,7 +293,11 @@ namespace HepLib::IBP {
                         ssum -= idx;
                     }
                 }
+                
+                // different sort pattern
                 lst item = lst{rsum+ssum,rsum,ssum};
+                //lst item = lst{rsum,ssum};
+                
                 for(auto ii : ss) item.append(ii);
                 for(auto ii : rs) item.append(ii);
                 item.append(sid);
