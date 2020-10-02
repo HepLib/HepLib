@@ -137,7 +137,7 @@ namespace HepLib {
     int IBP::FIRE::Version = 6;
     int IBP::FIRE::Threads = 8;
     
-    int IBP::UKIRA::Rounds = 15;
+    int IBP::UKIRA::Rounds = 1;
     
     //----------------------------------------
     // Rationalize

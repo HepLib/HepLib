@@ -188,7 +188,7 @@ namespace HepLib::IBP {
         int rmax = -1, smax = -1;
         int rrmax[pgDIM], ssmax[pgDIM];
         for(int i=0; i<pgDIM; i++) rrmax[i] = ssmax[i] = -1;
-        for(auto integral : Integrals) {
+        for(auto integral : _Integrals) {
             if(integral.nops()!=pgDIM) throw Error("UKIRA::Export, integral dimension not match propagators.");
             int rr = 0;
             int ss = 0;
@@ -206,13 +206,29 @@ namespace HepLib::IBP {
             if(rmax<rr) rmax = rr;
             if(smax<ss) smax = ss;
         }
-        for(int i=0; i<pgDIM; i++) {
-            rrmax[i] += ra;
-            ssmax[i] += sa;
-        }
-        rmax += ra;
-        smax += sa;
         
+        if(seed_option == 0) {
+            int _rrmax = -1, _ssmax = -1;
+            for(int i=0; i<pgDIM; i++) {
+                if(_rrmax<rrmax[i]) _rrmax = rrmax[i];
+                if(_ssmax<ssmax[i]) _ssmax = ssmax[i];
+            }
+            for(int i=0; i<pgDIM; i++) {
+                rrmax[i] = _rrmax + rap;
+                ssmax[i] = _ssmax + sap;
+            }
+            rmax += ra;
+            smax += sa;
+        } else {
+            for(int i=0; i<pgDIM; i++) {
+                rrmax[i] += rap;
+                ssmax[i] += sap;
+            }
+            rmax += ra;
+            smax += sa;
+        }
+        
+        // generate IBP equations
         int as[pgDIM];
         for(int i=0; i<pgDIM; i++) as[i] = -ssmax[i];
         vector<vector<int>> asvec;
@@ -238,7 +254,10 @@ namespace HepLib::IBP {
         }
         done: ;
         
-        bool hasCut = (Cuts.nops()>1);
+        int nCut = Cuts.nops();
+        bool hasCut = (nCut>1);
+        int iCuts[nCut+1];
+        for(int i=0; i<nCut; i++) iCuts[i] = ex_to<numeric>(Cuts.op(i)).to_int();
         auto eqns_result =
         GiNaC_Parallel(asvec.size(), [&](int idx)->ex {
             auto as = asvec[idx];
@@ -254,8 +273,8 @@ namespace HepLib::IBP {
                     exmap repl;
                     for(auto fi : fs) {
                         lst ns = ex_to<lst>(fi.op(0));
-                        for(auto ic : Cuts) {
-                            int j = ex_to<numeric>(ic).to_int()-1;
+                        for(auto ic : iCuts) {
+                            int j = ic-1;
                             if(ns.op(j)<=0) {
                                 repl[fi]=0;
                                 break;
@@ -271,47 +290,81 @@ namespace HepLib::IBP {
         }, "UKira");
         
         lst eqns;
-        for(auto ilst : eqns_result)
-            for(auto eqn : ilst) eqns.append(eqn);
+        for(auto ilst : eqns_result) for(auto eqn : ilst) eqns.append(eqn);
 
         if(use_weight) {
             exset fs;
-            find(eqns, F(w), fs);
+            for(auto eqn : eqns) find(eqn, F(w), fs);
             exvector intg_vec;
             for(auto fi : fs) {
                 lst rs,ss;
-                int sid=0, rsum=0, ssum=0;
+                int sid=0, rsum=0, ssum=0, sn=0, rn=0;
                 auto idx_lst = fi.op(0);
                 for(int i=0; i<idx_lst.nops(); i++) {
                     auto idx = ex_to<numeric>(idx_lst.op(i)).to_int();
+                    if(idx==0) continue;
                     if(idx!=0) sid += std::pow(2,idx_lst.nops()-i-1);
                     if(idx>0) {
                         rs.append(idx);
                         rsum += idx;
+                        rn++;
                     } else {
-                        ss.append(-idx);
+                        ss.append(idx);
                         ssum -= idx;
+                        sn++;
                     }
                 }
                 
-                // different sort pattern
-                lst item = lst{rsum+ssum,rsum,ssum};
-                //lst item = lst{rsum,ssum};
-                
-                for(auto ii : ss) item.append(ii);
-                for(auto ii : rs) item.append(ii);
-                item.append(sid);
+                lst item;
+                if(sort_option==0) { // {r+s,r,s}
+                    item.append(rsum+ssum);
+                    item.append(rsum);
+                    item.append(ssum);
+                    item.append(rn);
+                    item.append(-sn);
+                    for(auto ii : ss) item.append(-ii);
+                    for(auto ii : rs) item.append(ii);
+                } else if(sort_option==1) { // {S,r,s,ss,rr}
+                    item.append(rsum+ssum);
+                    item.append(rsum);
+                    item.append(ssum);
+                    item.append(sid);
+                    for(auto ii : ss) item.append(ii);
+                    for(auto ii : rs) item.append(ii);
+                } else if(sort_option==2) { // {S,s,r,rr,ss}
+                    item.append(rsum+ssum);
+                    item.append(ssum);
+                    item.append(rsum);
+                    item.append(sid);
+                    for(auto ii : rs) item.append(ii);
+                    for(auto ii : ss) item.append(ii);
+                } else if(sort_option==-1) { // {S,r,s,-ss,rr}
+                    item.append(rsum+ssum);
+                    item.append(rsum);
+                    item.append(ssum);
+                    item.append(sid);
+                    for(auto ii : ss) item.append(-ii);
+                    for(auto ii : rs) item.append(ii);
+                } else if(sort_option==-2) { // {S,s,r,rr,-ss}
+                    item.append(rsum+ssum);
+                    item.append(ssum);
+                    item.append(rsum);
+                    item.append(sid);
+                    for(auto ii : rs) item.append(ii);
+                    for(auto ii : ss) item.append(-ii);
+                }
                 item.append(fi);
                 intg_vec.push_back(item);
             }
+
             sort_vec(intg_vec);
             unsigned long long int64 = 100000000000000;
             for(auto intg : intg_vec) {
                 int64++;
                 unsigned long long weight = int64;
                 auto idx = intg.op(intg.nops()-1).op(0);
-                for(auto ic : Cuts) {
-                    int j = ex_to<numeric>(ic).to_int()-1;
+                for(auto ic : iCuts) {
+                    int j = ic-1;
                     if(idx.op(j)>1) {
                         weight += 100000000000000;
                         break;
@@ -352,7 +405,6 @@ namespace HepLib::IBP {
         oss << "      input_system: " << endl;
         oss << "        config: false" << endl;
         oss << "        files: [equations]" << endl;
-        oss << "        otf: true" << endl;
         if(mi_pref.nops()>0) {
             ostringstream oss2;
             int nn = mi_pref.nops();

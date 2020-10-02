@@ -62,7 +62,6 @@ namespace HepLib::IBP {
         
         static int Version;
         static int Threads;
-        
     };
     
     /**
@@ -98,7 +97,7 @@ namespace HepLib::IBP {
     
         static int Rounds;
         
-        bool use_weight = false;
+        bool use_weight = true;
         string cmd_args = "";
         map<int,ex> Shift;
         lst mi_pref;
@@ -108,11 +107,15 @@ namespace HepLib::IBP {
         void Import() override;
         
         int ra = 2;
-        int sa = 1;
+        int sa = 3;
+        int rap = 1;
+        int sap = 1;
+        int sort_option = 0;
+        int seed_option = 0;
         
     private:
-        int Round = 0;
         lst ibps;
+        int Round = 0;
         lst _Integrals;
         lst _Rules;
         lst RIntegrals;
@@ -122,7 +125,6 @@ namespace HepLib::IBP {
         map<ex,unsigned long long,ex_is_less> i2w;
         map<unsigned long long,ex> w2i;
     };
-    
     
     lst SortPermutation(const ex & in_expr, const lst & xs);
     lst LoopUF(const Base & fire, const ex & corner);
