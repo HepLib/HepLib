@@ -33,7 +33,6 @@ namespace HepLib::IBP {
         
         string WorkingDir;
         int ProblemNumber = 0;
-        ex VectorDimension = d;
         
         lst MasterIntegrals;
         lst Rules;

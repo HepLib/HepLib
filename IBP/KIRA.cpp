@@ -216,7 +216,7 @@ namespace HepLib::IBP {
                     throw Error("KIRA::Import error found.");
                 }
             } else {
-                exR += Fin(line).subs(d==D);
+                exR += Fin(line);
             }
         }
         if(!is_zero(exL)) {

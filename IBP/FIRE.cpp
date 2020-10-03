@@ -102,12 +102,12 @@ namespace HepLib::IBP {
                     if(!is_zero(tmp)) nc_map[ns] = nc_map[ns] + tmp;
                 }
                 
-                if(is_zero(loop-iep)) nc_map[ns0] = nc_map[ns0] + VectorDimension;
+                if(is_zero(loop-iep)) nc_map[ns0] = nc_map[ns0] + d;
                 bool ok = false;
                 for(auto nc : nc_map) {
                     if(!is_zero(nc.second)) {
                         ok = true;
-                        IBPvec.push_back(nc.second.subs(D==d)); // replace D to d
+                        IBPvec.push_back(nc.second);
                     }
                 }
                 if(ok) ibps.push_back(nc_map);
@@ -337,7 +337,6 @@ namespace HepLib::IBP {
             for(auto it : item.op(1)) {
                 right += it.op(0).subs(id2F) * it.op(1);
             }
-            right = right.subs(d==D); // replace d back to D
             if(is_zero(left-right)) MasterIntegrals.append(left);
             else Rules.append(left==right);
         }

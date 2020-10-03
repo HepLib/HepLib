@@ -317,11 +317,11 @@ namespace HepLib::IBP {
                 
                 lst item;
                 if(sort_option==0) { // {r+s,r,s}
+                    item.append(rn);
+                    item.append(sn);
                     item.append(rsum+ssum);
                     item.append(rsum);
                     item.append(ssum);
-                    item.append(rn);
-                    item.append(-sn);
                     for(auto ii : ss) item.append(-ii);
                     for(auto ii : rs) item.append(ii);
                 } else if(sort_option==1) { // {S,r,s,ss,rr}
@@ -471,7 +471,7 @@ namespace HepLib::IBP {
                     throw Error("KIRA::Import error found.");
                 }
             } else {
-                exR += Fin(line).subs(d==D);
+                exR += Fin(line);
             }
         }
         if(!is_zero(exL)) {
