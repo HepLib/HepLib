@@ -287,7 +287,7 @@ namespace HepLib::IBP {
                 eqns.append(ii);
             }
             return eqns;
-        }, "UKira");
+        }, "Seeds");
         
         lst eqns;
         for(auto ilst : eqns_result) for(auto eqn : ilst) eqns.append(eqn);
@@ -317,8 +317,6 @@ namespace HepLib::IBP {
                 
                 lst item;
                 if(sort_option==0) { // {r+s,r,s}
-                    item.append(rn);
-                    item.append(sn);
                     item.append(rsum+ssum);
                     item.append(rsum);
                     item.append(ssum);

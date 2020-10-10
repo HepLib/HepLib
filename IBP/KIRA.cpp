@@ -66,6 +66,14 @@ namespace HepLib::IBP {
         for(int i=0; i<Propagators.nops(); i++) {
             oss << "     - [ \"" << Propagators.op(i) << "\", 0]" << endl;
         }
+        if(Cuts.nops()>0) {
+            oss << "    cut_propagators: [";
+            for(auto i=0; i<Cuts.nops(); i++) {
+                oss << Cuts.op(i);
+                if(i+1<Cuts.nops()) oss << ", ";
+                else oss << "]" << endl;
+            }
+        }
         ofstream if_out(config_dir+"/integralfamilies.yaml");
         if_out << oss.str() << endl;
         if_out.close();
@@ -146,7 +154,9 @@ namespace HepLib::IBP {
         oss << "        - {r: " << _rmax << ", s: " << _smax << "}" << endl;
         oss << "      select_integrals: " << endl;
         oss << "        select_mandatory_recursively: " << endl;
-        oss << "          - {r: " << _rmax << ", s: " << _smax << ", d: " << dmax << "}" << endl;
+        oss << "          - {r: " << _rmax << ", s: " << _smax;
+        if(dmax>0)  oss << ", d: " << dmax;
+        oss << "}" << endl;
         oss << "      run_initiate: true" << endl;
         oss << "      run_triangular: true" << endl;
         oss << "      run_back_substitution: true" << endl;

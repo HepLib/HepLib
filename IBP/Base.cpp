@@ -294,7 +294,7 @@ namespace HepLib::IBP {
                     uf_mi_lst.append(lst{ uf(fi,mi.subs(F(w1,w2)==w2)), mi });
                 }
                 return uf_mi_lst;
-            }, "R4MI");
+            }, "MRules");
         } else {
             uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs,uf](int idx)->ex {
                 const Base & fi = *(fs[idx]); // only here
@@ -303,7 +303,7 @@ namespace HepLib::IBP {
                     uf_mi_lst.append(lst{ uf(fi,mi), F(fi.ProblemNumber,mi) });
                 }
                 return uf_mi_lst;
-            }, "R4FI");
+            }, "FRules");
         }
     
         map<ex,lst,ex_is_less> group;

@@ -238,6 +238,8 @@ namespace HepLib::FC::Qgraf {
         }, "TeX");
         
         ofstream out(tex_path+"diagram.tex");
+        out << "\\let\\mypdfximage\\pdfximage" << endl;
+        out << "\\def\\pdfximage{\\immediate\\mypdfximage}" << endl;
         out << "\\documentclass{standalone}" << endl;
         out << "\\usepackage{graphicx}" << endl;
         out << "\\usepackage{adjustbox}" << endl;

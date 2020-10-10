@@ -660,13 +660,29 @@ namespace HepLib::FC {
      */
     void ApartIBP(int IBPmethod, exvector &air_vec, const lst & loops_exts, const lst & cut_props, 
         std::function<lst(const Base &, const ex &)> uf) {
+        
+        if(loops_exts.nops()<2) throw Error("loops_exts size() < 2;");
+        
         string wdir = to_string(getpid());
         if(IBPmethod==1) wdir = wdir + "_FIRE";
         else if(IBPmethod==2) wdir = wdir + "_KIRA";
         
+        bool aparted = false;
+        for(auto air : air_vec) {
+            if(air.has(ApartIR(w1,w2))) {
+                aparted = true;
+                break;
+            }
+        }
+        
         auto air_intg = 
-        GiNaC_Parallel(air_vec.size(), [air_vec,cut_props] (int idx) {
+        GiNaC_Parallel(air_vec.size(), [aparted,air_vec,loops_exts,cut_props] (int idx) {
             auto air = air_vec[idx];
+            if(!aparted) {
+                lst lmom = ex_to<lst>(loops_exts.op(0));
+                lst emom = ex_to<lst>(loops_exts.op(1));
+                air = Apart(air,lmom,emom);
+            }
             air = air.subs(SP_map);            
             air = ApartIRC(air, cut_props.subs(SP_map));
             exset intg;
@@ -674,7 +690,7 @@ namespace HepLib::FC {
             lst intgs;
             for(auto item : intg) intgs.append(item);
             return lst{air, intgs};
-        }, "IRC");
+        }, "Apart");
         
         exset intg;
         for(int i=0; i<air_vec.size(); i++) {
@@ -690,7 +706,6 @@ namespace HepLib::FC {
         auto sps = sp_map();
         for(auto kv : sps) repls.append(kv.first == kv.second);
         
-        if(loops_exts.nops()<2) throw Error("loops_exts size() < 2;");
         lst loops, exts;
         for(auto li : loops_exts.op(0)) {
             if(is_a<Vector>(li)) loops.append(ex_to<Vector>(li).name);

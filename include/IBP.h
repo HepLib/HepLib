@@ -74,7 +74,7 @@ namespace HepLib::IBP {
         
         int ra = 2;
         int sa = 3;
-        int dmax = 0;
+        int dmax = -1;
         
         void Export() override;
         void Run() override;
@@ -106,7 +106,7 @@ namespace HepLib::IBP {
         void Import() override;
         
         int ra = 2;
-        int sa = 3;
+        int sa = 2;
         int rap = 1;
         int sap = 1;
         int sort_option = 0;

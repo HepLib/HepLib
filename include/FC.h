@@ -485,7 +485,7 @@ namespace HepLib::FC {
         ex S1L1Proj(ex si, ex qi, ex mu1, ex mu2, ex p);
         ex S1L2Proj(ex si, ex qi1, ex qi2, ex mu, ex p);
         ex S1L2Proj(ex si, ex qi1, ex qi2, ex mu1, ex mu2, ex p);
-        ex S1L1Sum(ex si, ex siR, ex qi, ex qiR, ex p, int L);
+        ex S1L1Sum(ex si, ex siR, ex qi, ex qiR, ex p, int J);
         
         ex LProj(const ex &expr_in, const lst &pqi, string prefix="lpj");
         
