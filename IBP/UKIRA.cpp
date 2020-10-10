@@ -258,6 +258,8 @@ namespace HepLib::IBP {
         bool hasCut = (nCut>1);
         int iCuts[nCut+1];
         for(int i=0; i<nCut; i++) iCuts[i] = ex_to<numeric>(Cuts.op(i)).to_int();
+        auto verb = Verbose;
+        Verbose = 0;
         auto eqns_result =
         GiNaC_Parallel(asvec.size(), [&](int idx)->ex {
             auto as = asvec[idx];
@@ -288,6 +290,7 @@ namespace HepLib::IBP {
             }
             return eqns;
         }, "Seeds");
+        Verbose = verb;
         
         lst eqns;
         for(auto ilst : eqns_result) for(auto eqn : ilst) eqns.append(eqn);
@@ -295,6 +298,7 @@ namespace HepLib::IBP {
         if(use_weight) {
             exset fs;
             for(auto eqn : eqns) find(eqn, F(w), fs);
+            for(auto intg : _Integrals) fs.insert(F(intg));
             exvector intg_vec;
             for(auto fi : fs) {
                 lst rs,ss;
