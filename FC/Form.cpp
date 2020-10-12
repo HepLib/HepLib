@@ -233,14 +233,26 @@ Dimension NF;
         ostr = "{";
         int c = 1;
         int kid = 0;
+        map<ex,int,ex_is_less> e2i_map;
         for(auto it : expr_lst) {
-            string gCF = "gCF" + to_string(++kid);
             ex item = it;
             // pull out global common factor
             item = collect_common_factors(item);
             item = CoPat(item,[](const ex &e)->bool{return Index::has(e) || DiracGamma::has(e);});
-            st[gCF] = item.op(0);
-            item = Symbol(gCF) * item.op(1);
+            auto ckey = item.op(0);
+            if(!is_a<numeric>(ckey)) {
+                int ckid;
+                if(e2i_map[ckey]==0) {
+                    kid++;
+                    e2i_map[ckey] = kid;
+                    ckid = kid;
+                } else ckid = e2i_map[ckey];
+                string gCF = "gCF" + to_string(ckid);
+                st[gCF] = item.op(0);
+                item = Symbol(gCF) * item.op(1);
+            } else {
+                item = ckey * item.op(1);
+            }
             // pull out color factor
             auto cv_lst = mma_collect_lst(item, [](const ex &e)->bool{return Index::hasc(e);});
             item=0;
@@ -264,6 +276,8 @@ Dimension NF;
                 mapTR tr;
                 item = tr(item);
                 ff << "L [o]=" << item << ";" << endl;
+                ff << ".sort" << endl;
+                ff << "contract 0;" << endl;
                 ff << ".sort" << endl;
                 ff << idstr << ".sort" << endl;
                 for(int gl=1; gl<=tr.glmax; gl++) {

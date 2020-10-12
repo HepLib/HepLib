@@ -7,37 +7,35 @@ using namespace HepLib;
 
 int main(int argc, char** argv) {
     
-    string arg_m = "s";
+    string arg_n = "-1";
     string arg_p = "8899";
     string arg_s = "localhost";
     string arg_c = "echo [i]";
-    string cm_path = "cm";
-    string sd_path = "SD";
     bool ignore = false;
     
     // handle options
-    for (int opt; (opt = getopt(argc, argv, "m:p:s:c:i")) != -1;) {
+    for (int opt; (opt = getopt(argc, argv, "n:p:s:c:h")) != -1;) {
         switch (opt) {
-            case 'm': arg_m = optarg; break;
+            case 'n': arg_n = optarg; break;
             case 'p': arg_p = optarg; break;
             case 's': arg_s = optarg; break;
             case 'c': arg_c = optarg; break;
             case 'i': ignore=true; break;
             default:
-                printf("supported options: -m A -p P -s S -c C.\n");
-                printf("M: s(server), c(client).\n");
+                printf("Options: -n N -p P -s S -c C.\n");
+                printf("N: total elements as server.\n");
                 printf("P: server port.\n");
-                printf("S: server ip or hostname.\n");
-                printf("C: command on client, [i] will be replaced.\n");
-                printf("-i: to ignore file_exist check for res/null.\n");
+                printf("S: server ip or hostname as client.\n");
+                printf("C: file pattern/commands, [i] will be replaced.\n");
                 exit(1);
         }
     }
     argc -= optind;
     argv += optind;
     int port = stoi(arg_p);
+    int total = stoi(arg_n);
     
-    if(arg_m == "s") {
+    if(total > 0) {
         int socket_fd, connect_fd;  
         struct sockaddr_in servaddr;  
         char buff[MAXSIZE];  
@@ -63,12 +61,9 @@ int main(int argc, char** argv) {
             exit(1);  
         } 
         
-        ostringstream cmd;
-        cmd << "ls " << cm_path << "|wc -l";
-        auto owc = RunOS(cmd.str().c_str());
-        int total = stoi(owc);
         int current = 1;
-         
+        
+        cout << "Server Port: " << port << endl;
         while(true) {  
             if(current>total) current=1;
             cout << "\r                               \r";
@@ -79,7 +74,11 @@ int main(int argc, char** argv) {
             }  
             
             bool second_run = false;
-            while(file_exists(to_string(current)+".log") || (!ignore && file_exists(sd_path + "/" + to_string(current) + ".res.gar") || file_exists(sd_path + "/" + to_string(current) + ".null"))) {
+            
+            string cmd = arg_c;
+            string_replace_all(cmd, "[i]", to_string(current));
+            
+            while(file_exists(to_string(current)+".log") || file_exists(cmd)) {
                 if(current>=total) {
                     current=0;
                     if(second_run) break;
