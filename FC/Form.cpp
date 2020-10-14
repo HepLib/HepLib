@@ -107,6 +107,7 @@ Dimension NF;
 #enddo
 
 #endprocedure
+.global
         )EOF";
     }
     
@@ -167,6 +168,7 @@ Dimension NF;
         
         stringstream ss;
         FormFormat ff(ss);
+        ff << ".store" << endl;
         symtab st;
         if(vec_lst.nops()>0) {
             ff << "Vectors";
@@ -220,6 +222,7 @@ Dimension NF;
             }
             ff << ";" << endl;
         }
+        ff << ".global" << endl;
         
         // trace and contract
         bool islst = is_a<lst>(expr);
@@ -235,6 +238,7 @@ Dimension NF;
         int kid = 0;
         map<ex,int,ex_is_less> e2i_map;
         for(auto it : expr_lst) {
+            ff << ".store" << endl;
             ex item = it;
             // pull out global common factor
             item = collect_common_factors(item);

@@ -1,48 +1,11 @@
 #include "Process.h"
 #include <fstream>
 
-template class redi::basic_pstreambuf<char>;
-template class redi::pstream_common<char>;
-template class redi::basic_pstream<char>;
-template class redi::basic_ipstream<char>;
-template class redi::basic_opstream<char>;
-template class redi::basic_rpstream<char>;
-
 inline bool file_exists(const char* fn) {
     return (access(fn,F_OK)!=-1);
 }
 
 namespace HepLib {
-
-    //-----------------------------------------------------------
-    // Process Class
-    //-----------------------------------------------------------
-    void Process::Open(string cmds, const redi::pstreams::pmode pm) {
-        pio.open(cmds, pm);
-        if(!pio.is_open()) throw std::runtime_error("Process open failed.");
-        return;
-    }
-    
-    redi::pstream &Process::io() {
-        return pio;
-    }
-
-    string Process::ReadLine() {
-        string aLine;
-        getline(pio, aLine);
-        return aLine;
-    }
-    
-    string Process::ReadLines(string endLine) {
-        string aLines;
-        string aLine;
-        while(getline(pio, aLine)) {
-            if(aLine == endLine) break;
-            aLines += aLine;
-            aLines += '\n' ;
-        }
-        return aLines;
-    }
     
     //-----------------------------------------------------------
     // Fermat Class
@@ -243,7 +206,6 @@ namespace HepLib {
         close(io[0][0]);
         close(io[1][1]);
         close(stdo[1]);
-        fcntl(stdo[0], F_SETFL, fcntl(stdo[0], F_GETFL, 0) | O_NONBLOCK);
         
         char buffer[1024];
         read(io[1][0], buffer, sizeof(buffer));

@@ -5,36 +5,15 @@
  
 #pragma once
 
-#include "pstream.h"
 #include <iostream>
 #include <sstream>
 #include <cstring>
-#include <fcntl.h>
 #include "Basic.h"
 
 namespace HepLib {
     
     using namespace std;
-    
-    /**
-     * @brief interface to communicate with other process
-     */
-    class Process {
-    public:
-        static const redi::pstreams::pmode pm_in = redi::pstreams::pstdin;
-        static const redi::pstreams::pmode pm_out = redi::pstreams::pstdout;
-        static const redi::pstreams::pmode pm_err = redi::pstreams::pstderr;
-        
-        void Open(string cmds, const redi::pstreams::pmode pm=pm_in|pm_out|pm_err);
-        string ReadLine();
-        string ReadLines(string);
-        
-        redi::pstream &io();
-        
-    private:
-        redi::pstream pio;
-    };
-    
+
     /**
      * @brief interface to communicate with Fermat program
      */

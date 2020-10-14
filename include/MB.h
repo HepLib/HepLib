@@ -10,7 +10,6 @@
 #include <dlfcn.h>
 
 #include <string>
-#include <fcntl.h>
 #include <signal.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>

@@ -125,6 +125,29 @@ namespace HepLib::IBP {
         map<unsigned long long,ex> w2i;
     };
     
+    class Laporta : public Base {
+    
+    private:
+         map<ex,lst,ex_is_less> ccF;
+         map<ex,lst,ex_is_less> ccI;
+         map<lst,ex,ex_is_less> ccFinv;
+         map<ex,lst,ex_is_less> ccImax;
+
+    public:
+
+        lst F2lst(ex f);
+        lst I2lst(ex ibp);
+
+        void Prepare(lst loop, lst ext, lst prop, lst repl);
+        void Generate(vector<lst> seeds);
+        void Generate2(lst seed);
+        void Reduce();
+
+        lst preIBPs;
+        lst IBPs;
+        static ex collectF(ex);
+     };
+    
     lst SortPermutation(const ex & in_expr, const lst & xs);
     lst LoopUF(const Base & fire, const ex & corner);
     pair<exmap,lst> FindRules(vector<Base*> &fs, bool mi=true, std::function<lst(const Base &, const ex &)> uf=LoopUF); 
