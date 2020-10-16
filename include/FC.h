@@ -30,7 +30,8 @@ namespace HepLib::FC {
     
     extern int trace_method;
     extern const int trace_all;
-    extern const int trace_each;
+    extern const int trace_each_all;
+    extern const int trace_each_each;
     
     class Index;
     class Vector;

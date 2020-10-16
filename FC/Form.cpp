@@ -82,6 +82,7 @@ Tensor colTp;
 Symbols I2R,NF,NA,D,I,Pi;
 Dimension NA;
 AutoDeclare Symbols gCF;
+AutoDeclare Symbols trcN;
 AutoDeclare Index colAj;
 AutoDeclare Index f4i;
 Dimension NF;
@@ -289,7 +290,7 @@ Dimension NF;
                     ff << ".sort" << endl;
                     ff << idstr << ".sort" << endl;
                 }
-            } else if(trace_method==trace_each) {
+            } else if(trace_method==trace_each_all) {
                 exset trs;
                 find(item,TR(w),trs);
                 exmap tr2v;
@@ -310,7 +311,33 @@ Dimension NF;
                 }
                 ff << "L [o]=" << item << ";" << endl;
                 ff << ".sort" << endl;
-            } else throw Error("runform: the supplied trace_method is NOT supported yet.");
+            } else if(trace_method==trace_each_each) {
+                exset trs;
+                find(item,TR(w),trs);
+                exmap tr2v;
+                int trn=0;
+                exvector trvec;
+                for(auto tr : trs) {
+                    tr2v[tr] = Symbol("trcN"+to_string(trn));
+                    auto tri = mapGamma(gid)(tr.op(0));
+                    trvec.push_back(tri);
+                    trn++;
+                }
+                item = item.subs(tr2v);
+                ff << "L [o]=" << item << ";" << endl;
+                ff << ".sort" << endl;
+                for(int i=0; i<trvec.size(); i++) {
+                    ff << "L [tr" << i << "]=" << trvec[i] << ";" << endl;
+                    ff << "tracen " << gid << ";" << endl;
+                    ff << ".sort" << endl;
+                    ff << idstr << ".sort" << endl;
+                    ff << "id trcN" << i << "=[tr" << i << "];" << endl;
+                    ff << ".sort" << endl;
+                    ff << idstr << ".sort" << endl;
+                }
+            } else {
+                throw Error("runform: the supplied trace_method is NOT supported yet.");
+            }
             ff << idstr << ".sort" << endl;
             ff << "contract 0;" << endl;
             ff << ".sort" << endl;
