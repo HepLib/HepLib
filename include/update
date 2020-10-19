@@ -4,7 +4,7 @@ if [ "$1" = "" ]
 then
     echo "usage: jn=4 update item, with supported item as follows:"
     echo "  heplib: to update HepLib"
-    echo "  ginac: to update GiNaC"
+    echo "  ginac: to update GiNaC/HepLib"
     echo "  all: to update all items"
     echo "Note: assuming all items are installed to @CMAKE_INSTALL_PREFIX@"
     exit
@@ -36,8 +36,8 @@ fi
 ##################################
 # update HepLib
 ##################################
-if [ "$1" = "all" ] || [ "$1" = "heplib" ] || [ "$1" = "HepLib" ]
-then
+#if [ "$1" = "all" ] || [ "$1" = "heplib" ] || [ "$1" = "HepLib" ]
+#then
     wget https://heplib.github.io/HepLib.tar.gz
     tar zxf HepLib.tar.gz
     cd HepLib/src
@@ -47,7 +47,7 @@ then
     make -j $jn
     make install
     echo "HepLib updated."
-fi
+#fi
 
 cd $CWD
 rm -rf heplib_update_tmp
