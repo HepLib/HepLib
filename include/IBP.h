@@ -127,25 +127,38 @@ namespace HepLib::IBP {
     
     class Laporta : public Base {
     
-    private:
-         map<ex,lst,ex_is_less> ccF;
-         map<ex,lst,ex_is_less> ccI;
-         map<lst,ex,ex_is_less> ccFinv;
-         map<ex,lst,ex_is_less> ccImax;
-
     public:
 
-        lst F2lst(ex f);
-        lst I2lst(ex ibp);
-
-        void Prepare(lst loop, lst ext, lst prop, lst repl);
-        void Generate(vector<lst> seeds);
-        void Generate2(lst seed);
-        void Reduce();
-
-        lst preIBPs;
-        lst IBPs;
-        static ex collectF(ex);
+        static int Rounds;
+        
+        bool use_weight = true;
+        string cmd_args = "";
+        map<int,ex> Shift;
+        lst mi_pref;
+        
+        void Export() override;
+        void Run() override;
+        void Import() override;
+        
+        int ra = 1;
+        int sa = 1;
+        int rap = 1;
+        int sap = 1;
+        int sort_option = 0;
+        int seed_option = 0;
+        
+    private:
+        lst ibps;
+        int Round = 0;
+        lst _Integrals;
+        lst _Rules;
+        lst RIntegrals;
+        
+        string Fout(const ex & expr);
+        ex Fin(const string & expr);
+        map<ex,long long,ex_is_less> i2w;
+        map<long long,ex> w2i;
+        
      };
     
     lst SortPermutation(const ex & in_expr, const lst & xs);

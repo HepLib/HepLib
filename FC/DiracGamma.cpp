@@ -181,6 +181,12 @@ namespace HepLib::FC {
     );
     REGISTER_FUNCTION(HF, do_not_evalf_params());
     
+    /**
+     * @brief function similar to GAD/GSD in FeynClac
+     * @param expr momentum/index or 1,5,6,7
+     * @param rl the represent line number
+     * @return expanded/translasted to DiracGamma objects
+     */
     ex GAS(ex expr, unsigned rl) {
         if(is_zero(expr-1)) return DiracGamma(1,rl);
         else if(is_zero(expr-5)) return DiracGamma(5,rl);

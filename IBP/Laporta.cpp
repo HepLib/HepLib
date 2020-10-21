@@ -1,394 +1,466 @@
+/**
+ * @file
+ * @brief IBP with Leporta
+ */
+ 
 #include "Process.h"
 #include "IBP.h"
+#include <cmath>
 
 namespace HepLib::IBP {
 
-lst Laporta::F2lst(ex f) {
-    if(!f.match(F(w))) {
-        cerr << ErrColor << "Not F(w) form: " << f << RESET << endl;
-        exit(1);
-    }
-    if(ccF[f].nops()>0) return ccF[f];
-    
-    auto al = f.op(0);
-    lst sl, rl;
-    ex r=0, s=0, sid=0;
-    for(int i=0; i<al.nops(); i++) {
-        if(al.op(i) > ex(1)/2) {
-            sid += pow(2, i);
-            r += al.op(i);
-            rl.append(al.op(i));
+    /**
+     * @brief export integral to KIRA form
+     */
+    string Laporta::Fout(const ex & expr) {
+        if(!use_weight) {
+            ex f = expr;
+            if(is_a<lst>(f)) f = F(f);
+            else if(expr.match(F(w1,w2))) f = F(f.op(1));
+            string fstr = ex2str(f);
+            string_replace_all(fstr,"{","");
+            string_replace_all(fstr,"}","");
+            string_replace_all(fstr,"(","[");
+            string_replace_all(fstr,")","]");
+            return fstr;
         } else {
-            s -= al.op(i);
-            sl.append(al.op(i));
+            ex idx;
+            if(expr.match(F(w1,w2))) idx = expr.op(1);
+            else if(expr.match(F(w))) idx = expr.op(0);
+            else idx = expr;
+            return to_string(i2w[idx]);
         }
     }
-    lst ret = lst{sid, r+s, r, s, sl, rl};
     
-    if(Cuts.nops()>0) {
-        lst clst;
-        for(auto c : Cuts) {
-            int ci = ex_to<numeric>(c).to_int();
-            clst.append(al.op(ci));
-        }
-        ret.prepend(clst);
-    }
-    
-    ccF[f] = ret;
-    ccFinv[ret] = f;
-    return ret;
-}
-
-lst Laporta::I2lst(ex ibp) {
-    if(ccI[ibp].nops()>0) return ccI[ibp];
-    
-    lst fis;
-    exset fiset;
-    ibp.find(F(w), fiset);
-    for(auto &item : fiset) {
-        fis.append(F2lst(item));
-    }
-    
-    for(int i=0; i<fis.nops(); i++) {
-        for(int j=i+1; j<fis.nops(); j++) {
-            if(ex_less(fis.op(i), fis.op(j))) {
-                auto tmp = fis.op(i);
-                fis.let_op(i) = fis.op(j);
-                fis.let_op(j) = tmp;
+    /**
+     * @brief import integral from KIRA
+     */
+    ex Laporta::Fin(const string & expr) {
+        if(!use_weight) {
+            string fstr = expr;
+            string_replace_all(fstr,"[","("+to_string(ProblemNumber)+",{");
+            string_replace_all(fstr,"]","})");
+            return str2ex(fstr);
+        } else {
+            auto cpos = expr.find("*");
+            if(cpos==string::npos) {
+                if(expr=="0") return 0;
+                throw Error("KIRA::Fin with 0 or * NOT Found.");
             }
+            auto wstr = expr.substr(0,cpos);
+            unsigned long long weight = stoull(wstr,NULL,0);
+            auto oex = str2ex(expr.substr(cpos+1,string::npos));
+            return F(ProblemNumber, w2i[weight]) * oex;
         }
     }
-    ccImax[ibp] = ex_to<lst>(fis.op(0));
     
-    fis.prepend(0);
-    fis.let_op(0) = fis.op(1);
-    fis.let_op(1) = fis.nops()-1;
-    
-    ccI[ibp] = fis;
-    return fis;
-}
+    /**
+     * @brief Export input data for KIRA
+     */
+    void Laporta::Export() {
 
-ex Laporta::collectF(ex expr) {
-    if(!expr.subs(F(w)==0).is_zero()) {
-        cerr << ErrColor << "expr is NOT zero with F(w)==0: " << expr << RESET << endl;
-        exit(1);
-    }
-    exset fs;
-    expr.find(F(w), fs);
-    ex ret = 0;
-    for(auto item : fs) {
-        ret += normal(expr.coeff(item, 1)) * item;
-    }
-    return ret;
-}
-
-void Laporta::Prepare(lst loop, lst ext, lst prop, lst repl) {
-
-    if(Verbose > 0) cout << "  IBP Prepare @ " << now() << endl;
-
-    lst sps;
-    for(auto it : loop) {
-        for(auto ii : loop) sps.append(it*ii);
-        for(auto ii : ext) sps.append(it*ii);
-    }
-    sps.sort();
-    sps.unique();
-    
-    lst sp2s, s2sp, ss;
-    for(auto item : sps) {
-        symbol si;
-        ss.append(si);
-        sp2s.append(item==si);
-        s2sp.append(si==item);
-    }
-    
-    lst eqns;
-    for(int i=0; i<prop.nops(); i++) {
-        auto eq = prop.op(i).expand();
-        eq = eq.subs(sp2s, subs_options::algebraic);
-        eq = eq.subs(repl, subs_options::algebraic);
-        eqns.append(eq == iWF(i));
-    }
-    auto s2p = lsolve(eqns, ss);
-
-    preIBPs.remove_all();
-    lst ns;
-    for(int i=0; i<prop.nops(); i++) ns.append(a(i));
-    for(auto l : loop) {
-        ex ibp = 0;
-        symbol sl;
-        for(int i=0; i<prop.nops(); i++) {
-            auto ns_tmp = ns;
-            ns_tmp.let_op(i) = ns.op(i) + 1;
-            auto dp = prop.op(i).subs(l==sl).diff(sl).subs(sl==l);
-            ibp -= a(i) * F(ns_tmp) * dp;
-        }
+        if(Integrals.nops()<1) return;
         
-        for(auto ii : ext) {
-            auto ibp_tmp = ibp * ii;
-            ibp_tmp = ibp_tmp.expand();
-            ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
-            ibp_tmp = ibp_tmp.subs(repl, subs_options::algebraic);
-            ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
-            ex res = 0;
-            for(int i=0; i<prop.nops(); i++) {
-                auto ci = ibp_tmp.coeff(iWF(i), 1);
-                ci = MapFunction([i](const ex & e, MapFunction &self)->ex{
-                    if(e.match(F(w))) {
-                        auto tmp = e.op(0);
-                        tmp.let_op(i) = tmp.op(i)-1;
-                        return F(tmp);
-                    } else if(!e.has(F(w))) return e;
-                    else return e.map(self);
-                })(ci);
-                res += ci;
-            }
-            res += ibp_tmp.subs(lst{iWF(w)==0});
-            preIBPs.append(res);
-        }
-        
-        for(auto ii : loop) {
-            auto ibp_tmp = ibp * ii;
-            ibp_tmp = ibp_tmp.expand();
-            ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
-            ibp_tmp = ibp_tmp.subs(repl, subs_options::algebraic);
-            ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
-            ex res = 0;
-            for(int i=0; i<prop.nops(); i++) {
-                auto ci = ibp_tmp.coeff(iWF(i), 1);
-                ci = MapFunction([i](const ex &e, MapFunction &self)->ex {
-                    if(e.match(F(w))) {
-                        auto tmp = e.op(0);
-                        tmp.let_op(i) = tmp.op(i)-1;
-                        return F(tmp);
-                    } else if(!e.has(F(w))) return e;
-                    else return e.map(self);
-                })(ci);
-                res += ci;
-            }
-            res += ibp_tmp.subs(lst{iWF(w)==0});
-            if(ii==l) res += d*F(ns);
-            preIBPs.append(res);
-        }
-    }
-    
-}
-
-void Laporta::Generate2(lst seed) {
-    lst ns, a2s;
-    for(int i=0; i<seed.nops(); i++) {
-        Symbol s("a"+to_string(i));
-        a2s.append(a(i)==s+Symbol("eps"));
-        ns.append(s);
-    }
-    lst seeds;
-    for(auto const & item : preIBPs) {
-        exset fs;
-        item.find(F(w), fs);
-        for(auto fi : fs) {
-            lst eqs;
-            for(int i=0; i<fi.op(0).nops(); i++) {
-                eqs.append(subs(fi.op(0).op(i)==seed.op(i),a2s));
-            }
-            auto sol = lsolve(eqs, ns);
-            seeds.append(subs(ns,sol));
-            auto ii = item.subs(a2s).subs(sol);
-            if(ii.is_zero()) continue;
-            IBPs.append(ii);
-        }
-    }
-    
-    for(auto seed : seeds)
-    for(auto const & item : preIBPs) {
-        exset fs;
-        item.find(F(w), fs);
-        for(auto fi : fs) {
-            lst eqs;
-            for(int i=0; i<fi.op(0).nops(); i++) {
-                eqs.append(subs(fi.op(0).op(i)==seed.op(i),a2s));
-            }
-            auto sol = lsolve(eqs, ns);
-            auto ii = item.subs(a2s).subs(sol);
-            if(ii.is_zero()) continue;
-            IBPs.append(ii);
-        }
-    }
-    
-    if(Cuts.nops()>1) {
-        int total = IBPs.nops();
-        for(int i=0; i<IBPs.nops(); i++) {
-            auto tmp = IBPs.op(i);
-            exset fs;
-            find(tmp, F(w), fs);
-            exmap repl;
-            for(auto fi : fs){
-                for(auto ic : Cuts) {
-                    int j = ex_to<numeric>(ic).to_int();
-                    if(fi.op(0).op(j)<=0) {
-                        repl[fi]=0;
-                        break;
+        if(Round==0 || ibps.nops()<1) {
+            _Integrals = Integrals;
+            for(auto intg : Integrals) RIntegrals.append(F(ProblemNumber, intg));
+            int pdim = Propagators.nops();
+            lst InExternal;
+            for(auto ii : Internal) InExternal.append(ii);
+            for(auto ii : External) InExternal.append(ii);
+            
+            if(Pairs.nops()<1) {
+                for(auto it : Internal) {
+                    for(auto ii : InExternal) Pairs.append(it*ii);
+                }
+                Pairs.sort();
+                Pairs.unique();
+                
+                if(Pairs.nops()<pdim) {
+                    lst sps_ext;
+                    for(auto it : External) {
+                        for(auto ii : External) sps_ext.append(it*ii);
                     }
+                    sps_ext.sort();
+                    sps_ext.unique();
+                    for(auto item : sps_ext) {
+                        auto item2 = subs_all(item,Replacements);
+                        if(is_zero(item-item2)) Pairs.append(item);
+                    }
+                    Pairs.sort();
+                    Pairs.unique();
                 }
             }
-            IBPs.let_op(i) = tmp.subs(repl);
-        }
-    }
-}
+            
+            if(Pairs.nops() > pdim) {
+                cout << "Pairs = " << Pairs << endl;
+                cout << "Propagators = " << Propagators << endl;
+                throw Error("KIRA::Export: Pairs more than Propagators.");
+            }
+            pdim = Pairs.nops();
+            
+            lst sp2s, s2sp, ss;
+            for(auto item : Pairs) {
+                symbol si;
+                ss.append(si);
+                sp2s.append(item==si);
+                s2sp.append(si==item);
+            }
+            
+            lst ibp_eqns;
+            for(int i=0; i<pdim; i++) {
+                auto eq = Propagators.op(i).expand();
+                eq = eq.subs(sp2s, subs_options::algebraic);
+                eq = eq.subs(Replacements, subs_options::algebraic);
+                ibp_eqns.append(eq == iWF(i));
+            }
+            auto s2p = lsolve(ibp_eqns, ss);
+            if(s2p.nops() != pdim) {
+                cout << ibp_eqns << endl;
+                cout << s2p << endl;
+                throw Error("KIRA::Export: lsolve failed.");
+            }
 
-void Laporta::Generate(vector<lst> seeds) {
-    if(Verbose > 0) cout << " IBP Generate @ " << now() << endl;
-
-    IBPs.remove_all();
-    lst ns;
-    for(int i=0; i<seeds[0].nops(); i++) ns.append(a(i));
-    for(auto seed : seeds) {
-        for(auto const & item : preIBPs) {
-            auto ii = item.subs(ns, seed);
-            if(ii.is_zero()) continue;
-            IBPs.append(ii);
-    }}
-    
-    if(Cuts.nops()>1) {
-        int total = IBPs.nops();
-        for(int i=0; i<IBPs.nops(); i++) {
-            auto tmp = IBPs.op(i);
-            exset fs;
-            find(tmp, F(w), fs);
-            exmap repl;
-            for(auto fi : fs){
-                for(auto ic : Cuts) {
-                    int j = ex_to<numeric>(ic).to_int();
-                    if(fi.op(0).op(j)<=0) {
-                        repl[fi]=0;
-                        break;
+            ibps.remove_all();
+            for(auto l : Internal) {
+                lst ns;
+                for(int i=0; i<Propagators.nops(); i++) ns.append(a(i));
+                ex ibp = 0;
+                symbol sl;
+                for(int i=0; i<Propagators.nops(); i++) {
+                    auto ns_tmp = ns;
+                    ns_tmp.let_op(i) = ns.op(i) + 1;
+                    auto dp = Propagators.op(i).subs(l==sl).diff(sl).subs(sl==l);
+                    ibp -= (a(i)+Shift[i]) * F(ns_tmp) * dp;
+                }
+                
+                for(auto ii : External) {
+                    auto ibp_tmp = ibp * ii;
+                    ibp_tmp = ibp_tmp.expand();
+                    ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
+                    ibp_tmp = ibp_tmp.subs(Replacements, subs_options::algebraic);
+                    ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
+                    ex res = 0;
+                    for(int i=0; i<Propagators.nops(); i++) {
+                        auto ci = ibp_tmp.coeff(iWF(i), 1);
+                        ci = MapFunction([i](const ex & e, MapFunction &self)->ex{
+                            if(e.match(F(w))) {
+                                auto tmp = e.op(0);
+                                tmp.let_op(i) = tmp.op(i)-1;
+                                return F(tmp);
+                            } else if(!e.has(F(w))) return e;
+                            else return e.map(self);
+                        })(ci);
+                        res += ci;
                     }
+                    res += ibp_tmp.subs(lst{iWF(w)==0});
+                    ibps.append(res);
+                }
+                
+                for(auto ii : Internal) {
+                    auto ibp_tmp = ibp * ii;
+                    ibp_tmp = ibp_tmp.expand();
+                    ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
+                    ibp_tmp = ibp_tmp.subs(Replacements, subs_options::algebraic);
+                    ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
+                    ex res = 0;
+                    for(int i=0; i<Propagators.nops(); i++) {
+                        auto ci = ibp_tmp.coeff(iWF(i), 1);
+                        ci = MapFunction([i](const ex &e, MapFunction &self)->ex {
+                            if(e.match(F(w))) {
+                                auto tmp = e.op(0);
+                                tmp.let_op(i) = tmp.op(i)-1;
+                                return F(tmp);
+                            } else if(!e.has(F(w))) return e;
+                            else return e.map(self);
+                        })(ci);
+                        res += ci;
+                    }
+                    res += ibp_tmp.subs(lst{iWF(w)==0});
+                    if(ii==l) res += d*F(ns);
+                    ibps.append(res);
                 }
             }
-            IBPs.let_op(i) = tmp.subs(repl);
         }
-    }
-    
-    if(Verbose > 0) cout << " - Number of Identities: " << IBPs.nops() << endl << flush;
-
-}
-
-void Laporta::Reduce() {
-
-    if(Verbose > 0) cout << now() << " - IBP Reduce ..." << endl << flush;
-    
-    if(Verbose > 1) cout << " - Sorting ... @ " << now(false) << endl << flush;
-    vector<ex> ibps;
-    for(auto item : IBPs) {
-        if(item.is_zero()) continue;
-        I2lst(item);
-        //if(F2lst(F(lst{1,1,1,0,1,1,1})).op(2)+2<ccImax[item].op(2)) continue;
-        ibps.push_back(item);
-    }
-
-    exset fs;
-    find(IBPs, F(w), fs);
-    vector<ex> fvec;
-    for(auto item : fs) fvec.push_back(item);
         
-    // sort Fs
-    sort(fvec.begin(), fvec.end(), [this](auto &a, auto &b) {
-        return ex_less(F2lst(b),F2lst(a));
-    }); // larger first
-    
-    // sort Identities
-    sort(ibps.begin(), ibps.end(), [this](auto &a, auto &b) {
-        lst ai = I2lst(a);
-        lst bi = I2lst(b);
-        return ex_less(bi,ai);
-    }); // larger first
-    
-    map<ex, int, ex_is_less> f2idx;
-    for(int i=0; i<fvec.size(); i++) f2idx[fvec[i]] = i;
-    
-    int cols = fvec.size();
-    int rows = ibps.size();
-    
-    if(Verbose > 1) cout << " - Fermating @ " << now(false) << " :> " << flush;
-    
-    Fermat fermat;
-    fermat.Init();
-    
-    auto Variables = gather_symbols(ibps);
-    ostringstream ss;
-    for(auto j : Variables) ss << "&(J="<<j<<");" << endl;
-    fermat.Execute(ss.str());
-    ss.clear();
-    ss.str("");
-    ss << "Array mat[" << rows << "," << cols+1 << "] Sparse;" << endl;
-    for(int r=0; r<rows; r++) {
-        auto ibp = ibps[r];
+        // seeds generation
+        int pgDIM = Propagators.nops();
+        int rmax = -1, smax = -1;
+        int rrmax[pgDIM], ssmax[pgDIM];
+        for(int i=0; i<pgDIM; i++) rrmax[i] = ssmax[i] = -1;
+        for(auto integral : _Integrals) {
+            if(integral.nops()!=pgDIM) throw Error("UKIRA::Export, integral dimension not match propagators.");
+            int rr = 0;
+            int ss = 0;
+            for(int i=0; i<pgDIM; i++) {
+                auto item = ex2int(integral.op(i));
+                if(item>0) {
+                    if(rrmax[i]<item) rrmax[i] = item;
+                    rr += item;
+                } else {
+                    item = 0-item;
+                    if(ssmax[i]<item) ssmax[i] = item;
+                    ss += item;
+                }
+            }
+            if(rmax<rr) rmax = rr;
+            if(smax<ss) smax = ss;
+        }
+        
+        if(seed_option == 0) {
+            int _rrmax = -1, _ssmax = -1;
+            for(int i=0; i<pgDIM; i++) {
+                if(_rrmax<rrmax[i]) _rrmax = rrmax[i];
+                if(_ssmax<ssmax[i]) _ssmax = ssmax[i];
+            }
+            for(int i=0; i<pgDIM; i++) {
+                rrmax[i] = _rrmax + rap;
+                ssmax[i] = _ssmax + sap;
+            }
+            rmax += ra;
+            smax += sa;
+        } else {
+            for(int i=0; i<pgDIM; i++) {
+                rrmax[i] += rap;
+                ssmax[i] += sap;
+            }
+            rmax += ra;
+            smax += sa;
+        }
+        
+        // generate IBP equations
+        int as[pgDIM];
+        for(int i=0; i<pgDIM; i++) as[i] = -ssmax[i];
+        vector<vector<int>> asvec;
+        while(true) {
+            for(int i=0; i<pgDIM; i++) {
+                if(as[i]+1>rrmax[i]) {
+                    if(i+1 == pgDIM) goto done;
+                    as[i] = -ssmax[i];
+                } else {
+                    as[i] = as[i] + 1;
+                    break;
+                }
+            }
+            int _rmax = 0, _smax = 0;
+            for(int i=0; i<pgDIM; i++) {
+                if(as[i]>0) _rmax += as[i];
+                else _smax -= as[i];
+            }
+            if(_rmax>rmax || _smax>smax) continue;
+            vector<int> asv;
+            for(int i=0; i<pgDIM; i++) asv.push_back(as[i]);
+            asvec.push_back(asv);
+        }
+        done: ;
+        
+        int nCut = Cuts.nops();
+        bool hasCut = (nCut>1);
+        int iCuts[nCut+1];
+        for(int i=0; i<nCut; i++) iCuts[i] = ex_to<numeric>(Cuts.op(i)).to_int();
+        auto verb = Verbose;
+        Verbose = 0;
+        auto eqns_result =
+        GiNaC_Parallel(asvec.size(), [&](int idx)->ex {
+            auto as = asvec[idx];
+            exmap sol;
+            for(int i=0; i<pgDIM; i++) sol[a(i)]=as[i];
+            lst eqns;
+            for(auto const & item : ibps) {
+                auto ii = item.subs(sol);
+                if(ii.is_zero()) continue;
+                if(hasCut) {
+                    exset fs;
+                    find(ii, F(w), fs);
+                    exmap repl;
+                    for(auto fi : fs) {
+                        lst ns = ex_to<lst>(fi.op(0));
+                        for(auto ic : iCuts) {
+                            int j = ic-1;
+                            if(ns.op(j)<=0) {
+                                repl[fi]=0;
+                                break;
+                            }
+                        }
+                    }
+                    ii = ii.subs(repl);
+                }
+                if(ii.is_zero()) continue;
+                eqns.append(ii);
+            }
+            return eqns;
+        }, "Seeds");
+        Verbose = verb;
+        
+        lst eqns;
+        for(auto ilst : eqns_result) for(auto eqn : ilst) eqns.append(eqn);
+
         exset fs;
-        find(ibp, F(w), fs);
-        for(auto f : fs) {
-            ss << "mat["<<(r+1)<<","<<(f2idx[f]+1)<<"] := " << ibp.coeff(f, 1) << ";" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
+        for(auto eqn : eqns) find(eqn, F(w), fs);
+        for(auto intg : _Integrals) fs.insert(F(intg));
+        exvector intg_vec;
+        for(auto fi : fs) {
+            lst rs,ss;
+            int sid=0, rsum=0, ssum=0, sn=0, rn=0;
+            auto idx_lst = fi.op(0);
+            for(int i=0; i<idx_lst.nops(); i++) {
+                auto idx = ex_to<numeric>(idx_lst.op(i)).to_int();
+                if(idx==0) continue;
+                if(idx!=0) sid += std::pow(2,idx_lst.nops()-i-1);
+                if(idx>0) {
+                    rs.append(idx);
+                    rsum += idx;
+                    rn++;
+                } else {
+                    ss.append(idx);
+                    ssum -= idx;
+                    sn++;
+                }
+            }
+            
+            lst item;
+            if(sort_option==0) { // {r+s,r,s}
+                item.append(rsum+ssum);
+                item.append(rsum);
+                item.append(ssum);
+                for(auto ii : ss) item.append(-ii);
+                for(auto ii : rs) item.append(ii);
+            } else if(sort_option==1) { // {S,r,s,ss,rr}
+                item.append(rsum+ssum);
+                item.append(rsum);
+                item.append(ssum);
+                item.append(sid);
+                for(auto ii : ss) item.append(ii);
+                for(auto ii : rs) item.append(ii);
+            } else if(sort_option==2) { // {S,s,r,rr,ss}
+                item.append(rsum+ssum);
+                item.append(ssum);
+                item.append(rsum);
+                item.append(sid);
+                for(auto ii : rs) item.append(ii);
+                for(auto ii : ss) item.append(ii);
+            } else if(sort_option==-1) { // {S,r,s,-ss,rr}
+                item.append(rsum+ssum);
+                item.append(rsum);
+                item.append(ssum);
+                item.append(sid);
+                for(auto ii : ss) item.append(-ii);
+                for(auto ii : rs) item.append(ii);
+            } else if(sort_option==-2) { // {S,s,r,rr,-ss}
+                item.append(rsum+ssum);
+                item.append(ssum);
+                item.append(rsum);
+                item.append(sid);
+                for(auto ii : rs) item.append(ii);
+                for(auto ii : ss) item.append(-ii);
+            }
+            item.append(fi);
+            intg_vec.push_back(item);
         }
-    }
 
-    ss << "Redrowech([mat]);" << endl;
-    fermat.Execute(ss.str());
-    ss.clear();
-    ss.str("");
-       
-    ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
-    ss << "![mat" << endl;
-    auto ostr = fermat.Execute(ss.str());
-    fermat.Exit();
-    
-    if(Verbose > 1) cout << now(false) << endl;
-    
-    // make sure last char is 0
-    if(ostr[ostr.length()-1]!='0') throw Error("Reduce: last char is NOT 0.");
-    ostr = ostr.substr(0, ostr.length()-1);
-    string_trim(ostr);
-    
-    ostr.erase(0, ostr.find(":=")+2);
-    string_replace_all(ostr, "[", "{");
-    string_replace_all(ostr, "]", "}");
-    Parser fp;
-    auto mat2 = fp.Read(ostr);
+        sort_vec(intg_vec);
+        int rows = 0;
+        int rows2 = 0;
+        for(auto intg : intg_vec) {
+            auto idx = intg.op(intg.nops()-1).op(0);
+            bool isCut = false;
+            for(auto ic : iCuts) {
+                int j = ic-1;
+                if(idx.op(j)>1) {
+                    isCut = true;
+                    break;
+                }
+            }
+            if(isCut) {
+                rows2--;
+                i2w[idx] = rows2;
+            } else {
+                rows++;
+                i2w[idx] = rows;
+                w2i[rows] = idx;
+            }
+        }
         
-    ex irows[rows];
-    for(int i=0; i<rows; i++) {
-        irows[i] = 0;
-        for(int j=0; j<fvec.size(); j++) {
-            if(is_zero(get_op(mat2,i,j))) continue;
-            irows[i] += get_op(mat2,i,j) * fvec[j];
+        for(auto &kv : i2w) {
+            if(kv.second<0) {
+                kv.second = rows - kv.second;
+                w2i[kv.second] = kv.first;
+            }
         }
+        int cols = rows - rows2;
+        
+        exvector eqns_cvs;
+        for(auto eqn : eqns) {
+            if(is_zero(eqn)) continue;
+            auto cvs = mma_collect_lst(eqn,F(w));
+            lst cv_lst;
+            for(auto cv : cvs) {
+                cv_lst.append(lst{ (i2w[cv.op(1).op(0)]), cv.op(0) });
+            }
+            sort_lst(cv_lst,false);
+            lst cv1, cv2;
+            for(auto item : cv_lst) {
+                cv1.append(item.op(0));
+                cv2.append(item.op(1));
+            }
+            eqns_cvs.push_back(lst{cv1,cv2});
+        }
+        sort_vec(eqns_cvs,false);
+        rows = eqns_cvs.size();
+        
+        //------
+        cout << " - Fermating @ " << now(false) << " :> " << flush;
+    
+        Fermat fermat;
+        fermat.Init();
+        
+        auto Variables = gather_symbols(ibps);
+        ostringstream ss;
+        for(auto j : Variables) ss << "&(J="<<j<<");" << endl;
+        fermat.Execute(ss.str());
+cout << ss.str() << endl;
+        ss.clear();
+        ss.str("");
+        ss << "Array mat[" << rows << "," << cols << "] Sparse;" << endl;
+        ostringstream oss;
+        for(int r=0; r<rows; r++) {
+            auto cv1 = eqns_cvs[r].op(0);
+            auto cv2 = eqns_cvs[r].op(1);
+            for(int j=0; j<cv1.nops(); j++) {
+                ss << "mat["<<(rows-r)<<","<<cv1.op(j)<<"] := " << cv2.op(j) << ";" << endl;
+cout << ss.str();
+                fermat.Execute(ss.str());
+                ss.clear();
+                ss.str("");
+            }
+            oss << endl;
+        }
+
+        ss << "Redrowech([mat]);" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+           
+        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
+        ss << "![mat" << endl;
+        auto ostr = fermat.Execute(ss.str());
+        fermat.Exit();
+        cout << ostr << endl;
     }
     
-    if(Verbose > 1) cout << " - Finalizing ... @ " << now(false) << endl << flush;
-    
-    ibps.clear();
-    for(int i=0; i<rows; i++) {
-        if(irows[i].is_zero()) continue;
-        ibps.push_back(irows[i]);
+    /**
+     * @brief invoke kira program for reduction
+     */
+    void Laporta::Run() {
+        
     }
 
-    Rules.remove_all();
-    for(int i=0; i<ibps.size(); i++) {
-        auto ibp = ibps[ibps.size()-i-1];
-        auto ifmt = I2lst(ibp);
-        auto fx = ccFinv[ex_to<lst>(ifmt.op(0))];
-        auto c1 = ibp.coeff(fx, 1);
-        auto c0 = ibp.coeff(fx, 0);
-        auto res = -c0/c1;
-        if(!(c1-1).is_zero()) {
-            cout << "c1 = " << c1 << endl;
-            cout << "ibps.size()-i-1 : " << ibps.size()-i-1 << endl;
-            cout << ibp << endl;
-            cout << endl << endl;
-        }
-        Rules.append(fx==res);
+    /**
+     * @brief import kira result
+     */
+    void Laporta::Import() {
+        
     }
-    
-}
 
 }
+

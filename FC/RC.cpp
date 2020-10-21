@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Functions for Levi-Civita Tensor
+ * @brief Functions for Renormalization Constants
  */
  
 #include "FC.h"
@@ -11,11 +11,25 @@ namespace HepLib::FC {
     // RC namespace
     //-----------------------------------------------------------
     namespace RC {
-    
+        
+        /**
+         * @brief the Z2 renomalization constant
+         * @param name a string to identify the particle
+         * @param m the mass of the particle
+         * @param loop the loop order
+         * @return Z2 for particle of name at loop order
+         */
         ex Z2(string name, ex m, int loop) {
             return Z2(Symbol(name), m, loop);
         }
         
+        /**
+         * @brief the Z2 renomalization constant
+         * @param n a Symbol to identify the particle
+         * @param m the mass of the particle
+         * @param loop the loop order
+         * @return Z2 for particle of n at loop order
+         */
         ex Z2(Symbol n, ex m, int loop) {
             if(loop==0) return 1;
             ex rr = 1;
@@ -37,6 +51,12 @@ namespace HepLib::FC {
             return rr;
         }
         
+        /**
+         * @brief the Zm renomalization constant
+         * @param m the mass of the particle
+         * @param loop the loop order
+         * @return Zm at loop order
+         */
         ex Zm(ex m, int loop) {
             if(loop==0) return 1;
             ex rr = 1;
@@ -50,6 +70,11 @@ namespace HepLib::FC {
             return rr;
         }
         
+        /**
+         * @brief the bare strong cupling constant up to loop order, MSbar schema
+         * @param loop the loop order
+         * @return the bare strong cupling constant
+         */
         ex asBare(int loop) {
             auto as0 = asLO();
             ex as_pi = as/Pi;
@@ -62,6 +87,10 @@ namespace HepLib::FC {
             return as0 * rr;
         }
         
+        /**
+         * @brief the bare strong cupling constant at tree level, MSbar schema
+         * @return the bare strong cupling constant at LO
+         */
         ex asLO() {
             return as * pow(mu, 2*ep) * exp(ep*Euler)*pow(4*Pi, -ep);
         }

@@ -290,6 +290,11 @@ namespace HepLib::FC {
         ijk[2] = ex_to<Index>(o);
     }
     
+    /**
+     * @brief set derivative of SUNF to 0
+     * @param s the symbol which the derivative to
+     * @return always 0
+     */
     ex SUNF::derivative(const symbol & s) const {
         return 0;
     }
@@ -309,6 +314,10 @@ namespace HepLib::FC {
         return 0;
     }
     
+    /**
+     * @brief automatical evaluation of SUNF4
+     * @return expression with SUNF4 expanded
+     */
     ex SUNF4::eval() const {
         if(flags & status_flags::evaluated) return *this;
         if(ijkl[0].is_equal(ijkl[1]) || ijkl[2].is_equal(ijkl[3])) return 0;
@@ -321,11 +330,21 @@ namespace HepLib::FC {
         else return this->hold();
     }
     
-    void SUNF4::print(const print_dflt &c, unsigned) const {
+    /**
+     * @brief normal priint
+     * @param c print_dflat object
+     * @param o unsigned option
+     */
+    void SUNF4::print(const print_dflt &c, unsigned o) const {
         c.s << "f(" << ijkl[0] << "," << ijkl[1] << "," << ijkl[2] << "," << ijkl[3] << ")";
     }
     
-    void SUNF4::form_print(const FormFormat &c, unsigned) const {
+    /**
+     * @brief print the Form Format
+     * @param c FormFormat object
+     * @param o unsigned option, not used
+     */
+    void SUNF4::form_print(const FormFormat &c, unsigned o) const {
         static int idx=0;
         Index e("f4i" + to_string(idx++));
         ex ff = SUNF(ijkl[0], ijkl[1], e) * SUNF(e, ijkl[2], ijkl[3]);
@@ -341,6 +360,10 @@ namespace HepLib::FC {
         return ijkl[i];
     }
     
+    /**
+     * @brief save to archvie
+     * @param n the archive_node
+     */
     void SUNF4::archive(archive_node & n) const {
         inherited::archive(n);
         n.add_ex("i", ijkl[0]);
@@ -349,6 +372,11 @@ namespace HepLib::FC {
         n.add_ex("l", ijkl[3]);
     }
     
+    /**
+     * @brief read from archive
+     * @param n the archive_node
+     * @param sym_lst the symbol lst
+     */
     void SUNF4::read_archive(const archive_node& n, lst& sym_lst) {
         inherited::read_archive(n, sym_lst);
         ex o;
@@ -362,14 +390,20 @@ namespace HepLib::FC {
         ijkl[3] = ex_to<Index>(o);
     }
     
+    /**
+     * @brief set derivative of SUNF4 to 0
+     * @param s the variable that derivative to
+     * @return 0
+     */
     ex SUNF4::derivative(const symbol & s) const {
         return 0;
     }
-    
-    //-----------------------------------------------------------
-    // Other Helpers
-    //-----------------------------------------------------------
-    
+        
+    /**
+     * @brief make contract on matrix, i.e., Matrix(a,i1,i2)*Matrix(b,i2,i3) -> Matrix(a*b,i1,i3)
+     * @param expr_in expression contains Matrix
+     * @return contracted expression
+     */
     ex MatrixContract(const ex & expr_in) {
         if(!expr_in.has(Matrix(w1,w2,w3))) return expr_in;
         

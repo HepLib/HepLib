@@ -150,6 +150,14 @@ namespace HepLib::FC {
     // SP function - ScalarProduct
     //-----------------------------------------------------------
     ex SP(const ex & a, bool use_map) { return SP(a,a,use_map); }
+    
+    /**
+     * @brief Function similar to SPD/FVD in FeynCalc
+     * @param a the 1st vector/index
+     * @param b the 2nd vector/index
+     * @param use_map true for apply the SP_map in the function call
+     * @return expanded/translated Pair objects
+     */
     ex SP(const ex & a, const ex & b, bool use_map) {
         ex ret_sp;
         if(is_a<Vector>(a) && is_a<Vector>(b)) ret_sp = Pair(ex_to<Vector>(a), ex_to<Vector>(b));
@@ -206,6 +214,12 @@ namespace HepLib::FC {
         return res;
     }
     
+    /**
+     * @brief translated the vector dot a.b to a*b, useful in SecDec
+     * @param a the 1st vector argument or a symbol
+     * @param b the 2nd vector or a symbol
+     * @return expression with vector name left only
+     */
     ex sp(const ex & a, const ex & b) {
         if(is_a<Vector>(a) && is_a<Vector>(b)) return ex_to<Vector>(a).name * ex_to<Vector>(b).name;
         else throw Error("Error in sp(2).");
@@ -215,29 +229,62 @@ namespace HepLib::FC {
         else throw Error("Error in sp(1).");
     }
     
+    /**
+     * @brief return the reference of p1.p2
+     * @param p1 the 1st vector/index
+     * @param p2 the 2nd vector/index
+     * @return the refernce of p1.p2 in SP_map, can be used in assignment
+     */
     ex & letSP(const ex &p1, const ex &p2) {
         if(!(is_a<Vector>(p1) || is_a<Index>(p1)) || !(is_a<Vector>(p2) || is_a<Index>(p2)))
             throw Error("Invalide arguments for letSP (2).");
         return SP_map[SP(p1,p2)];
     }
+    
+    /**
+     * @brief return the reference of p.p
+     * @param p the vector/index
+     * @return the refernce of p.p in SP_map, can be used in assignment
+     */
     ex & letSP(const ex &p) {
         if(!is_a<Vector>(p))
             throw Error("Invalide arguments for letSP (1).");
         return SP_map[SP(p)];
     }
+    
+    /**
+     * @brief delete the assignment of p1.p2
+     * @param p1 the 1st vector/index
+     * @param p2 the 2nd vector/index
+     */
     void clearSP(const ex &p1, const ex &p2) {
         if(!(is_a<Vector>(p1) || is_a<Index>(p1)) || !(is_a<Vector>(p2) || is_a<Index>(p2)))
             throw Error("Invalide arguments for resetSP (2).");
         SP_map.erase(SP(p1,p2));
     }
+    
+    /**
+     * @brief delete the assignment of p.p
+     * @param p vector/index
+     */
     void clearSP(const ex &p) {
         if(!is_a<Vector>(p))
             throw Error("Invalide arguments for resetSP (1).");
         SP_map.erase(SP(p));
     }
+    
+    /**
+     * @brief delete all assignment in SP_map
+     */
     void clearSP() {
         SP_map.clear();
     }
+    
+    /**
+     * @brief convert SP(a,b) to sp(a,b)
+     * @param exin the input expression
+     * @return expression with SP(a,b) replaced to sp(a,b)
+     */
     ex SP2sp(const ex & exin) {
         auto ret = exin.subs(SP_map);
         lst vecs = Vector::all(ret);
@@ -249,6 +296,11 @@ namespace HepLib::FC {
         }
         return ret.subs(spmap);
     }
+    
+    /**
+     * @brief the SP_map with SP(a,b) replaced to sp(a,b)
+     * @return the SP_map with SP(a,b) replaced to sp(a,b)
+     */
     exmap sp_map() {
         exmap ret;
         for(auto kv : SP_map) {

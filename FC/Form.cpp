@@ -428,6 +428,11 @@ Dimension NF;
         return ret.subs(SP_map);
     }
 
+    /**
+     * @brief make the charge conjugate operaton, M -> C^{-1} . M^T . C w.r.t. a Matrix object
+     * @param expr the input expression
+     * @return returned charge conjugated expression
+     */
     ex charge_conjugate(const ex & expr) {
         if(expr.has(Qgraf::Matrix(w1,w2,w3))) throw Error("charge_conjugate: Matrix found.");
         if(!DiracGamma::has(expr)) return expr;

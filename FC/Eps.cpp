@@ -117,9 +117,14 @@ namespace HepLib::FC {
         return 0;
     }
     
-    //-----------------------------------------------------------
-    // LC function - Levi-Civita
-    //-----------------------------------------------------------
+    /**
+     * @brief function similar to LCD in FeynCalc
+     * @param pi1 vector/index in the 1st position
+     * @param pi2 vector/index in the 2nd position
+     * @param pi3 vector/index in the 3rd position
+     * @param pi4 vector/index in the 4th position
+     * @return expanded/translated to Eps objects
+     */
     ex LC(ex pi1, ex pi2, ex pi3, ex pi4) {
         bool isEps = true;
         lst pis = lst {pi1, pi2, pi3, pi4};
