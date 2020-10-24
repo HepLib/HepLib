@@ -54,9 +54,12 @@ namespace HepLib::SD {
         }
         void* module = dlopen(fsofn.str().c_str(), RTLD_NOW);
         if (module == nullptr) {
-            cerr << ErrColor << "Contours: could not open compiled module!" << RESET << endl;
-            cout << "dlerror(): " << dlerror() << endl;
-            exit(1);
+            module = dlopen(("./"+fsofn.str()).c_str(), RTLD_NOW);
+            if (module == nullptr) {
+                cerr << ErrColor << "Contours: could not open compiled module!" << RESET << endl;
+                cout << "dlerror(): " << dlerror() << endl;
+                exit(1);
+            }
         }
 
         int opps = ParallelProcess;

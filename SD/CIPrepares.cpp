@@ -1204,6 +1204,7 @@ namespace HepLib::SD {
                 cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp ";
                 if(hasF) cmd << " " << fsofn.str();
                 cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' " << start << " " << end << ")";
+                if(hasF) cmd << " " << fsofn.str();
                 system(cmd.str().c_str());
                 if(end>=res_size-1) break;
             }
@@ -1213,6 +1214,7 @@ namespace HepLib::SD {
             cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp ";
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -o " << sofn.str() << " " << pid << "/*.o";
+            if(hasF) cmd << " " << fsofn.str();
             system(cmd.str().c_str());
         }
         cmd.clear();

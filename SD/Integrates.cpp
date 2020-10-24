@@ -179,8 +179,11 @@ namespace HepLib::SD {
         
         void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW);
         if(main_module == nullptr) {
-            cout << "dlerror(): " << dlerror() << endl;
-            throw Error("Integrates: could not open main module!");
+            main_module = dlopen(("./"+sofn.str()).c_str(), RTLD_NOW);
+            if(main_module == nullptr) {
+                cout << "dlerror(): " << dlerror() << endl;
+                throw Error("Integrates: could not open main module!");
+            }
         }
         
         if(!debug && key == "") {
@@ -198,8 +201,11 @@ namespace HepLib::SD {
             if(file_exists(ex_sofn.str().c_str())) {
                 void* module = dlopen(ex_sofn.str().c_str(), RTLD_NOW);
                 if(module == nullptr) {
-                    cout << "dlerror(): " << dlerror() << endl;
-                    throw Error("Integrates: could not open ex-module!");
+                    module = dlopen(("./"+ex_sofn.str()).c_str(), RTLD_NOW);
+                    if(module == nullptr) {
+                        cout << "dlerror(): " << dlerror() << endl;
+                        throw Error("Integrates: could not open ex-module!");
+                    }
                 }
                 ex_modules.push_back(module);
                 if(!debug && key == "") remove(ex_sofn.str().c_str());
