@@ -29,7 +29,7 @@
       location = "group:FC">
    </FileRef>
    <FileRef
-      location = "group:GiNaC">
+      location = "group:/Volumes/DATA/CUMTB/HepLib/EX">
    </FileRef>
    <FileRef
       location = "group:doc">

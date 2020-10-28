@@ -290,7 +290,7 @@ namespace HepLib::FC {
     
     inline ex GAS(const Vector &p, unsigned rl=0) { return DiracGamma(p,rl); }
     inline ex GAS(const Index &i, unsigned rl=0) { return DiracGamma(i,rl); }
-    ex GAS(ex expr, unsigned rl=0);
+    ex GAS(const ex &expr, unsigned rl=0);
     
     // Form, TIR, Apart
     ex charge_conjugate(const ex &);

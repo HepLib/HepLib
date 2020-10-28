@@ -187,7 +187,7 @@ namespace HepLib::FC {
      * @param rl the represent line number
      * @return expanded/translasted to DiracGamma objects
      */
-    ex GAS(ex expr, unsigned rl) {
+    ex GAS(const ex &expr, unsigned rl) {
         if(is_zero(expr-1)) return DiracGamma(1,rl);
         else if(is_zero(expr-5)) return DiracGamma(5,rl);
         else if(is_zero(expr-6)) return DiracGamma(6,rl);
