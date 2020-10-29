@@ -5,19 +5,13 @@
       location = "group:CMakeLists.txt">
    </FileRef>
    <FileRef
-      location = "group:include">
+      location = "group:INC">
    </FileRef>
    <FileRef
-      location = "group:Basic">
+      location = "group:BASIC">
    </FileRef>
    <FileRef
-      location = "group:MB">
-   </FileRef>
-   <FileRef
-      location = "group:bin">
-   </FileRef>
-   <FileRef
-      location = "group:DE">
+      location = "group:FC">
    </FileRef>
    <FileRef
       location = "group:IBP">
@@ -26,12 +20,21 @@
       location = "group:SD">
    </FileRef>
    <FileRef
-      location = "group:FC">
-   </FileRef>
-   <FileRef
       location = "group:EX">
    </FileRef>
    <FileRef
+      location = "group:MB">
+   </FileRef>
+   <FileRef
+      location = "group:DE">
+   </FileRef>
+   <FileRef
+      location = "group:bin">
+   </FileRef>
+   <FileRef
       location = "group:doc">
+   </FileRef>
+   <FileRef
+      location = "group:BAK">
    </FileRef>
 </Workspace>

@@ -1,4 +1,4 @@
-#include "Wrap.h"
+#include "HepLibW.h"
 
 expr::expr(int i) { _expr = i; }
 expr::expr(GiNaC::ex e) { _expr = e; }

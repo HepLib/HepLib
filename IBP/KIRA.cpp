@@ -3,7 +3,6 @@
  * @brief IBP with KIRA
  */
  
-#include "Process.h"
 #include "IBP.h"
 #include <cmath>
 

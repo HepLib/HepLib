@@ -3,8 +3,7 @@
  * @brief Basic Functions, extend GiNaC
  */
 
-#include "Basic.h"
-#include "Process.h"
+#include "BASIC.h"
 #include "cln/cln.h"
 
 extern "C" {
@@ -623,6 +622,12 @@ namespace HepLib {
         return ostr;
     }
     
+    /**
+     * @brief read file content to string vector
+     * @param filename file name
+     * @param skip_empty skip blank lines
+     * @return the file content in string vector, lines in vector
+     */
     vector<string> file2strvec(string filename, bool skip_empty) {
         ifstream fs(filename);
         vector<string> ovec;
@@ -666,6 +671,11 @@ namespace HepLib {
         ofs.close();
     }
     
+    /**
+     * @brief __float128 to ex
+     * @param num a __float128 number
+     * @return a ex object for the number
+     */
     ex q2ex(__float128 num) {
         char buffer[128];
         quadmath_snprintf(buffer, sizeof buffer, "%.36QG", num);
@@ -673,6 +683,11 @@ namespace HepLib {
         return ret;
     }
 
+    /**
+     * @brief ex of numeric to __float128
+     * @param num a ex number
+     * @return a __float128 object for the number
+     */
     __float128 ex2q(ex num) {
         ostringstream nss;
         auto oDigits = Digits;
@@ -683,6 +698,11 @@ namespace HepLib {
         return ret;
     }
     
+    /**
+     * @brief ex to integer
+     * @param num an integer in ex
+     * @return the integer for the number
+     */
     int ex2int(ex num) {
         return ex_to<numeric>(num).to_int();
     }
@@ -1746,14 +1766,21 @@ namespace HepLib {
         Deltas = lst{delta};
     }
     
+    /**
+     * @brief return the cpu cores using OpenMP
+     * @return the cpu cores
+     */
     int CpuCores() {
         return omp_get_num_procs();
     }
     
     
-    //-----------------------------------------------------------
-    // fermat_numer_denom / fermat_normal
-    //-----------------------------------------------------------
+    /**
+     * @brief return the numerator and denominator after normalization
+     * @param expr the input expression
+     * @param factor true for factorize on the denominator
+     * @return a list of { numer, denom }
+     */
     ex fermat_numer_denom(const ex & expr, bool factor) {
         static map<pid_t, Fermat> fermat_map;
         static int v_max = 0;
@@ -1883,11 +1910,22 @@ namespace HepLib {
         return lst{num, den};
     }
     
+    /**
+     * @brief return the normalizatied expression, using fermat_numer_denom
+     * @param expr the input expression
+     * @param factor true for factorize on the denominator
+     * @return the normalized expression: numer/denom
+     */
     ex fermat_normal(const ex & expr, bool factor) {
         auto nd = fermat_numer_denom(expr, factor);
         return nd.op(0)/nd.op(1);
     }
     
+    /**
+     * @brief a wrapper for collect_common_factors, catch errors
+     * @param expr the input expression
+     * @return collect_common_factors result
+     */
     ex collect_factors(const ex & expr) {
         try {
             return collect_common_factors(expr);
@@ -1895,11 +1933,22 @@ namespace HepLib {
         return expr;
     }
     
+    /**
+     * @brief factorize a expression
+     * @param expr the input expression
+     * @param fm FactorMethod::FORM to use FORM, otherwise using GiNaC for factorization
+     * @return factorized result
+     */
     ex exfactor(const ex & expr, FactorMethod fm) {
         if(fm == FactorMethod::FORM) return form_factor(expr);
         else return ginac_factor(expr);
     }
     
+    /**
+     * @brief factorize a expression using FORM
+     * @param expr the input expression
+     * @return factorized result
+     */
     ex form_factor(const ex & expr) {
         static map<pid_t, Form> form_map;
         auto pid = getpid();
