@@ -92,6 +92,7 @@ INSTALL(FILES "${CMAKE_SOURCE_DIR}/SD/NFunctions.h" DESTINATION include)
 INSTALL(FILES "${CMAKE_SOURCE_DIR}/SD/mpreal.h" DESTINATION include)
 INSTALL(FILES "${CMAKE_SOURCE_DIR}/FC/FC.h" DESTINATION include)
 INSTALL(FILES "${CMAKE_SOURCE_DIR}/EX/HepLibW.h" DESTINATION include)
+INSTALL(FILES "${CMAKE_SOURCE_DIR}/EX/HepLib.i" DESTINATION include)
 
 #-----------------------------------------------
 # install bin/*
