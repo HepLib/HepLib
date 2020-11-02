@@ -29,7 +29,12 @@ namespace HepLib::SD {
     
         if(fp.Propagators.nops()<1) {
             FunExp.clear();
-            FunExp.push_back(lst{lst{fp.Prefactor.subs(Symbol::AssignMap)}, lst{1}});
+            if(fp.LoopMomenta.nops()>0 || fp.tLoopMomenta.nops()>0) {
+                IsZero = true;
+                return;
+            } else {
+                FunExp.push_back(lst{lst{fp.Prefactor.subs(Symbol::AssignMap)}, lst{1}});
+            }
             return;
         }
             
