@@ -738,7 +738,11 @@ namespace HepLib::FC {
                 IBP::Base* ibp;
                 if(IBPmethod==0) ibp = new Base();
                 else if(IBPmethod==1) ibp = new FIRE();
-                else if(IBPmethod==1) ibp = new KIRA();
+                else if(IBPmethod==2) ibp = new KIRA();
+                else {
+                    ibp = ibp = new Base();
+                    IBPmethod = 0;
+                }
                 
                 p2IBP[props] = ibp;
                 ibp->Propagators = props;

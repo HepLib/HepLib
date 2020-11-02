@@ -1982,19 +1982,20 @@ namespace HepLib {
         }
         ostringstream oss;
         expr_in = expr_in.subs(s2v);
-        oss << "L oFF = WF(" << expr_in << ");" << endl;
-        oss << "FactArg WF;" << endl;
+        oss << "Local iFF = " << expr_in << ";" << endl;
+        oss << "Factorize iFF;" << endl;
+        oss << ".sort" << endl;
+        oss << "#$num = numfactors_(iFF);" << endl;
+        oss << "Local oFF = <WF(iFF[factor_^1])>*...*<WF(iFF[factor_^`$num'])>;" << endl;
         oss << ".sort" << endl;
         auto ostr = fprc.Execute(oss.str(), "oFF");
-        string_replace_all(ostr, "[", "({");
-        string_replace_all(ostr, "]", "})");
+        string_replace_all(ostr, "[", "(");
+        string_replace_all(ostr, "]", ")");
         
         Parser fp(st);
-        ex res = fp.Read(ostr); 
-        if(!res.match(WF(w)) || !is_a<lst>(res.op(0))) throw Error("Error in form_facto: "+ostr);
-        ex ret = 1;
-        for(auto item : res.op(0)) ret *= item;
-        return ret;
+        ex res = fp.Read(ostr);
+        res = res.subs(WF(w)==w);
+        return res;
     }
     
 }
