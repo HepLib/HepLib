@@ -24,7 +24,7 @@ cd heplib_update_tmp
 ##################################
 if [ "$1" = "all" ] || [ "$1" = "ginac" ] || [ "$1" = "GiNaC" ]
 then
-    wget https://heplib.github.io/download/ginac.tar.gz
+    wget https://heplib.github.io/ginac.tar.gz
     tar zxf ginac.tar.gz
     cd ginac
     ./configure --prefix="@CMAKE_INSTALL_PREFIX@" PKG_CONFIG_PATH="@CMAKE_INSTALL_PREFIX@/lib/pkgconfig"
