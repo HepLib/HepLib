@@ -311,6 +311,7 @@ Dimension NF;
                 }
                 ff << "L [o]=" << item << ";" << endl;
                 ff << ".sort" << endl;
+                ff << idstr << ".sort" << endl;
             } else if(trace_method==trace_each_each) {
                 exset trs;
                 find(item,TR(w),trs);
@@ -326,6 +327,7 @@ Dimension NF;
                 item = item.subs(tr2v);
                 ff << "L [o]=" << item << ";" << endl;
                 ff << ".sort" << endl;
+                ff << idstr << ".sort" << endl;
                 for(int i=0; i<trvec.size(); i++) {
                     ff << "L [tr" << i << "]=" << trvec[i] << ";" << endl;
                     ff << "tracen " << gid << ";" << endl;

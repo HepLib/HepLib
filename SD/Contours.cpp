@@ -94,22 +94,35 @@ namespace HepLib::SD {
             ostringstream fname;
             
             if(CTMaxF) {
-                MinimizeBase::FunctionType fp = NULL;
+                MinimizeBase::FunctionType fp = NULL, fp2 = NULL;
                 fname.clear();
                 fname.str("");
                 fname << "minF_"<<ftnxn.op(1);
                 fp = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
-                if(fp==NULL) {
-                    cerr << ErrColor << "Contours: fp==NULL" << RESET << endl;
+                fname.clear();
+                fname.str("");
+                fname << "minFM_"<<ftnxn.op(1);
+                fp2 = (MinimizeBase::FunctionType)dlsym(module, fname.str().c_str());
+                if(fp==NULL || fp2==NULL) {
+                    cerr << ErrColor << "Contours: fp==NULL/fp2==NULL" << RESET << endl;
                     cout << "dlerror(): " << dlerror() << endl;
                     exit(1);
                 }
                 
                 dREAL maxf = Minimizer->FindMinimum(nvars, fp, paras);
-                if(maxf>0 && false) {
+                if(maxf>0) {
                     if(Verbose>5) {
                         cout << "\r                                                    \r";
                         cout << "     λ: F>0 is Found, back to REAL mode!" << endl;
+                    }
+                    return lst{ ftnxn.op(1), 1979 }; // ft_id, las
+                }
+                
+                maxf = Minimizer->FindMinimum(nvars, fp2, paras);
+                if(maxf>0) {
+                    if(Verbose>5) {
+                        cout << "\r                                                    \r";
+                        cout << "     λ: F<0 is Found, back to REAL mode!" << endl;
                     }
                     return lst{ ftnxn.op(1), 1979 }; // ft_id, las
                 }

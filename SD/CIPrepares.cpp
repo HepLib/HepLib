@@ -345,6 +345,13 @@ namespace HepLib::SD {
             ofs << "}" << endl;
             ofs << endl;
             
+            // for Minimization of -F
+            ofs << "extern \"C\" " << endl;
+            ofs << "dREAL minFM_"<<ft_n<<"(const int xn, const dREAL* x, const dREAL *pl, const dREAL *las_in) {" << endl;
+            ofs << "return 0.L-FL_"<<ft_n<<"(x,pl);" << endl;
+            ofs << "}" << endl;
+            ofs << endl;
+            
             // for Minimization of DF-i
             for(int i=0; i<fxs.size(); i++) {
                 ofs << "extern \"C\" " << endl;
