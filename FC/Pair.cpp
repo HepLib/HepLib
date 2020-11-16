@@ -127,6 +127,8 @@ namespace HepLib::FC {
             return Pair(ex_to<Vector>(lr[0]),ex_to<Vector>(lr[1])).hold();
         else if((is_a<Index>(lr[0]) && is_a<Index>(lr[1]))) 
             return Pair(ex_to<Index>(lr[0]),ex_to<Index>(lr[1])).hold();
+        else if((is_a<Index>(lr[0]) && is_a<Vector>(lr[1])))
+            return Pair(ex_to<Vector>(lr[1]),ex_to<Index>(lr[0])).hold();
         else return this->hold();
     }
     

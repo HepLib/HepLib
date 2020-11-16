@@ -1,5 +1,6 @@
 #include "BASIC.h"
 #include <netdb.h>
+#include <getopt.h>
 
 using namespace std;
 using namespace HepLib;
@@ -7,36 +8,52 @@ using namespace HepLib;
 
 int main(int argc, char** argv) {
     
-    string arg_n = "-1";
+    string arg_t = "-1";
     string arg_p = "8899";
     string arg_s = "localhost";
     string arg_c = "echo [i]";
-    bool ignore = false;
+    string arg_r = "3";
     
-    // handle options
-    for (int opt; (opt = getopt(argc, argv, "n:p:s:c:h")) != -1;) {
+    // handle long options
+    int opt;
+    int digit_optind = 0;
+    int option_index = 0;
+    const char *string = "";
+    static struct option long_options[] = {
+        { "total", required_argument, NULL, 't' },
+        { "port", required_argument, NULL, 'p' },
+        { "server", required_argument, NULL, 's' },
+        { "command", required_argument, NULL, 'c' },
+        { "round", required_argument, NULL, 'r'},
+        { "help", no_argument, NULL, 'h' },
+        {NULL, 0, NULL, 0}
+    };
+    while((opt =getopt_long_only(argc,argv,string,long_options,&option_index))!= -1) {
         switch (opt) {
-            case 'n': arg_n = optarg; break;
+            case 't': arg_t = optarg; break;
             case 'p': arg_p = optarg; break;
             case 's': arg_s = optarg; break;
             case 'c': arg_c = optarg; break;
-            case 'i': ignore=true; break;
+            case 'r': arg_r = optarg; break;
             default:
-                printf("Options: -n N -p P -s S -c C.\n");
-                printf("N: total elements as server.\n");
-                printf("P: server port.\n");
-                printf("S: server ip or hostname as client.\n");
-                printf("C: file pattern/commands, [i] will be replaced.\n");
+                cout << "A simple Server/Client, bypass with [i].log" << endl;
+                cout << "Supported Options:" << endl;
+                cout << "  --total: total elements @server." << endl;
+                cout << "  --port: server port @server/@client." << endl;
+                cout << "  --server: server ip or hostname @client." << endl;
+                cout << "  --command: command with [i] replaced @client." << endl;
+                cout << "  --round: round to be cycled @server." << endl;
                 exit(1);
         }
     }
     argc -= optind;
     argv += optind;
     int port = stoi(arg_p);
-    int total = stoi(arg_n);
+    int total = stoi(arg_t);
+    int round = stoi(arg_r);
     
     if(total > 0) {
-        int socket_fd, connect_fd;  
+        int socket_fd;
         struct sockaddr_in servaddr;  
         char buff[MAXSIZE];  
         int n;  
@@ -59,55 +76,37 @@ int main(int argc, char** argv) {
         if( listen(socket_fd, 10) == -1) {  
             cout << "listen socket error(" << errno << "): " << strerror(errno) << endl;  
             exit(1);  
-        } 
-        
-        int current = 1;
-        
-        cout << "Server Port: " << port << endl;
-        while(true) {  
-            if(current>total) current=1;
-            cout << "\r                               \r";
-            cout << "Server: " << current << " / " << total << " @ " << now(false) << flush;
-            if( (connect_fd = accept(socket_fd, (struct sockaddr*)NULL, NULL)) == -1) {  
-                cout << "accept socket error(" << errno << "): " << strerror(errno) << endl;  
-                continue;  
-            }  
-            
-            bool second_run = false;
-            
-            string cmd = arg_c;
-            string_replace_all(cmd, "[i]", to_string(current));
-            
-            while(file_exists(to_string(current)+".log") || file_exists(cmd)) {
-                if(current>=total) {
-                    current=0;
-                    if(second_run) break;
-                    second_run = true;
-                }
-                current++;
-            }
-            
-            #pragma omp parallel 
-            #pragma omp for firstprivate(connect_fd) nowait
-            for(int i=0; i<2; i++) {
-                if(omp_get_thread_num()!=0) {
-                    string data = to_string(current);
-                    if(send(connect_fd, data.c_str(),data.length(),0) == -1) perror("send error");  
-                    close(connect_fd);  
-                }
-            } 
-            
-            wait(NULL); 
-            close(connect_fd);  
-            if(current==0) break;
-            current++;
         }
         
-        cout << " @ " << now(false) << endl;
+        cout << endl << "Started @ " << now() << endl;
+        cout << "  Server Port: " << port << endl;
+        
+        for(int r=0; r<round; r++) {
+            for(int c=0; c<total; c++) {
+                auto current = c;
+                cout << "\r                                     \r";
+                cout << "  Server: " << current << " / " << (total-1) << " @ " << now(false) << flush;
+                
+                if(!file_exists(to_string(current)+".log")) {
+                    int connect_fd;
+                    if( (connect_fd = accept(socket_fd, (struct sockaddr*)NULL, NULL)) == -1) {
+                        cout << "accept socket error(" << errno << "): " << strerror(errno) << endl;
+                        continue;
+                    }
+                    
+                    std::string data = to_string(current);
+                    if(send(connect_fd, data.c_str(),data.length(),0) == -1) perror("send error");
+                    close(connect_fd);
+                }
+            }
+            cout << endl;
+        }
+        
+        cout << "Finished @ " << now() << endl << endl;
         close(socket_fd);
         exit(0);
     } else {
-        string sip = arg_s;
+        std::string sip = arg_s;
         if(sip.length()<1) {
             cout << "server ip or hostname is required for client mode." << endl;
             exit(1);
@@ -145,19 +144,17 @@ int main(int argc, char** argv) {
             }  
             
             buf[rec_len]  = '\0';  
-            string data = buf;  
+            std::string data = buf;
             close(sockfd);  
             
-            if(data=="0") break;
+            if(file_exists(data+".log")) continue;
             
-            string cmd = arg_c;
-            cmd += " > [i].log;rm [i].log";
+            std::string cmd = arg_c;
             string_replace_all(cmd, "[i]", data);
             system(cmd.c_str());
         }
         exit(0); 
     }
     
-
     return 0;
 }

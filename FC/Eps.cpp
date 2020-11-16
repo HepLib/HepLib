@@ -44,11 +44,11 @@ namespace HepLib::FC {
     ex Eps::eval() const {
         if(flags & status_flags::evaluated) return *this;
         bool ok = true;
-        int ii = -1;
+        int ii = 4;
         for(int i=0; i<4; i++) {
-            if(is_a<Vector>(pis[i]) && ii!=-1) ok = false; // Vector after Index
-            else if(is_a<Index>(pis[i]) && ii==-1) ii = i;
-            else if(!is_a<Vector>(pis[i]) && !is_a<Index>(pis[i])) ok = false;
+            if(!is_a<Vector>(pis[i]) && !is_a<Index>(pis[i])) ok = false;
+            else if(is_a<Vector>(pis[i]) && ii!=4) ok = false; // Vector after Index
+            else if(is_a<Index>(pis[i]) && ii==4) ii = i;
             if(!ok) break;
         }
         if(!ok) return LC(pis[0],pis[1],pis[2],pis[3]);
