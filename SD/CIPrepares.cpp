@@ -387,6 +387,7 @@ namespace HepLib::SD {
                 sofn << pid << "F.so";
             }
             cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << " -o " << sofn.str() << " " << pid << "/F*.o";
+            cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
             system(cmd.str().c_str());
             
             cmd.clear();
@@ -1193,9 +1194,10 @@ namespace HepLib::SD {
         if(res_size>GccLimit) {
             cmd.clear();
             cmd.str("");
-            cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp ";
+            cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp";
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 0 " << (GccLimit-1) << ")";
+            cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
             system(cmd.str().c_str());
             
             for(int n=1; true; n++) {
@@ -1208,20 +1210,22 @@ namespace HepLib::SD {
                 else sofn << pid << "X" << n << ".so";
                 cmd.clear();
                 cmd.str("");
-                cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp ";
+                cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp";
                 if(hasF) cmd << " " << fsofn.str();
                 cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' " << start << " " << end << ")";
                 if(hasF) cmd << " " << fsofn.str();
+                cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
                 system(cmd.str().c_str());
                 if(end>=res_size-1) break;
             }
         } else {
             cmd.clear();
             cmd.str("");
-            cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp ";
+            cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp";
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -o " << sofn.str() << " " << pid << "/*.o";
             if(hasF) cmd << " " << fsofn.str();
+            cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
             system(cmd.str().c_str());
         }
         cmd.clear();

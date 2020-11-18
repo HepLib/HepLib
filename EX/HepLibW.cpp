@@ -45,7 +45,41 @@ bool expr::isPair() { return GiNaC::is_a<HepLib::FC::Pair>(_expr); }
 bool expr::isDiracGamma() { return GiNaC::is_a<HepLib::FC::DiracGamma>(_expr); }
 
 bool expr::info(std::string sflags) {
-    if (sflags == "even") return _expr.info(GiNaC::info_flags::even);
+    if (sflags == "numeric") return _expr.info(GiNaC::info_flags::numeric);
+    else if (sflags == "real") return _expr.info(GiNaC::info_flags::real);
+    else if (sflags == "rational") return _expr.info(GiNaC::info_flags::rational);
+    else if (sflags == "integer") return _expr.info(GiNaC::info_flags::integer);
+    else if (sflags == "crational") return _expr.info(GiNaC::info_flags::crational);
+    else if (sflags == "cinteger") return _expr.info(GiNaC::info_flags::cinteger);
+    else if (sflags == "positive") return _expr.info(GiNaC::info_flags::positive);
+    else if (sflags == "negative") return _expr.info(GiNaC::info_flags::negative);
+    else if (sflags == "nonnegative") return _expr.info(GiNaC::info_flags::nonnegative);
+    else if (sflags == "posint") return _expr.info(GiNaC::info_flags::posint);
+    else if (sflags == "negint") return _expr.info(GiNaC::info_flags::negint);
+    else if (sflags == "nonnegint") return _expr.info(GiNaC::info_flags::nonnegint);
+    else if (sflags == "even") return _expr.info(GiNaC::info_flags::even);
+    else if (sflags == "odd") return _expr.info(GiNaC::info_flags::odd);
+    else if (sflags == "prime") return _expr.info(GiNaC::info_flags::prime);
+    else if (sflags == "relation") return _expr.info(GiNaC::info_flags::relation);
+    else if (sflags == "relation_equal") return _expr.info(GiNaC::info_flags::relation_equal);
+    else if (sflags == "relation_not_equal") return _expr.info(GiNaC::info_flags::relation_not_equal);
+    else if (sflags == "relation_less") return _expr.info(GiNaC::info_flags::relation_less);
+    else if (sflags == "relation_less_or_equal") return _expr.info(GiNaC::info_flags::relation_less_or_equal);
+    else if (sflags == "relation_greater") return _expr.info(GiNaC::info_flags::relation_greater);
+    else if (sflags == "relation_greater_or_equal") return _expr.info(GiNaC::info_flags::relation_greater_or_equal);
+    else if (sflags == "symbol") return _expr.info(GiNaC::info_flags::symbol);
+    else if (sflags == "list") return _expr.info(GiNaC::info_flags::list);
+    else if (sflags == "exprseq") return _expr.info(GiNaC::info_flags::exprseq);
+    else if (sflags == "polynomial") return _expr.info(GiNaC::info_flags::polynomial);
+    else if (sflags == "integer_polynomial") return _expr.info(GiNaC::info_flags::integer_polynomial);
+    else if (sflags == "cinteger_polynomial") return _expr.info(GiNaC::info_flags::cinteger_polynomial);
+    else if (sflags == "rational_polynomial") return _expr.info(GiNaC::info_flags::rational_polynomial);
+    else if (sflags == "crational_polynomial") return _expr.info(GiNaC::info_flags::crational_polynomial);
+    else if (sflags == "rational_function") return _expr.info(GiNaC::info_flags::rational_function);
+    else if (sflags == "has_indices") return _expr.info(GiNaC::info_flags::has_indices);
+    else if (sflags == "idx") return _expr.info(GiNaC::info_flags::idx);
+    else if (sflags == "expanded") return _expr.info(GiNaC::info_flags::expanded);
+    else if (sflags == "indefinite") return _expr.info(GiNaC::info_flags::indefinite);
     return false;
 }
 
