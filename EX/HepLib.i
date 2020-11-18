@@ -120,6 +120,7 @@ extern expr y(const int i);
 extern expr z(const int i);
 
 // Integral
+%warnfilter(509) Integral;
 class Integral {
 public:
     int epN;
