@@ -5,6 +5,11 @@ using namespace std;
 using namespace HepLib;
 
 int main(int argc, char** argv) {
+
+    if(argc<2) {
+        cout << "Usage: " << argv[0] << " [--prefix|--cflags|--ldflags|--help]" << endl;
+        return 0;
+    }
         
     // handle long options
     int opt;
@@ -13,8 +18,8 @@ int main(int argc, char** argv) {
     const char *string = "";
     static struct option long_options[] = {
         { "prefix", no_argument, NULL, 'p' },
-        { "cflag", no_argument, NULL, 'c' },
-        { "ldflag", no_argument, NULL, 'l' },
+        { "cflags", no_argument, NULL, 'c' },
+        { "ldflags", no_argument, NULL, 'l' },
         { "help", no_argument, NULL, 'h' },
         {NULL, 0, NULL, 0},
     };
@@ -23,10 +28,9 @@ int main(int argc, char** argv) {
             case 'p': cout << InstallPrefix; break;
             case 'c': cout << INC_FLAGS; break;
             case 'l': cout << LIB_FLAGS; break;
-            default: cout << argv[0] << " [--prefix] [--cflag] [--ldflag] [--help]" << endl; break;
+            default: cout << "Usage: " << argv[0] << " [--prefix|--cflags|--ldflags|--help]" << endl; break;
         }
     }
-    
 
     return 0;
 }
