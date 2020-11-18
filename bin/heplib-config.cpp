@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
             case 'p': cout << InstallPrefix; break;
             case 'c': cout << INC_FLAGS; break;
             case 'l': cout << LIB_FLAGS; break;
-            default: cout << "heplib-config [--prefix] [--cflag] [--ldflag] [--help]" << endl; break;
+            default: cout << argv[0] << " [--prefix] [--cflag] [--ldflag] [--help]" << endl; break;
         }
     }
     

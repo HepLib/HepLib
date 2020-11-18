@@ -159,7 +159,90 @@ expr w(const int wi) {
     return expr(GiNaC::wild(wi));
 }
 
+expr x(const int i) {
+    return expr(GiNaC::ex(HepLib::x(i)));
+}
+
+expr y(const int i) {
+    return expr(GiNaC::ex(HepLib::y(i)));
+}
+
+expr z(const int i) {
+    return expr(GiNaC::ex(HepLib::z(i)));
+}
+
 MapFunction::MapFunction() : _map([&](const GiNaC::ex &e, HepLib::MapFunction &self)->GiNaC::ex{ return map(expr(e))._expr; }) {}
 MapFunction::~MapFunction() { }
 expr MapFunction::map(const expr & e) { return e; }
 expr MapFunction::operator() (const expr &e) { return _map(e._expr); }
+
+Integral::Integral() { }
+
+void Integral::Functions(const std::vector<expr> &ev) {
+    _Propagators_Functions.clear();
+    for(auto item : ev) _Propagators_Functions.push_back(item._expr);
+    isX = true;
+}
+
+void Integral::Propagators(const std::vector<expr> &ev, const std::vector<expr> &loops, const std::vector<expr> &tloops) {
+    _Propagators_Functions.clear();
+    for(auto item : ev) _Propagators_Functions.push_back(item._expr);
+    _Loops.clear();
+    for(auto item : loops) _Loops.push_back(item._expr);
+    _tLoops.clear();
+    for(auto item : tloops) _tLoops.push_back(item._expr);
+    isX = false;
+}
+
+void Integral::Exponents(const std::vector<expr> &ev) {
+    _Exponents.clear();
+    for(auto item : ev) _Exponents.push_back(item._expr);
+}
+
+void Integral::Exponents(const std::vector<int> &ev) {
+    _Exponents.clear();
+    for(auto item : ev) _Exponents.push_back(item);
+}
+
+void Integral::Replacements(const std::vector<expr> &ev, int lt) {
+    if(lt==0) {
+        _lReplacements.clear();
+        for(auto item : ev) _lReplacements.push_back(item._expr);
+    } else if(lt==1) {
+        _tReplacements.clear();
+        for(auto item : ev) _tReplacements.push_back(item._expr);
+    }
+}
+
+void Integral::Evaluate() {
+    if(isX) {
+        HepLib::SD::XIntegrand xint;
+        xint.Functions = HepLib::exvec2lst(_Propagators_Functions);
+        xint.Exponents = HepLib::exvec2lst(_Exponents);
+            
+        HepLib::SD::SecDec secdec;
+        HepLib::Verbose = verb;
+        secdec.epN = epN;
+        secdec.epsN = epsN;
+        secdec.Evaluate(xint);
+        _Result = secdec.ResultError;
+    } else {
+        HepLib::SD::FeynmanParameter fp;
+        fp.Propagators = HepLib::exvec2lst(_Propagators_Functions);
+        fp.Exponents = HepLib::exvec2lst(_Exponents);
+        fp.LoopMomenta = HepLib::exvec2lst(_Loops);
+        fp.tLoopMomenta = HepLib::exvec2lst(_tLoops);
+        for(auto item : _lReplacements) fp.lReplacements[item.op(0)] = item.op(1);
+        for(auto item : _lReplacements) fp.tReplacements[item.op(0)] = item.op(1);
+            
+        HepLib::SD::SecDec secdec;
+        HepLib::Verbose = verb;
+        secdec.epN = epN;
+        secdec.epsN = epsN;
+        secdec.Evaluate(fp);
+        _Result = secdec.ResultError;
+    }
+}
+
+std::string Integral::str() { return HepLib::ex2str(HepLib::SD::VEResult(_Result)); }
+std::string Integral::__str__() { return HepLib::ex2str(HepLib::SD::VEResult(_Result)); }

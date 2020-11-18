@@ -28,7 +28,8 @@
 }
 
 namespace std {
-    %template(exvector) vector<expr>;
+    %template(expr_vector) vector<expr>;
+    %template(int_vector) vector<int>;
 }
 
 class MapFunction {
@@ -113,3 +114,26 @@ extern void letSP(const expr &e1, const expr &e2, const expr &e12);
 extern expr call(const std::string func, const std::vector<expr> &ev);
 extern expr call(const std::string func, const expr &e);
 extern expr w(const int wi);
+
+extern expr x(const int i);
+extern expr y(const int i);
+extern expr z(const int i);
+
+// Integral
+class Integral {
+public:
+    int epN;
+    int epsN;
+    int verb;
+    
+    Integral();
+    void Functions(const std::vector<expr> &ev);
+    void Propagators(const std::vector<expr> &ev, const std::vector<expr> &loops={}, const std::vector<expr> &tloops={});
+    void Replacements(const std::vector<expr> &ev, int lt=0);
+    void Exponents(const std::vector<expr> &ev);
+    void Exponents(const std::vector<int> &ev);
+    void Evaluate();
+    
+    std::string str();
+    std::string __str__();
+};

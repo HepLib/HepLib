@@ -69,6 +69,7 @@ public:
     friend expr call(const std::string func, const expr &e);
     
     friend class MapFunction;
+    friend class Integral;
     
 private:
     GiNaC::ex _expr;
@@ -93,6 +94,10 @@ expr GAS(const expr &e);
 expr TR(const expr &e);
 expr form(const expr &e);
 
+expr x(const int i);
+expr y(const int i);
+expr z(const int i);
+
 void letSP(const expr &e1, const expr &e2, const expr &e12);
 
 expr call(const std::string func, const std::vector<expr> &ev);
@@ -108,4 +113,30 @@ public:
     friend class expr;
 private:
     HepLib::MapFunction _map;
+};
+
+class Integral {
+public:
+    int epN = 0;
+    int epsN = 0;
+    int verb = 0;
+
+    Integral();
+    void Functions(const std::vector<expr> &ev);
+    void Propagators(const std::vector<expr> &ev1, const std::vector<expr> &loops={}, const std::vector<expr> &tloops={});
+    void Replacements(const std::vector<expr> &ev, int lt=0);
+    void Exponents(const std::vector<expr> &ev);
+    void Exponents(const std::vector<int> &ev);
+    void Evaluate();
+    std::string str();
+    std::string __str__();
+private:
+    GiNaC::exvector _Propagators_Functions;
+    GiNaC::exvector _Exponents;
+    GiNaC::exvector _lReplacements;
+    GiNaC::exvector _tReplacements;
+    GiNaC::exvector _Loops;
+    GiNaC::exvector _tLoops;
+    GiNaC::ex _Result;
+    bool isX = true;
 };
