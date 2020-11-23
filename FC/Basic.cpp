@@ -428,7 +428,7 @@ namespace HepLib::FC {
                 if(item.op(0).return_type()==return_types::commutative || item.op(0).is_equal(GAS(1))) {
                     mats_idx.append(lst{item,i});
                 } else {
-                    if(to_map[item.op(1)]!=0 || from_map[item.op(2)]!=0) throw Error("MatrixContract: index conflict (1).");
+                    if(to_map[item.op(1)]!=0 || from_map[item.op(2)]!=0) throw Error("MatrixContract: index conflict for "+ex2str(item));
                     to_map[item.op(1)] = i+10; // avoid 0 in map
                     from_map[item.op(2)] = i+10; // avoid 0 in map
                 }

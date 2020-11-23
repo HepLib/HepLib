@@ -442,13 +442,13 @@ namespace HepLib::FC {
         Index RCI(ex fn);
         Index RAI(ex fn);
         
-        ex QuarkPropagator(ex e, ex m=0);
-        ex GluonPropagator(ex e);
-        ex GhostPropagator(ex e);
-        ex q2gVertex(ex e);
+        ex QuarkPropagator(ex e, ex m=0, bool color=true);
+        ex GluonPropagator(ex e, bool color=true);
+        ex GhostPropagator(ex e, bool color=true);
+        ex q2gVertex(ex e, bool color=true);
         ex g3Vertex(ex e);
         ex g4Vertex(ex e);
-        ex gh2gVertex(ex e);
+        ex gh2gVertex(ex e, bool color=true);
         
         ex IndexCC(ex e, bool all=true);
         ex GluonFFV(ex e, ex n);
@@ -459,12 +459,27 @@ namespace HepLib::FC {
         ex eikonalVertex(ex e, ex n, int mode); // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
         ex eikonalVertexR(ex e, ex n, int mode); // right side from cut
             
-        ex GluonSum(int qi);
-        ex QuarkSum(int qi, ex p, ex m);
-        ex AntiQuarkSum(int qi, ex p, ex m);
-        ex GhostSum(int qi);
-        ex AntiGhostSum(int qi);
-        ex J1Sum(int qi, ex p);
+        ex GluonSumR(int qi, bool color=true);
+        ex QuarkSumR(int qi, ex p, ex m, bool color=true);
+        ex AntiQuarkSumR(int qi, ex p, ex m, bool color=true);
+        ex GhostSumR(int qi);
+        ex AntiGhostSumR(int qi);
+        ex J1SumR(int qi, ex p);
+        
+        ex GluonSumL(int qi, bool color=true);
+        ex QuarkSumL(int qi, ex p, ex m, bool color=true);
+        ex AntiQuarkSumL(int qi, ex p, ex m, bool color=true);
+        ex GhostSumL(int qi);
+        ex AntiGhostSumL(int qi);
+        ex J1SumL(int qi, ex p);
+        
+        inline ex GluonSum(int qi, bool color=true) { return GluonSumR(qi,color); };
+        inline ex QuarkSum(int qi, ex p, ex m, bool color=true) { return QuarkSumR(qi,p,m,color); };
+        inline ex AntiQuarkSum(int qi, ex p, ex m, bool color=true) { return AntiQuarkSumR(qi,p,m,color); };
+        inline ex GhostSum(int qi) { return GhostSumR(qi); };
+        inline ex AntiGhostSum(int qi) { return AntiGhostSumR(qi); };
+        inline ex J1Sum(int qi, ex p) { return J1SumR(qi,p); };
+        
     };
     
     /**

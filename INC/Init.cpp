@@ -104,8 +104,11 @@ namespace HepLib {
     // Process _init
     //----------------------------------------
     FC::Qgraf::Process::_init::_init() {
+        auto A = Symbol("A");
         auto q = Symbol("q");
         auto qbar = Symbol("qbar");
+        auto l = Symbol("l");
+        auto lbar = Symbol("lbar");
         auto gh = Symbol("gh");
         auto ghbar = Symbol("ghbar");
         auto Q = Symbol("Q");
@@ -117,10 +120,13 @@ namespace HepLib {
         
         LineTeX[q] = "fermion, edge label=q";
         LineTeX[qbar] = "anti fermion, edge label=q";
+        LineTeX[l] = "fermion, edge label=l";
+        LineTeX[lbar] = "anti fermion, edge label=l";
         LineTeX[gh] = "ghost, edge label=$\\chi$"; 
         LineTeX[ghbar] = "ghost, edge label=$\\chi$"; 
         LineTeX[Q] = "fermion, edge label=Q";
         LineTeX[g] = "gluon, edge label=g";
+        LineTeX[A] = "photon, edge label=$\\gamma$";
         LineTeX[Qbar] = "anti fermion, edge label=$\\bar{Q}$";
         LineTeX[n] = "double distance=1.5pt";
         LineTeX[nbar] = "double distance=1.5pt";    

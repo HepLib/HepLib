@@ -402,11 +402,12 @@ namespace HepLib::FC::Qgraf {
      * @param m the quark mass, default is 0
      * @return the quark propagator, with dirac/color index
      */
-    ex QuarkPropagator(ex e, ex m) {
+    ex QuarkPropagator(ex e, ex m, bool color) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        return I * SP(TI(fi1),TI(fi2)) * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
+        if(color) return I * SP(TI(fi1),TI(fi2)) * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
+        else return I * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
     }
     
     /**
@@ -414,11 +415,12 @@ namespace HepLib::FC::Qgraf {
      * @param e expression with head of Propagator
      * @return the gloun propagator under Feynman gauge, with dirac/color index
      */
-    ex GluonPropagator(ex e) {
+    ex GluonPropagator(ex e, bool color) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        return (-I) * SP(CI(fi1),CI(fi2)) * SP(LI(fi1),LI(fi2)) / SP(mom); // Feynman Gauge
+        if(color) return (-I) * SP(CI(fi1),CI(fi2)) * SP(LI(fi1),LI(fi2)) / SP(mom); // Feynman Gauge
+        else return (-I) * SP(LI(fi1),LI(fi2)) / SP(mom); // Feynman Gauge
     }
     
     /**
@@ -426,11 +428,12 @@ namespace HepLib::FC::Qgraf {
      * @param e expression with head of Propagator
      * @return the ghost propagator, with dirac/color index
      */
-    ex GhostPropagator(ex e) {
+    ex GhostPropagator(ex e, bool color) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        return I * SP(CI(fi1),CI(fi2)) / SP(mom);
+        if(color) return I * SP(CI(fi1),CI(fi2)) / SP(mom);
+        else return I / SP(mom);
     }
     
     /**
@@ -438,11 +441,12 @@ namespace HepLib::FC::Qgraf {
      * @param e expression with head of Vertex
      * @return the q-qbar-g vertex
      */
-    ex q2gVertex(ex e) {
+    ex q2gVertex(ex e, bool color) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
-        return I*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SUNT(TI(fi1),TI(fi2),CI(fi3));
+        if(color) return I*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SUNT(TI(fi1),TI(fi2),CI(fi3));
+        else return I*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2));
     }
     
     /**
@@ -486,12 +490,13 @@ namespace HepLib::FC::Qgraf {
      * @param e expression with head of Vertex
      * @return the ghost-anti ghost-g vertex
      */
-    ex gh2gVertex(ex e) {
+    ex gh2gVertex(ex e, bool color) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
         auto mom1 = e.op(0).op(2);
-        return -gs * SUNF(CI(fi1),CI(fi2),CI(fi3)) * SP(mom1,LI(fi3));
+        if(color) return -gs * SUNF(CI(fi1),CI(fi2),CI(fi3)) * SP(mom1,LI(fi3));
+        else return -gs * SP(mom1,LI(fi3));
     }
     
     /**
@@ -616,8 +621,19 @@ namespace HepLib::FC::Qgraf {
      * @param qi gluon qgraf index
      * @return g^{i ir} delta^{i ir}
      */
-    ex GluonSum(int qi) {
-        return -SP(Qgraf::LI(qi), Qgraf::RLI(qi)) * SP(Qgraf::CI(qi), Qgraf::RCI(qi));
+    ex GluonSumR(int qi, bool color) {
+        if(color) return -SP(Qgraf::LI(qi), Qgraf::RLI(qi)) * SP(Qgraf::CI(qi), Qgraf::RCI(qi));
+        else return -SP(Qgraf::LI(qi), Qgraf::RLI(qi));
+    }
+    
+    /**
+     * @brief polarization sum for gluon
+     * @param qi gluon qgraf index
+     * @return g^{i ir} delta^{i ir}
+     */
+    ex GluonSumL(int qi, bool color) {
+        if(color) return -SP(Qgraf::RLI(qi),Qgraf::LI(qi)) * SP(Qgraf::RCI(qi),Qgraf::CI(qi));
+        else return -SP(Qgraf::RLI(qi),Qgraf::LI(qi));
     }
 
     /**
@@ -627,8 +643,21 @@ namespace HepLib::FC::Qgraf {
      * @param m anti-quark mass
      * @return Quark summation
      */
-    ex QuarkSum(int qi, ex p, ex m) {
-        return Matrix(GAS(p)+m*GAS(1), Qgraf::RDI(qi), Qgraf::DI(qi)) * SP(Qgraf::RTI(qi), Qgraf::TI(qi));
+    ex QuarkSumR(int qi, ex p, ex m, bool color) {
+        if(color) return Matrix(GAS(p)+m*GAS(1), Qgraf::RDI(qi), Qgraf::DI(qi)) * SP(Qgraf::RTI(qi), Qgraf::TI(qi));
+        else return Matrix(GAS(p)+m*GAS(1), Qgraf::RDI(qi), Qgraf::DI(qi));
+    }
+    
+    /**
+     * @brief polarization sum for quark
+     * @param qi quark qgraf index
+     * @param p anti-quark momentum vector
+     * @param m anti-quark mass
+     * @return Quark summation
+     */
+    ex QuarkSumL(int qi, ex p, ex m, bool color) {
+        if(color) return Matrix(GAS(p)+m*GAS(1), Qgraf::DI(qi), Qgraf::RDI(qi)) * SP(Qgraf::TI(qi),Qgraf::RTI(qi));
+        else return Matrix(GAS(p)+m*GAS(1), Qgraf::DI(qi), Qgraf::RDI(qi));
     }
 
     /**
@@ -638,8 +667,21 @@ namespace HepLib::FC::Qgraf {
      * @param m anti-quark mass
      * @return anti-Quark summation
      */
-    ex AntiQuarkSum(int qi, ex p, ex m) {
-        return Matrix(GAS(p)-m*GAS(1), Qgraf::DI(qi), Qgraf::RDI(qi)) * SP(Qgraf::TI(qi), Qgraf::RTI(qi));
+    ex AntiQuarkSumR(int qi, ex p, ex m, bool color) {
+        if(color) return Matrix(GAS(p)-m*GAS(1), Qgraf::DI(qi), Qgraf::RDI(qi)) * SP(Qgraf::TI(qi), Qgraf::RTI(qi));
+        else return Matrix(GAS(p)-m*GAS(1), Qgraf::DI(qi), Qgraf::RDI(qi));
+    }
+    
+    /**
+     * @brief polarization sum for anti-quark
+     * @param qi anti-quark qgraf index
+     * @param p anti-quark momentum vector
+     * @param m anti-quark mass
+     * @return anti-Quark summation
+     */
+    ex AntiQuarkSumL(int qi, ex p, ex m, bool color) {
+        if(color) return Matrix(GAS(p)-m*GAS(1), Qgraf::RDI(qi), Qgraf::DI(qi)) * SP(Qgraf::RTI(qi), Qgraf::TI(qi));
+        else return Matrix(GAS(p)-m*GAS(1), Qgraf::RDI(qi), Qgraf::DI(qi));
     }
     
     /**
@@ -647,8 +689,17 @@ namespace HepLib::FC::Qgraf {
      * @param qi ghost qgraf index
      * @return g^{i ir} delta^{i ir}
      */
-    ex GhostSum(int qi) {
+    ex GhostSumR(int qi) {
         return SP(Qgraf::CI(qi), Qgraf::RCI(qi));
+    }
+    
+    /**
+     * @brief polarization sum for ghost
+     * @param qi ghost qgraf index
+     * @return g^{i ir} delta^{i ir}
+     */
+    ex GhostSumL(int qi) {
+        return SP(Qgraf::RCI(qi),Qgraf::CI(qi));
     }
     
     /**
@@ -656,8 +707,17 @@ namespace HepLib::FC::Qgraf {
      * @param qi anti-ghost qgraf index
      * @return g^{i ir} delta^{i ir}
      */
-    ex AntiGhostSum(int qi) {
+    ex AntiGhostSumR(int qi) {
         return -SP(Qgraf::CI(qi), Qgraf::RCI(qi));
+    }
+    
+    /**
+     * @brief polarization sum for anti-ghost, note that we will add extra - here
+     * @param qi anti-ghost qgraf index
+     * @return g^{i ir} delta^{i ir}
+     */
+    ex AntiGhostSumL(int qi) {
+        return -SP(Qgraf::RCI(qi),Qgraf::CI(qi));
     }
     
     /**
@@ -665,9 +725,19 @@ namespace HepLib::FC::Qgraf {
      * @param qi qgraf index
      * @return -g^{qi, rqi} + p^qi p^rqi/p.p
      */
-    ex J1Sum(int qi, ex p) {
+    ex J1SumR(int qi, ex p) {
         if(is_zero(p)) return -SP(LI(qi),RLI(qi));
         else return -SP(LI(qi),RLI(qi)) + SP(p,LI(qi)) * SP(p,RLI(qi)) / SP(p);
+    }
+    
+    /**
+     * @brief polarization sum for total angular momentum
+     * @param qi qgraf index
+     * @return -g^{qi, rqi} + p^qi p^rqi/p.p
+     */
+    ex J1SumL(int qi, ex p) {
+        if(is_zero(p)) return -SP(RLI(qi),LI(qi));
+        else return -SP(RLI(qi),LI(qi)) + SP(p,RLI(qi)) * SP(p,LI(qi)) / SP(p);
     }
     
 }
