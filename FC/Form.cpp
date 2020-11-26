@@ -277,7 +277,7 @@ Dimension NF;
             }
             
             // two method to handle TR objects
-            if(trace_method==trace_all) {
+            if(form_trace_mode==form_trace_all) {
                 mapTR tr;
                 item = tr(item);
                 ff << "L [o]=" << item << ";" << endl;
@@ -290,7 +290,7 @@ Dimension NF;
                     ff << ".sort" << endl;
                     ff << idstr << ".sort" << endl;
                 }
-            } else if(trace_method==trace_each_all) {
+            } else if(form_trace_mode==form_trace_each_all) {
                 exset trs;
                 find(item,TR(w),trs);
                 exmap tr2v;
@@ -312,7 +312,7 @@ Dimension NF;
                 ff << "L [o]=" << item << ";" << endl;
                 ff << ".sort" << endl;
                 ff << idstr << ".sort" << endl;
-            } else if(trace_method==trace_each_each) {
+            } else if(form_trace_mode==form_trace_each_each) {
                 exset trs;
                 find(item,TR(w),trs);
                 exmap tr2v;
@@ -338,7 +338,7 @@ Dimension NF;
                     ff << idstr << ".sort" << endl;
                 }
             } else {
-                throw Error("runform: the supplied trace_method is NOT supported yet.");
+                throw Error("runform: unsupported form_trace_mode = " + to_string(form_trace_mode));
             }
             ff << idstr << ".sort" << endl;
             ff << "contract 0;" << endl;
@@ -410,14 +410,47 @@ Dimension NF;
     }}
     
     /**
-     * @brief evalulate expr in form program
+     * @brief evalulate expr in form program, see also the form_trace_mode and form_expand_mode
      * @param expr the input expression
-     * @param all true for sending all into form, otherwise will use mma_collect w.r.t. Index/DiracGamma
      * @return result with index contract, trace performed, etc.
      */
-    ex form(const ex &expr, bool all, int verb) {
-        if(all || is_a<lst>(expr)) return runform(expr, verb);
-        if(false) {
+    ex form(const ex &expr, int verb) {
+        if(form_expand_mode==form_expand_none || is_a<lst>(expr)) return runform(expr, verb);
+        else if(form_expand_mode==form_expand_tr) {
+            auto cv_lst = mma_collect_lst(expr.subs(SP_map), TR(w));
+            lst to_lst;
+            for(auto cv : cv_lst) to_lst.append(cv.op(0)*cv.op(1));
+            lst out_lst = ex_to<lst>(runform(to_lst, verb));
+            
+            ex ret = 0;
+            for(int i=0; i<cv_lst.nops(); i++) ret += out_lst.op(i);
+            
+            return ret.subs(SP_map);
+        } else if(form_expand_mode==form_expand_ci) {
+            auto cv_lst = mma_collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
+                return e.has(TR(w)) || Index::hasc(e);
+            });
+            lst to_lst;
+            for(auto cv : cv_lst) to_lst.append(cv.op(0)*cv.op(1));
+            lst out_lst = ex_to<lst>(runform(to_lst, verb));
+            
+            ex ret = 0;
+            for(int i=0; i<cv_lst.nops(); i++) ret += out_lst.op(i);
+            
+            return ret.subs(SP_map);
+        } else if(form_expand_mode==form_expand_li) {
+            auto cv_lst = mma_collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
+                return e.has(TR(w)) || Index::hasv(e);
+            });
+            lst to_lst;
+            for(auto cv : cv_lst) to_lst.append(cv.op(0)*cv.op(1));
+            lst out_lst = ex_to<lst>(runform(to_lst, verb));
+            
+            ex ret = 0;
+            for(int i=0; i<cv_lst.nops(); i++) ret += out_lst.op(i);
+            
+            return ret.subs(SP_map);
+        } else if(form_expand_mode==form_expand_all) {
             auto cv_lst = mma_collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
                 return e.has(TR(w)) || SUNT::has(e) || SUNF::has(e) || SUNF4::has(e) || Index::has(e) || DiracGamma::has(e);
             });
@@ -429,17 +462,8 @@ Dimension NF;
             for(int i=0; i<cv_lst.nops(); i++) ret += cv_lst.op(i).op(0) * out_lst.op(i);
             
             return ret.subs(SP_map);
-        } else {
-            auto cv_lst = mma_collect_lst(expr.subs(SP_map), TR(w));
-            lst to_lst;
-            for(auto cv : cv_lst) to_lst.append(cv.op(0)*cv.op(1));
-            lst out_lst = ex_to<lst>(runform(to_lst, verb));
-            
-            ex ret = 0;
-            for(int i=0; i<cv_lst.nops(); i++) ret += out_lst.op(i);
-            
-            return ret.subs(SP_map);
-        }
+        } else throw Error("form: unsupported form_expand_mode = " + to_string(form_expand_mode));
+        return 0;
     }
 
     /**

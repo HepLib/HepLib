@@ -119,6 +119,12 @@ namespace HepLib::FC {
             if(is_a<Index>(*i) && ex_to<Index>(*i).type!=Index::Type::VD) return true; 
         return false; 
     }
+    
+    bool Index::hasv(const ex & e) {
+        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i)
+            if(is_a<Index>(*i) && ex_to<Index>(*i).type==Index::Type::VD) return true;
+        return false;
+    }
 
     //-----------------------------------------------------------
     // Vector Class

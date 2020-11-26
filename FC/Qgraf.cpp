@@ -621,7 +621,7 @@ namespace HepLib::FC::Qgraf {
      * @param qi gluon qgraf index
      * @return g^{i ir} delta^{i ir}
      */
-    ex GluonSumR(int qi, bool color) {
+    ex GluonSumL(int qi, bool color) {
         if(color) return -SP(Qgraf::LI(qi), Qgraf::RLI(qi)) * SP(Qgraf::CI(qi), Qgraf::RCI(qi));
         else return -SP(Qgraf::LI(qi), Qgraf::RLI(qi));
     }
@@ -631,7 +631,7 @@ namespace HepLib::FC::Qgraf {
      * @param qi gluon qgraf index
      * @return g^{i ir} delta^{i ir}
      */
-    ex GluonSumL(int qi, bool color) {
+    ex GluonSumR(int qi, bool color) {
         if(color) return -SP(Qgraf::RLI(qi),Qgraf::LI(qi)) * SP(Qgraf::RCI(qi),Qgraf::CI(qi));
         else return -SP(Qgraf::RLI(qi),Qgraf::LI(qi));
     }
@@ -643,7 +643,7 @@ namespace HepLib::FC::Qgraf {
      * @param m anti-quark mass
      * @return Quark summation
      */
-    ex QuarkSumR(int qi, ex p, ex m, bool color) {
+    ex QuarkSumL(int qi, ex p, ex m, bool color) {
         if(color) return Matrix(GAS(p)+m*GAS(1), Qgraf::RDI(qi), Qgraf::DI(qi)) * SP(Qgraf::RTI(qi), Qgraf::TI(qi));
         else return Matrix(GAS(p)+m*GAS(1), Qgraf::RDI(qi), Qgraf::DI(qi));
     }
@@ -655,7 +655,7 @@ namespace HepLib::FC::Qgraf {
      * @param m anti-quark mass
      * @return Quark summation
      */
-    ex QuarkSumL(int qi, ex p, ex m, bool color) {
+    ex QuarkSumR(int qi, ex p, ex m, bool color) {
         if(color) return Matrix(GAS(p)+m*GAS(1), Qgraf::DI(qi), Qgraf::RDI(qi)) * SP(Qgraf::TI(qi),Qgraf::RTI(qi));
         else return Matrix(GAS(p)+m*GAS(1), Qgraf::DI(qi), Qgraf::RDI(qi));
     }
@@ -667,7 +667,7 @@ namespace HepLib::FC::Qgraf {
      * @param m anti-quark mass
      * @return anti-Quark summation
      */
-    ex AntiQuarkSumR(int qi, ex p, ex m, bool color) {
+    ex AntiQuarkSumL(int qi, ex p, ex m, bool color) {
         if(color) return Matrix(GAS(p)-m*GAS(1), Qgraf::DI(qi), Qgraf::RDI(qi)) * SP(Qgraf::TI(qi), Qgraf::RTI(qi));
         else return Matrix(GAS(p)-m*GAS(1), Qgraf::DI(qi), Qgraf::RDI(qi));
     }
@@ -679,7 +679,7 @@ namespace HepLib::FC::Qgraf {
      * @param m anti-quark mass
      * @return anti-Quark summation
      */
-    ex AntiQuarkSumL(int qi, ex p, ex m, bool color) {
+    ex AntiQuarkSumR(int qi, ex p, ex m, bool color) {
         if(color) return Matrix(GAS(p)-m*GAS(1), Qgraf::RDI(qi), Qgraf::DI(qi)) * SP(Qgraf::RTI(qi), Qgraf::TI(qi));
         else return Matrix(GAS(p)-m*GAS(1), Qgraf::RDI(qi), Qgraf::DI(qi));
     }
@@ -689,7 +689,7 @@ namespace HepLib::FC::Qgraf {
      * @param qi ghost qgraf index
      * @return g^{i ir} delta^{i ir}
      */
-    ex GhostSumR(int qi) {
+    ex GhostSumL(int qi) {
         return SP(Qgraf::CI(qi), Qgraf::RCI(qi));
     }
     
@@ -698,7 +698,7 @@ namespace HepLib::FC::Qgraf {
      * @param qi ghost qgraf index
      * @return g^{i ir} delta^{i ir}
      */
-    ex GhostSumL(int qi) {
+    ex GhostSumR(int qi) {
         return SP(Qgraf::RCI(qi),Qgraf::CI(qi));
     }
     
@@ -707,7 +707,7 @@ namespace HepLib::FC::Qgraf {
      * @param qi anti-ghost qgraf index
      * @return g^{i ir} delta^{i ir}
      */
-    ex AntiGhostSumR(int qi) {
+    ex AntiGhostSumL(int qi) {
         return -SP(Qgraf::CI(qi), Qgraf::RCI(qi));
     }
     
@@ -716,7 +716,7 @@ namespace HepLib::FC::Qgraf {
      * @param qi anti-ghost qgraf index
      * @return g^{i ir} delta^{i ir}
      */
-    ex AntiGhostSumL(int qi) {
+    ex AntiGhostSumR(int qi) {
         return -SP(Qgraf::RCI(qi),Qgraf::CI(qi));
     }
     
@@ -725,7 +725,7 @@ namespace HepLib::FC::Qgraf {
      * @param qi qgraf index
      * @return -g^{qi, rqi} + p^qi p^rqi/p.p
      */
-    ex J1SumR(int qi, ex p) {
+    ex J1SumL(int qi, ex p) {
         if(is_zero(p)) return -SP(LI(qi),RLI(qi));
         else return -SP(LI(qi),RLI(qi)) + SP(p,LI(qi)) * SP(p,RLI(qi)) / SP(p);
     }
@@ -735,7 +735,7 @@ namespace HepLib::FC::Qgraf {
      * @param qi qgraf index
      * @return -g^{qi, rqi} + p^qi p^rqi/p.p
      */
-    ex J1SumL(int qi, ex p) {
+    ex J1SumR(int qi, ex p) {
         if(is_zero(p)) return -SP(RLI(qi),LI(qi));
         else return -SP(RLI(qi),LI(qi)) + SP(p,RLI(qi)) * SP(p,LI(qi)) / SP(p);
     }

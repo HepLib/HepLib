@@ -26,10 +26,17 @@ namespace HepLib::FC {
     extern const Symbol nH;
     extern exmap SP_map;
     
-    extern int trace_method;
-    extern const int trace_all;
-    extern const int trace_each_all;
-    extern const int trace_each_each;
+    extern int form_trace_mode;
+    extern const int form_trace_all;
+    extern const int form_trace_each_all;
+    extern const int form_trace_each_each;
+    
+    extern int form_expand_mode;
+    extern const int form_expand_none;
+    extern const int form_expand_tr;
+    extern const int form_expand_ci;
+    extern const int form_expand_li;
+    extern const int form_expand_all;
     
     class Index;
     class Vector;
@@ -91,6 +98,7 @@ namespace HepLib::FC {
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
         static bool hasc(const ex &e);
+        static bool hasv(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
     };
@@ -292,7 +300,7 @@ namespace HepLib::FC {
     
     // Form, TIR, Apart
     ex charge_conjugate(const ex &);
-    ex form(const ex &expr, bool all_in_one=false, int verb=0);
+    ex form(const ex &expr, int verb=0);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
     ex Apart(const ex &expr_in, const lst &vars, exmap sign_map=exmap());
@@ -459,13 +467,6 @@ namespace HepLib::FC {
         ex eikonalVertex(ex e, ex n, int mode); // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
         ex eikonalVertexR(ex e, ex n, int mode); // right side from cut
             
-        ex GluonSumR(int qi, bool color=true);
-        ex QuarkSumR(int qi, ex p, ex m, bool color=true);
-        ex AntiQuarkSumR(int qi, ex p, ex m, bool color=true);
-        ex GhostSumR(int qi);
-        ex AntiGhostSumR(int qi);
-        ex J1SumR(int qi, ex p);
-        
         ex GluonSumL(int qi, bool color=true);
         ex QuarkSumL(int qi, ex p, ex m, bool color=true);
         ex AntiQuarkSumL(int qi, ex p, ex m, bool color=true);
@@ -473,12 +474,19 @@ namespace HepLib::FC {
         ex AntiGhostSumL(int qi);
         ex J1SumL(int qi, ex p);
         
-        inline ex GluonSum(int qi, bool color=true) { return GluonSumR(qi,color); };
-        inline ex QuarkSum(int qi, ex p, ex m, bool color=true) { return QuarkSumR(qi,p,m,color); };
-        inline ex AntiQuarkSum(int qi, ex p, ex m, bool color=true) { return AntiQuarkSumR(qi,p,m,color); };
-        inline ex GhostSum(int qi) { return GhostSumR(qi); };
-        inline ex AntiGhostSum(int qi) { return AntiGhostSumR(qi); };
-        inline ex J1Sum(int qi, ex p) { return J1SumR(qi,p); };
+        ex GluonSumR(int qi, bool color=true);
+        ex QuarkSumR(int qi, ex p, ex m, bool color=true);
+        ex AntiQuarkSumR(int qi, ex p, ex m, bool color=true);
+        ex GhostSumR(int qi);
+        ex AntiGhostSumR(int qi);
+        ex J1SumL(int qi, ex p);
+        
+        inline ex GluonSum(int qi, bool color=true) { return GluonSumL(qi,color); };
+        inline ex QuarkSum(int qi, ex p, ex m, bool color=true) { return QuarkSumL(qi,p,m,color); };
+        inline ex AntiQuarkSum(int qi, ex p, ex m, bool color=true) { return AntiQuarkSumL(qi,p,m,color); };
+        inline ex GhostSum(int qi) { return GhostSumL(qi); };
+        inline ex AntiGhostSum(int qi) { return AntiGhostSumL(qi); };
+        inline ex J1Sum(int qi, ex p) { return J1SumL(qi,p); };
         
     };
     

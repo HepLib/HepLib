@@ -95,10 +95,18 @@ namespace HepLib {
     }
     FC::FormFormat::_init FC::FormFormat::FormFormat_init;
     FC::FCFormat FC::FCout(cout);
-    const int FC::trace_all = 0;
-    const int FC::trace_each_all = 1;
-    const int FC::trace_each_each = 2;
-    int FC::trace_method = FC::trace_each_each;
+    
+    const int FC::form_trace_all = 0;
+    const int FC::form_trace_each_all = 1;
+    const int FC::form_trace_each_each = 2;
+    int FC::form_trace_mode = FC::form_trace_each_each;
+    
+    const int FC::form_expand_none = 0;
+    const int FC::form_expand_tr = 1;
+    const int FC::form_expand_ci = 2;
+    const int FC::form_expand_li = 3;
+    const int FC::form_expand_all = 4;
+    int FC::form_expand_mode = FC::form_expand_tr;
     
     //----------------------------------------
     // Process _init
@@ -118,16 +126,16 @@ namespace HepLib {
         auto nbar = Symbol("nbar");
         auto e = Symbol("e");
         
-        LineTeX[q] = "fermion, edge label=q";
-        LineTeX[qbar] = "anti fermion, edge label=q";
-        LineTeX[l] = "fermion, edge label=l";
-        LineTeX[lbar] = "anti fermion, edge label=l";
+        LineTeX[q] = "fermion, edge label=$q$";
+        LineTeX[qbar] = "anti fermion, edge label=$q$";
+        LineTeX[l] = "fermion, edge label=$l$";
+        LineTeX[lbar] = "anti fermion, edge label=$l$";
         LineTeX[gh] = "ghost, edge label=$\\chi$"; 
         LineTeX[ghbar] = "ghost, edge label=$\\chi$"; 
-        LineTeX[Q] = "fermion, edge label=Q";
-        LineTeX[g] = "gluon, edge label=g";
+        LineTeX[Q] = "fermion, edge label=$Q$";
+        LineTeX[g] = "gluon, edge label=$g$";
         LineTeX[A] = "photon, edge label=$\\gamma$";
-        LineTeX[Qbar] = "anti fermion, edge label=$\\bar{Q}$";
+        LineTeX[Qbar] = "anti fermion, edge label=$Q$";
         LineTeX[n] = "double distance=1.5pt";
         LineTeX[nbar] = "double distance=1.5pt";    
         LineTeX[e] = "color=white";
