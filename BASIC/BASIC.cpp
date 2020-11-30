@@ -1988,14 +1988,19 @@ namespace HepLib {
         oss << "#$num = numfactors_(iFF);" << endl;
         oss << "Local oFF = <WF(iFF[factor_^1])>*...*<WF(iFF[factor_^`$num'])>;" << endl;
         oss << ".sort" << endl;
-        auto ostr = fprc.Execute(oss.str(), "oFF");
-        string_replace_all(ostr, "[", "(");
-        string_replace_all(ostr, "]", ")");
-        
-        Parser fp(st);
-        ex res = fp.Read(ostr);
-        res = res.subs(WF(w)==w);
-        return res;
+        try {
+            auto ostr = fprc.Execute(oss.str(), "oFF");
+            string_replace_all(ostr, "[", "(");
+            string_replace_all(ostr, "]", ")");
+            
+            Parser fp(st);
+            ex res = fp.Read(ostr);
+            res = res.subs(WF(w)==w);
+            return res;
+        } catch(Error& err) {
+            form_map.erase(pid);
+            throw;
+        }
     }
     
 }

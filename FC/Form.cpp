@@ -76,10 +76,10 @@ namespace HepLib::FC {
         
         // SU(N) : Phys.Rev., D14, 1536 (1976)
         string init_script = R"EOF(
-CFunction pow,sqrt,gamma;
+CFunction pow,sqrt,gamma,HF;
 Tensor T,f(antisymmetric);
 Tensor colTp;
-Symbols I2R,NF,NA,D,I,Pi;
+Symbols reX,I2R,NF,NA,D,I,Pi;
 Dimension NA;
 AutoDeclare Symbols gCF;
 AutoDeclare Symbols trcN;
@@ -127,7 +127,7 @@ Dimension NF;
         }
         Form &fprc = form_map[pid];
         
-        ex expr = expr_in.subs(SP_map).subs(HF(w)==w);
+        ex expr = expr_in.subs(SP_map);
         ex all_expr = expr;
         stringstream sss;
         FormFormat ids(sss);
@@ -147,7 +147,7 @@ Dimension NF;
             } else if(is_a<symbol>(*i)) sym_lst.append(*i);
             else if(is_a<GiNaC::function>(*i)) {
                 static vector<string> fun_vec = { 
-                    "iWF", "TR", "sin", "cos"
+                    "iWF", "TR", "sin", "cos", "HF"
                 };
                 auto func = ex_to<GiNaC::function>(*i).get_name();
                 bool ok = false;
@@ -185,7 +185,8 @@ Dimension NF;
             ff << ";" << endl;
         }
         if(VD_lst.nops()>0) {
-            ff << "Dimension D;" << endl;
+            if(form_using_dim4) ff << "Dimension 4;" << endl;
+            else ff << "Dimension D;" << endl;
             ff << "Indices";
             for(auto ix : VD_lst) {
                 auto i = ex_to<Index>(ix);
@@ -269,11 +270,20 @@ Dimension NF;
                 color_vec.push_back(vv);
                 item += cc * Symbol("[cl"+to_string(i)+"]");
             }
+            
+            ostringstream coss;
             for(int i=0; i<color_vec.size(); i++) {
+                coss << " [cl" << i << "]";
                 ff << "L [cl" << i << "]=" << color_vec[i] << ";" << endl;
                 ff << ".sort" << endl;
                 ff << "#call SUNTrace" << endl;
                 ff << ".sort" << endl;
+                if(form_using_sun3) {
+                    ff << "id NF^reX?=3^reX;" << endl;
+                    ff << "id I2R=1/2;" << endl;
+                    ff << "id NA^reX?=8^reX;" << endl;
+                    ff << ".sort" << endl;
+                }
             }
             
             // two method to handle TR objects
@@ -286,7 +296,8 @@ Dimension NF;
                 ff << ".sort" << endl;
                 ff << idstr << ".sort" << endl;
                 for(int gl=1; gl<=tr.glmax; gl++) {
-                    ff << "tracen " << gl << ";" << endl;
+                    if(form_using_dim4) ff << "trace4 " << gl << ";" << endl;
+                    else ff << "tracen " << gl << ";" << endl;
                     ff << ".sort" << endl;
                     ff << idstr << ".sort" << endl;
                 }
@@ -305,7 +316,8 @@ Dimension NF;
                 item = item.subs(tr2v); 
                 for(int i=0; i<trvec.size(); i++) {
                     ff << "L [tr" << i << "]=" << trvec[i] << ";" << endl;
-                    ff << "tracen " << gid << ";" << endl;
+                    if(form_using_dim4) ff << "trace4 " << gid << ";" << endl;
+                    else ff << "tracen " << gid << ";" << endl;
                     ff << ".sort" << endl;
                     ff << idstr << ".sort" << endl;
                 }
@@ -325,14 +337,24 @@ Dimension NF;
                     trn++;
                 }
                 item = item.subs(tr2v);
+
+                ff << "drop" << coss.str() << ";" << endl;
                 ff << "L [o]=" << item << ";" << endl;
                 ff << ".sort" << endl;
+                ff << "#do i = 1,1" << endl;
+                ff << "id once HF(reX?)=reX;" << endl;
+                ff << idstr;
+                ff << "if(count(HF,1) >0) redefine i \"0\";" << endl;
+                ff << ".sort" << endl;
+                ff << "#enddo" << endl;
                 ff << idstr << ".sort" << endl;
                 for(int i=0; i<trvec.size(); i++) {
                     ff << "L [tr" << i << "]=" << trvec[i] << ";" << endl;
-                    ff << "tracen " << gid << ";" << endl;
+                    if(form_using_dim4) ff << "trace4 " << gid << ";" << endl;
+                    else ff << "tracen " << gid << ";" << endl;
                     ff << ".sort" << endl;
                     ff << idstr << ".sort" << endl;
+                    ff << "drop [tr" << i << "];" << endl;
                     ff << "id trcN" << i << "=[tr" << i << "];" << endl;
                     ff << ".sort" << endl;
                     ff << idstr << ".sort" << endl;
@@ -340,7 +362,7 @@ Dimension NF;
             } else {
                 throw Error("runform: unsupported form_trace_mode = " + to_string(form_trace_mode));
             }
-            ff << idstr << ".sort" << endl;
+            
             ff << "contract 0;" << endl;
             ff << ".sort" << endl;
             ff << idstr << ".sort" << endl;
@@ -358,21 +380,25 @@ Dimension NF;
             auto script = ss.str();
             string_replace_all(script, "sin(", "sin_(");
             string_replace_all(script, "cos(", "cos_(");
-            auto otmp = fprc.Execute(script);
-        
-            if(verb>2) {
-                cout << "--------------------------------------" << endl;
-                cout << "Form Output @" << c << " / " << total << endl;
-                cout << "--------------------------------------" << endl;
-                cout << otmp << endl;
-            }
-        
-            ostr += otmp;
-            ss.clear();
-            ss.str("");
+            try {
+                auto otmp = fprc.Execute(script);
+                if(verb>2) {
+                    cout << "--------------------------------------" << endl;
+                    cout << "Form Output @" << c << " / " << total << endl;
+                    cout << "--------------------------------------" << endl;
+                    cout << otmp << endl;
+                }
             
-            if(c<total) ostr += ",";
-            c++;
+                ostr += otmp;
+                ss.clear();
+                ss.str("");
+                
+                if(c<total) ostr += ",";
+                c++;
+            } catch(Error& err) {
+                form_map.erase(pid);
+                throw;
+            }
         }
         if(verb==1) cout << endl;
         ostr += "}";

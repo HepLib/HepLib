@@ -598,7 +598,7 @@ namespace HepLib::FC::Qgraf {
      * @param all if true external index will also be changed
      * @return Index changed
      */
-     ex IndexCC(ex e, bool all) {
+     ex IndexL2R(ex e, bool all) {
         static MapFunction map([all](const ex &e, MapFunction &self)->ex {
             if(!Index::has(e)) return e;
             else if(is_a<Index>(e)) {
@@ -614,6 +614,10 @@ namespace HepLib::FC::Qgraf {
             else return e.map(self);
         });
         return map(e);
+     }
+     
+     ex IndexCC(ex e, bool all) {
+        return IndexL2R(e,all);
      }
      
     /**

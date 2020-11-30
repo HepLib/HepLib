@@ -38,6 +38,9 @@ namespace HepLib::FC {
     extern const int form_expand_li;
     extern const int form_expand_all;
     
+    extern bool form_using_sun3;
+    extern bool form_using_dim4;
+    
     class Index;
     class Vector;
     class Pair;
@@ -458,6 +461,7 @@ namespace HepLib::FC {
         ex g4Vertex(ex e);
         ex gh2gVertex(ex e, bool color=true);
         
+        ex IndexL2R(ex e, bool all=true);
         ex IndexCC(ex e, bool all=true);
         ex GluonFFV(ex e, ex n);
         ex QuarkFFV(ex e, ex n);

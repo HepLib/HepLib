@@ -98,6 +98,14 @@ int main(int argc, char** argv) {
                     if(send(connect_fd, data.c_str(),data.length(),0) == -1) perror("send error");
                     close(connect_fd);
                 }
+                
+                // check .exit
+                auto pid = getpid();
+                if(file_exists(to_string(pid)+".exit")) {
+                    cout << "Exit @ " << now() << endl << endl;
+                    close(socket_fd);
+                    exit(0);
+                }
             }
             cout << endl;
         }
@@ -148,6 +156,9 @@ int main(int argc, char** argv) {
             close(sockfd);  
             
             if(file_exists(data+".log")) continue;
+            // check .exit
+            auto pid = getpid();
+            if(file_exists(to_string(pid)+".exit")) exit(0);
             
             std::string cmd = arg_c;
             string_replace_all(cmd, "[i]", data);

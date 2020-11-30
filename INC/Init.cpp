@@ -108,6 +108,9 @@ namespace HepLib {
     const int FC::form_expand_all = 4;
     int FC::form_expand_mode = FC::form_expand_tr;
     
+    bool FC::form_using_sun3 = true;
+    bool FC::form_using_dim4 = false;
+    
     //----------------------------------------
     // Process _init
     //----------------------------------------

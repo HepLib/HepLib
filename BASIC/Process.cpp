@@ -134,16 +134,16 @@ namespace HepLib {
     
     void Form::Exit() {
         if(getpid() != pid) return; // happens @ fork child process
-        if(inited) {
+        if(inited && !exited) {
             string exit_cmd = "\n.end\n" + Prompt +"\n";
             write(io[0][1], exit_cmd.c_str(), exit_cmd.length());
             char buffer[8];
             read(io[1][0], buffer, 8);
             int st;
             waitpid(fpid, &st, WUNTRACED);
-            inited = false;
-            exited = true;
         }
+        inited = false;
+        exited = true;
     }
     
     void Form::Init(string form_path) {
@@ -152,6 +152,8 @@ namespace HepLib {
         pid = getpid();
         
         if (pipe(io[0])==-1 || pipe(io[1])==-1 || pipe(stdo)==-1) {
+            inited = false;
+            exited = true;
             throw Error("pipe failed in Form::Init.");
         }
         
@@ -169,7 +171,11 @@ namespace HepLib {
             
             std::ofstream ofs;
             ofs.open(oss.str().c_str(), ios::out);
-            if (!ofs) throw runtime_error("failed to open init.frm file!");
+            if (!ofs) {
+                inited = false;
+                exited = true;
+                throw Error("failed to open init.frm file!");
+            }
             ofs << "Off Statistics;" << endl;
             ofs << "#ifndef `PIPES_'" << endl;
             ofs << "    #message \"No pipes found\";" << endl;
@@ -211,6 +217,8 @@ namespace HepLib {
         read(io[1][0], buffer, sizeof(buffer));
         char* p = strstr(buffer, "\n");
         if(p==NULL){
+            inited = false;
+            exited = true;
             cout << "the return is: <|" << buffer << "|>" << endl;
             throw Error("Init Failed: Expect a Line break!");
         }
@@ -218,7 +226,11 @@ namespace HepLib {
         write(io[0][1], buffer, strlen(buffer));
         read(io[1][0], buffer, sizeof(buffer));
         p = strstr(buffer, "OK");
-        if(p==NULL || p!=buffer) throw Error("Init Failed: Expect OK!");
+        if(p==NULL || p!=buffer) {
+            inited = false;
+            exited = true;
+            throw Error("Init Failed: Expect OK!");
+        }
     
         ostringstream oss;
         oss << "init-" << fpid << ".frm";
@@ -236,7 +248,11 @@ namespace HepLib {
                 auto cpos = estr.find(Sentinel);
                 if(cpos!=string::npos) break;
                 cpos = estr.find("-->");
-                if(cpos!=string::npos) throw Error(estr);
+                if(cpos!=string::npos) {
+                    inited = false;
+                    exited = true;
+                    throw Error(estr);
+                }
             }
         }
     }
@@ -265,7 +281,11 @@ namespace HepLib {
             auto cpos = estr.find(Sentinel);
             if(cpos!=string::npos) break;
             cpos = estr.find("-->");
-            if(cpos!=string::npos) throw Error(estr);
+            if(cpos!=string::npos) {
+                inited = false;
+                exited = true;
+                throw Error(estr);
+            }
         }
         
         while(true) {
@@ -280,6 +300,8 @@ namespace HepLib {
                     if(nio<=0) break;
                     estr += buffer;
                 }
+                inited = false;
+                exited = true;
                 throw Error(estr.c_str());
             }
             auto cpos = ostr.find(Sentinel);
