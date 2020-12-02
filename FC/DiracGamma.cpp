@@ -176,9 +176,8 @@ namespace HepLib::FC {
             else {
                 bool first = true;
                 for(auto item : arg) {
-                    if(first) { first=false; c << "TTR("; }
-                    else c << ",";
-                    c << item;
+                    if(first) { first=false; c << "TTR(" << item; }
+                    else c << "," << item;
                 }
                 c << ")";
             }
@@ -189,16 +188,15 @@ namespace HepLib::FC {
             else {
                 bool first = true;
                 for(auto item : arg) {
-                    if(first) { first=false; c << "SUNTrace("; }
-                    else c << ",";
-                    c << "SUNT(" << item << ")";
+                    if(first) { first=false; c << "SUNTrace(SUNT(" << item << ")"; }
+                    else c << ",SUNT(" << item << ")";
                 }
                 c << ")";
             }
         }
         ex ttr_conj(const ex & e) {
             lst argv;
-            if(!is_a<lst>(e)) argv = lst{ e };
+            if(!is_a<lst>(e)) return TTR(e);
             else argv = ex_to<lst>(e);
             lst as;
             for(auto it=argv.rbegin(); it!=argv.rend(); ++it) as.append(*it);

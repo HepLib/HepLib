@@ -32,8 +32,9 @@ namespace HepLib::FC {
         }
         
         alignas(2) static ex TTR_reader(const exvector& ev) {
+            if(ev.size()==1) return TTR(ev[0]);
             lst as;
-            for(int i=0; i<ev.size(); i++) as.append(ev[i]);
+            for(auto item : ev) as.append(item);
             return TTR(as);
         }
     }
@@ -447,8 +448,9 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         
         string_replace_all(ostr, "d_(", "SP(");
         string_replace_all(ostr, "e_(", "LC(");
-        string_replace_all(ostr, "sin_", "sin");
-        string_replace_all(ostr, "cos_", "cos");
+        string_replace_all(ostr, "sin_(", "sin(");
+        string_replace_all(ostr, "cos_(", "cos(");
+        string_replace_all(ostr, "TTR(", "TTRX(");
         
         st["I2R"] = ex(1)/2;
         st["NA"] = NA;
@@ -460,7 +462,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         fp.FTable[make_pair("SP", 2)] = SP_reader;
         fp.FTable[make_pair("LC", 4)] = LC_reader;
         for(int i=0; i<30; i++) fp.FTable[make_pair("T", i)] = SUNT_reader;
-        for(int i=0; i<30; i++) fp.FTable[make_pair("TTR", i)] = TTR_reader;
+        for(int i=0; i<30; i++) fp.FTable[make_pair("TTRX", i)] = TTR_reader;
         ex ret = fp.Read(ostr);
         if(!islst) ret = ret.op(0);
         return ret;

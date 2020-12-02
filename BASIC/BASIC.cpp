@@ -671,6 +671,10 @@ namespace HepLib {
         ofs.close();
     }
     
+    void ex2file(string filename, const ex & expr) {
+        ex2file(expr, filename);
+    }
+    
     /**
      * @brief __float128 to ex
      * @param num a __float128 number

@@ -300,6 +300,7 @@ namespace HepLib {
     ex file2ex(string filename, symtab st);
     int ex2int(ex);
     void ex2file(const ex &, string filename);
+    void ex2file(string filename, const ex &);
     string ex2str(const ex &expr);
     ex q2ex(__float128);
     __float128 ex2q(ex);
