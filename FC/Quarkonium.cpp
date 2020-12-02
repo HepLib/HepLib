@@ -136,7 +136,7 @@ namespace HepLib::FC {
          * @return Color-Octet Projector
          */
         ex ColorProj(int i, int j, Index a) {
-            return sqrt(ex(2)) * SUNT(Qgraf::TI(i), Qgraf::TI(j), a);
+            return sqrt(ex(2)) * SUNT(a, Qgraf::TI(i), Qgraf::TI(j));
         }
         
         namespace {

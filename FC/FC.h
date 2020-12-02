@@ -132,8 +132,8 @@ namespace HepLib::FC {
     class SUNT : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(SUNT, basic)
     public:
-        SUNT(ex i, ex j, ex a);
-        ex ija[3]; // Index
+        SUNT(ex a, ex i, ex j);
+        ex aij[3]; // Index
         size_t nops() const override;
         ex op(size_t i) const override;
         ex& let_op(size_t i) override;
@@ -295,6 +295,7 @@ namespace HepLib::FC {
     // TR/GAS functions
     //-----------------------------------------------------------
     DECLARE_FUNCTION_1P(TR)
+    DECLARE_FUNCTION_1P(TTR)
     DECLARE_FUNCTION_1P(HF)
     
     inline ex GAS(const Vector &p, unsigned rl=0) { return DiracGamma(p,rl); }

@@ -166,9 +166,43 @@ namespace HepLib::FC {
             auto c = static_cast<const FCFormat &>(c0);
             c << "DiracTrace(" << arg << ")";
         }
-        
         ex tr_conj(const ex & e) {
             return TR(e.conjugate());
+        }
+        
+        void TTR_form_print(const ex &arg, const print_context &c0) {
+            auto c = static_cast<const FormFormat &>(c0);
+            if(!is_a<lst>(arg)) c << "TTR(" << arg << ")";
+            else {
+                bool first = true;
+                for(auto item : arg) {
+                    if(first) { first=false; c << "TTR("; }
+                    else c << ",";
+                    c << item;
+                }
+                c << ")";
+            }
+        }
+        void TTR_fc_print(const ex &arg, const print_context &c0) {
+            auto c = static_cast<const FCFormat &>(c0);
+            if(!is_a<lst>(arg)) c << "SUNTrace(SUNT(" << arg << "))";
+            else {
+                bool first = true;
+                for(auto item : arg) {
+                    if(first) { first=false; c << "SUNTrace("; }
+                    else c << ",";
+                    c << "SUNT(" << item << ")";
+                }
+                c << ")";
+            }
+        }
+        ex ttr_conj(const ex & e) {
+            lst argv;
+            if(!is_a<lst>(e)) argv = lst{ e };
+            else argv = ex_to<lst>(e);
+            lst as;
+            for(auto it=argv.rbegin(); it!=argv.rend(); ++it) as.append(*it);
+            return TTR(as);
         }
     }
     
@@ -180,6 +214,11 @@ namespace HepLib::FC {
         expl_derivative_func(expl_TR_diff)
     );
     REGISTER_FUNCTION(HF, do_not_evalf_params());
+    REGISTER_FUNCTION(TTR, do_not_evalf_params().
+        conjugate_func(ttr_conj).
+        print_func<FormFormat>(&TTR_form_print).
+        print_func<FCFormat>(&TTR_fc_print)
+    );
     
     /**
      * @brief function similar to GAD/GSD in FeynClac

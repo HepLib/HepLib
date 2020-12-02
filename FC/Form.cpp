@@ -21,7 +21,20 @@ namespace HepLib::FC {
         }
         
         alignas(2) static ex SUNT_reader(const exvector& ev) {
-            return SUNT(ex_to<Index>(ev[0]), ex_to<Index>(ev[1]), ex_to<Index>(ev[2]));
+            int n = ev.size();
+            if(n==3) return SUNT(ev[0], ev[1], ev[2]);
+            else if(n>3) {
+                lst as;
+                for(int i=0; i<n-2; i++) as.append(ev[i]);
+                return SUNT(as,ev[n-2],ev[n-1]);
+            }
+            throw Error("SUNT_reader: number of arguments less than 3.");
+        }
+        
+        alignas(2) static ex TTR_reader(const exvector& ev) {
+            lst as;
+            for(int i=0; i<ev.size(); i++) as.append(ev[i]);
+            return TTR(as);
         }
     }
     
@@ -74,38 +87,50 @@ namespace HepLib::FC {
             unsigned gline = 0;
         };
         
-        // SU(N) : Phys.Rev., D14, 1536 (1976)
         string init_script = R"EOF(
 CFunction pow,sqrt,gamma,HF;
-Tensor T,f(antisymmetric);
+Tensor TTR(cyclic), T, f(antisymmetric);
 Tensor colTp;
 Symbols reX,I2R,NF,NA,D,I,Pi;
 Dimension NA;
 AutoDeclare Symbols gCF;
 AutoDeclare Symbols trcN;
-AutoDeclare Index colAj;
+AutoDeclare Index colA;
 AutoDeclare Index f4i;
 Dimension NF;
-AutoDeclare Index colFi;
+AutoDeclare Index colF;
 
 #procedure SUNTrace
 Dimension NF;
+
+repeat;
+	id,once,TTR(?a) = T(?a,colF1,colF1);
+	sum colF1;
+	repeat;
+		id,once,T(colA1?,colA2?,?a,colF1?,colF2?) = T(colA1,colF1,colF3)*T(colA2,?a,colF3,colF2);
+		sum colF3;
+	endrepeat;
+endrepeat;
+
 #do colXi = 1,1
-    if ( count(f,1) || match(T(colFi1?,colFi2?,colAj1?)*T(colFi3?,colFi4?,colAj1?)) ) redefine colXi "0";
-    id,once,f(colAj1?,colAj2?,colAj3?) = 1/I2R/i_*T(colFi1,colFi2,colAj1)*T(colFi2,colFi3,colAj2)*T(colFi3,colFi1,colAj3)-1/I2R/i_*T(colFi1,colFi2,colAj3)*T(colFi2,colFi3,colAj2)*T(colFi3,colFi1,colAj1);
-    sum colFi1,colFi2,colFi3;
-    id T(colFi1?,colFi2?,colAj1?)*T(colFi3?,colFi4?,colAj1?) = colTp(colFi1,colFi2,colFi3,colFi4);
+    if ( count(f,1) || match(T(colA1?,colF1?,colF2?)*T(colA1?,colF3?,colF4?)) ) redefine colXi "0";
+    id,once,f(colA1?,colA2?,colA3?) = 1/I2R/i_*T(colA1,colF1,colF2)*T(colA2,colF2,colF3)*T(colA3,colF3,colF1)-1/I2R/i_*T(colA3,colF1,colF2)*T(colA2,colF2,colF3)*T(colA1,colF3,colF1);
+    sum colF1,colF2,colF3;
+    id T(colA1?,colF1?,colF2?)*T(colA1?,colF3?,colF4?) = colTp(colF1,colF2,colF3,colF4);
     #do colXj = 1,1
         if ( count(colTp,1) ) redefine colXj "0";
         .sort
-        id,once,colTp(colFi1?,colFi2?,colFi3?,colFi4?) = I2R*(d_(colFi1,colFi4)*d_(colFi2,colFi3)-d_(colFi1,colFi2)*d_(colFi3,colFi4)/NF);
-    #enddo
-    #do colXk = 1,1
-        if ( match(T(colFi1?,colFi1?,colAj1?)) ) redefine colXk "0";
-        .sort
-        id,once,T(colFi1?,colFi1?,colAj1?) = 0;
+        id,once,colTp(colF1?,colF2?,colF3?,colF4?) = I2R*(d_(colF1,colF4)*d_(colF2,colF3)-d_(colF1,colF2)*d_(colF3,colF4)/NF);
     #enddo
 #enddo
+
+repeat;
+	id	T(colA1?,?a,colF1?,colF2?)*T(colA2?,?b,colF2?,colF3?) = T(colA1,?a,colA2,?b,colF1,colF3);
+endrepeat;
+id	T(?a,colF1?,colF1?) = TTR(?a);
+id	TTR(colA1?) = 0;
+id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
+.sort
 
 #endprocedure
 .global
@@ -147,7 +172,7 @@ Dimension NF;
             } else if(is_a<symbol>(*i)) sym_lst.append(*i);
             else if(is_a<GiNaC::function>(*i)) {
                 static vector<string> fun_vec = { 
-                    "iWF", "TR", "sin", "cos", "HF"
+                    "iWF", "TR", "sin", "cos", "HF", "TTR"
                 };
                 auto func = ex_to<GiNaC::function>(*i).get_name();
                 bool ok = false;
@@ -225,6 +250,7 @@ Dimension NF;
             ff << ";" << endl;
         }
         ff << ".global" << endl;
+        ff << endl;
         
         // trace and contract
         bool islst = is_a<lst>(expr);
@@ -259,6 +285,7 @@ Dimension NF;
             } else {
                 item = ckey * item.op(1);
             }
+            
             // pull out color factor
             auto cv_lst = mma_collect_lst(item, [](const ex &e)->bool{return Index::hasc(e);});
             item=0;
@@ -285,6 +312,7 @@ Dimension NF;
                     ff << ".sort" << endl;
                 }
             }
+            ff << endl;
             
             // two method to handle TR objects
             if(form_trace_mode==form_trace_all) {
@@ -338,16 +366,17 @@ Dimension NF;
                 }
                 item = item.subs(tr2v);
 
-                ff << "drop" << coss.str() << ";" << endl;
+                if(color_vec.size()>0) ff << "drop" << coss.str() << ";" << endl;
                 ff << "L [o]=" << item << ";" << endl;
                 ff << ".sort" << endl;
                 ff << "#do i = 1,1" << endl;
                 ff << "id once HF(reX?)=reX;" << endl;
                 ff << idstr;
-                ff << "if(count(HF,1) >0) redefine i \"0\";" << endl;
+                ff << "if(count(HF,1)>0) redefine i \"0\";" << endl;
                 ff << ".sort" << endl;
                 ff << "#enddo" << endl;
-                ff << idstr << ".sort" << endl;
+                ff << endl;
+
                 for(int i=0; i<trvec.size(); i++) {
                     ff << "L [tr" << i << "]=" << trvec[i] << ";" << endl;
                     if(form_using_dim4) ff << "trace4 " << gid << ";" << endl;
@@ -358,6 +387,7 @@ Dimension NF;
                     ff << "id trcN" << i << "=[tr" << i << "];" << endl;
                     ff << ".sort" << endl;
                     ff << idstr << ".sort" << endl;
+                    ff << endl;
                 }
             } else {
                 throw Error("runform: unsupported form_trace_mode = " + to_string(form_trace_mode));
@@ -429,7 +459,8 @@ Dimension NF;
         Parser fp(st);
         fp.FTable[make_pair("SP", 2)] = SP_reader;
         fp.FTable[make_pair("LC", 4)] = LC_reader;
-        fp.FTable[make_pair("T", 3)] = SUNT_reader;
+        for(int i=0; i<30; i++) fp.FTable[make_pair("T", i)] = SUNT_reader;
+        for(int i=0; i<30; i++) fp.FTable[make_pair("TTR", i)] = TTR_reader;
         ex ret = fp.Read(ostr);
         if(!islst) ret = ret.op(0);
         return ret;

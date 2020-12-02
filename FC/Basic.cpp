@@ -179,48 +179,63 @@ namespace HepLib::FC {
         print_func<FormFormat>(&SUNT::form_print)
     )
     
-    SUNT::SUNT(ex i, ex j, ex a) : ija{i,j,a} { }
+    SUNT::SUNT(ex a, ex i, ex j) : aij{a,i,j} { }
     int SUNT::compare_same_type(const basic &other) const {
         const SUNT &o = static_cast<const SUNT &>(other);
         for(int i=0; i<3; i++) {
-            auto c = ija[i].compare(o.ija[i]);
+            auto c = aij[i].compare(o.aij[i]);
             if(c!=0) return c;
         }
         return 0;
     }
     
     void SUNT::form_print(const FormFormat &c, unsigned level) const {
-        c << "T(" << ija[0] << "," << ija[1] << "," << ija[2] << ")";
+        if(is_a<lst>(aij[0])) {
+            bool first = true;
+            for(auto item : aij[0]) {
+                if(first) { first=false; c << "T(" << item; }
+                else c << "," << item;
+            }
+        } else c << "T(" << aij[0];
+        c << "," << aij[1] << "," << aij[2] << ")";
     }
+    
     void SUNT::print(const print_dflt &c, unsigned level) const {
-        c.s << "T(" << ija[0] << "," << ija[1] << "," << ija[2] << ")";
+        if(is_a<lst>(aij[0])) {
+            bool first = true;
+            for(auto item : aij[0]) {
+                if(first) { first=false; c.s << "T(" << item; }
+                else c.s << "," << item;
+            }
+        } else c.s << "T(" << aij[0];
+        c.s << "," << aij[1] << "," << aij[2] << ")";
     }
     
     size_t SUNT::nops() const { return 3; }
     ex SUNT::op(size_t i) const {
-        return ija[i];
+        return aij[i];
     }
     ex & SUNT::let_op(size_t i) {
         ensure_if_modifiable();
-        return ija[i];
+        return aij[i];
     }
     
     void SUNT::archive(archive_node & n) const {
         inherited::archive(n);
-        n.add_ex("i", ija[0]);
-        n.add_ex("j", ija[1]);
-        n.add_ex("a", ija[2]);
+        n.add_ex("a", aij[0]);
+        n.add_ex("i", aij[1]);
+        n.add_ex("j", aij[2]);
     }
     
     void SUNT::read_archive(const archive_node& n, lst& sym_lst) {
         inherited::read_archive(n, sym_lst);
         ex o;
-        n.find_ex("i", o, sym_lst);
-        ija[0] = ex_to<Index>(o);
-        n.find_ex("j", o, sym_lst);
-        ija[1] = ex_to<Index>(o);
         n.find_ex("a", o, sym_lst);
-        ija[2] = ex_to<Index>(o);
+        aij[0] = ex_to<Index>(o);
+        n.find_ex("i", o, sym_lst);
+        aij[1] = ex_to<Index>(o);
+        n.find_ex("j", o, sym_lst);
+        aij[2] = ex_to<Index>(o);
     }
     
     ex SUNT::derivative(const symbol & s) const {
@@ -228,7 +243,11 @@ namespace HepLib::FC {
     }
     
     ex SUNT::conjugate() const {
-        return SUNT(ija[1], ija[0], ija[2]);
+        if(!is_a<lst>(aij[0])) return SUNT(aij[0], aij[2], aij[1]);
+        lst argv = ex_to<lst>(aij[0]);
+        lst as;
+        for(auto it=argv.rbegin(); it!=argv.rend(); ++it) as.append(*it);
+        return SUNT(as, aij[2], aij[1]);
     }
     
     GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNF, basic,
@@ -431,7 +450,7 @@ namespace HepLib::FC {
             lst mats_idx;
             for(int i=0; i<mats.nops(); i++) {
                 auto item = mats.op(i);
-                if(item.op(0).return_type()==return_types::commutative || item.op(0).is_equal(GAS(1))) {
+                if(item.op(0).return_type()==return_types::commutative || item.op(0).is_equal(GAS(1))  || item.op(0).is_equal(color_ONE())) {
                     mats_idx.append(lst{item,i});
                 } else {
                     if(to_map[item.op(1)]!=0 || from_map[item.op(2)]!=0) throw Error("MatrixContract: index conflict for "+ex2str(item));

@@ -445,7 +445,7 @@ namespace HepLib::FC::Qgraf {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
-        if(color) return I*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SUNT(TI(fi1),TI(fi2),CI(fi3));
+        if(color) return I*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SUNT(CI(fi3),TI(fi1),TI(fi2));
         else return I*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2));
     }
     
@@ -542,8 +542,8 @@ namespace HepLib::FC::Qgraf {
         auto fi3 = e.op(2).op(1);
         auto mom1 = e.op(0).op(2);
         if(mode==0) return I * gs * SP(n,LI(fi3)) * (-I*SUNF(CI(fi3),CI(fi1),CI(fi2)));
-        else if(mode==1 || mode==-2) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
-        else if(mode==2 || mode==-1) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
+        else if(mode==1 || mode==-2) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(CI(fi3),TI(fi2),TI(fi1)));
+        else if(mode==2 || mode==-1) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(CI(fi3),TI(fi1),TI(fi2));
         else return 0;
     }
     
@@ -560,8 +560,8 @@ namespace HepLib::FC::Qgraf {
         auto fi3 = e.op(2).op(1);
         auto mom1 = e.op(0).op(2);
         if(mode==0) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (I*SUNF(CI(fi3),CI(fi1),CI(fi2)));
-        else if(mode==1 || mode==-2) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(TI(fi2),TI(fi1),CI(fi3)));
-        else if(mode==2 || mode==-1) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(TI(fi1),TI(fi2),CI(fi3));
+        else if(mode==1 || mode==-2) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(CI(fi3),TI(fi2),TI(fi1)));
+        else if(mode==2 || mode==-1) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(CI(fi3),TI(fi1),TI(fi2));
         else return 0;
     }
     
