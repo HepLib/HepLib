@@ -188,10 +188,10 @@ namespace HepLib::FC {
             else {
                 bool first = true;
                 for(auto item : arg) {
-                    if(first) { first=false; c << "SUNTrace(SUNT(" << item << ")"; }
-                    else c << ",SUNT(" << item << ")";
+                    if(first) { first=false; c << "SUNTrace(SUNT(" << item; }
+                    else c << "," << item;
                 }
-                c << ")";
+                c << "))";
             }
         }
         ex ttr_conj(const ex & e) {
@@ -211,12 +211,14 @@ namespace HepLib::FC {
         set_return_type(return_types::commutative).
         expl_derivative_func(expl_TR_diff)
     );
-    REGISTER_FUNCTION(HF, do_not_evalf_params());
+    
     REGISTER_FUNCTION(TTR, do_not_evalf_params().
         conjugate_func(ttr_conj).
         print_func<FormFormat>(&TTR_form_print).
         print_func<FCFormat>(&TTR_fc_print)
     );
+    
+    REGISTER_FUNCTION(HF, do_not_evalf_params());
     
     /**
      * @brief function similar to GAD/GSD in FeynClac

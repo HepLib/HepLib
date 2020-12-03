@@ -176,7 +176,8 @@ namespace HepLib::FC {
     //-----------------------------------------------------------
     GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNT, basic,
         print_func<print_dflt>(&SUNT::print).
-        print_func<FormFormat>(&SUNT::form_print)
+        print_func<FormFormat>(&SUNT::form_print).
+        print_func<FCFormat>(&SUNT::fc_print)
     )
     
     SUNT::SUNT(ex a, ex i, ex j) : aij{a,i,j} { }
@@ -200,15 +201,19 @@ namespace HepLib::FC {
         c << "," << aij[1] << "," << aij[2] << ")";
     }
     
-    void SUNT::print(const print_dflt &c, unsigned level) const {
+    void SUNT::fc_print(const FCFormat &c, unsigned level) const {
         if(is_a<lst>(aij[0])) {
             bool first = true;
             for(auto item : aij[0]) {
-                if(first) { first=false; c.s << "T(" << item; }
-                else c.s << "," << item;
+                if(first) { first=false; c << "SUNT(" << item; }
+                else c << "," << item;
             }
-        } else c.s << "T(" << aij[0];
-        c.s << "," << aij[1] << "," << aij[2] << ")";
+        } else c << "SUNT(" << aij[0];
+        c << ",{" << aij[1] << "," << aij[2] << "})";
+    }
+    
+    void SUNT::print(const print_dflt &c, unsigned level) const {
+        c.s << "T(" << aij[0] << "," << aij[1] << "," << aij[2] << ")";
     }
     
     size_t SUNT::nops() const { return 3; }
@@ -252,7 +257,8 @@ namespace HepLib::FC {
     
     GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNF, basic,
         print_func<print_dflt>(&SUNF::print).
-        print_func<FormFormat>(&SUNF::form_print)
+        print_func<FormFormat>(&SUNF::form_print).
+        print_func<FCFormat>(&SUNF::fc_print)
     )
     
     SUNF::SUNF(ex i, ex j, ex k) : ijk{i,j,k} { }
@@ -286,6 +292,10 @@ namespace HepLib::FC {
     
     void SUNF::form_print(const FormFormat &c, unsigned) const {
         c << "f(" << ijk[0] << "," << ijk[1] << "," << ijk[2] << ")";
+    }
+    
+    void SUNF::fc_print(const FCFormat &c, unsigned) const {
+        c << "SUNF(" << ijk[0] << "," << ijk[1] << "," << ijk[2] << ")";
     }
     
     size_t SUNF::nops() const { return 3; }
@@ -326,7 +336,8 @@ namespace HepLib::FC {
     
     GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNF4, basic,
         print_func<print_dflt>(&SUNF4::print).
-        print_func<FormFormat>(&SUNF4::form_print)
+        print_func<FormFormat>(&SUNF4::form_print).
+        print_func<FCFormat>(&SUNF4::fc_print)
     )
     
     SUNF4::SUNF4(ex i, ex j, ex k, ex l) : ijkl{i,j,k,l} { }
@@ -364,16 +375,17 @@ namespace HepLib::FC {
         c.s << "f(" << ijkl[0] << "," << ijkl[1] << "," << ijkl[2] << "," << ijkl[3] << ")";
     }
     
+    void SUNF4::fc_print(const FCFormat &c, unsigned o) const {
+        c << "SUNF(" << ijkl[0] << "," << ijkl[1] << "," << ijkl[2] << "," << ijkl[3] << ")";
+    }
+    
     /**
      * @brief print the Form Format
      * @param c FormFormat object
      * @param o unsigned option, not used
      */
     void SUNF4::form_print(const FormFormat &c, unsigned o) const {
-        static int idx=0;
-        Index e("f4i" + to_string(idx++));
-        ex ff = SUNF(ijkl[0], ijkl[1], e) * SUNF(e, ijkl[2], ijkl[3]);
-        c << ff;
+        c << "f(" << ijkl[0] << "," << ijkl[1] << "," << ijkl[2] << "," << ijkl[3] << ")";
     }
     
     size_t SUNF4::nops() const { return 4; }

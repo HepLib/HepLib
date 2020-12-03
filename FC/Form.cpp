@@ -110,6 +110,8 @@ repeat;
 	repeat;
 		id,once,T(colA1?,colA2?,?a,colF1?,colF2?) = T(colA1,colF1,colF3)*T(colA2,?a,colF3,colF2);
 		sum colF3;
+        id,once,f(colA1?,colA2?,colA3?,colA4?) = f(colA1,colA2,colA5) * f(colA5,colA3,colA4);
+        sum colA5;
 	endrepeat;
 endrepeat;
 
@@ -306,7 +308,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                 ff << ".sort" << endl;
                 ff << "#call SUNTrace" << endl;
                 ff << ".sort" << endl;
-                if(form_using_sun3) {
+                if(form_using_su3) {
                     ff << "id NF^reX?=3^reX;" << endl;
                     ff << "id I2R=1/2;" << endl;
                     ff << "id NA^reX?=8^reX;" << endl;

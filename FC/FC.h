@@ -38,7 +38,7 @@ namespace HepLib::FC {
     extern const int form_expand_li;
     extern const int form_expand_all;
     
-    extern bool form_using_sun3;
+    extern bool form_using_su3;
     extern bool form_using_dim4;
     
     class Index;
@@ -138,6 +138,7 @@ namespace HepLib::FC {
         ex op(size_t i) const override;
         ex& let_op(size_t i) override;
         void form_print(const FormFormat &c, unsigned level = 0) const;
+        void fc_print(const FCFormat &c, unsigned level = 0) const;
         void print(const print_dflt &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
@@ -162,6 +163,7 @@ namespace HepLib::FC {
         ex eval() const override;
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
+        void fc_print(const FCFormat &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
@@ -184,6 +186,7 @@ namespace HepLib::FC {
         ex eval() const override;
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
+        void fc_print(const FCFormat &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n, lst& sym_lst) override;
         static bool has(const ex &e);
