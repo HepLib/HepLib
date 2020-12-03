@@ -89,14 +89,12 @@ namespace HepLib::FC {
         
         string init_script = R"EOF(
 CFunction pow,sqrt,gamma,HF;
-Tensor TTR(cyclic), T, f4, f(antisymmetric);
-Tensor colTp;
+Tensor TTR(cyclic), f(antisymmetric), T, f4, colTp;
 Symbols reX,I2R,NF,NA,D,I,Pi;
-Dimension NA;
 AutoDeclare Symbols gCF;
 AutoDeclare Symbols trcN;
+Dimension NA;
 AutoDeclare Index colA;
-AutoDeclare Index f4i;
 Dimension NF;
 AutoDeclare Index colF;
 
