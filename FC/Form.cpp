@@ -91,8 +91,7 @@ namespace HepLib::FC {
 CFunction pow,sqrt,gamma,HF;
 Tensor TTR(cyclic), f(antisymmetric), T, f4, colTp;
 Symbols reX,I2R,NF,NA,D,I,Pi;
-AutoDeclare Symbols gCF;
-AutoDeclare Symbols trcN;
+AutoDeclare Symbols gCF, trcN;
 Dimension NA;
 AutoDeclare Index colA;
 Dimension NF;
@@ -125,7 +124,7 @@ endrepeat;
 #enddo
 
 repeat;
-	id	T(colA1?,?a,colF1?,colF2?)*T(colA2?,?b,colF2?,colF3?) = T(colA1,?a,colA2,?b,colF1,colF3);
+	id T(colA1?,?a,colF1?,colF2?)*T(colA2?,?b,colF2?,colF3?) = T(colA1,?a,colA2,?b,colF1,colF3);
 endrepeat;
 id	T(?a,colF1?,colF1?) = TTR(?a);
 id	TTR(colA1?) = 0;
