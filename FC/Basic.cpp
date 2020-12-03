@@ -385,7 +385,7 @@ namespace HepLib::FC {
      * @param o unsigned option, not used
      */
     void SUNF4::form_print(const FormFormat &c, unsigned o) const {
-        c << "f(" << ijkl[0] << "," << ijkl[1] << "," << ijkl[2] << "," << ijkl[3] << ")";
+        c << "f4(" << ijkl[0] << "," << ijkl[1] << "," << ijkl[2] << "," << ijkl[3] << ")";
     }
     
     size_t SUNF4::nops() const { return 4; }

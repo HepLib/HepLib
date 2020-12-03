@@ -27,8 +27,7 @@ namespace HepLib::FC {
                 lst as;
                 for(int i=0; i<n-2; i++) as.append(ev[i]);
                 return SUNT(as,ev[n-2],ev[n-1]);
-            }
-            throw Error("SUNT_reader: number of arguments less than 3.");
+            } else throw Error("SUNT_reader: number of arguments less than 3.");
         }
         
         alignas(2) static ex TTR_reader(const exvector& ev) {
@@ -90,7 +89,7 @@ namespace HepLib::FC {
         
         string init_script = R"EOF(
 CFunction pow,sqrt,gamma,HF;
-Tensor TTR(cyclic), T, f(antisymmetric);
+Tensor TTR(cyclic), T, f4, f(antisymmetric);
 Tensor colTp;
 Symbols reX,I2R,NF,NA,D,I,Pi;
 Dimension NA;
@@ -110,9 +109,9 @@ repeat;
 	repeat;
 		id,once,T(colA1?,colA2?,?a,colF1?,colF2?) = T(colA1,colF1,colF3)*T(colA2,?a,colF3,colF2);
 		sum colF3;
-        id,once,f(colA1?,colA2?,colA3?,colA4?) = f(colA1,colA2,colA5) * f(colA5,colA3,colA4);
+        id,once,f4(colA1?,colA2?,colA3?,colA4?) = f(colA1,colA2,colA5) * f(colA5,colA3,colA4);
         sum colA5;
-	endrepeat;
+    endrepeat;
 endrepeat;
 
 #do colXi = 1,1
@@ -463,8 +462,8 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         Parser fp(st);
         fp.FTable[make_pair("SP", 2)] = SP_reader;
         fp.FTable[make_pair("LC", 4)] = LC_reader;
-        for(int i=0; i<30; i++) fp.FTable[make_pair("T", i)] = SUNT_reader;
-        for(int i=0; i<30; i++) fp.FTable[make_pair("TTRX", i)] = TTR_reader;
+        for(int i=1; i<30; i++) fp.FTable[make_pair("T", i)] = SUNT_reader;
+        for(int i=1; i<30; i++) fp.FTable[make_pair("TTRX", i)] = TTR_reader;
         ex ret = fp.Read(ostr);
         if(!islst) ret = ret.op(0);
         return ret;
