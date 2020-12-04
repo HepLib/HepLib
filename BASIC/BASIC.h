@@ -271,15 +271,15 @@ namespace HepLib {
         std::function<ex(int)> f,
         const string & key = "",
         bool rm = true,
-        int prtlvl = 0
+        const string & pre = "  "
     );
     inline vector<ex> GiNaC_Parallel(
         int ntotal,
         std::function<ex(int)> f,
         const string & key = "",
         bool rm = true,
-        int prtlvl = 0
-    ) { return  GiNaC_Parallel(ntotal, 0, f, key, rm, prtlvl); }
+        const string & pre = "  "
+    ) { return  GiNaC_Parallel(ntotal, 0, f, key, rm, pre); }
     
     /*-----------------------------------------------------*/
     // Helpers

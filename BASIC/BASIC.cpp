@@ -160,13 +160,15 @@ namespace HepLib {
      * @param f function to be applied on the index, from 0 to (ntotal-1)
      * @param key key used in archive file name and display message
      * @param rm default true, and false will keep the archive file
-     * @param prtlvl the indent level in the print message, when the Verbose>1
+     * @param pre the pre-string in the print message
      * @return return the ntotal-element vector, i.e., [f(0), ..., f(ntotal-1)]
      */
     vector<ex> GiNaC_Parallel(
         int ntotal, int nbatch, 
         std::function<ex(int)> f,
-        const string & key, bool rm, int prtlvl) {
+        const string & key,
+        bool rm,
+        const string &pre) {
         int nproc = ParallelProcess;
         
         // nproc=0, non-parallel
@@ -191,8 +193,7 @@ namespace HepLib {
 
         for(int bi=0; bi<btotal; bi++) {
             if(Verbose > 1) {
-                cout << "\r  ";
-                for(int pi=0;pi<prtlvl;pi++) cout << "   ";
+                cout << "\r                                                   \r" << pre;
                 cout << "\\--Evaluating ";
                 if(key != "") cout << Color_HighLight << key << RESET << " ";
                 cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] " << flush;
@@ -237,12 +238,10 @@ namespace HepLib {
         for(int bi=0; bi<btotal; bi++) {
             if(Verbose > 1) {
                 if(key == "") {
-                    cout << "\r  ";
-                    for(int pi=0; pi<prtlvl; pi++) cout << "   ";
+                    cout << "\r                                                   \r" << pre;
                     cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] " << flush;
                 } else {
-                    cout << "\r  ";
-                    for(int pi=0;pi<prtlvl;pi++) cout << "   ";
+                    cout << "\r                                                   \r" << pre;
                     cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] " << flush;
                 }
             }

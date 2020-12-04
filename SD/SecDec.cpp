@@ -818,7 +818,7 @@ namespace HepLib::SD {
             }
             if(!is0) return lst{fun, exp, deltas};
             else return lst{};
-        }, "SL", true);
+        }, "SL");
         Verbose = verb;
         
         FunExp.clear();
@@ -1017,7 +1017,7 @@ namespace HepLib::SD {
                 }
             }
             return para_res_lst;
-        }, "SD", true);
+        }, "SD");
         
         ex min_expn = 1, min_expn2 = 10;
         vector<ex> ibp_in_vec;
@@ -1163,7 +1163,7 @@ namespace HepLib::SD {
                 }
                 return lst{0, xns_pns };
 
-            }, spn.str().c_str(), true);
+            }, spn.str().c_str());
         
             ibp_in_vec.clear();
             ibp_in_vec.shrink_to_fit();
@@ -1239,7 +1239,7 @@ namespace HepLib::SD {
             }
 
             return para_res_lst;
-        }, "XTaylor", true);
+        }, "XTaylor");
         
         // Take z-residues
         bool zResides = false;
@@ -1280,7 +1280,7 @@ namespace HepLib::SD {
                     it = ex(0)-it.coeff(vz, -1);
                 }
                 return it;
-            }, "zResidue", true);
+            }, "zResidue");
         } else {
             Integrands = ints;
         }

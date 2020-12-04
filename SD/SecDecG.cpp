@@ -435,7 +435,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
             lst scs;
             for(auto isc : sc) scs.append(isc);
             return scs;
-        }, "x2y", true);
+        }, "x2y");
         Verbose = verb;
         ParallelProcess = npp;
         for(auto isc_lst : scs) for(auto isc : isc_lst) vmat.push_back(ex_to<matrix>(isc));

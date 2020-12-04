@@ -319,9 +319,16 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                 item = tr(item);
                 ff << "L [o]=" << item << ";" << endl;
                 ff << ".sort" << endl;
+                ff << "#do i = 1,1" << endl;
+                ff << "id once HF(reX?)=reX;" << endl;
+                ff << idstr;
+                ff << "if(count(HF,1)>0) redefine i \"0\";" << endl;
+                ff << ".sort" << endl;
+                ff << "#enddo" << endl;
                 ff << "contract 0;" << endl;
                 ff << ".sort" << endl;
                 ff << idstr << ".sort" << endl;
+                ff << endl;
                 for(int gl=1; gl<=tr.glmax; gl++) {
                     if(form_using_dim4) ff << "trace4 " << gl << ";" << endl;
                     else ff << "tracen " << gl << ";" << endl;
@@ -350,7 +357,14 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                 }
                 ff << "L [o]=" << item << ";" << endl;
                 ff << ".sort" << endl;
+                ff << "#do i = 1,1" << endl;
+                ff << "id once HF(reX?)=reX;" << endl;
+                ff << idstr;
+                ff << "if(count(HF,1)>0) redefine i \"0\";" << endl;
+                ff << ".sort" << endl;
+                ff << "#enddo" << endl;
                 ff << idstr << ".sort" << endl;
+                ff << endl;
             } else if(form_trace_mode==form_trace_each_each) {
                 exset trs;
                 find(item,TR(w),trs);
