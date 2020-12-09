@@ -42,6 +42,9 @@ namespace HepLib {
     string InstallPrefix = "@CMAKE_INSTALL_PREFIX@";
     string INC_FLAGS = "@INC_FLAGS@";
     string LIB_FLAGS = "@LIB_FLAGS@";
+    
+    int Fermat::buffer_size = 1024*128;
+    int Form::buffer_size = 1024*128;
 
     //----------------------------------------
     // HepLib::SD

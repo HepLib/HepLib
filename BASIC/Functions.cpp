@@ -110,7 +110,7 @@ namespace HepLib {
         for(auto item : iSymbol::Table) STable[item.first] = item.second;
         for(auto item : st) STable[item.first] = item.second;
     }
-    ex Parser::Read(string instr) {
+    ex Parser::Read(string instr, bool s2S) {
         unsigned serial = 0;
         for (auto & it : functions_hack::get_registered_functions()) {
             prototype proto = make_pair(it.get_name(), it.get_nparams());
@@ -118,13 +118,28 @@ namespace HepLib {
             ++serial;
         }
         parser ginac_parser(STable, false, FTable);
-        return ginac_parser(instr);
+        ex ret = ginac_parser(instr);
+        if(!s2S) return ret;
+        // check & replace symbol to Symbol object
+        auto st = ginac_parser.get_syms();
+        bool redo = false;
+        exmap repl;
+        for(auto kv : st) {
+            if(is_exactly_a<symbol>(kv.second) && STable.find(kv.first)==STable.end()) {
+                string ss = kv.first;
+                STable[ss] = Symbol(ss);
+                redo = true;
+                repl[kv.second] = Symbol(ss);
+            }
+        }
+        if(redo) return ret.subs(repl);
+        else return ret;
     }
-    ex Parser::ReadFile(string filename) {
+    ex Parser::ReadFile(string filename, bool s2S) {
         ifstream ifs(filename);
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
         ifs.close();
-        return Read(ostr);
+        return Read(ostr,s2S);
     }
     
     /*-----------------------------------------------------*/

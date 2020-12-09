@@ -104,7 +104,7 @@ namespace HepLib {
         write(P2C[1], istr.c_str(), istr.length());
         
         string ostr;
-        int n = 1024;
+        int n = buffer_size;
         char buffer[n+1]; // make sure the last one is '\0'
         int nio;
         while(true) {
@@ -269,7 +269,7 @@ namespace HepLib {
         write(io[0][1], istr.c_str(), istr.length());
 
         string ostr;
-        int n = 1024;
+        int n = buffer_size;
         char buffer[n+1]; // make sure the last one is '\0'
         int nio;
         

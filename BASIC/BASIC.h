@@ -548,8 +548,8 @@ namespace HepLib {
     public:
         prototype_table FTable;
         symtab STable;
-        ex Read(string instr);
-        ex ReadFile(string filename);
+        ex Read(string instr,bool s2S=true);
+        ex ReadFile(string filename,bool s2S=true);
         Parser();
         Parser(symtab st);
     };
@@ -663,6 +663,7 @@ namespace HepLib {
      */
     class Fermat {
     public:
+        static int buffer_size;
         string Sentinel = "---EOF---";
         void Init(string fer_path="fer64");
         string Execute(string);
@@ -683,6 +684,7 @@ namespace HepLib {
      */
     class Form {
     public:
+        static int buffer_size;
         string Sentinel = "---EOF---";
         string Prompt = "***EOF***";
         void Init(string form_path="form");
