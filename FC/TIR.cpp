@@ -67,10 +67,9 @@ namespace HepLib::FC {
         }, false, true);
 
         static exmap cache_map;
-        static map<ex,bool,ex_is_less> cache_has;
-        expr = MapFunction([ext_ps,loop_ps,&cache_has,&cache_map](const ex &e, MapFunction &self)->ex{
+        expr = MapFunction([ext_ps,loop_ps](const ex &e, MapFunction &self)->ex{
             if(e.match(coVF(w))) {
-                if(cache_has(e)) return cache_map[e];
+                if(cache_map.find(e)!=cache_map.end()) return cache_map[e];
                 lst vis, lps;
                 map<ex,int,ex_is_less> pc;
                 if(is_a<mul>(e.op(0))) {
@@ -183,7 +182,6 @@ namespace HepLib::FC {
                         res += bis.op(i) * mat2.op(i).op(n);
                     }
                     res = res.subs(SP_map);
-                    cache_has[e] = true;
                     cache_map[e] = res;
                     return res;
                 } else {
@@ -201,8 +199,7 @@ namespace HepLib::FC {
                         if(!is_zero(lpi-lp0)) ext_ps2.append(lpi);
                     ex ret = TIR(e.op(0), lst{ lp0 }, ext_ps2);
                     ret = TIR(ret, loop_ps, ext_ps);
-                    cache_has[e] = true;
-                    cache_map[e] = res;
+                    cache_map[e] = ret;
                     return ret;
                 }
             } else if (!e.has(coVF(w))) return e;
