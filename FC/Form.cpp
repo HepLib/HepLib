@@ -36,6 +36,22 @@ namespace HepLib::FC {
             for(auto item : ev) as.append(item);
             return TTR(as);
         }
+        
+        alignas(2) static ex DiracGamma_reader(const exvector& ev) {
+            int n = ev.size();
+            if(n==1) return GAS(ev[0]);
+            ex ret = 1;
+            int rl = ex2int(ev[0]);
+            for(int i=1; i<n; i++) ret = ret * GAS(ev[i],rl);
+            return ret;
+        }
+        
+        alignas(2) static ex gi_reader(const exvector& ev) {
+            int n = ev.size();
+            if(n==0) return GAS(1);
+            else if(n==1) return GAS(1,ex2int(ev[0]));
+            else throw Error("DiracGamma_reader: number of arguments more than 2.");
+        }
     }
     
     //-----------------------------------------------------------
@@ -462,6 +478,11 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         string_replace_all(ostr, "e_(", "LC(");
         string_replace_all(ostr, "sin_(", "sin(");
         string_replace_all(ostr, "cos_(", "cos(");
+        string_replace_all(ostr, "g_(", "DG(");
+        string_replace_all(ostr, ",5_", ",5");
+        string_replace_all(ostr, ",6_", ",6");
+        string_replace_all(ostr, ",7_", ",7");
+        string_replace_all(ostr, "gi_(", "GI(");
         string_replace_all(ostr, "TTR(", "TTRX(");
         
         st["I2R"] = ex(1)/2;
@@ -475,6 +496,9 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         fp.FTable[make_pair("LC", 4)] = LC_reader;
         for(int i=1; i<30; i++) fp.FTable[make_pair("T", i)] = SUNT_reader;
         for(int i=1; i<30; i++) fp.FTable[make_pair("TTRX", i)] = TTR_reader;
+        for(int i=1; i<30; i++) fp.FTable[make_pair("DG", i)] = DiracGamma_reader;
+        fp.FTable[make_pair("GI", 0)] = gi_reader;
+        fp.FTable[make_pair("GI", 1)] = gi_reader;
         ex ret = fp.Read(ostr);
         if(!islst) ret = ret.op(0);
         return ret;
