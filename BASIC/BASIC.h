@@ -393,7 +393,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Global object wildcard
     /*-----------------------------------------------------*/
-    extern ex w, w0, w1, w2, w3, w4, w5;
+    extern ex w, w0, w1, w2, w3, w4, w5, w6, w7, w8, w9;
     extern string InstallPrefix;
     extern string INC_FLAGS;
     extern string LIB_FLAGS;

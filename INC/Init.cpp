@@ -28,6 +28,10 @@ namespace HepLib {
     ex w3 = wild(3);
     ex w4 = wild(4);
     ex w5 = wild(5);
+    ex w6 = wild(6);
+    ex w7 = wild(7);
+    ex w8 = wild(8);
+    ex w9 = wild(9);
     
     const Symbol ep("ep");
     const iSymbol iEpsilon("iEpsilon");
