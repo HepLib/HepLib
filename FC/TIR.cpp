@@ -68,8 +68,10 @@ namespace HepLib::FC {
 
         static exmap cache_map;
         expr = MapFunction([ext_ps,loop_ps](const ex &e, MapFunction &self)->ex{
-            if(e.match(coVF(w))) {
-                if(cache_map.find(e)!=cache_map.end()) return cache_map[e];
+            if(e.is_equal(coVF(1))) return 1;
+            else if(e.match(coVF(w))) {
+                ex map_key = lst{e,loop_ps,ext_ps};
+                if(cache_map.find(map_key)!=cache_map.end()) return cache_map[map_key];
                 lst vis, lps;
                 map<ex,int,ex_is_less> pc;
                 if(is_a<mul>(e.op(0))) {
@@ -102,87 +104,91 @@ namespace HepLib::FC {
                             for(int j=0; j<er; j++) bi *= SP(item.op(j), is.op(j));
                             for(int j=er; j<visn; j=j+2) bi *= SP(is.op(j), is.op(j+1));
                             bi = bi.symmetrize(is);
-                            bis.append(bi);
+                            bi = bi.subs(SP_map);
+                            if(!is_zero(bi)) bis.append(bi);
                     }}
                     
+                    ex res = 0;
                     int n = bis.nops();
-                    lst mat;
-                    for(auto bi : bis) {
-                        for(auto bj : bis) mat.append(bi*bj);
-                    }
-                    for(auto bj : bis) mat.append(eqL*bj);
-                    mat = ex_to<lst>(form(mat));
+                    if(n>0) {
+                        lst mat;
+                        for(auto bi : bis) {
+                            for(auto bj : bis) mat.append(bi*bj);
+                        }
+                        for(auto bj : bis) mat.append(eqL*bj);
+                        mat = ex_to<lst>(form(mat));
 
-                    lst rep_vs;
-                    ex tree = mat;
-                    for(const_preorder_iterator i = tree.preorder_begin(); i != tree.preorder_end(); ++i) {
-                        auto e = (*i);
-                        if(is_a<symbol>(e) || is_a<Pair>(e) || is_a<Eps>(e)) {
-                            rep_vs.append(e);
+                        lst rep_vs;
+                        ex tree = mat;
+                        for(const_preorder_iterator i = tree.preorder_begin(); i != tree.preorder_end(); ++i) {
+                            auto e = (*i);
+                            if(is_a<symbol>(e) || is_a<Pair>(e) || is_a<Eps>(e)) {
+                                rep_vs.append(e);
+                            }
+                        }
+                        rep_vs.sort();
+                        rep_vs.unique();
+                        sort_lst(rep_vs);
+                        
+                        exmap v2f;
+                        symtab st;
+                        int fvi = 0;
+                        for(auto vi : rep_vs) {
+                            auto name = "v" + to_string(fvi);
+                            v2f[vi] = Symbol(name);
+                            st[name] = vi;
+                            fvi++;
+                        }
+
+                        stringstream ss;
+                        for(int i=0; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
+                        Fermat fermat;
+                        fermat.Init();
+                        fermat.Execute(ss.str());
+                        ss.clear();
+                        ss.str("");
+                        
+                        ss << "Array m[" << n << "," << n+1 << "];" << endl;
+                        fermat.Execute(ss.str());
+                        ss.clear();
+                        ss.str("");
+                        
+                        ss << "[m]:=[(";
+                        for(auto item : mat) {
+                            ss << item.subs(v2f) << ",";
+                        }
+                        ss << ")];" << endl;
+                        ss << "Redrowech([m]);" << endl;
+                        auto tmp = ss.str();
+
+                        string_replace_all(tmp,",)]",")]");
+                        fermat.Execute(tmp);
+                        ss.clear();
+                        ss.str("");
+
+                        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
+                        ss << "![m" << endl;
+                        auto ostr = fermat.Execute(ss.str());
+                        fermat.Exit();
+                        
+                        // make sure last char is 0
+                        if(ostr[ostr.length()-1]!='0') throw Error("TIR: last char is NOT 0.");
+                        ostr = ostr.substr(0, ostr.length()-1);
+                        string_trim(ostr);
+                        
+                        ostr.erase(0, ostr.find(":=")+2);
+                        string_replace_all(ostr, "[", "{");
+                        string_replace_all(ostr, "]", "}");
+                        Parser fp(st);
+                        auto mat2 = fp.Read(ostr);
+
+                        for(int i=0; i<n; i++) {
+                            if(is_zero(mat2.op(i).op(i)) && !is_zero(mat2.op(i).op(n))) throw Error("Zero Determinant in TIR.");
+                            res += bis.op(i) * mat2.op(i).op(n);
                         }
                     }
-                    rep_vs.sort();
-                    rep_vs.unique();
-                    sort_lst(rep_vs);
-                    
-                    exmap v2f;
-                    symtab st;
-                    int fvi = 0;
-                    for(auto vi : rep_vs) {
-                        auto name = "v" + to_string(fvi);
-                        v2f[vi] = Symbol(name);
-                        st[name] = vi;
-                        fvi++;
-                    }
-
-                    stringstream ss;
-                    for(int i=0; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
-                    Fermat fermat;
-                    fermat.Init();
-                    fermat.Execute(ss.str());
-                    ss.clear();
-                    ss.str("");
-                    
-                    ss << "Array m[" << n << "," << n+1 << "];" << endl;
-                    fermat.Execute(ss.str());
-                    ss.clear();
-                    ss.str("");
-                    
-                    ss << "[m]:=[(";
-                    for(auto item : mat) {
-                        ss << item.subs(v2f) << ",";
-                    }
-                    ss << ")];" << endl;
-                    ss << "Redrowech([m]);" << endl;
-                    auto tmp = ss.str();
-                    string_replace_all(tmp,",)]",")]");
-                    fermat.Execute(tmp);
-                    ss.clear();
-                    ss.str("");
-
-                    ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
-                    ss << "![m" << endl;
-                    auto ostr = fermat.Execute(ss.str());
-                    fermat.Exit();
-                    
-                    // make sure last char is 0
-                    if(ostr[ostr.length()-1]!='0') throw Error("TIR: last char is NOT 0.");
-                    ostr = ostr.substr(0, ostr.length()-1);
-                    string_trim(ostr);
-                    
-                    ostr.erase(0, ostr.find(":=")+2);
-                    string_replace_all(ostr, "[", "{");
-                    string_replace_all(ostr, "]", "}");
-                    Parser fp(st);
-                    auto mat2 = fp.Read(ostr);
-
-                    ex res = 0;
-                    for(int i=0; i<n; i++) {
-                        if(is_zero(mat2.op(i).op(i)) && !is_zero(mat2.op(i).op(n))) throw Error("Zero Determinant in TIR.");
-                        res += bis.op(i) * mat2.op(i).op(n);
-                    }
                     res = res.subs(SP_map);
-                    cache_map[e] = res;
+                    cache_map[map_key] = res;
                     return res;
                 } else {
                     int cmin=10000, cmax=-1;
@@ -199,7 +205,7 @@ namespace HepLib::FC {
                         if(!is_zero(lpi-lp0)) ext_ps2.append(lpi);
                     ex ret = TIR(e.op(0), lst{ lp0 }, ext_ps2);
                     ret = TIR(ret, loop_ps, ext_ps);
-                    cache_map[e] = ret;
+                    cache_map[map_key] = ret;
                     return ret;
                 }
             } else if (!e.has(coVF(w))) return e;
