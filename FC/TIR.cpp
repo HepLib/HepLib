@@ -122,7 +122,7 @@ namespace HepLib::FC {
                         exmap i2u, u2i;
                         int c=0;
                         for(auto item : isu) {
-                            auto ii = Index("_TIR"+to_string(c++));
+                            auto ii = Index("TIR"+to_string(c++));
                             i2u[item] = ii;
                             u2i[ii] = item;
                         }
