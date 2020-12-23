@@ -567,7 +567,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
      * @return returned charge conjugated expression
      */
     ex charge_conjugate(const ex & expr) {
-        if(expr.has(Qgraf::Matrix(w1,w2,w3))) throw Error("charge_conjugate: Matrix found.");
+        if(expr.has(Matrix(w1,w2,w3))) throw Error("charge_conjugate: Matrix found.");
         if(!DiracGamma::has(expr)) return expr;
         if(is_a<DiracGamma>(expr)) {
             DiracGamma g = ex_to<DiracGamma>(expr);

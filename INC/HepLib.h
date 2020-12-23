@@ -6,6 +6,7 @@
 #pragma once
 
 #include "FC.h"
+#include "Qgraf.h"
 #include "SD.h"
 #include "IBP.h"
 

@@ -3,16 +3,17 @@
  * @brief Helpers for Quarkonium
  */
  
-#include "FC.h"
+#include "Qgraf.h"
 #include "SD.h"
 
-namespace HepLib::FC {
-    using namespace Qgraf;
+namespace HepLib::Qgraf {
 
     //-----------------------------------------------------------
     // Quarkonium Class
     //-----------------------------------------------------------
     namespace Quarkonium {
+    
+        using namespace SD;
     
         ex Gamma5(const string pre, int start) {
             Index i1(pre+to_string(start+0), Index::Type::VD);

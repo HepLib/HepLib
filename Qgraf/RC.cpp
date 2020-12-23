@@ -3,9 +3,9 @@
  * @brief Functions for Renormalization Constants
  */
  
-#include "FC.h"
+#include "Qgraf.h"
 
-namespace HepLib::FC {
+namespace HepLib::Qgraf {
 
     //-----------------------------------------------------------
     // RC namespace

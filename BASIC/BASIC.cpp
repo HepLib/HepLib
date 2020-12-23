@@ -1947,12 +1947,7 @@ namespace HepLib {
         else return ginac_factor(expr);
     }
     
-    /**
-     * @brief factorize a expression using FORM
-     * @param expr the input expression
-     * @return factorized result
-     */
-    ex form_factor(const ex & expr) {
+    ex inner_form_factor(const ex & expr) {
         static map<pid_t, Form> form_map;
         auto pid = getpid();
         if((form_map.find(pid)==form_map.end())) { // init section
@@ -1966,7 +1961,7 @@ namespace HepLib {
         
         auto expr_in = expr;
         exmap map_rat;
-        expr_in = expr_in.to_rational(map_rat);
+        expr_in = expr_in.to_polynomial(map_rat);
         
         exvector vs;
         for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
@@ -2001,9 +1996,21 @@ namespace HepLib {
             res = res.subs(WF(w)==w);
             return res;
         } catch(Error& err) {
+            cout << oss.str() << endl;
             form_map.erase(pid);
             throw;
         }
+    }
+    
+    /**
+     * @brief factorize a expression using FORM
+     * @param expr the input expression
+     * @return factorized result
+     */
+    ex form_factor(const ex & expr) {
+        auto num_den = fermat_numer_denom(expr);
+        if(is_zero(num_den.op(1)-1)) return inner_form_factor(num_den.op(0));
+        return inner_form_factor(num_den.op(0))/inner_form_factor(num_den.op(1));
     }
     
 }

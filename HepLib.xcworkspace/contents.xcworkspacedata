@@ -11,6 +11,9 @@
       location = "group:BASIC">
    </FileRef>
    <FileRef
+      location = "group:Qgraf">
+   </FileRef>
+   <FileRef
       location = "group:FC">
    </FileRef>
    <FileRef

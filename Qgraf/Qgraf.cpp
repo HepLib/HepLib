@@ -3,9 +3,9 @@
  * @brief Qgraf related
  */
  
-#include "FC.h"
+#include "Qgraf.h"
 
-namespace HepLib::FC::Qgraf {
+namespace HepLib::Qgraf {
 
     namespace {
         string di_("di");
@@ -24,16 +24,11 @@ namespace HepLib::FC::Qgraf {
             int n = ex_to<numeric>(fn).to_int();
             return (n<0 ? "m" : "") + to_string(abs(n));
         }
-        
-        ex mat_conj(const ex & e1, const ex & e2, const ex & e3) {
-            return Matrix(e1.conjugate(), e3, e2);
-        }
     }
 
     REGISTER_FUNCTION(Propagator, do_not_evalf_params())
     REGISTER_FUNCTION(InField, do_not_evalf_params())
     REGISTER_FUNCTION(OutField, do_not_evalf_params())
-    REGISTER_FUNCTION(Matrix, do_not_evalf_params().conjugate_func(mat_conj).set_return_type(return_types::commutative))
     
     unsigned Field2_SERIAL::serial = GiNaC::function::register_new(function_options("Field",2).do_not_evalf_params().overloaded(2));
     unsigned Field3_SERIAL::serial = GiNaC::function::register_new(function_options("Field",3).do_not_evalf_params().overloaded(2));

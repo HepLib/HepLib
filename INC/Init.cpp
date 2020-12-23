@@ -6,6 +6,7 @@
 #include "cln/cln.h"
 #include "SD.h"
 #include "FC.h"
+#include "Qgraf.h"
 #include "IBP.h"
 #include <cstdlib>
 
@@ -88,9 +89,9 @@ namespace HepLib {
     const Symbol FC::nH("nH");;
         
     exmap FC::SP_map;
-    map<ex,string,ex_is_less> FC::Qgraf::LineTeX; // key is the filed
-    map<ex,string,ex_is_less> FC::Qgraf::VerTeX; // key is the fileds in vertex
-    map<ex,string,ex_is_less> FC::Qgraf::InOutTeX; // key is the id, id<0
+    map<ex,string,ex_is_less> Qgraf::LineTeX; // key is the filed
+    map<ex,string,ex_is_less> Qgraf::VerTeX; // key is the fileds in vertex
+    map<ex,string,ex_is_less> Qgraf::InOutTeX; // key is the id, id<0
     
     FC::FCFormat::_init::_init() {
         set_print_func<ncmul, FCFormat>(FCFormat::ncmul_print);
@@ -121,7 +122,7 @@ namespace HepLib {
     //----------------------------------------
     // Process _init
     //----------------------------------------
-    FC::Qgraf::Process::_init::_init() {
+    Qgraf::Process::_init::_init() {
         auto A = Symbol("A");
         auto q = Symbol("q");
         auto qbar = Symbol("qbar");
@@ -153,7 +154,7 @@ namespace HepLib {
         VerTeX[lst{Qbar, e, nbar}] = "[crossed dot]";
         VerTeX[lst{nbar, e, g}] = "[crossed dot]";
     }
-    FC::Qgraf::Process::_init FC::Qgraf::Process::Process_init;
+    Qgraf::Process::_init Qgraf::Process::Process_init;
     
     //----------------------------------------
     // HepLib::IBP
@@ -201,7 +202,7 @@ namespace HepLib {
     
 }
 
-const std::string HepLib::FC::Qgraf::Style = R"EOF(
+std::string HepLib::Qgraf::Process::Style = R"EOF(
 <prologue>
 
 <diagram>

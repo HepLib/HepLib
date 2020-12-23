@@ -6,7 +6,6 @@
 #include "FC.h"
 
 namespace HepLib::FC {
-    using namespace Qgraf;
 
     DEFAULT_CTOR(Index)
     GINAC_BIND_UNARCHIVER(Index);
@@ -61,6 +60,9 @@ namespace HepLib::FC {
                 printseq(c, '(', '.', ')', precedence(), level);
             }
         };
+        ex mat_conj(const ex & e1, const ex & e2, const ex & e3) {
+            return Matrix(e1.conjugate(), e3, e2);
+        }
     }
     void FCFormat::ncmul_print(const ncmul & nm, const FCFormat & c, unsigned level) {
         ncmul_hack(nm).print(c, level);
@@ -435,6 +437,8 @@ namespace HepLib::FC {
     ex SUNF4::derivative(const symbol & s) const {
         return 0;
     }
+    
+    REGISTER_FUNCTION(Matrix, do_not_evalf_params().conjugate_func(mat_conj).set_return_type(return_types::commutative))
         
     /**
      * @brief make contract on matrix, i.e., Matrix(a,i1,i2)*Matrix(b,i2,i3) -> Matrix(a*b,i1,i3)
