@@ -222,7 +222,7 @@ namespace HepLib {
             cout << "the return is: <|" << buffer << "|>" << endl;
             throw Error("Init Failed: Expect a Line break!");
         }
-        sprintf(p, ",%d\n\n\0", fpid);
+        sprintf(p, ",%d\n\n", fpid);
         write(io[0][1], buffer, strlen(buffer));
         read(io[1][0], buffer, sizeof(buffer));
         p = strstr(buffer, "OK");
