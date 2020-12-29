@@ -316,8 +316,9 @@ namespace HepLib::FC {
     ex ApartIR2ex(const ex & expr_in);
     ex ApartIR2F(const ex & expr_in);
     ex F2ex(const ex & expr_in);
+    ex F2F(const ex & expr_in);
     ex ApartIRC(const ex & expr_in, const ex & cut_props=lst{});
-    void ApartIBP(int IBPmethod, exvector &air_vec, const lst & loops_exts=lst{}, const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
+    void ApartIBP(int IBPmethod, exvector &io_vec, const lst & loops_exts=lst{}, const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
     
     /**
      * @brief ApartIR function with 1 argument

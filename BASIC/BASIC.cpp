@@ -1873,6 +1873,15 @@ namespace HepLib {
             auto ostr = fermat.Execute(ss.str());
             ss.clear();
             ss.str("");
+            
+            // note the order, before exfactor (fermat_normal will be called again here)
+            ss << "&(U=0);" << endl; // disable ugly printing
+            if(fermat_use_array) ss << "@(res,[m]);" << endl;
+            else ss << "@(res,item);" << endl;
+            ss << "&_G;" << endl;
+            fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
 
             // make sure last char is 0
             if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
@@ -1883,7 +1892,7 @@ namespace HepLib {
             cpos = ostr.find(estr);
             if(cpos==string::npos) throw Error(estr+" NOT Found.");
             ostr = ostr.substr(0,cpos);
-            string_trim(ostr);       
+            string_trim(ostr);
 
             symtab st;
             Parser fp(st);
@@ -1891,14 +1900,6 @@ namespace HepLib {
             num *= ret.op(0);
             if(factor) den *= exfactor(ret.op(1));
             else den *= ret.op(1);
-            
-            ss << "&(U=0);" << endl; // disable ugly printing
-            if(fermat_use_array) ss << "@(res,[m]);" << endl;
-            else ss << "@(res,item);" << endl;
-            ss << "&_G;" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
         }
         //fermat.Exit();
                 

@@ -100,6 +100,26 @@ namespace HepLib::FC {
         })(ret);
         return ret;
      }
+     
+     /**
+     * @brief convert F(ps, ns) to normal ex, ns is like FIRE convention
+     * @param expr_in expression contains F
+     * @return F(ps, ns) converted into normal expression wrapped in F
+     */
+     ex F2F(const ex & expr_in) {
+        ex ret = expr_in;
+        ret = MapFunction([](const ex & e, MapFunction &self)->ex{
+            if(e.match(F(w1, w2))) {
+                auto ps = e.op(0);
+                auto ns = e.op(1);
+                ex res = 1;
+                for(int i=0; i<ps.nops(); i++) res *= pow(ps.op(i), ex(0)-ns.op(i));
+                return F(res);
+            } else if(!e.has((F(w1,w2)))) return e;
+            else return e.map(self);
+        })(ret);
+        return ret;
+     }
     
     /**
      * @brief Apart on matrix
@@ -785,7 +805,7 @@ namespace HepLib::FC {
 
         if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << nints << "/" << ibp_vec_re.size() << " @ " << now(false) << endl;
         
-        MapFunction F2ex([ibp_vec](const ex &e, MapFunction &self)->ex {
+        MapFunction _F2ex([ibp_vec](const ex &e, MapFunction &self)->ex {
             if(!e.has(F(w1,w2))) return e;
             else if(e.match(F(w1,w2))) {
                 int idx = ex_to<numeric>(e.op(0)).to_int();
@@ -799,7 +819,7 @@ namespace HepLib::FC {
                 auto air = air_vec[idx];
                 air = subs_naive(air,IR2F);
                 air = subs_naive(air,rules_ints.first);
-                air = F2ex(air);
+                air = _F2ex(air);
                 auto cv_lst = mma_collect_lst(air, F(w1,w2));
                 air = 0;
                 for(auto cv : cv_lst) air += cv.op(1) * fermat_normal(cv.op(0));
@@ -867,7 +887,7 @@ namespace HepLib::FC {
             air = subs_naive(air,rules_ints.first);
             air = subs_naive(air,mi_rules.first);
             air = subs_naive(air,F2F);
-            air = F2ex(air);
+            air = _F2ex(air);
             auto cv_lst = mma_collect_lst(air, F(w1,w2));
             air = 0;
             for(auto cv : cv_lst) air += cv.op(1) * fermat_normal(cv.op(0));
