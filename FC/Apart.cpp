@@ -434,7 +434,7 @@ namespace HepLib::FC {
             if(!is_a<mul>(expr)) expr = lst{expr};
         }
         
-        lst plst;
+        lst pnlst;
         ex pref = 1;
         for(auto item : expr) {
             bool has_var=false;
@@ -450,23 +450,22 @@ namespace HepLib::FC {
                     cout << item << endl;
                     throw Error("Apart: item is not linear wrt vars.");
                 }
-                plst.append(item);
+                if(is_a<power>(item)) pnlst.append(lst{item.op(0),item.op(1)});
+                else pnlst.append(lst{item,1});
             } else pref *= item;
         }
-        sort_lst(plst);
+        sort_lst_by(pnlst,0);
         
-        if(plst.nops()==0) return pref * ApartIR(1,vars_in);
+        if(pnlst.nops()==0) return pref * ApartIR(1,vars_in);
         
-        int nrow=vars.nops(), ncol=plst.nops();
+        int nrow=vars.nops(), ncol=pnlst.nops();
         lst vars0;
         for(auto v : vars) vars0.append(v==0);
         matrix mat(nrow+2, ncol);
         for(int c=0; c<ncol; c++) {
-            ex tmp = plst.op(c);
-            if(is_a<power>(tmp)) {
-                mat(nrow+1,c) = tmp.op(1);
-                tmp = tmp.op(0);
-            } else mat(nrow+1,c) = 1;
+            ex pn = pnlst.op(c);
+            mat(nrow+1,c) = pn.op(1);
+            auto tmp = pn.op(0);
             
             // consider sign
             for(auto v : vars) {
@@ -528,66 +527,14 @@ namespace HepLib::FC {
         sps.unique();
         sort_lst(sps);
         
-        ex res;
-        
-        if(false) { // new method
-            auto dn = fermat_numer_denom(expr,true);
-            auto den = Apart(1/dn.op(1), sps, sign);
-            den = ApartIRC(den);
-            den = mma_collect_lst(den,ApartIR(w1,w2));
-            
-            exmap sp2s, s2sp;
-            lst ss;
-            for(auto item : sps) {
-                symbol s;
-                sp2s[item] = s;
-                s2sp[s] = item;
-                ss.append(s);
-            }
-            auto num = dn.op(0).subs(sp2s);
-            
-            res = 0;
-            for(auto item : den) {
-                auto cc = item.op(0);
-                auto air = item.op(1);
-                
-                ex vars = air.op(1).subs(sp2s);
-                matrix mat = ex_to<matrix>(air.op(0));
-                lst ps, ns;
-                for(int c=0; c<mat.cols(); c++) {
-                    ex sum=0;
-                    for(int r=0; r<mat.rows()-2; r++) sum += mat(r,c) * vars.op(r);
-                    sum += mat(mat.rows()-2,c);
-                    ps.append(sum);
-                    ns.append(mat(mat.rows()-1,c));
-                }
-                
-                lst eqns;
-                lst apXs;
-                for(int i=0; i<vars.nops(); i++) {
-                    auto eq = ps.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
-                    eqns.append(eq == Symbol("_apX"+to_string(i)));
-                    apXs.append(Symbol("_apX"+to_string(i)));
-                }
-                auto s2p = lsolve(eqns, ss);
-                if(s2p.nops() != vars.nops()) throw Error("Apart: lsolve failed.");
-                
-                auto cur_num = num.subs(s2p);
-                cur_num = fermat_normal(cur_num);
-            }
-        
-        }
-        
-        if(true) { // naive method
-            res = 0;
-            auto cv_lst = mma_collect_lst(expr, loops);
-            for(auto item : cv_lst) {
-                res += item.op(0) * Apart(item.op(1), sps, sign);
-            }
+        auto cv_lst = mma_collect_lst(expr, loops);
+        ex res = 0;
+        for(auto item : cv_lst) {
+            res += item.op(0) * Apart(item.op(1), sps, sign);
         }
         
         // fermat_normal
-        auto cv_lst = mma_collect_lst(res, ApartIR(w1,w2));
+        cv_lst = mma_collect_lst(res, ApartIR(w1,w2));
         res = 0;
         for(auto cv : cv_lst) res += fermat_normal(cv.op(0)) * cv.op(1);
 

@@ -1508,22 +1508,24 @@ namespace HepLib {
     long long int LeafCount(const ex & e) {
         long long c = 0;
         for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
-            if(is_a<numeric>(e)) continue;
-            else if(is_a<symbol>(e)) c++;
-            else c += e.nops();
+            if(is_a<numeric>(e)) c++;
+            else if(is_a<symbol>(e)) c += 2;
+            else c+= 5;
+            c += 10*e.nops();
         }
         return c;
     }
     
     bool ex_less(const ex &a, const ex &b) {
         static ex_is_less comp;
+        static std::less<string> sc;
         if(is_a<numeric>(a) && is_a<numeric>(b)) {
-            if(a!=b) return (a<b);
-            else return false;
-        } if(is_a<lst>(a) && is_a<lst>(b)) {
-            if(a.nops()!=b.nops()) return a.nops()<b.nops();
-            auto nn = a.nops();
-            for(int i=0; i<nn; i++) {
+            return (a<b);
+        } else if(is_a<lst>(a) && is_a<lst>(b)) {
+            auto an = a.nops();
+            auto bn = b.nops();
+            if(an!=bn) return an<bn;
+            for(int i=0; i<an; i++) {
                 if(is_zero(a.op(i)-b.op(i))) continue;
                 return ex_less(a.op(i), b.op(i));
             }
@@ -1532,7 +1534,7 @@ namespace HepLib {
             auto la = LeafCount(a);
             auto lb = LeafCount(b);
             if(la!=lb) return (la<lb);
-            return comp(a,b);
+            return sc(ex2str(a),ex2str(b));
         }
     }
      
