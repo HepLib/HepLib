@@ -1508,10 +1508,10 @@ namespace HepLib {
     long long int LeafCount(const ex & e) {
         long long c = 0;
         for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
-            if(is_a<numeric>(e)) c++;
-            else if(is_a<symbol>(e)) c += 2;
-            else c+= 5;
-            c += 10*e.nops();
+            if(is_a<numeric>(e)) continue;
+            else if(is_a<symbol>(e)) c += 1;
+            else if(e.nops()<1) c += 2;
+            else c += 5*e.nops();
         }
         return c;
     }
