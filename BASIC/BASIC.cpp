@@ -1506,18 +1506,19 @@ namespace HepLib {
      * @return the total number of leaf nodes
      */
     long long int LeafCount(const ex & e) {
-        if(is_a<numeric>(e)) return 1;
-        else if(is_a<symbol>(e)) return 2;
-        else if(!is_a<lst>(e) && e.nops()==1) return 3;
-        long long c = 10;
-        for(auto item : e) c += LeafCount(item);
+        long long c = 0;
+        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
+            if(is_a<numeric>(e)) continue;
+            else if(is_a<symbol>(e)) c++;
+            else c += e.nops();
+        }
         return c;
     }
     
     bool ex_less(const ex &a, const ex &b) {
         static ex_is_less comp;
         if(is_a<numeric>(a) && is_a<numeric>(b)) {
-            if(a!=b) return a<b;
+            if(a!=b) return (a<b);
             else return false;
         } if(is_a<lst>(a) && is_a<lst>(b)) {
             if(a.nops()!=b.nops()) return a.nops()<b.nops();
@@ -1530,7 +1531,7 @@ namespace HepLib {
         } else {
             auto la = LeafCount(a);
             auto lb = LeafCount(b);
-            if(la!=lb) la<lb;
+            if(la!=lb) return (la<lb);
             return comp(a,b);
         }
     }
@@ -1557,9 +1558,7 @@ namespace HepLib {
      void sort_lst_by(lst & ilst, int ki, bool less) {
         auto ivec = lst2exvec(ilst);
         std::sort(ivec.begin(), ivec.end(), [ki](const auto &as, const auto &bs){
-            auto a = as.op(ki);
-            auto b = bs.op(ki);
-            return ex_less(a,b);
+            return ex_less(as.op(ki),bs.op(ki));
         });
         auto n = ivec.size();
         if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
@@ -1572,15 +1571,9 @@ namespace HepLib {
       * @param less true for less order
       */
      void sort_vec(exvector & ivec, bool less) {
-        std::sort(ivec.begin(), ivec.end(), [less](const auto &a0, const auto &b0){
-            auto a = a0;
-            auto b = b0;
-            if(!less) {
-                auto tmp = a;
-                a = b;
-                b = tmp;
-            }
-            return ex_less(a,b);
+        std::sort(ivec.begin(), ivec.end(), [less](const auto &a, const auto &b){
+            if(less) return ex_less(a,b);
+            else return ex_less(b,a);
         });
      }
      
@@ -1592,14 +1585,8 @@ namespace HepLib {
       */
      void sort_vec_by(exvector & ivec, int ki, bool less) {
         std::sort(ivec.begin(), ivec.end(), [ki,less](const auto &as, const auto &bs){
-            auto a = as.op(ki);
-            auto b = bs.op(ki);
-            if(!less) {
-                auto tmp = a;
-                a = b;
-                b = tmp;
-            }
-            return ex_less(a,b);
+            if(less) return ex_less(as.op(ki),bs.op(ki));
+            else return ex_less(bs.op(ki),as.op(ki));
         });
      }
      
