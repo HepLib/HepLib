@@ -138,7 +138,7 @@ namespace HepLib::FC {
         bool use_fermat = false; 
         
         static exmap null_cache;
-        if(is_zero(null_cache[sub_matrix(mat,0,nrow,0,ncol)])){
+        if(null_cache.find(sub_matrix(mat,0,nrow,0,ncol))==null_cache.end()){
             if(use_fermat) {
                 lst rep_vs;
                 ex tree = mat;

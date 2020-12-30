@@ -150,7 +150,7 @@ namespace HepLib::IBP {
             nxi++;
         }
         
-        if(is_zero(cache[key])) { // no cache item
+        if(cache.find(key)==cache.end()) { // no cache item
             ut = 1;
             for(int i=0; i<fire.Internal.nops(); i++) {
                 ft = ft.expand();
@@ -213,7 +213,7 @@ namespace HepLib::IBP {
             nxi++;
         }
         
-        if(is_zero(cache[key])) { // no cache item
+        if(cache.find(key)==cache.end()) { // no cache item
             ut1 = 1;
             for(int i=0; i<loops.nops(); i++) {
                 ft = ft.expand();
