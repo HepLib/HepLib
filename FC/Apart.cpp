@@ -65,14 +65,19 @@ namespace HepLib::FC {
             else if(e.match(ApartIR(w1, w2))) {
                 ex vars = e.op(1);
                 matrix mat = ex_to<matrix>(e.op(0));
-                lst ps, ns;
+                lst pns;
                 for(int c=0; c<mat.cols(); c++) {
                     ex sum=0;
                     for(int r=0; r<mat.rows()-2; r++) sum += mat(r,c) * vars.op(r);
                     sum += mat(mat.rows()-2,c);
                     if(is_zero(mat(mat.rows()-1,c))) continue;
-                    ps.append(sum);
-                    ns.append(0-mat(mat.rows()-1,c));
+                    pns.append(lst{ sum, ex(0)-mat(mat.rows()-1,c) });
+                }
+                sort_lst(pns);
+                lst ps, ns;
+                for(auto item : pns) {
+                    ps.append(item.op(0));
+                    ns.append(item.op(1));
                 }
                 return F(ps, ns);
             } else if(!e.has((ApartIR(w))) && !e.has((ApartIR(w1,w2)))) return e;
@@ -743,15 +748,20 @@ namespace HepLib::FC {
         for(auto item : intg) {
             auto mat = ex_to<matrix>(item.op(0));
             auto vars = ex_to<lst>(item.op(1));
-            lst props, ns;
+            lst pns;
             int nrow = mat.rows();
             for(int c=0; c<mat.cols(); c++) {
                 ex pc = 0;
                 for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
                 pc += mat(nrow-2,c);
                 pc = SP2sp(pc);
-                props.append(pc);
-                ns.append(ex(0)-mat(nrow-1,c)); // note Apart and FIRE convension
+                pns.append(lst{ pc,ex(0)-mat(nrow-1,c) }); // note Apart and FIRE convension
+            }
+            sort_lst(pns);
+            lst props, ns;
+            for(auto item : pns) {
+                props.append(item.op(0));
+                ns.append(item.op(1));
             }
 
             if(p2IBP[props]==NULL) {

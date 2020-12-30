@@ -1508,7 +1508,7 @@ namespace HepLib {
     long long int LeafCount(const ex & e) {
         if(is_a<numeric>(e)) return 1;
         else if(is_a<symbol>(e)) return 2;
-        else if(e.nops()==1) return 3;
+        else if(!is_a<lst>(e) && e.nops()==1) return 3;
         long long c = 10;
         for(auto item : e) c += LeafCount(item);
         return c;
