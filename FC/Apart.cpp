@@ -465,13 +465,13 @@ namespace HepLib::FC {
             
             // consider sign
             for(auto v : vars) {
-                if(tmp.has(iEpsilon) && !is_zero(sign_map[iEpsilon])) { // iEpsilon first
+                if(tmp.has(iEpsilon) && key_exists(sign_map,iEpsilon)) { // iEpsilon first
                     ex sign = sign_map[iEpsilon]/tmp.coeff(iEpsilon);
                     pref /= pow(sign, mat(nrow+1,c));
                     tmp *= sign;
                     break;
                 } else {
-                    if(is_zero(tmp.coeff(v)) || is_zero(sign_map[v.subs(map2)])) continue;
+                    if(is_zero(tmp.coeff(v)) || !key_exists(sign_map,v.subs(map2))) continue;
                     ex sign = sign_map[v.subs(map2)]/tmp.coeff(v);
                     pref /= pow(sign, mat(nrow+1,c));
                     tmp *= sign;

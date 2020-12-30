@@ -319,6 +319,7 @@ namespace HepLib::IBP {
         lst int_lst;
         for(auto g : group) {
             lst gs = ex_to<lst>(g.second);
+            sort_lst(gs);
             for(int i=1; i<gs.nops(); i++) rules[gs.op(i)]=gs.op(0);
             int_lst.append(gs.op(0));
         }

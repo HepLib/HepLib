@@ -289,7 +289,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             auto ckey = item.op(0);
             if(!is_a<numeric>(ckey)) {
                 int ckid;
-                if(e2i_map[ckey]==0) {
+                if(e2i_map.find(ckey)==e2i_map.end()) {
                     kid++;
                     e2i_map[ckey] = kid;
                     ckid = kid;

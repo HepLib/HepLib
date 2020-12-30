@@ -241,6 +241,10 @@ namespace HepLib {
         return (access(fn.c_str(),F_OK)!=-1);
     }
     
+    inline bool key_exists(const exmap &map, const ex & key) {
+        return (map.find(key)!=map.end());
+    }
+    
     inline bool dir_exists(string dir) {
         struct stat buffer;
         return (stat(dir.c_str(), &buffer)==0);
