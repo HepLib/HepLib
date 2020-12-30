@@ -809,7 +809,15 @@ namespace HepLib::FC {
             if(!e.has(F(w1,w2))) return e;
             else if(e.match(F(w1,w2))) {
                 int idx = ex_to<numeric>(e.op(0)).to_int();
-                return F(ibp_vec[idx-1]->Propagators, e.op(1));
+                auto pso = ex_to<lst>(ibp_vec[idx-1]->Propagators);
+                auto nso = ex_to<lst>(e.op(1));
+                lst ps, ns;
+                for(int i=0; i<pso.nops(); i++) {
+                    if(nso.op(i).is_zero()) continue;
+                    ps.append(pso.op(i));
+                    ns.append(nso.op(i));
+                }
+                return F(ps,ns);
             } else return e.map(self);
         });
         
