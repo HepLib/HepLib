@@ -50,8 +50,10 @@ namespace HepLib::IBP {
         }
         
         lst sp2s, s2sp, ss;
+        int _pic=0;
         for(auto item : Pairs) {
-            symbol si;
+            _pic++;
+            Symbol si("P"+to_string(_pic));
             ss.append(si);
             sp2s.append(item==si);
             s2sp.append(si==item);

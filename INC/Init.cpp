@@ -87,7 +87,7 @@ namespace HepLib {
     const Symbol FC::mu("mu");;
     const Symbol FC::nL("nL");;
     const Symbol FC::nH("nH");;
-        
+    
     exmap FC::SP_map;
     map<ex,string,ex_is_less> Qgraf::LineTeX; // key is the filed
     map<ex,string,ex_is_less> Qgraf::VerTeX; // key is the fileds in vertex

@@ -136,15 +136,21 @@ namespace HepLib::FC {
         int ncol = mat.cols();
         lst null_vec;
         
-        //--------------------------------------------------
         // null vector
-        //--------------------------------------------------
-        // if start feramt process many times, the efficient is slow
-        bool use_fermat = false; 
-        
+        bool use_fermat = true;
         static exmap null_cache;
         if(null_cache.find(sub_matrix(mat,0,nrow,0,ncol))==null_cache.end()){
             if(use_fermat) {
+                static map<pid_t, Fermat> fermat_map;
+                static int v_max = 0;
+        
+                auto pid = getpid();
+                if((fermat_map.find(pid)==fermat_map.end())) { // init section
+                    fermat_map[pid].Init();
+                    v_max = 0;
+                }
+                Fermat &fermat = fermat_map[pid];
+        
                 lst rep_vs;
                 ex tree = mat;
                 for(const_preorder_iterator i = tree.preorder_begin(); i != tree.preorder_end(); ++i) {
@@ -168,12 +174,17 @@ namespace HepLib::FC {
                 }
                 
                 stringstream ss;
-                for(int i=0; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
-                Fermat fermat;
-                fermat.Init();
-                fermat.Execute(ss.str());
-                ss.clear();
-                ss.str("");
+                if(fvi>111) {
+                    cout << rep_vs << endl;
+                    throw Error("Fermat: Too many variables.");
+                }
+                if(fvi>v_max) {
+                    for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
+                    fermat.Execute(ss.str());
+                    ss.clear();
+                    ss.str("");
+                    v_max = fvi;
+                }
                 
                 ss << "Array m[" << nrow << "," << ncol+1 << "];" << endl;
                 fermat.Execute(ss.str());
@@ -198,7 +209,17 @@ namespace HepLib::FC {
                 ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
                 ss << "![m" << endl;
                 auto ostr = fermat.Execute(ss.str());
-                fermat.Exit();
+                ss.clear();
+                ss.str("");
+                //fermat.Exit();
+                
+                // note the order, before exfactor (fermat_normal will be called again here)
+                ss << "&(U=0);" << endl; // disable ugly printing
+                ss << "@([m]);" << endl;
+                ss << "&_G;" << endl;
+                fermat.Execute(ss.str());
+                ss.clear();
+                ss.str("");
 
                 // make sure last char is 0
                 if(ostr[ostr.length()-1]!='0') throw Error("TIR: last char is NOT 0.");
@@ -241,9 +262,7 @@ namespace HepLib::FC {
             null_vec = ex_to<lst>(null_cache[sub_matrix(mat,0,nrow,0,ncol)]);
         }
         
-        //--------------------------------------------------
         // check null & return ApartIR
-        //--------------------------------------------------
         bool is_null = true;
         for(int c=0; c<ncol; c++) {
             if(!is_zero(null_vec.op(c))) {
@@ -253,9 +272,7 @@ namespace HepLib::FC {
         }
         if(is_null) return ApartIR(mat);
         
-        //--------------------------------------------------
         // handle numerator
-        //--------------------------------------------------
         int ni=-1;
         for(int c=0; c<ncol; c++) {
             if(mat(nrow+1,c)>0 && !is_zero(null_vec.op(c))) {
@@ -314,11 +331,7 @@ namespace HepLib::FC {
             return res;
         }
         
-        
-        //--------------------------------------------------
         // handle all denominators
-        //--------------------------------------------------
-        
         ex cres0 = 0;
         for(int c=0; c<ncol; c++) cres0 += mat(nrow,c)*null_vec.op(c);
         cres0 = cres0.subs(iEpsilon==0);
@@ -450,11 +463,47 @@ namespace HepLib::FC {
                     cout << item << endl;
                     throw Error("Apart: item is not linear wrt vars.");
                 }
-                if(is_a<power>(item)) pnlst.append(lst{item.op(0),item.op(1)});
-                else pnlst.append(lst{item,1});
+                
+                ex pc, nc;
+                if(is_a<power>(item)) {
+                    pc = item.op(0);
+                    nc = item.op(1);
+                } else {
+                    pc = item;
+                    nc = 1;
+                }
+                
+                // consider sign
+                bool has_sgn = false;
+                for(auto v : vars) {
+                    if(pc.has(iEpsilon) && key_exists(sign_map,iEpsilon)) { // iEpsilon first
+                        ex sign = sign_map[iEpsilon]/pc.coeff(iEpsilon);
+                        pref /= pow(sign, nc);
+                        pc *= sign;
+                        has_sgn = true;
+                        break;
+                    } else {
+                        if(is_zero(pc.coeff(v)) || !key_exists(sign_map,v.subs(map2))) continue;
+                        ex sign = sign_map[v.subs(map2)]/pc.coeff(v);
+                        pref /= pow(sign, nc);
+                        pc *= sign;
+                        has_sgn = true;
+                        break;
+                    }
+                }
+                if(!has_sgn) {
+                    for(auto v : vars) {
+                        if(is_zero(pc.coeff(v))) continue;
+                        ex sign = 1/pc.coeff(v);
+                        pref /= pow(sign, nc);
+                        pc *= sign;
+                        break;
+                    }
+                }
+                pnlst.append(lst{pc,nc});
             } else pref *= item;
         }
-        sort_lst_by(pnlst,0);
+        sort_lst(pnlst);
         
         if(pnlst.nops()==0) return pref * ApartIR(1,vars_in);
         
@@ -466,23 +515,6 @@ namespace HepLib::FC {
             ex pn = pnlst.op(c);
             mat(nrow+1,c) = pn.op(1);
             auto tmp = pn.op(0);
-            
-            // consider sign
-            for(auto v : vars) {
-                if(tmp.has(iEpsilon) && key_exists(sign_map,iEpsilon)) { // iEpsilon first
-                    ex sign = sign_map[iEpsilon]/tmp.coeff(iEpsilon);
-                    pref /= pow(sign, mat(nrow+1,c));
-                    tmp *= sign;
-                    break;
-                } else {
-                    if(is_zero(tmp.coeff(v)) || !key_exists(sign_map,v.subs(map2))) continue;
-                    ex sign = sign_map[v.subs(map2)]/tmp.coeff(v);
-                    pref /= pow(sign, mat(nrow+1,c));
-                    tmp *= sign;
-                    break;
-                }
-            }
-            
             for(int r=0; r<nrow; r++) {
                 mat(r,c) = tmp.coeff(vars.op(r));
             }
@@ -528,6 +560,7 @@ namespace HepLib::FC {
         sort_lst(sps);
         
         auto cv_lst = mma_collect_lst(expr, loops);
+        sort_lst(cv_lst);
         ex res = 0;
         for(auto item : cv_lst) {
             res += item.op(0) * Apart(item.op(1), sps, sign);
@@ -664,15 +697,20 @@ namespace HepLib::FC {
             return lst{air, intgs};
         }, "Apart");
         
-        exset intg;
-        for(int i=0; i<air_vec.size(); i++) {
-            air_vec[i] = air_intg[i].op(0);
-            for(auto item : air_intg[i].op(1)) intg.insert(item);
+        exvector intg_sort;
+        if(true) {
+            exset intg;
+            for(int i=0; i<air_vec.size(); i++) {
+                air_vec[i] = air_intg[i].op(0);
+                for(auto item : air_intg[i].op(1)) intg.insert(item);
+            }
+            air_intg.clear();
+            air_intg.shrink_to_fit();
+            for(auto item : intg) intg_sort.push_back(item);
+            sort_vec(intg_sort);
         }
-        air_intg.clear();
-        air_intg.shrink_to_fit();
         
-        if(Verbose>0) cout << "  \\--Total Integrals: " << intg.size() << " @ " << now(false) << endl;
+        if(Verbose>0) cout << "  \\--Total Integrals: " << intg_sort.size() << " @ " << now(false) << endl;
         
         lst repls;
         auto sps = sp_map();
@@ -692,7 +730,7 @@ namespace HepLib::FC {
         std::map<ex, IBP::Base*, ex_is_less> p2IBP;
         vector<IBP::Base*> ibp_vec;
         int pn=1;
-        for(auto item : intg) {
+        for(auto item : intg_sort) {
             auto mat = ex_to<matrix>(item.op(0));
             auto vars = ex_to<lst>(item.op(1));
             lst pns;

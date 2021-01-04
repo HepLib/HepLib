@@ -113,6 +113,7 @@ namespace HepLib {
         ex conjugate() const override;
         ex real_part() const override;
         ex imag_part() const override;
+        unsigned calchash() const override;
         
         unsigned get_domain() const override { return domain::positive; }
         
@@ -310,6 +311,8 @@ namespace HepLib {
     __float128 ex2q(ex);
     lst exvec2lst(const exvector & exvec);
     exvector lst2exvec(const lst & alst);
+    lst add2lst(const ex & expr);
+    lst mul2lst(const ex & expr);
     lst xlst(int ei);
     lst xlst(int bi, int ei);
     int CpuCores();
@@ -600,9 +603,9 @@ namespace HepLib {
     extern MapFunction Rationalize;
     
     /*-----------------------------------------------------*/
-    // LeafCount & sort
+    // sort
     /*-----------------------------------------------------*/
-    long long int LeafCount(const ex & e);
+    long long node_number(const ex & expr, int level=0);
     bool ex_less(const ex &a, const ex &b);
     void sort_lst(lst & ilst, bool less=true);
     void sort_lst_by(lst & ilst, int n, bool less=true);

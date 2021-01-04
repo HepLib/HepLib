@@ -68,6 +68,10 @@ namespace HepLib {
     ex Symbol::conjugate() const { return *this; }
     ex Symbol::real_part() const { return *this; }
     ex Symbol::imag_part() const { return 0; }
+    unsigned Symbol::calchash() const {
+        static unsigned _hash = symbol("_").gethash();
+        return _hash;
+    }
     
     exmap Symbol::AssignMap;
     void Symbol::Assign(const Symbol & s, const ex & v) { AssignMap[s] = v; }
@@ -730,7 +734,31 @@ namespace HepLib {
         exvector ret;
         for(auto item : alst) ret.push_back(item);
         return ret;
-    }   
+    }
+    
+    /**
+     * @brief convert add to lst
+     * @param expr input expression
+     * @return lst
+     */
+    lst add2lst(const ex & expr) {
+        if(!is_a<add>(expr)) return lst{expr};
+        lst ret;
+        for(auto item : expr) ret.append(item);
+        return ret;
+    }
+    
+    /**
+     * @brief convert mul to lst
+     * @param expr input expression
+     * @return lst
+     */
+    lst mul2lst(const ex & expr) {
+        if(!is_a<mul>(expr)) return lst{expr};
+        lst ret;
+        for(auto item : expr) ret.append(item);
+        return ret;
+    }
 
     /**
      * @brief return a lst: x(bi), x(bi+1), ..., x(ei)
@@ -1499,43 +1527,124 @@ namespace HepLib {
     ex get_op(const lst ex_in, int index1, int index2, int index3) {
         return ex_in.op(index1).op(index2).op(index3);
     }
-
-    /**
-     * @brief count the leaf nodes
-     * @param e input expression
-     * @return the total number of leaf nodes
-     */
-    long long int LeafCount(const ex & e) {
-        long long c = 0;
-        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
-            if(is_a<numeric>(e)) continue;
-            else if(is_a<symbol>(e)) c += 1;
-            else if(e.nops()<1) c += 2;
-            else c += 5*e.nops();
-        }
-        return c;
+    
+    long long node_number(const ex & expr, int level) {
+        if(expr.nops()<1) return level+1;
+        long long tot = 0;
+        for(auto item : expr) tot += level+node_number(item,level+1);
+        return tot;
     }
     
     bool ex_less(const ex &a, const ex &b) {
-        static ex_is_less comp;
-        static std::less<string> sc;
-        if(is_a<numeric>(a) && is_a<numeric>(b)) {
-            return (a<b);
-        } else if(is_a<lst>(a) && is_a<lst>(b)) {
-            auto an = a.nops();
-            auto bn = b.nops();
-            if(an!=bn) return an<bn;
-            for(int i=0; i<an; i++) {
+    
+        if(a.is_equal(b)) return false;
+    
+        // numeric
+        if(is_a<numeric>(a) && is_a<numeric>(b)) return (ex_to<numeric>(a) < ex_to<numeric>(b));
+        if(is_a<numeric>(a)) return true;
+        if(is_a<numeric>(b)) return false;
+        
+        // matrix
+        if(is_a<matrix>(a) && is_a<matrix>(b)) {
+            auto ma = ex_to<matrix>(a);
+            auto mb = ex_to<matrix>(b);
+            if(ma.rows() != mb.rows()) return (ma.rows() < mb.rows());
+            if(ma.cols() != mb.cols()) return (ma.cols() < mb.cols());
+            for(int r=0; r<ma.rows(); r++) {
+            for(int c=0; c<ma.cols(); c++) {
+                if(is_zero(ma(r,c)-mb(r,c))) continue;
+                return ex_less(ma(r,c),mb(r,c));
+            }}
+        }
+        if(is_a<matrix>(b)) return true;
+        if(is_a<matrix>(a)) return false;
+        
+        // lst
+        if(is_a<lst>(a) && is_a<lst>(b)) {
+            auto na = a.nops();
+            auto nb = b.nops();
+            if(na!=nb) return (na<nb);
+            for(int i=0; i<na; i++) {
                 if(is_zero(a.op(i)-b.op(i))) continue;
                 return ex_less(a.op(i), b.op(i));
             }
-            return false;
-        } else {
-            auto la = LeafCount(a);
-            auto lb = LeafCount(b);
-            if(la!=lb) return (la<lb);
-            return sc(ex2str(a),ex2str(b));
         }
+        if(is_a<lst>(b)) return true;
+        if(is_a<lst>(a)) return false;
+        
+        // node_number - high priority
+        auto na = node_number(a);
+        auto nb = node_number(b);
+        if(na!=nb) return (na < nb);
+
+        // atomic
+        static ex_is_less eil;
+        auto an = a.nops();
+        auto bn = b.nops();
+        if(an==0 && bn==0) {
+            string na = a.return_type_tinfo().tinfo->name();
+            string nb = b.return_type_tinfo().tinfo->name();
+            auto nc = na.compare(nb);
+            if(nc<0) return true;
+            else if(nc>0) return false;
+            else return eil(a,b);
+        }
+        
+        // function
+        if(is_a<GiNaC::function>(a) && is_a<GiNaC::function>(b)) {
+            string na = ex_to<GiNaC::function>(a).get_name();
+            string nb = ex_to<GiNaC::function>(b).get_name();
+            auto nc = na.compare(nb);
+            if(nc<0) return true;
+            else if(nc>0) return false;
+            if(an!=bn) return (an < bn);
+        }
+        
+        // add
+        if(is_a<add>(a) || is_a<add>(b)) {
+            auto as = add2lst(a);
+            auto bs = add2lst(b);
+            auto na = as.nops();
+            auto nb = bs.nops();
+            if(na!=nb) return (na<nb);
+            sort_lst(as,false);
+            sort_lst(bs,false);
+            for(int i=0; i<na; i++) {
+                if(is_zero(a.op(i)-b.op(i))) continue;
+                return !ex_less(b.op(i), a.op(i));
+            }
+        }
+        
+        // mul
+        if(is_a<mul>(a) || is_a<mul>(b)) {
+            auto as = mul2lst(a);
+            auto bs = mul2lst(b);
+            auto na = as.nops();
+            auto nb = bs.nops();
+            if(na!=nb) return (na<nb);
+            sort_lst(as,false);
+            sort_lst(bs,false);
+            for(int i=0; i<na; i++) {
+                if(is_zero(a.op(i)-b.op(i))) continue;
+                return !ex_less(b.op(i), a.op(i));
+            }
+        }
+        
+        if(true) {
+            string na = a.return_type_tinfo().tinfo->name();
+            string nb = b.return_type_tinfo().tinfo->name();
+            auto nc = na.compare(nb);
+            if(nc<0) return true;
+            else if(nc>0) return false;
+        }
+        
+        if(an!=bn) return (an<bn);
+        for(int i=0; i<an; i++) {
+            if(is_zero(a.op(i)-b.op(i))) continue;
+            return ex_less(a.op(i), b.op(i));
+        }
+        
+        return eil(a,b);
     }
      
      /**
@@ -1788,17 +1897,14 @@ namespace HepLib {
         exmap map_rat;
         expr_in = expr_in.to_rational(map_rat);
         
-        map<ex,long int, ex_is_less> vs_count;
-        for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
-            auto e = (*i);
-            if(is_a<symbol>(e)) vs_count[e]++;
-        }
-        lst vsc_lst;
-        for(auto kv : vs_count) vsc_lst.append(lst{kv.first, numeric(kv.second)});
-        sort_lst_by(vsc_lst,1,false);
         lst rep_vs;
-        for(auto item : vsc_lst) rep_vs.append(item.op(0));
-        
+        for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
+            if(is_a<symbol>(*i)) rep_vs.append(*i);
+        }
+        rep_vs.sort();
+        rep_vs.unique();
+        sort_lst(rep_vs);
+                
         exmap v2f, f2v;
         exmap nn_map;
         auto nn_pi = cln::nextprobprime(3);

@@ -47,7 +47,7 @@ namespace HepLib::IBP {
             auto cv_lst = mma_collect_lst(expr, xs);
             exvector cvs;
             for(auto item : cv_lst) cvs.push_back(item);
-            sort_vec_by(cvs,0);
+            sort_vec(cvs);
                     
             int nxi = xs.nops();
             bool first = true;
@@ -80,7 +80,7 @@ namespace HepLib::IBP {
                 key_xi.push_back(lst{xkey[i], xs.op(i)});
                 pgrp[xkey[i]].push_back(i); // i w.r.t. position of xs
             }
-            sort_vec_by(key_xi,0);
+            sort_vec(key_xi);
             
             xRepl.remove_all();
             for(auto item : key_xi) xRepl.append(item.op(1));  
