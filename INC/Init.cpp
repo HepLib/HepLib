@@ -43,6 +43,13 @@ namespace HepLib {
     bool fermat_use_array = true;
     int NNDigits = 100;
     
+    HepFormat::_init::_init() {
+        set_print_func<add, HepFormat>(HepFormat::add_print);
+        set_print_func<mul, HepFormat>(HepFormat::mul_print);
+    }
+    HepFormat::_init HepFormat_init;
+    HepFormat hout(cout);
+    
     lst GiNaC_archive_Symbols = lst{};
     string InstallPrefix = "@CMAKE_INSTALL_PREFIX@";
     string INC_FLAGS = "@INC_FLAGS@";
@@ -89,6 +96,7 @@ namespace HepLib {
     const Symbol FC::nH("nH");;
     
     exmap FC::SP_map;
+    exmap FC::Apart_SignMap;
     map<ex,string,ex_is_less> Qgraf::LineTeX; // key is the filed
     map<ex,string,ex_is_less> Qgraf::VerTeX; // key is the fileds in vertex
     map<ex,string,ex_is_less> Qgraf::InOutTeX; // key is the id, id<0

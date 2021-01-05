@@ -708,4 +708,26 @@ namespace HepLib {
         pid_t pid = 0;
     };
     
+    
+    /**
+     * @brief class for HepLib Format Output
+     */
+    class HepFormat : public print_dflt {
+        GINAC_DECLARE_PRINT_CONTEXT(HepFormat, print_dflt)
+    public:
+        HepFormat(ostream &os, unsigned opt=0);
+        static void add_print(const add & a, const HepFormat & c, unsigned level=0);
+        static void mul_print(const mul & m, const HepFormat & c, unsigned level=0);
+        OUT_FORMAT_DECLARE(HepFormat)
+        /**
+         * @brief inner class for some static initializations
+         */
+        class _init {
+            public: _init();
+        };
+    private:
+        static _init HepFormat_init;
+    };
+    extern HepFormat hout;
+    
 }

@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Functions for DiracGamma
+ * @brief Functions for DGamma
  */
  
 #include "FC.h"
@@ -16,7 +16,7 @@ namespace HepLib::FC {
             else {
                 ex c=1; ex v=1;
                 for(auto it : item) {
-                    if(!Index::has(it) && !DiracGamma::has(it)) c *= it;
+                    if(!Index::has(it) && !DGamma::has(it)) c *= it;
                     else v *= it;
                 }
                 res += c * TR(v);
@@ -33,73 +33,73 @@ namespace HepLib::FC {
         ex c=1;
         ex v=1;
         for(auto it : num) {
-            if(!Index::has(it) && !DiracGamma::has(it)) c *= it;
+            if(!Index::has(it) && !DGamma::has(it)) c *= it;
             else v *= it;
         }
         return c*TR(v)/nd.op(1);
     }
     
     //-----------------------------------------------------------
-    // DiracGamma Class
+    // DGamma Class
     //-----------------------------------------------------------
-    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(DiracGamma, basic,
-        print_func<print_dflt>(&DiracGamma::print).
-        print_func<FormFormat>(&DiracGamma::form_print).
-        print_func<FCFormat>(&DiracGamma::fc_print)
+    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(DGamma, basic,
+        print_func<print_dflt>(&DGamma::print).
+        print_func<FormFormat>(&DGamma::form_print).
+        print_func<FCFormat>(&DGamma::fc_print)
     )
     
-    DEFAULT_CTOR(DiracGamma)
-    GINAC_BIND_UNARCHIVER(DiracGamma);
-    IMPLEMENT_HAS(DiracGamma)
-    IMPLEMENT_ALL(DiracGamma)
+    DEFAULT_CTOR(DGamma)
+    GINAC_BIND_UNARCHIVER(DGamma);
+    IMPLEMENT_HAS(DGamma)
+    IMPLEMENT_ALL(DGamma)
         
-    return_type_t DiracGamma::return_type_tinfo() const {
+    return_type_t DGamma::return_type_tinfo() const {
         return make_return_type_t<clifford>(rl);
-        //return make_return_type_t<DiracGamma>(rl);
+        //return make_return_type_t<DGamma>(rl);
     }
     
-    bool DiracGamma::match_same_type(const basic & other) const {
-        const DiracGamma &o = static_cast<const DiracGamma &>(other);
+    bool DGamma::match_same_type(const basic & other) const {
+        const DGamma &o = static_cast<const DGamma &>(other);
         return rl == o.rl;
     }
     
-    unsigned DiracGamma::get_rl() {
+    unsigned DGamma::get_rl() {
         return rl;
     }
     
-    int DiracGamma::compare_same_type(const basic &other) const {
-        const DiracGamma &o = static_cast<const DiracGamma &>(other);
+    int DGamma::compare_same_type(const basic &other) const {
+        const DGamma &o = static_cast<const DGamma &>(other);
         if (rl != o.rl) return rl < o.rl ? -1 : 1;
         return pi.compare(o.pi);
     }
     
-    DiracGamma::DiracGamma(int int_1567, unsigned _rl) : pi(int_1567), rl(_rl) { }
-    DiracGamma::DiracGamma(const Vector &p, unsigned _rl) : pi(p), rl(_rl) { }
-    DiracGamma::DiracGamma(const Index &i, unsigned _rl) : pi(i), rl(_rl) { }
-    DiracGamma::DiracGamma(const DiracGamma &g, unsigned _rl) : pi(g.pi), rl(_rl) { }
+    DGamma::DGamma(int int_1567, unsigned _rl) : pi(int_1567), rl(_rl) { }
+    DGamma::DGamma(const Vector &p, unsigned _rl) : pi(p), rl(_rl) { }
+    DGamma::DGamma(const Index &i, unsigned _rl) : pi(i), rl(_rl) { }
+    DGamma::DGamma(const DGamma &g, unsigned _rl) : pi(g.pi), rl(_rl) { }
     
-    size_t DiracGamma::nops() const { return 2; }
-    ex DiracGamma::op(size_t i) const {
+    size_t DGamma::nops() const { return 2; }
+    ex DGamma::op(size_t i) const {
         if(i==0) return pi;
         else if(i==1) return rl;
         return 0;
     }
     
-    ex & DiracGamma::let_op(size_t i) {
+    ex & DGamma::let_op(size_t i) {
         static ex ex_rl = numeric(rl);
         ensure_if_modifiable();
         if(i==0) return pi;
         else return ex_rl;
     }
     
-    ex DiracGamma::eval() const {
+    ex DGamma::eval() const {
         if(flags & status_flags::evaluated) return *this;
         else if(is_zero(pi) || is_zero(pi-1) || is_zero(pi-5) || is_zero(pi-6) || is_zero(pi-7)) return this->hold();
         else if(!is_a<Vector>(pi) && !is_a<Index>(pi)) return GAS(pi,rl);
         else return this->hold();
     }
     
-    void DiracGamma::print(const print_dflt &c, unsigned level) const {
+    void DGamma::print(const print_dflt &c, unsigned level) const {
         if(is_zero(pi-1)) {
             c.s << "𝕚";
             return;
@@ -110,7 +110,7 @@ namespace HepLib::FC {
         c.s << ")";
     }
     
-    void DiracGamma::form_print(const FormFormat &c, unsigned level) const {
+    void DGamma::form_print(const FormFormat &c, unsigned level) const {
         c << "g_(" << rl;
         if(!is_zero(pi-1)) {
             c << "," << pi;
@@ -119,7 +119,7 @@ namespace HepLib::FC {
         c << ")";
     }
     
-    void DiracGamma::fc_print(const FCFormat &c, unsigned level) const {
+    void DGamma::fc_print(const FCFormat &c, unsigned level) const {
         if(is_zero(pi-1)) {
             c << "1";
             return;
@@ -129,29 +129,29 @@ namespace HepLib::FC {
         c << "(" << pi << ")";
     }
     
-    void DiracGamma::archive(archive_node & n) const {
+    void DGamma::archive(archive_node & n) const {
         inherited::archive(n);
         n.add_ex("pi", pi);
         n.add_unsigned("rl", rl);
     }
     
-    void DiracGamma::read_archive(const archive_node& n, lst& sym_lst) {
+    void DGamma::read_archive(const archive_node& n, lst& sym_lst) {
         inherited::read_archive(n, sym_lst);
         n.find_unsigned("rl", rl);
         n.find_ex("pi", pi, sym_lst);
     }
     
-    ex DiracGamma::derivative(const symbol & s) const {
+    ex DGamma::derivative(const symbol & s) const {
         return 0;
     }
     
-    ex DiracGamma::conjugate() const {
+    ex DGamma::conjugate() const {
         if(is_a<Index>(pi) || is_a<Vector>(pi)) return *this;
-        else if(is_zero(pi-5)) return -1*DiracGamma(5, rl);
-        else if(is_zero(pi-6)) return DiracGamma(7, rl);
-        else if(is_zero(pi-7)) return DiracGamma(6, rl);
-        else if(is_zero(pi-1)) return DiracGamma(1, rl);
-        throw Error("invalid DiracGamma Found.");
+        else if(is_zero(pi-5)) return -1*DGamma(5, rl);
+        else if(is_zero(pi-6)) return DGamma(7, rl);
+        else if(is_zero(pi-7)) return DGamma(6, rl);
+        else if(is_zero(pi-1)) return DGamma(1, rl);
+        throw Error("invalid Dirac Gamma Found.");
     }
     
     //-----------------------------------------------------------
@@ -224,13 +224,13 @@ namespace HepLib::FC {
      * @brief function similar to GAD/GSD in FeynClac
      * @param expr momentum/index or 1,5,6,7
      * @param rl the represent line number
-     * @return expanded/translasted to DiracGamma objects
+     * @return expanded/translasted to Dirac Gamma objects
      */
     ex GAS(const ex &expr, unsigned rl) {
-        if(is_zero(expr-1)) return DiracGamma(1,rl);
-        else if(is_zero(expr-5)) return DiracGamma(5,rl);
-        else if(is_zero(expr-6)) return DiracGamma(6,rl);
-        else if(is_zero(expr-7)) return DiracGamma(7,rl);
+        if(is_zero(expr-1)) return DGamma(1,rl);
+        else if(is_zero(expr-5)) return DGamma(5,rl);
+        else if(is_zero(expr-6)) return DGamma(6,rl);
+        else if(is_zero(expr-7)) return DGamma(7,rl);
         
         ex tmp = expand(expr);
         lst ex_lst;
@@ -246,16 +246,16 @@ namespace HepLib::FC {
             ex c=1, g=1;
             for(auto ii : mul_lst) {
                 if(is_a<Vector>(ii)) {
-                    if(is_a<DiracGamma>(g)) throw Error("Something Wrong with GAS");
-                    g = DiracGamma(ex_to<Vector>(ii),rl);
+                    if(is_a<DGamma>(g)) throw Error("Something Wrong with GAS");
+                    g = DGamma(ex_to<Vector>(ii),rl);
                 } else if(is_a<Index>(ii)) {
-                    if(is_a<DiracGamma>(g)) throw Error("Something Wrong with GAS");
-                    g = DiracGamma(ex_to<Index>(ii),rl);
+                    if(is_a<DGamma>(g)) throw Error("Something Wrong with GAS");
+                    g = DGamma(ex_to<Index>(ii),rl);
                 } else {
                     c *= ii;
                 }
             }
-            if(!is_a<DiracGamma>(g)) throw Error("Something Wrong with GAS");
+            if(!is_a<DGamma>(g)) throw Error("Something Wrong with GAS");
             res += c * g;
         }
         return res;

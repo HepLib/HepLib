@@ -37,7 +37,7 @@ namespace HepLib::FC {
             return TTR(as);
         }
         
-        alignas(2) static ex DiracGamma_reader(const exvector& ev) {
+        alignas(2) static ex DGamma_reader(const exvector& ev) {
             int n = ev.size();
             if(n==1) return GAS(ev[0]);
             ex ret = 1;
@@ -50,7 +50,7 @@ namespace HepLib::FC {
             int n = ev.size();
             if(n==0) return GAS(1);
             else if(n==1) return GAS(1,ex2int(ev[0]));
-            else throw Error("DiracGamma_reader: number of arguments more than 2.");
+            else throw Error("DGamma_reader: number of arguments more than 2.");
         }
     }
     
@@ -62,8 +62,8 @@ namespace HepLib::FC {
         struct mapGamma : public map_function {
         public:
             ex operator()(const ex &e) {
-                if(is_a<DiracGamma>(e)) return DiracGamma(ex_to<DiracGamma>(e), gline);
-                else if(!DiracGamma::has(e)) return e;
+                if(is_a<DGamma>(e)) return DGamma(ex_to<DGamma>(e), gline);
+                else if(!DGamma::has(e)) return e;
                 else return e.map(*this);
             }
             mapGamma(int _gline) : gline(_gline) { };
@@ -79,7 +79,7 @@ namespace HepLib::FC {
                     ex gs = e.op(0);
                     gline++;
                     gs = mapGamma(gline)(gs);
-                    gs = DiracGamma(1, gline) * gs;
+                    gs = DGamma(1, gline) * gs;
                     if(glmax<gline) {
                         glmax = gline;
                         if(glmax>128) throw Error("too large index with glmax>128.");
@@ -285,7 +285,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             ex item = it;
             // pull out global common factor
             item = collect_common_factors(item);
-            item = CoPat(item,[](const ex &e)->bool{return Index::has(e) || DiracGamma::has(e);});
+            item = CoPat(item,[](const ex &e)->bool{return Index::has(e) || DGamma::has(e);});
             auto ckey = item.op(0);
             if(!is_a<numeric>(ckey)) {
                 int ckid;
@@ -496,7 +496,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         fp.FTable[make_pair("LC", 4)] = LC_reader;
         for(int i=1; i<30; i++) fp.FTable[make_pair("T", i)] = SUNT_reader;
         for(int i=1; i<30; i++) fp.FTable[make_pair("TTRX", i)] = TTR_reader;
-        for(int i=1; i<30; i++) fp.FTable[make_pair("DG", i)] = DiracGamma_reader;
+        for(int i=1; i<30; i++) fp.FTable[make_pair("DG", i)] = DGamma_reader;
         fp.FTable[make_pair("GI", 0)] = gi_reader;
         fp.FTable[make_pair("GI", 1)] = gi_reader;
         ex ret = fp.Read(ostr);
@@ -547,7 +547,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             return ret.subs(SP_map);
         } else if(form_expand_mode==form_expand_all) {
             auto cv_lst = mma_collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
-                return e.has(TR(w)) || SUNT::has(e) || SUNF::has(e) || SUNF4::has(e) || Index::has(e) || DiracGamma::has(e);
+                return e.has(TR(w)) || SUNT::has(e) || SUNF::has(e) || SUNF4::has(e) || Index::has(e) || DGamma::has(e);
             });
             lst to_lst;
             for(auto cv : cv_lst) to_lst.append(cv.op(1));
@@ -568,9 +568,9 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
      */
     ex charge_conjugate(const ex & expr) {
         if(expr.has(Matrix(w1,w2,w3))) throw Error("charge_conjugate: Matrix found.");
-        if(!DiracGamma::has(expr)) return expr;
-        if(is_a<DiracGamma>(expr)) {
-            DiracGamma g = ex_to<DiracGamma>(expr);
+        if(!DGamma::has(expr)) return expr;
+        if(is_a<DGamma>(expr)) {
+            DGamma g = ex_to<DGamma>(expr);
             if(is_a<Vector>(g.pi) || is_a<Index>(g.pi)) return -expr;
             else if(is_zero(g.pi-1) || is_zero(g.pi-5)) return expr;
         }
@@ -589,7 +589,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             for(int i=n-1; i>-1; i--) ret *= charge_conjugate(expr.op(i));
             return ret;
         }
-        cout << DiracGamma::has(expr) << " : " << expr << endl;
+        cout << DGamma::has(expr) << " : " << expr << endl;
         throw Error("charge_conjugate: unexpected region.");
         return 0;
     }

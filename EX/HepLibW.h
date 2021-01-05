@@ -51,7 +51,7 @@ public:
     bool isVector();
     bool isIndex();
     bool isPair();
-    bool isDiracGamma();
+    bool isDGamma();
     bool info(std::string sflags);
     expr map(MapFunction &mf);
     

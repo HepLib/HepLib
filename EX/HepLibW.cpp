@@ -42,7 +42,7 @@ bool expr::isSymbol() { return GiNaC::is_a<HepLib::Symbol>(_expr); }
 bool expr::isVector() { return GiNaC::is_a<HepLib::FC::Vector>(_expr); }
 bool expr::isIndex() { return GiNaC::is_a<HepLib::FC::Index>(_expr); }
 bool expr::isPair() { return GiNaC::is_a<HepLib::FC::Pair>(_expr); }
-bool expr::isDiracGamma() { return GiNaC::is_a<HepLib::FC::DiracGamma>(_expr); }
+bool expr::isDGamma() { return GiNaC::is_a<HepLib::FC::DGamma>(_expr); }
 
 bool expr::info(std::string sflags) {
     if (sflags == "numeric") return _expr.info(GiNaC::info_flags::numeric);

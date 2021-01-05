@@ -8,7 +8,7 @@
 #include "FC.h"
 
 /**
- * @brief namespace for Index, Vector, DiracGamma, etc.
+ * @brief namespace for Index, Vector, DGamma, etc.
  */
 namespace HepLib::Qgraf {
 

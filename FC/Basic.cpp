@@ -37,10 +37,10 @@ namespace HepLib::FC {
     OUT_FORMAT_IMPLEMENT(FormFormat)
     
     void FormFormat::power_print(const power & p, const FormFormat & c, unsigned level) {
-        if(p.op(1)==2 && !DiracGamma::has(p)) {
+        if(p.op(1)==2 && !DGamma::has(p)) {
             c << "((" << p.op(0) << ")*(" << p.op(0) << "))";
         } else {
-            c << "(" << p.op(0) << ")^(" << p.op(1) << ")";
+            c << "((" << p.op(0) << ")^(" << p.op(1) << "))";
         }
     }
     

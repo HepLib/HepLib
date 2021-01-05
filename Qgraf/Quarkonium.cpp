@@ -268,11 +268,11 @@ namespace HepLib::Qgraf {
                         } else if(pis[i].has(q)) throw Error("LProj: Eps still has q.");
                     }
                     return LC(pis[0], pis[1], pis[2], pis[3]) * cc;
-                } else if(is_a<DiracGamma>(e)) {
+                } else if(is_a<DGamma>(e)) {
                     Index idx(prefix+to_string(++lproj));
-                    auto g = ex_to<DiracGamma>(e);
+                    auto g = ex_to<DGamma>(e);
                     if(!g.pi.is_equal(q)) throw Error("LProj: g.pi is NOT q.");
-                    return DiracGamma(idx, g.rl) * SP(g.pi, idx);
+                    return DGamma(idx, g.rl) * SP(g.pi, idx);
                 } else if (e.match(TR(w))) {
                     auto ret = self(e.op(0));
                     ret = mma_collect(ret, q, true);

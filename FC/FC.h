@@ -8,7 +8,7 @@
 #include "IBP.h"
 
 /**
- * @brief namespace for Index, Vector, DiracGamma, etc.
+ * @brief namespace for Index, Vector, Dirac Gamma, etc.
  */
 namespace HepLib::FC {
 
@@ -25,6 +25,7 @@ namespace HepLib::FC {
     extern const Symbol nL;
     extern const Symbol nH;
     extern exmap SP_map;
+    extern exmap Apart_SignMap;
     
     extern int form_trace_mode;
     extern const int form_trace_all;
@@ -263,17 +264,17 @@ namespace HepLib::FC {
     ex LC(ex pi1, ex pi2, ex pi3, ex pi4);
     
     /**
-     * @brief class for DiracGamma object
+     * @brief class for DGamma object
      */
-    class DiracGamma : public basic {
-    GINAC_DECLARE_REGISTERED_CLASS(DiracGamma, basic)
+    class DGamma : public basic {
+    GINAC_DECLARE_REGISTERED_CLASS(DGamma, basic)
     public:
         ex pi;
         unsigned rl;
-        DiracGamma(const Vector &p, unsigned rl=0);
-        DiracGamma(const Index &i, unsigned rl=0);
-        DiracGamma(int int_1567, unsigned _rl=0);
-        DiracGamma(const DiracGamma &g, unsigned _rl);
+        DGamma(const Vector &p, unsigned rl=0);
+        DGamma(const Index &i, unsigned rl=0);
+        DGamma(int int_1567, unsigned _rl=0);
+        DGamma(const DGamma &g, unsigned _rl);
         void print(const print_dflt &c, unsigned level = 0) const;
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void fc_print(const FCFormat &c, unsigned level = 0) const;
@@ -292,7 +293,7 @@ namespace HepLib::FC {
         ex derivative(const symbol & s) const override;
         ex conjugate() const override;
     };
-    GINAC_DECLARE_UNARCHIVER(DiracGamma);
+    GINAC_DECLARE_UNARCHIVER(DGamma);
     
     //-----------------------------------------------------------
     // TR/GAS functions
@@ -302,8 +303,8 @@ namespace HepLib::FC {
     DECLARE_FUNCTION_1P(TTR)
     DECLARE_FUNCTION_1P(HF)
     
-    inline ex GAS(const Vector &p, unsigned rl=0) { return DiracGamma(p,rl); }
-    inline ex GAS(const Index &i, unsigned rl=0) { return DiracGamma(i,rl); }
+    inline ex GAS(const Vector &p, unsigned rl=0) { return DGamma(p,rl); }
+    inline ex GAS(const Index &i, unsigned rl=0) { return DGamma(i,rl); }
     ex GAS(const ex &expr, unsigned rl=0);
     
     // Form, TIR, Apart
@@ -311,7 +312,7 @@ namespace HepLib::FC {
     ex form(const ex &expr, int verb=0);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
-    ex Apart(const ex &expr_in, const lst &vars, exmap sign_map=exmap());
+    ex Apart(const ex &expr_in, const lst &vars);
     ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms);
     ex ApartIR2ex(const ex & expr_in);
     ex ApartIR2F(const ex & expr_in);

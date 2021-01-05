@@ -1897,13 +1897,16 @@ namespace HepLib {
         exmap map_rat;
         expr_in = expr_in.to_rational(map_rat);
         
-        lst rep_vs;
+        lst rep_vs, rep_vs2;
         for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
-            if(is_a<symbol>(*i)) rep_vs.append(*i);
+            if(is_a<symbol>(*i)) rep_vs2.append(*i);
         }
-        rep_vs.sort();
-        rep_vs.unique();
-        sort_lst(rep_vs);
+        rep_vs2.sort();
+        rep_vs2.unique();
+        auto rep_vs2_tot = rep_vs2.nops();
+        for(int i=0; i<rep_vs2_tot; i++) rep_vs2.let_op(i) = lst{rep_vs2.op(i).subs(map_rat),rep_vs2.op(i)};
+        sort_lst(rep_vs2);
+        for(auto item : rep_vs2) rep_vs.append(item.op(1));
                 
         exmap v2f, f2v;
         exmap nn_map;
@@ -2107,6 +2110,43 @@ namespace HepLib {
         auto num_den = fermat_numer_denom(expr);
         if(is_zero(num_den.op(1)-1)) return inner_form_factor(num_den.op(0));
         return inner_form_factor(num_den.op(0))/inner_form_factor(num_den.op(1));
+    }
+    
+    
+    //-----------------------------------------------------------
+    // FCFormat Output
+    //-----------------------------------------------------------
+    HepFormat::HepFormat(ostream &os, unsigned opt) : print_dflt(os, opt) {}
+    HepFormat::HepFormat() : print_dflt(std::cout) {}
+    GINAC_IMPLEMENT_PRINT_CONTEXT(HepFormat, print_dflt)
+    OUT_FORMAT_IMPLEMENT(HepFormat)
+    
+    void HepFormat::add_print(const add & a, const HepFormat & c, unsigned level) {
+        auto as = add2lst(a);
+        sort_lst(as);
+        auto cl = a.precedence();
+        bool first = true;
+        if(cl<=level) c.s << '(';
+        for(auto item : as) {
+            if(!first) c.s << "+";
+            item.print(c, cl);
+            first = false;
+        }
+        if(a.precedence()<=level) c.s << ')';
+    }
+    
+    void HepFormat::mul_print(const mul & m, const HepFormat & c, unsigned level) {
+        auto ms = mul2lst(m);
+        sort_lst(ms);
+        auto cl = m.precedence();
+        bool first = true;
+        if(cl<=level) c.s << '(';
+        for(auto item : ms) {
+            if(!first) c.s << "*";
+            item.print(c, cl);
+            first = false;
+        }
+        if(cl<=level) c.s << ')';
     }
     
 }

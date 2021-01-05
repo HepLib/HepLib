@@ -407,10 +407,9 @@ namespace HepLib::FC {
      * @brief Apart on ex
      * @param expr_in normal expresion, product of [ linear w.r.t. vars ]^n 
      * @param vars_in independent variables
-     * @param sign_map a map of vars to 1 or -1, key can be omited
      * @return sum of coefficient * ApartIR
      */
-    ex Apart(const ex &expr_in, const lst &vars_in, exmap sign_map) {
+    ex Apart(const ex &expr_in, const lst &vars_in) {
         exmap map1, map2;
         lst vars;
         for(int i=0; i<vars_in.nops(); i++) {
@@ -476,15 +475,15 @@ namespace HepLib::FC {
                 // consider sign
                 bool has_sgn = false;
                 for(auto v : vars) {
-                    if(pc.has(iEpsilon) && key_exists(sign_map,iEpsilon)) { // iEpsilon first
-                        ex sign = sign_map[iEpsilon]/pc.coeff(iEpsilon);
+                    if(pc.has(iEpsilon) && key_exists(Apart_SignMap,iEpsilon)) { // iEpsilon first
+                        ex sign = Apart_SignMap[iEpsilon]/pc.coeff(iEpsilon);
                         pref /= pow(sign, nc);
                         pc *= sign;
                         has_sgn = true;
                         break;
                     } else {
-                        if(is_zero(pc.coeff(v)) || !key_exists(sign_map,v.subs(map2))) continue;
-                        ex sign = sign_map[v.subs(map2)]/pc.coeff(v);
+                        if(is_zero(pc.coeff(v)) || !key_exists(Apart_SignMap,v.subs(map2))) continue;
+                        ex sign = Apart_SignMap[v.subs(map2)]/pc.coeff(v);
                         pref /= pow(sign, nc);
                         pc *= sign;
                         has_sgn = true;
@@ -543,9 +542,8 @@ namespace HepLib::FC {
         auto expr = expr_in;
         
         lst sps;
-        exmap sign;
         for(auto li : loops) {
-            sign[SP(li)] = -1;
+            Apart_SignMap[SP(li)] = -1;
             for(auto li2: loops) {
                 auto item = SP(li, li2).subs(SP_map);
                 if(is_a<Pair>(item)) sps.append(item);
@@ -560,10 +558,9 @@ namespace HepLib::FC {
         sort_lst(sps);
         
         auto cv_lst = mma_collect_lst(expr, loops);
-        sort_lst(cv_lst);
         ex res = 0;
         for(auto item : cv_lst) {
-            res += item.op(0) * Apart(item.op(1), sps, sign);
+            res += item.op(0) * Apart(item.op(1), sps);
         }
         
         // fermat_normal
@@ -618,7 +615,7 @@ namespace HepLib::FC {
                         for(int c=0; c<cc; c++) mat(r,c) = mat0(r,c);
                     }
                     for(int i=0; i<n; i++) {
-                        mat(i,cc) = 1;
+                        mat(i,cc) = (key_exists(Apart_SignMap,e.op(1).op(i)) ? Apart_SignMap[e.op(1).op(i)] : 1);
                         auto r = mat.rank();
                         if(r==n) break;
                         if(r==cc+1) cc++;
@@ -735,14 +732,22 @@ namespace HepLib::FC {
             auto vars = ex_to<lst>(item.op(1));
             lst pns;
             int nrow = mat.rows();
-            for(int c=0; c<mat.cols(); c++) {
+            for(int c=0; c<mat.cols()-cut_props.nops(); c++) {
                 ex pc = 0;
                 for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
                 pc += mat(nrow-2,c);
                 pc = SP2sp(pc);
                 pns.append(lst{ pc,ex(0)-mat(nrow-1,c) }); // note Apart and FIRE convension
             }
-            sort_lst(pns);
+            sort_lst(pns); // note the cut_props should NOT be sorted
+            for(int c=mat.cols()-cut_props.nops(); c<mat.cols(); c++) {
+                ex pc = 0;
+                for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
+                pc += mat(nrow-2,c);
+                pc = SP2sp(pc);
+                pns.append(lst{ pc,ex(0)-mat(nrow-1,c) }); // note Apart and FIRE convension
+            }
+            
             lst props, ns;
             for(auto item : pns) {
                 props.append(item.op(0));
