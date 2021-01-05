@@ -664,6 +664,7 @@ namespace HepLib::Qgraf {
      * @param qi anti-quark qgraf index
      * @param p anti-quark momentum vector
      * @param m anti-quark mass
+     * @param color true for QCD, false for QED
      * @return anti-Quark summation
      */
     ex AntiQuarkSumL(int qi, ex p, ex m, bool color) {

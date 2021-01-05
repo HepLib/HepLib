@@ -1,4 +1,8 @@
-
+/**
+ * @file
+ * @brief exfactor
+ */
+ 
 #include "ginac/ex.h"
 #include "ginac/numeric.h"
 #include "ginac/operators.h"

@@ -96,7 +96,6 @@ namespace HepLib {
     const Symbol FC::nH("nH");;
     
     exmap FC::SP_map;
-    exmap FC::Apart_SignMap;
     map<ex,string,ex_is_less> Qgraf::LineTeX; // key is the filed
     map<ex,string,ex_is_less> Qgraf::VerTeX; // key is the fileds in vertex
     map<ex,string,ex_is_less> Qgraf::InOutTeX; // key is the id, id<0

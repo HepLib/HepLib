@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Basic/Useful Functions
+ */
+ 
 #include "BASIC.h"
 
 namespace HepLib {

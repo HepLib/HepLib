@@ -1,4 +1,8 @@
-/* File: HepLib.i */
+/**
+ * @file
+ * @brief Wrap Class for SWIG
+ */
+ 
 %module(directors="1") HepLib
 
 %feature("director") MapFunction;

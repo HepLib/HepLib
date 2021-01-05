@@ -663,7 +663,7 @@ namespace HepLib {
     
     /**
      * @brief export expression file 
-     * @param the input expression
+     * @param expr the input expression
      * @param filename file name
      * @return the file content in ex
      */

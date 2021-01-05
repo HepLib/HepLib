@@ -409,7 +409,44 @@ namespace HepLib::FC {
      * @param vars_in independent variables
      * @return sum of coefficient * ApartIR
      */
-    ex Apart(const ex &expr_in, const lst &vars_in) {
+    ex Apart(const ex &expr_ino, const lst &vars_in, exmap sgnmap) {
+        // Apart on rational terms
+        if(!is_a<lst>(expr_ino)) {
+            auto cv_lst = mma_collect_lst(expr_ino, vars_in);
+            ex res = 0;
+            for(auto item : cv_lst) res += item.op(0) * Apart(lst{item.op(1)}, vars_in, sgnmap);
+            
+            // fermat_normal
+            cv_lst = mma_collect_lst(res, ApartIR(w1,w2));
+            res = 0;
+            for(auto cv : cv_lst) res += fermat_normal(cv.op(0)) * cv.op(1);
+
+            // random check
+            lst nlst;
+            for(const_preorder_iterator i = res.preorder_begin(); i != res.preorder_end(); ++i) {
+                auto e = (*i);
+                if(is_a<symbol>(e) || is_a<Pair>(e)) nlst.append(e);
+            }
+            for(auto var : vars_in) nlst.append(var);
+            nlst.sort();
+            nlst.unique();
+            exmap nrepl;
+            auto pi = cln::nextprobprime(3);
+            for(auto ni : nlst) {
+                pi = cln::nextprobprime(pi+1);
+                nrepl[ni] = ex(1)/numeric(pi);
+            }
+            nrepl[iEpsilon]=0;
+            ex chk = ApartIR2ex(subs(res,nrepl))-subs(expr_ino,nrepl);
+            chk = normal(chk);
+            if(!is_zero(chk)) throw Error("Apart@1 random check Failed.");
+            return res;
+        }
+        
+        // Apart on monomial term
+        if(expr_ino.nops()!=1) throw Error("Apart: wrong convention found!");
+        ex expr_in = expr_ino.op(0);
+    
         exmap map1, map2;
         lst vars;
         for(int i=0; i<vars_in.nops(); i++) {
@@ -475,15 +512,15 @@ namespace HepLib::FC {
                 // consider sign
                 bool has_sgn = false;
                 for(auto v : vars) {
-                    if(pc.has(iEpsilon) && key_exists(Apart_SignMap,iEpsilon)) { // iEpsilon first
-                        ex sign = Apart_SignMap[iEpsilon]/pc.coeff(iEpsilon);
+                    if(pc.has(iEpsilon) && key_exists(sgnmap,iEpsilon)) { // iEpsilon first
+                        ex sign = sgnmap[iEpsilon]/pc.coeff(iEpsilon);
                         pref /= pow(sign, nc);
                         pc *= sign;
                         has_sgn = true;
                         break;
                     } else {
-                        if(is_zero(pc.coeff(v)) || !key_exists(Apart_SignMap,v.subs(map2))) continue;
-                        ex sign = Apart_SignMap[v.subs(map2)]/pc.coeff(v);
+                        if(is_zero(pc.coeff(v)) || !key_exists(sgnmap,v.subs(map2))) continue;
+                        ex sign = sgnmap[v.subs(map2)]/pc.coeff(v);
                         pref /= pow(sign, nc);
                         pc *= sign;
                         has_sgn = true;
@@ -542,8 +579,9 @@ namespace HepLib::FC {
         auto expr = expr_in;
         
         lst sps;
+        exmap sgnmap;
         for(auto li : loops) {
-            Apart_SignMap[SP(li)] = -1;
+            sgnmap[SP(li)] = -1;
             for(auto li2: loops) {
                 auto item = SP(li, li2).subs(SP_map);
                 if(is_a<Pair>(item)) sps.append(item);
@@ -560,7 +598,7 @@ namespace HepLib::FC {
         auto cv_lst = mma_collect_lst(expr, loops);
         ex res = 0;
         for(auto item : cv_lst) {
-            res += item.op(0) * Apart(item.op(1), sps);
+            res += item.op(0) * Apart(lst{item.op(1)}, sps, sgnmap);
         }
         
         // fermat_normal
@@ -585,7 +623,7 @@ namespace HepLib::FC {
         nrepl[iEpsilon]=0;
         ex chk = ApartIR2ex(subs(res,nrepl))-subs(expr_in,nrepl);
         chk = normal(chk);
-        if(!is_zero(chk)) throw Error("Apart random check Failed.");
+        if(!is_zero(chk)) throw Error("Apart@2 random check Failed.");
         
         return res;
     }
@@ -615,7 +653,7 @@ namespace HepLib::FC {
                         for(int c=0; c<cc; c++) mat(r,c) = mat0(r,c);
                     }
                     for(int i=0; i<n; i++) {
-                        mat(i,cc) = (key_exists(Apart_SignMap,e.op(1).op(i)) ? Apart_SignMap[e.op(1).op(i)] : 1);
+                        mat(i,cc) = 1;
                         auto r = mat.rank();
                         if(r==n) break;
                         if(r==cc+1) cc++;

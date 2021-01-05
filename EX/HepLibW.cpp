@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Wrap Class for SWIG
+ */
+
 #include "HepLibW.h"
 
 expr::expr() { _expr = 0; }

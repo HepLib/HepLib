@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Class/Function for Process
+ */
+
 #include "BASIC.h"
 #include <fstream>
 

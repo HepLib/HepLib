@@ -25,7 +25,6 @@ namespace HepLib::FC {
     extern const Symbol nL;
     extern const Symbol nH;
     extern exmap SP_map;
-    extern exmap Apart_SignMap;
     
     extern int form_trace_mode;
     extern const int form_trace_all;
@@ -312,7 +311,7 @@ namespace HepLib::FC {
     ex form(const ex &expr, int verb=0);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
-    ex Apart(const ex &expr_in, const lst &vars);
+    ex Apart(const ex &expr_in, const lst &vars, exmap sgnmap={});
     ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms);
     ex ApartIR2ex(const ex & expr_in);
     ex ApartIR2F(const ex & expr_in);
