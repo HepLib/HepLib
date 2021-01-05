@@ -499,7 +499,7 @@ namespace HepLib::FC {
                         break;
                     }
                 }
-                pnlst.append(lst{pc,nc});
+                pnlst.append(lst{ pc, nc });
             } else pref *= item;
         }
         sort_lst(pnlst);
@@ -596,8 +596,8 @@ namespace HepLib::FC {
      * @param cut_props cut propagators, default is { }
      * @return ApartIR with complete matrix rank, ready for IBP reduction
      */
-    ex ApartIRC(const ex & expr_in, const ex & cut_props) {
-        return MapFunction([cut_props](const ex & e, MapFunction &self)->ex {
+    ex ApartIRC(const ex & expr_in) {
+        return MapFunction([](const ex & e, MapFunction &self)->ex {
             if(!e.has(ApartIR(w1,w2))) return e;
             else if(e.match(ApartIR(w1,w2))) {
                 int n = e.op(1).nops();
@@ -627,27 +627,7 @@ namespace HepLib::FC {
                         for(int c=0; c<mat0.cols(); c++) mat(r,c) = mat0(r,c);
                     }
                 }
-                if(cut_props.nops()>0) {
-                    int ncp = cut_props.nops();
-                    int nr = mat.rows();
-                    int nc = mat.cols();
-                    matrix mat2(ncp+nr, ncp+nc);
-                    for(int c=0; c<nc; c++) {
-                        for(int r=0; r<ncp; r++) mat2(r, c+ncp) = 0;
-                        for(int r=0; r<nr; r++) mat2(r+ncp, c+ncp) = mat(r,c);
-                    }
-                    lst vs2;
-                    for(int c=0; c<ncp; c++) {
-                        for(int r=0; r<nr+ncp; r++) mat2(r, c) = 0;
-                        mat2(c,c) = 1;
-                        mat2(nr+ncp-1,c) = -1;
-                        vs2.append(cut_props.op(c));
-                    }
-                    for(auto ni : e.op(1)) vs2.append(ni);
-                    return ApartIR(mat2, vs2);
-                } else {
-                    return ApartIR(mat, e.op(1));
-                }
+                return ApartIR(mat, e.op(1));
             } else return e.map(self);
         })(expr_in);
     }
@@ -678,7 +658,7 @@ namespace HepLib::FC {
         }
         
         auto air_intg = 
-        GiNaC_Parallel(air_vec.size(), [aparted,air_vec,loops_exts,cut_props] (int idx) {
+        GiNaC_Parallel(air_vec.size(), [aparted,air_vec,loops_exts] (int idx) {
             auto air = air_vec[idx];
             if(!aparted) {
                 lst lmom = ex_to<lst>(loops_exts.op(0));
@@ -686,7 +666,7 @@ namespace HepLib::FC {
                 air = Apart(air,lmom,emom);
             }
             air = air.subs(SP_map);            
-            air = ApartIRC(air, cut_props.subs(SP_map));
+            air = ApartIRC(air);
             exset intg;
             find(air, ApartIR(w1, w2), intg);
             lst intgs;
@@ -706,9 +686,7 @@ namespace HepLib::FC {
             for(auto item : intg) intg_sort.push_back(item);
             sort_vec(intg_sort);
         }
-        
-        if(Verbose>0) cout << "  \\--Total Integrals: " << intg_sort.size() << " @ " << now(false) << endl;
-        
+                
         lst repls;
         auto sps = sp_map();
         for(auto kv : sps) repls.append(kv.first == kv.second);
@@ -732,21 +710,15 @@ namespace HepLib::FC {
             auto vars = ex_to<lst>(item.op(1));
             lst pns;
             int nrow = mat.rows();
-            for(int c=0; c<mat.cols()-cut_props.nops(); c++) {
+            for(int c=0; c<mat.cols(); c++) {
                 ex pc = 0;
                 for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
                 pc += mat(nrow-2,c);
                 pc = SP2sp(pc);
-                pns.append(lst{ pc,ex(0)-mat(nrow-1,c) }); // note Apart and FIRE convension
+                pns.append(lst{ pc, ex(0)-mat(nrow-1,c) }); // note the convension
             }
-            sort_lst(pns); // note the cut_props should NOT be sorted
-            for(int c=mat.cols()-cut_props.nops(); c<mat.cols(); c++) {
-                ex pc = 0;
-                for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
-                pc += mat(nrow-2,c);
-                pc = SP2sp(pc);
-                pns.append(lst{ pc,ex(0)-mat(nrow-1,c) }); // note Apart and FIRE convension
-            }
+            sort_lst(pns);
+            for(auto cut : cut_props) pns.prepend(lst{ SP2sp(item.subs(SP_map)), 1 });
             
             lst props, ns;
             for(auto item : pns) {
@@ -760,7 +732,7 @@ namespace HepLib::FC {
                 else if(IBPmethod==1) ibp = new FIRE();
                 else if(IBPmethod==2) ibp = new KIRA();
                 else {
-                    ibp = ibp = new Base();
+                    ibp = new Base();
                     IBPmethod = 0;
                 }
                 
@@ -782,7 +754,7 @@ namespace HepLib::FC {
             IR2F[item] = F(ibp->ProblemNumber, ns);
         }
         
-        if(Verbose>0) cout << "  \\--Total Problems: " << ibp_vec.size() << " @ " << now(false) << endl;
+        if(Verbose>0) cout << "  \\--Total Ints/Pros: " << intg_sort.size() << "/" << ibp_vec.size() << " @ " << now(false) << endl;
         
         vector<Base*> base_vec;
         for(auto ibp : ibp_vec) base_vec.push_back(ibp);
@@ -843,12 +815,9 @@ namespace HepLib::FC {
         
         if(IBPmethod==1) {
             for(auto ibp : ibp_vec_re) ibp->Export();
-            auto nproc = CpuCores()/FIRE::Threads;
-            if(nproc>16) {
-                nproc = 16;
-                FIRE::Threads = omp_get_num_procs()/16;
-            }
+            auto nproc = 2*CpuCores()/FIRE::Threads;
             int cproc = 0;
+            if(nproc<2) nproc = 2;
             #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
             for(int pi=0; pi<ibp_vec_re.size(); pi++) {
                 if(Verbose>1) {

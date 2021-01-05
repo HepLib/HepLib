@@ -730,7 +730,7 @@ namespace HepLib {
      * @param exvec input lst
      * @return exvector
      */
-    exvector lst2exvec(const lst & alst) {
+    exvector lst2vec(const lst & alst) {
         exvector ret;
         for(auto item : alst) ret.push_back(item);
         return ret;
@@ -1531,30 +1531,36 @@ namespace HepLib {
     long long node_number(const ex & expr, int level) {
         if(expr.nops()<1) return level+1;
         long long tot = 0;
-        for(auto item : expr) tot += level+node_number(item,level+1);
+        for(auto item : expr) tot += node_number(item,level+1)+level;
         return tot;
     }
     
     bool ex_less(const ex &a, const ex &b) {
     
         if(a.is_equal(b)) return false;
-    
+        
         // numeric
-        if(is_a<numeric>(a) && is_a<numeric>(b)) return (ex_to<numeric>(a) < ex_to<numeric>(b));
+        if(is_a<numeric>(a) && is_a<numeric>(b)) return (evalf(a-b)<0);
         if(is_a<numeric>(a)) return true;
         if(is_a<numeric>(b)) return false;
+        
+        // symbol
+        if(is_a<symbol>(a) && is_a<symbol>(b)) return (ex2str(a) < ex2str(b));
+        if(is_a<symbol>(a)) return true;
+        if(is_a<symbol>(b)) return false;
         
         // matrix
         if(is_a<matrix>(a) && is_a<matrix>(b)) {
             auto ma = ex_to<matrix>(a);
             auto mb = ex_to<matrix>(b);
-            if(ma.rows() != mb.rows()) return (ma.rows() < mb.rows());
             if(ma.cols() != mb.cols()) return (ma.cols() < mb.cols());
-            for(int r=0; r<ma.rows(); r++) {
+            if(ma.rows() != mb.rows()) return (ma.rows() < mb.rows());
             for(int c=0; c<ma.cols(); c++) {
+            for(int r=0; r<ma.rows(); r++) {
                 if(is_zero(ma(r,c)-mb(r,c))) continue;
                 return ex_less(ma(r,c),mb(r,c));
             }}
+            return false;
         }
         if(is_a<matrix>(b)) return true;
         if(is_a<matrix>(a)) return false;
@@ -1568,17 +1574,12 @@ namespace HepLib {
                 if(is_zero(a.op(i)-b.op(i))) continue;
                 return ex_less(a.op(i), b.op(i));
             }
+            return false;
         }
         if(is_a<lst>(b)) return true;
         if(is_a<lst>(a)) return false;
         
-        // node_number - high priority
-        auto na = node_number(a);
-        auto nb = node_number(b);
-        if(na!=nb) return (na < nb);
-
         // atomic
-        static ex_is_less eil;
         auto an = a.nops();
         auto bn = b.nops();
         if(an==0 && bn==0) {
@@ -1587,7 +1588,14 @@ namespace HepLib {
             auto nc = na.compare(nb);
             if(nc<0) return true;
             else if(nc>0) return false;
-            else return eil(a,b);
+            else return (ex2str(a) < ex2str(b));
+        }
+        
+        // power
+        if(is_a<GiNaC::power>(a) && is_a<GiNaC::power>(b)) {
+            if(!is_zero(a.op(0)-b.op(0))) return ex_less(a.op(0),b.op(0));
+            if(!is_zero(a.op(1)-b.op(1))) return ex_less(a.op(1),b.op(1));
+            return false;
         }
         
         // function
@@ -1598,6 +1606,11 @@ namespace HepLib {
             if(nc<0) return true;
             else if(nc>0) return false;
             if(an!=bn) return (an < bn);
+            for(int i=0; i<an; i++) {
+                if(is_zero(a.op(i)-b.op(i))) continue;
+                return ex_less(a.op(i), b.op(i));
+            }
+            return false;
         }
         
         // add
@@ -1606,13 +1619,15 @@ namespace HepLib {
             auto bs = add2lst(b);
             auto na = as.nops();
             auto nb = bs.nops();
-            if(na!=nb) return (na<nb);
             sort_lst(as,false);
             sort_lst(bs,false);
-            for(int i=0; i<na; i++) {
-                if(is_zero(a.op(i)-b.op(i))) continue;
-                return !ex_less(b.op(i), a.op(i));
+            int nn = ((na>nb) ? nb : na);
+            for(int i=0; i<nn; i++) {
+                if(is_zero(as.op(i)-bs.op(i))) continue;
+                return ex_less(as.op(i), bs.op(i));
             }
+            if(na!=nb) return (na<nb);
+            return false;
         }
         
         // mul
@@ -1621,30 +1636,37 @@ namespace HepLib {
             auto bs = mul2lst(b);
             auto na = as.nops();
             auto nb = bs.nops();
-            if(na!=nb) return (na<nb);
             sort_lst(as,false);
             sort_lst(bs,false);
-            for(int i=0; i<na; i++) {
-                if(is_zero(a.op(i)-b.op(i))) continue;
-                return !ex_less(b.op(i), a.op(i));
+            int nn = ((na>nb) ? nb : na);
+            for(int i=0; i<nn; i++) {
+                if(is_zero(as.op(i)-bs.op(i))) continue;
+                return ex_less(as.op(i), bs.op(i));
             }
+            if(na!=nb) return (na<nb);
+            return false;
         }
         
-        if(true) {
-            string na = a.return_type_tinfo().tinfo->name();
-            string nb = b.return_type_tinfo().tinfo->name();
-            auto nc = na.compare(nb);
-            if(nc<0) return true;
-            else if(nc>0) return false;
-        }
+        // type
+        string tna = a.return_type_tinfo().tinfo->name();
+        string tnb = b.return_type_tinfo().tinfo->name();
+        auto tnc = tna.compare(tnb);
+        if(tnc<0) return true;
+        else if(tnc>0) return false;
         
+        // node_number
+        auto nna = node_number(a);
+        auto nnb = node_number(b);
+        if(nna!=nnb) return (nna < nnb);
+                
+        // all others
         if(an!=bn) return (an<bn);
         for(int i=0; i<an; i++) {
             if(is_zero(a.op(i)-b.op(i))) continue;
             return ex_less(a.op(i), b.op(i));
         }
         
-        return eil(a,b);
+        return (ex2str(a) < ex2str(b));
     }
      
      /**
@@ -1653,7 +1675,7 @@ namespace HepLib {
       * @param less true for less order
       */
      void sort_lst(lst & ilst, bool less) {
-        auto ivec = lst2exvec(ilst);
+        auto ivec = lst2vec(ilst);
         std::sort(ivec.begin(), ivec.end(), ex_less);
         auto n = ivec.size();
         if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
@@ -1667,7 +1689,7 @@ namespace HepLib {
       * @param less true for less order
       */
      void sort_lst_by(lst & ilst, int ki, bool less) {
-        auto ivec = lst2exvec(ilst);
+        auto ivec = lst2vec(ilst);
         std::sort(ivec.begin(), ivec.end(), [ki](const auto &as, const auto &bs){
             return ex_less(as.op(ki),bs.op(ki));
         });
@@ -1905,7 +1927,7 @@ namespace HepLib {
         rep_vs2.unique();
         auto rep_vs2_tot = rep_vs2.nops();
         for(int i=0; i<rep_vs2_tot; i++) rep_vs2.let_op(i) = lst{rep_vs2.op(i).subs(map_rat),rep_vs2.op(i)};
-        sort_lst(rep_vs2);
+        sort_lst_by(rep_vs2,0);
         for(auto item : rep_vs2) rep_vs.append(item.op(1));
                 
         exmap v2f, f2v;

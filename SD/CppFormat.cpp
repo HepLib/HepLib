@@ -31,13 +31,16 @@ void CppFormat::print_real(const CppFormat & c, const cln::cl_R & x) {
         if (cln::plusp(x)) {
             c.s << "(";
             print_integer(c, numer);
+            c.s << "/";
+            print_integer(c, denom);
+            c.s << ")";
         } else {
-            c.s << "-(";
+            c.s << "(-(";
             print_integer(c, -numer);
+            c.s << "/";
+            print_integer(c, denom);
+            c.s << "))";
         }
-        c.s << "/";
-        print_integer(c, denom);
-        c.s << ")";
     } else {
         if(c.suffix=="MP") c.s << "mpREAL(" << c.MQuote;
         cln::cl_print_flags ourflags;

@@ -32,9 +32,8 @@ namespace HepLib::IBP {
         lst xRepl;
         map<ex,vector<int>,ex_is_less> pgrp;
         if(!expr.is_polynomial(xs)) {
-            expr = expr.normal();
             expr = expr.numer_denom();
-            if(!expr.is_polynomial(xs)) {
+            if(true || !expr.op(0).is_polynomial(xs) || !expr.op(1).is_polynomial(xs)) {
                 isPoly = false;
                 xRepl = xs;
                 for(int i=0; i<xs.nops(); i++) pgrp[-1].push_back(i); // all permuations
@@ -291,7 +290,7 @@ namespace HepLib::IBP {
                 const Base & fi = *(fs[idx]); // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.MasterIntegrals) {
-                    uf_mi_lst.append(lst{ uf(fi,mi.subs(F(w1,w2)==w2)), mi });
+                    uf_mi_lst.append(lst{ expand(uf(fi,mi.subs(F(w1,w2)==w2))), mi });
                 }
                 return uf_mi_lst;
             }, "MRules");
@@ -300,17 +299,18 @@ namespace HepLib::IBP {
                 const Base & fi = *(fs[idx]); // only here
                 lst uf_mi_lst;
                 for(auto mi : fi.Integrals) {
-                    uf_mi_lst.append(lst{ uf(fi,mi), F(fi.ProblemNumber,mi) });
+                    uf_mi_lst.append(lst{ expand(uf(fi,mi)), F(fi.ProblemNumber,mi) });
                 }
                 return uf_mi_lst;
             }, "FRules");
         }
-    
+            
         map<ex,lst,ex_is_less> group;
         int ntotal = 0;
         for(auto item1 : uf_mi_vec) {
             for(auto item : item1) {
-                group[item.op(0)].append(item.op(1));
+                ex key = (item.op(0));
+                group[key].append(item.op(1));
                 ntotal++;
             }
         }

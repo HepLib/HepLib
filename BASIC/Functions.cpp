@@ -252,6 +252,7 @@ namespace HepLib {
     
     bool isSorted(const lst & exs) {
         for(int i=0; i<exs.nops()-1; i++) {
+            if(is_zero(exs.op(i)-exs.op(i+1))) continue;
             if(!ex_less(exs.op(i),exs.op(i+1))) return false;
         }
         return true;
@@ -259,6 +260,7 @@ namespace HepLib {
     
     bool isSorted(int n, const ex exs[]) {
         for(int i=0; i<n-1; i++) {
+            if(is_zero(exs[i]-exs[i+1])) continue;
             if(!ex_less(exs[i],exs[i+1])) return false;
         }
         return true;

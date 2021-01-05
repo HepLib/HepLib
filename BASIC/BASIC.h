@@ -310,7 +310,7 @@ namespace HepLib {
     ex q2ex(__float128);
     __float128 ex2q(ex);
     lst exvec2lst(const exvector & exvec);
-    exvector lst2exvec(const lst & alst);
+    exvector lst2vec(const lst & alst);
     lst add2lst(const ex & expr);
     lst mul2lst(const ex & expr);
     lst xlst(int ei);
