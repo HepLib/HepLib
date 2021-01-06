@@ -46,6 +46,7 @@ lst classname::all(const ex &e) { \
     }; \
     const classname & operator << (const basic & v) const; \
     const classname & operator << (const ex & v) const; \
+    const classname & operator << (const lst & v) const; \
     const classname & operator<<(std::ostream& (*v)(std::ostream&)) const;
 
 #define OUT_FORMAT_IMPLEMENT(classname) \
@@ -54,6 +55,10 @@ lst classname::all(const ex &e) { \
         return *this; \
     } \
     const classname & classname::operator << (const ex & v) const { \
+        v.print(*this); \
+        return *this; \
+    } \
+    const classname & classname::operator << (const lst & v) const { \
         v.print(*this); \
         return *this; \
     } \

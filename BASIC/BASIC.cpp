@@ -2170,7 +2170,7 @@ namespace HepLib {
     HepFormat::HepFormat() : print_dflt(std::cout) {}
     GINAC_IMPLEMENT_PRINT_CONTEXT(HepFormat, print_dflt)
     OUT_FORMAT_IMPLEMENT(HepFormat)
-    
+        
     void HepFormat::add_print(const add & a, const HepFormat & c, unsigned level) {
         auto as = add2lst(a);
         sort_lst(as);
