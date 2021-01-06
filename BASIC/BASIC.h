@@ -724,6 +724,11 @@ namespace HepLib {
         static void add_print(const add & a, const HepFormat & c, unsigned level=0);
         static void mul_print(const mul & m, const HepFormat & c, unsigned level=0);
         OUT_FORMAT_DECLARE(HepFormat)
+        
+        const HepFormat & operator << (const exvector & v) const;
+        const HepFormat & operator << (const exmap & v) const;
+        const HepFormat & operator << (const exset & v) const;
+        
         /**
          * @brief inner class for some static initializations
          */

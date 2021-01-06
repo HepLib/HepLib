@@ -2215,4 +2215,51 @@ namespace HepLib {
         if(cl<=level) c.s << ')';
     }
     
+    const HepFormat & HepFormat::operator << (const exvector & e) const {
+        auto i = e.begin();
+        auto vend = e.end();
+        if (i==vend) { s << "[]"; return *this; }
+        s << "[";
+        while (true) {
+            i->print(*this);
+            ++i;
+            if(i==vend) break;
+            s << ",";
+        }
+        s << "]";
+        return *this;
+    }
+
+    const HepFormat & HepFormat::operator << (const exset & e) const {
+        auto i = e.begin();
+        auto send = e.end();
+        if (i==send) { s << "<>"; return *this; }
+        s << "<";
+        while (true) {
+            i->print(*this);
+            ++i;
+            if(i==send) break;
+            s << ",";
+        }
+        s << ">";
+        return *this;
+    }
+
+    const HepFormat & HepFormat::operator << (const exmap & e) const {
+        auto i = e.begin();
+        auto mend = e.end();
+        if (i==mend) { s << "{}"; return *this; }
+        s << "{";
+        while (true) {
+            i->first.print(*this);
+            s << "==";
+            i->second.print(*this);
+            ++i;
+            if(i==mend) break;
+            s << ",";
+        }
+        s << "}";
+        return *this;
+    }
+    
 }
