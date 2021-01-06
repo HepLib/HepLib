@@ -507,6 +507,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
     /**
      * @brief evalulate expr in form program, see also the form_trace_mode and form_expand_mode
      * @param expr the input expression
+     * @param verb for verb output
      * @return result with index contract, trace performed, etc.
      */
     ex form(const ex &expr, int verb) {

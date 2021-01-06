@@ -134,6 +134,7 @@ namespace HepLib::Qgraf {
          * @brief Color-Octet Projector 
          * @param i quark qgraf index
          * @param j anti-quark qgraf index
+         * @param a the color index
          * @return Color-Octet Projector
          */
         ex ColorProj(int i, int j, Index a) {
@@ -162,7 +163,7 @@ namespace HepLib::Qgraf {
          * @param si spin index
          * @param qi q-vector index
          * @param mu spin index
-         * @param total momentum
+         * @param p total momentum
          * @return S-L with total spin 1 
          */
         ex S1L1Proj(ex si, ex qi, ex mu, ex p) {
@@ -175,7 +176,7 @@ namespace HepLib::Qgraf {
          * @param qi q-vector index
          * @param mu1 spin-2 index
          * @param mu2 spin-2 index
-         * @param total momentum
+         * @param p total momentum
          * @return S-L with total spin 2
          */
         ex S1L1Proj(ex si, ex qi, ex mu1, ex mu2, ex p) {
@@ -188,7 +189,7 @@ namespace HepLib::Qgraf {
          * @param qi1 q1-vector index
          * @param qi2 q2-vector index
          * @param mu spin index
-         * @param total momentum
+         * @param p total momentum
          * @return S-L with total spin 1
          */
         ex S1L2Proj(ex si, ex qi1, ex qi2, ex mu, ex p) {
@@ -202,7 +203,7 @@ namespace HepLib::Qgraf {
          * @param qi2 q2-vector index
          * @param mu1 spin-2 index
          * @param mu2 spin-2 index
-         * @param total momentum
+         * @param p total momentum
          * @return S-L with total spin L
          */
         ex S1L2Proj(ex si, ex qi1, ex qi2, ex mu1, ex mu2, ex p) {
@@ -376,6 +377,7 @@ namespace HepLib::Qgraf {
          * @brief n-massless body phase space
          * https://arxiv.org/abs/hep-ph/0311276v1
          * @param n the number of massless particles
+         * @param q2 the squared total momentum
          * @return integrated phase space
          */
         ex nPS(int n, ex q2) {
@@ -392,7 +394,7 @@ namespace HepLib::Qgraf {
          * https://arxiv.org/abs/hep-ph/0311276v1
          * @param moms momentum in phase space
          * @param amp input amplitudes
-         * @param si start index, -1 for automatically detect
+         * @param si_in start index, -1 for automatically detect
          * @param q2 refers to q^2, total invarant mass 
          * @return amp * PS2/3/4, for PS4, a list will be returned
          */

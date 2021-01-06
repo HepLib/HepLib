@@ -405,8 +405,9 @@ namespace HepLib::FC {
 
     /**
      * @brief Apart on ex
-     * @param expr_in normal expresion, product of [ linear w.r.t. vars ]^n 
+     * @param expr_ino normal expresion, product of [ linear w.r.t. vars ]^n
      * @param vars_in independent variables
+     * @param sgnmap the sign map
      * @return sum of coefficient * ApartIR
      */
     ex Apart(const ex &expr_ino, const lst &vars_in, exmap sgnmap) {
@@ -569,7 +570,7 @@ namespace HepLib::FC {
     
     /**
      * @brief Apart on ex
-     * @param expr_in input expression
+     * @param expr_ino input expression
      * @param loops list of loop Vector
      * @param extps list of external Vector
      * @return sum of coefficient * ApartIR
@@ -581,7 +582,7 @@ namespace HepLib::FC {
         lst sps;
         exmap sgnmap;
         for(auto li : loops) {
-            sgnmap[SP(li)] = -1;
+            sgnmap[SP(li)] = 1;
             for(auto li2: loops) {
                 auto item = SP(li, li2).subs(SP_map);
                 if(is_a<Pair>(item)) sps.append(item);
@@ -631,7 +632,6 @@ namespace HepLib::FC {
     /**
      * @brief complete the ApartIR elements
      * @param expr_in input expression
-     * @param cut_props cut propagators, default is { }
      * @return ApartIR with complete matrix rank, ready for IBP reduction
      */
     ex ApartIRC(const ex & expr_in) {
@@ -676,6 +676,7 @@ namespace HepLib::FC {
      * @param air_vec vector contains aparted input, ApartIRC will be call internally 
      * @param loops_exts lst { loop vectors, external vectors, }
      * @param cut_props cut propagators, default is { }
+     * @param uf the function to compute UF polynomial
      * @return nothing returned, the input air_vec will be updated
      */
     void ApartIBP(int IBPmethod, exvector &air_vec, const lst & loops_exts, const lst & cut_props, 

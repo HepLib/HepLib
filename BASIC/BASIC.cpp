@@ -200,7 +200,7 @@ namespace HepLib {
                 cout << "\r                                                   \r" << pre;
                 cout << "\\--Evaluating ";
                 if(key != "") cout << Color_HighLight << key << RESET << " ";
-                cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] " << flush;
+                cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] " << "@" << now(false) << flush;
             }
             
             auto pid = fork();
@@ -236,17 +236,20 @@ namespace HepLib {
         auto cpid = getpid();
         if(cpid!=ppid) exit(0); // make sure child exit
         while (waitpid(-pgid,NULL,0) != -1) { }
-        if(Verbose > 1 && ntotal > 0) cout << "@" << now(false) << endl;
+        if(ntotal > 0) {
+            if(Verbose > 10) cout << endl;
+            else if(Verbose > 1) cout << "\r                                                   \r" << flush;
+        }
 
         vector<ex> ovec;
         for(int bi=0; bi<btotal; bi++) {
             if(Verbose > 1) {
                 if(key == "") {
                     cout << "\r                                                   \r" << pre;
-                    cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] " << flush;
+                    cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] " << "@" << now(false) << flush;
                 } else {
                     cout << "\r                                                   \r" << pre;
-                    cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] " << flush;
+                    cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] " << "@" << now(false) << flush;
                 }
             }
 
@@ -266,14 +269,16 @@ namespace HepLib {
             cmd << "rm -fr " << ppid;
             system(cmd.str().c_str());
         }
-        if(Verbose > 1 && ntotal > 0) cout << "@" << now(false) << endl;
+        if(ntotal > 0) {
+            if(Verbose > 10) cout << endl;
+            else if(Verbose > 1) cout << "\r                                                   \r" << flush;
+        }
         return ovec;
     }
     
     /**
      * @brief get the symbol from symbol factory, if not exsit, a new one will be created
      * @param s the name of the symbol
-     * @param check true to check exist, and if so, error will be thrown
      * @return return the found/created symbol
      */
     const symbol & get_symbol(const string & s) {
@@ -530,6 +535,7 @@ namespace HepLib {
     /**
      * @brief garWrite to write the string-key map to the archive
      * @param garfn ginac archive filename for output
+     * @param resMap a key-valued map
      */
     void garWrite(const string &garfn, const map<string, ex> &resMap) {
         archive ar;
@@ -727,7 +733,7 @@ namespace HepLib {
     
     /**
      * @brief convert lst to exvector
-     * @param exvec input lst
+     * @param alst input lst
      * @return exvector
      */
     exvector lst2vec(const lst & alst) {
@@ -968,7 +974,6 @@ namespace HepLib {
      * @brief the expand like Mathematica
      * @param expr_in input expression
      * @param pats only expand the element e, when e has at least one pattern in pats is true
-     * @param depth will be incresed by 1 when each recursively called
      * @return the expanded expression
      */
     ex mma_expand(ex const &expr_in, lst const &pats) {
@@ -984,7 +989,6 @@ namespace HepLib {
      * @brief the expand like Mathematica
      * @param expr_in input expression
      * @param pat only expand the element e, when e has the pattern: pat
-     * @param depth will be incresed by 1 when each recursively called
      * @return the expanded expression
      */
     ex mma_expand(ex const &expr_in, const ex &pat) {
@@ -1373,7 +1377,8 @@ namespace HepLib {
     /**
      * @brief remove the last in index1-th.index2-th of expression
      * @param ex_in input expression will be update
-     * @param index the index
+     * @param index1 the index
+     * @param index2 the index
      */
     void let_op_remove_last(ex & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
@@ -1384,7 +1389,8 @@ namespace HepLib {
     /**
      * @brief remove the last in index1-th.index2-th of expression
      * @param ex_in input expression will be update
-     * @param index the index
+     * @param index1 the index
+     * @param index2 the index
      */
     void let_op_remove_last(lst & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
@@ -1417,7 +1423,8 @@ namespace HepLib {
     /**
      * @brief remove the first in index1-th.index2-th of expression
      * @param ex_in input expression will be update
-     * @param index the index
+     * @param index1 the index
+     * @param index2 the index
      */
     void let_op_remove_first(ex & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
@@ -1428,7 +1435,8 @@ namespace HepLib {
     /**
      * @brief remove the first in index1-th.index2-th of expression
      * @param ex_in input expression will be update
-     * @param index the index
+     * @param index1 the index
+     * @param index2 the index
      */
     void let_op_remove_first(lst & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
@@ -1441,7 +1449,7 @@ namespace HepLib {
      * @param ex_in input expression will be update
      * @param index1 the index
      * @param index2 the index
-     * @param the new item
+     * @param item the new item
      */
     void let_op(ex &ex_in, int index1, int index2, const ex item) {
         ex_in.let_op(index1).let_op(index2) = item;
@@ -1452,7 +1460,7 @@ namespace HepLib {
      * @param ex_in input expression will be update
      * @param index1 the index
      * @param index2 the index
-     * @param the new item
+     * @param item the new item
      */
     void let_op(lst &ex_in, int index1, int index2, const ex item) {
         ex_in.let_op(index1).let_op(index2) = item;
@@ -1464,7 +1472,7 @@ namespace HepLib {
      * @param index1 the index
      * @param index2 the index
      * @param index3 the index
-     * @param the new item
+     * @param item the new item
      */
     void let_op(ex &ex_in, int index1, int index2, int index3, const ex item) {
         ex_in.let_op(index1).let_op(index2).let_op(index3) = item;
@@ -1476,7 +1484,7 @@ namespace HepLib {
      * @param index1 the index
      * @param index2 the index
      * @param index3 the index
-     * @param the new item
+     * @param item the new item
      */
     void let_op(lst &ex_in, int index1, int index2, int index3, const ex item) {
         ex_in.let_op(index1).let_op(index2).let_op(index3) = item;
@@ -1592,9 +1600,20 @@ namespace HepLib {
         }
         
         // power
-        if(is_a<GiNaC::power>(a) && is_a<GiNaC::power>(b)) {
-            if(!is_zero(a.op(0)-b.op(0))) return ex_less(a.op(0),b.op(0));
-            if(!is_zero(a.op(1)-b.op(1))) return ex_less(a.op(1),b.op(1));
+        if(is_a<GiNaC::power>(a) || is_a<GiNaC::power>(b)) {
+            ex ae=a, be=b;
+            ex an=1, bn=1;
+            if(is_a<GiNaC::power>(a)) {
+                ae = a.op(0);
+                an = a.op(1);
+            }
+            if(is_a<GiNaC::power>(b)) {
+                be = b.op(0);
+                bn = b.op(1);
+            }
+            if(!is_zero(ae-be)) return ex_less(ae,be);
+            if(is_a<numeric>(an) && is_a<numeric>(bn)) return (evalf(an-bn)>0);
+            if(!is_zero(an-bn)) return ex_less(an,bn);
             return false;
         }
         
@@ -1614,7 +1633,7 @@ namespace HepLib {
         }
         
         // add
-        if(is_a<add>(a) || is_a<add>(b)) {
+        if(is_a<add>(a) && is_a<add>(b)) {
             auto as = add2lst(a);
             auto bs = add2lst(b);
             auto na = as.nops();
@@ -1629,9 +1648,11 @@ namespace HepLib {
             if(na!=nb) return (na<nb);
             return false;
         }
+        if(is_a<add>(a)) return false;
+        if(is_a<add>(b)) return true;
         
         // mul
-        if(is_a<mul>(a) || is_a<mul>(b)) {
+        if(is_a<mul>(a) && is_a<mul>(b)) {
             auto as = mul2lst(a);
             auto bs = mul2lst(b);
             auto na = as.nops();
@@ -1646,6 +1667,8 @@ namespace HepLib {
             if(na!=nb) return (na<nb);
             return false;
         }
+        if(is_a<mul>(a)) return false;
+        if(is_a<mul>(b)) return true;
         
         // type
         string tna = a.return_type_tinfo().tinfo->name();
@@ -2161,9 +2184,24 @@ namespace HepLib {
         auto ms = mul2lst(m);
         sort_lst(ms);
         auto cl = m.precedence();
+        
+        // handle negative number
+        int nn = ms.nops();
+        if(nn>1 && is_a<numeric>(ms.op(0)) && ms.op(0)<0) {
+            ex nex = ms.op(nn-1);
+            if(is_a<add>(nex)) {
+                nex = numeric(-1) * nex;
+                if(is_a<add>(nex)) {
+                    ms.let_op(0) = numeric(-1) * ms.op(0);
+                    ms.let_op(nn-1) = nex;
+                }
+            }
+        }
+        
         bool first = true;
         if(cl<=level) c.s << '(';
         for(auto item : ms) {
+            if(is_a<numeric>(item) && is_zero(item-1)) continue;
             if(!first) c.s << "*";
             item.print(c, cl);
             first = false;
@@ -2172,4 +2210,3 @@ namespace HepLib {
     }
     
 }
-

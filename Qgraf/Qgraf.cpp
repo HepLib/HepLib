@@ -395,6 +395,7 @@ namespace HepLib::Qgraf {
      * @brief Propagator for quark
      * @param e expression with head of Propagator
      * @param m the quark mass, default is 0
+     * @param color true for QCD, false for QED
      * @return the quark propagator, with dirac/color index
      */
     ex QuarkPropagator(ex e, ex m, bool color) {
@@ -408,6 +409,7 @@ namespace HepLib::Qgraf {
     /**
      * @brief Propagator for gluon
      * @param e expression with head of Propagator
+     * @param color true for QCD, false for QED
      * @return the gloun propagator under Feynman gauge, with dirac/color index
      */
     ex GluonPropagator(ex e, bool color) {
@@ -421,6 +423,7 @@ namespace HepLib::Qgraf {
     /**
      * @brief Propagator for ghost
      * @param e expression with head of Propagator
+     * @param color true for QCD, false for QED
      * @return the ghost propagator, with dirac/color index
      */
     ex GhostPropagator(ex e, bool color) {
@@ -434,6 +437,7 @@ namespace HepLib::Qgraf {
     /**
      * @brief q-qbar-g vertex
      * @param e expression with head of Vertex
+     * @param color true for QCD, false for QED
      * @return the q-qbar-g vertex
      */
     ex q2gVertex(ex e, bool color) {
@@ -483,6 +487,7 @@ namespace HepLib::Qgraf {
     /**
      * @brief ghost-anti ghost-g vertex
      * @param e expression with head of Vertex
+     * @param color true for QCD, false for QED
      * @return the ghost-anti ghost-g vertex
      */
     ex gh2gVertex(ex e, bool color) {
@@ -618,6 +623,7 @@ namespace HepLib::Qgraf {
     /**
      * @brief polarization sum for gluon 
      * @param qi gluon qgraf index
+     * @param color true for QCD, false for QED
      * @return g^{i ir} delta^{i ir}
      */
     ex GluonSumL(int qi, bool color) {
@@ -628,6 +634,7 @@ namespace HepLib::Qgraf {
     /**
      * @brief polarization sum for gluon
      * @param qi gluon qgraf index
+     * @param color true for QCD, false for QED
      * @return g^{i ir} delta^{i ir}
      */
     ex GluonSumR(int qi, bool color) {
@@ -640,6 +647,7 @@ namespace HepLib::Qgraf {
      * @param qi quark qgraf index
      * @param p anti-quark momentum vector
      * @param m anti-quark mass
+     * @param color true for QCD, false for QED
      * @return Quark summation
      */
     ex QuarkSumL(int qi, ex p, ex m, bool color) {
@@ -652,6 +660,7 @@ namespace HepLib::Qgraf {
      * @param qi quark qgraf index
      * @param p anti-quark momentum vector
      * @param m anti-quark mass
+     * @param color true for QCD, false for QED
      * @return Quark summation
      */
     ex QuarkSumR(int qi, ex p, ex m, bool color) {
@@ -677,6 +686,7 @@ namespace HepLib::Qgraf {
      * @param qi anti-quark qgraf index
      * @param p anti-quark momentum vector
      * @param m anti-quark mass
+     * @param color true for QCD, false for QED
      * @return anti-Quark summation
      */
     ex AntiQuarkSumR(int qi, ex p, ex m, bool color) {
@@ -723,6 +733,7 @@ namespace HepLib::Qgraf {
     /**
      * @brief polarization sum for total angular momentum
      * @param qi qgraf index
+     * @param p the total momentum
      * @return -g^{qi, rqi} + p^qi p^rqi/p.p
      */
     ex J1SumL(int qi, ex p) {
@@ -733,6 +744,7 @@ namespace HepLib::Qgraf {
     /**
      * @brief polarization sum for total angular momentum
      * @param qi qgraf index
+     * @param p the momentum
      * @return -g^{qi, rqi} + p^qi p^rqi/p.p
      */
     ex J1SumR(int qi, ex p) {

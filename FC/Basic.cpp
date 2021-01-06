@@ -438,8 +438,6 @@ namespace HepLib::FC {
         return 0;
     }
     
-    REGISTER_FUNCTION(Matrix, do_not_evalf_params().conjugate_func(mat_conj).set_return_type(return_types::commutative))
-        
     /**
      * @brief make contract on matrix, i.e., Matrix(a,i1,i2)*Matrix(b,i2,i3) -> Matrix(a*b,i1,i3)
      * @param expr_in expression contains Matrix
@@ -553,6 +551,8 @@ namespace HepLib::FC {
                 
         return expr;
     }
+    
+    REGISTER_FUNCTION(Matrix, do_not_evalf_params().conjugate_func(mat_conj).set_return_type(return_types::commutative))
     
 }
 

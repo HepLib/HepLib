@@ -79,7 +79,7 @@ namespace HepLib::SD {
      * @brief to Projectivize the input fe, the fe will be updated
      * @param fe is the { function list, exponet list }
      * @param delta is a list of x's in Delta function
-     * @param xsum is used to balance the powers, xsum refers to Delta(1-xsum), if xsum=0, then xsum=SUM(delta list)
+     * @param xsum_in is used to balance the powers, xsum refers to Delta(1-xsum), if xsum=0, then xsum=SUM(delta list)
      */
     void ChengWu::Projectivize(ex &fe, const ex delta, const ex xsum_in) {
         static symbol s;
@@ -695,7 +695,7 @@ namespace HepLib::SD {
     
     /**
      * @brief WickRotation, just check WRA exist or NOT to see successful or NOT. Still Experimental
-     * @param in_fe input fe
+     * @param fe_vec input fe vector
      * @return vector of fe
      */
     exvector ChengWu::WickRotation(const exvector & fe_vec) {

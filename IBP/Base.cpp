@@ -22,7 +22,7 @@ namespace HepLib::IBP {
     
     /**
      * @brief Sort for all permuations, and return xs w.r.t. 1st permutation
-     * @param expr the input expression, as the sort key, no need of polynormial of xs
+     * @param in_expr the input expression, as the sort key, no need of polynormial of xs
      * @param xs the permutation list
      * @return 1st of sorted xs
      */
@@ -124,18 +124,19 @@ namespace HepLib::IBP {
     
     /**
      * @brief UF function, from FIRE.m
+     * @param base the Base object
      * @param idx exponent for the internal Propagator
      * @return lst of {U, F}
      */
-    lst LoopUF(const Base & fire, const ex & idx) {
+    lst LoopUF(const Base & base, const ex & idx) {
         static map<ex,exmap,ex_is_less> cache_by_prop;
-        exmap & cache = cache_by_prop[lst{fire.Propagators,fire.Internal}];
+        exmap & cache = cache_by_prop[lst{base.Propagators,base.Internal}];
         ex ut, ft, uf;
         lst key;
         lst xs;
         exmap x2ax;
         int nxi=0;
-        int nps = fire.Propagators.nops();
+        int nps = base.Propagators.nops();
         ft = 0;
         for(int i=0; i<nps; i++) {
             if(is_zero(idx.op(i))) {
@@ -145,25 +146,25 @@ namespace HepLib::IBP {
             key.append(1);
             if(!is_zero(idx.op(i)-1)) x2ax[x(nxi)] = a(idx.op(i)) * x(nxi);
             xs.append(x(nxi));
-            ft -= x(nxi) * fire.Propagators.op(i); // only used when no cache item
+            ft -= x(nxi) * base.Propagators.op(i); // only used when no cache item
             nxi++;
         }
         
         if(cache.find(key)==cache.end()) { // no cache item
             ut = 1;
-            for(int i=0; i<fire.Internal.nops(); i++) {
+            for(int i=0; i<base.Internal.nops(); i++) {
                 ft = ft.expand();
-                ft = subs_all(ft, fire.Replacements);
-                auto t2 = ft.coeff(fire.Internal.op(i),2);
-                auto t1 = ft.coeff(fire.Internal.op(i),1);
-                auto t0 = ft.subs(fire.Internal.op(i)==0);
+                ft = subs_all(ft, base.Replacements);
+                auto t2 = ft.coeff(base.Internal.op(i),2);
+                auto t1 = ft.coeff(base.Internal.op(i),1);
+                auto t0 = ft.subs(base.Internal.op(i)==0);
                 ut *= t2;
                 if(is_zero(t2)) return lst{0,0};
                 ft = normal(t0-t1*t1/(4*t2));
             }
             ft = normal(ut*ft);
-            ft = normal(subs_all(ft, fire.Replacements));
-            ut = normal(subs_all(ut, fire.Replacements));
+            ft = normal(subs_all(ft, base.Replacements));
+            ut = normal(subs_all(ut, base.Replacements));
             uf = normal(ut*ft);
             
             cache[key] = lst{ut,ft,uf};
@@ -186,7 +187,12 @@ namespace HepLib::IBP {
     
     /**
      * @brief UF function, from FIRE.m
-     * @param idx exponent for the internal Propagator
+     * @param ps the list of propagator
+     * @param ns the list of exponent
+     * @param loops the list of loop momenta
+     * @param tloops the list of transverse/quasi momenta
+     * @param lsubs the replacements for loops
+     * @param tsubs the replacements for tloops
      * @return lst of {U, F}
      */
     lst UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs) {
@@ -281,6 +287,7 @@ namespace HepLib::IBP {
      * @brief Find Rules for Integrals or Master Integrals
      * @param fs vector of Base pointer object
      * @param mi true for Master Integals
+     * @param uf the function to compute the UF polynomial
      * @return rules replacement and left integrals or left master integrals
      */
     pair<exmap,lst> FindRules(vector<Base*> & fs, bool mi, std::function<lst(const Base &, const ex &)> uf) {
