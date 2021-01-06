@@ -756,7 +756,7 @@ namespace HepLib::FC {
                 pc = SP2sp(pc);
                 pns.append(lst{ pc, ex(0)-mat(nrow-1,c) }); // note the convension
             }
-            sort_lst(pns);
+            sort_lst(pns); // sort before cuts
             for(auto cut : cut_props) pns.prepend(lst{ SP2sp(item.subs(SP_map)), 1 });
             
             lst props, ns;

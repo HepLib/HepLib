@@ -1544,11 +1544,16 @@ namespace HepLib {
     }
     
     bool ex_less(const ex &a, const ex &b) {
-    
+        
         if(a.is_equal(b)) return false;
         
         // numeric
-        if(is_a<numeric>(a) && is_a<numeric>(b)) return (evalf(a-b)<0);
+        if(is_a<numeric>(a) && is_a<numeric>(b)) {
+            auto ab = a-b;
+            auto abr = real_part(ab);
+            if(!is_zero(abr)) return (abr < 0);
+            else return (imag_part(ab) < 0);
+        }
         if(is_a<numeric>(a)) return true;
         if(is_a<numeric>(b)) return false;
         
@@ -1612,7 +1617,7 @@ namespace HepLib {
                 bn = b.op(1);
             }
             if(!is_zero(ae-be)) return ex_less(ae,be);
-            if(is_a<numeric>(an) && is_a<numeric>(bn)) return (evalf(an-bn)>0);
+            if(an.info(info_flags::real) && bn.info(info_flags::real)) return (an<bn);
             if(!is_zero(an-bn)) return ex_less(an,bn);
             return false;
         }
@@ -1681,7 +1686,7 @@ namespace HepLib {
         auto nna = node_number(a);
         auto nnb = node_number(b);
         if(nna!=nnb) return (nna < nnb);
-                
+
         // all others
         if(an!=bn) return (an<bn);
         for(int i=0; i<an; i++) {
@@ -2187,13 +2192,14 @@ namespace HepLib {
         
         // handle negative number
         int nn = ms.nops();
-        if(nn>1 && is_a<numeric>(ms.op(0)) && ms.op(0)<0) {
-            ex nex = ms.op(nn-1);
-            if(is_a<add>(nex)) {
-                nex = numeric(-1) * nex;
-                if(is_a<add>(nex)) {
+        auto ex0 = ms.op(0);
+        if(nn>1 && ex0.info(info_flags::real) && ex0<0) {
+            ex exn = ms.op(nn-1);
+            if(is_a<add>(exn)) {
+                exn = numeric(-1) * exn;
+                if(is_a<add>(exn)) {
                     ms.let_op(0) = numeric(-1) * ms.op(0);
-                    ms.let_op(nn-1) = nex;
+                    ms.let_op(nn-1) = exn;
                 }
             }
         }
