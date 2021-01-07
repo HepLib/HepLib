@@ -34,7 +34,23 @@ namespace HepLib::FC {
     FormFormat::FormFormat(ostream &os, unsigned opt) : print_dflt(os, opt) {}
     FormFormat::FormFormat() : print_dflt(std::cout) {}
     GINAC_IMPLEMENT_PRINT_CONTEXT(FormFormat, print_dflt)
-    OUT_FORMAT_IMPLEMENT(FormFormat)
+    
+    const FormFormat & FormFormat::operator << (const basic & v) const {
+        v.print(*this);
+        return *this;
+    }
+    const FormFormat & FormFormat::operator << (const ex & v) const {
+        v.print(*this);
+        return *this;
+    }
+    const FormFormat & FormFormat::operator << (const lst & v) const {
+        v.print(*this);
+        return *this;
+    }
+    const FormFormat & FormFormat::operator<<(std::ostream& (*v)(std::ostream&)) const {
+        s << v;
+        return *this;
+    }
     
     void FormFormat::power_print(const power & p, const FormFormat & c, unsigned level) {
         if(p.op(1)==2 && !DGamma::has(p)) {
@@ -50,7 +66,131 @@ namespace HepLib::FC {
     FCFormat::FCFormat(ostream &os, unsigned opt) : print_dflt(os, opt) {}
     FCFormat::FCFormat() : print_dflt(std::cout) {}
     GINAC_IMPLEMENT_PRINT_CONTEXT(FCFormat, print_dflt)
-    OUT_FORMAT_IMPLEMENT(FCFormat)
+    
+    const FCFormat & FCFormat::operator << (const basic & v) const {
+        v.print(*this);
+        return *this;
+    }
+    const FCFormat & FCFormat::operator << (const ex & v) const {
+        v.print(*this);
+        return *this;
+    }
+    const FCFormat & FCFormat::operator << (const lst & v) const {
+        v.print(*this);
+        return *this;
+    }
+    const FCFormat & FCFormat::operator<<(std::ostream& (*v)(std::ostream&)) const {
+        s << v;
+        return *this;
+    }
+    
+    void FCFormat::add_print(const add & a, const FCFormat & c, unsigned level) {
+        auto as = add2lst(a);
+        sort_lst(as);
+        auto cl = a.precedence();
+        bool first = true;
+        if(cl<=level) c.s << '(';
+        for(auto item : as) {
+            if(!first) c.s << "+";
+            item.print(c, cl);
+            first = false;
+        }
+        if(a.precedence()<=level) c.s << ')';
+    }
+    
+    void FCFormat::mul_print(const mul & m, const FCFormat & c, unsigned level) {
+        auto ms = mul2lst(m);
+        sort_lst(ms);
+        auto cl = m.precedence();
+        
+        // handle negative number
+        int nn = ms.nops();
+        auto ex0 = ms.op(0);
+        if(nn>1 && ex0.info(info_flags::real) && ex0<0) {
+            ex exn = ms.op(nn-1);
+            if(is_a<add>(exn)) {
+                exn = numeric(-1) * exn;
+                if(is_a<add>(exn)) {
+                    ms.let_op(0) = numeric(-1) * ms.op(0);
+                    ms.let_op(nn-1) = exn;
+                }
+            }
+        }
+        
+        bool first = true;
+        if(cl<=level) c.s << '(';
+        for(auto item : ms) {
+            if(is_a<numeric>(item) && is_zero(item-1)) continue;
+            if(!first) c.s << "*";
+            item.print(c, cl);
+            first = false;
+        }
+        if(cl<=level) c.s << ')';
+    }
+    
+    const FCFormat & FCFormat::operator << (const matrix & mat) const {
+        s << "{";
+        int nr = mat.rows();
+        int nc = mat.cols();
+        for(int r=0; r<nr; r++) {
+            s << "{";
+            for(int c=0; c<nc; c++) {
+                mat(r,c).print(*this);
+                if(c+1!=nc) s << ",";
+            }
+            s << "}";
+            if(r+1!=nr) s << ",";
+        }
+        s << "}";
+        return *this;
+    }
+    
+    const FCFormat & FCFormat::operator << (const exvector & e) const {
+        auto i = e.begin();
+        auto vend = e.end();
+        if (i==vend) { s << "{}"; return *this; }
+        s << "{";
+        while (true) {
+            i->print(*this);
+            ++i;
+            if(i==vend) break;
+            s << ",";
+        }
+        s << "}";
+        return *this;
+    }
+
+    const FCFormat & FCFormat::operator << (const exset & e) const {
+        auto i = e.begin();
+        auto send = e.end();
+        if (i==send) { s << "{}"; return *this; }
+        s << "{";
+        while (true) {
+            i->print(*this);
+            ++i;
+            if(i==send) break;
+            s << ",";
+        }
+        s << "}";
+        return *this;
+    }
+
+    const FCFormat & FCFormat::operator << (const exmap & e) const {
+        auto i = e.begin();
+        auto mend = e.end();
+        if (i==mend) { s << "{}"; return *this; }
+        s << "{";
+        while (true) {
+            i->first.print(*this);
+            s << "->";
+            i->second.print(*this);
+            ++i;
+            if(i==mend) break;
+            s << ",";
+        }
+        s << "}";
+        return *this;
+    }
     
     namespace {
         class ncmul_hack : public ncmul { // due to printseq is protected

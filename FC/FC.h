@@ -53,7 +53,16 @@ namespace HepLib::FC {
     public:
         FormFormat(ostream &os, unsigned opt=0);
         static void power_print(const power & p, const FormFormat & c, unsigned level=0);
-        OUT_FORMAT_DECLARE(FormFormat)
+        
+        template<class T> const FormFormat & operator << (const T & v) const {
+            s << v;
+            return *this;
+        };
+        const FormFormat & operator << (const basic & v) const;
+        const FormFormat & operator << (const ex & v) const;
+        const FormFormat & operator << (const lst & v) const;
+        const FormFormat & operator<<(std::ostream& (*v)(std::ostream&)) const;
+        
         /**
          * @brief inner class for some static initializations
          */
@@ -71,8 +80,24 @@ namespace HepLib::FC {
         GINAC_DECLARE_PRINT_CONTEXT(FCFormat, print_dflt)
     public:
         FCFormat(ostream &os, unsigned opt=0);
+        static void add_print(const add & a, const FCFormat & c, unsigned level=0);
+        static void mul_print(const mul & m, const FCFormat & c, unsigned level=0);
         static void ncmul_print(const ncmul & p, const FCFormat & c, unsigned level=0);
-        OUT_FORMAT_DECLARE(FCFormat)
+        
+        template<class T> const FCFormat & operator << (const T & v) const {
+            s << v;
+            return *this;
+        };
+        const FCFormat & operator << (const basic & v) const;
+        const FCFormat & operator << (const ex & v) const;
+        const FCFormat & operator << (const lst & v) const;
+        const FCFormat & operator<<(std::ostream& (*v)(std::ostream&)) const;
+        
+        const FCFormat & operator << (const matrix & v) const;
+        const FCFormat & operator << (const exvector & v) const;
+        const FCFormat & operator << (const exmap & v) const;
+        const FCFormat & operator << (const exset & v) const;
+        
         /**
          * @brief inner class for some static initializations
          */
@@ -82,7 +107,7 @@ namespace HepLib::FC {
     private:
         static _init FCFormat_init;
     };
-    extern FCFormat FCout;
+    extern FCFormat fcout;
     
     /**
      * @brief class for index object

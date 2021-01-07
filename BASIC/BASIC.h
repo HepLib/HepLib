@@ -35,38 +35,7 @@ lst classname::all(const ex &e) { \
     ret.unique(); \
     return ret; \
 }
-
-/*-----------------------------------------------------*/
-// operator << Macro for GiNaC Output Format
-/*-----------------------------------------------------*/
-#define OUT_FORMAT_DECLARE(classname) \
-    template<class T> const classname & operator << (const T & v) const { \
-        s << v; \
-        return *this; \
-    }; \
-    const classname & operator << (const basic & v) const; \
-    const classname & operator << (const ex & v) const; \
-    const classname & operator << (const lst & v) const; \
-    const classname & operator<<(std::ostream& (*v)(std::ostream&)) const;
-
-#define OUT_FORMAT_IMPLEMENT(classname) \
-    const classname & classname::operator << (const basic & v) const { \
-        v.print(*this); \
-        return *this; \
-    } \
-    const classname & classname::operator << (const ex & v) const { \
-        v.print(*this); \
-        return *this; \
-    } \
-    const classname & classname::operator << (const lst & v) const { \
-        v.print(*this); \
-        return *this; \
-    } \
-    const classname & classname::operator<<(std::ostream& (*v)(std::ostream&)) const { \
-        s << v; \
-        return *this; \
-    }
-    
+ 
 /**
  * @brief Extension to GiNaC
  */
@@ -723,8 +692,16 @@ namespace HepLib {
         HepFormat(ostream &os, unsigned opt=0);
         static void add_print(const add & a, const HepFormat & c, unsigned level=0);
         static void mul_print(const mul & m, const HepFormat & c, unsigned level=0);
-        OUT_FORMAT_DECLARE(HepFormat)
         
+        template<class T> const HepFormat & operator << (const T & v) const {
+            s << v;
+            return *this;
+        };
+        const HepFormat & operator << (const basic & v) const;
+        const HepFormat & operator << (const ex & v) const;
+        const HepFormat & operator << (const lst & v) const;
+        const HepFormat & operator<<(std::ostream& (*v)(std::ostream&)) const;
+        const HepFormat & operator << (const matrix & v) const;
         const HepFormat & operator << (const exvector & v) const;
         const HepFormat & operator << (const exmap & v) const;
         const HepFormat & operator << (const exset & v) const;
@@ -739,5 +716,39 @@ namespace HepLib {
         static _init HepFormat_init;
     };
     extern HepFormat hout;
+    
+    /**
+     * @brief class for HepLib Format Output
+     */
+    class MMAFormat : public print_dflt {
+        GINAC_DECLARE_PRINT_CONTEXT(MMAFormat, print_dflt)
+    public:
+        MMAFormat(ostream &os, unsigned opt=0);
+        static void add_print(const add & a, const MMAFormat & c, unsigned level=0);
+        static void mul_print(const mul & m, const MMAFormat & c, unsigned level=0);
+        
+        template<class T> const MMAFormat & operator << (const T & v) const {
+            s << v;
+            return *this;
+        };
+        const MMAFormat & operator << (const basic & v) const;
+        const MMAFormat & operator << (const ex & v) const;
+        const MMAFormat & operator << (const lst & v) const;
+        const MMAFormat & operator<<(std::ostream& (*v)(std::ostream&)) const;
+        const MMAFormat & operator << (const matrix & v) const;
+        const MMAFormat & operator << (const exvector & v) const;
+        const MMAFormat & operator << (const exmap & v) const;
+        const MMAFormat & operator << (const exset & v) const;
+        
+        /**
+         * @brief inner class for some static initializations
+         */
+        class _init {
+            public: _init();
+        };
+    private:
+        static _init MMAFormat_init;
+    };
+    extern MMAFormat mout;
     
 }

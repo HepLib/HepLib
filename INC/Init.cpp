@@ -50,6 +50,13 @@ namespace HepLib {
     HepFormat::_init HepFormat_init;
     HepFormat hout(cout);
     
+    MMAFormat::_init::_init() {
+        set_print_func<add, MMAFormat>(MMAFormat::add_print);
+        set_print_func<mul, MMAFormat>(MMAFormat::mul_print);
+    }
+    MMAFormat::_init MMAFormat_init;
+    MMAFormat mout(cout);
+    
     lst GiNaC_archive_Symbols = lst{};
     string InstallPrefix = "@CMAKE_INSTALL_PREFIX@";
     string INC_FLAGS = "@INC_FLAGS@";
@@ -109,7 +116,7 @@ namespace HepLib {
         set_print_func<power, FormFormat>(FormFormat::power_print);
     }
     FC::FormFormat::_init FC::FormFormat::FormFormat_init;
-    FC::FCFormat FC::FCout(cout);
+    FC::FCFormat FC::fcout(cout);
     
     const int FC::form_trace_all = 0;
     const int FC::form_trace_each_all = 1;

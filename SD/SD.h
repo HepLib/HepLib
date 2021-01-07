@@ -278,6 +278,16 @@ namespace HepLib::SD {
         CppFormat(ostream &os, const string & s = "L", unsigned opt = 0);
         string suffix;
         string MQuote = "\"";
+        
+        template<class T> const CppFormat & operator << (const T & v) const {
+            s << v;
+            return *this;
+        };
+        const CppFormat & operator << (const basic & v) const;
+        const CppFormat & operator << (const ex & v) const;
+        const CppFormat & operator << (const lst & v) const;
+        const CppFormat & operator<<(std::ostream& (*v)(std::ostream&)) const;
+        
         /**
          * @brief inner class for some static initializations
          */
