@@ -1544,7 +1544,6 @@ namespace HepLib {
     }
     
     bool ex_less(const ex &a, const ex &b) {
-        
         if(a.is_equal(b)) return false;
         
         // numeric
@@ -1570,7 +1569,7 @@ namespace HepLib {
             if(ma.rows() != mb.rows()) return (ma.rows() < mb.rows());
             for(int c=0; c<ma.cols(); c++) {
             for(int r=0; r<ma.rows(); r++) {
-                if(is_zero(ma(r,c)-mb(r,c))) continue;
+                if(ma(r,c).is_equal(mb(r,c))) continue;
                 return ex_less(ma(r,c),mb(r,c));
             }}
             return false;
@@ -1584,7 +1583,7 @@ namespace HepLib {
             auto nb = b.nops();
             if(na!=nb) return (na<nb);
             for(int i=0; i<na; i++) {
-                if(is_zero(a.op(i)-b.op(i))) continue;
+                if(a.op(i).is_equal(b.op(i))) continue;
                 return ex_less(a.op(i), b.op(i));
             }
             return false;
@@ -1616,7 +1615,7 @@ namespace HepLib {
                 be = b.op(0);
                 bn = b.op(1);
             }
-            if(!is_zero(ae-be)) return ex_less(ae,be);
+            if(!ae.is_equal(be)) return ex_less(ae,be);
             if(an.info(info_flags::real) && bn.info(info_flags::real)) return (an<bn);
             if(!is_zero(an-bn)) return ex_less(an,bn);
             return false;
@@ -1631,7 +1630,7 @@ namespace HepLib {
             else if(nc>0) return false;
             if(an!=bn) return (an < bn);
             for(int i=0; i<an; i++) {
-                if(is_zero(a.op(i)-b.op(i))) continue;
+                if(a.op(i).is_equal(b.op(i))) continue;
                 return ex_less(a.op(i), b.op(i));
             }
             return false;
@@ -1647,7 +1646,7 @@ namespace HepLib {
             sort_lst(bs,false);
             int nn = ((na>nb) ? nb : na);
             for(int i=0; i<nn; i++) {
-                if(is_zero(as.op(i)-bs.op(i))) continue;
+                if(as.op(i).is_equal(bs.op(i))) continue;
                 return ex_less(as.op(i), bs.op(i));
             }
             if(na!=nb) return (na<nb);
@@ -1666,7 +1665,7 @@ namespace HepLib {
             sort_lst(bs,false);
             int nn = ((na>nb) ? nb : na);
             for(int i=0; i<nn; i++) {
-                if(is_zero(as.op(i)-bs.op(i))) continue;
+                if(as.op(i).is_equal(bs.op(i))) continue;
                 return ex_less(as.op(i), bs.op(i));
             }
             if(na!=nb) return (na<nb);
@@ -1690,7 +1689,7 @@ namespace HepLib {
         // all others
         if(an!=bn) return (an<bn);
         for(int i=0; i<an; i++) {
-            if(is_zero(a.op(i)-b.op(i))) continue;
+            if(a.op(i).is_equal(b.op(i))) continue;
             return ex_less(a.op(i), b.op(i));
         }
         
