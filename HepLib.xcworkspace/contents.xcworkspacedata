@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:CMakeLists.txt">
+   </FileRef>
+   <FileRef
+      location = "group:INC">
+   </FileRef>
+   <FileRef
+      location = "group:BASIC">
+   </FileRef>
+   <FileRef
+      location = "group:HEP">
+   </FileRef>
+   <FileRef
+      location = "group:QGRAF">
+   </FileRef>
+   <FileRef
+      location = "group:IBP">
+   </FileRef>
+   <FileRef
+      location = "group:SD">
+   </FileRef>
+   <FileRef
+      location = "group:EX">
+   </FileRef>
+   <FileRef
+      location = "group:MB">
+   </FileRef>
+   <FileRef
+      location = "group:DE">
+   </FileRef>
+   <FileRef
+      location = "group:bin">
+   </FileRef>
+   <FileRef
+      location = "group:doc">
+   </FileRef>
+   <FileRef
+      location = "group:BAK">
+   </FileRef>
+</Workspace>

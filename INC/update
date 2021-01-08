@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+if [ "$1" = "" ]
+then
+    echo "usage: jn=4 update item, with supported item as follows:"
+    echo "  heplib: to update HepLib"
+    echo "  ginac: to update GiNaC/HepLib"
+    echo "  all: to update all items"
+    echo "Note: assuming all items are installed to @CMAKE_INSTALL_PREFIX@"
+    exit
+fi
+
+if [ -z $jn ]; then
+    export jn=8
+fi
+export jn
+
+CWD=$PWD
+mkdir heplib_update_tmp
+cd heplib_update_tmp
+
+##################################
+# update GiNaC
+##################################
+if [ "$1" = "all" ] || [ "$1" = "ginac" ] || [ "$1" = "GiNaC" ]
+then
+    wget https://heplib.github.io/ginac.tar.gz
+    tar zxf ginac.tar.gz
+    cd ginac
+    ./configure --prefix="@CMAKE_INSTALL_PREFIX@" PKG_CONFIG_PATH="@CMAKE_INSTALL_PREFIX@/lib/pkgconfig"
+    make -j $jn
+    make install
+    echo "GiNaC updated."
+fi
+
+##################################
+# update HepLib
+##################################
+#if [ "$1" = "all" ] || [ "$1" = "heplib" ] || [ "$1" = "HepLib" ]
+#then
+    wget https://heplib.github.io/HepLib.tar.gz
+    tar zxf HepLib.tar.gz
+    cd HepLib/src
+    mkdir build
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX="@CMAKE_INSTALL_PREFIX@" ..
+    make -j $jn
+    make install
+    echo "HepLib updated."
+#fi
+
+cd $CWD
+rm -rf heplib_update_tmp
+

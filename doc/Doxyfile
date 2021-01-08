@@ -1,0 +1,20 @@
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = HepLib
+EXTRACT_ALL            = YES
+INPUT                  = main.md \
+                         ../BASIC \
+                         ../QGRAF \
+                         ../FC \
+                         ../IBP \
+                         ../SD \
+                         ../EX \
+                         ../INC
+                         
+FILE_PATTERNS          = *.cpp \
+                         *.h
+                         
+EXCLUDE_PATTERNS       = */mpreal.h \
+                         */Lib3_HCubature*
+                         
+SOURCE_BROWSER         = YES
+GENERATE_LATEX         = NO
