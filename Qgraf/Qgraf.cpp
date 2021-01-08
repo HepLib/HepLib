@@ -3,7 +3,7 @@
  * @brief Qgraf related
  */
  
-#include "Qgraf.h"
+#include "QGRAF.h"
 
 namespace HepLib::Qgraf {
 

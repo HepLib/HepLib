@@ -1,11 +1,11 @@
 /**
  * @file 
- * @brief FC header file
+ * @brief QGRAF header file
  */
  
 #pragma once
 
-#include "FC.h"
+#include "HEP.h"
 
 /**
  * @brief namespace for Index, Vector, DGamma, etc.
@@ -15,7 +15,6 @@ namespace HepLib::Qgraf {
     using namespace std;
     using namespace GiNaC;
     using namespace HepLib;
-    using namespace FC;
     
     //-----------------------------------------------------------
     // Filed/Propagator/Vertex Function
@@ -207,6 +206,7 @@ namespace HepLib::Qgraf {
         ex Zm(ex m, int loop=2);
         ex asBare(int loop=2);
         ex asLO();
+        ex Zas(int loop);
     }
         
 }

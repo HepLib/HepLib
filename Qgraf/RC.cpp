@@ -3,7 +3,7 @@
  * @brief Functions for Renormalization Constants
  */
  
-#include "Qgraf.h"
+#include "QGRAF.h"
 
 namespace HepLib::Qgraf {
 
@@ -93,6 +93,15 @@ namespace HepLib::Qgraf {
          */
         ex asLO() {
             return as * pow(mu, 2*ep) * exp(ep*Euler)*pow(4*Pi, -ep);
+        }
+        
+        /**
+         * @brief the ration between bare and renormailzed strong cupling constant up to loop order, MSbar schema
+         * @param loop the loop order
+         * @return the ration Zas
+         */
+        ex Zas(int loop) {
+            return asBare()/as;
         }
     }
 

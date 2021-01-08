@@ -5,8 +5,9 @@
  
 #pragma once
 
-#include "FC.h"
-#include "Qgraf.h"
+#include "BASIC.h"
+#include "HEP.h"
+#include "QGRAF.h"
 #include "SD.h"
 #include "IBP.h"
 

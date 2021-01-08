@@ -4,10 +4,11 @@
  */
  
 #include "cln/cln.h"
-#include "SD.h"
-#include "FC.h"
-#include "Qgraf.h"
+#include "BASIC.h"
+#include "HEP.h"
+#include "QGRAF.h"
 #include "IBP.h"
+#include "SD.h"
 #include <cstdlib>
 
 namespace HepLib {
@@ -92,46 +93,47 @@ namespace HepLib {
     int SD::VEO_Digits = 10;
     
     //----------------------------------------
-    // HepLib::FC
+    // HepLib HEP
     //----------------------------------------
-    const Symbol FC::NA("NA");
-    const Symbol FC::NF("NF");
-    const Symbol FC::gs("gs");
-    const Symbol FC::as("as");
-    const Symbol FC::mu("mu");;
-    const Symbol FC::nL("nL");;
-    const Symbol FC::nH("nH");;
+    const Symbol NA("NA");
+    const Symbol NF("NF");
+    const Symbol gs("gs");
+    const Symbol as("as");
+    const Symbol mu("mu");;
+    const Symbol nL("nL");;
+    const Symbol nH("nH");;
     
-    exmap FC::SP_map;
+    exmap SP_map;
     map<ex,string,ex_is_less> Qgraf::LineTeX; // key is the filed
     map<ex,string,ex_is_less> Qgraf::VerTeX; // key is the fileds in vertex
     map<ex,string,ex_is_less> Qgraf::InOutTeX; // key is the id, id<0
     
-    FC::FCFormat::_init::_init() {
+    FCFormat::_init::_init() {
         set_print_func<ncmul, FCFormat>(FCFormat::ncmul_print);
     }
-    FC::FCFormat::_init FC::FCFormat::FCFormat_init;
+    FCFormat::_init FCFormat::FCFormat_init;
     
-    FC::FormFormat::_init::_init() {
+    FormFormat::_init::_init() {
         set_print_func<power, FormFormat>(FormFormat::power_print);
     }
-    FC::FormFormat::_init FC::FormFormat::FormFormat_init;
-    FC::FCFormat FC::fcout(cout);
+    FormFormat::_init FormFormat::FormFormat_init;
+    FCFormat fcout(cout);
     
-    const int FC::form_trace_all = 0;
-    const int FC::form_trace_each_all = 1;
-    const int FC::form_trace_each_each = 2;
-    int FC::form_trace_mode = FC::form_trace_each_each;
+    const int form_trace_all = 0;
+    const int form_trace_each_all = 1;
+    const int form_trace_each_each = 2;
+    int form_trace_mode = form_trace_each_each;
     
-    const int FC::form_expand_none = 0;
-    const int FC::form_expand_tr = 1;
-    const int FC::form_expand_ci = 2;
-    const int FC::form_expand_li = 3;
-    const int FC::form_expand_all = 4;
-    int FC::form_expand_mode = FC::form_expand_tr;
+    const int form_expand_none = 0;
+    const int form_expand_tr = 1;
+    const int form_expand_ci = 2;
+    const int form_expand_li = 3;
+    const int form_expand_all = 4;
+    int form_expand_mode = form_expand_tr;
     
-    bool FC::form_using_su3 = false;
-    bool FC::form_using_dim4 = false;
+    bool Apart_using_fermat = true;
+    bool form_using_su3 = false;
+    bool form_using_dim4 = false;
     
     //----------------------------------------
     // Process _init

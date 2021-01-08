@@ -44,10 +44,10 @@ bool expr::match(const expr &e) {
 }
 
 bool expr::isSymbol() { return GiNaC::is_a<HepLib::Symbol>(_expr); }
-bool expr::isVector() { return GiNaC::is_a<HepLib::FC::Vector>(_expr); }
-bool expr::isIndex() { return GiNaC::is_a<HepLib::FC::Index>(_expr); }
-bool expr::isPair() { return GiNaC::is_a<HepLib::FC::Pair>(_expr); }
-bool expr::isDGamma() { return GiNaC::is_a<HepLib::FC::DGamma>(_expr); }
+bool expr::isVector() { return GiNaC::is_a<HepLib::Vector>(_expr); }
+bool expr::isIndex() { return GiNaC::is_a<HepLib::Index>(_expr); }
+bool expr::isPair() { return GiNaC::is_a<HepLib::Pair>(_expr); }
+bool expr::isDGamma() { return GiNaC::is_a<HepLib::DGamma>(_expr); }
 
 bool expr::info(std::string sflags) {
     if (sflags == "numeric") return _expr.info(GiNaC::info_flags::numeric);
@@ -148,31 +148,31 @@ expr Symbol(const std::string &s) {
 }
 
 expr Index(const std::string &s) {
-    return expr(GiNaC::ex(HepLib::FC::Index(s)));
+    return expr(GiNaC::ex(HepLib::Index(s)));
 }
 
 expr Vector(const std::string &s) {
-    return expr(GiNaC::ex(HepLib::FC::Vector(s)));
+    return expr(GiNaC::ex(HepLib::Vector(s)));
 }
 
 expr SP(const expr &e1, const expr &e2) {
-    return expr(GiNaC::ex(HepLib::FC::SP(e1._expr, e2._expr)));
+    return expr(GiNaC::ex(HepLib::SP(e1._expr, e2._expr)));
 }
 
 expr GAS(const expr &e) {
-    return expr(GiNaC::ex(HepLib::FC::GAS(e._expr)));
+    return expr(GiNaC::ex(HepLib::GAS(e._expr)));
 }
         
 expr TR(const expr &e) {
-    return expr(GiNaC::ex(HepLib::FC::TR(e._expr)));
+    return expr(GiNaC::ex(HepLib::TR(e._expr)));
 }
 
 expr form(const expr &e) {
-    return expr(HepLib::FC::form(e._expr));
+    return expr(HepLib::form(e._expr));
 }
 
 void letSP(const expr &e1, const expr &e2, const expr &e12) {
-    HepLib::FC::letSP(e1._expr, e2._expr) = e12._expr;
+    HepLib::letSP(e1._expr, e2._expr) = e12._expr;
 }
 
 expr call(const std::string func, const std::vector<expr> &ev) {

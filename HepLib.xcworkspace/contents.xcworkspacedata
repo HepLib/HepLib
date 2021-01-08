@@ -11,10 +11,10 @@
       location = "group:BASIC">
    </FileRef>
    <FileRef
-      location = "group:Qgraf">
+      location = "group:HEP">
    </FileRef>
    <FileRef
-      location = "group:FC">
+      location = "group:QGRAF">
    </FileRef>
    <FileRef
       location = "group:IBP">

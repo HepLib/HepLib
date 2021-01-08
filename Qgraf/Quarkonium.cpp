@@ -3,7 +3,7 @@
  * @brief Helpers for Quarkonium
  */
  
-#include "Qgraf.h"
+#include "QGRAF.h"
 #include "SD.h"
 
 namespace HepLib::Qgraf {
