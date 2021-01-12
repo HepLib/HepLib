@@ -55,7 +55,7 @@ namespace HepLib::QGRAF {
         return GiNaC::function(Vertex4_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4));
     }
     
-    Vertex5_SERIAL { public: static unsigned serial; };
+    class Vertex5_SERIAL { public: static unsigned serial; };
     template<typename T1, typename T2, typename T3, typename T4, typename T5>
     inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5) {
         return GiNaC::function(Vertex5_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5));
