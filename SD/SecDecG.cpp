@@ -414,10 +414,10 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
             for(auto isc : sc) vmat.push_back(isc);
         }
     } else {
-        auto npp = ParallelProcess;
-        ParallelProcess = CpuCores()/8;
-        if(deg_mat.rows()>100) ParallelProcess = CpuCores()/4;
-        else if(deg_mat.rows()>200) ParallelProcess = CpuCores()/2;
+        auto npp = GiNaC_Parallel_Process;
+        GiNaC_Parallel_Process = CpuCores()/8;
+        if(deg_mat.rows()>100) GiNaC_Parallel_Process = CpuCores()/4;
+        else if(deg_mat.rows()>200) GiNaC_Parallel_Process = CpuCores()/2;
         auto verb = Verbose;
         Verbose = 0;
         auto scs = 
@@ -437,7 +437,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
             return scs;
         }, "x2y");
         Verbose = verb;
-        ParallelProcess = npp;
+        GiNaC_Parallel_Process = npp;
         for(auto isc_lst : scs) for(auto isc : isc_lst) vmat.push_back(ex_to<matrix>(isc));
     }
 

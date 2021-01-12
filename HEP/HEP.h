@@ -7,9 +7,6 @@
 
 #include "IBP.h"
 
-/**
- * @brief namespace for Index, Vector, Dirac Gamma, etc.
- */
 namespace HepLib {
 
     using namespace std;
@@ -64,14 +61,13 @@ namespace HepLib {
         const FormFormat & operator << (const lst & v) const;
         const FormFormat & operator<<(std::ostream& (*v)(std::ostream&)) const;
         
-        /**
-         * @brief inner class for some static initializations
-         */
+        #ifndef DOXYGEN_SKIP
         class _init {
             public: _init();
         };
     private:
         static _init FormFormat_init;
+        #endif
     };
         
     /**
@@ -99,14 +95,13 @@ namespace HepLib {
         const FCFormat & operator << (const exmap & v) const;
         const FCFormat & operator << (const exset & v) const;
         
-        /**
-         * @brief inner class for some static initializations
-         */
+        #ifndef DOXYGEN_SKIP
         class _init {
             public: _init();
         };
     private:
         static _init FCFormat_init;
+        #endif
     };
     extern FCFormat fcout;
     
@@ -289,7 +284,7 @@ namespace HepLib {
     ex LC(ex pi1, ex pi2, ex pi3, ex pi4);
     
     /**
-     * @brief class for DGamma object
+     * @brief class for Dirac Gamma object
      */
     class DGamma : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(DGamma, basic)
@@ -345,23 +340,21 @@ namespace HepLib {
     ex ApartIRC(const ex & expr_in);
     void ApartIBP(int IBPmethod, exvector &io_vec, const lst & loops_exts=lst{}, const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
     
-    /**
-     * @brief ApartIR function with 1 argument
-     */
+    #ifndef DOXYGEN_SKIP
+    
     class ApartIR1_SERIAL { public: static unsigned serial; };
     template<typename T1>
     inline GiNaC::function ApartIR(const T1 & p1) {
         return GiNaC::function(ApartIR1_SERIAL::serial, ex(p1));
     }
     
-    /**
-     * @brief ApartIR function with 2 arguments
-     */
     class ApartIR2_SERIAL { public: static unsigned serial; };
     template<typename T1, typename T2>
     inline GiNaC::function ApartIR(const T1 & p1, const T2 & p2) {
         return GiNaC::function(ApartIR2_SERIAL::serial, ex(p1), ex(p2));
     }
+    
+    #endif
         
         
 }

@@ -8,8 +8,12 @@
 
 namespace HepLib {
 
+    #ifndef DOXYGEN_SKIP
+    
     unsigned ApartIR1_SERIAL::serial = GiNaC::function::register_new(function_options("ApartIR",1).do_not_evalf_params().overloaded(2));
     unsigned ApartIR2_SERIAL::serial = GiNaC::function::register_new(function_options("ApartIR",2).do_not_evalf_params().overloaded(2));
+    
+    #endif
 
     namespace {
         inline bool isOK(const ex &expr_in, const lst &vars) {

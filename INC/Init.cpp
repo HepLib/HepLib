@@ -39,7 +39,7 @@ namespace HepLib {
     const iSymbol iEpsilon("iEpsilon");
     const ex iEpsilonN = I*pow(ex(10), -50);
     int Verbose = 0;
-    int ParallelProcess = -1;
+    int GiNaC_Parallel_Process = -1;
     const Symbol D("D");
     bool fermat_use_array = true;
     int NNDigits = 100;
@@ -49,6 +49,7 @@ namespace HepLib {
         set_print_func<mul, HepFormat>(HepFormat::mul_print);
     }
     HepFormat::_init HepFormat_init;
+    
     HepFormat hout(cout);
     
     MMAFormat::_init::_init() {

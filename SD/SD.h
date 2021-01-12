@@ -288,17 +288,18 @@ namespace HepLib::SD {
         const CppFormat & operator << (const lst & v) const;
         const CppFormat & operator<<(std::ostream& (*v)(std::ostream&)) const;
         
-        /**
-         * @brief inner class for some static initializations
-         */
+        #ifndef DOXYGEN_SKIP
         class _init {
             public: _init();
         };
+        #endif
     private:
+        #ifndef DOXYGEN_SKIP
+        static _init CppFormat_init;
+        #endif
         static void print_integer(const CppFormat & c, const cln::cl_I & x);
         static void print_real(const CppFormat & c, const cln::cl_R & x);
         static void print_numeric(const numeric & p, const CppFormat & c, unsigned level);
-        static _init CppFormat_init;
     };
 
     /*-----------------------------------------------------*/
@@ -436,12 +437,11 @@ namespace HepLib::SD {
         static int PRank(matrix m);
         static ex ContinuousWRA(ex expr_in, int nc=15);
         
-        /**
-         * @brief inner class for some static initializations
-         */
+        #ifndef DOXYGEN_SKIP
         class _init {
             public: _init();
         };
+        #endif
         ~SecDec();
                 
     private:
@@ -456,7 +456,9 @@ namespace HepLib::SD {
         lst FT_N_XN; // list of { ft, n, xn }
         exmap LambdaMap;
         
+        #ifndef DOXYGEN_SKIP
         static _init SD_init;
+        #endif
     };
 
     /**

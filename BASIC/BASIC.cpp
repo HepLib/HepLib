@@ -173,7 +173,7 @@ namespace HepLib {
         const string & key,
         bool rm,
         const string &pre) {
-        int nproc = ParallelProcess;
+        int nproc = GiNaC_Parallel_Process;
         
         // nproc=0, non-parallel
         if(nproc==0) {

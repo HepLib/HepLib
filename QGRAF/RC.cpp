@@ -101,7 +101,7 @@ namespace HepLib::QGRAF {
          * @return the ration Zas
          */
         ex Zas(int loop) {
-            return asBare()/as;
+            return asBare(loop)/as;
         }
     }
 

@@ -30,6 +30,8 @@ namespace HepLib::QGRAF {
     REGISTER_FUNCTION(InField, do_not_evalf_params())
     REGISTER_FUNCTION(OutField, do_not_evalf_params())
     
+    #ifndef DOXYGEN_SKIP
+    
     unsigned Field2_SERIAL::serial = GiNaC::function::register_new(function_options("Field",2).do_not_evalf_params().overloaded(2));
     unsigned Field3_SERIAL::serial = GiNaC::function::register_new(function_options("Field",3).do_not_evalf_params().overloaded(2));
     unsigned Vertex2_SERIAL::serial = GiNaC::function::register_new(function_options("Vertex",2).do_not_evalf_params().overloaded(5));
@@ -37,6 +39,8 @@ namespace HepLib::QGRAF {
     unsigned Vertex4_SERIAL::serial = GiNaC::function::register_new(function_options("Vertex",4).do_not_evalf_params().overloaded(5));
     unsigned Vertex5_SERIAL::serial = GiNaC::function::register_new(function_options("Vertex",5).do_not_evalf_params().overloaded(5));
     unsigned Vertex6_SERIAL::serial = GiNaC::function::register_new(function_options("Vertex",6).do_not_evalf_params().overloaded(5));
+    
+    #endif
 
     Index DI(ex fn) { return Index(di_+n2s(fn),Index::Type::VD); }
     Index LI(ex fn) { return Index(li_+n2s(fn),Index::Type::VD); }

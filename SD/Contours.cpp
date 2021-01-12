@@ -62,8 +62,8 @@ namespace HepLib::SD {
             }
         }
 
-        int opps = ParallelProcess;
-        ParallelProcess=0;
+        int opps = GiNaC_Parallel_Process;
+        GiNaC_Parallel_Process=0;
         auto res =
         GiNaC_Parallel(ftnxn_vec.size(), [&](int idx)->ex {
             // return lst{ ft_n, lst{lambda-i, lambda-max} }
@@ -200,7 +200,7 @@ namespace HepLib::SD {
             return lst{ ftnxn.op(1), las }; // ft_id, las
         
         }, "las", !debug);
-        ParallelProcess=opps;
+        GiNaC_Parallel_Process=opps;
         
         if(use_dlclose) dlclose(module);
         

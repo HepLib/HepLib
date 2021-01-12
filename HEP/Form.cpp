@@ -52,6 +52,10 @@ namespace HepLib {
             else if(n==1) return GAS(1,ex2int(ev[0]));
             else throw Error("DGamma_reader: number of arguments more than 2.");
         }
+        
+        alignas(2) static ex Matrix_reader(const exvector& ev) {
+            return Matrix(ev[0],ev[1],ev[2]);
+        }
     }
     
     //-----------------------------------------------------------
@@ -104,7 +108,7 @@ namespace HepLib {
         };
         
         string init_script = R"EOF(
-CFunction pow,sqrt,gamma,HF;
+CFunction pow,sqrt,gamma,HF,Matrix;
 Tensor TTR(cyclic), f(antisymmetric), T, f4, colTp;
 Symbols reX,I2R,NF,NA,D,I,Pi;
 AutoDeclare Symbols gCF, trcN;
@@ -187,7 +191,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             } else if(is_a<symbol>(*i)) sym_lst.append(*i);
             else if(is_a<GiNaC::function>(*i)) {
                 static vector<string> fun_vec = { 
-                    "iWF", "TR", "sin", "cos", "HF", "TTR"
+                    "iWF", "TR", "sin", "cos", "HF", "TTR", "Matrix"
                 };
                 auto func = ex_to<GiNaC::function>(*i).get_name();
                 bool ok = false;
@@ -494,6 +498,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         Parser fp(st);
         fp.FTable[make_pair("SP", 2)] = SP_reader;
         fp.FTable[make_pair("LC", 4)] = LC_reader;
+        fp.FTable[make_pair("Matrix", 3)] = Matrix_reader;
         for(int i=1; i<30; i++) fp.FTable[make_pair("T", i)] = SUNT_reader;
         for(int i=1; i<30; i++) fp.FTable[make_pair("TTRX", i)] = TTR_reader;
         for(int i=1; i<30; i++) fp.FTable[make_pair("DG", i)] = DGamma_reader;

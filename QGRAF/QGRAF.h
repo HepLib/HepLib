@@ -8,7 +8,7 @@
 #include "HEP.h"
 
 /**
- * @brief namespace for Index, Vector, DGamma, etc.
+ * @brief namespace for generating Feynman diagrams or amplitudes.
  */
 namespace HepLib::QGRAF {
 
@@ -23,68 +23,51 @@ namespace HepLib::QGRAF {
     DECLARE_FUNCTION_3P(InField)
     DECLARE_FUNCTION_3P(OutField)
     
-    /**
-     * @brief Field function with 2 arguments
-     */
+    #ifndef DOXYGEN_SKIP
+    
     class Field2_SERIAL { public: static unsigned serial; };
     template<typename T1, typename T2>
     inline GiNaC::function Field(const T1 & p1, const T2 & p2) {
         return GiNaC::function(Field2_SERIAL::serial, ex(p1), ex(p2));
     }
     
-    /**
-     * @brief Field function with 3 arguments
-     */
     class Field3_SERIAL { public: static unsigned serial; };
     template<typename T1, typename T2, typename T3>
     inline GiNaC::function Field(const T1 & p1, const T2 & p2, const T3 & p3) {
         return GiNaC::function(Field3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
     }
     
-    /**
-     * @brief Vertex function with 2 arguments
-     */
     class Vertex2_SERIAL { public: static unsigned serial; };
     template<typename T1, typename T2>
     inline GiNaC::function Vertex(const T1 & p1, const T2 & p2) {
         return GiNaC::function(Vertex2_SERIAL::serial, ex(p1), ex(p2));
     }
     
-    /**
-     * @brief Vertex function with 3 arguments
-     */
     class Vertex3_SERIAL { public: static unsigned serial; };
     template<typename T1, typename T2, typename T3>
     inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3) {
         return GiNaC::function(Vertex3_SERIAL::serial, ex(p1), ex(p2), ex(p3));
     }
     
-    /**
-     * @brief Vertex function with 4 arguments
-     */
     class Vertex4_SERIAL { public: static unsigned serial; };
     template<typename T1, typename T2, typename T3, typename T4>
     inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4) {
         return GiNaC::function(Vertex4_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4));
     }
     
-    /**
-     * @brief Vertex function with 5 arguments
-     */
-    class Vertex5_SERIAL { public: static unsigned serial; };
+    Vertex5_SERIAL { public: static unsigned serial; };
     template<typename T1, typename T2, typename T3, typename T4, typename T5>
     inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5) {
         return GiNaC::function(Vertex5_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5));
     }
     
-    /**
-     * @brief Vertex function with 6 arguments
-     */
     class Vertex6_SERIAL { public: static unsigned serial; };
     template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
     inline GiNaC::function Vertex(const T1 & p1, const T2 & p2, const T3 & p3, const T4 & p4, const T5 & p5, const T6 & p6) {
         return GiNaC::function(Vertex6_SERIAL::serial, ex(p1), ex(p2), ex(p3), ex(p4), ex(p5), ex(p6));
     }
+    
+    #endif
     
     /**
      * @brief main interface to qgraf program
@@ -100,14 +83,14 @@ namespace HepLib::QGRAF {
         string Options;
         vector<string> Others;
         lst Amplitudes(symtab st, bool debug=false);
-        /**
-         * @brief inner class for some initialization
-         */
+        
+        #ifndef DOXYGEN_SKIP
         class _init {
             public: _init();
         };
     private:
         static _init Process_init;
+        #endif
     };
     
     lst TopoLines(const ex & amp);

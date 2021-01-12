@@ -480,11 +480,11 @@ namespace HepLib::SD {
         SDPrepares();
         EpsEpExpands();
         CIPrepares(key);
-        auto pps = ParallelProcess;
-        ParallelProcess = 0;
+        auto pps = GiNaC_Parallel_Process;
+        GiNaC_Parallel_Process = 0;
         Contours(key);
         Integrates(key);
-        ParallelProcess = pps;
+        GiNaC_Parallel_Process = pps;
         if(Verbose>1) cout << "  Finished @ " << now() << endl << endl;
     }
 
@@ -503,11 +503,11 @@ namespace HepLib::SD {
         SDPrepares();
         EpsEpExpands();
         CIPrepares(key);
-        auto pps = ParallelProcess;
-        ParallelProcess = 0;
+        auto pps = GiNaC_Parallel_Process;
+        GiNaC_Parallel_Process = 0;
         Contours(key);
         Integrates(key);
-        ParallelProcess = pps;
+        GiNaC_Parallel_Process = pps;
         if(Verbose>1) cout << "  Finished @ " << now() << endl << endl;
     }
     
@@ -526,11 +526,11 @@ namespace HepLib::SD {
         SDPrepares();
         EpsEpExpands();
         CIPrepares(key);
-        auto pps = ParallelProcess;
-        ParallelProcess = 0;
+        auto pps = GiNaC_Parallel_Process;
+        GiNaC_Parallel_Process = 0;
         Contours(key);
         Integrates(key);
-        ParallelProcess = pps;
+        GiNaC_Parallel_Process = pps;
         if(Verbose>1) cout << "  Finished @ " << now() << endl << endl;
     }
     
