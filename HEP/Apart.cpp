@@ -706,7 +706,19 @@ namespace HepLib {
             for(auto item : intg) intg_sort.push_back(item);
             sort_vec(intg_sort);
         }
-                
+        
+        // we need clearSP, otherwise cut will become 0
+        if(cut_props.nops()>0) {
+            auto loops = loops_exts.op(0);
+            auto exts = loops_exts.op(1);
+            for(auto v1 : loops) {
+                for(auto v2 : loops) clearSP(v1,v2);
+                for(auto v2 : exts) clearSP(v1,v2);
+            }
+        }
+        
+        // from here, Vector will be replaced by its name Symbol
+        
         lst repls;
         auto sps = sp_map();
         for(auto kv : sps) repls.append(kv.first == kv.second);
@@ -725,9 +737,9 @@ namespace HepLib {
         std::map<ex, IBP::Base*, ex_is_less> p2IBP;
         vector<IBP::Base*> ibp_vec;
         int pn=1;
-        for(auto item : intg_sort) {
-            auto mat = ex_to<matrix>(item.op(0));
-            auto vars = ex_to<lst>(item.op(1));
+        for(auto ir : intg_sort) {
+            auto mat = ex_to<matrix>(ir.op(0));
+            auto vars = ex_to<lst>(ir.op(1));
             lst pns;
             int nrow = mat.rows();
             for(int c=0; c<mat.cols(); c++) {
@@ -738,7 +750,12 @@ namespace HepLib {
                 pns.append(lst{ pc, ex(0)-mat(nrow-1,c) }); // note the convension
             }
             sort_lst(pns); // sort before cuts
-            for(auto cut : cut_props) pns.prepend(lst{ SP2sp(item.subs(SP_map)), 1 });
+            if(cut_props.nops()>0) {
+                ex cuts = cut_props;
+                cuts = cuts.subs(SP_map);
+                for(auto cut : cut_props) pns.prepend(lst{ SP2sp(cut), 1 });
+                vars.append(cuts);
+            }
             
             lst props, ns;
             for(auto item : pns) {
@@ -771,7 +788,7 @@ namespace HepLib {
             }
             IBP::Base* ibp = p2IBP[props];
             ibp->Integrals.append(ns);
-            IR2F[item] = F(ibp->ProblemNumber, ns);
+            IR2F[ir] = F(ibp->ProblemNumber, ns);
         }
         
         if(Verbose>0) cout << "  \\--Total Ints/Pros: " << intg_sort.size() << "/" << ibp_vec.size() << " @ " << now(false) << endl;
