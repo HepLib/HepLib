@@ -333,8 +333,15 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             }
             ff << endl;
             
-            // two method to handle TR objects
-            if(form_trace_mode==form_trace_all) {
+            // methods to handle TR objects
+            auto tr_mode = form_trace_mode;
+            exset trs;
+            find(item,TR(w),trs);
+            if(form_trace_mode==form_trace_auto) {
+                if(trs.size()<2) tr_mode = form_trace_all;
+                else tr_mode = form_trace_each_each;
+            }
+            if(tr_mode==form_trace_all) {
                 mapTR tr;
                 item = tr(item);
                 ff << "L [o]=" << item << ";" << endl;
@@ -355,9 +362,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                     ff << ".sort" << endl;
                     ff << idstr << ".sort" << endl;
                 }
-            } else if(form_trace_mode==form_trace_each_all) {
-                exset trs;
-                find(item,TR(w),trs);
+            } else if(tr_mode==form_trace_each_all) {
                 exmap tr2v;
                 int trn=0;
                 exvector trvec;
@@ -385,9 +390,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                 ff << "#enddo" << endl;
                 ff << idstr << ".sort" << endl;
                 ff << endl;
-            } else if(form_trace_mode==form_trace_each_each) {
-                exset trs;
-                find(item,TR(w),trs);
+            } else if(tr_mode==form_trace_each_each) {
                 exmap tr2v;
                 int trn=0;
                 exvector trvec;

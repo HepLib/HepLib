@@ -24,6 +24,7 @@ namespace HepLib {
     extern exmap SP_map;
     
     extern int form_trace_mode;
+    extern const int form_trace_auto;
     extern const int form_trace_all;
     extern const int form_trace_each_all;
     extern const int form_trace_each_each;

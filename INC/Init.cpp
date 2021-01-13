@@ -120,10 +120,11 @@ namespace HepLib {
     FormFormat::_init FormFormat::FormFormat_init;
     FCFormat fcout(cout);
     
-    const int form_trace_all = 0;
-    const int form_trace_each_all = 1;
-    const int form_trace_each_each = 2;
-    int form_trace_mode = form_trace_each_each;
+    const int form_trace_auto = 0;
+    const int form_trace_all = 1;
+    const int form_trace_each_all = 2;
+    const int form_trace_each_each = 3;
+    int form_trace_mode = form_trace_auto;
     
     const int form_expand_none = 0;
     const int form_expand_tr = 1;
