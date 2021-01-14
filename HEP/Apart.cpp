@@ -525,7 +525,7 @@ namespace HepLib {
                 pnlst.append(lst{ pc, nc });
             } else pref *= item;
         }
-        
+        // handle iEpsilon
         bool needs_again = false;
         for(auto kv : count_ip) {
             if(kv.second>1) { needs_again = true; break; }
@@ -685,260 +685,6 @@ namespace HepLib {
     /**
      * @brief perform IBP reduction on the Aparted input
      * @param IBPmethod ibp method used, 0-No IBP, 1-FIRE, 2-KIRA
-     * @param air_vec vector contains aparted input, ApartIRC will be call internally 
-     * @param loops_exts lst { loop vectors, external vectors, }
-     * @param cut_props cut propagators, default is { }
-     * @param uf the function to compute UF polynomial
-     * @return nothing returned, the input air_vec will be updated
-     */
-    void ApartIBP(int IBPmethod, exvector &air_vec, const lst & loops_exts, const lst & cut_props, 
-        std::function<lst(const Base &, const ex &)> uf) {
-        
-        if(loops_exts.nops()<2) throw Error("loops_exts size() < 2;");
-        lst lmom = ex_to<lst>(loops_exts.op(0));
-        lst emom = ex_to<lst>(loops_exts.op(1));
-        
-        string wdir = to_string(getpid());
-        if(IBPmethod==1) wdir = wdir + "_FIRE";
-        else if(IBPmethod==2) wdir = wdir + "_KIRA";
-        
-        bool aparted = false;
-        for(auto air : air_vec) {
-            if(air.has(ApartIR(w1,w2))) {
-                aparted = true;
-                break;
-            }
-        }
-        
-        auto air_intg = 
-        GiNaC_Parallel(air_vec.size(), [aparted,air_vec,lmom,emom] (int idx) {
-            auto air = air_vec[idx];
-            if(!aparted) air = Apart(air,lmom,emom);
-            air = air.subs(SP_map);            
-            air = ApartIRC(air);
-            exset intg;
-            find(air, ApartIR(w1, w2), intg);
-            lst intgs;
-            for(auto item : intg) intgs.append(item);
-            return lst{air, intgs};
-        }, "Apart");
-        
-        exvector intg_sort;
-        if(true) {
-            exset intg;
-            for(int i=0; i<air_vec.size(); i++) {
-                air_vec[i] = air_intg[i].op(0);
-                for(auto item : air_intg[i].op(1)) intg.insert(item);
-            }
-            air_intg.clear();
-            air_intg.shrink_to_fit();
-            for(auto item : intg) intg_sort.push_back(item);
-            sort_vec(intg_sort);
-        }
-        
-        // we need clearSP, otherwise cut will become 0
-        if(cut_props.nops()>0) {
-            auto loops = loops_exts.op(0);
-            auto exts = loops_exts.op(1);
-            for(auto v1 : loops) {
-                for(auto v2 : loops) clearSP(v1,v2);
-                for(auto v2 : exts) clearSP(v1,v2);
-            }
-        }
-        
-        // from here, Vector will be replaced by its name Symbol
-        
-        lst repls;
-        auto sps = sp_map();
-        for(auto kv : sps) repls.append(kv.first == kv.second);
-        
-        lst loops, exts;
-        for(auto li : lmom) loops.append(ex_to<Vector>(li).name);
-        for(auto li : emom) exts.append(ex_to<Vector>(li).name);
-        
-        exmap IR2F;
-        std::map<ex, IBP::Base*, ex_is_less> p2IBP;
-        vector<IBP::Base*> ibp_vec;
-        int pn=1;
-        for(auto ir : intg_sort) {
-            auto mat = ex_to<matrix>(ir.op(0));
-            auto vars = ex_to<lst>(ir.op(1));
-            lst pns;
-            int nrow = mat.rows();
-            for(int c=0; c<mat.cols(); c++) {
-                ex pc = 0;
-                for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
-                pc += mat(nrow-2,c);
-                pc = SP2sp(pc);
-                pns.append(lst{ pc, ex(0)-mat(nrow-1,c) }); // note the convension
-            }
-            sort_lst(pns); // sort before cuts
-            if(cut_props.nops()>0) {
-                ex cuts = cut_props;
-                cuts = cuts.subs(SP_map);
-                for(auto cut : cuts) pns.prepend(lst{ SP2sp(cut), 1 });
-                vars.append(cuts);
-            }
-            
-            lst props, ns;
-            for(auto item : pns) {
-                props.append(item.op(0));
-                ns.append(item.op(1));
-            }
-
-            if(p2IBP[props]==NULL) {
-                IBP::Base* ibp;
-                if(IBPmethod==0) ibp = new Base();
-                else if(IBPmethod==1) ibp = new FIRE();
-                else if(IBPmethod==2) ibp = new KIRA();
-                else {
-                    ibp = new Base();
-                    IBPmethod = 0;
-                }
-                
-                p2IBP[props] = ibp;
-                ibp->Propagators = props;
-                ibp->Internal = loops;
-                ibp->External = exts;
-                ibp->Replacements = repls;
-                //ibp->Pairs = ex_to<lst>(SP2sp(Pair::all(vars)));
-                ibp->WorkingDir = wdir;
-                ibp->ProblemNumber = pn++;
-                if(cut_props.nops()>0) {
-                    for(int i=0; i<cut_props.nops(); i++) ibp->Cuts.append(i+1);
-                }
-                ibp_vec.push_back(ibp);
-            }
-            IBP::Base* ibp = p2IBP[props];
-            ibp->Integrals.append(ns);
-            IR2F[ir] = F(ibp->ProblemNumber, ns);
-        }
-        
-        if(Verbose>0) cout << "  \\--Total Ints/Pros: " << intg_sort.size() << "/" << ibp_vec.size() << " @ " << now(false) << endl;
-        
-        vector<Base*> base_vec;
-        for(auto ibp : ibp_vec) base_vec.push_back(ibp);
-        auto rules_ints = FindRules(base_vec, false, uf);
-
-        map<int,lst> pn_ints_map;
-        for(auto item : rules_ints.second) {
-            int pn = ex_to<numeric>(item.op(0)).to_int();
-            pn_ints_map[pn].append(item.op(1));
-        }
-
-        vector<IBP::Base*> ibp_vec_re;
-        int nints = 0;
-        for(auto pi : pn_ints_map) {
-            auto ibp = ibp_vec[pi.first-1];
-            ibp->Integrals = pi.second;
-            nints += ibp->Integrals.nops();
-            ibp_vec_re.push_back(ibp);
-        }
-
-        if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << nints << "/" << ibp_vec_re.size() << " @ " << now(false) << endl;
-        
-        MapFunction _F2ex([ibp_vec](const ex &e, MapFunction &self)->ex {
-            if(!e.has(F(w1,w2))) return e;
-            else if(e.match(F(w1,w2))) {
-                int idx = ex_to<numeric>(e.op(0)).to_int();
-                auto pso = ex_to<lst>(ibp_vec[idx-1]->Propagators);
-                auto nso = ex_to<lst>(e.op(1));
-                lst ps, ns;
-                for(int i=0; i<pso.nops(); i++) {
-                    if(nso.op(i).is_zero()) continue;
-                    ps.append(pso.op(i));
-                    ns.append(nso.op(i));
-                }
-                return F(ps,ns);
-            } else return e.map(self);
-        });
-        
-        if(IBPmethod==0) {
-            auto air_res =
-            GiNaC_Parallel(air_vec.size(), 1, [&](int idx)->ex {
-                auto air = air_vec[idx];
-                air = subs_naive(air,IR2F);
-                air = subs_naive(air,rules_ints.first);
-                air = _F2ex(air);
-                auto cv_lst = mma_collect_lst(air, F(w1,w2));
-                air = 0;
-                for(auto cv : cv_lst) air += cv.op(1) * (cv.op(0));
-                return air;
-            }, "A2F");
-            
-            for(auto fp : ibp_vec) delete fp;
-            system(("rm -rf "+wdir).c_str());
-
-            for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];   
-            return;
-        }
-        
-        if(IBPmethod==1) {
-            for(auto ibp : ibp_vec_re) ibp->Export();
-            auto nproc = 2*CpuCores()/FIRE::Threads;
-            int cproc = 0;
-            if(nproc<2) nproc = 2;
-            #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
-            for(int pi=0; pi<ibp_vec_re.size(); pi++) {
-                if(Verbose>1) {
-                    #pragma omp critical
-                    cout << "\r                                        \r" << "  \\--FIRE Reduction [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
-                }
-                ibp_vec_re[pi]->Run();
-            }
-            if(Verbose>1) cout << "@" << now(false) << endl;
-            for(auto item : ibp_vec_re) item->Import();
-            system(("rm -rf "+wdir).c_str());
-        } else if(IBPmethod==2) {
-            for(auto ibp : ibp_vec_re) ibp->Reduce();
-            system(("rm -rf "+wdir).c_str());
-        }
-        
-        vector<Base*> base_re;
-        for(auto f : ibp_vec_re) base_re.push_back(f);
-        auto mi_rules = FindRules(base_re, true, uf);
-                        
-        auto rules_vec =
-        GiNaC_Parallel(ibp_vec_re.size(), 10, [&](int idx)->ex {
-            lst rules;
-            for(auto item : ibp_vec_re[idx]->Rules) {
-                auto rr = item.op(1);
-                rr = subs_naive(rr,mi_rules.first);
-                auto cv_lst = mma_collect_lst(rr, F(w1,w2));
-                rr = 0;
-                for(auto cv : cv_lst) rr += cv.op(1) * (cv.op(0));
-                rules.append(item.op(0)==rr);
-            }
-            return rules;
-        }, "F2F");
-                
-        exmap F2F;
-        for(auto rule : rules_vec) {
-            for(auto lr : rule) F2F[lr.op(0)] = lr.op(1);
-        }
-        
-        auto air_res =
-        GiNaC_Parallel(air_vec.size(), 1, [&](int idx)->ex {
-            auto air = air_vec[idx];
-            air = subs_naive(air,IR2F);
-            air = subs_naive(air,rules_ints.first);
-            air = subs_naive(air,mi_rules.first);
-            air = subs_naive(air,F2F);
-            air = _F2ex(air);
-            auto cv_lst = mma_collect_lst(air, F(w1,w2));
-            air = 0;
-            for(auto cv : cv_lst) air += cv.op(1) * (cv.op(0));
-            return air;
-        }, "A2F");
-            
-        for(auto fp : ibp_vec) delete fp;
-
-        for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];        
-    }
-    
-    /**
-     * @brief perform IBP reduction on the Aparted input
-     * @param IBPmethod ibp method used, 0-No IBP, 1-FIRE, 2-KIRA
      * @param air_vec vector contains aparted input, ApartIRC will be call internally
      * @param aip AIOption for ApartIBP input
      * @return nothing returned, the input air_vec will be updated
@@ -970,22 +716,27 @@ namespace HepLib {
             auto ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom] (int idx) {
                 auto air = vvec[idx].op(0);
                 air = Apart(air,lmom,emom);
-                air = air.subs(SP_map);
-                air = ApartIRC(air);
                 return air;
             }, "Apart");
             exmap v2v;
             for(int i=0; i<vvec.size(); i++) v2v[vvec[i]] = ret[i];
-            for(auto &air : air_vec) air = air.subs(v2v);
+            ret = GiNaC_Parallel(air_vec.size(), [air_vec,v2v] (int idx) {
+                return air_vec[idx].subs(v2v);
+            }, "SUBS");
+            for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i];
         }
         
-        exset intg;
+        exset intg_set;
         for(auto &air : air_vec) {
-            find(air, ApartIR(w1, w2), intg);
+            air = air.subs(SP_map);
+            air = ApartIRC(air);
+            find(air, ApartIR(w1, w2), intg_set);
         }
-        exvector intg_sort;
-        for(auto item : intg) intg_sort.push_back(item);
-        sort_vec(intg_sort);
+        exvector intg;
+        for(auto item : intg_set) intg.push_back(item);
+        sort_vec(intg); // need sort
+        
+        if(Verbose>0) cout << "  \\--Total Ints/Pros: " << intg.size() << "/" << flush;
         
         for(auto sp : aip.CPairs) SP_map.erase(sp);
         
@@ -1009,7 +760,7 @@ namespace HepLib {
         std::map<ex, IBP::Base*, ex_is_less> p2IBP;
         vector<IBP::Base*> ibp_vec;
         int pn=1;
-        for(auto ir : intg_sort) {
+        for(auto ir : intg) {
             auto mat = ex_to<matrix>(ir.op(0));
             auto vars = ex_to<lst>(ir.op(1));
             lst pns;
@@ -1070,7 +821,7 @@ namespace HepLib {
             IR2F[ir] = F(ibp->ProblemNumber, ns);
         }
         
-        if(Verbose>0) cout << "  \\--Total Ints/Pros: " << intg_sort.size() << "/" << ibp_vec.size() << " @ " << now(false) << endl;
+        if(Verbose>0) cout << ibp_vec.size() << " @ " << now(false) << endl;
         
         vector<Base*> base_vec;
         for(auto ibp : ibp_vec) base_vec.push_back(ibp);
@@ -1190,6 +941,32 @@ namespace HepLib {
         for(auto fp : ibp_vec) delete fp;
 
         for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];
+    }
+    
+    /**
+     * @brief perform IBP reduction on the Aparted input
+     * @param IBPmethod ibp method used, 0-No IBP, 1-FIRE, 2-KIRA
+     * @param air_vec vector contains aparted input, ApartIRC will be call internally
+     * @param loops_exts lst { loop vectors, external vectors, }
+     * @param cut_props cut propagators, default is { }
+     * @param uf the function to compute UF polynomial
+     * @return nothing returned, the input air_vec will be updated
+     */
+    void ApartIBP(int IBPmethod, exvector &air_vec, const lst & loops_exts, const lst & cut_props,
+        std::function<lst(const Base &, const ex &)> uf) {
+        
+        if(loops_exts.nops()<2) throw Error("loops_exts size() < 2;");
+        lst lmom = ex_to<lst>(loops_exts.op(0));
+        lst emom = ex_to<lst>(loops_exts.op(1));
+        
+        AIOption aip;
+        aip.AInternal = lmom;
+        aip.AExternal = emom;
+        aip.IInternal = lmom;
+        aip.IExternal = emom;
+        aip.Cuts = cut_props;
+        aip.UF = uf;
+        ApartIBP(IBPmethod, air_vec, aip);
     }
 
 }
