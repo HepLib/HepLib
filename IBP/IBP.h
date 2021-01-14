@@ -25,6 +25,7 @@ namespace HepLib::IBP {
     class Base {
     public:
         lst Internal;
+        lst _Internal;
         lst External;
         lst Replacements;
         lst Propagators;

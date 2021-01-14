@@ -15,7 +15,7 @@ namespace HepLib::SD {
         auto xs = get_x_from(expr);
         auto nx = xs.size();
         if(nx<1) return expr;
-        if(!is_polynomial(expr, exvec2lst(xs))) return expr;
+        if(!is_polynomial(expr, vec2lst(xs))) return expr;
         auto cvs = mma_collect_lst(expr,x(w));
         vector<exvector> degs_vec;
         for(auto cv : cvs) {
@@ -1375,7 +1375,7 @@ namespace HepLib::SD {
                         auto pref = mma_series(ct2, ep, epN-di);
                         if(pref.has(vs)) pref = mma_series(pref, vs, sN);
                         if(is_zero(intg.subs(x(w)==ex(1)/7)) && is_zero(intg.subs(x(w)==ex(1)/13))) {
-                            intg = fermat_normal(intg);
+                            intg = normal_fermat(intg);
                         }
                         para_res_lst.append(lst{pref * pow(ep, di), intg});
                     }
@@ -1404,7 +1404,7 @@ namespace HepLib::SD {
                                 auto pref = mma_series(ct2, ep, epN-di);
                                 if(pref.has(vs)) pref = mma_series(pref, vs, sN);
                                 if(is_zero(intg.subs(x(w)==ex(1)/7)) || is_zero(intg.subs(x(w)==ex(1)/13))) {
-                                    intg = fermat_normal(intg);
+                                    intg = normal_fermat(intg);
                                 }
                                 para_res_lst.append(lst{eps_ci * pref * pow(eps, sdi) * pow(ep, di), intg});
                             }

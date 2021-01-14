@@ -122,7 +122,7 @@ namespace HepLib {
         
         // null vector
         static exmap null_cache;
-        if(null_cache.find(sub_matrix(mat,0,nrow,0,ncol))==null_cache.end()){
+        if(null_cache.find(sub_matrix(mat,0,nrow,0,ncol))==null_cache.end()) {
             if(Apart_using_fermat) {
                 static map<pid_t, Fermat> fermat_map;
                 static int v_max = 0;
@@ -177,7 +177,7 @@ namespace HepLib {
                 ss << "[m]:=[(";
                 for(int c=0; c<ncol; c++) {
                     for(int r=0; r<nrow; r++) {
-                        ss << mat(r,c).subs(v2f) << ",";
+                        ss << mat(r,c).subs(iEpsilon==0).subs(v2f) << ",";
                     }
                 }
                 for(int r=0; r<nrow; r++) ss << "0,";
@@ -196,7 +196,7 @@ namespace HepLib {
                 ss.str("");
                 //fermat.Exit();
                 
-                // note the order, before exfactor (fermat_normal will be called again here)
+                // note the order, before exfactor (normal_fermat will be called again here)
                 ss << "&(U=0);" << endl; // disable ugly printing
                 ss << "@([m]);" << endl;
                 ss << "&_G;" << endl;
@@ -237,7 +237,7 @@ namespace HepLib {
                 }
                 // Solve M*V = 0
                 matrix zero(nrow, 1);
-                matrix s = ex_to<matrix>(sub_matrix(mat,0,nrow,0,ncol)).solve(v,zero);
+                matrix s = ex_to<matrix>(sub_matrix(mat,0,nrow,0,ncol).subs(iEpsilon==0)).solve(v,zero);
                 for(int r=0; r<ncol; r++) null_vec.append(s(r,0).subs(sRepl));
             }
             null_cache[sub_matrix(mat,0,nrow,0,ncol)] = null_vec;
@@ -421,7 +421,7 @@ namespace HepLib {
             }
             nrepl[iEpsilon]=0;
             ex chk = ApartIR2ex(subs(res,nrepl))-subs(expr_ino,nrepl);
-            chk = normal(chk);
+            chk = normal_fermat(chk);
             if(!is_zero(chk)) throw Error("Apart@1 random check Failed.");
             return res;
         }
@@ -443,7 +443,7 @@ namespace HepLib {
         ex expr = expr_in.subs(map1);
         if(!is_a<mul>(expr)) expr = lst{expr};
         
-        // check only, try fermat_normal if faild
+        // check only, try normal_fermat if faild
         bool ok = true;
         for(auto item : expr) {
             bool has_var=false;
@@ -462,12 +462,13 @@ namespace HepLib {
         }
         if(!ok) {
             expr = expr_in.subs(map1);
-            expr = fermat_normal(expr,true); // need option factor=true
+            expr = normal_fermat(expr,true); // need option factor=true, factor denominator
             if(!is_a<mul>(expr)) expr = lst{expr};
         }
         
         lst pnlst;
         ex pref = 1;
+        map<ex,int,ex_is_less> count_ip;
         for(auto item : expr) {
             bool has_var=false;
             for(auto v : vars) {
@@ -519,8 +520,38 @@ namespace HepLib {
                         break;
                     }
                 }
+                ex key = pc.subs(iEpsilon==0).expand();
+                count_ip[key] = count_ip[key]+1;
                 pnlst.append(lst{ pc, nc });
             } else pref *= item;
+        }
+        
+        bool needs_again = false;
+        for(auto kv : count_ip) {
+            if(kv.second>1) { needs_again = true; break; }
+        }
+        if(needs_again) {
+            exmap imap;
+            for(auto pn : pnlst) {
+                auto key = pn.op(0);
+                if(key.has(iEpsilon)) imap[key.subs(iEpsilon==0)] = key;
+            }
+            exmap p2n;
+            for(auto pn : pnlst) {
+                auto key = pn.op(0);
+                if(!key.has(iEpsilon)) key = key.subs(imap);
+                p2n[key] = p2n[key] + pn.op(1);
+            }
+            pnlst.remove_all();
+            for(auto kv : p2n) {
+                if(is_zero(kv.second)) continue;
+                auto k = kv.first;
+                auto v = kv.second;
+                if(is_a<numeric>(v) && ex_to<numeric>(v)>0) {
+                    k = k.subs(iEpsilon==0);
+                }
+                pnlst.append(lst{k, v});
+            }
         }
         sort_lst(pnlst);
         
@@ -532,12 +563,12 @@ namespace HepLib {
         matrix mat(nrow+2, ncol);
         for(int c=0; c<ncol; c++) {
             ex pn = pnlst.op(c);
-            mat(nrow+1,c) = pn.op(1);
+            mat(nrow+1,c) = normal(pn.op(1));
             auto tmp = pn.op(0);
             for(int r=0; r<nrow; r++) {
-                mat(r,c) = tmp.coeff(vars.op(r));
+                mat(r,c) = normal_fermat(tmp.coeff(vars.op(r)));
             }
-            mat(nrow,c) = tmp.subs(vars0);
+            mat(nrow,c) = normal_fermat(tmp.subs(vars0));
         }
 
         ex ret = Apart(mat);
@@ -664,6 +695,8 @@ namespace HepLib {
         std::function<lst(const Base &, const ex &)> uf) {
         
         if(loops_exts.nops()<2) throw Error("loops_exts size() < 2;");
+        lst lmom = ex_to<lst>(loops_exts.op(0));
+        lst emom = ex_to<lst>(loops_exts.op(1));
         
         string wdir = to_string(getpid());
         if(IBPmethod==1) wdir = wdir + "_FIRE";
@@ -678,13 +711,9 @@ namespace HepLib {
         }
         
         auto air_intg = 
-        GiNaC_Parallel(air_vec.size(), [aparted,air_vec,loops_exts] (int idx) {
+        GiNaC_Parallel(air_vec.size(), [aparted,air_vec,lmom,emom] (int idx) {
             auto air = air_vec[idx];
-            if(!aparted) {
-                lst lmom = ex_to<lst>(loops_exts.op(0));
-                lst emom = ex_to<lst>(loops_exts.op(1));
-                air = Apart(air,lmom,emom);
-            }
+            if(!aparted) air = Apart(air,lmom,emom);
             air = air.subs(SP_map);            
             air = ApartIRC(air);
             exset intg;
@@ -724,14 +753,8 @@ namespace HepLib {
         for(auto kv : sps) repls.append(kv.first == kv.second);
         
         lst loops, exts;
-        for(auto li : loops_exts.op(0)) {
-            if(is_a<Vector>(li)) loops.append(ex_to<Vector>(li).name);
-            else loops.append(li);
-        }
-        for(auto li : loops_exts.op(1)) {
-            if(is_a<Vector>(li)) exts.append(ex_to<Vector>(li).name);
-            else exts.append(li);
-        }
+        for(auto li : lmom) loops.append(ex_to<Vector>(li).name);
+        for(auto li : emom) exts.append(ex_to<Vector>(li).name);
         
         exmap IR2F;
         std::map<ex, IBP::Base*, ex_is_less> p2IBP;
@@ -753,7 +776,7 @@ namespace HepLib {
             if(cut_props.nops()>0) {
                 ex cuts = cut_props;
                 cuts = cuts.subs(SP_map);
-                for(auto cut : cut_props) pns.prepend(lst{ SP2sp(cut), 1 });
+                for(auto cut : cuts) pns.prepend(lst{ SP2sp(cut), 1 });
                 vars.append(cuts);
             }
             
@@ -778,7 +801,7 @@ namespace HepLib {
                 ibp->Internal = loops;
                 ibp->External = exts;
                 ibp->Replacements = repls;
-                ibp->Pairs = ex_to<lst>(SP2sp(Pair::all(vars)));
+                //ibp->Pairs = ex_to<lst>(SP2sp(Pair::all(vars)));
                 ibp->WorkingDir = wdir;
                 ibp->ProblemNumber = pn++;
                 if(cut_props.nops()>0) {
@@ -839,7 +862,7 @@ namespace HepLib {
                 air = _F2ex(air);
                 auto cv_lst = mma_collect_lst(air, F(w1,w2));
                 air = 0;
-                for(auto cv : cv_lst) air += cv.op(1) * fermat_normal(cv.op(0));
+                for(auto cv : cv_lst) air += cv.op(1) * (cv.op(0));
                 return air;
             }, "A2F");
             
@@ -883,7 +906,7 @@ namespace HepLib {
                 rr = subs_naive(rr,mi_rules.first);
                 auto cv_lst = mma_collect_lst(rr, F(w1,w2));
                 rr = 0;
-                for(auto cv : cv_lst) rr += cv.op(1) * fermat_normal(cv.op(0));
+                for(auto cv : cv_lst) rr += cv.op(1) * (cv.op(0));
                 rules.append(item.op(0)==rr);
             }
             return rules;
@@ -904,13 +927,269 @@ namespace HepLib {
             air = _F2ex(air);
             auto cv_lst = mma_collect_lst(air, F(w1,w2));
             air = 0;
-            for(auto cv : cv_lst) air += cv.op(1) * fermat_normal(cv.op(0));
+            for(auto cv : cv_lst) air += cv.op(1) * (cv.op(0));
             return air;
         }, "A2F");
             
         for(auto fp : ibp_vec) delete fp;
 
         for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];        
+    }
+    
+    /**
+     * @brief perform IBP reduction on the Aparted input
+     * @param IBPmethod ibp method used, 0-No IBP, 1-FIRE, 2-KIRA
+     * @param air_vec vector contains aparted input, ApartIRC will be call internally
+     * @param aip AIOption for ApartIBP input
+     * @return nothing returned, the input air_vec will be updated
+     */
+    void ApartIBP(int IBPmethod, exvector &air_vec, AIOption aip) {
+                
+        string wdir = to_string(getpid());
+        if(IBPmethod==1) wdir = wdir + "_FIRE";
+        else if(IBPmethod==2) wdir = wdir + "_KIRA";
+        
+        bool aparted = false;
+        for(auto air : air_vec) {
+            if(air.has(ApartIR(w1,w2))) {
+                aparted = true;
+                break;
+            }
+        }
+        
+        if(!aparted) {
+            exset vset;
+            lst lmom = ex_to<lst>(aip.AInternal);
+            lst emom = ex_to<lst>(aip.AExternal);
+            for(auto &air : air_vec) {
+                air = mma_collect(air,lmom,false,true);
+                find(air,coVF(w),vset);
+            }
+            exvector vvec;
+            for(auto item : vset) vvec.push_back(item);
+            auto ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom] (int idx) {
+                auto air = vvec[idx].op(0);
+                air = Apart(air,lmom,emom);
+                air = air.subs(SP_map);
+                air = ApartIRC(air);
+                return air;
+            }, "Apart");
+            exmap v2v;
+            for(int i=0; i<vvec.size(); i++) v2v[vvec[i]] = ret[i];
+            for(auto &air : air_vec) air = air.subs(v2v);
+        }
+        
+        exset intg;
+        for(auto &air : air_vec) {
+            find(air, ApartIR(w1, w2), intg);
+        }
+        exvector intg_sort;
+        for(auto item : intg) intg_sort.push_back(item);
+        sort_vec(intg_sort);
+        
+        for(auto sp : aip.CPairs) SP_map.erase(sp);
+        
+        // from here, Vector will be replaced by its name Symbol
+        
+        lst repls;
+        auto sps = sp_map();
+        for(auto kv : sps) repls.append(kv.first == kv.second);
+                
+        lst loops, exts;
+        for(auto li : aip.IInternal) {
+            if(is_a<Vector>(li)) loops.append(ex_to<Vector>(li).name);
+            else loops.append(li);
+        }
+        for(auto li : aip.IExternal) {
+            if(is_a<Vector>(li)) exts.append(ex_to<Vector>(li).name);
+            else exts.append(li);
+        }
+        
+        exmap IR2F;
+        std::map<ex, IBP::Base*, ex_is_less> p2IBP;
+        vector<IBP::Base*> ibp_vec;
+        int pn=1;
+        for(auto ir : intg_sort) {
+            auto mat = ex_to<matrix>(ir.op(0));
+            auto vars = ex_to<lst>(ir.op(1));
+            lst pns;
+            int nrow = mat.rows();
+            for(int c=0; c<mat.cols(); c++) {
+                ex pc = 0;
+                for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
+                pc += mat(nrow-2,c);
+                pc = SP2sp(pc);
+                pns.append(lst{ pc, ex(0)-mat(nrow-1,c) }); // note the convension
+            }
+            sort_lst(pns); // sort before cuts
+            if(aip.Cuts.nops()>0) {
+                ex cuts = aip.Cuts;
+                cuts = cuts.subs(SP_map);
+                for(auto cut : cuts) pns.prepend(lst{ SP2sp(cut), 1 });
+            }
+            
+            lst props, ns;
+            for(auto item : pns) {
+                props.append(item.op(0));
+                ns.append(item.op(1));
+            }
+
+            if(p2IBP[props]==NULL) {
+                IBP::Base* ibp;
+                if(IBPmethod==0) ibp = new Base();
+                else if(IBPmethod==1) ibp = new FIRE();
+                else if(IBPmethod==2) ibp = new KIRA();
+                else {
+                    ibp = new Base();
+                    IBPmethod = 0;
+                }
+                
+                p2IBP[props] = ibp;
+                ibp->Propagators = props;
+                ibp->Internal = loops;
+                ibp->External = exts;
+                ibp->Replacements = repls;
+                if(aip.IPairs.nops()>0) {
+                    for(auto item : aip.IPairs) ibp->Pairs.append(SP2sp(item));
+                }
+                if(aip.I_Internal.nops()>0) {
+                    for(auto item : aip.I_Internal) {
+                        if(is_a<Vector>(item)) ibp->_Internal.append(ex_to<Vector>(item).name);
+                        else ibp->_Internal.append(item);
+                    }
+                }
+                ibp->WorkingDir = wdir;
+                ibp->ProblemNumber = pn++;
+                if(aip.Cuts.nops()>0) {
+                    for(int i=0; i<aip.Cuts.nops(); i++) ibp->Cuts.append(i+1);
+                }
+                ibp_vec.push_back(ibp);
+            }
+            IBP::Base* ibp = p2IBP[props];
+            ibp->Integrals.append(ns);
+            IR2F[ir] = F(ibp->ProblemNumber, ns);
+        }
+        
+        if(Verbose>0) cout << "  \\--Total Ints/Pros: " << intg_sort.size() << "/" << ibp_vec.size() << " @ " << now(false) << endl;
+        
+        vector<Base*> base_vec;
+        for(auto ibp : ibp_vec) base_vec.push_back(ibp);
+        auto rules_ints = FindRules(base_vec, false, aip.UF);
+
+        map<int,lst> pn_ints_map;
+        for(auto item : rules_ints.second) {
+            int pn = ex_to<numeric>(item.op(0)).to_int();
+            pn_ints_map[pn].append(item.op(1));
+        }
+
+        vector<IBP::Base*> ibp_vec_re;
+        int nints = 0;
+        for(auto pi : pn_ints_map) {
+            auto ibp = ibp_vec[pi.first-1];
+            ibp->Integrals = pi.second;
+            nints += ibp->Integrals.nops();
+            ibp_vec_re.push_back(ibp);
+        }
+
+        if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << nints << "/" << ibp_vec_re.size() << " @ " << now(false) << endl;
+        
+        MapFunction _F2ex([ibp_vec](const ex &e, MapFunction &self)->ex {
+            if(!e.has(F(w1,w2))) return e;
+            else if(e.match(F(w1,w2))) {
+                int idx = ex_to<numeric>(e.op(0)).to_int();
+                auto pso = ex_to<lst>(ibp_vec[idx-1]->Propagators);
+                auto nso = ex_to<lst>(e.op(1));
+                lst ps, ns;
+                for(int i=0; i<pso.nops(); i++) {
+                    if(nso.op(i).is_zero()) continue;
+                    ps.append(pso.op(i));
+                    ns.append(nso.op(i));
+                }
+                return F(ps,ns);
+            } else return e.map(self);
+        });
+        
+        if(IBPmethod==0) {
+            auto air_res =
+            GiNaC_Parallel(air_vec.size(), 1, [&](int idx)->ex {
+                auto air = air_vec[idx];
+                air = subs_naive(air,IR2F);
+                air = subs_naive(air,rules_ints.first);
+                air = _F2ex(air);
+                auto cv_lst = mma_collect_lst(air, F(w1,w2));
+                air = 0;
+                for(auto cv : cv_lst) air += cv.op(1) * (cv.op(0));
+                return air;
+            }, "A2F");
+            
+            for(auto fp : ibp_vec) delete fp;
+            system(("rm -rf "+wdir).c_str());
+
+            for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];
+            return;
+        }
+        
+        if(IBPmethod==1) {
+            for(auto ibp : ibp_vec_re) ibp->Export();
+            auto nproc = 2*CpuCores()/FIRE::Threads;
+            int cproc = 0;
+            if(nproc<2) nproc = 2;
+            #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
+            for(int pi=0; pi<ibp_vec_re.size(); pi++) {
+                if(Verbose>1) {
+                    #pragma omp critical
+                    cout << "\r                                        \r" << "  \\--FIRE Reduction [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
+                }
+                ibp_vec_re[pi]->Run();
+            }
+            if(Verbose>1) cout << "@" << now(false) << endl;
+            for(auto item : ibp_vec_re) item->Import();
+            system(("rm -rf "+wdir).c_str());
+        } else if(IBPmethod==2) {
+            for(auto ibp : ibp_vec_re) ibp->Reduce();
+            system(("rm -rf "+wdir).c_str());
+        }
+        
+        vector<Base*> base_re;
+        for(auto f : ibp_vec_re) base_re.push_back(f);
+        auto mi_rules = FindRules(base_re, true, aip.UF);
+                        
+        auto rules_vec =
+        GiNaC_Parallel(ibp_vec_re.size(), 10, [&](int idx)->ex {
+            lst rules;
+            for(auto item : ibp_vec_re[idx]->Rules) {
+                auto rr = item.op(1);
+                rr = subs_naive(rr,mi_rules.first);
+                auto cv_lst = mma_collect_lst(rr, F(w1,w2));
+                rr = 0;
+                for(auto cv : cv_lst) rr += cv.op(1) * (cv.op(0));
+                rules.append(item.op(0)==rr);
+            }
+            return rules;
+        }, "F2F");
+                
+        exmap F2F;
+        for(auto rule : rules_vec) {
+            for(auto lr : rule) F2F[lr.op(0)] = lr.op(1);
+        }
+        
+        auto air_res =
+        GiNaC_Parallel(air_vec.size(), 1, [&](int idx)->ex {
+            auto air = air_vec[idx];
+            air = subs_naive(air,IR2F);
+            air = subs_naive(air,rules_ints.first);
+            air = subs_naive(air,mi_rules.first);
+            air = subs_naive(air,F2F);
+            air = _F2ex(air);
+            auto cv_lst = mma_collect_lst(air, F(w1,w2));
+            air = 0;
+            for(auto cv : cv_lst) air += cv.op(1) * (cv.op(0));
+            return air;
+        }, "A2F");
+            
+        for(auto fp : ibp_vec) delete fp;
+
+        for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];
     }
 
 }

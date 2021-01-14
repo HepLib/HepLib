@@ -54,23 +54,23 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Terminal Color
     /*-----------------------------------------------------*/
-    #define RESET   "\033[0m"
-    #define BLACK   "\033[30m"      /* Black */
-    #define RED     "\033[31m"      /* Red */
-    #define GREEN   "\033[32m"      /* Green */
-    #define YELLOW  "\033[33m"      /* Yellow */
-    #define BLUE    "\033[34m"      /* Blue */
-    #define MAGENTA "\033[35m"      /* Magenta */
-    #define CYAN    "\033[36m"      /* Cyan */
-    #define WHITE   "\033[37m"      /* White */
-    #define BOLDBLACK   "\033[1m\033[30m"      /* Bold Black */
-    #define BOLDRED     "\033[1m\033[31m"      /* Bold Red */
-    #define BOLDGREEN   "\033[1m\033[32m"      /* Bold Green */
-    #define BOLDYELLOW  "\033[1m\033[33m"      /* Bold Yellow */
-    #define BOLDBLUE    "\033[1m\033[34m"      /* Bold Blue */
-    #define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
-    #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
-    #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
+    #define RESET "\033[0m"
+    #define BLACK "\033[30m"
+    #define RED "\033[31m"
+    #define GREEN "\033[32m"
+    #define YELLOW "\033[33m"
+    #define BLUE "\033[34m"
+    #define MAGENTA "\033[35m"
+    #define CYAN "\033[36m"
+    #define WHITE "\033[37m"
+    #define BOLDBLACK "\033[1m\033[30m"
+    #define BOLDRED "\033[1m\033[31m"
+    #define BOLDGREEN "\033[1m\033[32m"
+    #define BOLDYELLOW "\033[1m\033[33m"
+    #define BOLDBLUE "\033[1m\033[34m"
+    #define BOLDMAGENTA "\033[1m\033[35m"
+    #define BOLDCYAN "\033[1m\033[36m"
+    #define BOLDWHITE "\033[1m\033[37m"
     
     /**
      * @brief class extended to GiNaC symbol class, represent a positive symbol
@@ -268,7 +268,9 @@ namespace HepLib {
     ex garRead(const string &garfn, const char* key);
     ex garRead(const string &garfn);
     void garWrite(const string &garfn, const map<string, ex> &resMap);
+    inline void garWrite(const map<string, ex> &resMap, const string &garfn) { garWrite(garfn,resMap); }
     void garWrite(const string &garfn, const ex & res);
+    inline void garWrite(const ex & res, const string &garfn) { garWrite(garfn,res); }
     ex str2ex(const string &expr, symtab stab);
     ex str2ex(const string &expr);
     lst str2lst(const string &expr, symtab stab);
@@ -283,7 +285,7 @@ namespace HepLib {
     string ex2str(const ex &expr);
     ex q2ex(__float128);
     __float128 ex2q(ex);
-    lst exvec2lst(const exvector & exvec);
+    lst vec2lst(const exvector & exvec);
     exvector lst2vec(const lst & alst);
     lst add2lst(const ex & expr);
     lst mul2lst(const ex & expr);
@@ -344,14 +346,19 @@ namespace HepLib {
     
     ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
-    extern bool fermat_use_array;
-    ex fermat_numer_denom(const ex & expr, bool factor=false);
-    ex fermat_normal(const ex & expr, bool factor=false);
+    extern bool fermat_using_array;
+    ex numer_denom_fermat(const ex & expr, bool factor=false);
+    inline ex fermat_numer_denom(const ex & expr, bool factor=false) { return numer_denom_fermat(expr,factor); }
     
-    ex form_factor(const ex & expr);
+    ex normal_fermat(const ex & expr, bool factor=false);
+    inline ex fermat_normal(const ex & expr, bool factor=false) { return normal_fermat(expr,factor); }
     
-    enum FactorMethod { GiNaC, FORM };
-    ex exfactor(const ex & expr, FactorMethod fm = FORM);
+    ex factor_form(const ex & expr);
+    inline ex form_factor(const ex & expr) { return factor_form(expr); }
+    
+    ex exfactor(const ex & expr, int opt = 1);
+    ex exnormal(const ex & expr, int opt = 1);
+    ex exnd(const ex & expr, int opt = 1);
     
     ex collect_factors(const ex & expr);
     

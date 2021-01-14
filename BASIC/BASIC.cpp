@@ -725,7 +725,7 @@ namespace HepLib {
      * @param exvec input exvector
      * @return lst
      */
-    lst exvec2lst(const exvector & exvec) {
+    lst vec2lst(const exvector & exvec) {
         lst ret;
         for(auto item : exvec) ret.append(item);
         return ret;
@@ -1931,7 +1931,7 @@ namespace HepLib {
      * @param factor true for factorize on the denominator
      * @return a list of { numer, denom }
      */
-    ex fermat_numer_denom(const ex & expr, bool factor) {
+    ex numer_denom_fermat(const ex & expr, bool factor) {
         static map<pid_t, Fermat> fermat_map;
         static int v_max = 0;
 
@@ -1988,7 +1988,7 @@ namespace HepLib {
         if(!is_a<mul>(expr_in)) expr_in = lst{expr_in};
         for(auto item : expr_in) {
             if(!is_a<add>(item)) item = lst{item};
-            if(fermat_use_array) ss << "Array m[" << item.nops() << "];" << endl;
+            if(fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
             else ss << "res:=0;" << endl;
             fermat.Execute(ss.str());
             ss.clear();
@@ -1998,15 +1998,15 @@ namespace HepLib {
             for(int i=0; i<item.nops(); i++) {
                 ex tt = item.op(i).subs(v2f);
                 nn_chk2 += tt.subs(nn_map);
-                if(fermat_use_array) ss << "m[" << (i+1) << "]:=";
+                if(fermat_using_array) ss << "m[" << (i+1) << "]:=";
                 else ss << "item:=";
                 ss << tt << ";" << endl;
-                if(!fermat_use_array) ss << "res:=res+item;" << endl;
+                if(!fermat_using_array) ss << "res:=res+item;" << endl;
                 fermat.Execute(ss.str());
                 ss.clear();
                 ss.str("");
             }
-            if(fermat_use_array) {
+            if(fermat_using_array) {
                 ss << "res:=Sumup([m]);" << endl;
                 fermat.Execute(ss.str());
                 ss.clear();
@@ -2021,9 +2021,9 @@ namespace HepLib {
             ss.clear();
             ss.str("");
             
-            // note the order, before exfactor (fermat_normal will be called again here)
+            // note the order,(normal_fermat will be called again in factor_form)
             ss << "&(U=0);" << endl; // disable ugly printing
-            if(fermat_use_array) ss << "@(res,[m]);" << endl;
+            if(fermat_using_array) ss << "@(res,[m]);" << endl;
             else ss << "@(res,item);" << endl;
             ss << "&_G;" << endl;
             fermat.Execute(ss.str());
@@ -2045,7 +2045,7 @@ namespace HepLib {
             Parser fp(st);
             auto ret = fp.Read(ostr);
             num *= ret.op(0);
-            if(factor) den *= exfactor(ret.op(1));
+            if(factor) den *= factor_form(ret.op(1));
             else den *= ret.op(1);
         }
         //fermat.Exit();
@@ -2067,7 +2067,7 @@ namespace HepLib {
      * @param factor true for factorize on the denominator
      * @return the normalized expression: numer/denom
      */
-    ex fermat_normal(const ex & expr, bool factor) {
+    ex normal_fermat(const ex & expr, bool factor) {
         auto nd = fermat_numer_denom(expr, factor);
         return nd.op(0)/nd.op(1);
     }
@@ -2087,15 +2087,37 @@ namespace HepLib {
     /**
      * @brief factorize a expression
      * @param expr the input expression
-     * @param fm FactorMethod::FORM to use FORM, otherwise using GiNaC for factorization
+     * @param opt 1 to use FORM, otherwise using GiNaC for factorization
      * @return factorized result
      */
-    ex exfactor(const ex & expr, FactorMethod fm) {
-        if(fm == FactorMethod::FORM) return form_factor(expr);
+    ex exfactor(const ex & expr, int opt) {
+        if(opt==1) return factor_form(expr);
         else return ginac_factor(expr);
     }
     
-    ex inner_form_factor(const ex & expr) {
+    /**
+     * @brief normalize a expression
+     * @param expr the input expression
+     * @param opt 1 to use Fermat, otherwise using GiNaC for normalization
+     * @return factorized result
+     */
+    ex exnormal(const ex & expr, int opt) {
+        if(opt==1) return normal_fermat(expr);
+        else return normal(expr);
+    }
+    
+    /**
+     * @brief num_den a expression
+     * @param expr the input expression
+     * @param opt 1 to use Fermat, otherwise using GiNaC for numer_denom
+     * @return lst of { num, den }
+     */
+    ex exnd(const ex & expr, int opt) {
+        if(opt==1) return numer_denom_fermat(expr);
+        else return numer_denom(expr);
+    }
+    
+    ex inner_factor_form(const ex & expr) {
         static map<pid_t, Form> form_map;
         auto pid = getpid();
         if((form_map.find(pid)==form_map.end())) { // init section
@@ -2155,10 +2177,10 @@ namespace HepLib {
      * @param expr the input expression
      * @return factorized result
      */
-    ex form_factor(const ex & expr) {
+    ex factor_form(const ex & expr) {
         auto num_den = fermat_numer_denom(expr);
-        if(is_zero(num_den.op(1)-1)) return inner_form_factor(num_den.op(0));
-        return inner_form_factor(num_den.op(0))/inner_form_factor(num_den.op(1));
+        if(is_zero(num_den.op(1)-1)) return inner_factor_form(num_den.op(0));
+        return inner_factor_form(num_den.op(0))/inner_factor_form(num_den.op(1));
     }
     
     //-----------------------------------------------------------

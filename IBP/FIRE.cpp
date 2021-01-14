@@ -74,7 +74,9 @@ namespace HepLib::IBP {
         exvector IBPvec;
         lst ns0;
         for(int i=0; i<pdim; i++) ns0.append(0);
-        for(auto loop : Internal) {
+        auto Dloop = Internal;
+        if(_Internal.nops()>0) Dloop = _Internal;
+        for(auto loop : Dloop) {
             lst dp_lst;
             for(int i=0; i<pdim; i++) { 
                 auto s = ex_to<Symbol>(loop);

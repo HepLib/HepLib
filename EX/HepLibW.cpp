@@ -97,11 +97,11 @@ expr expr::expand() {
 }
 
 expr expr::normal() {
-    return expr(GiNaC::ex(HepLib::fermat_normal(_expr)));
+    return expr(GiNaC::ex(HepLib::normal_fermat(_expr)));
 }
 
 expr expr::factor() {
-    return expr(GiNaC::ex(HepLib::form_factor(_expr)));
+    return expr(GiNaC::ex(HepLib::factor_form(_expr)));
 }
 
 expr expr::series(const expr &s, int o) {
@@ -114,11 +114,11 @@ expr expand(const expr &e) {
 }
 
 expr normal(const expr &e) {
-    return expr(HepLib::fermat_normal(e._expr));
+    return expr(HepLib::normal_fermat(e._expr));
 }
 
 expr factor(const expr &e) {
-    return expr(HepLib::form_factor(e._expr));
+    return expr(HepLib::factor_form(e._expr));
 }
 
 expr subs(const expr &e, const std::vector<expr> &ev) {
@@ -256,8 +256,8 @@ void Integral::Replacements(const std::vector<expr> &ev, int lt) {
 void Integral::Evaluate() {
     if(isX) {
         HepLib::SD::XIntegrand xint;
-        xint.Functions = HepLib::exvec2lst(_Propagators_Functions);
-        xint.Exponents = HepLib::exvec2lst(_Exponents);
+        xint.Functions = HepLib::vec2lst(_Propagators_Functions);
+        xint.Exponents = HepLib::vec2lst(_Exponents);
             
         HepLib::SD::SecDec secdec;
         HepLib::Verbose = verb;
@@ -267,10 +267,10 @@ void Integral::Evaluate() {
         _Result = secdec.ResultError;
     } else {
         HepLib::SD::FeynmanParameter fp;
-        fp.Propagators = HepLib::exvec2lst(_Propagators_Functions);
-        fp.Exponents = HepLib::exvec2lst(_Exponents);
-        fp.LoopMomenta = HepLib::exvec2lst(_Loops);
-        fp.tLoopMomenta = HepLib::exvec2lst(_tLoops);
+        fp.Propagators = HepLib::vec2lst(_Propagators_Functions);
+        fp.Exponents = HepLib::vec2lst(_Exponents);
+        fp.LoopMomenta = HepLib::vec2lst(_Loops);
+        fp.tLoopMomenta = HepLib::vec2lst(_tLoops);
         for(auto item : _lReplacements) fp.lReplacements[item.op(0)] = item.op(1);
         for(auto item : _lReplacements) fp.tReplacements[item.op(0)] = item.op(1);
             

@@ -4,6 +4,7 @@
  */
  
 #include "HEP.h"
+#include "cln/cln.h"
 
 namespace HepLib {
 
@@ -694,5 +695,25 @@ namespace HepLib {
     
     REGISTER_FUNCTION(Matrix, do_not_evalf_params().conjugate_func(mat_conj).set_return_type(return_types::commutative))
     
+    bool isZero(const ex & e) {
+        exset vs;
+        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
+            if(is_a<symbol>(*i) || is_a<Pair>(*i)) vs.insert(*i);
+        }
+        
+        int n = 3;
+        for(int i=0; i<5; i++) {
+            exmap nsubs;
+            for(auto item : vs) {
+                nsubs[item] = ex(1)/numeric(cln::nextprobprime(n));
+                n++;
+            }
+            ex ret = e.subs(nsubs);
+            if(!normal(e).is_zero()) return false;
+        }
+        
+        auto ret = normal_fermat(e);
+        return ret.is_zero();
+    }
 }
 

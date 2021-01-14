@@ -341,6 +341,22 @@ namespace HepLib {
     ex ApartIRC(const ex & expr_in);
     void ApartIBP(int IBPmethod, exvector &io_vec, const lst & loops_exts=lst{}, const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
     
+    struct AIOption {
+        lst AInternal; // Internal for Apart
+        lst AExternal; // External for Apart
+        lst IInternal; // Internal for IBP
+        lst I_Internal; // _Internal for IBP
+        lst IExternal; // External for IBP
+        
+        lst Cuts; // Cut Propagators. optional
+        lst CPairs; // Pairs in Cut, to be cleared. optional
+        lst IPairs; // Pair for IBP. optional
+        std::function<lst(const Base &, const ex &)> UF = IBP::LoopUF;
+    };
+    void ApartIBP(int IBPmethod, exvector &io_vec, AIOption aip);
+    
+    bool isZero(const ex & e);
+    
     #ifndef DOXYGEN_SKIP
     
     class ApartIR1_SERIAL { public: static unsigned serial; };
