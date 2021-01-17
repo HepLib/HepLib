@@ -159,10 +159,10 @@ namespace HepLib::IBP {
         oss << "      run_initiate: true" << endl;
         oss << "      run_triangular: true" << endl;
         oss << "      run_back_substitution: true" << endl;
-        if(mi_pref.nops()>0) {
+        if(PIntegrals.nops()>0) {
             ostringstream oss2;
-            int nn = mi_pref.nops();
-            for(int i=0; i<nn; i++) oss2 << Fout(mi_pref.op(i)) << endl;
+            int nn = PIntegrals.nops();
+            for(int i=0; i<nn; i++) oss2 << Fout(PIntegrals.op(i)) << endl;
             ofstream pref_out(job_dir+"/preferred");
             pref_out << oss2.str() << endl;
             pref_out.close();
@@ -192,7 +192,7 @@ namespace HepLib::IBP {
     void KIRA::Run() {
         string job_dir = WorkingDir + "/" + to_string(ProblemNumber);
         ostringstream cmd;
-        cmd << "cd " << job_dir << " && kira " << cmd_args << " --silent job.yaml >/dev/null 2>&1";
+        cmd << "cd " << job_dir << " && kira " << KArgs << " --silent job.yaml >/dev/null 2>&1";
         system(cmd.str().c_str());
     }
 
@@ -233,13 +233,13 @@ namespace HepLib::IBP {
             flags[exL] = 0;
             exRs.append(exR);
         }
-        MasterIntegrals.remove_all();
-        for(auto kv : flags) if(kv.second!=0) MasterIntegrals.append(kv.first);
+        MIntegrals.remove_all();
+        for(auto kv : flags) if(kv.second!=0) MIntegrals.append(kv.first);
         exset miset;
         find(exRs,F(w1,w2),miset);
-        for(auto mi : miset) MasterIntegrals.append(mi);
-        MasterIntegrals.sort();
-        MasterIntegrals.unique();
+        for(auto mi : miset) MIntegrals.append(mi);
+        MIntegrals.sort();
+        MIntegrals.unique();
 
     }
 

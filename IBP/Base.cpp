@@ -123,20 +123,55 @@ namespace HepLib::IBP {
     }
     
     /**
-     * @brief UF function, from FIRE.m
+     * @brief UF function
      * @param base the Base object
      * @param idx exponent for the internal Propagator
-     * @return lst of {U, F}
+     * @return lst of {U, F, sign}
      */
     lst LoopUF(const Base & base, const ex & idx) {
         static map<ex,exmap,ex_is_less> cache_by_prop;
-        exmap & cache = cache_by_prop[lst{base.Propagators,base.Internal}];
+        auto props = base.Propagators;
+        
+        // handle sign
+        ex sign = 1;
+        for(int i=0; i<props.nops(); i++) {
+            auto ipr = props.op(i);
+            
+            if(ipr.has(iEpsilon)) {
+                auto cc = ipr.coeff(iEpsilon);
+                if(is_a<numeric>(cc)) {
+                    if(cc<0) { // using +iEpsilon
+                        sign = pow(-1, idx.op(i));
+                        props.let_op(i) = ex(0)-props.op(i);
+                    }
+                    props.let_op(i) = props.op(i).subs(iEpsilon==0);
+                    goto sign_done;
+                } else throw Error("LoopUF: sign of iEpsilon NOT determined.");
+            }
+            
+            for(auto lp : base.Internal) {
+                if(ipr.degree(lp)==2) {
+                    auto cc = ipr.coeff(lp,2);
+                    if(is_a<numeric>(cc)) {
+                        if(cc<0) { // using +l^2
+                            sign = pow(-1, idx.op(i));
+                            props.let_op(i) = ex(0)-props.op(i);
+                        }
+                        goto sign_done;
+                    }
+                }
+            }
+            
+            sign_done: ;
+        }
+        
+        exmap & cache = cache_by_prop[lst{props,base.Internal}];
         ex ut, ft, uf;
         lst key;
         lst xs;
         exmap x2ax;
         int nxi=0;
-        int nps = base.Propagators.nops();
+        int nps = props.nops();
         ft = 0;
         for(int i=0; i<nps; i++) {
             if(is_zero(idx.op(i))) {
@@ -146,7 +181,7 @@ namespace HepLib::IBP {
             key.append(1);
             if(!is_zero(idx.op(i)-1)) x2ax[x(nxi)] = a(idx.op(i)) * x(nxi);
             xs.append(x(nxi));
-            ft -= x(nxi) * base.Propagators.op(i); // only used when no cache item
+            ft -= x(nxi) * props.op(i); // only used when no cache item
             nxi++;
         }
         
@@ -159,7 +194,7 @@ namespace HepLib::IBP {
                 auto t1 = ft.coeff(base.Internal.op(i),1);
                 auto t0 = ft.subs(base.Internal.op(i)==0);
                 ut *= t2;
-                if(is_zero(t2)) return lst{0,0};
+                if(is_zero(t2)) return lst{0,0,1};
                 ft = normal(t0-t1*t1/(4*t2));
             }
             ft = normal(ut*ft);
@@ -182,7 +217,7 @@ namespace HepLib::IBP {
         for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
         ut = (subs_naive(ut,xRepl)); 
         ft = (subs_naive(ft,xRepl));
-        return lst{ut, ft};
+        return lst{ut, ft, sign};
     }  
     
     /**
@@ -193,9 +228,58 @@ namespace HepLib::IBP {
      * @param tloops the list of transverse/quasi momenta
      * @param lsubs the replacements for loops
      * @param tsubs the replacements for tloops
-     * @return lst of {U, F}
+     * @return lst of {U1, U2, F, sign}
      */
-    lst UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs) {
+    lst UF(const ex & props, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs) {
+        auto ps = props;
+        
+        // handle sign
+        ex sign = 1;
+        for(int i=0; i<ps.nops(); i++) {
+            auto ipr = ps.op(i);
+            
+            if(ipr.has(iEpsilon)) {
+                auto cc = ipr.coeff(iEpsilon);
+                if(is_a<numeric>(cc)) {
+                    if(cc<0) { // using +iEpsilon
+                        sign = pow(-1, ns.op(i));
+                        ps.let_op(i) = ex(0)-ps.op(i);
+                    }
+                    ps.let_op(i) = ps.op(i).subs(iEpsilon==0);
+                    goto sign_done;
+                } else throw Error("UF: sign of iEpsilon NOT determined.");
+            }
+            
+            for(auto lp : loops) {
+                if(ipr.degree(lp)==2) {
+                    auto cc = ipr.coeff(lp,2);
+                    if(is_a<numeric>(cc)) {
+                        if(cc<0) { // using +l^2
+                            sign = pow(-1, ns.op(i));
+                            ps.let_op(i) = ex(0)-ps.op(i);
+                        }
+                        goto sign_done;
+                    }
+                }
+            }
+            
+            ipr = ipr.expand().subs(lsubs).subs(tsubs);
+            for(auto lp : tloops) {
+                if(ipr.degree(lp)==2) {
+                    auto cc = ipr.coeff(lp,2);
+                    if(is_a<numeric>(cc)) {
+                        if(cc<0) { // using +l^2
+                            sign = pow(-1, ns.op(i));
+                            ps.let_op(i) = ex(0)-ps.op(i);
+                        }
+                        goto sign_done;
+                    }
+                }
+            }
+            
+            sign_done: ;
+        }
+        
         static map<ex,exmap,ex_is_less> cache_by_prop;
         exmap & cache = cache_by_prop[lst{ps,loops,tloops}];
         
@@ -227,7 +311,7 @@ namespace HepLib::IBP {
                 auto t1 = ft.coeff(loops.op(i),1);
                 auto t0 = ft.subs(loops.op(i)==0);
                 ut1 *= t2;
-                if(is_zero(t2)) return lst{0,0,0};
+                if(is_zero(t2)) return lst{0,0,0,1};
                 ft = normal(t0-t1*t1/(4*t2));
             }
             ft = normal(ut1*ft);
@@ -242,7 +326,7 @@ namespace HepLib::IBP {
                 auto t1 = ft.coeff(tloops.op(i),1);
                 auto t0 = ft.subs(tloops.op(i)==0);
                 ut2 *= t2;
-                if(is_zero(t2)) return lst{0,0,0};
+                if(is_zero(t2)) return lst{0,0,0,1};
                 ft = normal(t0-t1*t1/(4*t2));
             }
             ft = normal(ut2*ft);
@@ -280,7 +364,7 @@ namespace HepLib::IBP {
         ut1 = (ut1.subs(xRepl));
         ut2 = (ut2.subs(xRepl));
         ft = (ft.subs(xRepl));
-        return lst{ut1, ut2, ft};
+        return lst{ut1, ut2, ft, sign};
     }
     
     /**
@@ -290,36 +374,34 @@ namespace HepLib::IBP {
      * @param uf the function to compute the UF polynomial
      * @return rules replacement and left integrals or left master integrals
      */
-    pair<exmap,lst> FindRules(vector<Base*> & fs, bool mi, std::function<lst(const Base &, const ex &)> uf) {
-        exvector uf_mi_vec;
-        if(mi) {
-            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs,uf](int idx)->ex {
-                const Base & fi = *(fs[idx]); // only here
-                lst uf_mi_lst;
-                for(auto mi : fi.MasterIntegrals) {
-                    uf_mi_lst.append(lst{ expand(uf(fi,mi.subs(F(w1,w2)==w2))), mi });
-                }
-                return uf_mi_lst;
-            }, "MRules");
-        } else {
-            uf_mi_vec = GiNaC_Parallel(fs.size(), [mi,fs,uf](int idx)->ex {
-                const Base & fi = *(fs[idx]); // only here
-                lst uf_mi_lst;
-                for(auto mi : fi.Integrals) {
-                    uf_mi_lst.append(lst{ expand(uf(fi,mi)), F(fi.ProblemNumber,mi) });
-                }
-                return uf_mi_lst;
-            }, "FRules");
+    pair<exmap,lst> FindRules(vector<Base*> fs, bool mi, std::function<lst(const Base &, const ex &)> uf) {
+        vector<pair<Base*,ex>> ibp_idx_vec;
+        for(auto fi : fs) {
+            lst mis;
+            if(mi) {
+                for(auto item : fi->MIntegrals) ibp_idx_vec.push_back(make_pair(fi, item));
+            } else {
+                for(auto item : fi->Integrals) ibp_idx_vec.push_back(make_pair(fi, F(fi->ProblemNumber,item)));
+            }
         }
+        
+        exvector uf_mi_vec = GiNaC_Parallel(ibp_idx_vec.size(), [ibp_idx_vec,uf](int idx)->ex {
+            auto p = ibp_idx_vec[idx];
+            const Base & fi = (*p.first);
+            auto mi = p.second;
+            auto ks = uf(fi,mi.subs(F(w1,w2)==w2));
+            int nk = ks.nops()-1;
+            lst key;
+            for(int i=0; i<nk; i++) key.append(ks.op(i).expand());
+            return lst{ key, lst{ ks.op(nk), mi } }; // ks.op(nk) - the sign
+        }, "FR");
             
         map<ex,lst,ex_is_less> group;
         int ntotal = 0;
-        for(auto item1 : uf_mi_vec) {
-            for(auto item : item1) {
-                ex key = (item.op(0));
-                group[key].append(item.op(1));
-                ntotal++;
-            }
+        for(auto item : uf_mi_vec) {
+            ex key = item.op(0);
+            group[key].append(item.op(1));
+            ntotal++;
         }
 
         exmap rules;
@@ -327,8 +409,9 @@ namespace HepLib::IBP {
         for(auto g : group) {
             lst gs = ex_to<lst>(g.second);
             sort_lst(gs);
-            for(int i=1; i<gs.nops(); i++) rules[gs.op(i)]=gs.op(0);
-            int_lst.append(gs.op(0));
+            auto kmi = gs.op(0).op(1) / gs.op(0).op(0);
+            for(int i=1; i<gs.nops(); i++) rules[gs.op(i).op(1)] = gs.op(i).op(0) * kmi;
+            int_lst.append(gs.op(0).op(1));
         }
         
         if(Verbose>2) cout << "  \\--FindRules: " << ntotal << " :> " << int_lst.nops() << " @ " << now(false) << endl;

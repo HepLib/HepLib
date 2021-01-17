@@ -336,13 +336,13 @@ namespace HepLib {
     ex mma_expand(ex const &expr, lst const &pats);
     ex mma_expand(ex const &expr, ex const &pat);
     
-    ex mma_collect(const ex &expr, std::function<bool(const ex &)>, bool ccf=false, bool cvf=false);
-    ex mma_collect(const ex &expr, lst const &pats, bool ccf=false, bool cvf=false);
-    ex mma_collect(const ex &expr, ex const &pat, bool ccf=false, bool cvf=false);
+    ex mma_collect(const ex &expr, std::function<bool(const ex &)>, bool ccf=false, bool cvf=false, int opt=0);
+    ex mma_collect(const ex &expr, lst const &pats, bool ccf=false, bool cvf=false, int opt=0);
+    ex mma_collect(const ex &expr, ex const &pat, bool ccf=false, bool cvf=false, int opt=0);
     
-    lst mma_collect_lst(const ex &expr, std::function<bool(const ex &)>);
-    lst mma_collect_lst(const ex &expr, lst const &pats);
-    lst mma_collect_lst(const ex &expr, ex const &pat);
+    lst mma_collect_lst(const ex &expr, std::function<bool(const ex &)>, int opt=0);
+    lst mma_collect_lst(const ex &expr, lst const &pats, int opt=0);
+    lst mma_collect_lst(const ex &expr, ex const &pat, int opt=0);
     
     ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     

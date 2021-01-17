@@ -12,7 +12,7 @@ namespace HepLib::IBP {
      * @brief export integral to KIRA form
      */
     string UKIRA::Fout(const ex & expr) {
-        if(!use_weight) {
+        if(!using_uw) {
             ex f = expr;
             if(is_a<lst>(f)) f = F(f);
             else if(expr.match(F(w1,w2))) f = F(f.op(1));
@@ -35,7 +35,7 @@ namespace HepLib::IBP {
      * @brief import integral from KIRA
      */
     ex UKIRA::Fin(const string & expr) {
-        if(!use_weight) {
+        if(!using_uw) {
             string fstr = expr;
             string_replace_all(fstr,"[","("+to_string(ProblemNumber)+",{");
             string_replace_all(fstr,"]","})");
@@ -60,138 +60,101 @@ namespace HepLib::IBP {
 
         if(Integrals.nops()<1) return;
         
-        if(Round==0 || ibps.nops()<1) {
-            _Integrals = Integrals;
-            for(auto intg : Integrals) RIntegrals.append(F(ProblemNumber, intg));
-            int pdim = Propagators.nops();
-            lst InExternal;
-            for(auto ii : Internal) InExternal.append(ii);
-            for(auto ii : External) InExternal.append(ii);
-            
-            if(Pairs.nops()<1) {
-                for(auto it : Internal) {
-                    for(auto ii : InExternal) Pairs.append(it*ii);
-                }
-                Pairs.sort();
-                Pairs.unique();
-                
-                if(Pairs.nops()<pdim) {
-                    lst sps_ext;
-                    for(auto it : External) {
-                        for(auto ii : External) sps_ext.append(it*ii);
-                    }
-                    sps_ext.sort();
-                    sps_ext.unique();
-                    for(auto item : sps_ext) {
-                        auto item2 = subs_all(item,Replacements);
-                        if(is_zero(item-item2)) Pairs.append(item);
-                    }
-                    Pairs.sort();
-                    Pairs.unique();
-                }
+        int pdim = Propagators.nops();
+        lst InExternal;
+        for(auto ii : Internal) InExternal.append(ii);
+        for(auto ii : External) InExternal.append(ii);
+        
+        if(ISP.nops()<1) {
+            for(auto it : Internal) {
+                for(auto ii : InExternal) ISP.append(it*ii);
             }
-            
-            if(Pairs.nops() > pdim) {
-                cout << "Pairs = " << Pairs << endl;
-                cout << "Propagators = " << Propagators << endl;
-                throw Error("KIRA::Export: Pairs more than Propagators.");
-            }
-            pdim = Pairs.nops();
-            
-            lst sp2s, s2sp, ss;
-            for(auto item : Pairs) {
-                symbol si;
-                ss.append(si);
-                sp2s.append(item==si);
-                s2sp.append(si==item);
-            }
-            
-            lst ibp_eqns;
-            for(int i=0; i<pdim; i++) {
-                auto eq = Propagators.op(i).expand();
-                eq = eq.subs(sp2s, subs_options::algebraic);
-                eq = eq.subs(Replacements, subs_options::algebraic);
-                ibp_eqns.append(eq == iWF(i));
-            }
-            auto s2p = lsolve(ibp_eqns, ss);
-            if(s2p.nops() != pdim) {
-                cout << ibp_eqns << endl;
-                cout << s2p << endl;
-                throw Error("KIRA::Export: lsolve failed.");
-            }
+            ISP.sort();
+            ISP.unique();
+        }
+        
+        if(ISP.nops() > pdim) {
+            cout << "ISP = " << ISP << endl;
+            cout << "Propagators = " << Propagators << endl;
+            throw Error("UKIRA::Export: #(ISP) > #(Propagators).");
+        }
+        
+        lst sp2s, s2sp, ss;
+        int _pic=0;
+        for(auto item : ISP) {
+            _pic++;
+            Symbol si("P"+to_string(_pic));
+            ss.append(si);
+            sp2s.append(item==si);
+            s2sp.append(si==item);
+        }
+        
+        lst leqns;
+        for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
+            auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
+            eq = eq.subs(sp2s, subs_options::algebraic);
+            eq = eq.subs(Replacements, subs_options::algebraic);
+            if(eq.has(iWF(w))) throw Error("UKIRA::Export, iWF used in eq.");
+            leqns.append(eq == iWF(i));
+        }
+        auto s2p = lsolve(leqns, ss);
+        if(s2p.nops() != pdim) throw Error("KIRA::Export: lsolve failed.");
+        
+        if(DSP.nops()<1) {
+            for(auto p1 : Internal)
+            for(auto p2 : InExternal)
+            DSP.append(lst{p1,p2});
+        }
 
-            ibps.remove_all();
-            for(auto l : Internal) {
-                lst ns;
-                for(int i=0; i<Propagators.nops(); i++) ns.append(a(i));
-                ex ibp = 0;
-                symbol sl;
-                for(int i=0; i<Propagators.nops(); i++) {
-                    auto ns_tmp = ns;
-                    ns_tmp.let_op(i) = ns.op(i) + 1;
-                    auto dp = Propagators.op(i).subs(l==sl).diff(sl).subs(sl==l);
-                    ibp -= (a(i)+Shift[i]) * F(ns_tmp) * dp;
-                }
-                
-                for(auto ii : External) {
-                    auto ibp_tmp = ibp * ii;
-                    ibp_tmp = ibp_tmp.expand();
-                    ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
-                    ibp_tmp = ibp_tmp.subs(Replacements, subs_options::algebraic);
-                    ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
-                    ex res = 0;
-                    for(int i=0; i<Propagators.nops(); i++) {
-                        auto ci = ibp_tmp.coeff(iWF(i), 1);
-                        ci = MapFunction([i](const ex & e, MapFunction &self)->ex{
-                            if(e.match(F(w))) {
-                                auto tmp = e.op(0);
-                                tmp.let_op(i) = tmp.op(i)-1;
-                                return F(tmp);
-                            } else if(!e.has(F(w))) return e;
-                            else return e.map(self);
-                        })(ci);
-                        res += ci;
-                    }
-                    res += ibp_tmp.subs(lst{iWF(w)==0});
-                    ibps.append(res);
-                }
-                
-                for(auto ii : Internal) {
-                    auto ibp_tmp = ibp * ii;
-                    ibp_tmp = ibp_tmp.expand();
-                    ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
-                    ibp_tmp = ibp_tmp.subs(Replacements, subs_options::algebraic);
-                    ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
-                    ex res = 0;
-                    for(int i=0; i<Propagators.nops(); i++) {
-                        auto ci = ibp_tmp.coeff(iWF(i), 1);
-                        ci = MapFunction([i](const ex &e, MapFunction &self)->ex {
-                            if(e.match(F(w))) {
-                                auto tmp = e.op(0);
-                                tmp.let_op(i) = tmp.op(i)-1;
-                                return F(tmp);
-                            } else if(!e.has(F(w))) return e;
-                            else return e.map(self);
-                        })(ci);
-                        res += ci;
-                    }
-                    res += ibp_tmp.subs(lst{iWF(w)==0});
-                    if(ii==l) res += d*F(ns);
-                    ibps.append(res);
-                }
+        ibps.remove_all(); // no need
+        lst nsa;
+        for(int i=0; i<pdim; i++) nsa.append(a(i));
+        for(auto sp : DSP) {
+            auto lp = sp.op(0);
+            auto ep = sp.op(1);
+            
+            ex ibp = 0;
+            symbol ss;
+            for(int i=0; i<pdim; i++) {
+                auto ns = nsa;
+                ns.let_op(i) = nsa.op(i) + 1;
+                auto dp = Propagators.op(i).subs(lp==ss).diff(ss).subs(ss==lp);
+                ibp -= (a(i)+Shift[i]) * F(ns) * dp;
             }
+            
+            ibp = ibp * ep;
+            ibp = ibp.expand();
+            ibp = ibp.subs(sp2s, subs_options::algebraic);
+            ibp = ibp.subs(Replacements, subs_options::algebraic);
+            ibp = ibp.subs(s2p, subs_options::algebraic);
+            
+            ex res = 0;
+            for(int i=0; i<pdim; i++) {
+                auto ci = ibp.coeff(iWF(i), 1);
+                ci = MapFunction([i](const ex &e, MapFunction &self)->ex {
+                    if(e.match(F(w))) {
+                        auto tmp = e.op(0);
+                        tmp.let_op(i) = tmp.op(i)-1;
+                        return F(tmp);
+                    } else if(!e.has(F(w))) return e;
+                    else return e.map(self);
+                })(ci);
+                res += ci;
+            }
+            res += ibp.subs(lst{iWF(w)==0});
+            if(lp==ep) res += d*F(nsa);
+            ibps.append(res);
         }
         
         // seeds generation
-        int pgDIM = Propagators.nops();
         int rmax = -1, smax = -1;
-        int rrmax[pgDIM], ssmax[pgDIM];
-        for(int i=0; i<pgDIM; i++) rrmax[i] = ssmax[i] = -1;
-        for(auto integral : _Integrals) {
-            if(integral.nops()!=pgDIM) throw Error("UKIRA::Export, integral dimension not match propagators.");
+        int rrmax[pdim], ssmax[pdim];
+        for(int i=0; i<pdim; i++) rrmax[i] = ssmax[i] = -1;
+        for(auto integral : Integrals) {
+            if(integral.nops()!=pdim) throw Error("UKIRA::Export, integral dimension not match propagators.");
             int rr = 0;
             int ss = 0;
-            for(int i=0; i<pgDIM; i++) {
+            for(int i=0; i<pdim; i++) {
                 auto item = ex2int(integral.op(i));
                 if(item>0) {
                     if(rrmax[i]<item) rrmax[i] = item;
@@ -208,18 +171,18 @@ namespace HepLib::IBP {
         
         if(seed_option == 0) {
             int _rrmax = -1, _ssmax = -1;
-            for(int i=0; i<pgDIM; i++) {
+            for(int i=0; i<pdim; i++) {
                 if(_rrmax<rrmax[i]) _rrmax = rrmax[i];
                 if(_ssmax<ssmax[i]) _ssmax = ssmax[i];
             }
-            for(int i=0; i<pgDIM; i++) {
+            for(int i=0; i<pdim; i++) {
                 rrmax[i] = _rrmax + rap;
                 ssmax[i] = _ssmax + sap;
             }
             rmax += ra;
             smax += sa;
         } else {
-            for(int i=0; i<pgDIM; i++) {
+            for(int i=0; i<pdim; i++) {
                 rrmax[i] += rap;
                 ssmax[i] += sap;
             }
@@ -228,13 +191,13 @@ namespace HepLib::IBP {
         }
         
         // generate IBP equations
-        int as[pgDIM];
-        for(int i=0; i<pgDIM; i++) as[i] = -ssmax[i];
+        int as[pdim];
+        for(int i=0; i<pdim; i++) as[i] = -ssmax[i];
         vector<vector<int>> asvec;
         while(true) {
-            for(int i=0; i<pgDIM; i++) {
+            for(int i=0; i<pdim; i++) {
                 if(as[i]+1>rrmax[i]) {
-                    if(i+1 == pgDIM) goto done;
+                    if(i+1 == pdim) goto done;
                     as[i] = -ssmax[i];
                 } else {
                     as[i] = as[i] + 1;
@@ -242,13 +205,13 @@ namespace HepLib::IBP {
                 }
             }
             int _rmax = 0, _smax = 0;
-            for(int i=0; i<pgDIM; i++) {
+            for(int i=0; i<pdim; i++) {
                 if(as[i]>0) _rmax += as[i];
                 else _smax -= as[i];
             }
             if(_rmax>rmax || _smax>smax) continue;
             vector<int> asv;
-            for(int i=0; i<pgDIM; i++) asv.push_back(as[i]);
+            for(int i=0; i<pdim; i++) asv.push_back(as[i]);
             asvec.push_back(asv);
         }
         done: ;
@@ -257,13 +220,11 @@ namespace HepLib::IBP {
         bool hasCut = (nCut>1);
         int iCuts[nCut+1];
         for(int i=0; i<nCut; i++) iCuts[i] = ex_to<numeric>(Cuts.op(i)).to_int();
-        auto verb = Verbose;
-        Verbose = 0;
         auto eqns_result =
-        GiNaC_Parallel(asvec.size(), [&](int idx)->ex {
+        GiNaC_Parallel(asvec.size(), 50, [&](int idx)->ex {
             auto as = asvec[idx];
             exmap sol;
-            for(int i=0; i<pgDIM; i++) sol[a(i)]=as[i];
+            for(int i=0; i<pdim; i++) sol[a(i)]=as[i];
             lst eqns;
             for(auto const & item : ibps) {
                 auto ii = item.subs(sol);
@@ -288,16 +249,15 @@ namespace HepLib::IBP {
                 eqns.append(ii);
             }
             return eqns;
-        }, "Seeds");
-        Verbose = verb;
+        }, "SEED");
         
         lst eqns;
         for(auto ilst : eqns_result) for(auto eqn : ilst) eqns.append(eqn);
 
-        if(use_weight) {
+        if(using_uw) {
             exset fs;
             for(auto eqn : eqns) find(eqn, F(w), fs);
-            for(auto intg : _Integrals) fs.insert(F(intg));
+            for(auto intg : Integrals) fs.insert(F(intg));
             exvector intg_vec;
             for(auto fi : fs) {
                 lst rs,ss;
@@ -400,16 +360,15 @@ namespace HepLib::IBP {
         
         oss.str("");
         oss.clear();
-        oss << "#Round: " << Round << endl;
         oss << "jobs:" << endl;
         oss << "  - reduce_user_defined_system:" << endl;
         oss << "      input_system: " << endl;
         oss << "        config: false" << endl;
         oss << "        files: [equations]" << endl;
-        if(mi_pref.nops()>0) {
+        if(PIntegrals.nops()>0) {
             ostringstream oss2;
-            int nn = mi_pref.nops();
-            for(int i=0; i<nn; i++) oss2 << Fout(mi_pref.op(i)) << endl;
+            int nn = PIntegrals.nops();
+            for(int i=0; i<nn; i++) oss2 << Fout(PIntegrals.op(i)) << endl;
             ofstream pref_out(job_dir+"/preferred");
             pref_out << oss2.str() << endl;
             pref_out.close();
@@ -417,7 +376,7 @@ namespace HepLib::IBP {
         }
         oss << "  - kira2file:" << endl;
         oss << "      target:" << endl;
-        if(!use_weight) oss << "        - [F,integrals]" << endl;
+        if(!using_uw) oss << "        - [F,integrals]" << endl;
         else oss << "        - [Tuserweight,integrals]" << endl;
         ofstream job_out(job_dir+"/jobs");
         job_out << oss.str() << endl;
@@ -425,7 +384,7 @@ namespace HepLib::IBP {
         
         oss.str("");
         oss.clear();
-        for(auto integral : _Integrals) oss << Fout(integral) << endl;
+        for(auto integral : Integrals) oss << Fout(integral) << endl;
         ofstream intg_out(job_dir+"/integrals");
         intg_out << oss.str() << endl;
         intg_out.close();
@@ -438,7 +397,7 @@ namespace HepLib::IBP {
     void UKIRA::Run() {
         string job_dir = WorkingDir + "/" + to_string(ProblemNumber);
         ostringstream cmd;
-        cmd << "cd " << job_dir << " && kira " << cmd_args << " --silent jobs >/dev/null 2>&1";
+        cmd << "cd " << job_dir << " && kira " << KArgs << " --silent jobs >/dev/null 2>&1";
         system(cmd.str().c_str());
     }
 
@@ -448,19 +407,19 @@ namespace HepLib::IBP {
     void UKIRA::Import() {
         string job_dir = WorkingDir + "/" + to_string(ProblemNumber);
         ostringstream fn;
-        if(!use_weight) fn << job_dir << "/results/F/kira_integrals.kira";
+        if(!using_uw) fn << job_dir << "/results/F/kira_integrals.kira";
         else fn << job_dir << "/results/Tuserweight/kira_integrals.kira";
         auto strvec = file2strvec(fn.str());
         
         ex exL=0, exR=0;
         map<ex,int,ex_is_less> flags;
         lst exRs;
-        for(auto intg : _Integrals) flags[F(ProblemNumber,intg)] = 1;
-        _Rules.remove_all();
+        for(auto intg : Integrals) flags[F(ProblemNumber,intg)] = 1;
+        Rules.remove_all();
         for(auto line : strvec) {
             if(line.size()==0) {
                 if(!is_zero(exL)) {
-                    _Rules.append(exL==exR);
+                    Rules.append(exL==exR);
                     flags[exL] = 0;
                     exRs.append(exR);
                 }
@@ -476,42 +435,18 @@ namespace HepLib::IBP {
             }
         }
         if(!is_zero(exL)) {
-            _Rules.append(exL==exR);
+            Rules.append(exL==exR);
             flags[exL] = 0;
             exRs.append(exR);
         }
-        MasterIntegrals.remove_all();
-        for(auto kv : flags) if(kv.second!=0) MasterIntegrals.append(kv.first);
+        MIntegrals.remove_all();
+        for(auto kv : flags) if(kv.second!=0) MIntegrals.append(kv.first);
         exset miset;
         find(exRs,F(w1,w2),miset);
-        for(auto mi : miset) MasterIntegrals.append(mi);
-        MasterIntegrals.sort();
-        MasterIntegrals.unique();
+        for(auto mi : miset) MIntegrals.append(mi);
+        MIntegrals.sort();
+        MIntegrals.unique();
         
-        auto _RIntegrals = RIntegrals;
-        for(int i=0; i< RIntegrals.nops(); i++) {
-            RIntegrals.let_op(i) = RIntegrals.op(i).subs(_Rules);
-        }
-        
-        auto integrals = _Integrals;
-        _Integrals.remove_all();
-        for(auto mi : MasterIntegrals) _Integrals.append(mi.op(1));
-        
-        bool red = _Rules.nops()>0 && _Integrals.nops()>0;
-        red = red && !is_zero(_Integrals-integrals);
-        red = red && !is_zero(_RIntegrals-RIntegrals);
-        Round++;
-        if(Round<Rounds && red) {
-            Reduce();
-            return;
-        } else {
-            Rules.remove_all();
-            for(int i=0; i<Integrals.nops(); i++) {
-                auto ii = F(ProblemNumber,Integrals.op(i));
-                auto ri = RIntegrals.op(i);
-                if(!is_zero(ii-ri)) Rules.append(ii==ri);
-            }
-        }
     }
 
 }

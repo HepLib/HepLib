@@ -334,7 +334,7 @@ namespace HepLib {
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
     ex Apart(const ex &expr_in, const lst &vars, exmap sgnmap={});
-    ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms);
+    ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms, exmap sgnmap={});
     ex ApartIR2ex(const ex & expr_in);
     ex ApartIR2F(const ex & expr_in);
     ex F2ex(const ex & expr_in);
@@ -342,15 +342,14 @@ namespace HepLib {
     void ApartIBP(int IBPmethod, exvector &io_vec, const lst & loops_exts=lst{}, const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
     
     struct AIOption {
-        lst AInternal; // Internal for Apart
-        lst AExternal; // External for Apart
-        lst IInternal; // Internal for IBP
-        lst I_Internal; // _Internal for IBP
-        lst IExternal; // External for IBP
-        
+        lst Internal; // Internal for Apart/IBP
+        lst External; // External for Apart/IBP
+        lst DSP; // DSP for IBP
+        exmap smap; // Sign Map for Apart
         lst Cuts; // Cut Propagators. optional
-        lst CPairs; // Pairs in Cut, to be cleared. optional
-        lst IPairs; // Pair for IBP. optional
+        lst CSP; // SP in Cuts, to be cleared. optional
+        lst ISP; // SP for IBP. optional
+        bool CutFirst = true;
         std::function<lst(const Base &, const ex &)> UF = IBP::LoopUF;
     };
     void ApartIBP(int IBPmethod, exvector &io_vec, AIOption aip);

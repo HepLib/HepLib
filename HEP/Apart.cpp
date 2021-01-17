@@ -588,14 +588,14 @@ namespace HepLib {
      * @param extps list of external Vector
      * @return sum of coefficient * ApartIR
      */
-    ex Apart(const ex &expr_ino, const lst &loops, const lst & extps) {
+    ex Apart(const ex &expr_ino, const lst &loops, const lst & extps, exmap smap) {
         auto expr_in = expr_ino.subs(SP_map);
         auto expr = expr_in;
         
         lst sps;
-        exmap sgnmap;
+        exmap sgnmap = smap;
         for(auto li : loops) {
-            sgnmap[SP(li)] = 1;
+            if(sgnmap.find(SP(li))==sgnmap.end()) sgnmap[SP(li)] = 1;
             for(auto li2: loops) {
                 auto item = SP(li, li2).subs(SP_map);
                 if(is_a<Pair>(item)) sps.append(item);
@@ -703,32 +703,34 @@ namespace HepLib {
             }
         }
         
+        lst lmom = ex_to<lst>(aip.Internal);
+        lst emom = ex_to<lst>(aip.External);
+        
         if(!aparted) {
             exset vset;
-            lst lmom = ex_to<lst>(aip.AInternal);
-            lst emom = ex_to<lst>(aip.AExternal);
             for(auto &air : air_vec) {
                 air = mma_collect(air,lmom,false,true);
                 find(air,coVF(w),vset);
             }
             exvector vvec;
             for(auto item : vset) vvec.push_back(item);
-            auto ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom] (int idx) {
+            //sort_vec(vvec);
+            auto ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aip] (int idx) {
                 auto air = vvec[idx].op(0);
-                air = Apart(air,lmom,emom);
+                air = Apart(air,lmom,emom,aip.smap);
                 return air;
             }, "Apart");
             exmap v2v;
             for(int i=0; i<vvec.size(); i++) v2v[vvec[i]] = ret[i];
             ret = GiNaC_Parallel(air_vec.size(), [air_vec,v2v] (int idx) {
                 return air_vec[idx].subs(v2v);
-            }, "SUBS");
+            }, "ApartR");
             for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i];
         }
         
         exset intg_set;
         for(auto &air : air_vec) {
-            air = air.subs(SP_map);
+            air = air.subs(SP_map).subs(D==d);
             air = ApartIRC(air);
             find(air, ApartIR(w1, w2), intg_set);
         }
@@ -736,10 +738,7 @@ namespace HepLib {
         for(auto item : intg_set) intg.push_back(item);
         sort_vec(intg); // need sort
         
-        if(Verbose>0) cout << "  \\--Total Ints/Pros: " << intg.size() << "/" << flush;
-        
-        for(auto sp : aip.CPairs) SP_map.erase(sp);
-        
+        for(auto sp : aip.CSP) SP_map.erase(sp);
         // from here, Vector will be replaced by its name Symbol
         
         lst repls;
@@ -747,11 +746,11 @@ namespace HepLib {
         for(auto kv : sps) repls.append(kv.first == kv.second);
                 
         lst loops, exts;
-        for(auto li : aip.IInternal) {
+        for(auto li : lmom) {
             if(is_a<Vector>(li)) loops.append(ex_to<Vector>(li).name);
             else loops.append(li);
         }
-        for(auto li : aip.IExternal) {
+        for(auto li : emom) {
             if(is_a<Vector>(li)) exts.append(ex_to<Vector>(li).name);
             else exts.append(li);
         }
@@ -773,10 +772,13 @@ namespace HepLib {
                 pns.append(lst{ pc, ex(0)-mat(nrow-1,c) }); // note the convension
             }
             sort_lst(pns); // sort before cuts
-            if(aip.Cuts.nops()>0) {
+            
+            int nCuts = aip.Cuts.nops();
+            if(nCuts>0) {
                 ex cuts = aip.Cuts;
                 cuts = cuts.subs(SP_map);
-                for(auto cut : cuts) pns.prepend(lst{ SP2sp(cut), 1 });
+                if(aip.CutFirst) for(auto cut : cuts) pns.prepend(lst{ SP2sp(cut), 1 });
+                else for(auto cut : cuts) pns.append(lst{ SP2sp(cut), 1 });
             }
             
             lst props, ns;
@@ -800,19 +802,20 @@ namespace HepLib {
                 ibp->Internal = loops;
                 ibp->External = exts;
                 ibp->Replacements = repls;
-                if(aip.IPairs.nops()>0) {
-                    for(auto item : aip.IPairs) ibp->Pairs.append(SP2sp(item));
-                }
-                if(aip.I_Internal.nops()>0) {
-                    for(auto item : aip.I_Internal) {
-                        if(is_a<Vector>(item)) ibp->_Internal.append(ex_to<Vector>(item).name);
-                        else ibp->_Internal.append(item);
+                if(aip.ISP.nops()>0) for(auto item : aip.ISP) ibp->ISP.append(SP2sp(item));
+                if(aip.DSP.nops()>0) {
+                    for(auto item : aip.DSP) {
+                        lst sp = ex_to<lst>(item);
+                        if(is_a<Vector>(sp.op(0))) sp.let_op(0) = (ex_to<Vector>(sp.op(0)).name);
+                        if(is_a<Vector>(sp.op(1))) sp.let_op(1) = (ex_to<Vector>(sp.op(1)).name);
+                        ibp->DSP.append(sp);
                     }
                 }
                 ibp->WorkingDir = wdir;
                 ibp->ProblemNumber = pn++;
-                if(aip.Cuts.nops()>0) {
-                    for(int i=0; i<aip.Cuts.nops(); i++) ibp->Cuts.append(i+1);
+                if(nCuts>0) {
+                    if(aip.CutFirst) for(int i=0; i<nCuts; i++) ibp->Cuts.append(i+1);
+                    else for(int i=0; i<nCuts; i++) ibp->Cuts.append(nCuts-i);
                 }
                 ibp_vec.push_back(ibp);
             }
@@ -821,7 +824,7 @@ namespace HepLib {
             IR2F[ir] = F(ibp->ProblemNumber, ns);
         }
         
-        if(Verbose>0) cout << ibp_vec.size() << " @ " << now(false) << endl;
+        if(Verbose>0) cout << "  \\--Total Ints/Pros: " << intg.size() << "/" << ibp_vec.size() << " @ " << now(false) << endl;
         
         vector<Base*> base_vec;
         for(auto ibp : ibp_vec) base_vec.push_back(ibp);
@@ -960,11 +963,17 @@ namespace HepLib {
         lst emom = ex_to<lst>(loops_exts.op(1));
         
         AIOption aip;
-        aip.AInternal = lmom;
-        aip.AExternal = emom;
-        aip.IInternal = lmom;
-        aip.IExternal = emom;
+        aip.Internal = lmom;
+        aip.External = emom;
         aip.Cuts = cut_props;
+        if(cut_props.nops()>0) {
+            for(auto p1 : lmom) {
+                for(auto p2 : lmom) aip.CSP.append(SP(p1,p2));
+                for(auto p2 : emom) aip.CSP.append(SP(p1,p2));
+            }
+            aip.CSP.sort();
+            aip.CSP.unique();
+        }
         aip.UF = uf;
         ApartIBP(IBPmethod, air_vec, aip);
     }

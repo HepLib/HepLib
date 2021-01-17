@@ -25,19 +25,19 @@ namespace HepLib::IBP {
     class Base {
     public:
         lst Internal;
-        lst _Internal;
         lst External;
         lst Replacements;
         lst Propagators;
         lst Integrals; // lst of index lst
         lst Cuts; // index start from 1
+        lst DSP; // { {q1,q1}, {q1,p}, ... } Diff SP
+        lst ISP; // { q1*q1, q1*p } Independent SP
         
         string WorkingDir;
         int ProblemNumber = 0;
-        
-        lst MasterIntegrals;
+        lst PIntegrals;
+        lst MIntegrals;
         lst Rules;
-        lst Pairs;
         
         virtual void Export() { throw Error("Export() not implemented!"); };
         virtual void Run() { throw Error("Run() not implemented!"); };
@@ -55,11 +55,7 @@ namespace HepLib::IBP {
         void Export() override;
         void Run() override;
         void Import() override;
-    
-        int ProblemDimension;
         int pos_pref = 1;
-        lst mi_pref;
-        
         static int Version;
         static int Threads;
     };
@@ -70,8 +66,7 @@ namespace HepLib::IBP {
     class KIRA : public Base {
     public:
     
-        string cmd_args = "";
-        lst mi_pref;
+        string KArgs = "";
         
         int ra = 2;
         int sa = 3;
@@ -97,10 +92,9 @@ namespace HepLib::IBP {
     
         static int Rounds;
         
-        bool use_weight = true;
-        string cmd_args = "";
+        bool using_uw = true;
+        string KArgs = ""; // check kira --help
         map<int,ex> Shift;
-        lst mi_pref;
         
         void Export() override;
         void Run() override;
@@ -115,10 +109,6 @@ namespace HepLib::IBP {
         
     private:
         lst ibps;
-        int Round = 0;
-        lst _Integrals;
-        lst _Rules;
-        lst RIntegrals;
         
         string Fout(const ex & expr);
         ex Fin(const string & expr);
@@ -132,10 +122,9 @@ namespace HepLib::IBP {
 
         static int Rounds;
         
-        bool use_weight = true;
-        string cmd_args = "";
+        bool using_uw = true;
+        string KArgs = "";
         map<int,ex> Shift;
-        lst mi_pref;
         
         void Export() override;
         void Run() override;
@@ -164,8 +153,13 @@ namespace HepLib::IBP {
     
     lst SortPermutation(const ex & in_expr, const lst & xs);
     lst LoopUF(const Base & fire, const ex & corner);
-    pair<exmap,lst> FindRules(vector<Base*> &fs, bool mi=true, std::function<lst(const Base &, const ex &)> uf=LoopUF); 
     lst UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs);
+    pair<exmap,lst> FindRules(vector<Base*> fs, bool mi=true, std::function<lst(const Base &, const ex &)> uf=LoopUF);
+    inline pair<exmap,lst> FindRules(Base& ibp, bool mi=true, std::function<lst(const Base &, const ex &)> uf=LoopUF) {
+        vector<Base*> fs;
+        fs.push_back(&ibp);
+        return FindRules(fs, mi, uf);
+    }
 
 
 }

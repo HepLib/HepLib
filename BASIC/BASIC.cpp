@@ -1003,9 +1003,10 @@ namespace HepLib {
      * @param has_func only collect the element e, when has_func(e) is true
      * @param ccf true for wrapping coefficient in coCF
      * @param cvf true to wrapping has-ed element in coVF
+     * @param opt 0: do nothing, 1: using exnormal, 2: using exfactor on the coefficient
      * @return the collected expression
      */
-    ex mma_collect(ex const &expr_in, std::function<bool(const ex &)> has_func, bool ccf, bool cvf) {
+    ex mma_collect(ex const &expr_in, std::function<bool(const ex &)> has_func, bool ccf, bool cvf, int opt) {
         auto items = mma_expand(expr_in, has_func);
         if(!is_a<add>(items)) items = lst{ items };
         
@@ -1032,7 +1033,9 @@ namespace HepLib {
                 cout << vc.second << endl;
                 throw Error("mma_collect: coefficent has pat.");
             }
-            res += coVF(vc.first) * coCF(vc.second);
+            if(opt==1) res += coVF(vc.first) * coCF(exnormal(vc.second));
+            else if(opt==2) res += coVF(vc.first) * coCF(exfactor(vc.second));
+            else res += coVF(vc.first) * coCF(vc.second);
         }
         
         if(!ccf) res = res.subs(coCF(w)==w);
@@ -1044,9 +1047,10 @@ namespace HepLib {
      * @brief the collect function like Mathematica, reture the lst { {c1,v1}, {c2,v2}, ... }
      * @param expr_in input expression
      * @param has_func only collect the element e, when has_func(e) is true
+     * @param opt 0: do nothing, 1: using exnormal, 2: using exfactor on the coefficient
      * @return the collected expression in lst
      */
-    lst mma_collect_lst(ex const &expr_in, std::function<bool(const ex &)> has_func) {
+    lst mma_collect_lst(ex const &expr_in, std::function<bool(const ex &)> has_func, int opt) {
         auto items = mma_expand(expr_in, has_func);
         if(!is_a<add>(items)) items = lst{ items };
         
@@ -1073,7 +1077,10 @@ namespace HepLib {
                 cout << vc.second << endl;
                 throw Error("mma_collect: coefficent has pat.");
             }
-            res_lst.append(lst{vc.second, vc.first});
+            ex cc = vc.second;
+            if(opt==1) cc = exnormal(cc);
+            else if(opt==2) cc = exfactor(cc);
+            if(!is_zero(cc)) res_lst.append(lst{cc, vc.first});
         }
         
         return res_lst;
@@ -1085,30 +1092,32 @@ namespace HepLib {
      * @param pats only collect the element e match at least one patter in pats, like mma_expand
      * @param ccf true for wrapping coefficient in coCF
      * @param cvf true to wrapping has-ed element in coVF
+     * @param opt 0: do nothing, 1: using exnormal, 2: using exfactor on the coefficient
      * @return the collected expression
      */
-    ex mma_collect(ex const &expr_in, lst const &pats, bool ccf, bool cvf) {
+    ex mma_collect(ex const &expr_in, lst const &pats, bool ccf, bool cvf, int opt) {
         return mma_collect(expr_in, [pats](const ex & e)->bool {
             for(auto pat : pats) {
                 if(e.has(pat)) return true;
             }
             return false;
-        }, ccf, cvf);
+        }, ccf, cvf, opt);
     }
     
     /**
      * @brief the collect function like Mathematica
      * @param expr_in input expression
      * @param pats only collect the element e match at least one patter in pats, like mma_expand
+     * @param opt 0: do nothing, 1: using exnormal, 2: using exfactor on the coefficient
      * @return the collected expression
      */
-    lst mma_collect_lst(ex const &expr_in, lst const &pats) {
+    lst mma_collect_lst(ex const &expr_in, lst const &pats, int opt) {
         return mma_collect_lst(expr_in, [pats](const ex & e)->bool {
             for(auto pat : pats) {
                 if(e.has(pat)) return true;
             }
             return false;
-        });
+        }, opt);
     }
     
     /**
@@ -1117,24 +1126,26 @@ namespace HepLib {
      * @param pat only collect the element e match the pattern, like mma_expand
      * @param ccf true for wrapping coefficient in coCF
      * @param cvf true to wrapping has-ed element in coVF
+     * @param opt 0: do nothing, 1: using exnormal, 2: using exfactor on the coefficient
      * @return the collected expression
      */
-    ex mma_collect(ex const &expr_in, ex const &pat, bool ccf, bool cvf) {
+    ex mma_collect(ex const &expr_in, ex const &pat, bool ccf, bool cvf, int opt) {
         return mma_collect(expr_in, [pat](const ex & e)->bool {
             return e.has(pat);
-        }, ccf, cvf);
+        }, ccf, cvf, opt);
     }
     
     /**
      * @brief the collect function like Mathematica
      * @param expr_in input expression
      * @param pat only collect the element e match the pattern, like mma_expand
+     * @param opt 0: do nothing, 1: using exnormal, 2: using exfactor on the coefficient
      * @return the collected expression
      */
-    lst mma_collect_lst(ex const &expr_in, ex const &pat) {
+    lst mma_collect_lst(ex const &expr_in, ex const &pat, int opt) {
         return mma_collect_lst(expr_in, [pat](const ex & e)->bool {
             return e.has(pat);
-        });
+        }, opt);
     }
 
     /**

@@ -12,7 +12,7 @@ namespace HepLib::IBP {
      * @brief export integral to KIRA form
      */
     string Laporta::Fout(const ex & expr) {
-        if(!use_weight) {
+        if(!using_uw) {
             ex f = expr;
             if(is_a<lst>(f)) f = F(f);
             else if(expr.match(F(w1,w2))) f = F(f.op(1));
@@ -35,7 +35,7 @@ namespace HepLib::IBP {
      * @brief import integral from KIRA
      */
     ex Laporta::Fin(const string & expr) {
-        if(!use_weight) {
+        if(!using_uw) {
             string fstr = expr;
             string_replace_all(fstr,"[","("+to_string(ProblemNumber)+",{");
             string_replace_all(fstr,"]","})");
@@ -68,14 +68,14 @@ namespace HepLib::IBP {
             for(auto ii : Internal) InExternal.append(ii);
             for(auto ii : External) InExternal.append(ii);
             
-            if(Pairs.nops()<1) {
+            if(ISP.nops()<1) {
                 for(auto it : Internal) {
-                    for(auto ii : InExternal) Pairs.append(it*ii);
+                    for(auto ii : InExternal) ISP.append(it*ii);
                 }
-                Pairs.sort();
-                Pairs.unique();
+                ISP.sort();
+                ISP.unique();
                 
-                if(Pairs.nops()<pdim) {
+                if(ISP.nops()<pdim) {
                     lst sps_ext;
                     for(auto it : External) {
                         for(auto ii : External) sps_ext.append(it*ii);
@@ -84,22 +84,22 @@ namespace HepLib::IBP {
                     sps_ext.unique();
                     for(auto item : sps_ext) {
                         auto item2 = subs_all(item,Replacements);
-                        if(is_zero(item-item2)) Pairs.append(item);
+                        if(is_zero(item-item2)) ISP.append(item);
                     }
-                    Pairs.sort();
-                    Pairs.unique();
+                    ISP.sort();
+                    ISP.unique();
                 }
             }
             
-            if(Pairs.nops() > pdim) {
-                cout << "Pairs = " << Pairs << endl;
+            if(ISP.nops() > pdim) {
+                cout << "ISP = " << ISP << endl;
                 cout << "Propagators = " << Propagators << endl;
-                throw Error("KIRA::Export: Pairs more than Propagators.");
+                throw Error("KIRA::Export: ISP more than Propagators.");
             }
-            pdim = Pairs.nops();
+            pdim = ISP.nops();
             
             lst sp2s, s2sp, ss;
-            for(auto item : Pairs) {
+            for(auto item : ISP) {
                 symbol si;
                 ss.append(si);
                 sp2s.append(item==si);
