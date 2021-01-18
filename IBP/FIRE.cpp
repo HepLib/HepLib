@@ -52,7 +52,7 @@ namespace HepLib::IBP {
             eqns.append(eq == iWF(i));
         }
         auto s2p = lsolve(eqns, ss);
-        if(s2p.nops() != pdim) throw Error("FIRE::Export: lsolve failed.");
+        if(s2p.nops() != ISP.nops()) throw Error("FIRE::Export: lsolve failed.");
         
         if(DSP.nops()<1) {
             for(auto p1 : Internal)
@@ -65,11 +65,12 @@ namespace HepLib::IBP {
         lst ns0;
         for(int i=0; i<pdim; i++) ns0.append(0);
         for(auto sp : DSP) {
-            auto ilp = ex_to<Symbol>(sp.op(0));
-            auto iep = ex_to<Symbol>(sp.op(1));
+            symbol ss;
+            auto ilp = sp.op(0);
+            auto iep = sp.op(1);
             lst dp_lst;
             for(int i=0; i<pdim; i++) {
-                dp_lst.append(Propagators.op(i).diff(ilp));
+                dp_lst.append(Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp));
             } 
             
             exmap nc_map;
@@ -335,7 +336,7 @@ namespace HepLib::IBP {
         MIntegrals.unique();
      
         // handle Cuts not equal 1, using #preferred
-        if(Cuts.nops()>0 && PIntegrals.nops()<1) {
+        if(reCut && Cuts.nops()>0) {
             lst ois, vis;
             auto mis = MIntegrals;
             MIntegrals.remove_all();
@@ -425,6 +426,7 @@ namespace HepLib::IBP {
                     fire.ISP = ISP;
                     fire.DSP = DSP;
                     fire.Cuts = Cuts;
+                    fire.reCut = false;
                     fire.Integrals = iis;
                     fire.PIntegrals = pis;
                     fire.WorkingDir = WorkingDir + "_C"+to_string(ProblemNumber);

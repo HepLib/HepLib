@@ -414,15 +414,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
             for(auto isc : sc) vmat.push_back(isc);
         }
     } else {
-        auto npp = GiNaC_Parallel_Process;
-        GiNaC_Parallel_Process = CpuCores()/8;
-        if(deg_mat.rows()>100) GiNaC_Parallel_Process = CpuCores()/4;
-        else if(deg_mat.rows()>200) GiNaC_Parallel_Process = CpuCores()/2;
-        auto verb = Verbose;
-        Verbose = 0;
-        auto scs = 
-        GiNaC_Parallel(deg_mat.rows(), [&](int idx)->ex {
-            int r = idx;
+        for(auto r=0; r<deg_mat.rows(); r++) {
             matrix tmp(deg_mat.rows()+xs.size(), deg_mat.cols());
             for(int rr=0; rr<deg_mat.rows(); rr++) {
                 for(int c=0; c<deg_mat.cols(); c++) tmp(rr,c) = deg_mat(rr,c) - deg_mat(r, c);
@@ -432,13 +424,8 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
                 tmp(rr+deg_mat.rows(),rr) = 1;
             }
             auto sc = SimplexCones(tmp);
-            lst scs;
-            for(auto isc : sc) scs.append(isc);
-            return scs;
-        }, "x2y");
-        Verbose = verb;
-        GiNaC_Parallel_Process = npp;
-        for(auto isc_lst : scs) for(auto isc : isc_lst) vmat.push_back(ex_to<matrix>(isc));
+            for(auto isc : sc) vmat.push_back(ex_to<matrix>(isc));
+        };
     }
 
     vector<map<ex,ex,ex_is_less>> ret;

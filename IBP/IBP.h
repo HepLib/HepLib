@@ -38,6 +38,7 @@ namespace HepLib::IBP {
         lst PIntegrals;
         lst MIntegrals;
         lst Rules;
+        bool reCut = true;
         
         virtual void Export() { throw Error("Export() not implemented!"); };
         virtual void Run() { throw Error("Run() not implemented!"); };

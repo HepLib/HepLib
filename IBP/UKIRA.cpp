@@ -98,7 +98,7 @@ namespace HepLib::IBP {
             leqns.append(eq == iWF(i));
         }
         auto s2p = lsolve(leqns, ss);
-        if(s2p.nops() != pdim) throw Error("KIRA::Export: lsolve failed.");
+        if(s2p.nops() != ISP.nops()) throw Error("KIRA::Export: lsolve failed.");
         
         if(DSP.nops()<1) {
             for(auto p1 : Internal)
