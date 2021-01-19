@@ -1447,7 +1447,7 @@ namespace HepLib::SD {
             ncollect += item.nops();
             for(auto &kv : ex_to<lst>(item)) {
                 if(!kv.op(1).has(x(w))) expr_nox += kv.op(0) * kv.op(1);
-                else int_pref[kv.op(1).expand()] += kv.op(0); // we add expand in exmap
+                else int_pref[kv.op(1)] += kv.op(0);
             }
         }
         

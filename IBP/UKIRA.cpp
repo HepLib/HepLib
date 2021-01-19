@@ -142,7 +142,8 @@ namespace HepLib::IBP {
                 res += ci;
             }
             res += ibp.subs(lst{iWF(w)==0});
-            if(ilp==iep) res += d*F(nsa);
+            auto cilp = iep.coeff(ilp);
+            if(!is_zero(cilp)) res += d*cilp*F(nsa);
             ibps.append(res);
         }
         
@@ -221,7 +222,7 @@ namespace HepLib::IBP {
         int iCuts[nCut+1];
         for(int i=0; i<nCut; i++) iCuts[i] = ex_to<numeric>(Cuts.op(i)).to_int();
         auto eqns_result =
-        GiNaC_Parallel(asvec.size(), 50, [this,&asvec,pdim,hasCut,nCut,&iCuts](int idx)->ex {
+        GiNaC_Parallel(asvec.size(), [this,&asvec,pdim,hasCut,nCut,&iCuts](int idx)->ex {
             auto as = asvec[idx];
             exmap sol;
             for(int i=0; i<pdim; i++) sol[a(i)]=as[i];
@@ -252,7 +253,10 @@ namespace HepLib::IBP {
         }, "SEED");
         
         lst eqns;
-        for(auto ilst : eqns_result) for(auto eqn : ilst) eqns.append(eqn);
+        for(auto ilst : eqns_result) {
+            if(ilst.nops()<1) continue;
+            for(auto eqn : ilst) eqns.append(eqn);
+        }
 
         if(using_uw) {
             exset fs;
@@ -261,20 +265,17 @@ namespace HepLib::IBP {
             exvector intg_vec;
             for(auto fi : fs) {
                 lst rs,ss;
-                int sid=0, rsum=0, ssum=0, sn=0, rn=0;
+                int sid=0, rsum=0, ssum=0;
                 auto idx_lst = fi.op(0);
                 for(int i=0; i<idx_lst.nops(); i++) {
                     auto idx = ex_to<numeric>(idx_lst.op(i)).to_int();
-                    if(idx==0) continue;
                     if(idx!=0) sid += std::pow(2,idx_lst.nops()-i-1);
                     if(idx>0) {
                         rs.append(idx);
                         rsum += idx;
-                        rn++;
                     } else {
                         ss.append(idx);
                         ssum -= idx;
-                        sn++;
                     }
                 }
                 
@@ -324,8 +325,8 @@ namespace HepLib::IBP {
                 int64++;
                 unsigned long long weight = int64;
                 auto idx = intg.op(intg.nops()-1).op(0);
-                for(auto ic : iCuts) {
-                    int j = ic-1;
+                for(int nc=0; nc<nCut; nc++) {
+                    int j = iCuts[nc]-1;
                     if(idx.op(j)>1) {
                         weight += 100000000000000;
                         break;

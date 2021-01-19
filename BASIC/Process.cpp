@@ -20,20 +20,17 @@ namespace HepLib {
     Fermat::~Fermat() { Exit(); }
         
     void Fermat::Exit() {
-        if(getpid() != pid) {
-            if(inited) {
-                ostringstream script;
-                script << "&q;" << endl << "&x;" << ENTER;
-                string istr = script.str();
-                write(P2C[1], istr.c_str(), istr.length());
-                int st;
-                waitpid(fpid, &st, WUNTRACED);
-                inited = false;
-                exited = true;
-            }
+        if(getpid()!=pid) return;
+        if(inited) {
+            ostringstream script;
+            script << "&q;" << endl << "&x;" << ENTER;
+            string istr = script.str();
+            write(P2C[1], istr.c_str(), istr.length());
+            int st;
+            waitpid(fpid, &st, WUNTRACED);
+            inited = false;
+            exited = true;
         }
-        close(P2C[1]);
-        close(C2P[0]);
     }
     
     void Fermat::Init(string fer_path) {
@@ -141,21 +138,17 @@ namespace HepLib {
     Form::~Form() { Exit(); }
     
     void Form::Exit() {
-        if(getpid() == pid) {
-            if(inited && !exited) {
-                string exit_cmd = "\n.end\n" + Prompt +"\n";
-                write(io[0][1], exit_cmd.c_str(), exit_cmd.length());
-                char buffer[8];
-                read(io[1][0], buffer, 8);
-                int st;
-                waitpid(fpid, &st, WUNTRACED);
-            }
-            inited = false;
-            exited = true;
+        if(getpid()!=pid) return;
+        if(inited && !exited) {
+            string exit_cmd = "\n.end\n" + Prompt +"\n";
+            write(io[0][1], exit_cmd.c_str(), exit_cmd.length());
+            char buffer[8];
+            read(io[1][0], buffer, 8);
+            int st;
+            waitpid(fpid, &st, WUNTRACED);
         }
-        close(io[0][1]);
-        close(io[1][0]);
-        close(stdo[0]);
+        inited = false;
+        exited = true;
     }
     
     void Form::Init(string form_path) {

@@ -95,7 +95,8 @@ namespace HepLib::IBP {
                 if(!is_zero(tmp)) nc_map[ns] = nc_map[ns] + tmp;
             }
             
-            if(is_zero(ilp-iep)) nc_map[ns0] = nc_map[ns0] + d;
+            auto cilp = iep.coeff(ilp);
+            if(!is_zero(cilp)) nc_map[ns0] = nc_map[ns0] + d*cilp;
             bool ok = false;
             for(auto nc : nc_map) {
                 if(!is_zero(nc.second)) {
