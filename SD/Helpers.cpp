@@ -371,6 +371,7 @@ ex exp_simplify(const ex expr_in) {
     sub_exp[pow(exp(w1),w2)]=exp(w1*w2);
     sub_exp[sqrt(exp(w1))]=exp(w1/2);
     sub_exp[exp(w1)*exp(w2)*w0]=exp(w1+w2)*w0;
+    sub_exp[exp(w1)*exp(w2)]=exp(w1+w2);
     while(true) {
         auto expo = expr.subs(sub_exp);
         if(is_zero(expo-expr)) break;

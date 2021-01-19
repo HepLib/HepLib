@@ -1174,20 +1174,31 @@ namespace HepLib::SD {
                     auto items = ii.op(1);
                     for(auto &it : ex_to<lst>(items)) ret1.append(it);
                 } else {
+                    exmap sub_exp;
+                    sub_exp[pow(exp(w1),w2)]=exp(w1*w2);
+                    sub_exp[sqrt(exp(w1))]=exp(w1/2);
+                    sub_exp[exp(w1)*exp(w2)*w0]=exp(w1+w2)*w0;
+                    sub_exp[exp(w1)*exp(w2)]=exp(w1+w2);
+                    
                     auto item = ii.op(1);
-                    ex expr = 1;
-if(item.op(1).nops()>100) cout << "count: " << item.op(1).nops() << endl;
+                    ex expr = 1, expr_exp = 1;
                     for(auto pn : item.op(1)) {
                         if(pn.op(0).has(CT(w)) || pn.op(0).has(FTX(w1,w2))) {
                             if(pn.op(1)!=1) throw Error("SDPrepares: exponent of CT is NOT 1.");
                             expr *= pn.op(0);
                         } else if(xPositive(pn.op(0)) || pn.op(1).info(info_flags::integer)) {
-                            expr *= pow(pn.op(0), pn.op(1));
+                            if(pn.op(0).has(exp(w))) expr_exp *= pow(pn.op(0), pn.op(1));
+                            else expr *= pow(pn.op(0), pn.op(1));
                         } else {
-                            expr *= exp(log(pn.op(0)) * pn.op(1));
+                            expr_exp *= exp(log(pn.op(0)) * pn.op(1));
                         }
                     }
-                    expr = exp_simplify(expr);
+                    while(true) {
+                        auto expo = expr_exp.subs(sub_exp);
+                        if(is_zero(expo-expr_exp)) break;
+                        expr_exp = expo;
+                    }
+                    expr *= expr_exp;
                     ret2.append(lst{ item.op(0), expr });
                 }
                 return lst{ret1, ret2};
