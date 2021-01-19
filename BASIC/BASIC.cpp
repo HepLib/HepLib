@@ -200,7 +200,7 @@ namespace HepLib {
                 cout << "\r                                                   \r" << pre;
                 cout << "\\--Evaluating ";
                 if(key != "") cout << Color_HighLight << key << RESET << " ";
-                cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] " << "@" << now(false) << flush;
+                cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
             }
             
             auto pid = fork();
@@ -246,10 +246,10 @@ namespace HepLib {
             if(Verbose > 1) {
                 if(key == "") {
                     cout << "\r                                                   \r" << pre;
-                    cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] " << "@" << now(false) << flush;
+                    cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
                 } else {
                     cout << "\r                                                   \r" << pre;
-                    cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] " << "@" << now(false) << flush;
+                    cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
                 }
             }
 

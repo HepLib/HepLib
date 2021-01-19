@@ -78,7 +78,7 @@ namespace HepLib::IBP {
                 auto ns = ns0;
                 ns.let_op(i) = ns.op(i)+1; // note the covention
                 auto tmp = dp_lst.op(i) * iep;
-                tmp = mma_collect(tmp, InExternal);
+                tmp = tmp.expand();
                 tmp = tmp.subs(Replacements, subs_options::algebraic);
                 tmp = tmp.subs(sp2s, subs_options::algebraic);
                 tmp = tmp.subs(s2p, subs_options::algebraic);
@@ -87,7 +87,7 @@ namespace HepLib::IBP {
                 for(int j=0; j<pdim; j++) {
                     auto cj = tmp.coeff(iWF(j));
                     if(is_zero(cj)) continue;
-                    auto cns = ns;
+                    lst cns = ns;
                     cns.let_op(j) = cns.op(j)-1; // note the covention
                     nc_map[cns] = nc_map[cns] + cj;
                 }
@@ -212,6 +212,7 @@ namespace HepLib::IBP {
         
         Rlst.sort();
         Rlst.unique();
+        sort_lst(Rlst);
         
         for(auto iR : Rlst) {
             start << "SBasisR[" << pn << ",{";

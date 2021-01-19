@@ -171,7 +171,7 @@ namespace HepLib::QGRAF {
         if(!dir_exists(tex_path)) system(("mkdir -p "+tex_path).c_str());
         int limit = 300;
         
-        GiNaC_Parallel(amp_vec.size(), [&](int idx)->ex {
+        GiNaC_Parallel(amp_vec.size(), [&amp_vec,tex_path](int idx)->ex {
             auto amp = amp_vec[idx];
             ofstream out(tex_path+to_string(idx)+".tex");
             out << "\\documentclass[tikz]{standalone}" << endl;

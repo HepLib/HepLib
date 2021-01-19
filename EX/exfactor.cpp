@@ -2503,7 +2503,7 @@ static ex factor1(const ex& poly, unsigned options)
 	// factorize the square free components
 	ex res = 1;
 	factor_iter(sfpoly,
-		[&](const ex &f, const ex &k) {
+		[&res](const ex &f, const ex &k) {
 			if ( is_a<add>(f) ) {
 				res *= pow(factor_sqrfree(f), k);
 			} else {
@@ -2523,9 +2523,9 @@ ex ginac_factor(const ex& poly, unsigned options)
 {
 	ex result = 1;
 	factor_iter(poly,
-		[&](const ex &f1, const ex &k1) {
+		[&result,&options](const ex &f1, const ex &k1) {
 			factor_iter(factor1(f1, options),
-				[&](const ex &f2, const ex &k2) {
+				[&result,&k1](const ex &f2, const ex &k2) {
 					result *= pow(f2, k1*k2);
 				});
 		});

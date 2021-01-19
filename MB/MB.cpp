@@ -220,8 +220,8 @@ void MB::Initialize(FeynmanParameter fp) {
         }
         
         for(auto &kv : ret) {
-            lstHelper::map_inplace(kv.first, [&](auto &&e) { return e.subs(x(i)==0); });
-            lstHelper::map_inplace(kv.second, [&](auto &&e) { return e.subs(x(i)==0); });
+            lstHelper::map_inplace(kv.first, [](auto &&e) { return e.subs(x(i)==0); });
+            lstHelper::map_inplace(kv.second, [](auto &&e) { return e.subs(x(i)==0); });
         }
     }}
 
@@ -251,8 +251,8 @@ void MB::Initialize(FeynmanParameter fp) {
             kv.first.append(xpre);
             kv.second.append(1);
         }
-        lstHelper::map_inplace(kv.first, [&](auto &&e) { return collect_common_factors(e); });
-        lstHelper::map_inplace(kv.second, [&](auto &&e) { return collect_common_factors(e); });
+        lstHelper::map_inplace(kv.first, [](auto &&e) { return collect_common_factors(e); });
+        lstHelper::map_inplace(kv.second, [](auto &&e) { return collect_common_factors(e); });
     }
 
     lst delta;

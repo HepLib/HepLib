@@ -754,7 +754,7 @@ namespace HepLib::SD {
         
         auto verb = Verbose; Verbose = 0;
         auto sl_res =
-        GiNaC_Parallel(FunExp.size(), [&](int idx)->ex {
+        GiNaC_Parallel(FunExp.size(), [this](int idx)->ex {
             auto funexp = FunExp[idx];
             if(funexp.nops()<3) return funexp;
             symbol s;
@@ -905,7 +905,7 @@ namespace HepLib::SD {
         if(Verbose > 2) cout << "  \\--BiSection: " << FunExp.size() << " :> " << flush;
         auto verb = Verbose; Verbose=0;
         auto funexps =
-        GiNaC_Parallel(FunExp.size(), [&](int idx)->ex {
+        GiNaC_Parallel(FunExp.size(), [this](int idx)->ex {
             auto fe = FunExp[idx];
             lst para_res_lst;
             if(xSign(fe.op(0).op(1))==0 && !fe.has(WRA(w))) {
@@ -961,7 +961,7 @@ namespace HepLib::SD {
         
         if(Verbose > 1) cout << Color_HighLight << "  SDPrepares @ " << now() << RESET << endl;
         auto sd_res =
-        GiNaC_Parallel(FunExp.size(), [&](int idx)->ex {
+        GiNaC_Parallel(FunExp.size(), [this](int idx)->ex {
             // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
             auto fe = FunExp[idx];
             auto xns_pns = DS(fe);
@@ -1059,7 +1059,7 @@ namespace HepLib::SD {
             ostringstream spn;
             spn << "XIBP-" << (pn-1);
             auto ibp_res =
-            GiNaC_Parallel(ibp_in_vec.size(), [&](int idx)->ex {
+            GiNaC_Parallel(ibp_in_vec.size(), [&ibp_in_vec,this](int idx)->ex {
                 // return lst
                 // {0, element} for input with pole reached and doing nothing
                 // {1, {element, ...}} for input whth pole NOT reached
@@ -1164,33 +1164,44 @@ namespace HepLib::SD {
                 return lst{0, xns_pns };
 
             }, spn.str().c_str());
-        
-            ibp_in_vec.clear();
-            ibp_in_vec.shrink_to_fit();
-            for(auto &ii : ibp_res) {
+
+            auto rets_vec =
+            GiNaC_Parallel(ibp_res.size(), [&ibp_res](int idx)->ex {
+                lst ret1, ret2;
+                auto ii = ibp_res[idx];
                 auto check = ii.op(0);
                 if(check>0) {
                     auto items = ii.op(1);
-                    for(auto &it : ex_to<lst>(items)) ibp_in_vec.push_back(it);
+                    for(auto &it : ex_to<lst>(items)) ret1.append(it);
                 } else {
                     auto item = ii.op(1);
                     ex expr = 1;
+if(item.op(1).nops()>100) cout << "count: " << item.op(1).nops() << endl;
                     for(auto pn : item.op(1)) {
                         if(pn.op(0).has(CT(w)) || pn.op(0).has(FTX(w1,w2))) {
                             if(pn.op(1)!=1) throw Error("SDPrepares: exponent of CT is NOT 1.");
                             expr *= pn.op(0);
                         } else if(xPositive(pn.op(0)) || pn.op(1).info(info_flags::integer)) {
                             expr *= pow(pn.op(0), pn.op(1));
-                        } else expr *= exp(log(pn.op(0)) * pn.op(1));
+                        } else {
+                            expr *= exp(log(pn.op(0)) * pn.op(1));
+                        }
                     }
                     expr = exp_simplify(expr);
-                    ibp_res_vec.push_back(lst{ item.op(0), expr });
+                    ret2.append(lst{ item.op(0), expr });
                 }
+                return lst{ret1, ret2};
+            }, spn.str()+"R");
+            ibp_in_vec.clear();
+            ibp_in_vec.shrink_to_fit();
+            for(auto rets : rets_vec) {
+                for(auto item : rets.op(0)) ibp_in_vec.push_back(item);
+                for(auto item : rets.op(1)) ibp_res_vec.push_back(item);
             }
         }
 
         auto res =
-        GiNaC_Parallel(ibp_res_vec.size(), [&](int idx)->ex {
+        GiNaC_Parallel(ibp_res_vec.size(), [&ibp_res_vec](int idx)->ex {
 
             // return single element in which ep/eps can be expanded safely.
             auto xns_expr = ibp_res_vec[idx];
@@ -1253,7 +1264,7 @@ namespace HepLib::SD {
         
         if(zResides) {
             Integrands =
-            GiNaC_Parallel(ints.size(), [&](int idx)->ex {
+            GiNaC_Parallel(ints.size(), [&ints](int idx)->ex {
                 auto item = ints[idx];
                 ex it = item;
                 if(it.has(vz)) {
@@ -1321,7 +1332,7 @@ namespace HepLib::SD {
         if(Verbose > 1) cout << Integrands.size() << endl;
 
         auto res =
-        GiNaC_Parallel(Integrands.size(), [&](int idx)->ex {
+        GiNaC_Parallel(Integrands.size(), [this](int idx)->ex {
             // return { {two elements}, {two elements}, ...},
             // 1st: x-independent coefficient, expanded in ep/eps
             // 2nd: x-integrand
@@ -1425,7 +1436,7 @@ namespace HepLib::SD {
             ncollect += item.nops();
             for(auto &kv : ex_to<lst>(item)) {
                 if(!kv.op(1).has(x(w))) expr_nox += kv.op(0) * kv.op(1);
-                else int_pref[kv.op(1)] += kv.op(0);
+                else int_pref[kv.op(1).expand()] += kv.op(0); // we add expand in exmap
             }
         }
         

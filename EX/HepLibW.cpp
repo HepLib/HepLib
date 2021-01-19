@@ -210,7 +210,7 @@ expr z(const int i) {
     return expr(GiNaC::ex(HepLib::z(i)));
 }
 
-MapFunction::MapFunction() : _map([&](const GiNaC::ex &e, HepLib::MapFunction &self)->GiNaC::ex{ return map(expr(e))._expr; }) {}
+MapFunction::MapFunction() : _map([this](const GiNaC::ex &e, HepLib::MapFunction &self)->GiNaC::ex{ return map(expr(e))._expr; }) {}
 MapFunction::~MapFunction() { }
 expr MapFunction::map(const expr & e) { return e; }
 expr MapFunction::operator() (const expr &e) { return _map(e._expr); }

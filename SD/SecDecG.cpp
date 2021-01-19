@@ -376,7 +376,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
         return vmap;
     }
     
-    sort(vpols.begin(), vpols.end(), [&](const auto &ain, const auto &bin) {
+    sort(vpols.begin(), vpols.end(), [&xs](const auto &ain, const auto &bin) {
         //auto a=ain; auto b=bin; // < < <
         auto a=bin; auto b=ain; // > > >
         int tai=0, tbi=0;

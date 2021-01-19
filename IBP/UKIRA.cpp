@@ -110,19 +110,19 @@ namespace HepLib::IBP {
         lst nsa;
         for(int i=0; i<pdim; i++) nsa.append(a(i));
         for(auto sp : DSP) {
-            auto lp = sp.op(0);
-            auto ep = sp.op(1);
+            auto ilp = sp.op(0);
+            auto iep = sp.op(1);
             
             ex ibp = 0;
             symbol ss;
             for(int i=0; i<pdim; i++) {
                 auto ns = nsa;
                 ns.let_op(i) = nsa.op(i) + 1;
-                auto dp = Propagators.op(i).subs(lp==ss).diff(ss).subs(ss==lp);
+                auto dp = Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
                 ibp -= (a(i)+Shift[i]) * F(ns) * dp;
             }
             
-            ibp = ibp * ep;
+            ibp = ibp * iep;
             ibp = ibp.expand();
             ibp = ibp.subs(sp2s, subs_options::algebraic);
             ibp = ibp.subs(Replacements, subs_options::algebraic);
@@ -133,7 +133,7 @@ namespace HepLib::IBP {
                 auto ci = ibp.coeff(iWF(i), 1);
                 ci = MapFunction([i](const ex &e, MapFunction &self)->ex {
                     if(e.match(F(w))) {
-                        auto tmp = e.op(0);
+                        lst tmp = ex_to<lst>(e.op(0));
                         tmp.let_op(i) = tmp.op(i)-1;
                         return F(tmp);
                     } else if(!e.has(F(w))) return e;
@@ -142,7 +142,7 @@ namespace HepLib::IBP {
                 res += ci;
             }
             res += ibp.subs(lst{iWF(w)==0});
-            if(lp==ep) res += d*F(nsa);
+            if(ilp==iep) res += d*F(nsa);
             ibps.append(res);
         }
         
@@ -221,12 +221,12 @@ namespace HepLib::IBP {
         int iCuts[nCut+1];
         for(int i=0; i<nCut; i++) iCuts[i] = ex_to<numeric>(Cuts.op(i)).to_int();
         auto eqns_result =
-        GiNaC_Parallel(asvec.size(), 50, [&](int idx)->ex {
+        GiNaC_Parallel(asvec.size(), 50, [this,&asvec,pdim,hasCut,nCut,&iCuts](int idx)->ex {
             auto as = asvec[idx];
             exmap sol;
             for(int i=0; i<pdim; i++) sol[a(i)]=as[i];
             lst eqns;
-            for(auto const & item : ibps) {
+            for(auto item : ibps) {
                 auto ii = item.subs(sol);
                 if(ii.is_zero()) continue;
                 if(hasCut) {
@@ -235,8 +235,8 @@ namespace HepLib::IBP {
                     exmap repl;
                     for(auto fi : fs) {
                         lst ns = ex_to<lst>(fi.op(0));
-                        for(auto ic : iCuts) {
-                            int j = ic-1;
+                        for(int nc=0; nc<nCut; nc++) {
+                            int j = iCuts[nc]-1;
                             if(ns.op(j)<=0) {
                                 repl[fi]=0;
                                 break;

@@ -385,7 +385,7 @@ namespace HepLib::IBP {
             }
         }
         
-        exvector uf_mi_vec = GiNaC_Parallel(ibp_idx_vec.size(), [ibp_idx_vec,uf](int idx)->ex {
+        exvector uf_mi_vec = GiNaC_Parallel(ibp_idx_vec.size(), [&ibp_idx_vec,&uf](int idx)->ex {
             auto p = ibp_idx_vec[idx];
             const Base & fi = (*p.first);
             auto mi = p.second;

@@ -694,6 +694,7 @@ namespace HepLib {
         string wdir = to_string(getpid());
         if(IBPmethod==1) wdir = wdir + "_FIRE";
         else if(IBPmethod==2) wdir = wdir + "_KIRA";
+        else if(IBPmethod==3) wdir = wdir + "_UKIRA";
         
         bool aparted = false;
         for(auto air : air_vec) {
@@ -792,6 +793,7 @@ namespace HepLib {
                 if(IBPmethod==0) ibp = new Base();
                 else if(IBPmethod==1) ibp = new FIRE();
                 else if(IBPmethod==2) ibp = new KIRA();
+                else if(IBPmethod==3) ibp = new UKIRA();
                 else {
                     ibp = new Base();
                     IBPmethod = 0;
@@ -865,7 +867,7 @@ namespace HepLib {
         
         if(IBPmethod==0) {
             auto air_res =
-            GiNaC_Parallel(air_vec.size(), 1, [&](int idx)->ex {
+            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&IR2F,&rules_ints,&_F2ex](int idx)->ex {
                 auto air = air_vec[idx];
                 air = subs_naive(air,IR2F);
                 air = subs_naive(air,rules_ints.first);
@@ -899,7 +901,7 @@ namespace HepLib {
             if(Verbose>1) cout << "@" << now(false) << endl;
             for(auto item : ibp_vec_re) item->Import();
             system(("rm -rf "+wdir).c_str());
-        } else if(IBPmethod==2) {
+        } else if(IBPmethod==2 || IBPmethod==3) {
             for(auto ibp : ibp_vec_re) ibp->Reduce();
             system(("rm -rf "+wdir).c_str());
         }
@@ -909,7 +911,7 @@ namespace HepLib {
         auto mi_rules = FindRules(base_re, true, aip.UF);
                         
         auto rules_vec =
-        GiNaC_Parallel(ibp_vec_re.size(), 10, [&](int idx)->ex {
+        GiNaC_Parallel(ibp_vec_re.size(), 10, [&ibp_vec_re,&mi_rules](int idx)->ex {
             lst rules;
             for(auto item : ibp_vec_re[idx]->Rules) {
                 auto rr = item.op(1);
@@ -928,7 +930,7 @@ namespace HepLib {
         }
         
         auto air_res =
-        GiNaC_Parallel(air_vec.size(), 1, [&](int idx)->ex {
+        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&mi_rules,&IR2F,&F2F,&_F2ex,&rules_ints](int idx)->ex {
             auto air = air_vec[idx];
             air = subs_naive(air,IR2F);
             air = subs_naive(air,rules_ints.first);

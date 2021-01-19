@@ -67,7 +67,7 @@ namespace HepLib::IBP {
     class KIRA : public Base {
     public:
     
-        string KArgs = "";
+        static string KArgs;
         
         int ra = 2;
         int sa = 3;
@@ -92,9 +92,9 @@ namespace HepLib::IBP {
     public:
     
         static int Rounds;
+        static string KArgs; // check kira --help
         
         bool using_uw = true;
-        string KArgs = ""; // check kira --help
         map<int,ex> Shift;
         
         void Export() override;
@@ -124,7 +124,6 @@ namespace HepLib::IBP {
         static int Rounds;
         
         bool using_uw = true;
-        string KArgs = "";
         map<int,ex> Shift;
         
         void Export() override;
