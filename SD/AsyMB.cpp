@@ -397,7 +397,7 @@ namespace HepLib::SD {
      */
     void SecDec::MB() {
         for(auto &fe : FunExp) {
-            if(fe.has(vz)) continue; // 2nd entrance
+            if(fe.has(vz) || !fe.has(vs)) continue; // 2nd entrance
             
             // check epz
             if(fe.has(epz)) {
