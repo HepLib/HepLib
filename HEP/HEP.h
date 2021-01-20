@@ -339,8 +339,9 @@ namespace HepLib {
     ex ApartIR2F(const ex & expr_in);
     ex F2ex(const ex & expr_in);
     ex ApartIRC(const ex & expr_in);
-    void ApartIBP(int IBPmethod, exvector &io_vec, const lst & loops_exts=lst{}, const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
-    
+    void ApartIBP(int IBPmethod, exvector &io_vec, const lst & loops, const lst & exts,
+        const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
+        
     struct AIOption {
         lst Internal; // Internal for Apart/IBP
         lst External; // External for Apart/IBP

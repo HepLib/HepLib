@@ -651,6 +651,15 @@ namespace HepLib {
             if(!e.has(ApartIR(w1,w2))) return e;
             else if(e.match(ApartIR(w1,w2))) {
                 int n = e.op(1).nops();
+                if((e.op(0)).is_equal(1)) {
+                    matrix mat(n+2,n);
+                    for(int r=0; r<n+2; r++) {
+                        for(int c=0; c<n; c++) mat(r,c) = 0;
+                    }
+                    for(int i=0; i<n; i++) mat(i,i) = 1;
+                    return ApartIR(mat, e.op(1));
+                }
+                if(!is_a<matrix>(e.op(0))) throw Error("ApartIRC: Not matrix : " + ex2str(e.op(0)));
                 auto mat0 = ex_to<matrix>(e.op(0));
                 matrix mat(n+2,n);
                 int cc = mat0.cols();
@@ -723,17 +732,19 @@ namespace HepLib {
             }, "Apart");
             exmap v2v;
             for(int i=0; i<vvec.size(); i++) v2v[vvec[i]] = ret[i];
-            ret = GiNaC_Parallel(air_vec.size(), [air_vec,v2v] (int idx) {
+            ret = GiNaC_Parallel(air_vec.size(), [&air_vec,v2v] (int idx) {
                 return air_vec[idx].subs(v2v);
             }, "ApartR");
             for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i];
         }
         
         exset intg_set;
-        for(auto &air : air_vec) {
+        for(int i=0; i<air_vec.size(); i++) {
+            auto air = air_vec[i];
             air = air.subs(SP_map).subs(D==d);
             air = ApartIRC(air);
             find(air, ApartIR(w1, w2), intg_set);
+            air_vec[i] = air;
         }
         exvector intg;
         for(auto item : intg_set) intg.push_back(item);
@@ -952,26 +963,23 @@ namespace HepLib {
      * @brief perform IBP reduction on the Aparted input
      * @param IBPmethod ibp method used, 0-No IBP, 1-FIRE, 2-KIRA
      * @param air_vec vector contains aparted input, ApartIRC will be call internally
-     * @param loops_exts lst { loop vectors, external vectors, }
+     * @param loops loop vectors
+     * @param exts external vectors
      * @param cut_props cut propagators, default is { }
      * @param uf the function to compute UF polynomial
      * @return nothing returned, the input air_vec will be updated
      */
-    void ApartIBP(int IBPmethod, exvector &air_vec, const lst & loops_exts, const lst & cut_props,
+    void ApartIBP(int IBPmethod, exvector &air_vec, const lst & loops, const lst & exts, const lst & cut_props,
         std::function<lst(const Base &, const ex &)> uf) {
-        
-        if(loops_exts.nops()<2) throw Error("loops_exts size() < 2;");
-        lst lmom = ex_to<lst>(loops_exts.op(0));
-        lst emom = ex_to<lst>(loops_exts.op(1));
-        
+                
         AIOption aip;
-        aip.Internal = lmom;
-        aip.External = emom;
+        aip.Internal = loops;
+        aip.External = exts;
         aip.Cuts = cut_props;
         if(cut_props.nops()>0) {
-            for(auto p1 : lmom) {
-                for(auto p2 : lmom) aip.CSP.append(SP(p1,p2));
-                for(auto p2 : emom) aip.CSP.append(SP(p1,p2));
+            for(auto p1 : loops) {
+                for(auto p2 : loops) aip.CSP.append(SP(p1,p2));
+                for(auto p2 : exts) aip.CSP.append(SP(p1,p2));
             }
             aip.CSP.sort();
             aip.CSP.unique();
