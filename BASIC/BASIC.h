@@ -243,8 +243,6 @@ namespace HepLib {
     // vector : GiNaC_Parallel
     /*-----------------------------------------------------*/
     extern lst GiNaC_archive_Symbols;
-    void GiNaC_archive_Symbols_from(ex);
-    void GiNaC_archive_Symbols_from(vector<ex>);
     vector<ex> GiNaC_Parallel(
         int ntotal, int nbatch,
         std::function<ex(int)> f,

@@ -134,28 +134,6 @@ namespace HepLib {
     const char* ErrColor = RED;
     const char* WarnColor = MAGENTA;
     const char* Color_HighLight = WHITE;
-
-    /**
-     * @brief update GiNaC_archive_Symbols from expr
-     * @param expr input expression, symbol in expr will be added to GiNaC_archive_Symbols
-     */
-    void GiNaC_archive_Symbols_from(ex expr) {
-        auto syms = gather_symbols(expr);
-        for(auto si : syms) GiNaC_archive_Symbols.append(si);
-        GiNaC_archive_Symbols.sort();
-        GiNaC_archive_Symbols.unique();
-    }
-
-    /**
-     * @brief update GiNaC_archive_Symbols from expr
-     * @param invec input expression, symbol in the vector will be added to GiNaC_archive_Symbols
-     */
-    void GiNaC_archive_Symbols_from(vector<ex> invec) {
-        auto syms = gather_symbols(invec);
-        for(auto si : syms) GiNaC_archive_Symbols.append(si);
-        GiNaC_archive_Symbols.sort();
-        GiNaC_archive_Symbols.unique();
-    }
     
     /**
      * @brief GiNaC Parallel Evaluation using fork
@@ -801,8 +779,20 @@ namespace HepLib {
         exset sset;
         expr.find(pow(s0, w), sset);
         numeric sn_lcm = 1;
+        exmap repl1st, repl2nd;
         for(auto pi : sset) {
-            auto sn = pi.op(1);
+            auto sn = pi.op(1).expand();
+            if(!is_a<numeric>(sn)) {
+                ex ex1 = 0, ex2 = 0;
+                for(auto item : add2lst(sn)) {
+                    if(!is_a<numeric>(item)) ex1 += item;
+                    else ex2 += item;
+                }
+                sn = ex2;
+                symbol sss;
+                repl1st[pi] = sss * pow(s0, sn);
+                repl2nd[sss] = pow(s0, ex1);
+            }
             if(!(is_a<numeric>(sn) && ex_to<numeric>(sn).is_rational())) {
                 cerr << "s = " << s0 << endl;
                 cerr << "expr_in = " << expr_in << endl;
@@ -811,6 +801,7 @@ namespace HepLib {
             sn_lcm = lcm(sn_lcm, ex_to<numeric>(sn).denom());
         }
         if(expr.has(sqrt(s0))) sn_lcm = lcm(sn_lcm, numeric(2));
+        expr = expr.subs(repl1st);
         
         symbol s;
         if(!sn_lcm.is_integer()) throw Error("mma_series: Not integer with " + ex2str(sn_lcm));
@@ -851,6 +842,7 @@ namespace HepLib {
             if(!ok) throw Error("mma_series seems not working!");
         }
         ret = ret.subs(s==pow(s0,ex(1)/sn_lcm)); // need this for log-terms
+        ret = ret.subs(repl2nd);
         ret = mma_collect(ret,s0);
         return ret;
     }

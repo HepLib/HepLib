@@ -356,12 +356,12 @@ namespace HepLib::SD {
                 lst fss, ess;
                 fss.append(fs2);
                 ess.append(es2);
-                while(di<=sN-vsn) { // fss, ess will get updated
+                while(di<=vsN-vsn) { // fss, ess will get updated
                     lst fss2, ess2;
                     for(int ife=0; ife<fss.nops(); ife++) {
                         lst fs3 = ex_to<lst>(fss.op(ife));
                         lst es3 = ex_to<lst>(ess.op(ife));
-                        if(di<sN-vsn) {
+                        if(di<vsN-vsn) {
                             for(int ii=0; ii<fs3.nops(); ii++) {
                                 lst fs4 = fs3;
                                 lst es4 = es3;
@@ -445,7 +445,6 @@ namespace HepLib::SD {
                         fe.let_op(0).let_op(1) = w1;
                         fe.let_op(1).let_op(1) = vz;
                     } else if(xPositive(ex(0)-w1)) {
-                        cout << WarnColor << "MB(): Negtive w1 found!" << RESET << endl;
                         let_op_append(fe, 0, ex(0)-w1);
                         let_op_append(fe, 1, vz);
                         let_op_append(fe, 0, exp(-I*Pi*vz));
@@ -453,7 +452,6 @@ namespace HepLib::SD {
                         fe.let_op(0).let_op(1) = w2;
                         fe.let_op(1).let_op(1) = fe.op(1).op(1)-vz-epz;
                     } else if(xPositive(ex(0)-w2)) {
-                        cout << WarnColor << "MB(): Negtive w2 found!" << RESET << endl;
                         let_op_append(fe, 0, ex(0)-w2);
                         let_op_append(fe, 1, fe.op(1).op(1)-vz-epz);
                         let_op_append(fe, 0, exp(-I*Pi*(fe.op(1).op(1)-vz-epz)));

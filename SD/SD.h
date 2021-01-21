@@ -360,8 +360,9 @@ namespace HepLib::SD {
         
         int epN = 0;
         int epsN = 0;
-        int sN = 0;
+        int vsN = 0;
         int PoleRequested = -5;
+        bool vs_before_ep = false;
         exmap nReplacements;
         vector<ex> FunExp; // each item : { {f1,f2,...}, {n1,n2,...}, { delta_list1, delta_list2 } }
         vector<ex> Integrands;

@@ -972,7 +972,7 @@ namespace HepLib::SD {
                 if(item.has(vz)) {
                     auto ct = item.op(1).op(0).op(0);
                     ct = ct.subs(lst{ CT(w)==w,FTX(w1,w2)==1 }).subs(pow(vs,vz)==1);
-                    int sNN = sN - vsRank(ct.subs(pow(vs,vz)==1));
+                    int sNN = vsN - vsRank(ct.subs(pow(vs,vz)==1));
 
                     lst zpols;
                     // poles from Gamma(-z)
@@ -1373,7 +1373,6 @@ namespace HepLib::SD {
                     ct = 1;
                 }
             }
-            
             if(it.has(epz)) it = mma_series(it,epz,0);
             auto cv_lst = mma_collect_lst(it, lst{epz, vs});
             if(cv_lst.nops()<1) return lst{ lst{ 0, 0} };
@@ -1394,8 +1393,17 @@ namespace HepLib::SD {
                         if(intg.has(ep)) {
                             throw Error("EpsEpExpands: ep found @ intg = " + ex2str(intg));
                         }
-                        auto pref = mma_series(ct2, ep, epN-di);
-                        if(pref.has(vs)) pref = mma_series(pref, vs, sN);
+                        auto pref = ct2;
+                        if(vs_before_ep && pref.has(vs)) {
+                            pref = mma_series(pref, vs, vsN);
+                            auto cvs = mma_collect_lst(pref,vs);
+                            for(auto cv : cvs) {
+                                if(cv.op(1).has(eps)) continue;
+                                pref += cv.op(0) * cv.op(1);
+                            }
+                        }
+                        pref = mma_series(pref, ep, epN-di);
+                        if(!vs_before_ep && pref.has(vs)) pref = mma_series(pref, vs, vsN);
                         if(is_zero(intg.subs(x(w)==ex(1)/7)) && is_zero(intg.subs(x(w)==ex(1)/13))) {
                             intg = normal_fermat(intg);
                         }
@@ -1423,8 +1431,17 @@ namespace HepLib::SD {
                                 if(intg.has(ep)) {
                                     throw Error("EpsEpExpands: ep found @ intg = " + ex2str(intg));
                                 }
-                                auto pref = mma_series(ct2, ep, epN-di);
-                                if(pref.has(vs)) pref = mma_series(pref, vs, sN);
+                                auto pref = ct2;
+                                if(vs_before_ep && pref.has(vs)) {
+                                    pref = mma_series(pref, vs, vsN);
+                                    auto cvs = mma_collect_lst(pref,vs);
+                                    for(auto cv : cvs) {
+                                        if(cv.op(1).has(eps)) continue;
+                                        pref += cv.op(0) * cv.op(1);
+                                    }
+                                }
+                                pref = mma_series(pref, ep, epN-di);
+                                if(!vs_before_ep && pref.has(vs)) pref = mma_series(pref, vs, vsN);
                                 if(is_zero(intg.subs(x(w)==ex(1)/7)) || is_zero(intg.subs(x(w)==ex(1)/13))) {
                                     intg = normal_fermat(intg);
                                 }

@@ -250,13 +250,17 @@ namespace HepLib::IBP {
         config << "#database db" << ProblemNumber << endl;
         if(Version>5 && pos_pref!=1) config << "#pos_pref "<< pos_pref << endl;
         if(Version==5) config << "#bucket 20" << endl;
+        if(Version>5) config << "#allIBP" << endl;
         config << "#start" << endl;
         config << "#problem " << pn << " " << ProblemNumber << ".start" << endl;
         if(PIntegrals.nops()>0) {
             ostringstream oss;
             oss << "{";
             int nn = PIntegrals.nops();
-            for(int i=0; i<nn; i++) oss << "{" << pn << "," << PIntegrals.op(i) << (i<nn-1 ? "}," : "}");
+            for(int i=0; i<nn; i++) {
+                if(PIntegrals.op(i).nops()!=pdim) throw Error("FIRE::Export, Index dimension NOT match Propagators.");
+                oss << "{" << pn << "," << PIntegrals.op(i) << (i<nn-1 ? "}," : "}");
+            }
             oss << "}";
             ofstream pref_out(WorkingDir+"/"+spn+".pref");
             pref_out << oss.str() << endl;
@@ -270,6 +274,7 @@ namespace HepLib::IBP {
         ostringstream intg;
         intg << "{";
         for(int i=0; i<Integrals.nops(); i++) {
+            if(Integrals[i].nops()!=pdim) throw Error("FIRE::Export, Index dimension NOT match Propagators.");
             intg << "{" << pn << "," << Integrals[i] << (i<Integrals.nops()-1 ? "}," : "}");
         }
         intg << "}" << endl;
