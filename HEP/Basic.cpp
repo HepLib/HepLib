@@ -695,7 +695,7 @@ namespace HepLib {
     
     REGISTER_FUNCTION(Matrix, do_not_evalf_params().conjugate_func(mat_conj).set_return_type(return_types::commutative))
     
-    bool isZero(const ex & e) {
+    bool IsZero(const ex & e) {
         exset vs;
         for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
             if(is_a<symbol>(*i) || is_a<Pair>(*i)) vs.insert(*i);

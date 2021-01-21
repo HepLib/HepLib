@@ -281,6 +281,7 @@ namespace HepLib::IBP {
             exset fs;
             for(auto eqn : eqns) find(eqn, F(w), fs);
             for(auto intg : Integrals) fs.insert(F(intg));
+            for(auto intg : PIntegrals) fs.insert(F(intg));
             exvector intg_vec;
             for(auto fi : fs) {
                 lst rs,ss;

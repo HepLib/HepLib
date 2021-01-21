@@ -100,8 +100,8 @@ namespace HepLib::IBP {
         void Run() override;
         void Import() override;
         
-        int ra = 2;
-        int sa = 2;
+        int ra = 1;
+        int sa = 1;
         int rap = 1;
         int sap = 1;
         int sort_option = 0;

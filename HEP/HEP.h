@@ -355,7 +355,7 @@ namespace HepLib {
     };
     void ApartIBP(int IBPmethod, exvector &io_vec, AIOption aip);
     
-    bool isZero(const ex & e);
+    bool IsZero(const ex & e);
     
     #ifndef DOXYGEN_SKIP
     

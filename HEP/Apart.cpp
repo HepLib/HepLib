@@ -330,7 +330,7 @@ namespace HepLib {
         }
 
         // handle const is NOT zero
-        if(!is_zero(cres)) {
+        if(!IsZero(cres)) {
             ex res=0;
             for(int c=0; c<ncol; c++) {
                 if(is_zero(nvec.op(c))) continue;
