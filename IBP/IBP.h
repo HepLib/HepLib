@@ -32,13 +32,14 @@ namespace HepLib::IBP {
         lst Cuts; // index start from 1
         lst DSP; // { {q1,q1}, {q1,p}, ... } Diff SP
         lst ISP; // { q1*q1, q1*p } Independent SP
-        
+        map<int,ex> Shift;
+        bool reCut = true;
         string WorkingDir;
         int ProblemNumber = 0;
         lst PIntegrals;
+        
         lst MIntegrals;
         lst Rules;
-        bool reCut = true;
         
         virtual void Export() { throw Error("Export() not implemented!"); };
         virtual void Run() { throw Error("Run() not implemented!"); };
@@ -91,11 +92,9 @@ namespace HepLib::IBP {
     class UKIRA : public Base {
     public:
     
-        static int Rounds;
         static string KArgs; // check kira --help
         
         bool using_uw = true;
-        map<int,ex> Shift;
         
         void Export() override;
         void Run() override;
@@ -120,8 +119,6 @@ namespace HepLib::IBP {
     class Laporta : public Base {
     
     public:
-
-        static int Rounds;
         
         bool using_uw = true;
         map<int,ex> Shift;
@@ -135,7 +132,7 @@ namespace HepLib::IBP {
         int rap = 1;
         int sap = 1;
         int sort_option = 0;
-        int seed_option = 0;
+        int seed_option = 1;
         
     private:
         lst ibps;

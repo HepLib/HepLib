@@ -230,9 +230,9 @@ namespace HepLib::IBP {
             for(auto item : ibps) {
                 auto ii = item.subs(sol);
                 if(ii.is_zero()) continue;
+                exset fs;
+                find(ii, F(w), fs);
                 if(hasCut) {
-                    exset fs;
-                    find(ii, F(w), fs);
                     exmap repl;
                     for(auto fi : fs) {
                         lst ns = ex_to<lst>(fi.op(0));
@@ -247,6 +247,25 @@ namespace HepLib::IBP {
                     ii = ii.subs(repl);
                 }
                 if(ii.is_zero()) continue;
+                
+                exmap repl;
+                for(auto li : Internal) {
+                    for(auto fi : fs) {
+                        lst ns = ex_to<lst>(fi.op(0));
+                        bool has = false;
+                        for(int i=0; i<pdim; i++) {
+                            if(is_zero(Shift[i]) && ns.op(i)<=0) continue;
+                            if(Propagators.op(i).has(li)) {
+                                has = true;
+                                break;
+                            }
+                        }
+                        if(!has) repl[fi]=0;
+                    }
+                }
+                ii = ii.subs(repl);
+                if(ii.is_zero()) continue;
+                
                 eqns.append(ii);
             }
             return eqns;

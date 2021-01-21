@@ -82,7 +82,7 @@ namespace HepLib::IBP {
                 tmp = tmp.subs(Replacements, subs_options::algebraic);
                 tmp = tmp.subs(sp2s, subs_options::algebraic);
                 tmp = tmp.subs(s2p, subs_options::algebraic);
-                tmp = ex(0) - a(i+1)*tmp;
+                tmp = ex(0) - (Shift[i]+a(i+1))*tmp; // note Shift here
 
                 for(int j=0; j<pdim; j++) {
                     auto cj = tmp.coeff(iWF(j));
@@ -192,7 +192,7 @@ namespace HepLib::IBP {
         
         // handle Cut Propagators
         if(Cuts.nops()>0) {
-            //Rlst.remove_all();  // TODO: check this one
+            Rlst.remove_all();  // TODO: check this one
             for(auto cx : Cuts) {
                 int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cuts
                 lst ns0;
@@ -258,7 +258,7 @@ namespace HepLib::IBP {
             oss << "{";
             int nn = PIntegrals.nops();
             for(int i=0; i<nn; i++) {
-                if(PIntegrals.op(i).nops()!=pdim) throw Error("FIRE::Export, Index dimension NOT match Propagators.");
+                if(PIntegrals.op(i).nops()!=pdim) throw Error("FIRE::Export@1, Index dimension NOT match Propagators.");
                 oss << "{" << pn << "," << PIntegrals.op(i) << (i<nn-1 ? "}," : "}");
             }
             oss << "}";
@@ -274,7 +274,7 @@ namespace HepLib::IBP {
         ostringstream intg;
         intg << "{";
         for(int i=0; i<Integrals.nops(); i++) {
-            if(Integrals[i].nops()!=pdim) throw Error("FIRE::Export, Index dimension NOT match Propagators.");
+            if(Integrals[i].nops()!=pdim) throw Error("FIRE::Export@2, Index dimension NOT match Propagators.");
             intg << "{" << pn << "," << Integrals[i] << (i<Integrals.nops()-1 ? "}," : "}");
         }
         intg << "}" << endl;
@@ -434,6 +434,7 @@ namespace HepLib::IBP {
                     fire.DSP = DSP;
                     fire.Cuts = Cuts;
                     fire.reCut = false;
+                    fire.Shift = Shift;
                     fire.Integrals = iis;
                     fire.PIntegrals = pis;
                     fire.WorkingDir = WorkingDir + "_C"+to_string(ProblemNumber);
