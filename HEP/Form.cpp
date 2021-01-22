@@ -471,6 +471,8 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         
         string_replace_all(ostr, "[", "(");
         string_replace_all(ostr, "]", ")");
+        string_replace_all(ostr, "\\\n", "");
+        string_replace_all(ostr, " ","");
         for(auto v : vec_lst) {
             string pat(ex_to<Vector>(v).name.get_name());
             string from = pat+"(";

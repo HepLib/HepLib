@@ -191,6 +191,8 @@ namespace HepLib {
             ofs << "    .end;" << endl;
             ofs << "#endif" << endl;
             ofs << "#procedure put(mexp)" << endl;
+            ofs << "    Format Nospaces;" << endl;
+            ofs << "    ON NoSpacesInNumbers;" << endl;
             ofs << "    #write \""<<Sentinel<<"\\n\"" << endl;
             ofs << "    #toexternal \"%E\", `mexp'" << endl;
             ofs << "    #toexternal \""<<Sentinel<<"\"" << endl;

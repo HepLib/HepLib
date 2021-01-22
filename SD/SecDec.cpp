@@ -501,7 +501,7 @@ namespace HepLib::SD {
         for(int i=0; i<pnN; i++) {
             auto pi = in_plst.op(i);
             if(!pi.is_polynomial(vars)) {
-                auto nd = exfactor(pi);
+                auto nd = numer_denom(exfactor(pi));
                 if(in_nlst.op(i).info(info_flags::integer)) {
                     in_plst.let_op(i) = nd.op(0);
                     in_plst.append(nd.op(1));

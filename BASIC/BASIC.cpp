@@ -2112,11 +2112,12 @@ namespace HepLib {
     /**
      * @brief num_den a expression
      * @param expr the input expression
-     * @param opt 1 to use Fermat, otherwise using GiNaC for numer_denom
+     * @param opt  1 to use factor_form, 2 to use Fermat, otherwise using GiNaC for numer_denom
      * @return lst of { num, den }
      */
     ex exnd(const ex & expr, int opt) {
-        if(opt==1) return numer_denom_fermat(expr);
+        if(opt==1) return numer_denom(factor_form(expr));
+        else if(opt==2) return numer_denom_fermat(expr);
         else return numer_denom(expr);
     }
     
@@ -2159,7 +2160,8 @@ namespace HepLib {
             auto ostr = fprc.Execute(oss.str(), "ff");
             string_replace_all(ostr, "[", "(");
             string_replace_all(ostr, "]", ")");
-            
+            string_replace_all(ostr, "\\\n", "");
+            string_replace_all(ostr, " ","");
             Parser fp(st);
             ex ret = fp.Read(ostr);
             ex res = 1;
