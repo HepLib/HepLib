@@ -503,8 +503,9 @@ namespace HepLib {
                         has_sgn = true;
                         break;
                     } else {
-                        if(is_zero(pc.coeff(v)) || !key_exists(sgnmap,v.subs(map2))) continue;
-                        ex sign = sgnmap[v.subs(map2)]/pc.coeff(v);
+                        auto cc = pc.coeff(v);
+                        if(is_zero(cc) || !key_exists(sgnmap,v.subs(map2))) continue;
+                        ex sign = sgnmap[v.subs(map2)]/cc;
                         pref /= pow(sign, nc);
                         pc *= sign;
                         has_sgn = true;
@@ -513,8 +514,9 @@ namespace HepLib {
                 }
                 if(!has_sgn) {
                     for(auto v : vars) {
-                        if(is_zero(pc.coeff(v))) continue;
-                        ex sign = 1/pc.coeff(v);
+                        auto cc = pc.coeff(v);
+                        if(is_zero(cc) || !is_a<numeric>(cc)) continue;
+                        ex sign = 1/cc;
                         pref /= pow(sign, nc);
                         pc *= sign;
                         break;
@@ -588,14 +590,12 @@ namespace HepLib {
      * @param extps list of external Vector
      * @return sum of coefficient * ApartIR
      */
-    ex Apart(const ex &expr_ino, const lst &loops, const lst & extps, exmap smap) {
+    ex Apart(const ex &expr_ino, const lst &loops, const lst & extps, exmap sgnmap) {
         auto expr_in = expr_ino.subs(SP_map);
         auto expr = expr_in;
         
         lst sps;
-        exmap sgnmap = smap;
         for(auto li : loops) {
-            if(sgnmap.find(SP(li))==sgnmap.end()) sgnmap[SP(li)] = 1;
             for(auto li2: loops) {
                 auto item = SP(li, li2).subs(SP_map);
                 if(is_a<Pair>(item)) sps.append(item);

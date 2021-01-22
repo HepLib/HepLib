@@ -1931,10 +1931,10 @@ namespace HepLib {
     /**
      * @brief return the numerator and denominator after normalization
      * @param expr the input expression
-     * @param factor true for factorize on the denominator
+     * @param dfactor true for factorize on the denominator
      * @return a list of { numer, denom }
      */
-    ex numer_denom_fermat(const ex & expr, bool factor) {
+    ex numer_denom_fermat(const ex & expr, bool dfactor) {
         static map<pid_t, Fermat> fermat_map;
         static int v_max = 0;
 
@@ -2048,7 +2048,7 @@ namespace HepLib {
             Parser fp(st);
             auto ret = fp.Read(ostr);
             num *= ret.op(0);
-            if(factor) den *= factor_form(ret.op(1));
+            if(dfactor) den *= factor_form(ret.op(1));
             else den *= ret.op(1);
         }
         //fermat.Exit();
@@ -2067,11 +2067,11 @@ namespace HepLib {
     /**
      * @brief return the normalizatied expression, using fermat_numer_denom
      * @param expr the input expression
-     * @param factor true for factorize on the denominator
+     * @param dfactor true for factorize on the denominator
      * @return the normalized expression: numer/denom
      */
-    ex normal_fermat(const ex & expr, bool factor) {
-        auto nd = fermat_numer_denom(expr, factor);
+    ex normal_fermat(const ex & expr, bool dfactor) {
+        auto nd = fermat_numer_denom(expr, dfactor);
         return nd.op(0)/nd.op(1);
     }
     
@@ -2105,7 +2105,7 @@ namespace HepLib {
      * @return factorized result
      */
     ex exnormal(const ex & expr, int opt) {
-        if(opt==1) return normal_fermat(expr);
+        if(opt==1) return normal_fermat(expr,true);
         else return normal(expr);
     }
     

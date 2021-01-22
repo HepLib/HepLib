@@ -281,6 +281,7 @@ namespace HepLib {
     void ex2file(const ex &, string filename);
     void ex2file(string filename, const ex &);
     string ex2str(const ex &expr);
+    inline string in2str(int i) { return to_string(i); }
     ex q2ex(__float128);
     __float128 ex2q(ex);
     lst vec2lst(const exvector & exvec);
@@ -345,11 +346,11 @@ namespace HepLib {
     ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
     extern bool fermat_using_array;
-    ex numer_denom_fermat(const ex & expr, bool factor=false);
-    inline ex fermat_numer_denom(const ex & expr, bool factor=false) { return numer_denom_fermat(expr,factor); }
+    ex numer_denom_fermat(const ex & expr, bool dfactor=false);
+    inline ex fermat_numer_denom(const ex & expr, bool dfactor=false) { return numer_denom_fermat(expr,dfactor); }
     
-    ex normal_fermat(const ex & expr, bool factor=false);
-    inline ex fermat_normal(const ex & expr, bool factor=false) { return normal_fermat(expr,factor); }
+    ex normal_fermat(const ex & expr, bool dfactor=false);
+    inline ex fermat_normal(const ex & expr, bool dfactor=false) { return normal_fermat(expr,dfactor); }
     
     ex factor_form(const ex & expr);
     inline ex form_factor(const ex & expr) { return factor_form(expr); }
