@@ -44,6 +44,7 @@ namespace HepLib::SD {
     vector<ex> get_xy_from(ex pol);
     vector<ex> get_x_from(ex pol);
     vector<ex> get_y_from(ex pol);
+    vector<ex> get_z_from(ex pol);
     vector<ex> get_pl_from(ex pol);
     int epRank(ex);
     int epsRank(ex);

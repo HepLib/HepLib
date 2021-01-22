@@ -2125,8 +2125,7 @@ namespace HepLib {
         auto pid = getpid();
         if((form_map.find(pid)==form_map.end())) { // init section
             ostringstream ss;
-            ss << "AutoDeclare Symbols vwf;" << endl;
-            ss << "CFunction WF;" << endl;
+            ss << "AutoDeclare Symbols viff;" << endl;
             form_map[pid].Init("form");
             form_map[pid].Execute(ss.str());
         }
@@ -2147,26 +2146,25 @@ namespace HepLib {
         int cid = 0;
         for(auto ss : vs) {
             cid++;
-            string cvv = "vwf"+to_string(cid);
+            string cvv = "viff"+to_string(cid);
             s2v[ss] = Symbol(cvv);
             st[cvv] = ss.subs(map_rat);
         }
         ostringstream oss;
         expr_in = expr_in.subs(s2v);
-        oss << "Local iFF = " << expr_in << ";" << endl;
-        oss << "Factorize iFF;" << endl;
-        oss << ".sort" << endl;
-        oss << "#$num = numfactors_(iFF);" << endl;
-        oss << "Local oFF = <WF(iFF[factor_^1])>*...*<WF(iFF[factor_^`$num'])>;" << endl;
+        oss << "Local ff = " << expr_in << ";" << endl;
+        oss << "Factorize ff;" << endl;
         oss << ".sort" << endl;
         try {
-            auto ostr = fprc.Execute(oss.str(), "oFF");
+            auto ostr = fprc.Execute(oss.str(), "ff");
             string_replace_all(ostr, "[", "(");
             string_replace_all(ostr, "]", ")");
             
             Parser fp(st);
-            ex res = fp.Read(ostr);
-            res = res.subs(WF(w)==w);
+            ex ret = fp.Read(ostr);
+            ex res = 1;
+            Symbol sfac("factor_");
+            for(auto item : add2lst(ret)) res *= item.subs(sfac==1);
             return res;
         } catch(Error& err) {
             cout << oss.str() << endl;

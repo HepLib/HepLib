@@ -495,6 +495,21 @@ namespace HepLib::SD {
         lst plst, nlst;
         lst in_plst = ex_to<lst>(input.op(0));
         lst in_nlst = ex_to<lst>(input.op(1));
+        
+        auto vars = vec2lst(get_xy_from(input.op(0)));
+        int pnN = in_plst.nops();
+        for(int i=0; i<pnN; i++) {
+            auto pi = in_plst.op(i);
+            if(!pi.is_polynomial(vars)) {
+                auto nd = exfactor(pi);
+                if(in_nlst.op(i).info(info_flags::integer)) {
+                    in_plst.let_op(i) = nd.op(0);
+                    in_plst.append(nd.op(1));
+                    in_nlst.append(ex(0)-in_nlst.op(i));
+                } else throw Error("SecDec::Normalize, NOT polynomial found: "+ex2str(pi));
+            }
+        }
+        
         for(int i=0; i<in_plst.nops(); i++) {
             if(i!=1 && (in_nlst.op(i).is_zero() || in_plst.op(i)==ex(1))) continue;
             if(i!=1 && !in_plst.op(i).has(x(w)) && !in_plst.op(i).has(y(w)) && !in_plst.op(i).has(z(w))) {
@@ -1480,6 +1495,7 @@ namespace HepLib::SD {
             expResult.push_back(lst{expr_nox, 1});
         }
         if(Verbose > 1) cout << expResult.size() << endl;
+        sort_vec(expResult);
     }
 
 }

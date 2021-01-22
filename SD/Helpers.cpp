@@ -58,6 +58,21 @@ namespace HepLib::SD {
         });
         return ys;
     }
+    
+    vector<ex> get_z_from(ex pol) {
+        exset zset;
+        bool ok = pol.find(z(w), zset);
+        if(!ok) {
+            vector<ex> zs(0);
+            return zs;
+        }
+        vector<ex> zs(zset.size());
+        copy(zset.begin(), zset.end(), zs.begin());
+        sort(zs.begin(), zs.end(), [](const auto &a, const auto &b){
+            return normal((b-a)).subs(lst{ z(w)==w }).info(info_flags::positive);
+        });
+        return zs;
+    }
 
     vector<ex> get_pl_from(ex pol) {
         exset plset;
