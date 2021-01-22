@@ -1495,7 +1495,6 @@ namespace HepLib::SD {
             expResult.push_back(lst{expr_nox, 1});
         }
         if(Verbose > 1) cout << expResult.size() << endl;
-        sort_vec(expResult);
     }
 
 }
