@@ -11,8 +11,8 @@ namespace HepLib::SD {
     /**
      * @brief ChengWu for SecDec class
      */
-    void SecDec::ChengWu() {
-        FunExp = ChengWu::Apply(FunExp);
+    void SecDec::ChengWu(const ex & ft) {
+        FunExp = ChengWu::Apply(FunExp, ft);
         
         //remove the first item in op.(0) and op(1)
         for(auto &fe : FunExp) {
@@ -29,10 +29,12 @@ namespace HepLib::SD {
      * @param fe_vec the input vector of fe
      * @return ChengWu-rized vector of fe
      */
-    exvector ChengWu::Apply(const vector<ex> & fe_vec) {
+    exvector ChengWu::Apply(const vector<ex> & fe_vec, const ex & ft) {
         vector<ex> ret_fe_vec;
         for(auto fe : fe_vec) {
-            if(fe.nops()<3 || xSign(fe.op(0).op(1))!=0 || fe.op(0).op(1).has(WRA(w))) {
+            ex cft = ft;
+            if(is_zero(cft)) cft = fe.op(0).op(1);
+            if(fe.nops()<3 || xSign(cft)!=0 || cft.has(WRA(w))) {
                 let_op_prepend(fe, 0, 1);
                 let_op_prepend(fe, 1, 0);
                 ret_fe_vec.push_back(fe);
@@ -42,7 +44,7 @@ namespace HepLib::SD {
             for(int di=0; di<deltas.nops(); di++) {
                 Projectivize(fe, deltas.op(di)); //make sure projective
             }
-            let_op_prepend(fe, 0, fe.op(0).op(1));
+            let_op_prepend(fe, 0, cft);
             let_op_prepend(fe, 1, 0);
             auto ret = Evaluate(fe);
             for(auto item : ret) ret_fe_vec.push_back(item);

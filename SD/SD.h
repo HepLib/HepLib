@@ -346,7 +346,7 @@ namespace HepLib::SD {
         
         static exvector Evaluate(const ex & fe);
         static exvector WickRotation(const exvector & fe_vec);
-        static exvector Apply(const vector<ex> & fe_vec);
+        static exvector Apply(const vector<ex> & fe_vec, const ex & ft=0);
     };
 
     /**
@@ -427,7 +427,7 @@ namespace HepLib::SD {
         void Evaluate(vector<ex> FunExp, const string & key = "");
         void MB();
         void XEnd();
-        void ChengWu();
+        void ChengWu(const ex & ft=0);
         
         static bool VerifySD(vector<exmap> vmap, bool quick = true);
         static ex XRefined(ex const & ft);

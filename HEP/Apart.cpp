@@ -496,7 +496,7 @@ namespace HepLib {
                 // consider sign
                 bool has_sgn = false;
                 for(auto v : vars) {
-                    if(pc.has(iEpsilon) && key_exists(sgnmap,iEpsilon)) { // iEpsilon first
+                    if(pc.has(iEpsilon) && key_exists(sgnmap,iEpsilon) && !is_zero(sgnmap[iEpsilon])) { // iEpsilon first
                         ex sign = sgnmap[iEpsilon]/pc.coeff(iEpsilon);
                         pref /= pow(sign, nc);
                         pc *= sign;
@@ -504,8 +504,9 @@ namespace HepLib {
                         break;
                     } else {
                         auto cc = pc.coeff(v);
-                        if(is_zero(cc) || !key_exists(sgnmap,v.subs(map2))) continue;
-                        ex sign = sgnmap[v.subs(map2)]/cc;
+                        auto kk = v.subs(map2);
+                        if(is_zero(cc) || !key_exists(sgnmap,kk) || is_zero(sgnmap[kk])) continue;
+                        ex sign = sgnmap[kk]/cc;
                         pref /= pow(sign, nc);
                         pc *= sign;
                         has_sgn = true;
@@ -695,10 +696,10 @@ namespace HepLib {
      * @brief perform IBP reduction on the Aparted input
      * @param IBPmethod ibp method used, 0-No IBP, 1-FIRE, 2-KIRA
      * @param air_vec vector contains aparted input, ApartIRC will be call internally
-     * @param aip AIOption for ApartIBP input
+     * @param aio AIOption for ApartIBP input
      * @return nothing returned, the input air_vec will be updated
      */
-    void ApartIBP(int IBPmethod, exvector &air_vec, AIOption aip) {
+    void ApartIBP(int IBPmethod, exvector &air_vec, AIOption aio) {
                 
         string wdir = to_string(getpid());
         if(IBPmethod==1) wdir = wdir + "_FIRE";
@@ -713,21 +714,21 @@ namespace HepLib {
             }
         }
         
-        lst lmom = ex_to<lst>(aip.Internal);
-        lst emom = ex_to<lst>(aip.External);
+        lst lmom = ex_to<lst>(aio.Internal);
+        lst emom = ex_to<lst>(aio.External);
         
         if(!aparted) {
             exset vset;
-            for(auto &air : air_vec) {
-                air = mma_collect(air,lmom,false,true);
-                find(air,coVF(w),vset);
+            for(int i=0; i<air_vec.size(); i++) {
+                air_vec[i] = mma_collect(air_vec[i],lmom,false,true);
+                find(air_vec[i],coVF(w),vset);
             }
             exvector vvec;
             for(auto item : vset) vvec.push_back(item);
             //sort_vec(vvec);
-            auto ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aip] (int idx) {
+            auto ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
                 auto air = vvec[idx].op(0);
-                air = Apart(air,lmom,emom,aip.smap);
+                air = Apart(air,lmom,emom,aio.smap);
                 return air;
             }, "Apart");
             exmap v2v;
@@ -741,7 +742,7 @@ namespace HepLib {
         exset intg_set;
         for(int i=0; i<air_vec.size(); i++) {
             auto air = air_vec[i];
-            air = air.subs(SP_map).subs(D==d);
+            air = air.subs(SP_map);
             air = ApartIRC(air);
             find(air, ApartIR(w1, w2), intg_set);
             air_vec[i] = air;
@@ -750,7 +751,7 @@ namespace HepLib {
         for(auto item : intg_set) intg.push_back(item);
         sort_vec(intg); // need sort
         
-        for(auto sp : aip.CSP) SP_map.erase(sp);
+        for(auto sp : aio.CSP) SP_map.erase(sp);
         // from here, Vector will be replaced by its name Symbol
         
         lst repls;
@@ -767,7 +768,7 @@ namespace HepLib {
             else exts.append(li);
         }
         
-        exmap IR2F;
+        exmap AIR2F;
         std::map<ex, IBP::Base*, ex_is_less> p2IBP;
         vector<IBP::Base*> ibp_vec;
         int pn=1;
@@ -785,11 +786,11 @@ namespace HepLib {
             }
             sort_lst(pns); // sort before cuts
             
-            int nCuts = aip.Cuts.nops();
+            int nCuts = aio.Cuts.nops();
             if(nCuts>0) {
-                ex cuts = aip.Cuts;
+                ex cuts = aio.Cuts;
                 cuts = cuts.subs(SP_map);
-                if(aip.CutFirst) for(auto cut : cuts) pns.prepend(lst{ SP2sp(cut), 1 });
+                if(aio.CutFirst) for(auto cut : cuts) pns.prepend(lst{ SP2sp(cut), 1 });
                 else for(auto cut : cuts) pns.append(lst{ SP2sp(cut), 1 });
             }
             
@@ -815,9 +816,9 @@ namespace HepLib {
                 ibp->Internal = loops;
                 ibp->External = exts;
                 ibp->Replacements = repls;
-                if(aip.ISP.nops()>0) for(auto item : aip.ISP) ibp->ISP.append(SP2sp(item));
-                if(aip.DSP.nops()>0) {
-                    for(auto item : aip.DSP) {
+                if(aio.ISP.nops()>0) for(auto item : aio.ISP) ibp->ISP.append(SP2sp(item));
+                if(aio.DSP.nops()>0) {
+                    for(auto item : aio.DSP) {
                         lst sp = ex_to<lst>(item);
                         if(is_a<Vector>(sp.op(0))) sp.let_op(0) = (ex_to<Vector>(sp.op(0)).name);
                         if(is_a<Vector>(sp.op(1))) sp.let_op(1) = (ex_to<Vector>(sp.op(1)).name);
@@ -827,24 +828,24 @@ namespace HepLib {
                 ibp->WorkingDir = wdir;
                 ibp->ProblemNumber = pn++;
                 if(nCuts>0) {
-                    if(aip.CutFirst) for(int i=0; i<nCuts; i++) ibp->Cuts.append(i+1);
+                    if(aio.CutFirst) for(int i=0; i<nCuts; i++) ibp->Cuts.append(i+1);
                     else for(int i=0; i<nCuts; i++) ibp->Cuts.append(nCuts-i);
                 }
                 ibp_vec.push_back(ibp);
             }
             IBP::Base* ibp = p2IBP[props];
             ibp->Integrals.append(ns);
-            IR2F[ir] = F(ibp->ProblemNumber, ns);
+            AIR2F[ir] = F(ibp->ProblemNumber, ns);
         }
         
         if(Verbose>0) cout << "  \\--Total Ints/Pros: " << intg.size() << "/" << ibp_vec.size() << " @ " << now(false) << endl;
         
         vector<Base*> base_vec;
         for(auto ibp : ibp_vec) base_vec.push_back(ibp);
-        auto rules_ints = FindRules(base_vec, false, aip.UF);
+        auto int_rules = FindRules(base_vec, false, aio.UF);
 
         map<int,lst> pn_ints_map;
-        for(auto item : rules_ints.second) {
+        for(auto item : int_rules.second) {
             int pn = ex_to<numeric>(item.op(0)).to_int();
             pn_ints_map[pn].append(item.op(1));
         }
@@ -878,14 +879,12 @@ namespace HepLib {
         
         if(IBPmethod==0) {
             auto air_res =
-            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&IR2F,&rules_ints,&_F2ex](int idx)->ex {
+            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&AIR2F,&int_rules,&_F2ex](int idx)->ex {
                 auto air = air_vec[idx];
-                air = subs_naive(air,IR2F);
-                air = subs_naive(air,rules_ints.first);
+                air = subs_naive(air,AIR2F);
+                air = subs_naive(air,int_rules.first);
                 air = _F2ex(air);
-                auto cv_lst = mma_collect_lst(air, F(w1,w2));
-                air = 0;
-                for(auto cv : cv_lst) air += cv.op(1) * (cv.op(0));
+                air = mma_collect(air, F(w1,w2));
                 return air;
             }, "A2F");
             
@@ -919,18 +918,17 @@ namespace HepLib {
         
         vector<Base*> base_re;
         for(auto f : ibp_vec_re) base_re.push_back(f);
-        auto mi_rules = FindRules(base_re, true, aip.UF);
+        auto mi_rules = FindRules(base_re, true, aio.UF);
                         
         auto rules_vec =
         GiNaC_Parallel(ibp_vec_re.size(), 10, [&ibp_vec_re,&mi_rules](int idx)->ex {
             lst rules;
             for(auto item : ibp_vec_re[idx]->Rules) {
+                auto rl = item.op(0);
                 auto rr = item.op(1);
                 rr = subs_naive(rr,mi_rules.first);
-                auto cv_lst = mma_collect_lst(rr, F(w1,w2));
-                rr = 0;
-                for(auto cv : cv_lst) rr += cv.op(1) * (cv.op(0));
-                rules.append(item.op(0)==rr);
+                rr = mma_collect(rr, F(w1,w2));
+                rules.append(lst{rl,rr});
             }
             return rules;
         }, "F2F");
@@ -941,21 +939,18 @@ namespace HepLib {
         }
         
         auto air_res =
-        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&mi_rules,&IR2F,&F2F,&_F2ex,&rules_ints](int idx)->ex {
+        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&mi_rules,&AIR2F,&F2F,&_F2ex,&int_rules](int idx)->ex {
             auto air = air_vec[idx];
-            air = subs_naive(air,IR2F);
-            air = subs_naive(air,rules_ints.first);
-            air = subs_naive(air,mi_rules.first);
+            air = subs_naive(air,AIR2F);
+            air = subs_naive(air,int_rules.first);
+            //air = subs_naive(air,mi_rules.first);
             air = subs_naive(air,F2F);
             air = _F2ex(air);
-            auto cv_lst = mma_collect_lst(air, F(w1,w2));
-            air = 0;
-            for(auto cv : cv_lst) air += cv.op(1) * (cv.op(0));
+            air = mma_collect(air, F(w1,w2));
             return air;
         }, "A2F");
             
         for(auto fp : ibp_vec) delete fp;
-
         for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];
     }
     
@@ -972,20 +967,21 @@ namespace HepLib {
     void ApartIBP(int IBPmethod, exvector &air_vec, const lst & loops, const lst & exts, const lst & cut_props,
         std::function<lst(const Base &, const ex &)> uf) {
                 
-        AIOption aip;
-        aip.Internal = loops;
-        aip.External = exts;
-        aip.Cuts = cut_props;
+        AIOption aio;
+        aio.Internal = loops;
+        aio.External = exts;
+        aio.Cuts = cut_props;
         if(cut_props.nops()>0) {
             for(auto p1 : loops) {
-                for(auto p2 : loops) aip.CSP.append(SP(p1,p2));
-                for(auto p2 : exts) aip.CSP.append(SP(p1,p2));
+                for(auto p2 : loops) aio.CSP.append(SP(p1,p2));
+                for(auto p2 : exts) aio.CSP.append(SP(p1,p2));
             }
-            aip.CSP.sort();
-            aip.CSP.unique();
+            aio.CSP.sort();
+            aio.CSP.unique();
         }
-        aip.UF = uf;
-        ApartIBP(IBPmethod, air_vec, aip);
+        for(auto li : loops) aio.smap[SP(li)] = 1;
+        aio.UF = uf;
+        ApartIBP(IBPmethod, air_vec, aio);
     }
 
 }

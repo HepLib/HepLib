@@ -114,11 +114,7 @@ namespace HepLib::IBP {
                 ibp_eqns.append(eq == iWF(i));
             }
             auto s2p = lsolve(ibp_eqns, ss);
-            if(s2p.nops() != pdim) {
-                cout << ibp_eqns << endl;
-                cout << s2p << endl;
-                throw Error("KIRA::Export: lsolve failed.");
-            }
+            if(s2p.nops() != pdim) throw Error("Laporta::Export: lsolve failed.");
 
             ibps.remove_all();
             for(auto l : Internal) {
