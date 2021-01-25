@@ -515,6 +515,7 @@ namespace HepLib {
                 }
                 if(!has_sgn) {
                     for(auto v : vars) {
+                        if(key_exists(sgnmap,v)) continue;
                         auto cc = pc.coeff(v);
                         if(is_zero(cc) || !is_a<numeric>(cc)) continue;
                         ex sign = 1/cc;
@@ -891,9 +892,9 @@ namespace HepLib {
             });
         
             auto air_res =
-            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_A2F](int idx)->ex {
+            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_A2F,&aio](int idx)->ex {
                 auto air =  _A2F(air_vec[idx]);
-                air = mma_collect(air,F(w1,w2));
+                air = mma_collect(air,F(w1,w2),false,false,aio.mcl);
                 return air;
             }, "A2F");
             
@@ -949,9 +950,9 @@ namespace HepLib {
         });
     
         auto air_res =
-        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_A2F](int idx)->ex {
+        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_A2F,&aio](int idx)->ex {
             auto air =  _A2F(air_vec[idx]);
-            air = mma_collect(air,F(w1,w2));
+            air = mma_collect(air,F(w1,w2),false,false,aio.mcl);
             return air;
         }, "A2F");
                                     

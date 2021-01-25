@@ -351,6 +351,7 @@ namespace HepLib {
         lst CSP; // SP in Cuts, to be cleared. optional
         lst ISP; // SP for IBP. optional
         bool CutFirst = true;
+        int mcl = 1; // mma_collect level, 0-nothing, 1-exnormal, 2-exfactor
         std::function<lst(const Base &, const ex &)> UF = IBP::LoopUF;
     };
     void ApartIBP(int IBPmethod, exvector &io_vec, AIOption aip);
