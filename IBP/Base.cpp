@@ -109,10 +109,10 @@ namespace HepLib::IBP {
                 for(int j=0; j<nvi; j++) {
                     if(vi[j]!=vi2[j]) x2x[xs.op(vi[j])]=xs.op(vi2[j]);
                 }
-                ex expr2 = subs_naive(expr,x2x);
+                ex expr2 = expr.subs(x2x);
                 if(ex_less(expr2,expr1)) {
                     expr1 = expr2;
-                    xRepl1 = ex_to<lst>(subs_naive(xRepl,x2x));
+                    xRepl1 = ex_to<lst>(xRepl.subs(x2x));
                 }
             }
             
@@ -215,8 +215,8 @@ namespace HepLib::IBP {
         
         auto xRepl = SortPermutation(uf,xs);
         for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
-        ut = (subs_naive(ut,xRepl)); 
-        ft = (subs_naive(ft,xRepl));
+        ut = (ut.subs(xRepl));
+        ft = (ft.subs(xRepl));
         return lst{ut, ft, sign};
     }  
     
@@ -377,7 +377,6 @@ namespace HepLib::IBP {
     pair<exmap,lst> FindRules(vector<Base*> fs, bool mi, std::function<lst(const Base &, const ex &)> uf) {
         vector<pair<Base*,ex>> ibp_idx_vec;
         for(auto fi : fs) {
-            lst mis;
             if(mi) {
                 for(auto item : fi->MIntegrals) ibp_idx_vec.push_back(make_pair(fi, item));
             } else {
@@ -385,7 +384,7 @@ namespace HepLib::IBP {
             }
         }
         
-        exvector uf_mi_vec = GiNaC_Parallel(ibp_idx_vec.size(), [&ibp_idx_vec,&uf](int idx)->ex {
+        exvector uf_smi_vec = GiNaC_Parallel(ibp_idx_vec.size(), [&ibp_idx_vec,&uf](int idx)->ex {
             auto p = ibp_idx_vec[idx];
             const Base & fi = (*p.first);
             auto mi = p.second;
@@ -393,12 +392,12 @@ namespace HepLib::IBP {
             int nk = ks.nops()-1;
             lst key;
             for(int i=0; i<nk; i++) key.append(ks.op(i).expand());
-            return lst{ key, lst{ ks.op(nk), mi } }; // ks.op(nk) - the sign
+            return lst{ key, lst{ ks.op(nk), mi } }; // ks.op(nk) -> the sign
         }, "FR");
             
         map<ex,lst,ex_is_less> group;
         int ntotal = 0;
-        for(auto item : uf_mi_vec) {
+        for(auto item : uf_smi_vec) {
             ex key = item.op(0);
             group[key].append(item.op(1));
             ntotal++;
@@ -409,9 +408,14 @@ namespace HepLib::IBP {
         for(auto g : group) {
             lst gs = ex_to<lst>(g.second);
             sort_lst(gs);
-            auto kmi = gs.op(0).op(1) / gs.op(0).op(0);
-            for(int i=1; i<gs.nops(); i++) rules[gs.op(i).op(1)] = gs.op(i).op(0) * kmi;
-            int_lst.append(gs.op(0).op(1));
+            auto c0 = gs.op(0).op(0);
+            auto v0 = gs.op(0).op(1);
+            for(int i=1; i<gs.nops(); i++) {
+                auto ci = gs.op(i).op(0);
+                auto vi = gs.op(i).op(1);
+                rules[vi] = v0 * c0 / ci;
+            }
+            int_lst.append(v0);
         }
         
         if(Verbose>2) cout << "  \\--FindRules: " << ntotal << " :> " << int_lst.nops() << " @ " << now(false) << endl;

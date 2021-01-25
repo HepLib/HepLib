@@ -336,7 +336,7 @@ namespace HepLib::IBP {
             for(auto it : item.op(1)) {
                 right += it.op(0).subs(id2F) * it.op(1);
             }
-            if(is_zero(left-right)) MIntegrals.append(left);
+            if(left.is_equal(right)) MIntegrals.append(left);
             else Rules.append(left==right);
         }
         MIntegrals.sort();
@@ -454,13 +454,35 @@ namespace HepLib::IBP {
             
             exmap c2m;
             for(int i=0; i<ois.nops(); i++) c2m[ois.op(i)] = vis.op(i);
+            for(auto item : mis) MIntegrals.append(item);
             MIntegrals.sort();
             MIntegrals.unique();
             
-            for(auto item : mis) MIntegrals.append(item);
             auto rules = Rules;
             Rules.remove_all();
-            for(auto r : rules) Rules.append(r.op(0)==subs_naive(r.op(1),c2m));
+            lst rIntegrals;
+            for(auto r : rules) {
+                auto ri = r.op(0);
+                bool isMI = false;
+                for(auto item : MIntegrals) {
+                    if(item.is_equal(ri)) {
+                        isMI = true;
+                        rIntegrals.append(ri);
+                        break;
+                    }
+                }
+                if(isMI) continue;
+                auto rv = r.op(1);
+                rIntegrals.append(rv);
+                Rules.append(ri==rv.subs(c2m));
+            }
+            
+            rIntegrals.sort();
+            rIntegrals.unique();
+            exset fs;
+            find(rIntegrals,F(w1,w2),fs);
+            MIntegrals.remove_all();
+            for(auto fi : fs) MIntegrals.append(fi);
         }
     }
     

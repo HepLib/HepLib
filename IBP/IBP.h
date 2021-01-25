@@ -33,7 +33,7 @@ namespace HepLib::IBP {
         lst DSP; // { {q1,q1}, {q1,p}, ... } Diff SP
         lst ISP; // { q1*q1, q1*p } Independent SP
         map<int,ex> Shift;
-        bool reCut = true;
+        bool reCut = false;
         string WorkingDir;
         int ProblemNumber = 0;
         lst PIntegrals;

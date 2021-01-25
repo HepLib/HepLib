@@ -224,14 +224,7 @@ namespace HepLib {
         struct stat buffer;
         return (stat(dir.c_str(), &buffer)==0);
     }
-    
-    inline ex subs_naive(const ex & expr, const ex & repls) {
-        return subs(expr, repls, subs_options::no_pattern);
-    };
-    inline ex subs_naive(const ex & expr, const exmap & repls) {
-        return subs(expr, repls, subs_options::no_pattern);
-    };
-    
+        
     inline ex subs_all(const ex & expr, const ex & repls) {
         return subs(expr, repls, subs_options::algebraic);
     };

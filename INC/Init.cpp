@@ -41,7 +41,7 @@ namespace HepLib {
     int Verbose = 0;
     int GiNaC_Parallel_Process = -1;
     const Symbol D("D");
-    bool fermat_using_array = true;
+    bool fermat_using_array = false;
     int NNDigits = 100;
     
     HepFormat::_init::_init() {

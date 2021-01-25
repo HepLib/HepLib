@@ -1949,16 +1949,26 @@ namespace HepLib {
         exmap map_rat;
         expr_in = expr_in.to_rational(map_rat);
         
-        lst rep_vs, rep_vs2;
+        lst rep_vs;
+        map<ex,long long,ex_is_less> s2c;
         for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
-            if(is_a<symbol>(*i)) rep_vs2.append(*i);
+            if(is_a<symbol>(*i)) {
+                rep_vs.append(*i);
+                s2c[*i]++;
+            }
         }
-        rep_vs2.sort();
-        rep_vs2.unique();
-        auto rep_vs2_tot = rep_vs2.nops();
-        for(int i=0; i<rep_vs2_tot; i++) rep_vs2.let_op(i) = lst{rep_vs2.op(i).subs(map_rat),rep_vs2.op(i)};
-        sort_lst_by(rep_vs2,0);
-        for(auto item : rep_vs2) rep_vs.append(item.op(1));
+        rep_vs.sort();
+        rep_vs.unique();
+        
+        exvector vs_vec_sort;
+        auto rep_vs_tot = rep_vs.nops();
+        for(int i=0; i<rep_vs_tot; i++) {
+            auto ss = rep_vs.op(i);
+            vs_vec_sort.push_back(lst{ s2c[ss], ss.subs(map_rat), ss });
+        }
+        sort_vec(vs_vec_sort);
+        rep_vs.remove_all();
+        for(auto item : vs_vec_sort) rep_vs.append(item.op(2));
                 
         exmap v2f, f2v;
         exmap nn_map;

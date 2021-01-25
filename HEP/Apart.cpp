@@ -616,9 +616,7 @@ namespace HepLib {
             res += item.op(0) * Apart(lst{item.op(1)}, sps, sgnmap);
         }
         
-        cv_lst = mma_collect_lst(res, ApartIR(w1,w2));
-        res = 0;
-        for(auto cv : cv_lst) res += cv.op(0) * cv.op(1);
+        res = mma_collect(res, ApartIR(w1,w2));
 
         // random check
         lst nlst;
@@ -744,6 +742,7 @@ namespace HepLib {
             auto air = air_vec[i];
             air = air.subs(SP_map);
             air = ApartIRC(air);
+            air = mma_collect(air,ApartIR(w1, w2));
             find(air, ApartIR(w1, w2), intg_set);
             air_vec[i] = air;
         }
@@ -826,7 +825,8 @@ namespace HepLib {
                     }
                 }
                 ibp->WorkingDir = wdir;
-                ibp->ProblemNumber = pn++;
+                ibp->ProblemNumber = pn;
+                pn++;
                 if(nCuts>0) {
                     if(aio.CutFirst) for(int i=0; i<nCuts; i++) ibp->Cuts.append(i+1);
                     else for(int i=0; i<nCuts; i++) ibp->Cuts.append(nCuts-i);
@@ -842,10 +842,10 @@ namespace HepLib {
         
         vector<Base*> base_vec;
         for(auto ibp : ibp_vec) base_vec.push_back(ibp);
-        auto int_rules = FindRules(base_vec, false, aio.UF);
+        auto int_fr = FindRules(base_vec, false, aio.UF);
 
         map<int,lst> pn_ints_map;
-        for(auto item : int_rules.second) {
+        for(auto item : int_fr.second) {
             int pn = ex_to<numeric>(item.op(0)).to_int();
             pn_ints_map[pn].append(item.op(1));
         }
@@ -864,8 +864,8 @@ namespace HepLib {
         MapFunction _F2ex([ibp_vec](const ex &e, MapFunction &self)->ex {
             if(!e.has(F(w1,w2))) return e;
             else if(e.match(F(w1,w2))) {
-                int idx = ex_to<numeric>(e.op(0)).to_int();
-                auto pso = ex_to<lst>(ibp_vec[idx-1]->Propagators);
+                int pn = ex_to<numeric>(e.op(0)).to_int();
+                auto pso = ex_to<lst>(ibp_vec[pn-1]->Propagators);
                 auto nso = ex_to<lst>(e.op(1));
                 lst ps, ns;
                 for(int i=0; i<pso.nops(); i++) {
@@ -878,13 +878,22 @@ namespace HepLib {
         });
         
         if(IBPmethod==0) {
+            MapFunction _A2F([&AIR2F,&int_fr,&_F2ex,&_A2F](const ex & e, MapFunction &self)->ex{
+                if(!e.has(ApartIR(w1,w2))) return e;
+                else if(e.match(ApartIR(w1,w2))) {
+                    auto air = e;
+                    air = air.subs(AIR2F);
+                    air = air.subs(int_fr.first);
+                    air = _F2ex(air);
+                    air = mma_collect(air, F(w1,w2));
+                    return air;
+                } else return e.map(self);
+            });
+        
             auto air_res =
-            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&AIR2F,&int_rules,&_F2ex](int idx)->ex {
-                auto air = air_vec[idx];
-                air = subs_naive(air,AIR2F);
-                air = subs_naive(air,int_rules.first);
-                air = _F2ex(air);
-                air = mma_collect(air, F(w1,w2));
+            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_A2F](int idx)->ex {
+                auto air =  _A2F(air_vec[idx]);
+                air = mma_collect(air,F(w1,w2));
                 return air;
             }, "A2F");
             
@@ -918,38 +927,34 @@ namespace HepLib {
         
         vector<Base*> base_re;
         for(auto f : ibp_vec_re) base_re.push_back(f);
-        auto mi_rules = FindRules(base_re, true, aio.UF);
-                        
-        auto rules_vec =
-        GiNaC_Parallel(ibp_vec_re.size(), 10, [&ibp_vec_re,&mi_rules](int idx)->ex {
-            lst rules;
-            for(auto item : ibp_vec_re[idx]->Rules) {
-                auto rl = item.op(0);
-                auto rr = item.op(1);
-                rr = subs_naive(rr,mi_rules.first);
-                rr = mma_collect(rr, F(w1,w2));
-                rules.append(lst{rl,rr});
-            }
-            return rules;
-        }, "F2F");
-                
-        exmap F2F;
-        for(auto rule : rules_vec) {
-            for(auto lr : rule) F2F[lr.op(0)] = lr.op(1);
+        auto mi_fr = FindRules(base_re, true, aio.UF);
+        
+        exmap ibpr;
+        for(auto item : ibp_vec_re) {
+            for(auto ri : item->Rules) ibpr[ri.op(0)] = ri.op(1);
         }
         
+        MapFunction _A2F([&AIR2F,&int_fr,&ibpr,&mi_fr,&_F2ex,&_A2F](const ex & e, MapFunction &self)->ex{
+            if(!e.has(ApartIR(w1,w2))) return e;
+            else if(e.match(ApartIR(w1,w2))) {
+                auto air = e;
+                air = air.subs(AIR2F);
+                air = air.subs(int_fr.first);
+                air = air.subs(ibpr);
+                air = air.subs(mi_fr.first);
+                air = _F2ex(air);
+                air = mma_collect(air, F(w1,w2));
+                return air;
+            } else return e.map(self);
+        });
+    
         auto air_res =
-        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&mi_rules,&AIR2F,&F2F,&_F2ex,&int_rules](int idx)->ex {
-            auto air = air_vec[idx];
-            air = subs_naive(air,AIR2F);
-            air = subs_naive(air,int_rules.first);
-            //air = subs_naive(air,mi_rules.first);
-            air = subs_naive(air,F2F);
-            air = _F2ex(air);
-            air = mma_collect(air, F(w1,w2));
+        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_A2F](int idx)->ex {
+            auto air =  _A2F(air_vec[idx]);
+            air = mma_collect(air,F(w1,w2));
             return air;
         }, "A2F");
-            
+                                    
         for(auto fp : ibp_vec) delete fp;
         for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];
     }
