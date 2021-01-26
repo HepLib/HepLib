@@ -554,7 +554,7 @@ namespace HepLib {
                 pnlst.append(lst{k, v});
             }
         }
-        //sort_lst(pnlst); // check this
+        sort_lst(pnlst); // sort needed
         
         if(pnlst.nops()==0) return pref * ApartIR(1,vars_in);
         
