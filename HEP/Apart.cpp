@@ -311,7 +311,7 @@ namespace HepLib {
                     res += Apart(mat2) * item.subs(iWF(w)==1);
                 }
             }
-            return res;
+            return mma_collect(res,ApartIR(w));
         }
         
         // handle all denominators
@@ -350,7 +350,7 @@ namespace HepLib {
                 }
             }
             res = res/cres;
-            return res;
+            return mma_collect(res,ApartIR(w));
         } else {
             int ni=-1;
             for(int c=0; c<ncol; c++) {
@@ -382,7 +382,7 @@ namespace HepLib {
                 }
             }
             res = res/nvec.op(ni);
-            return res;
+            return mma_collect(res,ApartIR(w));
         }
     }
 
@@ -399,10 +399,7 @@ namespace HepLib {
             auto cv_lst = mma_collect_lst(expr_ino, vars_in);
             ex res = 0;
             for(auto item : cv_lst) res += item.op(0) * Apart(lst{item.op(1)}, vars_in, sgnmap);
-            
-            cv_lst = mma_collect_lst(res, ApartIR(w1,w2));
-            res = 0;
-            for(auto cv : cv_lst) res += cv.op(0) * cv.op(1);
+            res = mma_collect(res, ApartIR(w1,w2));
 
             // random check
             lst nlst;
@@ -557,7 +554,7 @@ namespace HepLib {
                 pnlst.append(lst{k, v});
             }
         }
-        sort_lst(pnlst);
+        //sort_lst(pnlst); // check this
         
         if(pnlst.nops()==0) return pref * ApartIR(1,vars_in);
         
