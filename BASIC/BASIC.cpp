@@ -598,6 +598,39 @@ namespace HepLib {
     }
     
     /**
+     * @brief convert exvec to output string, the defalut printer format will be used
+     * @param expr a exvec expression
+     * @return the output string
+     */
+    string ex2str(const exvector &expr) {
+        ostringstream oss;
+        oss << expr;
+        return oss.str();
+    }
+    
+    /**
+     * @brief convert exmap to output string, the defalut printer format will be used
+     * @param expr a exvec expression
+     * @return the output string
+     */
+    string ex2str(const exmap &expr) {
+        ostringstream oss;
+        oss << expr;
+        return oss.str();
+    }
+    
+    /**
+     * @brief convert exset to output string, the defalut printer format will be used
+     * @param expr a exvec expression
+     * @return the output string
+     */
+    string ex2str(const exset &expr) {
+        ostringstream oss;
+        oss << expr;
+        return oss.str();
+    }
+    
+    /**
      * @brief read file content to string
      * @param filename file name
      * @return the file content in string

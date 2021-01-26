@@ -476,7 +476,7 @@ namespace HepLib::SD {
                 if(is_a<numeric>(v)) {
                     auto nv = ex_to<numeric>(v);
                     if(nv<=-1) {
-                        throw Error("DS: " + ex2str(k) + "^(" + ex2str(nv) + ") found, more regularization needed!");
+                        throw Error("DS: " + ex2str(kv.first) + "^(" + ex2str(nv) + ") found, " + ex2str(vi));
                     }
                 }
                 x_n_lst.append(lst{k, v});

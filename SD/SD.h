@@ -339,6 +339,7 @@ namespace HepLib::SD {
         static void Scalelize(ex &fe, const lst xs, const ex cy);
         static void Scalelize(ex &fe, const ex xi, const ex cy);
         static vector<ex> Binarize(ex const fe, ex const eqn);
+        static void Binarize(ex const fe, ex const eqn, vector<ex> & ovec);
         static bool isLinearizable(const ex ft, const ex delta, lst & xcs);
         static void Linearize(const lst xcs, ex & fe, ex & ft);
         static bool isPartilizable(const ex ft, const ex delta, lst &xcs, int mode=0);
@@ -347,6 +348,11 @@ namespace HepLib::SD {
         static exvector Evaluate(const ex & fe);
         static exvector WickRotation(const exvector & fe_vec);
         static exvector Apply(const vector<ex> & fe_vec, const ex & ft=0);
+        inline static exvector Apply(const ex & fe, const ex & ft=0) {
+            exvector fe_vec;
+            fe_vec.push_back(fe);
+            return Apply(fe_vec, ft);
+        }
     };
 
     /**

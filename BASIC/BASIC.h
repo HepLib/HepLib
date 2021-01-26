@@ -274,6 +274,9 @@ namespace HepLib {
     void ex2file(const ex &, string filename);
     void ex2file(string filename, const ex &);
     string ex2str(const ex &expr);
+    string ex2str(const exvector &expr);
+    string ex2str(const exmap &expr);
+    string ex2str(const exset &expr);
     inline string in2str(int i) { return to_string(i); }
     ex q2ex(__float128);
     __float128 ex2q(ex);

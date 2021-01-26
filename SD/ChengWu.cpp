@@ -12,12 +12,41 @@ namespace HepLib::SD {
      * @brief ChengWu for SecDec class
      */
     void SecDec::ChengWu(const ex & ft) {
-        FunExp = ChengWu::Apply(FunExp, ft);
         
-        //remove the first item in op.(0) and op(1)
-        for(auto &fe : FunExp) {
-            let_op_remove_first(fe, 0);
-            let_op_remove_first(fe, 1);
+        if(is_a<lst>(ft) && ft.nops()>1) {
+            for(auto item : ft) {
+                for(auto &fe : FunExp) {
+                    let_op_prepend(fe, 0, item);
+                    let_op_prepend(fe, 1, 0);
+                }
+            }
+            
+            int nt = ft.nops();
+            for(int i=0; i<nt; i++) {
+                auto FunExp2 = FunExp;
+                FunExp.clear();
+                FunExp.shrink_to_fit();
+                for(auto fe : FunExp2) {
+                    auto ft2 = fe.op(0).op(0);
+                    if(!fe.op(1).op(0).is_equal(0)) throw Error("SecDec::ChengWu exponent is NOT 0.");
+                    let_op_remove_first(fe, 0);
+                    let_op_remove_first(fe, 1);
+                    auto fes = ChengWu::Apply(fe, ft2);
+                    for(auto fe2 : fes) {
+                        let_op_remove_first(fe2, 0);
+                        let_op_remove_first(fe2, 1);
+                        FunExp.push_back(fe2);
+                    }
+                }
+            }
+        } else {
+            if(is_a<lst>(ft)) FunExp = ChengWu::Apply(FunExp, ft.op(0));
+            else FunExp = ChengWu::Apply(FunExp, ft);
+            //remove the first item in op(0) and op(1)
+            for(auto &fe : FunExp) {
+                let_op_remove_first(fe, 0);
+                let_op_remove_first(fe, 1);
+            }
         }
     }
     
@@ -33,7 +62,10 @@ namespace HepLib::SD {
         vector<ex> ret_fe_vec;
         for(auto fe : fe_vec) {
             ex cft = ft;
-            if(is_zero(cft)) cft = fe.op(0).op(1);
+            if(is_zero(cft)) {
+                if(fe.op(0).nops()>1) cft = fe.op(0).op(1);
+                else cft = 1;
+            }
             if(fe.nops()<3 || xSign(cft)!=0 || cft.has(WRA(w))) {
                 let_op_prepend(fe, 0, 1);
                 let_op_prepend(fe, 1, 0);
@@ -138,8 +170,7 @@ namespace HepLib::SD {
         lst x2y, y2x;
         for(auto xi : xs) {
             if(cy.has(xi)) {
-                cerr << ErrColor << "Scalelize: cy has xi: " << cy << "/" << xi << RESET << endl;
-                exit(1);
+                throw Error("Scalelize: cy has xi: " + ex2str(cy) + "/" + ex2str(xi));
             }
             auto yi = xi.subs(x(w)==y(w));
             x2y.append(xi==cy*yi);
@@ -185,20 +216,29 @@ namespace HepLib::SD {
      * @param eqn linear equation, line a xi + b xj, e.g. xi-xj can be devide into xi>xj and xi < xj, and then change xi/xj back to 0 to infinity
      * @return 2 elements of { function list, exponet list }, just like fe
      */
-    vector<ex> ChengWu::Binarize(ex const fe, ex const eqn) {
-        vector<ex> add_to;
+    exvector ChengWu::Binarize(ex const fe, ex const eqn) {
+        exvector ovec;
+        Binarize(fe, eqn, ovec);
+        return ovec;
+    }
+    
+    /**
+     * @brief Binarize the input fe, w.r.t. the linear eqn
+     * @param fe the { function list, exponet list }
+     * @param eqn linear equation, line a xi + b xj, e.g. xi-xj can be devide into xi>xj and xi < xj, and then change xi/xj back to 0 to infinity
+     * @param ovec will get updated
+     */
+    void ChengWu::Binarize(ex const fe, ex const eqn, exvector & ovec) {
         auto xij = get_x_from(eqn);
         if(xij.size()!=2) {
-            cerr << ErrColor << "Binarize: xij.size()!=2, " << xij << RESET << endl;
-            exit(1);
+            throw Error("Binarize: xij.size()!=2, " + ex2str(xij));
         }
         ex xi = xij[0];
         ex xj = xij[1];
         ex ci = eqn.coeff(xi);
         ex cj = eqn.coeff(xj);
         if(!((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0)) {
-            cerr << ErrColor << "Binarize: ((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0)" << RESET << endl;
-            exit(1);
+            throw Error("Binarize: ((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0)");
         }
         
         bool pos1 = (ci>0);
@@ -242,13 +282,12 @@ namespace HepLib::SD {
         
         // return vector 
         if(pos1) {
-            add_to.push_back(fe1);
-            add_to.push_back(fe2);
+            ovec.push_back(fe1);
+            ovec.push_back(fe2);
         } else {
-            add_to.push_back(fe2);
-            add_to.push_back(fe1);
+            ovec.push_back(fe2);
+            ovec.push_back(fe1);
         }
-        return add_to;
     }
     
     /**
@@ -595,6 +634,7 @@ namespace HepLib::SD {
         ex eqn = px-nx;
         auto bilst = Binarize(fe, eqn);
         for(auto item : bilst) {
+            if(!isProjective(item,delta)) throw Error("Partilize: something is wrong here.");
             let_op(item, 0, 0, 1);
             ret_lst.push_back(item);
         }
@@ -635,13 +675,13 @@ namespace HepLib::SD {
                     
                     lst ret;
                     if(mode==0 && isPartilizable(ft, delta, ret, mode)) {
-                        Partilize(ret, delta, fe, fe_lst);
+                        Partilize(ret, delta, fe, ret_lst);
                         goto ok_label;
                     }
                     
                     ret.remove_all();
                     if(mode==1 && isPartilizable(ft, delta, ret, mode)) {
-                        Partilize(ret, delta, fe, fe_lst);
+                        Partilize(ret, delta, fe, ret_lst);
                         goto ok_label;
                     }
                     
