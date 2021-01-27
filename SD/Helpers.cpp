@@ -94,9 +94,9 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     ex VESimplify(ex expr, int epN, int epsN) {
         auto expr1 = EvalF(expr);
-        if(expr1.has(eps) && !expr1.is_polynomial(eps)) expr1 = mma_series(expr1, eps, epsN);
-        if(expr1.has(ep) && !expr1.is_polynomial(ep)) expr1 = mma_series(expr1, ep, epN);
-        expr1 = mma_collect(expr1, lst{eps,ep});
+        if(expr1.has(eps) && !expr1.is_polynomial(eps)) expr1 = series_ex(expr1, eps, epsN);
+        if(expr1.has(ep) && !expr1.is_polynomial(ep)) expr1 = series_ex(expr1, ep, epN);
+        expr1 = collect_ex(expr1, lst{eps,ep});
         ex ret = 0;
         for(int si=expr1.ldegree(eps); si<=epsN; si++) {
         for(int i=expr1.ldegree(ep); i<=epN; i++) {
@@ -128,7 +128,7 @@ namespace HepLib::SD {
         
             for(auto kv : pvmap) {
                 auto vf = kv.first;
-                auto cvs = mma_collect_lst(kv.second, VE(w1,w2));
+                auto cvs = collect_lst(kv.second, VE(w1,w2));
                 ex vIR=0, eI2 = 0, eR2 = 0;
                 for(auto cv : cvs) {
                     auto co = NN(cv.op(0));
@@ -229,11 +229,11 @@ namespace HepLib::SD {
     int epRank(ex expr_in) {
         if(!expr_in.has(ep)) return 0;
         int p = -5;
-        auto expr = mma_collect(expr_in, ep);
+        auto expr = collect_ex(expr_in, ep);
         while(true) {
             auto tmp = series_to_poly(expr.series(ep, p));
             if(!tmp.is_zero()) {
-                tmp = mma_collect(tmp, ep);
+                tmp = collect_ex(tmp, ep);
                 return tmp.ldegree(ep);
             } else p++;
         }
@@ -243,11 +243,11 @@ namespace HepLib::SD {
     int epsRank(ex expr_in) {
         if(!expr_in.has(eps)) return 0;
         int p = -5;
-        auto expr = mma_collect(expr_in, eps);
+        auto expr = collect_ex(expr_in, eps);
         while(true) {
             auto tmp = series_to_poly(expr.series(eps, p));
             if(!tmp.is_zero()) {
-                tmp = mma_collect(tmp, eps);
+                tmp = collect_ex(tmp, eps);
                 return tmp.ldegree(eps);
             } else p++;
         }
@@ -257,11 +257,11 @@ namespace HepLib::SD {
     int vsRank(ex expr_in) {
         if(!expr_in.has(vs)) return 0;
         int p = -5;
-        auto expr = mma_collect(expr_in, vs);
+        auto expr = collect_ex(expr_in, vs);
         while(true) {
             auto tmp = series_to_poly(expr.series(vs, p));
             if(!tmp.is_zero()) {
-                tmp = mma_collect(tmp, vs);
+                tmp = collect_ex(tmp, vs);
                 return tmp.ldegree(vs);
             } else p++;
         }

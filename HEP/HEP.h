@@ -36,6 +36,7 @@ namespace HepLib {
     extern const int form_expand_li;
     extern const int form_expand_all;
     
+    extern bool Apart_using_cache;
     extern bool Apart_using_fermat;
     extern bool form_using_su3;
     extern bool form_using_dim4;
@@ -351,7 +352,7 @@ namespace HepLib {
         lst CSP; // SP in Cuts, to be cleared. optional
         lst ISP; // SP for IBP. optional
         bool CutFirst = true;
-        int mcl = 1; // mma_collect level, 0-nothing, 1-exnormal, 2-exfactor
+        int mcl = 1; // collect_ex level, 0-nothing, 1-exnormal, 2-exfactor
         std::function<lst(const Base &, const ex &)> UF = IBP::LoopUF;
     };
     void ApartIBP(int IBPmethod, exvector &io_vec, AIOption aip);

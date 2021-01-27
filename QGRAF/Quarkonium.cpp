@@ -246,7 +246,7 @@ namespace HepLib::QGRAF {
             
             // Un-Contract
             auto expr = expr_in.subs(SP_map);
-            expr = mma_collect(expr, q);
+            expr = collect_ex(expr, q);
             int lproj=-1;
 
             expr = MapFunction([&lproj,prefix,q](const ex &e, MapFunction &self)->ex {
@@ -276,7 +276,7 @@ namespace HepLib::QGRAF {
                     return DGamma(idx, g.rl) * SP(g.pi, idx);
                 } else if (e.match(TR(w))) {
                     auto ret = self(e.op(0));
-                    ret = mma_collect(ret, q, true);
+                    ret = collect_ex(ret, q, true);
                     ret = ret.subs(coCF(w)==TR(w));
                     return ret;
                 } else if(is_a<add>(e)) {
@@ -307,7 +307,7 @@ namespace HepLib::QGRAF {
             })(expr);
             
             expr = expr.subs(SP_map);
-            auto cv_lst = mma_collect_lst(expr, q);
+            auto cv_lst = collect_lst(expr, q);
 
             expr = 0;
             for(auto cv : cv_lst) {

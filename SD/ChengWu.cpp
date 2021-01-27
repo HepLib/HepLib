@@ -100,7 +100,7 @@ namespace HepLib::SD {
         for(int i=0; i<nnn; i++) {
             auto func = fe.op(0).op(i);
             if(!func.has(x(w))) continue;
-            func = mma_expand(func.subs(sRepl),s);
+            func = expand_mma(func.subs(sRepl),s);
             auto sn = func.degree(s);
             if(sn!=func.ldegree(s)) return false;
             over_all_sn += sn*fe.op(1).op(i);
@@ -129,7 +129,7 @@ namespace HepLib::SD {
         for(int i=0; i<nnn; i++) {
             auto func = fe.op(0).op(i);
             if(!func.has(x(w))) continue;
-            func = mma_expand(func.subs(sRepl),s);
+            func = expand_mma(func.subs(sRepl),s);
             auto sn = func.degree(s);
             over_all_sn += sn*fe.op(1).op(i);
             if(!is_a<add>(func)) func = lst{func};
@@ -750,7 +750,7 @@ namespace HepLib::SD {
             
             // Case: x(cx!=0) + (c0!=0)
             for(auto xi : xs) {
-                auto ftx = mma_collect(ft,xi);
+                auto ftx = collect_ex(ft,xi);
                 auto c0 = ftx.subs(xi==0);
                 
                 auto cx = ftx-c0;
@@ -790,7 +790,7 @@ namespace HepLib::SD {
             
             // Case: a*x^2+b*x+c with a*c<0 or b*c>0
             for(auto xi : xs) {
-                auto ftx = mma_collect(ft,xi);
+                auto ftx = collect_ex(ft,xi);
                 if(ftx.degree(xi)!=2) continue;
                 
                 auto c0 = ftx.coeff(xi,0);

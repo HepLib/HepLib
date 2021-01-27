@@ -106,7 +106,7 @@ expr expr::factor() {
 
 expr expr::series(const expr &s, int o) {
     if(!GiNaC::is_a<HepLib::Symbol>(s._expr)) throw HepLib::Error("1st argument should be a Symbol.");
-    return expr(HepLib::mma_series(_expr, GiNaC::ex_to<HepLib::Symbol>(s._expr), o));
+    return expr(HepLib::series_ex(_expr, GiNaC::ex_to<HepLib::Symbol>(s._expr), o));
 }
 
 expr expand(const expr &e) {
@@ -132,7 +132,7 @@ expr subs(const expr &e1, const expr &e2) {
 
 expr series(const expr &e, const expr &s, int o) {
     if(!GiNaC::is_a<HepLib::Symbol>(s._expr)) throw HepLib::Error("1st argument should be a Symbol.");
-    return expr(HepLib::mma_series(e._expr, GiNaC::ex_to<HepLib::Symbol>(s._expr), o));
+    return expr(HepLib::series_ex(e._expr, GiNaC::ex_to<HepLib::Symbol>(s._expr), o));
 }
 
 expr pow(const expr &e1, const expr &e2) {

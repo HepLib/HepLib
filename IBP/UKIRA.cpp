@@ -365,7 +365,7 @@ namespace HepLib::IBP {
         ostringstream oss;
         for(auto eqn : eqns) {
             if(is_zero(eqn)) continue;
-            auto cvs = mma_collect_lst(eqn,F(w));
+            auto cvs = collect_lst(eqn,F(w));
             for(auto cv : cvs) {
                 oss << Fout(cv.op(1)) << " * (" << cv.op(0) << ")" << endl;
             }

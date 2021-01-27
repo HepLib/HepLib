@@ -387,7 +387,7 @@ namespace HepLib::IBP {
         exvector eqns_cvs;
         for(auto eqn : eqns) {
             if(is_zero(eqn)) continue;
-            auto cvs = mma_collect_lst(eqn,F(w));
+            auto cvs = collect_lst(eqn,F(w));
             lst cv_lst;
             for(auto cv : cvs) {
                 cv_lst.append(lst{ (i2w[cv.op(1).op(0)]), cv.op(0) });

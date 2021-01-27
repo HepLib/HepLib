@@ -16,7 +16,7 @@ namespace HepLib::SD {
         auto nx = xs.size();
         if(nx<1) return expr;
         if(!is_polynomial(expr, vec2lst(xs))) return expr;
-        auto cvs = mma_collect_lst(expr,x(w));
+        auto cvs = collect_lst(expr,x(w));
         vector<exvector> degs_vec;
         for(auto cv : cvs) {
             if(is_zero(cv.op(0))) continue;
@@ -170,7 +170,7 @@ namespace HepLib::SD {
             if(xs_tmp.size()>0) ft = ft.subs(vi);
 
             // need collect_common_factors
-            ft = collect_common_factors(mma_expand(ft,y(w)));
+            ft = collect_common_factors(expand_mma(ft,y(w)));
             if(is_exactly_a<mul>(ft)) {
                 ex ret = 1;
                 for (auto item : ft) {
@@ -315,7 +315,7 @@ namespace HepLib::SD {
             if(ypolist.has(x(w))) throw Error("DS: x(w) found @ " + ex2str(ypolist));
 
             // need collect_common_factors
-            auto ft = collect_common_factors(mma_expand(ypolist.op(1),y(w)));
+            auto ft = collect_common_factors(expand_mma(ypolist.op(1),y(w)));
             
             ex ct = 1, fsgin = 1;
             if(is_a<mul>(ft)) {
@@ -416,7 +416,7 @@ namespace HepLib::SD {
                 }
                 
                 // need collect_common_factors
-                if(tmp.has(y(w))) tmp = collect_common_factors(mma_expand(tmp,y(w)));
+                if(tmp.has(y(w))) tmp = collect_common_factors(expand_mma(tmp,y(w)));
 
                 lst tmps;
                 if(is_exactly_a<mul>(tmp)) {
@@ -517,7 +517,7 @@ namespace HepLib::SD {
                     const_term *= pow(in_plst.op(i), in_nlst.op(i));
                 } else const_term *= exp(log(in_plst.op(i)) * in_nlst.op(i));
             } else {
-                auto ptmp = collect_common_factors(mma_expand(in_plst.op(i),{x(w),y(w),z(w)}));
+                auto ptmp = collect_common_factors(expand_mma(in_plst.op(i),{x(w),y(w),z(w)}));
                 auto ntmp = in_nlst.op(i);
                 if(!is_a<mul>(ptmp)) ptmp = lst{ ptmp };
                 
@@ -741,7 +741,7 @@ namespace HepLib::SD {
                 }
             }
             
-            rem = mma_collect(rem, x(w));
+            rem = collect_ex(rem, x(w));
             
             lst rem_lst;
             if(is_a<add>(rem)) {
@@ -816,7 +816,7 @@ namespace HepLib::SD {
                     bool is_s = true;
                     for(int j=0; j<fun.nops(); j++) {
                         if(exp.op(j).info(info_flags::nonnegint)) continue;
-                        auto tmp = mma_collect(fun.op(j).subs(sRepl),s);
+                        auto tmp = collect_ex(fun.op(j).subs(sRepl),s);
                         if(tmp.degree(s)!=tmp.ldegree(s)) {
                             is_s = false;
                             break;
@@ -1117,7 +1117,7 @@ namespace HepLib::SD {
                             lst xns3 = ex_to<lst>(xns);
                             xns3.let_op(n).let_op(1) = xn.op(1)+1;
                             
-                            ex tmp = ex(0)-pns.op(i).op(1)*mma_diff(pns.op(i).op(0),xx);
+                            ex tmp = ex(0)-pns.op(i).op(1)*diff_ex(pns.op(i).op(0),xx);
                             if(tmp.is_zero()) continue;
                             
                             auto xs = get_x_from(tmp);
@@ -1129,7 +1129,7 @@ namespace HepLib::SD {
                                 }
                             }
                             // need collect_common_factors
-                            if(tz) tmp = collect_common_factors(mma_expand(tmp,x(w)));
+                            if(tz) tmp = collect_common_factors(expand_mma(tmp,x(w)));
                             if(tmp.is_zero()) continue;
                             
                             if(tz && is_a<mul>(tmp)) {
@@ -1252,7 +1252,7 @@ namespace HepLib::SD {
                             exprs2.append(dit0/(xn.op(1)+1)/ifact);
                         }
                         for(int i=1; i+expn<0; i++) {
-                            dit = mma_diff(dit, xn.op(0));
+                            dit = diff_ex(dit, xn.op(0));
                             if(is_zero(dit)) break;
                             dit0 = dit.subs(xn.op(0)==0);
                             ifact *= i;
@@ -1313,7 +1313,7 @@ namespace HepLib::SD {
                         if(cc!=1) repl.append(ct==cc*CT(ll));
                     }
                     it = it.subs(repl);
-                    it = mma_series(it,vz,-1);
+                    it = series_ex(it,vz,-1);
                     it = ex(0)-it.coeff(vz, -1);
                 }
                 return it;
@@ -1388,8 +1388,8 @@ namespace HepLib::SD {
                     ct = 1;
                 }
             }
-            if(it.has(epz)) it = mma_series(it,epz,0);
-            auto cv_lst = mma_collect_lst(it, lst{epz, vs});
+            if(it.has(epz)) it = series_ex(it,epz,0);
+            auto cv_lst = collect_lst(it, lst{epz, vs});
             if(cv_lst.nops()<1) return lst{ lst{ 0, 0} };
             
             lst para_res_lst;
@@ -1402,7 +1402,7 @@ namespace HepLib::SD {
                     }
                     auto ct2 = vc * ct;
                     int ctN = epRank(ct2);
-                    tmp = mma_series(tmp, ep, epN-ctN);
+                    tmp = series_ex(tmp, ep, epN-ctN);
                     for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                         auto intg = tmp.coeff(ep, di);
                         if(intg.has(ep)) {
@@ -1410,15 +1410,15 @@ namespace HepLib::SD {
                         }
                         auto pref = ct2;
                         if(vs_before_ep && pref.has(vs)) {
-                            pref = mma_series(pref, vs, vsN);
-                            auto cvs = mma_collect_lst(pref,vs);
+                            pref = series_ex(pref, vs, vsN);
+                            auto cvs = collect_lst(pref,vs);
                             for(auto cv : cvs) {
                                 if(cv.op(1).has(eps)) continue;
                                 pref += cv.op(0) * cv.op(1);
                             }
                         }
-                        pref = mma_series(pref, ep, epN-di);
-                        if(!vs_before_ep && pref.has(vs)) pref = mma_series(pref, vs, vsN);
+                        pref = series_ex(pref, ep, epN-di);
+                        if(!vs_before_ep && pref.has(vs)) pref = series_ex(pref, vs, vsN);
                         if(is_zero(intg.subs(x(w)==ex(1)/7)) && is_zero(intg.subs(x(w)==ex(1)/13))) {
                             intg = normal_fermat(intg);
                         }
@@ -1427,20 +1427,20 @@ namespace HepLib::SD {
                 } else {
                     auto sct = vc * ct;
                     int sctN = epsRank(sct);
-                    ex stmp = mma_series(tmp, eps, epsN-sctN);
+                    ex stmp = series_ex(tmp, eps, epsN-sctN);
                     for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
                         tmp = stmp.coeff(eps, sdi);
                         if(tmp.has(eps)) {
                             throw Error("EpsEpExpands: eps found @ tmp = " + ex2str(tmp));
                         }
                         
-                        auto cv_lst = mma_collect_lst(tmp, epsID(w));
-                        auto ct2 = mma_series(sct, eps, epsN-sdi);
+                        auto cv_lst = collect_lst(tmp, epsID(w));
+                        auto ct2 = series_ex(sct, eps, epsN-sdi);
                         int ctN = epRank(ct2);
                         for(auto ti : cv_lst) { // Note: tmp is local
                             auto tmp = ti.op(0);
                             auto eps_ci = ti.op(1);
-                            tmp = mma_series(tmp, ep, epN-ctN);
+                            tmp = series_ex(tmp, ep, epN-ctN);
                             for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
                                 auto intg = tmp.coeff(ep, di);
                                 if(intg.has(ep)) {
@@ -1448,15 +1448,15 @@ namespace HepLib::SD {
                                 }
                                 auto pref = ct2;
                                 if(vs_before_ep && pref.has(vs)) {
-                                    pref = mma_series(pref, vs, vsN);
-                                    auto cvs = mma_collect_lst(pref,vs);
+                                    pref = series_ex(pref, vs, vsN);
+                                    auto cvs = collect_lst(pref,vs);
                                     for(auto cv : cvs) {
                                         if(cv.op(1).has(eps)) continue;
                                         pref += cv.op(0) * cv.op(1);
                                     }
                                 }
-                                pref = mma_series(pref, ep, epN-di);
-                                if(!vs_before_ep && pref.has(vs)) pref = mma_series(pref, vs, vsN);
+                                pref = series_ex(pref, ep, epN-di);
+                                if(!vs_before_ep && pref.has(vs)) pref = series_ex(pref, vs, vsN);
                                 if(is_zero(intg.subs(x(w)==ex(1)/7)) || is_zero(intg.subs(x(w)==ex(1)/13))) {
                                     intg = normal_fermat(intg);
                                 }

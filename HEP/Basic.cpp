@@ -588,14 +588,14 @@ namespace HepLib {
         if(!expr_in.has(Matrix(w1,w2,w3))) return expr_in;
         
         auto expr = expr_in.subs(pow(Matrix(w1,w2,w3),2)==Matrix(w1,w2,w3)*Matrix(w1,w3,w2));
-        auto cv_lst = mma_collect_lst(expr, Matrix(w1, w2, w3));
+        auto cv_lst = collect_lst(expr, Matrix(w1, w2, w3));
         expr = 0;
         for(auto cv : cv_lst) {
             auto e = cv.op(1);
             if(is_zero(e-1) || e.match(Matrix(w1, w2, w3))) {
                 expr += cv.op(0) * e;
                 continue;
-            } else if(!is_a<mul>(e)) throw Error("MatrixContract: mma_collect error: " + ex2str(e));
+            } else if(!is_a<mul>(e)) throw Error("MatrixContract: collect error: " + ex2str(e));
             
             lst mats;
             for(auto item : e) mats.append(item);

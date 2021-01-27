@@ -57,7 +57,7 @@ namespace HepLib {
 
         if(expr_in.has(coVF(w))) throw Error("TIR error: expr_in has coVF already.");
 
-        auto expr = mma_collect(expr_in, [&loop_ps](const ex & e)->bool{
+        auto expr = collect_ex(expr_in, [&loop_ps](const ex & e)->bool{
             if(!Index::hasv(e)) return false;
             for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
                 auto item = *i;

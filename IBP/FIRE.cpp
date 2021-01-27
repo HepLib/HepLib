@@ -136,7 +136,7 @@ namespace HepLib::IBP {
                     collect_common_factors(kv.second.normal()) << endl << endl;
                 } else {
                     lst olst;
-                    auto cv_lst = mma_collect_lst(kv.second, a(w));
+                    auto cv_lst = collect_lst(kv.second, a(w));
                     for(auto item : cv_lst) {
                         auto cc = item.op(0);
                         auto cv = item.op(1);

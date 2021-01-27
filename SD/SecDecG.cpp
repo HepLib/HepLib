@@ -353,7 +353,7 @@ vector<matrix> SecDecG::SimplexCones(matrix pts) {
 // return a replacement/transformation, using x(-1) as key for determinant
 vector<exmap> SecDecG::x2y(const ex &xpol) {
     if(xpol.has(y(w))) throw Error("SecDecG::x2y failed with y(w) found.");
-    auto cvs = mma_collect_lst(xpol, x(w));
+    auto cvs = collect_lst(xpol, x(w));
     vector<ex> vpols;
     lst xpol2;
     for(auto cv : cvs) {
@@ -454,7 +454,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
                 tt = tt*pow(y(m), tmp(n,m));
             }
             transmap[xs[n]] = tt;
-            for(int m=0; m<nx; m++) Dxy(n, m) = mma_diff(tt, y(m));
+            for(int m=0; m<nx; m++) Dxy(n, m) = diff_ex(tt, y(m));
         }
         transmap[x(-1)] = Dxy.determinant();
         ret.push_back(transmap);

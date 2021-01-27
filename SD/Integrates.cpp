@@ -263,7 +263,7 @@ namespace HepLib::SD {
             ex ftid = item.op(3);
             
             if(co.is_zero()) continue;
-            co = mma_collect(co, eps);
+            co = collect_ex(co, eps);
             if(co.is_zero()) continue;
             if(co.has(PL(w))) throw Error("Integrates: PL found @ " + ex2str(co));
             qREAL cmax = -1;
@@ -273,7 +273,7 @@ namespace HepLib::SD {
             for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
                 auto tmp = co.coeff(eps, si);
                 if(tmp.has(eps)) throw Error("Integrates: eps found @ " + ex2str(tmp));
-                tmp = mma_collect(tmp, ep);
+                tmp = collect_ex(tmp, ep);
                 for(int i=tmp.ldegree(ep); i<=tmp.degree(ep); i++) {
                     auto ccRes = NN(tmp.coeff(ep, i)).expand();
                     lst css;
@@ -290,7 +290,7 @@ namespace HepLib::SD {
                         
                         lst nt_lst;
                         if(!is_a<numeric>(nt)) {
-                            auto cv_lst = mma_collect_lst(nt,[](const ex &e)->bool{return Symbol::has(e);});
+                            auto cv_lst = collect_lst(nt,[](const ex &e)->bool{return Symbol::has(e);});
                             for(auto nti : cv_lst) {
                                 auto nnt = nti.op(0);
                                 if(!is_a<numeric>(nnt)) throw Error("Integrates: Not a number with nt = "+ex2str(nnt));

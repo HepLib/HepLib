@@ -156,13 +156,13 @@ namespace HepLib::SD {
             
             ex DFs[fxs.size()], DDFs[fxs.size()][fxs.size()];
             for(int i=0; i<fxs.size(); i++) {
-                auto df = mma_diff(ft, fxs[i]);
+                auto df = diff_ex(ft, fxs[i]);
                 DFs[i] = collect_common_factors(df);
                 ostringstream ilaos;
                 ilaos << "ilas[" << i << "]";
                 symbol ila(ilaos.str());
                 for(int j=0; j<fxs.size(); j++) {
-                    auto ddf = mma_diff(DFs[i], fxs[j]);
+                    auto ddf = diff_ex(DFs[i], fxs[j]);
                     DDFs[i][j] = collect_common_factors(ddf);
                 }
             }
@@ -439,7 +439,7 @@ namespace HepLib::SD {
             expr.find(FTX(w1,w2), ftxset);
             lst ftxlst;
             for(auto it : ftxset) ftxlst.append(it);
-            expr = mma_collect(expr, FTX(w1,w2));
+            expr = collect_ex(expr, FTX(w1,w2));
             vector<pair<ex,ex>> ft_expr;
             for(auto item : ftxlst) {
                 ft_expr.push_back(make_pair(item.op(1), expr.coeff(item)));

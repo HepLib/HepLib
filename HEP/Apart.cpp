@@ -118,7 +118,7 @@ namespace HepLib {
     ex Apart(const matrix & mat) {
     
         static exmap mat_cache;
-        if(mat_cache.find(mat)!=mat_cache.end()) return mat_cache[mat];
+        if(Apart_using_cache && mat_cache.find(mat)!=mat_cache.end()) return mat_cache[mat];
         
         int nrow = mat.rows()-2;
         int ncol = mat.cols();
@@ -259,7 +259,7 @@ namespace HepLib {
         }
         if(is_null) {
             ex res = ApartIR(mat);
-            mat_cache[mat] = res;
+            if(Apart_using_cache) mat_cache[mat] = res;
             return res;
         }
         
@@ -283,7 +283,7 @@ namespace HepLib {
                 sol -= nvec.op(c) * (iWF(c)-mat(nrow,c)); // iWF(c) refer to c-th column, and minus the const term
             }
             sol = sol/nvec.op(ni) + mat(nrow,ni); // last one: const term
-            sol = mma_collect(pow(sol.subs(iEpsilon==0), mat(nrow+1,ni)), iWF(w)); // expand the numerator with power
+            sol = collect_ex(pow(sol.subs(iEpsilon==0), mat(nrow+1,ni)), iWF(w)); // expand the numerator with power
 
             if(!is_a<add>(sol)) sol = lst{ sol };
             ex res = 0;
@@ -319,8 +319,8 @@ namespace HepLib {
                     res += Apart(mat2) * item.subs(iWF(w)==1);
                 }
             }
-            //res = mma_collect(res,ApartIR(w));
-            mat_cache[mat] = res;
+            res = collect_ex(res,ApartIR(w));
+            if(Apart_using_cache) mat_cache[mat] = res;
             return res;
         }
         
@@ -360,8 +360,8 @@ namespace HepLib {
                 }
             }
             res = res/cres;
-            //res = mma_collect(res,ApartIR(w));
-            mat_cache[mat] = res;
+            res = collect_ex(res,ApartIR(w));
+            if(Apart_using_cache) mat_cache[mat] = res;
             return res;
         } else {
             int ni=-1;
@@ -394,8 +394,8 @@ namespace HepLib {
                 }
             }
             res = res/nvec.op(ni);
-            //res = mma_collect(res,ApartIR(w));
-            mat_cache[mat] = res;
+            res = collect_ex(res,ApartIR(w));
+            if(Apart_using_cache) mat_cache[mat] = res;
             return res;
         }
     }
@@ -410,10 +410,10 @@ namespace HepLib {
     ex Apart(const ex &expr_ino, const lst &vars_in, exmap smap) {
         // Apart on rational terms
         if(!is_a<lst>(expr_ino)) {
-            auto cv_lst = mma_collect_lst(expr_ino, vars_in);
+            auto cv_lst = collect_lst(expr_ino, vars_in);
             ex res = 0;
             for(auto item : cv_lst) res += item.op(0) * Apart(lst{item.op(1)}, vars_in, smap);
-            res = mma_collect(res, ApartIR(w1,w2));
+            res = collect_ex(res, ApartIR(w1,w2));
 
             // random check
             lst nlst;
@@ -517,9 +517,8 @@ namespace HepLib {
                         break;
                     } else {
                         auto cc = pc.coeff(v);
-                        auto kk = v.subs(map2);
-                        if(is_zero(cc) || !key_exists(sgnmap,kk) || is_zero(sgnmap[kk])) continue;
-                        ex sign = sgnmap[kk]/cc;
+                        if(is_zero(cc) || !key_exists(sgnmap,v) || is_zero(sgnmap[v])) continue;
+                        ex sign = sgnmap[v]/cc;
                         pref /= pow(sign, nc);
                         pc *= sign;
                         has_sgn = true;
@@ -589,7 +588,7 @@ namespace HepLib {
             mat(nrow,c) = normal_fermat(tmp.subs(vars0));
         }
         ex ret = Apart(mat);
-        auto cv_lst = mma_collect_lst(ret,ApartIR(w));
+        auto cv_lst = collect_lst(ret,ApartIR(w));
         ret = 0;
         for(auto cv : cv_lst) {
             ret += cv.op(0) * ApartIR(cv.op(1).op(0), vars);
@@ -625,13 +624,13 @@ namespace HepLib {
         sps.unique();
         sort_lst(sps);
         
-        auto cv_lst = mma_collect_lst(expr, loops);
+        auto cv_lst = collect_lst(expr, loops);
         ex res = 0;
         for(auto item : cv_lst) {
             res += item.op(0) * Apart(lst{item.op(1)}, sps, smap);
         }
         
-        res = mma_collect(res, ApartIR(w1,w2));
+        res = collect_ex(res, ApartIR(w1,w2));
 
         // random check
         lst nlst;
@@ -652,7 +651,8 @@ namespace HepLib {
         chk = normal(chk);
         if(!is_zero(chk)) throw Error("Apart@2 random check Failed.");
         
-        return res;
+// TODO: Delete collect_ex
+        return collect_ex(res,ApartIR(w1,w2),false,false,1);
     }
     
     /**
@@ -733,7 +733,7 @@ namespace HepLib {
         if(!aparted) {
             exset vset;
             for(int i=0; i<air_vec.size(); i++) {
-                air_vec[i] = mma_collect(air_vec[i],lmom,false,true);
+                air_vec[i] = collect_ex(air_vec[i],lmom,false,true);
                 find(air_vec[i],coVF(w),vset);
             }
             exvector vvec;
@@ -746,8 +746,16 @@ namespace HepLib {
             }, "Apart");
             exmap v2v;
             for(int i=0; i<vvec.size(); i++) v2v[vvec[i]] = ret[i];
-            ret = GiNaC_Parallel(air_vec.size(), [&air_vec,v2v] (int idx) {
-                return air_vec[idx].subs(v2v);
+            
+            MapFunction _ex2AIR([&v2v](const ex & e, MapFunction &self)->ex{
+                if(!e.has(coVF(w))) return e;
+                else if(e.match(coVF(w))) return e.subs(v2v);
+                else return e.map(self);
+            });
+            ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&_ex2AIR] (int idx) {
+                auto air = air_vec[idx];
+                air = _ex2AIR(air);
+                return air;
             }, "ApartR");
             for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i];
         }
@@ -757,7 +765,7 @@ namespace HepLib {
             auto air = air_vec[i];
             air = air.subs(SP_map);
             air = ApartIRC(air);
-            air = mma_collect(air,ApartIR(w1, w2));
+            air = collect_ex(air,ApartIR(w1, w2));
             find(air, ApartIR(w1, w2), intg_set);
             air_vec[i] = air;
         }
@@ -900,7 +908,7 @@ namespace HepLib {
                     air = air.subs(AIR2F);
                     air = air.subs(int_fr.first);
                     air = _F2ex(air);
-                    air = mma_collect(air, F(w1,w2));
+                    air = collect_ex(air, F(w1,w2));
                     return air;
                 } else return e.map(self);
             });
@@ -908,7 +916,7 @@ namespace HepLib {
             auto air_res =
             GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_A2F,&aio](int idx)->ex {
                 auto air =  _A2F(air_vec[idx]);
-                air = mma_collect(air,F(w1,w2),false,false,aio.mcl);
+                air = collect_ex(air,F(w1,w2),false,false,aio.mcl);
                 return air;
             }, "A2F");
             
@@ -958,7 +966,7 @@ namespace HepLib {
                 air = air.subs(ibpr);
                 air = air.subs(mi_fr.first);
                 air = _F2ex(air);
-                air = mma_collect(air, F(w1,w2));
+                air = collect_ex(air, F(w1,w2));
                 return air;
             } else return e.map(self);
         });
@@ -966,7 +974,7 @@ namespace HepLib {
         auto air_res =
         GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_A2F,&aio](int idx)->ex {
             auto air =  _A2F(air_vec[idx]);
-            air = mma_collect(air,F(w1,w2),false,false,aio.mcl);
+            air = collect_ex(air,F(w1,w2),false,false,aio.mcl);
             return air;
         }, "A2F");
                                     

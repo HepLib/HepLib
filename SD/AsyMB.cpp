@@ -67,7 +67,7 @@ namespace HepLib::SD {
             ex tmp = pol.op(n);
             rs_mat(n,0) = tmp.degree(vs);
             for(int ix=0; ix<nx; ix++) {
-                rs_mat(n, ix+1) = mma_collect(tmp, xs[ix]).degree(xs[ix]);
+                rs_mat(n, ix+1) = collect_ex(tmp, xs[ix]).degree(xs[ix]);
             }
         }
 
@@ -267,7 +267,7 @@ namespace HepLib::SD {
             for(int i=0; i<fe.op(0).nops(); i++) {
                 auto item = fe.op(0).op(i).subs(x(w)==s*y(w)).subs(y(w)==x(w));
                 if(!item.has(s)) continue;
-                item = mma_collect(item, s);
+                item = collect_ex(item, s);
                 if(item.ldegree(s)!=item.degree(s)) {
                     cerr << ErrColor << "Not Homogeneous: " << s << RESET << endl;
                     throw Error("DoAsy: Not Homogeneous");
@@ -365,7 +365,7 @@ namespace HepLib::SD {
                             for(int ii=0; ii<fs3.nops(); ii++) {
                                 lst fs4 = fs3;
                                 lst es4 = es3;
-                                auto dit = mma_diff(fs4.op(ii),vs);
+                                auto dit = diff_ex(fs4.op(ii),vs);
                                 if(!dit.is_zero()) {
                                     if((es4.op(ii)-1).is_zero()) {
                                         fs4.let_op(ii) = dit;
@@ -423,7 +423,7 @@ namespace HepLib::SD {
         
             ex ft = fe.op(0).op(1);
             if(ft.has(vs)) {
-                ft = mma_collect(ft, vs);
+                ft = collect_ex(ft, vs);
                 if(!ft.is_polynomial(vs) || (ft.degree(vs)-1)!=0) {
                     cout << ErrColor << "Not supported F-term with s: " << ft << RESET << endl;
                     throw Error("MB: Not supported F-term with s.");

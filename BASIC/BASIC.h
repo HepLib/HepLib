@@ -95,8 +95,8 @@ namespace HepLib {
         static lst all(const ex &e);
         static std::map<std::string, ex> Table;
         
-        void set(const ex & v);
-        void unset();
+        void set(const ex & v) const;
+        void unset() const;
         
         static exmap vmap;
         static void set(const Symbol & s, const ex & v);
@@ -328,22 +328,94 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Series at s=0 similar to Mathematica
     /*-----------------------------------------------------*/
-    ex mma_series(ex const & expr, const symbol &s, int sn);
+    ex series_ex(ex const & expr, const symbol &s, int sn);
     
-    pair<ex,epvector> mma_expand(const ex &expr, std::function<bool(const ex &)>, int depth);
-    ex mma_expand(const ex &expr, std::function<bool(const ex &)>);
-    ex mma_expand(ex const &expr, lst const &pats);
-    ex mma_expand(ex const &expr, ex const &pat);
+    pair<ex,epvector> expand_mma(const ex &expr, std::function<bool(const ex &)>, int depth);
     
-    ex mma_collect(const ex &expr, std::function<bool(const ex &)>, bool ccf=false, bool cvf=false, int opt=0);
-    ex mma_collect(const ex &expr, lst const &pats, bool ccf=false, bool cvf=false, int opt=0);
-    ex mma_collect(const ex &expr, ex const &pat, bool ccf=false, bool cvf=false, int opt=0);
+    ex expand_mma(const ex &expr, std::function<bool(const ex &)>);
     
-    lst mma_collect_lst(const ex &expr, std::function<bool(const ex &)>, int opt=0);
-    lst mma_collect_lst(const ex &expr, lst const &pats, int opt=0);
-    lst mma_collect_lst(const ex &expr, ex const &pat, int opt=0);
+    inline ex expand_mma(ex const &expr, lst const &pats) {
+        return expand_mma(expr, [pats](const ex & e)->bool {
+            for(auto pat : pats) { if(e.has(pat)) return true; }
+            return false;
+        });
+    }
     
-    ex mma_diff(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
+    inline ex expand_mma(ex const &expr, ex const &pat) {
+        return expand_mma(expr, [pat](const ex & e)->bool { return e.has(pat); });
+    }
+    
+    ex expand_ex(const ex & expr);
+    ex collect_ex(const ex &expr, std::function<bool(const ex &)>, bool cf=false, bool vf=false, int opt=0);
+    
+    inline ex collect_ex(const ex &expr, lst const &pats, bool cf=false, bool vf=false, int opt=0) {
+        return collect_ex(expr, [pats](const ex & e)->bool {
+            for(auto pat : pats) { if(e.has(pat)) return true; }
+            return false;
+        }, cf, vf, opt);
+    }
+    
+    inline ex collect_ex(const ex &expr, ex const &pat, bool cf=false, bool vf=false, int opt=0) {
+        return collect_ex(expr, [pat](const ex & e)->bool { return e.has(pat); }, cf, vf, opt);
+    }
+    
+    inline ex collect_o(const ex &expr, std::function<bool(const ex &)> f, int opt=0) {
+        return collect_ex(expr, f, false, false, opt);
+    }
+    inline ex collect_o(const ex &expr, lst const &pats, int opt=0) {
+        return collect_ex(expr, pats, false, false, opt);
+    }
+    inline ex collect_o(const ex &expr, ex const &pat, int opt=0) {
+        return collect_ex(expr, pat, false, false, opt);
+    }
+    
+    inline ex collect_c(const ex &expr, std::function<bool(const ex &)> f, int opt=0) {
+        return collect_ex(expr, f, true, false, opt);
+    }
+    inline ex collect_c(const ex &expr, lst const &pats, int opt=0) {
+        return collect_ex(expr, pats, true, false, opt);
+    }
+    inline ex collect_c(const ex &expr, ex const &pat, int opt=0) {
+        return collect_ex(expr, pat, true, false, opt);
+    }
+
+    inline ex collect_v(const ex &expr, std::function<bool(const ex &)> f, int opt=0) {
+        return collect_ex(expr, f, false, true, opt);
+    }
+    inline ex collect_v(const ex &expr, lst const &pats, int opt=0) {
+        return collect_ex(expr, pats, false, true, opt);
+    }
+    inline ex collect_v(const ex &expr, ex const &pat, int opt=0) {
+        return collect_ex(expr, pat, false, true, opt);
+    }
+    
+    inline ex collect_cv(const ex &expr, std::function<bool(const ex &)> f, int opt=0) {
+        return collect_ex(expr, f, true, true, opt);
+    }
+    inline ex collect_cv(const ex &expr, lst const &pats, int opt=0) {
+        return collect_ex(expr, pats, true, true, opt);
+    }
+    inline ex collect_cv(const ex &expr, ex const &pat, int opt=0) {
+        return collect_ex(expr, pat, true, true, opt);
+    }
+
+    lst collect_lst(const ex &expr, std::function<bool(const ex &)>, int opt=0);
+    
+    inline lst collect_lst(const ex &expr, lst const &pats, int opt=0) {
+        return collect_lst(expr, [pats](const ex & e)->bool {
+            for(auto pat : pats) { if(e.has(pat)) return true; }
+            return false;
+        }, opt);
+    }
+    
+    
+    inline lst collect_lst(const ex &expr, ex const &pat, int opt=0) {
+        return collect_lst(expr, [pat](const ex & e)->bool {
+            return e.has(pat);
+        }, opt);
+    } 
+    
+    ex diff_ex(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
     extern bool fermat_using_array;
     ex numer_denom_fermat(const ex & expr, bool dfactor=false);

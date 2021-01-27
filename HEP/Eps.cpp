@@ -149,7 +149,7 @@ namespace HepLib {
         }
         
         for(int i=0; i<4; i++) {
-            auto pi = mma_collect_lst(pis.op(i), [](const ex & e)->bool{return Index::has(e) || Vector::has(e);});
+            auto pi = collect_lst(pis.op(i), [](const ex & e)->bool{return Index::has(e) || Vector::has(e);});
             for(auto item : pi) { // check 
                 if(!is_a<Vector>(item.op(1)) && !is_a<Index>(item.op(1))) {
                     cout << "pi = " << pi << endl;

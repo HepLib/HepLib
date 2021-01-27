@@ -43,7 +43,7 @@ namespace HepLib::IBP {
         }
         
         if(isPoly) { // only for polynomials
-            auto cv_lst = mma_collect_lst(expr, xs);
+            auto cv_lst = collect_lst(expr, xs);
             exvector cvs;
             for(auto item : cv_lst) cvs.push_back(item);
             sort_vec(cvs);

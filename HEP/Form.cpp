@@ -306,7 +306,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             }
             
             // pull out color factor
-            auto cv_lst = mma_collect_lst(item, [](const ex &e)->bool{return Index::hasc(e);});
+            auto cv_lst = collect_lst(item, [](const ex &e)->bool{return Index::hasc(e);});
             item=0;
             exvector color_vec;
             for(int i=0; i<cv_lst.nops(); i++) {
@@ -523,7 +523,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
     ex form(const ex &expr, int verb) {
         if(form_expand_mode==form_expand_none || is_a<lst>(expr)) return runform(expr, verb);
         else if(form_expand_mode==form_expand_tr) {
-            auto cv_lst = mma_collect_lst(expr.subs(SP_map), TR(w));
+            auto cv_lst = collect_lst(expr.subs(SP_map), TR(w));
             lst to_lst;
             for(auto cv : cv_lst) to_lst.append(cv.op(0)*cv.op(1));
             lst out_lst = ex_to<lst>(runform(to_lst, verb));
@@ -533,7 +533,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             
             return ret.subs(SP_map);
         } else if(form_expand_mode==form_expand_ci) {
-            auto cv_lst = mma_collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
+            auto cv_lst = collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
                 return e.has(TR(w)) || Index::hasc(e);
             });
             lst to_lst;
@@ -545,7 +545,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             
             return ret.subs(SP_map);
         } else if(form_expand_mode==form_expand_li) {
-            auto cv_lst = mma_collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
+            auto cv_lst = collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
                 return e.has(TR(w)) || Index::hasv(e);
             });
             lst to_lst;
@@ -557,7 +557,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             
             return ret.subs(SP_map);
         } else if(form_expand_mode==form_expand_all) {
-            auto cv_lst = mma_collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
+            auto cv_lst = collect_lst(expr.subs(SP_map), [](const ex & e)->bool {
                 return e.has(TR(w)) || SUNT::has(e) || SUNF::has(e) || SUNF4::has(e) || Index::has(e) || DGamma::has(e);
             });
             lst to_lst;
