@@ -390,15 +390,15 @@ namespace HepLib {
      * @brief Apart on ex
      * @param expr_ino normal expresion, product of [ linear w.r.t. vars ]^n
      * @param vars_in independent variables
-     * @param sgnmap the sign map
+     * @param smap the sign map
      * @return sum of coefficient * ApartIR
      */
-    ex Apart(const ex &expr_ino, const lst &vars_in, exmap sgnmap) {
+    ex Apart(const ex &expr_ino, const lst &vars_in, exmap smap) {
         // Apart on rational terms
         if(!is_a<lst>(expr_ino)) {
             auto cv_lst = mma_collect_lst(expr_ino, vars_in);
             ex res = 0;
-            for(auto item : cv_lst) res += item.op(0) * Apart(lst{item.op(1)}, vars_in, sgnmap);
+            for(auto item : cv_lst) res += item.op(0) * Apart(lst{item.op(1)}, vars_in, smap);
             res = mma_collect(res, ApartIR(w1,w2));
 
             // random check
@@ -436,6 +436,8 @@ namespace HepLib {
             map2[s]=v;
             vars.append(s);
         }
+        exmap sgnmap;
+        for(auto kv : smap) sgnmap[kv.first.subs(map1)] = kv.second.subs(map1);
         
         ex expr = expr_in.subs(map1);
         if(!is_a<mul>(expr)) expr = lst{expr};
@@ -587,9 +589,10 @@ namespace HepLib {
      * @param expr_ino input expression
      * @param loops list of loop Vector
      * @param extps list of external Vector
+     * @param smap the sign map
      * @return sum of coefficient * ApartIR
      */
-    ex Apart(const ex &expr_ino, const lst &loops, const lst & extps, exmap sgnmap) {
+    ex Apart(const ex &expr_ino, const lst &loops, const lst & extps, exmap smap) {
         auto expr_in = expr_ino.subs(SP_map);
         auto expr = expr_in;
         
@@ -611,7 +614,7 @@ namespace HepLib {
         auto cv_lst = mma_collect_lst(expr, loops);
         ex res = 0;
         for(auto item : cv_lst) {
-            res += item.op(0) * Apart(lst{item.op(1)}, sps, sgnmap);
+            res += item.op(0) * Apart(lst{item.op(1)}, sps, smap);
         }
         
         res = mma_collect(res, ApartIR(w1,w2));
