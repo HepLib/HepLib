@@ -116,6 +116,10 @@ namespace HepLib {
      * @return sum of coefficient * ApartIR
      */
     ex Apart(const matrix & mat) {
+    
+        static exmap mat_cache;
+        if(mat_cache.find(mat)!=mat_cache.end()) return mat_cache[mat];
+        
         int nrow = mat.rows()-2;
         int ncol = mat.cols();
         lst null_vec;
@@ -253,7 +257,11 @@ namespace HepLib {
                 break;
             }
         }
-        if(is_null) return ApartIR(mat);
+        if(is_null) {
+            ex res = ApartIR(mat);
+            mat_cache[mat] = res;
+            return res;
+        }
         
         // handle numerator
         int ni=-1;
@@ -311,7 +319,9 @@ namespace HepLib {
                     res += Apart(mat2) * item.subs(iWF(w)==1);
                 }
             }
-            return mma_collect(res,ApartIR(w));
+            //res = mma_collect(res,ApartIR(w));
+            mat_cache[mat] = res;
+            return res;
         }
         
         // handle all denominators
@@ -350,7 +360,9 @@ namespace HepLib {
                 }
             }
             res = res/cres;
-            return mma_collect(res,ApartIR(w));
+            //res = mma_collect(res,ApartIR(w));
+            mat_cache[mat] = res;
+            return res;
         } else {
             int ni=-1;
             for(int c=0; c<ncol; c++) {
@@ -382,7 +394,9 @@ namespace HepLib {
                 }
             }
             res = res/nvec.op(ni);
-            return mma_collect(res,ApartIR(w));
+            //res = mma_collect(res,ApartIR(w));
+            mat_cache[mat] = res;
+            return res;
         }
     }
 
@@ -528,6 +542,7 @@ namespace HepLib {
                 pnlst.append(lst{ pc, nc });
             } else pref *= item;
         }
+        
         // handle iEpsilon
         bool needs_again = false;
         for(auto kv : count_ip) {
@@ -573,7 +588,6 @@ namespace HepLib {
             }
             mat(nrow,c) = normal_fermat(tmp.subs(vars0));
         }
-
         ex ret = Apart(mat);
         auto cv_lst = mma_collect_lst(ret,ApartIR(w));
         ret = 0;
@@ -724,7 +738,7 @@ namespace HepLib {
             }
             exvector vvec;
             for(auto item : vset) vvec.push_back(item);
-            //sort_vec(vvec);
+            //sort_vec(vvec); // no need
             auto ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
                 auto air = vvec[idx].op(0);
                 air = Apart(air,lmom,emom,aio.smap);

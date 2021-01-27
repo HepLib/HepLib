@@ -95,12 +95,16 @@ namespace HepLib {
         static lst all(const ex &e);
         static std::map<std::string, ex> Table;
         
-        static exmap AssignMap;
-        static void Assign(const Symbol & s, const ex & v);
-        static void Assign(const string & str, const ex & v);
-        static void clearAssign(const Symbol &s);
-        static void clearAssign(const string &str);
-        static void clearAssign();
+        void set(const ex & v);
+        void unset();
+        
+        static exmap vmap;
+        static void set(const Symbol & s, const ex & v);
+        static void set(const string & str, const ex & v);
+        static void unset(const Symbol &s);
+        static void unset(const string &str);
+        static void unset_all();
+        static ex set_all(const ex & expr);
     };
     GINAC_DECLARE_UNARCHIVER(Symbol);
     

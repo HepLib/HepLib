@@ -73,12 +73,23 @@ namespace HepLib {
         return _hash;
     }
     
-    exmap Symbol::AssignMap;
-    void Symbol::Assign(const Symbol & s, const ex & v) { AssignMap[s] = v; }
-    void Symbol::Assign(const string & str, const ex & v) { AssignMap[Symbol(str)] = v; }
-    void Symbol::clearAssign(const Symbol &s) { AssignMap.erase(s); }
-    void Symbol::clearAssign(const string &str) { AssignMap.erase(Symbol(str)); }
-    void Symbol::clearAssign() { AssignMap.clear(); }
+    void Symbol::set(const ex & v) { vmap[*this] = v; }
+    void Symbol::unset() { vmap.erase(*this); }
+    
+    void Symbol::set(const Symbol & s, const ex & v) { vmap[s] = v; }
+    void Symbol::set(const string & str, const ex & v) { vmap[Symbol(str)] = v; }
+    void Symbol::unset(const Symbol &s) { vmap.erase(s); }
+    void Symbol::unset(const string &str) { vmap.erase(Symbol(str)); }
+    void Symbol::unset_all() { vmap.clear(); }
+    ex Symbol::set_all(const ex & expr) {
+        ex v1 = expr;
+        while(true) {
+            ex v2 = v1.subs(vmap);
+            if(v2.is_equal(v1)) break;
+            v1 = v2;
+        }
+        return v1;
+    }
     
     /*-----------------------------------------------------*/
     // iSymbol
@@ -1860,7 +1871,7 @@ namespace HepLib {
         lst funs, exps;
         for(int i=0; i<ps.nops(); i++) {
             if(is_zero(ns.op(i))) continue;
-            auto cpi = ps.op(i).expand().subs(Symbol::AssignMap);
+            auto cpi = Symbol::set_all(ps.op(i).expand());
             bool ltQ = false; 
             for(auto li : loops) {
                 if(cpi.has(li)) {
@@ -1871,7 +1882,7 @@ namespace HepLib {
             
             ex sgn = 0;
             if(!ltQ) {
-                pre *= pow(ps.op(i).expand().subs(Symbol::AssignMap), ex(0)-ns.op(i));
+                pre *= pow(Symbol::set_all(ps.op(i).expand()), ex(0)-ns.op(i));
                 ns.let_op(i) = 0;
                 ps.let_op(i) = 1;
                 continue;
@@ -1913,7 +1924,7 @@ namespace HepLib {
             pre /= tgamma(ns.op(i));
             xni++;
         }
-        rem = rem.expand().subs(Symbol::AssignMap);
+        rem = Symbol::set_all(rem.expand());
         ex dl2 = loops.nops()*(4-2*ep)/2;
         pre *= tgamma(a-dl2) * pow(I,loops.nops()) * pow(Pi,dl2) * pow(2*Pi,loops.nops()*(2*ep-4));
         
@@ -1931,8 +1942,8 @@ namespace HepLib {
             }
             rem = (t0 - pow(t1,2)/(4*t2)).expand();
         }
-        rem = (rem.subs(Symbol::AssignMap)).normal();
-        u = (u.subs(Symbol::AssignMap)).normal();
+        rem = Symbol::set_all(rem).normal();
+        u = Symbol::set_all(u).normal();
         rem = (rem * u).normal();
         
         funs.prepend(rem);

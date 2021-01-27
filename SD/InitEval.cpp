@@ -21,7 +21,7 @@ namespace HepLib::SD {
     void Replacements2(exmap &repl) {
         auto tmp = repl;
         for(auto &kv : repl) {
-            kv.second = kv.second.subs(tmp, subs_options::algebraic).subs(Symbol::AssignMap);
+            kv.second = Symbol::set_all(kv.second.subs(tmp, subs_options::algebraic));
         }
     }
 
@@ -33,7 +33,7 @@ namespace HepLib::SD {
                 IsZero = true;
                 return;
             } else {
-                FunExp.push_back(lst{lst{fp.Prefactor.subs(Symbol::AssignMap)}, lst{1}});
+                FunExp.push_back(lst{lst{Symbol::set_all(fp.Prefactor)}, lst{1}});
             }
             return;
         }
@@ -42,7 +42,7 @@ namespace HepLib::SD {
             throw Error("Initialize: the length of Propagators and Exponents are NOT equal.");
         }
         
-        if(fp.Prefactor.subs(Symbol::AssignMap).is_zero()) {
+        if(Symbol::set_all(fp.Prefactor).is_zero()) {
             IsZero = true;
             return;
         }
@@ -67,8 +67,8 @@ namespace HepLib::SD {
         
         auto sop = subs_options::algebraic;
         
-        auto ps = fp.Propagators.subs(Symbol::AssignMap);
-        auto ns = fp.Exponents.subs(Symbol::AssignMap);
+        auto ps = Symbol::set_all(fp.Propagators);
+        auto ns = Symbol::set_all(fp.Exponents);
         
         auto ls = fp.LoopMomenta;
         auto tls = fp.tLoopMomenta;
@@ -100,10 +100,10 @@ namespace HepLib::SD {
         ex rem = 0;
         exmap xtNeg;
         
-        ex pre = fp.Prefactor.subs(Symbol::AssignMap); // come from below
+        ex pre = Symbol::set_all(fp.Prefactor); // come from below
         for(int i=0; i<ps.nops(); i++) {
             bool ltQ = false; {
-                auto tps = ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop).subs(Symbol::AssignMap);
+                auto tps = Symbol::set_all(ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop));
                 for(auto lsi : ls) {
                     if(tps.has(lsi)) {
                         ltQ = true;
@@ -125,7 +125,7 @@ namespace HepLib::SD {
             ex sgn = 0;
             
             if(!ltQ) {
-                pre = pre * pow(ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop).subs(Symbol::AssignMap), ex(0)-ns.op(i));
+                pre = pre * pow(Symbol::set_all(ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop)), ex(0)-ns.op(i));
                 ns.let_op(i) = 0;
                 ps.let_op(i) = 1;
                 continue;
@@ -134,8 +134,10 @@ namespace HepLib::SD {
                 if(is_zero(ns.op(i))) continue;
             }
 
-            auto p = ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop).subs(nsubs).subs(Symbol::AssignMap);
-            p = p.subs(lsubs,sop).subs(tsubs,sop).subs(nsubs).subs(Symbol::AssignMap);
+            auto p = ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop).subs(nsubs);
+            p = Symbol::set_all(p);
+            p = p.subs(lsubs,sop).subs(tsubs,sop).subs(nsubs);
+            p = Symbol::set_all(p);
 
             // check loop^2
             for(auto m : ls) {
@@ -184,7 +186,7 @@ namespace HepLib::SD {
             rem += x(i) * p;
         }
 
-        rem = rem.expand().subs(Symbol::AssignMap);
+        rem = Symbol::set_all(rem.expand());
         lst uList1, uList2;
         ex u=1, cu=1;
         
@@ -202,8 +204,8 @@ namespace HepLib::SD {
                 }
                 rem = expand(t0 - pow(t1,2)/(4*t2));
             }
-            rem = normal(rem.subs(lsubs,sop).subs(lsubs,sop).subs(Symbol::AssignMap));
-            u = normal(u.subs(lsubs,sop).subs(Symbol::AssignMap));
+            rem = normal(Symbol::set_all(rem.subs(lsubs,sop).subs(lsubs,sop)));
+            u = normal(Symbol::set_all(u.subs(lsubs,sop)));
             for(auto m: tls) {
                 if(u.has(m)) {
                     cerr << ErrColor << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
@@ -225,7 +227,7 @@ namespace HepLib::SD {
                 uList2.append((4-2*ep)/2);
             }
         } else {
-            rem = normal(rem.subs(lsubs,sop).subs(lsubs,sop).subs(Symbol::AssignMap));
+            rem = normal(Symbol::set_all(rem.subs(lsubs,sop).subs(lsubs,sop)));
         }
 
         // t-Loop
@@ -242,8 +244,8 @@ namespace HepLib::SD {
                 }
                 rem = expand(t0 - pow(t1,2)/(4*t2));
             }
-            rem = normal(rem.subs(tsubs,sop).subs(Symbol::AssignMap));
-            u = normal(u.subs(lsubs,sop).subs(Symbol::AssignMap));
+            rem = normal(Symbol::set_all(rem.subs(tsubs,sop)));
+            u = normal(Symbol::set_all(u.subs(lsubs,sop)));
             for(auto m: tls) {
                 if(u.has(m)) {
                     cerr << ErrColor << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
@@ -427,7 +429,7 @@ namespace HepLib::SD {
             auto ns = fe.op(1);
             for(int i=0; i<fs.nops(); i++) {
                 if(i==1 || ns.op(i).info(info_flags::integer)) continue;
-                auto nv = fs.op(i).subs(Symbol::AssignMap).subs(nReplacements).subs(lst{CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111});
+                auto nv = Symbol::set_all(fs.op(i)).subs(nReplacements).subs(lst{CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111});
                 if(!xPositive(nv)) {
                     cout << "fs = " << fs << endl << "ns = " << ns << endl;
                     throw Error("Initialize: non-positive u-term found.");

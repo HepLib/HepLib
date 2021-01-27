@@ -20,6 +20,7 @@ namespace HepLib {
     //----------------------------------------
     // HepLib
     //----------------------------------------
+    exmap Symbol::vmap;
     std::map<std::string, ex> Symbol::Table; // alias as symtab in parser
     std::map<std::string, ex> iSymbol::Table; // alias as symtab in parser
     
