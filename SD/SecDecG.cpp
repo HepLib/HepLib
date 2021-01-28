@@ -256,7 +256,7 @@ vector<vector<int>> SecDecG::QHull(const matrix &dc, int dim) {
     ex all_lcm = 1;
     for(int r=0; r<mdc.rows(); r++) {
         for(int c=0; c<mdc.cols(); c++) {
-            all_lcm = lcm(all_lcm, normal(mdc(r,c)).denom());
+            all_lcm = lcm(all_lcm, numer_denom_fermat(mdc(r,c)).op(1));
         }
     }
     mdc = mdc.mul_scalar(all_lcm);
@@ -357,7 +357,7 @@ vector<exmap> SecDecG::x2y(const ex &xpol) {
     vector<ex> vpols;
     lst xpol2;
     for(auto cv : cvs) {
-        if(is_zero(cv.op(0).normal())) continue;
+        if(is_zero(expand(cv.op(0)))) continue;
         vpols.push_back(cv.op(1));
         xpol2.append(cv.op(1));
     }

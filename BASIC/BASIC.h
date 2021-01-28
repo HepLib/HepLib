@@ -329,23 +329,20 @@ namespace HepLib {
     // Series at s=0 similar to Mathematica
     /*-----------------------------------------------------*/
     ex series_ex(ex const & expr, const symbol &s, int sn);
+        
+    ex expand_ex(const ex &expr, std::function<bool(const ex &)>);
     
-    pair<ex,epvector> expand_mma(const ex &expr, std::function<bool(const ex &)>, int depth);
-    
-    ex expand_mma(const ex &expr, std::function<bool(const ex &)>);
-    
-    inline ex expand_mma(ex const &expr, lst const &pats) {
-        return expand_mma(expr, [pats](const ex & e)->bool {
+    inline ex expand_ex(ex const &expr, lst const &pats) {
+        return expand_ex(expr, [pats](const ex & e)->bool {
             for(auto pat : pats) { if(e.has(pat)) return true; }
             return false;
         });
     }
     
-    inline ex expand_mma(ex const &expr, ex const &pat) {
-        return expand_mma(expr, [pat](const ex & e)->bool { return e.has(pat); });
+    inline ex expand_ex(ex const &expr, ex const &pat) {
+        return expand_ex(expr, [pat](const ex & e)->bool { return e.has(pat); });
     }
     
-    ex expand_ex(const ex & expr);
     ex collect_ex(const ex &expr, std::function<bool(const ex &)>, bool cf=false, bool vf=false, int opt=0);
     
     inline ex collect_ex(const ex &expr, lst const &pats, bool cf=false, bool vf=false, int opt=0) {
@@ -410,9 +407,7 @@ namespace HepLib {
     
     
     inline lst collect_lst(const ex &expr, ex const &pat, int opt=0) {
-        return collect_lst(expr, [pat](const ex & e)->bool {
-            return e.has(pat);
-        }, opt);
+        return collect_lst(expr, [pat](const ex & e)->bool { return e.has(pat); }, opt);
     } 
     
     ex diff_ex(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
@@ -473,6 +468,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Customized GiNaC Function
     /*-----------------------------------------------------*/
+    DECLARE_FUNCTION_1P(iEX)
     DECLARE_FUNCTION_1P(coCF)
     DECLARE_FUNCTION_1P(coVF)    
     DECLARE_FUNCTION_1P(x)

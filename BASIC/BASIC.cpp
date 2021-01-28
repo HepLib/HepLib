@@ -825,7 +825,7 @@ namespace HepLib {
         numeric sn_lcm = 1;
         exmap repl1st, repl2nd;
         for(auto pi : sset) {
-            auto sn = pi.op(1).expand();
+            auto sn = expand(pi.op(1));
             if(!is_a<numeric>(sn)) {
                 ex ex1 = 0, ex2 = 0;
                 for(auto item : add2lst(sn)) {
@@ -910,88 +910,6 @@ namespace HepLib {
         }
         return res;
     }
-
-    /**
-     * @brief the expand like Mathematica
-     * @param expr_in input expression
-     * @param has_func only expand the element e, when has_func(e) is true
-     * @param depth will be incresed by 1 when each recursively called
-     * @return the expanded expression, expair, coeff is constant, rest involving pattern
-     */
-    pair<ex,epvector> expand_mma(ex const &expr_in, std::function<bool(const ex &)> has_func, int depth) {
-        if(!has_func(expr_in)) {
-            ex co;
-            epvector epv;
-            co = expr_in;
-            return make_pair(co,epv);
-        } if(is_a<add>(expr_in)) {
-            ex co = 0;
-            epvector epv;
-            exmap pcmap;
-            for(auto item : expr_in) {
-                if(has_func(item)) {
-                    auto co_epv = expand_mma(item, has_func, depth+1);
-                    co += co_epv.first;
-                    for(auto ep : co_epv.second) pcmap[ep.rest] += ep.coeff;
-                } else co += item;
-            }
-            for(auto kv : pcmap) {
-                if(is_zero(kv.first) || is_zero(kv.second)) continue;
-                epv.push_back(expair(kv.first, kv.second));
-            }
-            return make_pair(co,epv);
-        } else if(is_a<mul>(expr_in)) {
-            ex co = 1;
-            epvector epv;
-            for(auto item : expr_in) {
-                if(!has_func(item)) {
-                    for(auto & ep : epv) ep.coeff *= item;
-                    co *= item;
-                } else {
-                    exmap pcmap;
-                    auto co_epv = expand_mma(item, has_func, depth+1);
-                    for(auto ep2 : co_epv.second) {
-                        pcmap[ep2.rest] += ep2.coeff * co;
-                        for(auto ep1 : epv) pcmap[ep1.rest * ep2.rest] += ep1.coeff * ep2.coeff;
-                    }
-                    for(auto ep1 : epv) pcmap[ep1.rest] += ep1.coeff * co_epv.first;
-                    co *= co_epv.first;
-                    epv.clear();
-                    for(auto kv : pcmap) {
-                        if(is_zero(kv.first) || is_zero(kv.second)) continue;
-                        epv.push_back(expair(kv.first, kv.second));
-                    }
-                }
-            }
-            return make_pair(co,epv);
-        } else if(is_a<power>(expr_in) && expr_in.op(1).info(info_flags::nonnegint)) { 
-            ex co = 1;
-            epvector epv;
-            int n = ex_to<numeric>(expr_in.op(1)).to_int();
-            auto co_epv = expand_mma(expr_in.op(0), has_func, depth+1);
-            for(int i=0; i<n; i++) {
-                exmap pcmap;
-                for(auto ep2 : co_epv.second) {
-                    pcmap[ep2.rest] += ep2.coeff * co;
-                    for(auto ep1 : epv) pcmap[ep1.rest * ep2.rest] += ep1.coeff * ep2.coeff;
-                }
-                for(auto ep1 : epv) pcmap[ep1.rest] += ep1.coeff * co_epv.first;
-                co *= co_epv.first;
-                epv.clear();
-                for(auto kv : pcmap) {
-                    if(is_zero(kv.first) || is_zero(kv.second)) continue;
-                    epv.push_back(expair(kv.first, kv.second));
-                }
-            }
-            return make_pair(co,epv);
-        } else {
-            ex co = 0;
-            epvector epv;
-            epv.push_back(expair(expr_in, 1));
-            return make_pair(co,epv);
-        }
-        throw Error("expand_mma unexpected region reached.");
-    }
     
     /**
      * @brief the expand like Mathematica
@@ -999,23 +917,35 @@ namespace HepLib {
      * @param has_func only expand the element e, when has_func(e) is true
      * @return the expanded expression
      */
-    ex expand_mma(ex const &expr_in, std::function<bool(const ex &)> has_func) {
-        auto co_epv = expand_mma(expr_in, has_func, 0);
-        ex ret = co_epv.first;
-        for(auto ep : co_epv.second) ret += ep.coeff * ep.rest;
-        return ret;
-    }
-    
-    /**
-     * @brief the expand using GiNaC with to_rational
-     * @param expr input expression
-     * @return the expanded expression
-     */
-    ex expand_ex(ex const &expr) {
-        exmap map_rat;
-        auto ret = expr;
-        ret = ret.to_rational(map_rat);
-        ret = ret.expand().subs(map_rat);
+    ex expand_ex(ex const &expr_in, std::function<bool(const ex &)> has_func) {
+        MapFunction _expx([&has_func](const ex & e, MapFunction & self) -> ex {
+            if(!has_func(e)) return (e.nops()>2 ? iEX(e) : e);
+            else if(!is_a<add>(e) && !is_a<mul>(e) && !(is_a<power>(e) && e.op(1).info(info_flags::nonnegint)))
+                return e;
+                        
+            ex eo = e.map(self);
+            eo = expand(eo);
+            eo = eo.subs(iEX(w)==w);
+            exmap kvs;
+            for(auto ia : add2lst(eo)) {
+                ex cc=1, vv=1;
+                for(auto im : mul2lst(ia)) {
+                    if(has_func(im)) vv *= im;
+                    else cc *= im;
+                }
+                kvs[vv] += cc;
+            }
+            ex ret;
+            for(auto kv : kvs) {
+                auto vv = kv.first;
+                auto cc = kv.second;
+                if(is_a<add>(cc)) cc = iEX(cc);
+                ret += cc * vv;
+            }
+            return ret;
+        });
+        auto ret = _expx(expr_in);
+        ret = ret.subs(iEX(w)==w);
         return ret;
     }
 
@@ -1049,9 +979,7 @@ namespace HepLib {
      * @return the collected expression in lst
      */
     lst collect_lst(ex const &expr_in, std::function<bool(const ex &)> has_func, int opt) {
-        //auto items = expand_mma(expr_in, has_func);
-        auto items = expand_ex(expr_in);
-        
+        auto items = expand_ex(expr_in, has_func);
         items = add2lst(items);
         ex cf = 0;
         map<ex, ex, ex_is_less> vc_map;
@@ -1127,7 +1055,7 @@ namespace HepLib {
      * @return xPositive or not
      */
     bool xPositive(ex const expr) {
-        auto tmp = expr.expand();
+        auto tmp = expand(expr);
         if(tmp.is_zero()) return false;
         bool ret = false;
         if(is_a<add>(tmp)) {
@@ -2057,7 +1985,7 @@ namespace HepLib {
      * @return factorized result
      */
     ex exexpand(const ex & expr, int opt) {
-        if(opt==1) return expand_ex(expr);
+        if(opt==1) return expand(expr);
         else return expand(expr);
     }
     

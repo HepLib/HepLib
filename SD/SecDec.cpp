@@ -122,9 +122,7 @@ namespace HepLib::SD {
                 if(item.match(x(w))) continue;
                 else if(item.match(pow(x(w1),w2))) continue;
                 else if(item.match(pow(w1,w2))) item = item.op(0);
-                exmap pmap;
-                item = item.to_rational(pmap);
-                xpols *= exfactor(item).subs(pmap);
+                xpols *= exfactor(item);
             }
             if(!is_a<mul>(xpols)) xpols = lst{ xpols };
             
@@ -170,7 +168,7 @@ namespace HepLib::SD {
             if(xs_tmp.size()>0) ft = ft.subs(vi);
 
             // need collect_common_factors
-            ft = collect_common_factors(expand_mma(ft,y(w)));
+            ft = collect_common_factors(expand_ex(ft,y(w)));
             if(is_exactly_a<mul>(ft)) {
                 ex ret = 1;
                 for (auto item : ft) {
@@ -315,7 +313,7 @@ namespace HepLib::SD {
             if(ypolist.has(x(w))) throw Error("DS: x(w) found @ " + ex2str(ypolist));
 
             // need collect_common_factors
-            auto ft = collect_common_factors(expand_mma(ypolist.op(1),y(w)));
+            auto ft = collect_common_factors(expand_ex(ypolist.op(1),y(w)));
             
             ex ct = 1, fsgin = 1;
             if(is_a<mul>(ft)) {
@@ -416,7 +414,7 @@ namespace HepLib::SD {
                 }
                 
                 // need collect_common_factors
-                if(tmp.has(y(w))) tmp = collect_common_factors(expand_mma(tmp,y(w)));
+                if(tmp.has(y(w))) tmp = collect_common_factors(expand_ex(tmp,y(w)));
 
                 lst tmps;
                 if(is_exactly_a<mul>(tmp)) {
@@ -517,7 +515,7 @@ namespace HepLib::SD {
                     const_term *= pow(in_plst.op(i), in_nlst.op(i));
                 } else const_term *= exp(log(in_plst.op(i)) * in_nlst.op(i));
             } else {
-                auto ptmp = collect_common_factors(expand_mma(in_plst.op(i),{x(w),y(w),z(w)}));
+                auto ptmp = collect_common_factors(expand_ex(in_plst.op(i),{x(w),y(w),z(w)}));
                 auto ntmp = in_nlst.op(i);
                 if(!is_a<mul>(ptmp)) ptmp = lst{ ptmp };
                 
@@ -791,7 +789,7 @@ namespace HepLib::SD {
                     bool is_s = true;
                     ex n_s = 0;
                     for(int j=0; j<fun.nops(); j++) {
-                        auto tmp = fun.op(j).subs(sRepl).expand();
+                        auto tmp = expand(fun.op(j).subs(sRepl));
                         if(tmp.degree(s)!=tmp.ldegree(s)) {
                             is_s = false;
                             break;
@@ -888,16 +886,16 @@ namespace HepLib::SD {
                         ex expns = 0;
                         for(int j=0; j<fe.op(0).nops(); j++) {
                             auto fun = fe.op(0).op(j);
-                            fun = fun.subs(repl).normal();
+                            fun = expand_ex(fun.subs(repl),xj);
                             if(!fun.is_polynomial(xj)) {
                                 cerr << "xj: " << xj << endl;
                                 cerr << "fun: " << fun << endl;
                                 cerr << funexp << endl;
                                 throw Error("RemoveDeltas: fun is NOT polynormial of xj.");
                             }
-                            auto expn = expand(fun).degree(xj);
+                            auto expn = fun.degree(xj);
                             fun = pow(xj, -expn) * fun;
-                            fun = normal(fun.subs(xj==1/xj));
+                            fun = expand_ex(fun.subs(xj==1/xj),xj);
                             fun = fun.subs(xj==jInv);
                             funs.append(fun);
                             expns += expn * exps.op(j);
@@ -995,7 +993,7 @@ namespace HepLib::SD {
 
                     // poles from xi^{c1*z+c0} with c1<0
                     for(auto xn : item.op(0)) {
-                        auto xn_op1 = xn.op(1).normal().expand();
+                        auto xn_op1 = expand(xn.op(1).normal());
                         ex c1 = xn_op1.coeff(vz);
                         ex c0 = xn_op1.subs(vz==0);
                         
@@ -1129,7 +1127,7 @@ namespace HepLib::SD {
                                 }
                             }
                             // need collect_common_factors
-                            if(tz) tmp = collect_common_factors(expand_mma(tmp,x(w)));
+                            if(tz) tmp = collect_common_factors(expand_ex(tmp,x(w)));
                             if(tmp.is_zero()) continue;
                             
                             if(tz && is_a<mul>(tmp)) {

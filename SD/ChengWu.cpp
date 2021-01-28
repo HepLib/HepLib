@@ -100,7 +100,7 @@ namespace HepLib::SD {
         for(int i=0; i<nnn; i++) {
             auto func = fe.op(0).op(i);
             if(!func.has(x(w))) continue;
-            func = expand_mma(func.subs(sRepl),s);
+            func = expand_ex(func.subs(sRepl),s);
             auto sn = func.degree(s);
             if(sn!=func.ldegree(s)) return false;
             over_all_sn += sn*fe.op(1).op(i);
@@ -129,7 +129,7 @@ namespace HepLib::SD {
         for(int i=0; i<nnn; i++) {
             auto func = fe.op(0).op(i);
             if(!func.has(x(w))) continue;
-            func = expand_mma(func.subs(sRepl),s);
+            func = expand_ex(func.subs(sRepl),s);
             auto sn = func.degree(s);
             over_all_sn += sn*fe.op(1).op(i);
             if(!is_a<add>(func)) func = lst{func};

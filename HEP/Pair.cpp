@@ -172,8 +172,8 @@ namespace HepLib {
         }
 
         lst alst, blst;
-        auto aex = a.expand();
-        auto bex = b.expand();
+        auto aex = expand(a);
+        auto bex = expand(b);
         if(is_zero(aex) || is_zero(bex)) return 0;
         if(is_a<add>(aex)) {
             for(auto item : aex) alst.append(item);

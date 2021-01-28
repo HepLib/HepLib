@@ -188,7 +188,7 @@ namespace HepLib::IBP {
         if(cache.find(key)==cache.end()) { // no cache item
             ut = 1;
             for(int i=0; i<base.Internal.nops(); i++) {
-                ft = ft.expand();
+                ft = expand(ft);
                 ft = subs_all(ft, base.Replacements);
                 auto t2 = ft.coeff(base.Internal.op(i),2);
                 auto t1 = ft.coeff(base.Internal.op(i),1);
@@ -263,7 +263,7 @@ namespace HepLib::IBP {
                 }
             }
             
-            ipr = ipr.expand().subs(lsubs).subs(tsubs);
+            ipr = expand(ipr).subs(lsubs).subs(tsubs);
             for(auto lp : tloops) {
                 if(ipr.degree(lp)==2) {
                     auto cc = ipr.coeff(lp,2);
@@ -305,7 +305,7 @@ namespace HepLib::IBP {
         if(cache.find(key)==cache.end()) { // no cache item
             ut1 = 1;
             for(int i=0; i<loops.nops(); i++) {
-                ft = ft.expand();
+                ft = expand(ft);
                 ft = subs_all(ft, lsubs);
                 auto t2 = ft.coeff(loops.op(i),2);
                 auto t1 = ft.coeff(loops.op(i),1);
@@ -320,7 +320,7 @@ namespace HepLib::IBP {
 
             ut2 = 1;
             for(int i=0; i<tloops.nops(); i++) {
-                ft = ft.expand();
+                ft = expand(ft);
                 ft = subs_all(ft, tsubs);
                 auto t2 = ft.coeff(tloops.op(i),2);
                 auto t1 = ft.coeff(tloops.op(i),1);
@@ -391,7 +391,7 @@ namespace HepLib::IBP {
             auto ks = uf(fi,mi.subs(F(w1,w2)==w2));
             int nk = ks.nops()-1;
             lst key;
-            for(int i=0; i<nk; i++) key.append(ks.op(i).expand());
+            for(int i=0; i<nk; i++) key.append(expand(ks.op(i)));
             return lst{ key, lst{ ks.op(nk), mi } }; // ks.op(nk) -> the sign
         }, "FR");
             

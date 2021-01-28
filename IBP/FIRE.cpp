@@ -45,7 +45,7 @@ namespace HepLib::IBP {
         
         lst eqns;
         for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
-            auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
+            auto eq = expand(Propagators.op(i)).subs(iEpsilon==0); // drop iEpsilon
             eq = eq.subs(sp2s, subs_options::algebraic);
             eq = eq.subs(Replacements, subs_options::algebraic);
             if(eq.has(iWF(w))) throw Error("FIRE::Export, iWF used in eq.");
@@ -78,7 +78,7 @@ namespace HepLib::IBP {
                 auto ns = ns0;
                 ns.let_op(i) = ns.op(i)+1; // note the covention
                 auto tmp = dp_lst.op(i) * iep;
-                tmp = tmp.expand();
+                tmp = expand(tmp);
                 tmp = tmp.subs(Replacements, subs_options::algebraic);
                 tmp = tmp.subs(sp2s, subs_options::algebraic);
                 tmp = tmp.subs(s2p, subs_options::algebraic);

@@ -536,7 +536,7 @@ namespace HepLib {
                         break;
                     }
                 }
-                ex key = pc.subs(iEpsilon==0).expand();
+                ex key = expand(pc.subs(iEpsilon==0));
                 count_ip[key] = count_ip[key]+1;
                 pnlst.append(lst{ pc, nc });
             } else pref *= item;
@@ -651,7 +651,6 @@ namespace HepLib {
         chk = normal(chk);
         if(!is_zero(chk)) throw Error("Apart@2 random check Failed.");
         
-// TODO: Delete collect_ex
         return collect_ex(res,ApartIR(w1,w2),false,false,1);
     }
     
@@ -731,42 +730,49 @@ namespace HepLib {
         lst emom = ex_to<lst>(aio.External);
         
         if(!aparted) {
+            auto ret = GiNaC_Parallel(air_vec.size(), [air_vec,lmom] (int idx) {
+                return collect_lst(air_vec[idx],lmom);
+            }, "ApartC");
+        
             exset vset;
             for(int i=0; i<air_vec.size(); i++) {
-                air_vec[i] = collect_ex(air_vec[i],lmom,false,true);
-                find(air_vec[i],coVF(w),vset);
+                auto cvs = ret[i];
+                for(auto cv : cvs) vset.insert(cv.op(1));
+                air_vec[i] = cvs;
             }
+            
             exvector vvec;
             for(auto item : vset) vvec.push_back(item);
             //sort_vec(vvec); // no need
-            auto ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
-                auto air = vvec[idx].op(0);
+            ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
+                auto air = vvec[idx];
                 air = Apart(air,lmom,emom,aio.smap);
                 return air;
             }, "Apart");
             exmap v2v;
             for(int i=0; i<vvec.size(); i++) v2v[vvec[i]] = ret[i];
             
-            MapFunction _ex2AIR([&v2v](const ex & e, MapFunction &self)->ex{
-                if(!e.has(coVF(w))) return e;
-                else if(e.match(coVF(w))) return e.subs(v2v);
-                else return e.map(self);
-            });
-            ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&_ex2AIR] (int idx) {
-                auto air = air_vec[idx];
-                air = _ex2AIR(air);
-                return air;
+            ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&v2v] (int idx) {
+                auto cvs = air_vec[idx];
+                ex res = 0;
+                for(auto cv : cvs) res += cv.op(0) * v2v[cv.op(1)];
+                return res;
             }, "ApartR");
             for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i];
         }
         
-        exset intg_set;
-        for(int i=0; i<air_vec.size(); i++) {
-            auto air = air_vec[i];
+        auto ret = GiNaC_Parallel(air_vec.size(), [air_vec] (int idx) {
+            auto air = air_vec[idx];
             air = air.subs(SP_map);
             air = ApartIRC(air);
-            air = collect_ex(air,ApartIR(w1, w2));
-            find(air, ApartIR(w1, w2), intg_set);
+            air = collect_lst(air,ApartIR(w1, w2));
+            return air;
+        }, "Col");
+        
+        exset intg_set;
+        for(int i=0; i<air_vec.size(); i++) {
+            auto air = ret[i];
+            for(auto item : air) intg_set.insert(item.op(1));
             air_vec[i] = air;
         }
         exvector intg;
@@ -901,23 +907,19 @@ namespace HepLib {
         });
         
         if(IBPmethod==0) {
-            MapFunction _A2F([&AIR2F,&int_fr,&_F2ex,&_A2F](const ex & e, MapFunction &self)->ex{
-                if(!e.has(ApartIR(w1,w2))) return e;
-                else if(e.match(ApartIR(w1,w2))) {
-                    auto air = e;
-                    air = air.subs(AIR2F);
-                    air = air.subs(int_fr.first);
-                    air = _F2ex(air);
-                    air = collect_ex(air, F(w1,w2));
-                    return air;
-                } else return e.map(self);
-            });
-        
             auto air_res =
-            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_A2F,&aio](int idx)->ex {
-                auto air =  _A2F(air_vec[idx]);
-                air = collect_ex(air,F(w1,w2),false,false,aio.mcl);
-                return air;
+            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&AIR2F,&int_fr,&_F2ex,&aio](int idx)->ex {
+                ex res = 0;
+                for(auto cv : air_vec[idx]) {
+                    auto vv = cv.op(1);
+                    vv = AIR2F[vv];
+                    vv = vv.subs(int_fr.first);
+                    vv = _F2ex(vv);
+                    vv = collect_o(vv, F(w1,w2));
+                    res += cv.op(0) * vv;
+                }
+                res = collect_o(res,F(w1,w2),aio.mcl);
+                return res;
             }, "A2F");
             
             for(auto fp : ibp_vec) delete fp;
@@ -956,26 +958,22 @@ namespace HepLib {
         for(auto item : ibp_vec_re) {
             for(auto ri : item->Rules) ibpr[ri.op(0)] = ri.op(1);
         }
-        
-        MapFunction _A2F([&AIR2F,&int_fr,&ibpr,&mi_fr,&_F2ex,&_A2F](const ex & e, MapFunction &self)->ex{
-            if(!e.has(ApartIR(w1,w2))) return e;
-            else if(e.match(ApartIR(w1,w2))) {
-                auto air = e;
-                air = air.subs(AIR2F);
-                air = air.subs(int_fr.first);
-                air = air.subs(ibpr);
-                air = air.subs(mi_fr.first);
-                air = _F2ex(air);
-                air = collect_ex(air, F(w1,w2));
-                return air;
-            } else return e.map(self);
-        });
     
         auto air_res =
-        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_A2F,&aio](int idx)->ex {
-            auto air =  _A2F(air_vec[idx]);
-            air = collect_ex(air,F(w1,w2),false,false,aio.mcl);
-            return air;
+        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&AIR2F,&int_fr,&ibpr,&mi_fr,&_F2ex,&aio](int idx)->ex {
+            ex res = 0;
+            for(auto cv : air_vec[idx]) {
+                auto vv = cv.op(1);
+                vv = AIR2F[vv];
+                vv = vv.subs(int_fr.first);
+                vv = vv.subs(ibpr);
+                vv = vv.subs(mi_fr.first);
+                vv = _F2ex(vv);
+                vv = collect_o(vv, F(w1,w2));
+                res += cv.op(0) * vv;
+            }
+            res = collect_o(res,F(w1,w2),aio.mcl);
+            return res;
         }, "A2F");
                                     
         for(auto fp : ibp_vec) delete fp;
