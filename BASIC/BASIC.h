@@ -468,7 +468,6 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Customized GiNaC Function
     /*-----------------------------------------------------*/
-    DECLARE_FUNCTION_1P(iEX)
     DECLARE_FUNCTION_1P(coCF)
     DECLARE_FUNCTION_1P(coVF)    
     DECLARE_FUNCTION_1P(x)

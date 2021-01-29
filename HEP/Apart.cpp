@@ -767,7 +767,7 @@ namespace HepLib {
             air = ApartIRC(air);
             air = collect_lst(air,ApartIR(w1, w2));
             return air;
-        }, "Col");
+        }, "CoL");
         
         exset intg_set;
         for(int i=0; i<air_vec.size(); i++) {
@@ -930,8 +930,13 @@ namespace HepLib {
         }
         
         if(IBPmethod==1) {
-            for(auto ibp : ibp_vec_re) ibp->Export();
-            auto nproc = 2*CpuCores()/FIRE::Threads;
+            GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
+                ibp_vec_re[idx]->Export();
+                return 0;
+            }, "ExPo");
+            //for(auto ibp : ibp_vec_re) ibp->Export();
+            
+            auto nproc = 3*CpuCores()/FIRE::Threads;
             int cproc = 0;
             if(nproc<2) nproc = 2;
             #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)

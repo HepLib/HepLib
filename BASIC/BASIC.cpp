@@ -833,7 +833,7 @@ namespace HepLib {
                     else ex2 += item;
                 }
                 sn = ex2;
-                symbol sss;
+                static symbol sss;
                 repl1st[pi] = sss * pow(s0, sn);
                 repl2nd[sss] = pow(s0, ex1);
             }
@@ -847,7 +847,7 @@ namespace HepLib {
         if(expr.has(sqrt(s0))) sn_lcm = lcm(sn_lcm, numeric(2));
         expr = expr.subs(repl1st);
         
-        symbol s;
+        static symbol s("s");
         if(!sn_lcm.is_integer()) throw Error("series_ex: Not integer with " + ex2str(sn_lcm));
         if(sn_lcm<0) sn_lcm = numeric(0)-sn_lcm;
         int sn = sn0 * sn_lcm.to_int();
@@ -881,6 +881,7 @@ namespace HepLib {
                     ok = true;
                     break;
                 }
+cout << "." << endl;
                 exN++;
             }
             if(!ok) throw Error("series_ex seems not working!");
@@ -911,6 +912,82 @@ namespace HepLib {
         return res;
     }
     
+    typedef vector<pair<ex,ex>> epvec_t; // first-rest, second-coeff
+    pair<ex,epvec_t> inner_expand_collect(ex const &expr_in, std::function<bool(const ex &)> has_func, int depth=0) {
+        if(!has_func(expr_in)) {
+            ex co;
+            epvec_t epv;
+            co = expr_in;
+            return make_pair(co,epv);
+        } if(is_a<add>(expr_in)) {
+            ex co = 0;
+            epvec_t epv;
+            exmap pcmap;
+            for(auto item : expr_in) {
+                if(has_func(item)) {
+                    auto co_epv = inner_expand_collect(item, has_func, depth+1);
+                    co += co_epv.first;
+                    for(auto ep : co_epv.second) pcmap[ep.first] += ep.second;
+                } else co += item;
+            }
+            for(auto kv : pcmap) {
+                if(is_zero(kv.first) || is_zero(kv.second)) continue;
+                epv.push_back(make_pair(kv.first, kv.second));
+            }
+            return make_pair(co,epv);
+        } else if(is_a<mul>(expr_in)) {
+            ex co = 1;
+            epvec_t epv;
+            for(auto item : expr_in) {
+                if(!has_func(item)) {
+                    for(auto & ep : epv) ep.second *= item;
+                    co *= item;
+                } else {
+                    exmap pcmap;
+                    auto co_epv = inner_expand_collect(item, has_func, depth+1);
+                    for(auto ep2 : co_epv.second) {
+                        pcmap[ep2.first] += ep2.second * co;
+                        for(auto ep1 : epv) pcmap[ep1.first * ep2.first] += ep1.second * ep2.second;
+                    }
+                    for(auto ep1 : epv) pcmap[ep1.first] += ep1.second * co_epv.first;
+                    co *= co_epv.first;
+                    epv.clear();
+                    for(auto kv : pcmap) {
+                        if(is_zero(kv.first) || is_zero(kv.second)) continue;
+                        epv.push_back(make_pair(kv.first, kv.second));
+                    }
+                }
+            }
+            return make_pair(co,epv);
+        } else if(is_a<power>(expr_in) && expr_in.op(1).info(info_flags::nonnegint)) {
+            ex co = 1;
+            epvec_t epv;
+            int n = ex_to<numeric>(expr_in.op(1)).to_int();
+            auto co_epv = inner_expand_collect(expr_in.op(0), has_func, depth+1);
+            for(int i=0; i<n; i++) {
+                exmap pcmap;
+                for(auto ep2 : co_epv.second) {
+                    pcmap[ep2.first] += ep2.second * co;
+                    for(auto ep1 : epv) pcmap[ep1.first * ep2.first] += ep1.second * ep2.second;
+                }
+                for(auto ep1 : epv) pcmap[ep1.first] += ep1.second * co_epv.first;
+                co *= co_epv.first;
+                epv.clear();
+                for(auto kv : pcmap) {
+                    if(is_zero(kv.first) || is_zero(kv.second)) continue;
+                    epv.push_back(make_pair(kv.first, kv.second));
+                }
+            }
+            return make_pair(co,epv);
+        } else {
+            ex co = 0;
+            epvec_t epv;
+            epv.push_back(make_pair(expr_in, 1));
+            return make_pair(co,epv);
+        }
+        throw Error("inner_expand_collect unexpected region reached.");
+    }
+    
     /**
      * @brief the expand like Mathematica
      * @param expr_in input expression
@@ -918,34 +995,9 @@ namespace HepLib {
      * @return the expanded expression
      */
     ex expand_ex(ex const &expr_in, std::function<bool(const ex &)> has_func) {
-        MapFunction _expx([&has_func](const ex & e, MapFunction & self) -> ex {
-            if(!has_func(e)) return (e.nops()>2 ? iEX(e) : e);
-            else if(!is_a<add>(e) && !is_a<mul>(e) && !(is_a<power>(e) && e.op(1).info(info_flags::nonnegint)))
-                return e;
-                        
-            ex eo = e.map(self);
-            eo = expand(eo);
-            eo = eo.subs(iEX(w)==w);
-            exmap kvs;
-            for(auto ia : add2lst(eo)) {
-                ex cc=1, vv=1;
-                for(auto im : mul2lst(ia)) {
-                    if(has_func(im)) vv *= im;
-                    else cc *= im;
-                }
-                kvs[vv] += cc;
-            }
-            ex ret;
-            for(auto kv : kvs) {
-                auto vv = kv.first;
-                auto cc = kv.second;
-                if(is_a<add>(cc)) cc = iEX(cc);
-                ret += cc * vv;
-            }
-            return ret;
-        });
-        auto ret = _expx(expr_in);
-        ret = ret.subs(iEX(w)==w);
+        auto co_epv = inner_expand_collect(expr_in, has_func, 0);
+        ex ret = co_epv.first;
+        for(auto ep : co_epv.second) ret += ep.second * ep.first;
         return ret;
     }
 
@@ -979,34 +1031,17 @@ namespace HepLib {
      * @return the collected expression in lst
      */
     lst collect_lst(ex const &expr_in, std::function<bool(const ex &)> has_func, int opt) {
-        auto items = expand_ex(expr_in, has_func);
-        items = add2lst(items);
-        ex cf = 0;
-        map<ex, ex, ex_is_less> vc_map;
-        for(auto item : items) {
-            if(!has_func(item)) cf += item;
-            else if(is_a<mul>(item)) {
-                ex tc = 1, tv = 1;
-                for(auto ii : item) {
-                    if(!has_func(ii)) tc *= ii;
-                    else tv *= ii;
-                }
-                vc_map[tv] += tc;
-            } else {
-                vc_map[item] += 1;
-            }
-        }
-        
+        auto co_epv = inner_expand_collect(expr_in, has_func);
+        ex cf = co_epv.first;
         lst res_lst;
         if(!is_zero(cf)) res_lst.append(lst{cf,1});
-        for(auto vc : vc_map) {
-            ex vv = vc.first;
-            ex cc = vc.second;
+        for(auto ep : co_epv.second) {
+            ex vv = ep.first;
+            ex cc = ep.second;
             if(opt==1) cc = exnormal(cc);
             else if(opt==2) cc = exfactor(cc);
             if(!is_zero(cc)) res_lst.append(lst{cc, vv});
         }
-        
         return res_lst;
     }
         

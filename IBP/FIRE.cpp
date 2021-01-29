@@ -192,7 +192,6 @@ namespace HepLib::IBP {
         
         // handle Cut Propagators
         if(Cuts.nops()>0) {
-            Rlst.remove_all();  // TODO: check this one
             for(auto cx : Cuts) {
                 int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cuts
                 lst ns0;
@@ -250,7 +249,6 @@ namespace HepLib::IBP {
         config << "#database db" << ProblemNumber << endl;
         if(Version>5 && pos_pref!=1) config << "#pos_pref "<< pos_pref << endl;
         if(Version==5) config << "#bucket 20" << endl;
-        if(Version>5) config << "#allIBP" << endl;
         config << "#start" << endl;
         config << "#problem " << pn << " " << ProblemNumber << ".start" << endl;
         if(PIntegrals.nops()>0) {
