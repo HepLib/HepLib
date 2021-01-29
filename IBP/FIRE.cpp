@@ -236,7 +236,6 @@ namespace HepLib::IBP {
         if(Version>5) config << "#compressor none" << endl;
         config << "#threads " << Threads << endl;
         //config << "#fthreads 4" << endl;
-        //config << "#fermat fer64" << endl;
         config << "#variables ";
         bool first = true;
         for(auto v : Variables) { 
@@ -299,7 +298,7 @@ namespace HepLib::IBP {
     void FIRE::Run() {
         ostringstream cmd;
         cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << ")";
-        if(Version>5) cmd << " -silent";
+        if(Version>5) cmd << " -silent -parallel";
         cmd << " -c " << ProblemNumber << " >/dev/null";
         system(cmd.str().c_str());
         system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());

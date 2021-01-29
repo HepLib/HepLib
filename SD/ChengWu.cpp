@@ -180,8 +180,8 @@ namespace HepLib::SD {
         for(int i=0; i<nnn; i++) {
             if(!fe.op(0).op(i).has(x(w))) continue;
             auto tmp = fe.op(0).op(i).subs(x2y).subs(y2x);
-            tmp = tmp.normal();
-            tmp = tmp.numer_denom();
+            tmp = exfactor(tmp);
+            tmp = numer_denom(tmp);
             if(tmp.op(1).subs(x(w)==1)<0) {
                 tmp.let_op(0) = ex(0)-tmp.op(0);
                 tmp.let_op(1) = ex(0)-tmp.op(1);
@@ -193,8 +193,8 @@ namespace HepLib::SD {
             }
         }
 
-        ex det = cy.normal();
-        det = det.numer_denom();
+        ex det = exfactor(cy);
+        det = numer_denom(det);
         if(det.op(1).subs(x(w)==1)<0) {
             det.let_op(0) = ex(0)-det.op(0);
             det.let_op(1) = ex(0)-det.op(1);
@@ -551,7 +551,7 @@ namespace HepLib::SD {
         auto nnn = fe.op(0).nops();
         for(int i=0; i<nnn; i++) {
             if(!fe.op(0).op(i).has(x(w))) continue;
-            auto tmp = normal(fe.op(0).op(i).subs(x2y));
+            auto tmp = exfactor(fe.op(0).op(i).subs(x2y));
             tmp = tmp.subs(y(w)==x(w));
             auto num_den = numer_denom(tmp);
             if(num_den.op(1).subs(x(w)==1)<0) {
@@ -565,7 +565,7 @@ namespace HepLib::SD {
             }
         }
 
-        inv_det = normal(inv_det.subs(y(w)==x(w)));
+        inv_det = exfactor(inv_det.subs(y(w)==x(w)));
         auto idet_num_den = numer_denom(inv_det);
         if(idet_num_den.op(1).subs(x(w)==1)<0) {
             idet_num_den.let_op(0) = ex(0)-idet_num_den.op(0);
