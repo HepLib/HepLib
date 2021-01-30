@@ -936,7 +936,7 @@ namespace HepLib {
             }, "ExPo");
             //for(auto ibp : ibp_vec_re) ibp->Export();
             
-            auto nproc = 3*CpuCores()/FIRE::Threads;
+            auto nproc = CpuCores()/FIRE::Threads;
             int cproc = 0;
             if(nproc<2) nproc = 2;
             #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)

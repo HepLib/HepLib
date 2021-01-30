@@ -928,7 +928,7 @@ namespace HepLib::SD {
                 para_res_lst.append(fe);
             }
             return para_res_lst;
-        }, "BiSec", !debug);
+        }, "BiSec");
         Verbose = verb;
 
         FunExp.clear();

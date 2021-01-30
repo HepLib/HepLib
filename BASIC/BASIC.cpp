@@ -146,6 +146,7 @@ namespace HepLib {
     const char* WarnColor = MAGENTA;
     const char* Color_HighLight = WHITE;
     
+    static int GiNaC_Parallel_Level = 0; // for the internal usage only
     /**
      * @brief GiNaC Parallel Evaluation using fork
      * @param ntotal the number of total items, 0 for non-parallel version
@@ -172,20 +173,31 @@ namespace HepLib {
         }
         
         auto ppid = getpid();
-        auto pgid = ppid;
         int para_max_run = nproc<0 ? omp_get_num_procs()-1 : nproc;
         if(para_max_run<1) para_max_run = 1;
         ostringstream cmd;
         cmd << "mkdir -p " << ppid;
         if(!dir_exists(to_string(ppid))) system(cmd.str().c_str());
         
-        if(nbatch<=0) nbatch = ntotal/para_max_run/10;
+        if(nbatch<=0) nbatch = ntotal/para_max_run/5;
         else if(nbatch > ntotal/para_max_run) nbatch = ntotal/para_max_run;
         if(nbatch<1) nbatch = 1;
         int btotal = ntotal/nbatch + ((ntotal%nbatch)==0 ? 0 : 1);
-
+        
+        bool nst = (GiNaC_Parallel_Level>0);
+        pid_t npid=0, pgid;
+        if(getpgid(0)!=ppid) { // not group leader
+            if(nst) {
+                npid = fork();
+                if(npid < 0) throw Error("GiNaC_Parallel: Error (1) @ fork()");
+                if(npid!=0) goto wait_label;
+            } // else - for case in a shell script
+            setpgid(0,0);
+        }
+        
+        pgid = getpid();
         for(int bi=0; bi<btotal; bi++) {
-            if(Verbose > 1) {
+            if(Verbose > 1 && !nst) {
                 cout << "\r                                                   \r" << pre;
                 cout << "\\--Evaluating ";
                 if(key != "") cout << Color_HighLight << key << RESET << " ";
@@ -193,17 +205,15 @@ namespace HepLib {
             }
             
             auto pid = fork();
-            if(setpgid(pid, pgid)) pgid = 1; // so -pgid to -1
-            if (pid < 0) {
-                bi--; 
-                perror("Error @ fork()");
-            }
-            if (pid != 0) {
+            if(setpgid(pid, pgid)) throw Error("GiNaC_Parallel: setgid Failed.");
+            if(pid < 0) throw Error("GiNaC_Parallel: Error (2) @ fork()");
+            if(pid != 0) {
                 if(bi+1 >= para_max_run || pid < 0) waitpid(-pgid,NULL,0);
-                continue;
-            } 
+                continue; // parent process goes next cycle
+            }
             
             // pid = 0, child process
+            GiNaC_Parallel_Level++;
             try {
                 lst res_lst;
                 for(int ri=0; ri<nbatch; ri++) {
@@ -222,17 +232,20 @@ namespace HepLib {
             exit(0);
         }
         
-        auto cpid = getpid();
-        if(cpid!=ppid) exit(0); // make sure child exit
+        if(getpid()!=pgid) exit(0); // make sure child exit
         while (waitpid(-pgid,NULL,0) != -1) { }
-        if(ntotal > 0) {
+        if(ntotal > 0 && !nst) {
             if(Verbose > 10) cout << endl;
             else if(Verbose > 1) cout << "\r                                                   \r" << flush;
         }
-
+        if(getpid()!=ppid) exit(0); // make the forked group leader exit
+        
+        wait_label:
+        if(npid!=0) waitpid(npid,NULL,0); // wait nest process to exit
+        
         vector<ex> ovec;
         for(int bi=0; bi<btotal; bi++) {
-            if(Verbose > 1) {
+            if(Verbose > 1 && !nst) {
                 if(key == "") {
                     cout << "\r                                                   \r" << pre;
                     cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
@@ -258,7 +271,7 @@ namespace HepLib {
             cmd << "rm -fr " << ppid;
             system(cmd.str().c_str());
         }
-        if(ntotal > 0) {
+        if(ntotal > 0 && !nst) {
             if(Verbose > 10) cout << endl;
             else if(Verbose > 1) cout << "\r                                                   \r" << flush;
         }

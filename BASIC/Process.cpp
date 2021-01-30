@@ -44,7 +44,7 @@ namespace HepLib {
         
         fpid = fork();
         if (fpid == 0) { // child process            
-            setpgid(0,0);
+            if(setpgid(0,0)) throw Error("setpgid failed in Fermat::Init.");
             close(P2C[1]);
             close(C2P[0]);
             dup2(C2P[1], 1);
@@ -164,7 +164,7 @@ namespace HepLib {
         
         fpid = fork();
         if (fpid == 0) {
-            setpgid(0,0);
+            if(setpgid(0,0)) throw Error("setpgid failed in Form::Init.");
             close(io[0][1]);
             close(io[1][0]);
             close(stdo[0]);
