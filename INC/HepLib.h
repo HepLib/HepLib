@@ -8,6 +8,7 @@
 #include "BASIC.h"
 #include "HEP.h"
 #include "QGRAF.h"
+#include "QCD.h"
 #include "SD.h"
 #include "IBP.h"
 

@@ -17,6 +17,9 @@
       location = "group:QGRAF">
    </FileRef>
    <FileRef
+      location = "group:QCD">
+   </FileRef>
+   <FileRef
       location = "group:IBP">
    </FileRef>
    <FileRef

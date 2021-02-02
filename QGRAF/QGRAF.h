@@ -153,44 +153,5 @@ namespace HepLib::QGRAF {
     inline ex AntiGhostSum(int qi) { return AntiGhostSumL(qi); };
     inline ex J1Sum(int qi, ex p) { return J1SumL(qi,p); };
         
-    /**
-     * @brief namespace for functions helpful in Heavy Quarkonium
-     */
-    namespace Quarkonium {
-        enum IO {In, Out};
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu);
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu);
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j);
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, int i, int j);
-        ex ColorProj(int i, int j, Index a);
-        ex ColorProj(int i, int j);
-        
-        ex S1L1Proj(ex si, ex qi, ex p);
-        ex S1L1Proj(ex si, ex qi, ex mu, ex p);
-        ex S1L1Proj(ex si, ex qi, ex mu1, ex mu2, ex p);
-        ex S1L2Proj(ex si, ex qi1, ex qi2, ex mu, ex p);
-        ex S1L2Proj(ex si, ex qi1, ex qi2, ex mu1, ex mu2, ex p);
-        ex S1L1Sum(ex si, ex siR, ex qi, ex qiR, ex p, int J);
-        
-        ex LProj(const ex &expr_in, const lst &pqi, string prefix="lpj");
-        
-        ex Gamma5(const string pre, int start=1);
-        
-        ex DoPS(lst moms, ex amp, int si=-1, ex q2=1);
-        ex nPS(int n, ex q2=1);
-    }
-    
-    /**
-     * @brief namespace for Renormalization Constant
-     */
-    namespace RC {
-        ex Z2(string name, ex m, int loop=2);
-        ex Z2(Symbol n, ex m, int loop=2);
-        ex Zm(ex m, int loop=2);
-        ex asBare(int loop=2);
-        ex asLO();
-        ex Zas(int loop);
-    }
-        
 }
 

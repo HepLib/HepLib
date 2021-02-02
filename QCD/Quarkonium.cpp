@@ -2,11 +2,11 @@
  * @file
  * @brief Helpers for Quarkonium
  */
- 
-#include "QGRAF.h"
+
+#include "QCD.h"
 #include "SD.h"
 
-namespace HepLib::QGRAF {
+namespace HepLib::QCD {
 
     //-----------------------------------------------------------
     // Quarkonium Class

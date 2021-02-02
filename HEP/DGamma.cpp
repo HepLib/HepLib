@@ -111,12 +111,12 @@ namespace HepLib {
     }
     
     void DGamma::form_print(const FormFormat &c, unsigned level) const {
-        c << "g_(" << rl;
-        if(!is_zero(pi-1)) {
-            c << "," << pi;
-            if(is_a<numeric>(pi)) c << "_"; // 5_, 6_, 7_ in form
-        }
-        c << ")";
+        if(!is_a<numeric>(pi)) c << "g_(" << rl << "," << pi << ")";
+        else if(!is_zero(pi-1)) c << "gi_(" << rl << ")";
+        else if(!is_zero(pi-5)) c << "g5_(" << rl << ")";
+        else if(!is_zero(pi-6)) c << "g6_(" << rl << ")";
+        else if(!is_zero(pi-7)) c << "g7_(" << rl << ")";
+        throw Error("DGamma::form_print unexpected region.");
     }
     
     void DGamma::fc_print(const FCFormat &c, unsigned level) const {
