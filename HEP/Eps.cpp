@@ -70,10 +70,18 @@ namespace HepLib {
         c.s << pis[3] << ")";
     }
     
+    /**
+     * @brief LC in FORM format
+     * to make Tr(g5, g1, g2, g3, g4) is the same in both HepLib & FORM, require that
+     * LC(a,b,c,d) = i_ * e_(a,b,c,d) ( we use the convention as in FeynCalc, Tr[5,1,2,3,4]=(- i) 4 LC[1,2,3,4])
+     * LC is real in HepLib, while e_ is imaginary in FORM.
+     * @param c the FormFormat
+     * @param level the level
+     */
     void Eps::form_print(const FormFormat &c, unsigned level) const {
-        c << "e_(";
+        c << "(i_*e_(";
         for(int i=0; i<3; i++) c << pis[i] << ",";
-        c << pis[3] << ")";
+        c << pis[3] << "))";
     }
     
     void Eps::fc_print(const FCFormat &c, unsigned level) const {

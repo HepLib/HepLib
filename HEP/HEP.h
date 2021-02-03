@@ -258,6 +258,9 @@ namespace HepLib {
     
     /**
      * @brief class for Levi-Civita object
+     * to make Tr(g5, g1, g2, g3, g4) is the same in both HepLib & FORM, require that
+     * LC(a,b,c,d) = i_ * e_(a,b,c,d) ( we use the convention as in FeynCalc, Tr[5,1,2,3,4]=(- i) 4 LC[1,2,3,4])
+     * LC is real in HepLib, while e_ is imaginary in FORM.
      */
     class Eps : public basic {
     GINAC_DECLARE_REGISTERED_CLASS(Eps, basic)

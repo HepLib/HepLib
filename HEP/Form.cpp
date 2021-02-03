@@ -17,7 +17,7 @@ namespace HepLib {
         }
         
         alignas(2) static ex LC_reader(const exvector& ev) {
-            return LC(ev[0], ev[1], ev[2], ev[3]);
+            return (-I)*LC(ev[0], ev[1], ev[2], ev[3]);
         }
         
         alignas(2) static ex SUNT_reader(const exvector& ev) {

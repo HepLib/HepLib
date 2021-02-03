@@ -147,7 +147,7 @@ namespace HepLib {
     
     ex DGamma::conjugate() const {
         if(is_a<Index>(pi) || is_a<Vector>(pi)) return *this;
-        else if(is_zero(pi-5)) return -1*DGamma(5, rl);
+        else if(is_zero(pi-5)) return (-1)*DGamma(5, rl);
         else if(is_zero(pi-6)) return DGamma(7, rl);
         else if(is_zero(pi-7)) return DGamma(6, rl);
         else if(is_zero(pi-1)) return DGamma(1, rl);
