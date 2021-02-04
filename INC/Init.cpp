@@ -7,6 +7,7 @@
 #include "BASIC.h"
 #include "HEP.h"
 #include "QGRAF.h"
+#include "QCD.h"
 #include "IBP.h"
 #include "SD.h"
 #include <cstdlib>
@@ -221,6 +222,9 @@ namespace HepLib {
     }
     _global_init::_init _global_init::init_object;
     
+    // QCD::FF
+    int QCD::FF::cur_mode = 0; // 0 - gluon, 1 - quark, 2 - anti-quark
+    
 }
 
 std::string HepLib::QGRAF::Process::Style = R"EOF(
@@ -246,4 +250,42 @@ std::string HepLib::QGRAF::Process::Style = R"EOF(
 
 <exit>
 
+)EOF";
+
+std::string HepLib::QCD::FF::GluonModel = R"EOF(
+[ model = 'Gluon FF Model' ]
+[q, qbar, -]
+[Q, Qbar, -]
+[gh, ghbar, -]
+[g, g, +, notadpole]
+[e, e, +, external]
+[n, nbar, +]
+[qbar, q, g; QCD='+1']
+[Qbar, Q, g; QCD='+1']
+[g, g, g, g; QCD='+2']
+[g, g, g; QCD='+1']
+[ghbar, gh, g; QCD='+1']
+[nbar, n, g; QCD='+1']
+[nbar, e, g; QCD='+0']
+%[n, e, g; QCD='+0']
+)EOF";
+
+std::string HepLib::QCD::FF::QuarkModel = R"EOF(
+[ model = 'Quark FF Model' ]
+[q, qbar, -]
+[Q, Qbar, -]
+[e, ebar, -, external]
+[gh, ghbar, -]
+[g, g, +, notadpole]
+[n, nbar, +]
+[qbar, q, g; QCD='+1']
+[Qbar, Q, g; QCD='+1']
+[g, g, g, g; QCD='+2']
+[g, g, g; QCD='+1']
+[ghbar, gh, g; QCD='+1']
+[nbar, n, g; QCD='+1']
+[qbar, e, nbar; QCD='0']
+[ebar, q, nbar; QCD='0']
+[Qbar, e, nbar; QCD='0']
+[ebar, Q, nbar; QCD='0']
 )EOF";

@@ -127,11 +127,6 @@ namespace HepLib::QGRAF {
     ex GluonFFV(ex e, ex n);
     ex QuarkFFV(ex e, ex n);
     
-    ex eikonalPropagator(ex e, ex n, int mode); // 0 for gluon, others for quark/anti-quark
-    ex eikonalPropagatorR(ex e, ex n, int mode); // right side from cut
-    ex eikonalVertex(ex e, ex n, int mode); // 0 for gluon, 1 for quark, 2 for anti-quark, in<0 & out>0
-    ex eikonalVertexR(ex e, ex n, int mode); // right side from cut
-        
     ex GluonSumL(int qi, bool color=true);
     ex QuarkSumL(int qi, ex p, ex m, bool color=true);
     ex AntiQuarkSumL(int qi, ex p, ex m, bool color=true);

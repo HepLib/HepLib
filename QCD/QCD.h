@@ -18,6 +18,11 @@ namespace HepLib::QCD {
     using namespace HepLib;
     using namespace QGRAF;
     
+    ex Gamma5(const string pre, int start=1);
+    ex Anti5R(const ex & expr);
+    ex DoPS(lst moms, ex amp, int si=-1, ex q2=1);
+    ex nPS(int n, ex q2=1);
+    
     /**
      * @brief namespace for functions helpful in Heavy Quarkonium
      */
@@ -38,11 +43,6 @@ namespace HepLib::QCD {
         ex S1L1Sum(ex si, ex siR, ex qi, ex qiR, ex p, int J);
         
         ex LProj(const ex &expr_in, const lst &pqi, string prefix="lpj");
-        
-        ex Gamma5(const string pre, int start=1);
-        
-        ex DoPS(lst moms, ex amp, int si=-1, ex q2=1);
-        ex nPS(int n, ex q2=1);
     }
     
     /**
@@ -61,9 +61,25 @@ namespace HepLib::QCD {
      * @brief namespace for Fragmentation Function
      */
     namespace FF {
-        ex Anti5R(const ex & expr);
-        ex zIntFactor(int mode, int tls, const ex SF=1);
+    
+        extern int cur_mode;
+        extern string GluonModel;
+        extern string QuarkModel;
+        
+        ex eikonalPropagator(ex e, ex n, int mode=cur_mode);
+        ex eikonalPropagatorR(ex e, ex n, int mode=cur_mode); // right side from cut
+        ex eikonalVertex(ex e, ex n, int mode=cur_mode); // 0 for gluon, 1 for quark, 2 for anti-quark
+        ex eikonalVertexR(ex e, ex n, int mode=cur_mode); // right side from cut
+        ex FeynRules(const ex & amp, int mode=cur_mode);
+        lst FeynRules(const lst & amps, int mode=cur_mode);
+        ex eSUM(int mode=cur_mode);
+        
+        ex zIntFactor(int tls, const ex SF=1, int mode=cur_mode);
         ex zIntegrate(const ex & c1, const ex & c0, const ex & n, const ex k2=0, const ex& p2=pow(Symbol("m"),2));
+        
+        
+        
+        
     }
 }
 
