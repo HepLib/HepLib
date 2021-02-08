@@ -192,10 +192,12 @@ namespace HepLib {
                 if(npid < 0) throw Error("GiNaC_Parallel: Error (1) @ fork()");
                 if(npid!=0) goto wait_label;
             } // else - for case in a shell script
-            setpgid(0,0);
+            if(setpgid(0,0)) {
+                if(setpgid(0,0)) throw Error("GiNaC_Parallel: setpgid(0,0) Failed.");
+            }
         }
         
-        pgid = getpid();
+        pgid = getpid(); // should be groud leader @ here
         for(int bi=0; bi<btotal; bi++) {
             if(Verbose > 1 && !nst) {
                 cout << "\r                                                   \r" << pre;
@@ -205,8 +207,10 @@ namespace HepLib {
             }
             
             auto pid = fork();
-            if(setpgid(pid, pgid)) throw Error("GiNaC_Parallel: setgid Failed.");
             if(pid < 0) throw Error("GiNaC_Parallel: Error (2) @ fork()");
+            if(pid==0 && setpgid(0, pgid)!=0) {
+                if(setpgid(0, pgid)) throw Error("GiNaC_Parallel: setpgid(0, pgid) Failed.");
+            }
             if(pid != 0) {
                 if(bi+1 >= para_max_run || pid < 0) waitpid(-pgid,NULL,0);
                 continue; // parent process goes next cycle

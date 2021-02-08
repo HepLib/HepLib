@@ -4,6 +4,7 @@
  */
  
 #include "QCD.h"
+#include "SD.h"
 
 namespace HepLib::QCD {
 
@@ -11,6 +12,39 @@ namespace HepLib::QCD {
     // FF namespace for Fragmentation Function
     //-----------------------------------------------------------
     namespace FF {
+        
+        /**
+         * @brief Feyman Parameterization, without zIntFactor
+         * @param ls loop lst
+         * @param tls tloop lst
+         * @param ps propagator lst
+         * @param ns exponent lst
+         * @param lr loop replacement
+         * @param tlr tLoop replacement
+         * @param nr numeric replacement
+         * @return Feyman Parameterization
+         */
+        ex FeynParameterize(const lst & ls, const lst & tls, const lst & ps, const lst & ns, const lst & lr, const lst & tlr, const lst & nr) {
+        
+            SD::FeynmanParameter fp;
+            fp.LoopMomenta = ex_to<lst>(ls);
+            fp.tLoopMomenta = ex_to<lst>(tls);
+            fp.Propagators = ex_to<lst>(ps);
+            fp.Exponents = ex_to<lst>(ns);
+            
+            for(auto vv : lr) fp.lReplacements[vv.op(0)] = vv.op(1);
+            for(auto vv : tlr) fp.tReplacements[vv.op(0)] = vv.op(1);
+            for(auto vv : nr) fp.nReplacements[vv.op(0)] = vv.op(1);
+                        
+            SD::SecDec work;
+            work.Initialize(fp);
+            
+            ex ret = 0;
+            for(auto fe : work.FunExp) {
+                ret += WF(fe.op(0),fe.op(1),fe.op(3));
+            }
+            return ret;
+        }
     
         /**
          * @brief Eikonal Propagator, left side w.r.t cutting line

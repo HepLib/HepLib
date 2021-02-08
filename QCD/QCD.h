@@ -77,7 +77,7 @@ namespace HepLib::QCD {
         ex zIntFactor(int tls, const ex SF=1, int mode=cur_mode);
         ex zIntegrate(const ex & c1, const ex & c0, const ex & n, const ex k2=0, const ex& p2=pow(Symbol("m"),2));
         
-        
+        ex FeynParameterize(const lst & ls, const lst & tls, const lst & ps, const lst & ns, const lst & lr, const lst & tlr, const lst & nr);
         
         
     }
