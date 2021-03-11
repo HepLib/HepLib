@@ -66,6 +66,9 @@ namespace HepLib::QCD {
         extern string GluonModel;
         extern string QuarkModel;
         
+        ex GluonFFV(ex e, ex n);
+        ex QuarkFFV(ex e, ex n);
+        
         ex eikonalPropagator(ex e, ex n, int mode=cur_mode);
         ex eikonalPropagatorR(ex e, ex n, int mode=cur_mode); // right side from cut
         ex eikonalVertex(ex e, ex n, int mode=cur_mode); // 0 for gluon, 1 for quark, 2 for anti-quark

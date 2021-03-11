@@ -332,6 +332,10 @@ namespace HepLib {
         
     ex expand_ex(const ex &expr, std::function<bool(const ex &)>);
     
+    inline ex expand_ex(const ex &expr) {
+        return expand_ex(expr, [](const ex & e)->bool{ return true; });
+    }
+    
     inline ex expand_ex(ex const &expr, lst const &pats) {
         return expand_ex(expr, [pats](const ex & e)->bool {
             for(auto pat : pats) { if(e.has(pat)) return true; }

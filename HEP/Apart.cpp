@@ -209,7 +209,7 @@ namespace HepLib {
                 ss.str("");
 
                 // make sure last char is 0
-                if(ostr[ostr.length()-1]!='0') throw Error("TIR: last char is NOT 0.");
+                if(ostr[ostr.length()-1]!='0') throw Error("Apart: last char is NOT 0.");
                 ostr = ostr.substr(0, ostr.length()-1);
                 string_trim(ostr);
                 

@@ -44,7 +44,7 @@ namespace HepLib::IBP {
             auto cpos = expr.find("*");
             if(cpos==string::npos) {
                 if(expr=="0") return 0;
-                throw Error("KIRA::Fin with 0 or * NOT Found.");
+                throw Error("UKIRA::Fin with 0 or * NOT Found.");
             }
             auto wstr = expr.substr(0,cpos);
             unsigned long long weight = stoull(wstr,NULL,0);
@@ -98,7 +98,7 @@ namespace HepLib::IBP {
             leqns.append(eq == iWF(i));
         }
         auto s2p = lsolve(leqns, ss);
-        if(s2p.nops() != ISP.nops()) throw Error("KIRA::Export: lsolve failed.");
+        if(s2p.nops() != ISP.nops()) throw Error("UKIRA::Export: lsolve failed.");
         
         if(DSP.nops()<1) {
             for(auto p1 : Internal)
@@ -449,7 +449,7 @@ namespace HepLib::IBP {
                 exL -= Fin(line);
                 if(!exL.match(F(w1,w2))) {
                     cout << line << endl;
-                    throw Error("KIRA::Import error found.");
+                    throw Error("UKIRA::Import error found.");
                 }
             } else {
                 exR += Fin(line);

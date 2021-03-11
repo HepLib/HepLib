@@ -124,8 +124,6 @@ namespace HepLib::QGRAF {
     
     ex IndexL2R(ex e, bool all=true);
     ex IndexCC(ex e, bool all=true);
-    ex GluonFFV(ex e, ex n);
-    ex QuarkFFV(ex e, ex n);
     
     ex GluonSumL(int qi, bool color=true);
     ex QuarkSumL(int qi, ex p, ex m, bool color=true);

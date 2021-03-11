@@ -183,6 +183,7 @@ namespace HepLib {
     const Symbol IBP::d("d");
     int IBP::FIRE::Version = 6;
     int IBP::FIRE::Threads = 4;
+    exmap IBP::MapPreSP;
     
     string IBP::UKIRA::KArgs = "";
     string IBP::KIRA::KArgs = "";

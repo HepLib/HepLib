@@ -213,6 +213,7 @@ namespace HepLib::IBP {
         ft = ft.subs(x2ax);
         uf = uf.subs(x2ax);
         
+        uf = uf.subs(MapPreSP);
         auto xRepl = SortPermutation(uf,xs);
         for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
         ut = (ut.subs(xRepl));
@@ -347,6 +348,7 @@ namespace HepLib::IBP {
         ft = ft.subs(x2ax);
         uf = uf.subs(x2ax);
         
+        uf = uf.subs(MapPreSP);
         lst xRepl = SortPermutation(uf,xs);
         for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
         uf = uf.subs(xRepl);

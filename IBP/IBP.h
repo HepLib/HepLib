@@ -116,6 +116,34 @@ namespace HepLib::IBP {
         map<unsigned long long,ex> w2i;
     };
     
+    /**
+     * @brief IBP reduction using Direc method
+     */
+    class Direct : public Base {
+    public:
+        class Condition {
+        public:
+            vector<pair<int,int>> cs; // (1st==-1 for <=, 1st==1 for >=, 1st==0 for ==) 2nd
+            inline bool IsOK(ex ns) {
+                if(ns.nops() != cs.size()) return false;
+                for(int i=0; i<cs.size(); i++) {
+                    if(cs[i].first==-1 && ns.op(i)>cs[i].second) return false;
+                    else if(cs[i].first==1 && ns.op(i)<cs[i].second) return false;
+                    else if(cs[i].first==0 && !ns.op(i).is_equal(cs[i].second)) return false;
+                }
+                return true;
+            }
+        };
+        
+        void Export() override;
+        void Run() override;
+        void Import() override;
+        
+    private:
+        lst ibps;
+        vector<pair<Condition,ex>> ConSolVec; // the conditional solution vector
+    };
+    
     class Laporta : public Base {
     
     public:
@@ -148,6 +176,7 @@ namespace HepLib::IBP {
         
      };
     
+    extern exmap MapPreSP;
     lst SortPermutation(const ex & in_expr, const lst & xs);
     lst LoopUF(const Base & fire, const ex & corner);
     lst UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs);
