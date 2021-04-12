@@ -223,237 +223,31 @@ namespace HepLib::IBP {
         }
         
         // all sectors
+        auto ibps_o = ibps;
+        ibps.remove_all();
+        for(auto ibp : ibps_o) {
+            for(int s=-1; s<=1; s++) {
+                ibps.append(ibp.subs(a(w)==a(w)+s));
+            }
+        }
         
-        
-//        ConSolVec.clear();
-//        exset fset;
-//        find(ibps,F(w),fset);
-//        long long ltot = std::pow(2L,pdim); // see below
-//        for(long long int li=0; li<ltot; li++) {
-//            auto cli = li;
-//            vector<int> csec; // 0: a[i]<0, 1: a[i]>0
-//            for(int i=0; i<pdim; i++) {
-//                csec.push_back(cli % 2);
-//                cli /= 2;
-//            }
-//            map<int,exvector> sum_fs;
-//
-//            for(auto fi : fset) {
-//                int sum = 0;
-//                auto ns = fi.op(0).subs(a(w)==0);
-//                for(int i=0; i<pdim; i++) {
-//                    auto ni = ns.op(i);
-//                    if(csec[i]==0) sum -= ex2int(ni); // a[i]<0
-//                    else if(csec[i]==1) sum += ex2int(ni); // a[i]>0
-//                }
-//                sum_fs[sum].push_back(fi);
-//            }
-//
-//            lst sum_tot;
-//            for(auto kv : sum_fs) sum_tot.append(lst{kv.first, kv.second.size()});
-//            sort_lst(sum_tot,false);
-//
-//            matrix mat(ibps.nops(), fset.size());
-//            exvector fvec;
-//            int ccol = 0;
-//            for(auto st : sum_tot) {
-//                auto fs = sum_fs[ex2int(st.op(0))];
-//                sort_vec(fs);
-//                for(int cc=0; cc<fs.size(); cc++) {
-//                    fvec.push_back(fs[cc]);
-//                    int row = 0;
-//                    for(auto ibp : ibps) {
-//                        mat(row,ccol+cc) = ibp.coeff(fs[cc]);
-//                        row++;
-//                    }
-//                }
-//                ccol += fs.size();
-//            }
-//
-//            auto mr = RowReduce(mat);
-//mout << endl << mr << endl << fvec << endl;
-//            for(int r=0; r<mat.rows(); r++) {
-//                int c1 = -1, c = -1;
-//                for(auto ti : sum_tot) {
-//                    int ct = ex2int(ti.op(1));
-//                    for(int k=0; k<ct; k++) {
-//                        c++;
-//                        if(mr(r,c).is_zero()) continue;
-//                        else if(c1==-1) c1=c;
-//                        else goto next_row;
-//                    }
-//                    if(c1!=-1) {
-//                        ex sol = 0;
-//                        for(int ci=c1+1; ci<mat.cols(); ci++) sol -= mr(r,ci)/mr(r,c1)*fvec[ci];
-//                        auto ns0 = fvec[c1].op(0).subs(a(w)==0);
-//                        exmap aSH;
-//                        for(int i=0; i<ns0.nops(); i++) {
-//                            if(!ns0.op(i).is_zero()) aSH[a(i)]=a(i)-ns0.op(i);
-//                        }
-//                        sol = sol.subs(aSH);
-//
-//                        exset fs;
-//                        find(sol,F(w),fs);
-//                        vector<vector<int>> fns;
-//                        for(auto fi : fs) {
-//                            fi = fi.subs(a(w)==0);
-//                            vector<int> ns;
-//                            for(auto it : fi.op(0)) ns.push_back(0-ex2int(it));
-//                            fns.push_back(ns);
-//                        }
-//                        Condition cond;
-//                        for(int i=0; i<csec.size(); i++) {
-//                            if(csec[i]==0) cond.cs.push_back(make_pair(-1,0));
-//                            else cond.cs.push_back(make_pair(1,1));
-//                        }
-//
-//for(int i=0; i<cond.cs.size(); i++) {
-//    cout << cond.cs[i].first << ":" << cond.cs[i].second;
-//    if(i==cond.cs.size()-1) cout << endl;
-//    else cout << ", ";
-//}
-//cout << sol << endl << endl;
-//                        ConSolVec.push_back(make_pair(cond,sol));
-//                        goto next_row;
-//                    }
-//                }
-//                next_row: ;
-//            }
-//        }
-
-
-        
-//        ConSolVec.clear();
-//        exset fset;
-//        find(ibps,F(w),fset);
-//        long long ltot = std::pow(2L,pdim); // see below
-//        for(long long int li=0; li<ltot; li++) {
-//            auto cli = li;
-//            vector<int> csec; // 0: a[i]<0, 1: a[i]>0
-//            for(int i=0; i<pdim; i++) {
-//                csec.push_back(cli % 2);
-//                cli /= 2;
-//            }
-//            map<int,exvector> sum_fs;
-//
-//            for(auto fi : fset) {
-//                int sum = 0;
-//                auto ns = fi.op(0).subs(a(w)==0);
-//                for(int i=0; i<pdim; i++) {
-//                    auto ni = ns.op(i);
-//                    if(csec[i]==0) sum -= ex2int(ni); // a[i]<0
-//                    else if(csec[i]==1) sum += ex2int(ni); // a[i]>0
-//                }
-//                sum_fs[sum].push_back(fi);
-//            }
-//
-//            lst sum_tot;
-//            for(auto kv : sum_fs) sum_tot.append(lst{kv.first, kv.second.size()});
-//            sort_lst(sum_tot,false);
-//
-//            matrix mat(ibps.nops(), fset.size());
-//            exvector fvec;
-//            int ccol = 0;
-//            for(auto st : sum_tot) {
-//                auto fs = sum_fs[ex2int(st.op(0))];
-//                sort_vec(fs);
-//                for(int cc=0; cc<fs.size(); cc++) {
-//                    fvec.push_back(fs[cc]);
-//                    int row = 0;
-//                    for(auto ibp : ibps) {
-//                        mat(row,ccol+cc) = ibp.coeff(fs[cc]);
-//                        row++;
-//                    }
-//                }
-//                ccol += fs.size();
-//            }
-//
-//            auto mr = RowReduce(mat);
-//            for(int r=0; r<mat.rows(); r++) {
-//                int c1 = -1, c = -1;
-//                for(auto ti : sum_tot) {
-//                    int ct = ex2int(ti.op(1));
-//                    for(int k=0; k<ct; k++) {
-//                        c++;
-//                        if(mr(r,c).is_zero()) continue;
-//                        else if(c1==-1) c1=c;
-//                        else goto next_row;
-//                    }
-//                    if(c1!=-1) {
-//                        ex sol = 0;
-//                        for(int ci=c1+1; ci<mat.cols(); ci++) sol -= mr(r,ci)/mr(r,c1)*fvec[ci];
-//                        auto ns0 = fvec[c1].op(0).subs(a(w)==0);
-//                        exmap aSH;
-//                        for(int i=0; i<ns0.nops(); i++) {
-//                            if(!ns0.op(i).is_zero()) aSH[a(i)]=a(i)-ns0.op(i);
-//                        }
-//                        sol = sol.subs(aSH);
-//
-//                        exset fs;
-//                        find(sol,F(w),fs);
-//                        vector<vector<int>> fns;
-//                        for(auto fi : fs) {
-//                            fi = fi.subs(a(w)==0);
-//                            vector<int> ns;
-//                            for(auto it : fi.op(0)) ns.push_back(0-ex2int(it));
-//                            fns.push_back(ns);
-//                        }
-//                        Condition cond;
-//                        for(int i=0; i<csec.size(); i++) {
-//                            if(csec[i]==0) {
-//                                int min = 0;
-//                                for(auto ns : fns) {
-//                                    if(ns[i]<min) min = ns[i];
-//                                }
-//                                cond.cs.push_back(make_pair(-1,min));
-//                            } else {
-//                                int max = 0;
-//                                for(auto ns : fns) {
-//                                    if(ns[i]>max) max = ns[i];
-//                                }
-//                                cond.cs.push_back(make_pair(1,max));
-//                            }
-//                        }
-//
-//for(int i=0; i<cond.cs.size(); i++) {
-//    cout << cond.cs[i].first << ":" << cond.cs[i].second;
-//    if(i==cond.cs.size()-1) cout << endl;
-//    else cout << ", ";
-//}
-//cout << sol << endl << endl;
-//                        ConSolVec.push_back(make_pair(cond,sol));
-//                        goto next_row;
-//                    }
-//                }
-//                next_row: ;
-//            }
-//        }
-
-
-        ConSolVec.clear();
         long long ltot = std::pow(3L,pdim); // see below
-        for(long long int li=0; li<ltot; li++) {
+        auto ret = GiNaC_Parallel(ltot, [&](int idx)->ex {
+            lst res;
+            auto li = idx;
             auto cli = li;
             vector<int> csec;
             lst cibps = ibps;
             for(int i=0; i<pdim; i++) {
                 auto im = (cli % 3)-1;
-                if(im==0) {
-                    auto ts = cibps;
-                    cibps.remove_all();
-                    for(auto ibp : ts) {
-                        cibps.append(subs(ibp,a(i)==-2));
-                        cibps.append(subs(ibp,a(i)==-1));
-                        cibps.append(subs(ibp,a(i)==0));
-                        cibps.append(subs(ibp,a(i)==1));
-                        cibps.append(subs(ibp,a(i)==2));
-                    }
-                }
+                if(im==0) cibps = ex_to<lst>(subs(cibps,a(i)==0));
                 csec.push_back(im);
                 cli /= 3;
             }
+            cibps.sort();
+            cibps.unique();
             map<int,exvector> sum_fs;
-
+            
             exset fset;
             find(cibps,F(w),fset);
 
@@ -524,13 +318,13 @@ namespace HepLib::IBP {
                         Condition cond;
                         for(int i=0; i<csec.size(); i++) {
                             if(csec[i]==-1) {
-                                int min = 0;
+                                int min = 100000;
                                 for(auto ns : fns) {
                                     if(ns[i]<min) min = ns[i];
                                 }
                                 cond.cs.push_back(make_pair(-1,min));
                             } else if(csec[i]==1) {
-                                int max = 0;
+                                int max = -100000;
                                 for(auto ns : fns) {
                                     if(ns[i]>max) max = ns[i];
                                 }
@@ -539,34 +333,36 @@ namespace HepLib::IBP {
                                 cond.cs.push_back(make_pair(0,ex2int(ns0.op(i))));
                             }
                         }
-        
-if(cond.cs[2].first==0 && cond.cs[2].second==1) {
-for(int i=0; i<cond.cs.size(); i++) {
-    cout << cond.cs[i].first << ":" << cond.cs[i].second;
-    if(i==cond.cs.size()-1) cout << endl;
-    else cout << ", ";
-}
-cout << sol << endl << endl;
-}
 
-                        ConSolVec.push_back(make_pair(cond,sol));
+                        res.append(lst{cond.cs2ex(),sol});
                         goto next_row;
                     }
                 }
                 next_row: ;
             }
-        }
+            return res;
+        }, "IBP");
         
-        
-        
+        ConSolVec.clear();
+        for(auto its : ret) {
+        for(auto item : its) {
+            Condition cond;
+            cond.ex2cs(item.op(0));
+            ConSolVec.push_back(make_pair(cond,item.op(1)));
+        }}
         
     }
+        
+        
+        
+    
     
     /**
      * @brief invoke kira program for reduction
      */
     void Direct::Run() {
     
+        // improve here, try by level
         exmap sols;
         auto intgs = Integrals;
         while(true) {
@@ -577,12 +373,13 @@ cout << sol << endl << endl;
                     if(cs.first.IsOK(intg)) {
                         exmap as;
                         for(int i=0; i<intg.nops(); i++) as[a(i)] = intg.op(i);
-                        try{ // improve here
-                            if(numer_denom_fermat(cs.second).op(1).subs(as).is_zero()) continue;
+                        try { // improve here
+                            //if(numer_denom(cs.second).op(1).subs(as).is_zero()) continue;
                             auto sol = cs.second.subs(as);
                             find(sol, F(w), fs);
                             sols[F(intg)] = sol;
-                        } catch(...) { cout << "err" << endl; }
+                            break;
+                        } catch(...) { }
                     }
                 }
             }
@@ -590,26 +387,37 @@ cout << sol << endl << endl;
             for(auto fi : fs) intgs.append(fi.op(0));
             if(intgs.nops()<1) break;
         }
-        
-cout << endl << "sols=" << sols << endl << endl;
-        
+                
         // subs by level
-        //for(auto sol : sols)
+        map<int,exmap> lvl_sol;
+        lst lvls;
+        for(auto sol : sols) {
+            ex sum = 0;
+            for(auto ni : sol.first.op(0)) sum += (ni<0 ? -ni : ni);
+            lvl_sol[ex2int(sum)][sol.first] = sol.second;
+            lvls.append(ex2int(sum));
+        }
+        lvls.sort();
+        lvls.unique();
+        sort_lst(lvls);
+
+        for(int i=0; i<lvls.nops(); i++) {
+            int si = ex2int(lvls.op(i));
+            for(auto kv : lvl_sol[si]) {
+            for(int j=0; j<i; j++) {
+                int sj = ex2int(lvls.op(j));
+                lvl_sol[si][kv.first] = kv.second.subs(lvl_sol[sj]);
+            }}
+        }
                 
         for(auto intg : Integrals) {
             ex fi = F(intg);
-            while(true) {
-                ex fiR = collect_o(fi.subs(sols),F(w),1);
-                if(fi.is_equal(fiR)) break;
-                fi = fiR;
-                cout << "." << flush;
-            }
-            cout << endl << endl;
+            ex sum = 0;
+            for(auto ni : fi.op(0)) sum += (ni<0 ? -ni : ni);
+            fi = fi.subs(lvl_sol[ex2int(sum)]);
             Rules.append(F(intg)==fi);
         }
         
-        
-        cout << Rules << endl;
     }
 
     /**

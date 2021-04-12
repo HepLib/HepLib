@@ -779,7 +779,7 @@ static int rulecubature(rule *r, unsigned fdim,
                 if(ok) break;
                 REAL err_left = 0;
                 for (j = 0; j < fdim; ++j) err_left += ee[j].err;
-                ok = err_left <= 0.5 * err_sum;
+                ok = (err_left <= 0.5Q * err_sum);
                 if(ok && nR > 10) break;
             }
             
@@ -801,7 +801,7 @@ static int rulecubature(rule *r, unsigned fdim,
                     if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);
                     goto done;
                 }
-                if(PrintHooker!=NULL && (xmin<1E-8 || (numEval-runs)>runEval)) {
+                if(PrintHooker!=NULL && (xmin<1E-8Q || (numEval-runs)>runEval)) {
                     if((numEval-runs)>runEval) runs = numEval;
                     PrintHooker(val, err, &numEval, fdata);
                 }
@@ -834,7 +834,7 @@ static int rulecubature(rule *r, unsigned fdim,
                     if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);
                     goto done;
                 }
-                if(PrintHooker!=NULL && (xmin<1E-8 || (numEval-runs)>runEval)) {
+                if(PrintHooker!=NULL && (xmin<1E-8Q || (numEval-runs)>runEval)) {
                     if((numEval-runs)>runEval) runs = numEval;
                     PrintHooker(val, err, &numEval, fdata);
                 }

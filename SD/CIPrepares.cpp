@@ -1172,6 +1172,9 @@ namespace HepLib::SD {
             ar.archive_ex(gar_res, "res");
             ar.archive_ex(19790923, "c");
             ar.archive_ex(FT_N_XN, "ftnxn");
+            ar.archive_ex(soLimit,"soLimit");
+            ar.archive_ex(epN,"epN");
+            ar.archive_ex(epsN,"epsN");
             ofstream out(garfn.str());
             out << ar;
             out.close();
@@ -1190,19 +1193,19 @@ namespace HepLib::SD {
         }
         
         int res_size = res.size();
-        if(GccLimit<100) GccLimit = 100;
-        if(res_size>GccLimit) {
+        if(soLimit<100) soLimit = 100;
+        if(res_size>soLimit) {
             cmd.clear();
             cmd.str("");
             cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp";
             if(hasF) cmd << " " << fsofn.str();
-            cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 0 " << (GccLimit-1) << ")";
+            cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 0 " << (soLimit-1) << ")";
             cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
             system(cmd.str().c_str());
             
             for(int n=1; true; n++) {
-                int start = n*GccLimit;
-                int end = (n+1)*GccLimit-1;
+                int start = n*soLimit;
+                int end = (n+1)*soLimit-1;
                 if(end>res_size-1) end = res_size-1;
                 sofn.clear();
                 sofn.str("");

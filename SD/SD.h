@@ -404,11 +404,11 @@ namespace HepLib::SD {
         int CTryLeft = 1;
         int CTryRight = 1;
         dREAL CTryRightRatio = 1.5;
-        int GccLimit = 10000;
+        int soLimit = 10000;
         
         long long RunMAX = 20;
         long long RunPTS = 500000;
-        map<int, long long> MinPTS = { {0,100000}, {1,5000}, {2,10000}};
+        map<int, long long> MinPTS = { {0,1000000}, {1,5000}, {2,10000} };
         qREAL EpsAbs = 1E-4;
         int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
         
@@ -428,6 +428,7 @@ namespace HepLib::SD {
         void CIPrepares(const string & key = "");
         void Contours(const string & key = "", const string & pkey = "");
         void Integrates(const string & key="", const string & pkey="", int kid=0);
+        void ReIntegrates(const string & key, const string & pkey, qREAL err);
         void Evaluate(FeynmanParameter fpi, const string & key = "");
         void Evaluate(XIntegrand xint, const string & key = "");
         void Evaluate(vector<ex> FunExp, const string & key = "");

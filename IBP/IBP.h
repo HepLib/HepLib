@@ -133,6 +133,17 @@ namespace HepLib::IBP {
                 }
                 return true;
             }
+            inline ex cs2ex() {
+                lst ret;
+                for(auto item : cs) ret.append(lst{item.first, item.second});
+                return ret;
+            }
+            inline void ex2cs(ex e) {
+                cs.clear();
+                for(auto item : e) {
+                    cs.push_back(make_pair(ex2int(item.op(0)), ex2int(item.op(1))));
+                }
+            }
         };
         
         void Export() override;
