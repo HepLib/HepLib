@@ -420,7 +420,7 @@ namespace HepLib::SD {
                 Integrator->EpsRel = 0;
                 
                 if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
-                else if(MinPTS[0]>0) Integrator->MinPTS = MinPTS[0];
+                else if(MinPTS[0]>0) Integrator->MinPTS = xsize * MinPTS[0];
                 else Integrator->MinPTS = RunPTS/10;
                                 
                 int ctryR = 0, ctry = 0, ctryL = 0;
@@ -611,7 +611,7 @@ namespace HepLib::SD {
             Integrator->EpsRel = 0;
             
             if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
-            else if(MinPTS[0]>0) Integrator->MinPTS = MinPTS[0];
+            else if(MinPTS[0]>0) Integrator->MinPTS = xsize * MinPTS[0];
             else Integrator->MinPTS = RunPTS/10;
             
             auto res = Integrator->Integrate();
@@ -966,7 +966,7 @@ namespace HepLib::SD {
                 Integrator->EpsRel = 0;
                 
                 if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
-                else if(MinPTS[0]>0) Integrator->MinPTS = MinPTS[0];
+                else if(MinPTS[0]>0) Integrator->MinPTS = xsize * MinPTS[0];
                 else Integrator->MinPTS = RunPTS/10;
                                 
                 int ctryR = 0, ctry = 0, ctryL = 0;

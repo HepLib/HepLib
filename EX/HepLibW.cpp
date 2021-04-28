@@ -139,6 +139,171 @@ expr pow(const expr &e1, const expr &e2) {
     return expr(GiNaC::ex(GiNaC::pow(e1._expr, e2._expr)));
 }
 
+expr abs(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::abs(z._expr)));
+}
+
+expr real(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::real(GiNaC::ex_to<GiNaC::numeric>(z._expr))));
+}
+
+expr imag(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::imag(GiNaC::ex_to<GiNaC::numeric>(z._expr))));
+}
+
+expr csgn(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::csgn(z._expr)));
+}
+expr step(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::step(z._expr)));
+}
+
+expr numer(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::numer(z._expr)));
+}
+
+expr denom(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::denom(z._expr)));
+}
+
+expr sqrt(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::sqrt(z._expr)));
+}
+
+expr sin(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::sin(z._expr)));
+}
+
+expr cos(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::cos(z._expr)));
+}
+
+expr tan(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::tan(z._expr)));
+}
+
+expr asin(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::asin(z._expr)));
+}
+
+expr acos(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::acos(z._expr)));
+}
+
+expr atan(const expr &y, const expr &x) {
+    return expr(GiNaC::ex(GiNaC::atan(GiNaC::ex_to<GiNaC::numeric>(y._expr), GiNaC::ex_to<GiNaC::numeric>(x._expr))));
+}
+
+expr sinh(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::sinh(z._expr)));
+}
+
+expr cosh(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::cosh(z._expr)));
+}
+
+expr tanh(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::tanh(z._expr)));
+}
+
+expr asinh(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::asinh(z._expr)));
+}
+
+expr acosh(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::acosh(z._expr)));
+}
+
+expr atanh(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::atanh(z._expr)));
+}
+
+expr exp(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::exp(z._expr)));
+}
+
+expr log(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::log(z._expr)));
+}
+
+expr Li2(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::Li2(z._expr)));
+}
+
+expr zeta(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::zeta(z._expr)));
+}
+
+expr tgamma(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::tgamma(z._expr)));
+}
+
+expr lgamma(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::lgamma(z._expr)));
+}
+
+expr psi(const expr &z) {
+    return expr(GiNaC::ex(GiNaC::psi(z._expr)));
+}
+
+expr psi(const expr &n, const expr &z) {
+    return expr(GiNaC::ex(GiNaC::psi(n._expr, z._expr)));
+}
+
+expr factorial(const expr &n) {
+    return expr(GiNaC::ex(GiNaC::factorial(n._expr)));
+}
+
+expr doublefactorial(const expr &n) {
+    return expr(GiNaC::ex(GiNaC::doublefactorial(GiNaC::ex_to<GiNaC::numeric>(n._expr))));
+}
+
+expr binomial(const expr &n, const expr &k) {
+    return expr(GiNaC::ex(GiNaC::binomial(n._expr, k._expr)));
+}
+
+expr bernoulli(const expr &n) {
+    return expr(GiNaC::ex(GiNaC::bernoulli(GiNaC::ex_to<GiNaC::numeric>(n._expr))));
+}
+
+expr fibonacci(const expr &n) {
+    return expr(GiNaC::ex(GiNaC::fibonacci(GiNaC::ex_to<GiNaC::numeric>(n._expr))));
+}
+
+expr mod(const expr &a, const expr &b) {
+    return expr(GiNaC::ex(GiNaC::mod(GiNaC::ex_to<GiNaC::numeric>(a._expr), GiNaC::ex_to<GiNaC::numeric>(b._expr))));
+}
+
+expr smod(const expr &a, const expr &b) {
+    return expr(GiNaC::ex(GiNaC::smod(GiNaC::ex_to<GiNaC::numeric>(a._expr), GiNaC::ex_to<GiNaC::numeric>(b._expr))));
+}
+
+expr irem(const expr &a, const expr &b) {
+    return expr(GiNaC::ex(GiNaC::irem(GiNaC::ex_to<GiNaC::numeric>(a._expr), GiNaC::ex_to<GiNaC::numeric>(b._expr))));
+}
+
+expr irem(const expr &a, const expr &b, const expr &q) {
+    auto qq = GiNaC::ex_to<GiNaC::numeric>(q._expr);
+    return expr(GiNaC::ex(GiNaC::irem(GiNaC::ex_to<GiNaC::numeric>(a._expr), GiNaC::ex_to<GiNaC::numeric>(b._expr), qq)));
+}
+
+expr iquo(const expr &a, const expr &b) {
+    return expr(GiNaC::ex(GiNaC::iquo(GiNaC::ex_to<GiNaC::numeric>(a._expr), GiNaC::ex_to<GiNaC::numeric>(b._expr))));
+}
+
+expr iquo(const expr &a, const expr &b, const expr &r) {
+    auto rr = GiNaC::ex_to<GiNaC::numeric>(r._expr);
+    return expr(GiNaC::ex(GiNaC::iquo(GiNaC::ex_to<GiNaC::numeric>(a._expr), GiNaC::ex_to<GiNaC::numeric>(b._expr), rr)));
+}
+
+expr gcd(const expr &a, const expr &b) {
+    return expr(GiNaC::ex(GiNaC::gcd(a._expr, b._expr)));
+}
+
+expr lcm(const expr &a, const expr &b) {
+    return expr(GiNaC::ex(GiNaC::lcm(a._expr, b._expr)));
+}
+
 expr pow(const expr &e, const int n) {
     return expr(GiNaC::ex(GiNaC::pow(e._expr, n)));
 }
@@ -151,8 +316,32 @@ expr Index(const std::string &s) {
     return expr(GiNaC::ex(HepLib::Index(s)));
 }
 
+expr IndexCA(const std::string &s) {
+    return expr(GiNaC::ex(HepLib::Index(s,HepLib::Index::Type::CA)));
+}
+
+expr IndexCF(const std::string &s) {
+    return expr(GiNaC::ex(HepLib::Index(s,HepLib::Index::Type::CF)));
+}
+
 expr Vector(const std::string &s) {
     return expr(GiNaC::ex(HepLib::Vector(s)));
+}
+
+expr SUNT(const expr &e, const expr &i, const expr &j) {
+    return expr(HepLib::SUNT(e._expr, i._expr, j._expr));
+}
+
+expr SUNF(const expr &a, const expr &b, const expr &c) {
+    return expr(HepLib::SUNF(a._expr, b._expr, c._expr));
+}
+
+expr SUNF4(const expr &a, const expr &b, const expr &c, const expr &d) {
+    return expr(HepLib::SUNF4(a._expr, b._expr, c._expr, d._expr));
+}
+
+expr LC(const expr &a, const expr &b, const expr &c, const expr &d) {
+    return expr(HepLib::LC(a._expr, b._expr, c._expr, d._expr));
 }
 
 expr SP(const expr &e1, const expr &e2) {
@@ -161,6 +350,10 @@ expr SP(const expr &e1, const expr &e2) {
 
 expr GAS(const expr &e) {
     return expr(GiNaC::ex(HepLib::GAS(e._expr)));
+}
+
+expr GAS(const int &i) {
+    return expr(GiNaC::ex(HepLib::GAS(i)));
 }
         
 expr TR(const expr &e) {

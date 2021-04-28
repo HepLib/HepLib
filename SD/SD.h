@@ -408,7 +408,7 @@ namespace HepLib::SD {
         
         long long RunMAX = 20;
         long long RunPTS = 500000;
-        map<int, long long> MinPTS = { {0,1000000}, {1,5000}, {2,10000} };
+        map<int, long long> MinPTS;
         qREAL EpsAbs = 1E-4;
         int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
         

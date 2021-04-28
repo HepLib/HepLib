@@ -126,7 +126,7 @@ namespace HepLib::IBP {
             vector<pair<int,int>> cs; // (1st==-1 for <=, 1st==1 for >=, 1st==0 for ==) 2nd
             inline bool IsOK(ex ns) {
                 if(ns.nops() != cs.size()) return false;
-                for(int i=0; i<cs.size(); i++) {
+                for(int i=0; cs.size()-i>0; i++) {
                     if(cs[i].first==-1 && ns.op(i)>cs[i].second) return false;
                     else if(cs[i].first==1 && ns.op(i)<cs[i].second) return false;
                     else if(cs[i].first==0 && !ns.op(i).is_equal(cs[i].second)) return false;
