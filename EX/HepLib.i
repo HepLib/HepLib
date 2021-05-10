@@ -48,6 +48,7 @@ class expr {
 public:
     expr(int i);
     expr(const std::string &s);
+    expr(const std::vector<expr> &ev);
     
     expr operator+(const expr &e);
     expr operator-(const expr &e);
@@ -167,10 +168,13 @@ extern void letSP(const expr &e1, const expr &e2, const expr &e12);
 extern expr call(const std::string func, const std::vector<expr> &ev);
 extern expr call(const std::string func, const expr &e);
 extern expr w(const int wi);
+extern expr lst(const std::vector<expr> &ev);
 
 extern expr x(const int i);
 extern expr y(const int i);
 extern expr z(const int i);
+
+extern void set_form_using_su3(bool yn);
 
 // Integral
 %warnfilter(509) Integral;

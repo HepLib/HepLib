@@ -12,6 +12,7 @@ public:
     expr(int i);
     expr(GiNaC::ex e);
     expr(const std::string &s);
+    expr(const std::vector<expr> &ev);
     
     expr operator+(const expr &e);
     expr operator-(const expr &e);
@@ -196,6 +197,8 @@ expr form(const expr &e);
 expr x(const int i);
 expr y(const int i);
 expr z(const int i);
+expr lst(const std::vector<expr> &ev);
+void set_form_using_su3(bool yn);
 
 void letSP(const expr &e1, const expr &e2, const expr &e12);
 

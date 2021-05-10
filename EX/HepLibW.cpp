@@ -9,6 +9,11 @@ expr::expr() { _expr = 0; }
 expr::expr(int i) { _expr = i; }
 expr::expr(GiNaC::ex e) { _expr = e; }
 expr::expr(const std::string &s) { _expr = HepLib::str2ex(s); }
+expr::expr(const std::vector<expr> &ev) {
+    GiNaC::lst ret;
+    for(auto item : ev) ret.append(item._expr);
+    _expr = ret;
+}
     
 expr expr::operator+(const expr &e) { return expr(_expr + e._expr); }
 expr expr::operator-(const expr &e) { return expr(_expr - e._expr); }
@@ -401,6 +406,14 @@ expr y(const int i) {
 
 expr z(const int i) {
     return expr(GiNaC::ex(HepLib::z(i)));
+}
+
+expr lst(const std::vector<expr> &ev) {
+    return expr(ev);
+}
+
+void set_form_using_su3(bool yn) {
+    HepLib::form_using_su3 = yn;
 }
 
 MapFunction::MapFunction() : _map([this](const GiNaC::ex &e, HepLib::MapFunction &self)->GiNaC::ex{ return map(expr(e))._expr; }) {}
