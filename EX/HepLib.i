@@ -18,6 +18,7 @@
 %include std_string.i
 %include exception.i
 %include std_vector.i
+%include std_map.i
 
 %exception {
     try {
@@ -34,6 +35,7 @@
 namespace std {
     %template(expr_vector) vector<expr>;
     %template(int_vector) vector<int>;
+    %template(string_expr_map) map<string, expr>;
 }
 
 class MapFunction {
@@ -195,3 +197,22 @@ public:
     std::string str();
     std::string __str__();
 };
+
+// Process
+%warnfilter(509) Process;
+class Process {
+public:
+    static void DrawPDF(std::vector<expr>, std::string);
+    static std::string Style;
+    std::string Model;
+    std::string In;
+    std::string Out;
+    std::string LoopPrefix;
+    int Loops;
+    std::string Options;
+    std::vector<std::string> Others;
+    std::vector<expr> Amplitudes(std::map<std::string,expr> st, bool debug=false);
+};
+void set_LineTeX(expr, std::string);
+void set_InOutTeX(int, std::string);
+

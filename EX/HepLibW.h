@@ -55,7 +55,7 @@ public:
     bool isDGamma();
     bool info(std::string sflags);
     expr map(MapFunction &mf);
-    
+        
     friend expr series(const expr &e, const expr &s, int o);
     friend expr pow(const expr &e1, const expr &e2);
     friend expr pow(const expr &e, const int n);
@@ -117,8 +117,12 @@ public:
     friend expr call(const std::string func, const std::vector<expr> &ev);
     friend expr call(const std::string func, const expr &e);
     
+    friend void set_LineTeX(expr, std::string);
+    friend void set_InOutTeX(int, std::string);
+    
     friend class MapFunction;
     friend class Integral;
+    friend class Process;
     
 private:
     GiNaC::ex _expr;
@@ -242,3 +246,19 @@ private:
     GiNaC::ex _Result;
     bool isX = true;
 };
+
+class Process {
+public:
+    static std::string Style;
+    static void DrawPDF(std::vector<expr>, std::string);
+    std::string Model;
+    std::string In;
+    std::string Out;
+    std::string LoopPrefix = "q";
+    int Loops;
+    std::string Options;
+    std::vector<std::string> Others;
+    std::vector<expr> Amplitudes(std::map<std::string, expr>, bool debug=false);
+};
+void set_LineTeX(expr, std::string);
+void set_InOutTeX(int, std::string);

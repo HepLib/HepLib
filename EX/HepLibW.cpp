@@ -491,3 +491,35 @@ void Integral::Evaluate() {
 
 std::string Integral::str() { return HepLib::ex2str(HepLib::SD::VEResult(_Result)); }
 std::string Integral::__str__() { return HepLib::ex2str(HepLib::SD::VEResult(_Result)); }
+
+std::string Process::Style;
+std::vector<expr> Process::Amplitudes(std::map<std::string,expr> st, bool debug) {
+    HepLib::QGRAF::Process proc;
+    if(Style != "") HepLib::QGRAF::Process::Style = Style;
+    proc.Model = Model;
+    proc.In = In;
+    proc.Out = Out;
+    proc.LoopPrefix = LoopPrefix;
+    proc.Loops = Loops;
+    proc.Options = Options;
+    proc.Others = Others;
+    GiNaC::symtab _st;
+    for(auto kv : st) _st[kv.first] = kv.second._expr;
+    auto ret = proc.Amplitudes(_st, debug);
+    std::vector<expr> res;
+    for(auto item : ret) res.push_back(expr(item));
+    return res;
+}
+
+void Process::DrawPDF(std::vector<expr> amps, std::string fn) {
+    GiNaC::lst amp_lst;
+    for(auto item : amps) amp_lst.append(item._expr);
+    HepLib::QGRAF::DrawPDF(amp_lst, fn);
+}
+
+void set_LineTeX(expr f, std::string tex) {
+    HepLib::QGRAF::LineTeX[f._expr] = tex;
+}
+void set_InOutTeX(int fn, std::string tex) {
+    HepLib::QGRAF::InOutTeX[fn] = tex;
+}
