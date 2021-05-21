@@ -14,12 +14,18 @@ expr::expr(const std::vector<expr> &ev) {
     for(auto item : ev) ret.append(item._expr);
     _expr = ret;
 }
+expr::expr(const std::string &s, std::map<std::string,expr> st) {
+    GiNaC::symtab _st;
+    for(auto kv : st) _st[kv.first] = kv.second._expr;
+    _expr = HepLib::str2ex(s, _st);
+}
     
 expr expr::operator+(const expr &e) { return expr(_expr + e._expr); }
 expr expr::operator-(const expr &e) { return expr(_expr - e._expr); }
 expr expr::operator*(const expr &e) { return expr(_expr * e._expr); }
 expr expr::operator/(const expr &e) { return expr(_expr / e._expr); }
 expr expr::operator==(const expr &e) { return expr(_expr == e._expr); }
+bool expr::operator<(const expr &e) const { return _expr < e._expr; }
 
 expr expr::operator+(const int i) { return expr(_expr + i); }
 expr expr::operator-(const int i) { return expr(_expr - i); }
@@ -365,8 +371,8 @@ expr TR(const expr &e) {
     return expr(GiNaC::ex(HepLib::TR(e._expr)));
 }
 
-expr form(const expr &e) {
-    return expr(HepLib::form(e._expr));
+expr form(const expr &e, int verb) {
+    return expr(HepLib::form(e._expr, verb));
 }
 
 void letSP(const expr &e1, const expr &e2, const expr &e12) {
@@ -523,3 +529,44 @@ void set_LineTeX(expr f, std::string tex) {
 void set_InOutTeX(int fn, std::string tex) {
     HepLib::QGRAF::InOutTeX[fn] = tex;
 }
+
+Function::Function() { }
+Function::~Function() { }
+expr Function::operator()(const expr &e) { return expr(0); }
+expr Function::operator()(const expr &e1,const expr &e2) { return expr(0); }
+expr Function::operator()(const expr &e1,const expr &e2,const expr &e3) { return expr(0); }
+expr Function::operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4) { return expr(0); }
+expr Function::operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4,const expr &e5) { return expr(0); }
+
+expr charge_conjugate(const expr &e) { return HepLib::charge_conjugate(e._expr); }
+
+expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps) {
+    GiNaC::lst lps, eps;
+    for(auto item : loop_ps) lps.append(item._expr);
+    for(auto item : ext_ps) eps.append(item._expr);
+    return HepLib::TIR(expr_in._expr, lps, eps);
+}
+
+expr MatrixContract(const expr & e) { return HepLib::MatrixContract(e._expr); }
+
+expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr> sgnmap) {
+    GiNaC::lst _vars;
+    for(auto item : vars) _vars.append(item._expr);
+    GiNaC::exmap smap;
+    for(auto kv : sgnmap) sgnmap[kv.first._expr] = kv.second._expr;
+    return HepLib::Apart(expr_in._expr, _vars, smap);
+}
+
+expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr> sgnmap) {
+    GiNaC::lst _loops, _extmoms;
+    for(auto item : loops) _loops.append(item._expr);
+    for(auto item : extmoms) _extmoms.append(item._expr);
+    GiNaC::exmap smap;
+    for(auto kv : sgnmap) sgnmap[kv.first._expr] = kv.second._expr;
+    return HepLib::Apart(expr_in._expr, _loops, _extmoms, smap);
+}
+
+expr ApartIR2ex(const expr & e) { return HepLib::ApartIR2ex(e._expr); }
+expr ApartIR2F(const expr & e) { return HepLib::ApartIR2F(e._expr); }
+expr F2ex(const expr & e) { return HepLib::F2ex(e._expr); }
+expr ApartIRC(const expr & e) { return HepLib::ApartIRC(e._expr); }

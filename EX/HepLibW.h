@@ -12,6 +12,7 @@ public:
     expr(int i);
     expr(GiNaC::ex e);
     expr(const std::string &s);
+    expr(const std::string &s, std::map<std::string,expr>);
     expr(const std::vector<expr> &ev);
     
     expr operator+(const expr &e);
@@ -19,6 +20,7 @@ public:
     expr operator*(const expr &e);
     expr operator/(const expr &e);
     expr operator==(const expr &e);
+    bool operator<(const expr &e) const;
     
     expr operator+(const int i);
     expr operator-(const int i);
@@ -106,7 +108,7 @@ public:
     friend expr SP(const expr &e1, const expr &e2);
     friend expr GAS(const expr &e);
     friend expr TR(const expr &e);
-    friend expr form(const expr &e);
+    friend expr form(const expr &e, int verb);
     
     friend expr SUNT(const expr &e, const expr &i, const expr &j);
     friend expr SUNF(const expr &a, const expr &b, const expr &c);
@@ -119,6 +121,16 @@ public:
     
     friend void set_LineTeX(expr, std::string);
     friend void set_InOutTeX(int, std::string);
+    
+    friend expr charge_conjugate(const expr &);
+    friend expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);
+    friend expr MatrixContract(const expr & expr_in);
+    friend expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr,expr> sgnmap);
+    friend expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr> sgnmap);
+    friend expr ApartIR2ex(const expr & expr_in);
+    friend expr ApartIR2F(const expr & expr_in);
+    friend expr F2ex(const expr & expr_in);
+    friend expr ApartIRC(const expr & expr_in);
     
     friend class MapFunction;
     friend class Integral;
@@ -196,7 +208,32 @@ expr SP(const expr &e1, const expr &e2);
 expr GAS(const expr &e);
 expr GAS(const int &i);
 expr TR(const expr &e);
-expr form(const expr &e);
+expr form(const expr &e, int verb=0);
+
+expr charge_conjugate(const expr &);
+expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);
+expr MatrixContract(const expr & expr_in);
+expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr> sgnmap={});
+expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr> sgnmap={});
+expr ApartIR2ex(const expr & expr_in);
+expr ApartIR2F(const expr & expr_in);
+expr F2ex(const expr & expr_in);
+expr ApartIRC(const expr & expr_in);
+void ApartIBP(int IBPmethod, std::vector<expr> &io_vec, const std::vector<expr> & loops, const std::vector<expr> & exts,
+    const std::vector<expr> & cut_props={});
+        
+class AIOption {
+    expr Internal; // Internal for Apart/IBP
+    expr External; // External for Apart/IBP
+    expr DSP; // DSP for IBP
+    std::map<expr, expr> smap; // Sign Map for Apart
+    std::vector<expr> Cuts; // Cut Propagators. optional
+    std::vector<expr> CSP; // SP in Cuts, to be cleared. optional
+    std::vector<expr> ISP; // SP for IBP. optional
+    bool CutFirst = true;
+    int mcl = 1; // collect_ex level, 0-nothing, 1-exnormal, 2-exfactor
+};
+void ApartIBP(int IBPmethod, std::vector<expr> &io_vec, AIOption aip);
 
 expr x(const int i);
 expr y(const int i);
@@ -262,3 +299,14 @@ public:
 };
 void set_LineTeX(expr, std::string);
 void set_InOutTeX(int, std::string);
+
+class Function {
+public:
+    Function();
+    virtual ~Function();
+    virtual expr operator()(const expr &e);
+    virtual expr operator()(const expr &e1,const expr &e2);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4,const expr &e5);
+};

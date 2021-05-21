@@ -289,7 +289,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             ex item = it;
             // pull out global common factor
             item = collect_common_factors(item);
-            item = CoPat(item,[](const ex &e)->bool{return Index::has(e) || DGamma::has(e);});
+            item = CoPat(item,[](const ex &e)->bool{return Index::has(e) || DGamma::has(e) || Eps::has(e);});
             auto ckey = item.op(0);
             if(!is_a<numeric>(ckey)) {
                 int ckid;

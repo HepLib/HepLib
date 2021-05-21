@@ -36,6 +36,7 @@ namespace std {
     %template(expr_vector) vector<expr>;
     %template(int_vector) vector<int>;
     %template(string_expr_map) map<string, expr>;
+    %template(expr_expr_map) map<expr, expr>;
 }
 
 class MapFunction {
@@ -46,10 +47,22 @@ public:
     expr operator() (const expr &e);
 };
 
+class Function {
+public:
+    Function();
+    virtual ~Function();
+    virtual expr operator()(const expr &e);
+    virtual expr operator()(const expr &e1,const expr &e2);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4,const expr &e5);
+};
+
 class expr {
 public:
     expr(int i);
     expr(const std::string &s);
+    expr(const std::string &s, std::map<std::string,expr>);
     expr(const std::vector<expr> &ev);
     
     expr operator+(const expr &e);
@@ -58,6 +71,7 @@ public:
     expr operator/(const expr &e);
     expr operator-();
     expr operator==(const expr &e);
+    bool operator<(const expr &e) const;
     
     expr operator+(const int i);
     expr operator-(const int i);
@@ -164,7 +178,7 @@ extern expr SUNT(const expr &e, const expr &i, const expr &j);
 extern expr SUNF(const expr &a, const expr &b, const expr &c);
 extern expr SUNF4(const expr &a, const expr &b, const expr &c, const expr &d);
 extern expr LC(const expr &a, const expr &b, const expr &c, const expr &d);
-extern expr form(const expr &e);
+extern expr form(const expr &e, int verb=0);
 
 extern void letSP(const expr &e1, const expr &e2, const expr &e12);
 extern expr call(const std::string func, const std::vector<expr> &ev);
@@ -216,3 +230,12 @@ public:
 void set_LineTeX(expr, std::string);
 void set_InOutTeX(int, std::string);
 
+extern expr charge_conjugate(const expr &);
+extern expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);
+extern expr MatrixContract(const expr & expr_in);
+extern expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr> sgnmap={});
+extern expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr> sgnmap={});
+extern expr ApartIR2ex(const expr & expr_in);
+extern expr ApartIR2F(const expr & expr_in);
+extern expr F2ex(const expr & expr_in);
+extern expr ApartIRC(const expr & expr_in);
