@@ -8,6 +8,8 @@
 class MapFunction;
 class expr {
 public:
+    GiNaC::ex _expr;
+    
     expr();
     expr(int i);
     expr(GiNaC::ex e);
@@ -19,13 +21,17 @@ public:
     expr operator-(const expr &e);
     expr operator*(const expr &e);
     expr operator/(const expr &e);
-    expr operator==(const expr &e);
+    expr operator>>(const expr &e);
     bool operator<(const expr &e) const;
+    bool operator>(const expr &e) const;
     
     expr operator+(const int i);
     expr operator-(const int i);
     expr operator*(const int i);
     expr operator/(const int i);
+    
+    bool is_equal(const expr & e);
+    unsigned gethash();
     
     expr operator-();
     
@@ -43,12 +49,6 @@ public:
     std::string str();
     std::string __str__();
     
-    //friend functions
-    friend expr expand(const expr &e);
-    friend expr normal(const expr &e);
-    friend expr factor(const expr &e);
-    friend expr subs(const expr &e, const std::vector<expr> &ev);
-    friend expr subs(const expr &e1, const expr &e2);
     bool match(const expr &e);
     bool isSymbol();
     bool isVector();
@@ -57,87 +57,7 @@ public:
     bool isDGamma();
     bool info(std::string sflags);
     expr map(MapFunction &mf);
-        
-    friend expr series(const expr &e, const expr &s, int o);
-    friend expr pow(const expr &e1, const expr &e2);
-    friend expr pow(const expr &e, const int n);
-    
-    friend expr inverse(const expr &z);
-    friend expr abs(const expr &z);
-    friend expr real(const expr &z);
-    friend expr imag(const expr &z);
-    friend expr csgn(const expr &z);
-    friend expr step(const expr &z);
-    friend expr numer(const expr &z);
-    friend expr denom(const expr &z);
-    friend expr sqrt(const expr &z);
-    friend expr sin(const expr &z);
-    friend expr cos(const expr &z);
-    friend expr tan(const expr &z);
-    friend expr asin(const expr &z);
-    friend expr acos(const expr &z);
-    friend expr atan(const expr &y, const expr &x);
-    friend expr sinh(const expr &z);
-    friend expr cosh(const expr &z);
-    friend expr tanh(const expr &z);
-    friend expr asinh(const expr &z);
-    friend expr acosh(const expr &z);
-    friend expr atanh(const expr &z);
-    friend expr exp(const expr &z);
-    friend expr log(const expr &z);
-    friend expr Li2(const expr &z);
-    friend expr zeta(const expr &z);
-    friend expr tgamma(const expr &z);
-    friend expr lgamma(const expr &z);
-    friend expr psi(const expr &z);
-    friend expr psi(const expr &n, const expr &z);
-    friend expr factorial(const expr &n);
-    friend expr doublefactorial(const expr &n);
-    friend expr binomial(const expr &n, const expr &k);
-    friend expr bernoulli(const expr &n);
-    friend expr fibonacci(const expr &n);
-    friend expr mod(const expr &a, const expr &b);
-    friend expr smod(const expr &a, const expr &b);
-    friend expr irem(const expr &a, const expr &b);
-    friend expr irem(const expr &a, const expr &b, const expr &q);
-    friend expr iquo(const expr &a, const expr &b);
-    friend expr iquo(const expr &a, const expr &b, const expr &r);
-    friend expr gcd(const expr &a, const expr &b);
-    friend expr lcm(const expr &a, const expr &b);
-    
-    friend expr SP(const expr &e1, const expr &e2);
-    friend expr GAS(const expr &e);
-    friend expr TR(const expr &e);
-    friend expr form(const expr &e, int verb);
-    
-    friend expr SUNT(const expr &e, const expr &i, const expr &j);
-    friend expr SUNF(const expr &a, const expr &b, const expr &c);
-    friend expr SUNF4(const expr &a, const expr &b, const expr &c, const expr &d);
-    friend expr LC(const expr &a, const expr &b, const expr &c, const expr &d);
-    
-    friend void letSP(const expr &e1, const expr &e2, const expr &e12);
-    friend expr call(const std::string func, const std::vector<expr> &ev);
-    friend expr call(const std::string func, const expr &e);
-    
-    friend void set_LineTeX(expr, std::string);
-    friend void set_InOutTeX(int, std::string);
-    
-    friend expr charge_conjugate(const expr &);
-    friend expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);
-    friend expr MatrixContract(const expr & expr_in);
-    friend expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr,expr> sgnmap);
-    friend expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr> sgnmap);
-    friend expr ApartIR2ex(const expr & expr_in);
-    friend expr ApartIR2F(const expr & expr_in);
-    friend expr F2ex(const expr & expr_in);
-    friend expr ApartIRC(const expr & expr_in);
-    
-    friend class MapFunction;
-    friend class Integral;
-    friend class Process;
-    
-private:
-    GiNaC::ex _expr;
+
 };
 
 expr expand(const expr &e);

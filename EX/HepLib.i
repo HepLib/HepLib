@@ -39,24 +39,12 @@ namespace std {
     %template(expr_expr_map) map<expr, expr>;
 }
 
-class MapFunction {
-public:
-    MapFunction();
-    virtual ~MapFunction();
-    virtual expr map(const expr &e);
-    expr operator() (const expr &e);
-};
+/*
+-----------------------------------------
+    GiNaC Wrapper
+-----------------------------------------
+*/
 
-class Function {
-public:
-    Function();
-    virtual ~Function();
-    virtual expr operator()(const expr &e);
-    virtual expr operator()(const expr &e1,const expr &e2);
-    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3);
-    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4);
-    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4,const expr &e5);
-};
 
 class expr {
 public:
@@ -70,13 +58,14 @@ public:
     expr operator*(const expr &e);
     expr operator/(const expr &e);
     expr operator-();
-    expr operator==(const expr &e);
     bool operator<(const expr &e) const;
     
     expr operator+(const int i);
     expr operator-(const int i);
     expr operator*(const int i);
     expr operator/(const int i);
+    
+    expr operator>>(const expr &e); // a>>b (python) v.s. a==b (GiNaC)
     
     unsigned int nops();
     expr op(unsigned int i);
@@ -89,18 +78,22 @@ public:
     expr subs(const std::vector<expr> &ev);
     expr subs(const expr &e);
     bool match(const expr &e);
+    bool info(std::string sflags);
+    expr map(MapFunction &mf);
+    
+    bool is_equal(const expr & e);
+    unsigned gethash();
     bool isSymbol();
     bool isVector();
     bool isIndex();
     bool isPair();
     bool isDGamma();
-    bool info(std::string sflags);
-    expr map(MapFunction &mf);
     
     std::string str();
     std::string __str__();
     
     %pythoncode %{
+    
     def __radd__(self, other):
         return expr(other) + self
     def __rsub__(self, other):
@@ -109,6 +102,13 @@ public:
         return expr(other) * self
     def __rdiv__(self, other):
         return expr(other) / self
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.is_equal(other)
+        else:
+            return False
+    def __hash__(self):
+        return self.gethash()
     
     %}
 };
@@ -119,10 +119,8 @@ extern expr factor(const expr &e);
 extern expr series(const expr &e, const expr &s, int o);
 extern expr subs(const expr &e, const std::vector<expr> &ev);
 extern expr subs(const expr &e1, const expr &e2);
-
 extern expr pow(const expr &e1, const expr &e2);
 extern expr pow(const expr &e, const int n);
-
 extern expr abs(const expr &z);
 extern expr real(const expr &z);
 extern expr imag(const expr &z);
@@ -165,6 +163,14 @@ extern expr iquo(const expr &a, const expr &b, const expr &r);
 extern expr gcd(const expr &a, const expr &b);
 extern expr lcm(const expr &a, const expr &b);
 
+extern expr lst(const std::vector<expr> &ev);
+
+/*
+-----------------------------------------
+    HepLib Wrapper
+-----------------------------------------
+*/
+
 extern expr Index(const std::string &s);
 extern expr IndexCA(const std::string &s);
 extern expr IndexCF(const std::string &s);
@@ -184,13 +190,31 @@ extern void letSP(const expr &e1, const expr &e2, const expr &e12);
 extern expr call(const std::string func, const std::vector<expr> &ev);
 extern expr call(const std::string func, const expr &e);
 extern expr w(const int wi);
-extern expr lst(const std::vector<expr> &ev);
 
 extern expr x(const int i);
 extern expr y(const int i);
 extern expr z(const int i);
 
 extern void set_form_using_su3(bool yn);
+
+class MapFunction {
+public:
+    MapFunction();
+    virtual ~MapFunction();
+    virtual expr map(const expr &e);
+    expr operator() (const expr &e);
+};
+
+class Function {
+public:
+    Function();
+    virtual ~Function();
+    virtual expr operator()(const expr &e);
+    virtual expr operator()(const expr &e1,const expr &e2);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4,const expr &e5);
+};
 
 // Integral
 %warnfilter(509) Integral;
