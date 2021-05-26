@@ -5,6 +5,9 @@
 
 #include "HepLibW.h"
 
+void set_Parallel_Process(int p) { HepLib::GiNaC_Parallel_Process = p; }
+void set_Verbose(int v) { HepLib::Verbose = v; }
+
 expr::expr() { _expr = 0; }
 expr::expr(int i) { _expr = i; }
 expr::expr(GiNaC::ex e) { _expr = e; }
@@ -25,6 +28,7 @@ expr expr::operator-(const expr &e) { return expr(_expr - e._expr); }
 expr expr::operator*(const expr &e) { return expr(_expr * e._expr); }
 expr expr::operator/(const expr &e) { return expr(_expr / e._expr); }
 expr expr::operator>>(const expr &e) { return expr(_expr == e._expr); }
+expr expr::operator>>(const int &e) { return expr(_expr == e); }
 bool expr::operator<(const expr &e) const { return _expr < e._expr; }
 bool expr::operator>(const expr &e) const { return _expr > e._expr; }
 bool expr::operator==(const expr & e) const { return _expr.is_equal(e._expr); }
@@ -123,6 +127,10 @@ expr expr::factor() {
 expr expr::series(const expr &s, int o) {
     if(!GiNaC::is_a<HepLib::Symbol>(s._expr)) throw HepLib::Error("1st argument should be a Symbol.");
     return expr(HepLib::series_ex(_expr, GiNaC::ex_to<HepLib::Symbol>(s._expr), o));
+}
+
+expr conjugate(const expr &e) {
+    return expr(conjugate(e._expr));
 }
 
 expr expand(const expr &e) {
@@ -364,6 +372,10 @@ void exvec::push_back(expr e) {
     _g.push_back(e._expr);
 }
 
+expr exvec::__getitem__(const int i) {
+    return expr(_g[i]);
+}
+
 int exvec::size() {
     return _g.size();
 }
@@ -425,4 +437,44 @@ std::string exset::str() {
 
 std::string exset::__str__() {
     return str();
-};
+}
+
+Function::Function() { }
+Function::~Function() { }
+expr Function::operator()(const expr &e) { return expr(0); }
+expr Function::operator()(const expr &e1,const expr &e2) { return expr(0); }
+expr Function::operator()(const expr &e1,const expr &e2,const expr &e3) { return expr(0); }
+expr Function::operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4) { return expr(0); }
+expr Function::operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4,const expr &e5) { return expr(0); }
+
+ParFun::ParFun() { }
+ParFun::~ParFun() { }
+expr ParFun::__call__(const int i) { throw HepLib::Error("Not implemented yet!"); return expr(1979); }
+exvec Parallel(int ntotal, int nbatch,
+        ParFun &f,
+        const std::string & key,
+        bool rm,
+        const std::string & pre) {
+    auto ret = HepLib::GiNaC_Parallel(ntotal, nbatch,
+        [&f](int i)->GiNaC::ex{ return f.__call__(i)._expr; },
+        key, rm, pre);
+    exvec res;
+    for(auto item : ret) res._g.push_back(item);
+    return res;
+}
+exvec Parallel(int ntotal,
+        ParFun &f,
+        const std::string & key,
+        bool rm,
+        const std::string & pre) {
+    auto ret = HepLib::GiNaC_Parallel(ntotal,
+        [&f](int i)->GiNaC::ex{ return f.__call__(i)._expr; },
+        key, rm, pre);
+    exvec res;
+    for(auto item : ret) res._g.push_back(item);
+    return res;
+}
+
+bool isFunction(const expr &e, std::string sf) {
+    return HepLib::isFunction(e._expr, sf);
+}

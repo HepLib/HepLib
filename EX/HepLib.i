@@ -6,6 +6,8 @@
 %module(directors="1") HepLib
 
 %feature("director") MapFunction;
+%feature("director") Function;
+%feature("director") ParFun;
 %feature("allowexcept");
 
 %{
@@ -64,6 +66,7 @@ public:
     expr operator/(const int i);
     
     expr operator>>(const expr &e); // a>>b (python) v.s. a==b (GiNaC)
+    expr operator>>(const int &e); // a>>b (python) v.s. a==b (GiNaC)
     
     unsigned int nops();
     expr op(unsigned int i);
@@ -106,6 +109,7 @@ public:
     %}
 };
 
+extern expr conjugate(const expr &e);
 extern expr expand(const expr &e);
 extern expr normal(const expr &e);
 extern expr factor(const expr &e);
@@ -157,14 +161,16 @@ extern expr gcd(const expr &a, const expr &b);
 extern expr lcm(const expr &a, const expr &b);
 
 extern expr lst(const std::vector<expr> &ev);
+extern bool isFunction(const expr &e, std::string sf);
 
 class exvec {
 public:
     exvec();
-    exvec(std::vector<expr> es);
+    exvec(const std::vector<expr> es);
     exvec(expr e);
     void push_back(expr e);
     int size();
+    expr __getitem__(const int i);
     std::string str();
     std::string __str__();
 };
@@ -183,49 +189,13 @@ public:
 class exset {
 public:
     exset();
-    exset(std::vector<expr> es);
+    exset(const std::vector<expr> es);
     exset(expr e);
     void insert(expr e);
     int size();
     std::string str();
     std::string __str__();
 };
-
-/*
------------------------------------------
-    HepLib Wrapper
------------------------------------------
-*/
-
-extern expr LI(const int i);
-extern expr TI(const int i);
-extern expr DI(const int i);
-extern expr CI(const int i);
-extern expr Index(const std::string &s);
-extern expr IndexCA(const std::string &s);
-extern expr IndexCF(const std::string &s);
-extern expr Vector(const std::string &s);
-extern expr Symbol(const std::string &s);
-extern expr SP(const expr &e1, const expr &e2);
-extern expr GAS(const expr &e);
-extern expr GAS(const int &i);
-extern expr TR(const expr &e);
-extern expr SUNT(const expr &e, const expr &i, const expr &j);
-extern expr SUNF(const expr &a, const expr &b, const expr &c);
-extern expr SUNF4(const expr &a, const expr &b, const expr &c, const expr &d);
-extern expr LC(const expr &a, const expr &b, const expr &c, const expr &d);
-extern expr form(const expr &e, int verb=0);
-
-extern void letSP(const expr &e1, const expr &e2, const expr &e12);
-extern expr call(const std::string func, const std::vector<expr> &ev);
-extern expr call(const std::string func, const expr &e);
-extern expr w(const int wi);
-
-extern expr x(const int i);
-extern expr y(const int i);
-extern expr z(const int i);
-
-extern void set_form_using_su3(bool yn);
 
 class MapFunction {
 public:
@@ -245,6 +215,87 @@ public:
     virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4);
     virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4,const expr &e5);
 };
+
+class ParFun {
+public:
+    ParFun();
+    virtual ~ParFun();
+    virtual expr __call__(const int i);
+};
+extern exvec Parallel(int ntotal, int nbatch,
+        ParFun &f,
+        const std::string & key = "",
+        bool rm = true,
+        const std::string & pre = "  ");
+extern exvec Parallel(int ntotal,
+        ParFun &f,
+        const std::string & key = "",
+        bool rm = true,
+        const std::string & pre = "  ");
+
+/*
+-----------------------------------------
+    HepLib Wrapper
+-----------------------------------------
+*/
+
+extern void set_Verbose(int v);
+extern void set_Parallel_Process(int p);
+extern expr LI(const int i);
+extern expr TI(const int i);
+extern expr DI(const int i);
+extern expr CI(const int i);
+extern expr LI(const expr& i);
+extern expr TI(const expr& i);
+extern expr DI(const expr& i);
+extern expr CI(const expr& i);
+extern expr RLI(const int i);
+extern expr RTI(const int i);
+extern expr RDI(const int i);
+extern expr RCI(const int i);
+extern expr RLI(const expr& i);
+extern expr RTI(const expr& i);
+extern expr RDI(const expr& i);
+extern expr RCI(const expr& i);
+extern expr IndexL2R(const expr &e);
+
+extern expr Index(const std::string &s);
+extern expr IndexCA(const std::string &s);
+extern expr IndexCF(const std::string &s);
+extern expr Vector(const std::string &s);
+extern expr symbol(const std::string &s);
+extern expr Symbol(const std::string &s);
+extern expr SP(const expr &e);
+extern expr SP(const expr &e1, const expr &e2);
+extern expr GAS(const expr &e);
+extern expr GAS(const int &i);
+extern expr TR(const expr &e);
+extern expr TTR(const std::vector<expr> &ev);
+extern expr SUNT(const expr &e, const expr &i, const expr &j);
+extern expr SUNT(const std::vector<expr> &ev, const expr &i, const expr &j);
+extern expr SUNF(const expr &a, const expr &b, const expr &c);
+extern expr SUNF4(const expr &a, const expr &b, const expr &c, const expr &d);
+extern expr LC(const expr &a, const expr &b, const expr &c, const expr &d);
+extern expr form(const expr &e, int verb=0);
+
+extern void letSP(const expr &e, const expr &e2);
+extern void letSP(const expr &e1, const expr &e2, const expr &e12);
+extern expr call(const std::string func, const std::vector<expr> &ev);
+extern expr call(const std::string func, const expr &e);
+extern expr w(const int wi=0);
+
+extern expr x(const int i);
+extern expr y(const int i);
+extern expr z(const int i);
+
+extern expr WF(const expr& e);
+extern expr WF(const expr& e1, const expr& e2);
+extern expr WF(const expr& e1, const expr& e2, const expr& e3);
+extern expr WF(const expr& e1, const expr& e2, const expr& e3, const expr& e4);
+extern expr WF(const expr& e1, const expr& e2, const expr& e3, const expr& e4, const expr& e5);
+
+extern void set_form_using_su3(bool yn);
+extern void set_form_using_dim4(bool yn);
 
 // Integral
 %warnfilter(509) Integral;
@@ -270,7 +321,7 @@ public:
 %warnfilter(509) Process;
 class Process {
 public:
-    static void DrawPDF(std::vector<expr>, std::string);
+    static void DrawPDF(const std::vector<expr>, std::string);
     static std::string Style;
     std::string Model;
     std::string In;
@@ -287,6 +338,7 @@ void set_InOutTeX(int, std::string);
 extern expr charge_conjugate(const expr &);
 extern expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);
 extern expr MatrixContract(const expr & expr_in);
+extern expr Matrix(const expr & mat, const expr &i, const expr &j);
 extern expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr, expr_is_less> sgnmap={});
 extern expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr, expr_is_less> sgnmap={});
 extern expr ApartIR2ex(const expr & expr_in);

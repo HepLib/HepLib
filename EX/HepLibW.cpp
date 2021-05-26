@@ -9,9 +9,26 @@ expr LI(const int i) { return expr(HepLib::QGRAF::LI(i)); }
 expr TI(const int i) { return expr(HepLib::QGRAF::TI(i)); }
 expr DI(const int i) { return expr(HepLib::QGRAF::DI(i)); }
 expr CI(const int i) { return expr(HepLib::QGRAF::CI(i)); }
+expr LI(const expr& i) { return expr(HepLib::QGRAF::LI(i._expr)); }
+expr TI(const expr& i) { return expr(HepLib::QGRAF::TI(i._expr)); }
+expr DI(const expr& i) { return expr(HepLib::QGRAF::DI(i._expr)); }
+expr CI(const expr& i) { return expr(HepLib::QGRAF::CI(i._expr)); }
+expr RLI(const int i) { return expr(HepLib::QGRAF::RLI(i)); }
+expr RTI(const int i) { return expr(HepLib::QGRAF::RTI(i)); }
+expr RDI(const int i) { return expr(HepLib::QGRAF::RDI(i)); }
+expr RCI(const int i) { return expr(HepLib::QGRAF::RCI(i)); }
+expr RLI(const expr& i) { return expr(HepLib::QGRAF::RLI(i._expr)); }
+expr RTI(const expr& i) { return expr(HepLib::QGRAF::RTI(i._expr)); }
+expr RDI(const expr& i) { return expr(HepLib::QGRAF::RDI(i._expr)); }
+expr RCI(const expr& i) { return expr(HepLib::QGRAF::RCI(i._expr)); }
+expr IndexL2R(const expr &e) { return expr(HepLib::QGRAF::IndexL2R(e._expr)); }
 
 expr Symbol(const std::string &s) {
     return expr(GiNaC::ex(HepLib::Symbol(s)));
+}
+
+expr symbol(const std::string &s) {
+    return expr(GiNaC::ex(GiNaC::symbol(s)));
 }
 
 expr Index(const std::string &s) {
@@ -34,6 +51,12 @@ expr SUNT(const expr &e, const expr &i, const expr &j) {
     return expr(HepLib::SUNT(e._expr, i._expr, j._expr));
 }
 
+expr SUNT(const std::vector<expr> &ev, const expr &i, const expr &j) {
+    GiNaC::lst es;
+    for(auto item : ev) es.append(item._expr);
+    return expr(HepLib::SUNT(es, i._expr, j._expr));
+}
+
 expr SUNF(const expr &a, const expr &b, const expr &c) {
     return expr(HepLib::SUNF(a._expr, b._expr, c._expr));
 }
@@ -44,6 +67,10 @@ expr SUNF4(const expr &a, const expr &b, const expr &c, const expr &d) {
 
 expr LC(const expr &a, const expr &b, const expr &c, const expr &d) {
     return expr(HepLib::LC(a._expr, b._expr, c._expr, d._expr));
+}
+
+expr SP(const expr &e) {
+    return expr(GiNaC::ex(HepLib::SP(e._expr)));
 }
 
 expr SP(const expr &e1, const expr &e2) {
@@ -62,8 +89,18 @@ expr TR(const expr &e) {
     return expr(GiNaC::ex(HepLib::TR(e._expr)));
 }
 
+expr TTR(const std::vector<expr> &ev) {
+    GiNaC::lst alst;
+    for(auto item : ev) alst.append(item._expr);
+    return expr(HepLib::TTR(alst));
+}
+
 expr form(const expr &e, int verb) {
     return expr(HepLib::form(e._expr, verb));
+}
+
+void letSP(const expr &e, const expr &e2) {
+    HepLib::letSP(e._expr, e._expr) = e2._expr;
 }
 
 void letSP(const expr &e1, const expr &e2, const expr &e12) {
@@ -86,9 +123,30 @@ expr z(const int i) {
     return expr(GiNaC::ex(HepLib::z(i)));
 }
 
+expr WF(const expr& e) {
+    return expr(HepLib::WF(e._expr));
+}
+extern expr WF(const expr& e1, const expr& e2) {
+    return expr(HepLib::WF(e1._expr,e2._expr));
+}
+extern expr WF(const expr& e1, const expr& e2, const expr& e3) {
+    return expr(HepLib::WF(e1._expr,e2._expr,e3._expr));
+}
+extern expr WF(const expr& e1, const expr& e2, const expr& e3, const expr& e4) {
+    return expr(HepLib::WF(e1._expr,e2._expr,e3._expr,e4._expr));
+}
+extern expr WF(const expr& e1, const expr& e2, const expr& e3, const expr& e4, const expr& e5) {
+    return expr(HepLib::WF(e1._expr,e2._expr,e3._expr,e4._expr,e5._expr));
+}
+
 void set_form_using_su3(bool yn) {
     HepLib::form_using_su3 = yn;
 }
+
+void set_form_using_dim4(bool yn) {
+    HepLib::form_using_dim4 = yn;
+}
+
 
 MapFunction::MapFunction() : _map([this](const GiNaC::ex &e, HepLib::MapFunction &self)->GiNaC::ex{ return map(expr(e))._expr; }) {}
 MapFunction::~MapFunction() { }
@@ -198,14 +256,6 @@ void set_InOutTeX(int fn, std::string tex) {
     HepLib::QGRAF::InOutTeX[fn] = tex;
 }
 
-Function::Function() { }
-Function::~Function() { }
-expr Function::operator()(const expr &e) { return expr(0); }
-expr Function::operator()(const expr &e1,const expr &e2) { return expr(0); }
-expr Function::operator()(const expr &e1,const expr &e2,const expr &e3) { return expr(0); }
-expr Function::operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4) { return expr(0); }
-expr Function::operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4,const expr &e5) { return expr(0); }
-
 expr charge_conjugate(const expr &e) { return HepLib::charge_conjugate(e._expr); }
 
 expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps) {
@@ -215,7 +265,12 @@ expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vecto
     return HepLib::TIR(expr_in._expr, lps, eps);
 }
 
-expr MatrixContract(const expr & e) { return HepLib::MatrixContract(e._expr); }
+expr MatrixContract(const expr & e) {
+    return expr(HepLib::MatrixContract(e._expr));
+}
+expr Matrix(const expr & mat, const expr &i, const expr &j) {
+    return expr(HepLib::Matrix(mat._expr, i._expr, j._expr));
+}
 
 expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr, expr_is_less> sgnmap) {
     GiNaC::lst _vars;

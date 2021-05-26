@@ -22,6 +22,7 @@ public:
     expr operator*(const expr &e);
     expr operator/(const expr &e);
     expr operator>>(const expr &e);
+    expr operator>>(const int &e);
     bool operator<(const expr &e) const;
     bool operator>(const expr &e) const;
     bool operator==(const expr &e) const;
@@ -65,6 +66,7 @@ struct expr_is_less {
     bool operator() (const expr &lh, const expr &rh) const { return lh._expr.compare(rh._expr) < 0; }
 };
 
+expr conjugate(const expr &e);
 expr expand(const expr &e);
 expr normal(const expr &e);
 expr factor(const expr &e);
@@ -124,6 +126,7 @@ public:
     exvec(expr e);
     GiNaC::exvector _g;
     void push_back(expr e);
+    expr __getitem__(const int i);
     int size();
     std::string str();
     std::string __str__();
@@ -153,6 +156,49 @@ public:
     std::string __str__();
 };
 
+class MapFunction {
+public:
+    MapFunction();
+    virtual ~MapFunction();
+    virtual expr map(const expr &e);
+    expr operator() (const expr &e);
+    friend class expr;
+private:
+    HepLib::MapFunction _map;
+};
+
+class Function {
+public:
+    Function();
+    virtual ~Function();
+    virtual expr operator()(const expr &e);
+    virtual expr operator()(const expr &e1,const expr &e2);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4);
+    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4,const expr &e5);
+};
+
+class ParFun {
+public:
+    ParFun();
+    virtual ~ParFun();
+    virtual expr __call__(const int i);
+};
+exvec Parallel(int ntotal, int nbatch,
+        ParFun &f,
+        const std::string & key = "",
+        bool rm = true,
+        const std::string & pre = "  ");
+extern exvec Parallel(int ntotal,
+        ParFun &f,
+        const std::string & key = "",
+        bool rm = true,
+        const std::string & pre = "  ");
+        
+void set_Parallel_Process(int p);
+void set_Verbose(int v);
+bool isFunction(const expr &e, std::string sf);
+
 // --------------------------------------------------------
 
 expr Index(const std::string &s);
@@ -160,25 +206,42 @@ expr IndexCA(const std::string &s);
 expr IndexCF(const std::string &s);
 expr Vector(const std::string &s);
 expr Symbol(const std::string &s);
+expr symbol(const std::string &s);
 expr LI(const int i);
 expr TI(const int i);
 expr DI(const int i);
 expr CI(const int i);
+expr LI(const expr& i);
+expr TI(const expr& i);
+expr DI(const expr& i);
+expr CI(const expr& i);
+expr RLI(const int i);
+expr RTI(const int i);
+expr RDI(const int i);
+expr RCI(const int i);
+expr RLI(const expr& i);
+expr RTI(const expr& i);
+expr RDI(const expr& i);
+expr RCI(const expr& i);
+expr IndexL2R(const expr &e);
 
 expr SUNT(const expr &e, const expr &i, const expr &j);
+expr SUNT(const std::vector<expr> &ev, const expr &i, const expr &j);
 expr SUNF(const expr &a, const expr &b, const expr &c);
 expr SUNF4(const expr &a, const expr &b, const expr &c, const expr &d);
 expr Eps(const expr &a, const expr &b, const expr &c, const expr &d);
 expr LC(const expr &a, const expr &b, const expr &c, const expr &d);
-
+expr SP(const expr &e);
 expr SP(const expr &e1, const expr &e2);
 expr GAS(const expr &e);
 expr GAS(const int &i);
 expr TR(const expr &e);
+expr TTR(const std::vector<expr> &ev);
 expr form(const expr &e, int verb=0);
 
 expr charge_conjugate(const expr &);
 expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);
+expr Matrix(const expr & mat, const expr &i, const expr &j);
 expr MatrixContract(const expr & expr_in);
 expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr, expr_is_less> sgnmap={});
 expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr, expr_is_less> sgnmap={});
@@ -207,23 +270,19 @@ expr y(const int i);
 expr z(const int i);
 expr lst(const std::vector<expr> &ev);
 void set_form_using_su3(bool yn);
+void set_form_using_dim4(bool yn);
+expr WF(const expr& e);
+expr WF(const expr& e1, const expr& e2);
+expr WF(const expr& e1, const expr& e2, const expr& e3);
+expr WF(const expr& e1, const expr& e2, const expr& e3, const expr& e4);
+expr WF(const expr& e1, const expr& e2, const expr& e3, const expr& e4, const expr& e5);
 
+void letSP(const expr &e, const expr &e2);
 void letSP(const expr &e1, const expr &e2, const expr &e12);
 
 expr call(const std::string func, const std::vector<expr> &ev);
 expr call(const std::string func, const expr &e);
-expr w(const int wi);
-
-class MapFunction {
-public:
-    MapFunction();
-    virtual ~MapFunction();
-    virtual expr map(const expr &e);
-    expr operator() (const expr &e);
-    friend class expr;
-private:
-    HepLib::MapFunction _map;
-};
+expr w(const int wi=0);
 
 class Integral {
 public:
@@ -254,7 +313,7 @@ private:
 class Process {
 public:
     static std::string Style;
-    static void DrawPDF(std::vector<expr>, std::string);
+    static void DrawPDF(const std::vector<expr>, std::string);
     std::string Model;
     std::string In;
     std::string Out;
@@ -266,17 +325,6 @@ public:
 };
 void set_LineTeX(expr, std::string);
 void set_InOutTeX(int, std::string);
-
-class Function {
-public:
-    Function();
-    virtual ~Function();
-    virtual expr operator()(const expr &e);
-    virtual expr operator()(const expr &e1,const expr &e2);
-    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3);
-    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4);
-    virtual expr operator()(const expr &e1,const expr &e2,const expr &e3,const expr &e4,const expr &e5);
-};
 
 class FIRE {
 public:
