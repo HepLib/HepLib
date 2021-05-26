@@ -14,9 +14,8 @@
 %}
 
 //--------------------------------------------------------------------
-
-%include std_string.i
 %include exception.i
+%include std_string.i
 %include std_vector.i
 %include std_map.i
 
@@ -36,7 +35,7 @@ namespace std {
     %template(expr_vector) vector<expr>;
     %template(int_vector) vector<int>;
     %template(string_expr_map) map<string, expr>;
-    %template(expr_expr_map) map<expr, expr>;
+    %template(expr_expr_map) map<expr, expr, expr_is_less>;
 }
 
 /*
@@ -44,7 +43,6 @@ namespace std {
     GiNaC Wrapper
 -----------------------------------------
 */
-
 
 class expr {
 public:
@@ -59,7 +57,7 @@ public:
     expr operator/(const expr &e);
     expr operator-();
     bool operator<(const expr &e) const;
-    
+    bool operator==(const expr &e) const;
     expr operator+(const int i);
     expr operator-(const int i);
     expr operator*(const int i);
@@ -70,6 +68,7 @@ public:
     unsigned int nops();
     expr op(unsigned int i);
     void let_op(unsigned int i, expr e);
+    expr __getitem__(const int i);
     
     expr expand();
     expr normal();
@@ -81,7 +80,6 @@ public:
     bool info(std::string sflags);
     expr map(MapFunction &mf);
     
-    bool is_equal(const expr & e);
     unsigned gethash();
     bool isSymbol();
     bool isVector();
@@ -102,11 +100,6 @@ public:
         return expr(other) * self
     def __rdiv__(self, other):
         return expr(other) / self
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.is_equal(other)
-        else:
-            return False
     def __hash__(self):
         return self.gethash()
     
@@ -165,12 +158,49 @@ extern expr lcm(const expr &a, const expr &b);
 
 extern expr lst(const std::vector<expr> &ev);
 
+class exvec {
+public:
+    exvec();
+    exvec(std::vector<expr> es);
+    exvec(expr e);
+    void push_back(expr e);
+    int size();
+    std::string str();
+    std::string __str__();
+};
+
+class exmap {
+public:
+    exmap();
+    exmap(std::map<expr,expr,expr_is_less> es);
+    expr __getitem__(expr e);
+    void __setitem__(expr k, expr v);
+    int size();
+    std::string str();
+    std::string __str__();
+};
+
+class exset {
+public:
+    exset();
+    exset(std::vector<expr> es);
+    exset(expr e);
+    void insert(expr e);
+    int size();
+    std::string str();
+    std::string __str__();
+};
+
 /*
 -----------------------------------------
     HepLib Wrapper
 -----------------------------------------
 */
 
+extern expr LI(const int i);
+extern expr TI(const int i);
+extern expr DI(const int i);
+extern expr CI(const int i);
 extern expr Index(const std::string &s);
 extern expr IndexCA(const std::string &s);
 extern expr IndexCF(const std::string &s);
@@ -257,9 +287,35 @@ void set_InOutTeX(int, std::string);
 extern expr charge_conjugate(const expr &);
 extern expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);
 extern expr MatrixContract(const expr & expr_in);
-extern expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr> sgnmap={});
-extern expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr> sgnmap={});
+extern expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr, expr_is_less> sgnmap={});
+extern expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr, expr_is_less> sgnmap={});
 extern expr ApartIR2ex(const expr & expr_in);
 extern expr ApartIR2F(const expr & expr_in);
 extern expr F2ex(const expr & expr_in);
 extern expr ApartIRC(const expr & expr_in);
+
+// FIRE
+%warnfilter(509) FIRE;
+class FIRE {
+public:
+    static int Version;
+    static int Threads;
+    
+    bool reCut = false;
+    std::string WorkingDir;
+    int ProblemNumber = 0;
+    
+    exvec MIntegrals;
+    exvec Rules;
+    exvec Internal;
+    exvec External;
+    exvec Replacements;
+    exvec Propagators;
+    exvec Integrals; // lst of index lst
+    exvec PIntegrals; // lst of index lst
+    exvec Cuts; // index start from 1
+    exvec DSP; // { {q1,q1}, {q1,p}, ... } Diff SP
+    exvec ISP; // { q1*q1, q1*p } Independent SP
+    std::map<int,expr> Shift;
+    void Reduce();
+};

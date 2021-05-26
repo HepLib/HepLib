@@ -5,6 +5,11 @@
 
 #include "HepLibW.h"
 
+expr LI(const int i) { return expr(HepLib::QGRAF::LI(i)); }
+expr TI(const int i) { return expr(HepLib::QGRAF::TI(i)); }
+expr DI(const int i) { return expr(HepLib::QGRAF::DI(i)); }
+expr CI(const int i) { return expr(HepLib::QGRAF::CI(i)); }
+
 expr Symbol(const std::string &s) {
     return expr(GiNaC::ex(HepLib::Symbol(s)));
 }
@@ -212,7 +217,7 @@ expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vecto
 
 expr MatrixContract(const expr & e) { return HepLib::MatrixContract(e._expr); }
 
-expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr> sgnmap) {
+expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr, expr_is_less> sgnmap) {
     GiNaC::lst _vars;
     for(auto item : vars) _vars.append(item._expr);
     GiNaC::exmap smap;
@@ -220,7 +225,7 @@ expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, ex
     return HepLib::Apart(expr_in._expr, _vars, smap);
 }
 
-expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr> sgnmap) {
+expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr, expr_is_less> sgnmap) {
     GiNaC::lst _loops, _extmoms;
     for(auto item : loops) _loops.append(item._expr);
     for(auto item : extmoms) _extmoms.append(item._expr);
@@ -233,3 +238,30 @@ expr ApartIR2ex(const expr & e) { return HepLib::ApartIR2ex(e._expr); }
 expr ApartIR2F(const expr & e) { return HepLib::ApartIR2F(e._expr); }
 expr F2ex(const expr & e) { return HepLib::F2ex(e._expr); }
 expr ApartIRC(const expr & e) { return HepLib::ApartIRC(e._expr); }
+
+int FIRE::Version = 6;
+int FIRE::Threads = 2;
+
+void FIRE::Reduce() {
+    HepLib::IBP::FIRE::Version = FIRE::Version;
+    HepLib::IBP::FIRE::Threads = FIRE::Threads;
+    HepLib::IBP::FIRE fire;
+    
+    fire.Internal =  HepLib::vec2lst(Internal._g);
+    fire.External =  HepLib::vec2lst(External._g);
+    fire.Replacements =  HepLib::vec2lst(Replacements._g);
+    fire.Propagators =  HepLib::vec2lst(Propagators._g);
+    fire.Integrals =  HepLib::vec2lst(Integrals._g); // lst of index lst
+    fire.PIntegrals =  HepLib::vec2lst(PIntegrals._g); // lst of index lst
+    fire.Cuts =  HepLib::vec2lst(Cuts._g); // index start from 1
+    fire.DSP =  HepLib::vec2lst(DSP._g); // { {q1,q1}, {q1,p}, ... } Diff SP
+    fire.ISP =  HepLib::vec2lst(ISP._g); // { q1*q1, q1*p } Independent SP
+    for(auto kv : Shift) fire.Shift[kv.first] = kv.second._expr;
+
+    fire.reCut = reCut;
+    fire.WorkingDir = WorkingDir;
+    fire.ProblemNumber = ProblemNumber;
+    fire.Reduce();
+    for(auto it : fire.MIntegrals) MIntegrals.push_back(expr(it));
+    for(auto it : fire.Rules) Rules.push_back(expr(it));
+}

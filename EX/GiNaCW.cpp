@@ -27,7 +27,7 @@ expr expr::operator/(const expr &e) { return expr(_expr / e._expr); }
 expr expr::operator>>(const expr &e) { return expr(_expr == e._expr); }
 bool expr::operator<(const expr &e) const { return _expr < e._expr; }
 bool expr::operator>(const expr &e) const { return _expr > e._expr; }
-bool expr::is_equal(const expr & e) { return _expr.is_equal(e._expr); }
+bool expr::operator==(const expr & e) const { return _expr.is_equal(e._expr); }
 unsigned expr::gethash() { return _expr.gethash(); }
 
 expr expr::operator+(const int i) { return expr(_expr + i); }
@@ -35,6 +35,7 @@ expr expr::operator-(const int i) { return expr(_expr - i); }
 expr expr::operator*(const int i) { return expr(_expr * i); }
 expr expr::operator/(const int i) { return expr(_expr / GiNaC::ex(i)); }
 expr expr::operator-() { return expr(-_expr); }
+expr expr::operator[](const int i) { return _expr.op(i); }
 
 std::string expr::str() { return HepLib::ex2str(_expr); }
 std::string expr::__str__() { return HepLib::ex2str(_expr); }
@@ -42,6 +43,7 @@ std::string expr::__str__() { return HepLib::ex2str(_expr); }
 unsigned int expr::nops() { return _expr.nops(); }
 expr expr::op(unsigned int i) { return expr(_expr.op(i)); }
 void expr::let_op(unsigned int i, expr e) { _expr.let_op(i) = e._expr; }
+expr expr::__getitem__(const int i) { return op(i); }
 
 expr expr::subs(const std::vector<expr> &ev) {
     GiNaC::lst repl;
@@ -347,3 +349,80 @@ extern expr call(const std::string func, const expr &e) {
 expr lst(const std::vector<expr> &ev) {
     return expr(ev);
 }
+
+exvec::exvec() { }
+
+exvec::exvec(std::vector<expr> es) {
+    for(auto it : es) _g.push_back(it._expr);
+}
+
+exvec::exvec(expr e) {
+    for(auto it : e._expr) _g.push_back(it);
+}
+
+void exvec::push_back(expr e) {
+    _g.push_back(e._expr);
+}
+
+int exvec::size() {
+    return _g.size();
+}
+
+std::string exvec::str() {
+    return HepLib::ex2str(_g);
+}
+
+std::string exvec::__str__() {
+    return str();
+};
+
+exmap::exmap() { }
+exmap::exmap(std::map<expr,expr,expr_is_less> es) {
+    for(auto it : es) _g[it.first._expr] = it.second._expr;
+}
+
+expr exmap::__getitem__(expr e) {
+    return _g[e._expr];
+}
+
+void exmap::__setitem__(expr k, expr v) {
+    _g[k._expr] = v._expr;
+}
+
+int exmap::size() {
+    return _g.size();
+}
+
+std::string exmap::str() {
+    return HepLib::ex2str(_g);
+}
+
+std::string exmap::__str__() {
+    return str();
+}
+
+exset::exset() { }
+
+exset::exset(std::vector<expr> es) {
+    for(auto it : es) _g.insert(it._expr);
+}
+
+exset::exset(expr e) {
+    for(auto it : e._expr) _g.insert(it);
+}
+
+void exset::insert(expr e) {
+    _g.insert(e._expr);
+}
+
+int exset::size() {
+    return _g.size();
+}
+
+std::string exset::str() {
+    return HepLib::ex2str(_g);
+}
+
+std::string exset::__str__() {
+    return str();
+};
