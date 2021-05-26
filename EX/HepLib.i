@@ -287,6 +287,7 @@ extern expr w(const int wi=0);
 extern expr x(const int i);
 extern expr y(const int i);
 extern expr z(const int i);
+extern expr WRA(const expr &e);
 
 extern expr WF(const expr& e);
 extern expr WF(const expr& e1, const expr& e2);
@@ -297,24 +298,61 @@ extern expr WF(const expr& e1, const expr& e2, const expr& e3, const expr& e4, c
 extern void set_form_using_su3(bool yn);
 extern void set_form_using_dim4(bool yn);
 
-// Integral
-%warnfilter(509) Integral;
-class Integral {
+%warnfilter(509) FeynmanParameter;
+class FeynmanParameter {
 public:
-    int epN;
-    int epsN;
-    int verb;
+    exvec Propagators;
+    exvec Exponents;
+    exvec LoopMomenta;
+    exvec tLoopMomenta;
+    exmap lReplacements;
+    exmap tReplacements;
+    exmap nReplacements;
+    expr Prefactor = expr(1);
+};
+
+%warnfilter(509) XIntegrand;
+class XIntegrand {
+public:
+    exvec Functions;
+    exvec Exponents;
+    exmap nReplacements;
+};
+
+// SecDec
+%warnfilter(509) SecDec;
+class SecDec {
+public:
+    int epN = 0;
+    int epsN = 0;
     
-    Integral();
-    void Functions(const std::vector<expr> &ev);
-    void Propagators(const std::vector<expr> &ev, const std::vector<expr> &loops={}, const std::vector<expr> &tloops={});
-    void Replacements(const std::vector<expr> &ev, int lt=0);
-    void Exponents(const std::vector<expr> &ev);
-    void Exponents(const std::vector<int> &ev);
-    void Evaluate();
+    SecDec();
+    void Initialize(FeynmanParameter fp);
+    void Initialize(XIntegrand xint);
+    void Normalizes();
+    void Scalelesses();
+    void SDPrepares();
+    void EpsEpExpands();
+    void RemoveDeltas();
+    void XReOrders();
+    void XTogethers();
+    void XExpands();
+    void KillPowers(int bits=1+2);
+    void CIPrepares(const std::string & key = "");
+    void Contours(const std::string & key = "", const std::string & pkey = "");
+    void Integrates(const std::string & key="", const std::string & pkey="", int kid=0);
+    void ReIntegrates(const std::string & key, const std::string & pkey, expr err);
+    void Evaluate(FeynmanParameter fpi, const std::string & key = "");
+    void Evaluate(XIntegrand xint, const std::string & key = "");
+    void Evaluate(exvec FunExp, const std::string & key = "");
+    void Evaluate(const std::string & key = "");
+    void MB();
+    void XEnd();
+    void ChengWu(const expr & ft=expr(0));
     
-    std::string str();
-    std::string __str__();
+    exvec FunExp;
+    expr ResultError;
+    expr VE;
 };
 
 // Process

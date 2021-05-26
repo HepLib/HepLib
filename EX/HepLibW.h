@@ -130,6 +130,7 @@ public:
     int size();
     std::string str();
     std::string __str__();
+    exvec(GiNaC::exvector es); // construct from C++
 };
 
 class exmap {
@@ -142,6 +143,7 @@ public:
     int size();
     std::string str();
     std::string __str__();
+    exmap(GiNaC::exmap es); // construct from C++
 };
 
 class exset {
@@ -154,6 +156,7 @@ public:
     int size();
     std::string str();
     std::string __str__();
+    exset(GiNaC::exset es); // construct from C++
 };
 
 class MapFunction {
@@ -268,6 +271,7 @@ void ApartIBP(int IBPmethod, std::vector<expr> &io_vec, AIOption aip);
 expr x(const int i);
 expr y(const int i);
 expr z(const int i);
+extern expr WRA(const expr &e);
 expr lst(const std::vector<expr> &ev);
 void set_form_using_su3(bool yn);
 void set_form_using_dim4(bool yn);
@@ -284,30 +288,60 @@ expr call(const std::string func, const std::vector<expr> &ev);
 expr call(const std::string func, const expr &e);
 expr w(const int wi=0);
 
-class Integral {
+class FeynmanParameter {
+public:
+    exvec Propagators;
+    exvec Exponents;
+    exvec LoopMomenta;
+    exvec tLoopMomenta;
+    exmap lReplacements;
+    exmap tReplacements;
+    exmap nReplacements;
+    expr Prefactor = expr(1);
+};
+
+class XIntegrand {
+public:
+    exvec Functions;
+    exvec Exponents;
+    exmap nReplacements;
+};
+
+class SecDec {
 public:
     int epN = 0;
     int epsN = 0;
-    int verb = 0;
-
-    Integral();
-    void Functions(const std::vector<expr> &ev);
-    void Propagators(const std::vector<expr> &ev1, const std::vector<expr> &loops={}, const std::vector<expr> &tloops={});
-    void Replacements(const std::vector<expr> &ev, int lt=0);
-    void Exponents(const std::vector<expr> &ev);
-    void Exponents(const std::vector<int> &ev);
-    void Evaluate();
-    std::string str();
-    std::string __str__();
+    
+    SecDec();
+    void Initialize(FeynmanParameter fp);
+    void Initialize(XIntegrand xint);
+    void Normalizes();
+    void Scalelesses();
+    void SDPrepares();
+    void EpsEpExpands();
+    void RemoveDeltas();
+    void XReOrders();
+    void XTogethers();
+    void XExpands();
+    void KillPowers(int bits=1+2);
+    void CIPrepares(const std::string & key = "");
+    void Contours(const std::string & key = "", const std::string & pkey = "");
+    void Integrates(const std::string & key="", const std::string & pkey="", int kid=0);
+    void ReIntegrates(const std::string & key, const std::string & pkey, expr err);
+    void Evaluate(FeynmanParameter fpi, const std::string & key = "");
+    void Evaluate(XIntegrand xint, const std::string & key = "");
+    void Evaluate(exvec FunExp, const std::string & key = "");
+    void Evaluate(const std::string & key = "");
+    void MB();
+    void XEnd();
+    void ChengWu(const expr & ft=expr(0));
+    
+    exvec FunExp;
+    expr ResultError;
+    expr VE;
+        
 private:
-    GiNaC::exvector _Propagators_Functions;
-    GiNaC::exvector _Exponents;
-    GiNaC::exvector _lReplacements;
-    GiNaC::exvector _tReplacements;
-    GiNaC::exvector _Loops;
-    GiNaC::exvector _tLoops;
-    GiNaC::ex _Result;
-    bool isX = true;
+    HepLib::SD::SecDec _SecDec;
 };
 
 class Process {

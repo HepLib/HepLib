@@ -123,6 +123,10 @@ expr z(const int i) {
     return expr(GiNaC::ex(HepLib::z(i)));
 }
 
+expr WRA(const expr &e) {
+    return expr(GiNaC::ex(HepLib::SD::WRA(e._expr)));
+}
+
 expr WF(const expr& e) {
     return expr(HepLib::WF(e._expr));
 }
@@ -152,77 +156,6 @@ MapFunction::MapFunction() : _map([this](const GiNaC::ex &e, HepLib::MapFunction
 MapFunction::~MapFunction() { }
 expr MapFunction::map(const expr & e) { return e; }
 expr MapFunction::operator() (const expr &e) { return _map(e._expr); }
-
-Integral::Integral() { }
-
-void Integral::Functions(const std::vector<expr> &ev) {
-    _Propagators_Functions.clear();
-    for(auto item : ev) _Propagators_Functions.push_back(item._expr);
-    isX = true;
-}
-
-void Integral::Propagators(const std::vector<expr> &ev, const std::vector<expr> &loops, const std::vector<expr> &tloops) {
-    _Propagators_Functions.clear();
-    for(auto item : ev) _Propagators_Functions.push_back(item._expr);
-    _Loops.clear();
-    for(auto item : loops) _Loops.push_back(item._expr);
-    _tLoops.clear();
-    for(auto item : tloops) _tLoops.push_back(item._expr);
-    isX = false;
-}
-
-void Integral::Exponents(const std::vector<expr> &ev) {
-    _Exponents.clear();
-    for(auto item : ev) _Exponents.push_back(item._expr);
-}
-
-void Integral::Exponents(const std::vector<int> &ev) {
-    _Exponents.clear();
-    for(auto item : ev) _Exponents.push_back(item);
-}
-
-void Integral::Replacements(const std::vector<expr> &ev, int lt) {
-    if(lt==0) {
-        _lReplacements.clear();
-        for(auto item : ev) _lReplacements.push_back(item._expr);
-    } else if(lt==1) {
-        _tReplacements.clear();
-        for(auto item : ev) _tReplacements.push_back(item._expr);
-    }
-}
-
-void Integral::Evaluate() {
-    if(isX) {
-        HepLib::SD::XIntegrand xint;
-        xint.Functions = HepLib::vec2lst(_Propagators_Functions);
-        xint.Exponents = HepLib::vec2lst(_Exponents);
-            
-        HepLib::SD::SecDec secdec;
-        HepLib::Verbose = verb;
-        secdec.epN = epN;
-        secdec.epsN = epsN;
-        secdec.Evaluate(xint);
-        _Result = secdec.ResultError;
-    } else {
-        HepLib::SD::FeynmanParameter fp;
-        fp.Propagators = HepLib::vec2lst(_Propagators_Functions);
-        fp.Exponents = HepLib::vec2lst(_Exponents);
-        fp.LoopMomenta = HepLib::vec2lst(_Loops);
-        fp.tLoopMomenta = HepLib::vec2lst(_tLoops);
-        for(auto item : _lReplacements) fp.lReplacements[item.op(0)] = item.op(1);
-        for(auto item : _lReplacements) fp.tReplacements[item.op(0)] = item.op(1);
-            
-        HepLib::SD::SecDec secdec;
-        HepLib::Verbose = verb;
-        secdec.epN = epN;
-        secdec.epsN = epsN;
-        secdec.Evaluate(fp);
-        _Result = secdec.ResultError;
-    }
-}
-
-std::string Integral::str() { return HepLib::ex2str(HepLib::SD::VEResult(_Result)); }
-std::string Integral::__str__() { return HepLib::ex2str(HepLib::SD::VEResult(_Result)); }
 
 std::string Process::Style;
 std::vector<expr> Process::Amplitudes(std::map<std::string,expr> st, bool debug) {
@@ -319,4 +252,95 @@ void FIRE::Reduce() {
     fire.Reduce();
     for(auto it : fire.MIntegrals) MIntegrals.push_back(expr(it));
     for(auto it : fire.Rules) Rules.push_back(expr(it));
+}
+
+// Sector Decompostion
+
+SecDec::SecDec() { }
+
+void SecDec::Initialize(FeynmanParameter fp) {
+    HepLib::SD::FeynmanParameter _fp;
+    _fp.Propagators = HepLib::vec2lst(fp.Propagators._g);
+    _fp.Exponents = HepLib::vec2lst(fp.Exponents._g);
+    _fp.LoopMomenta = HepLib::vec2lst(fp.LoopMomenta._g);
+    _fp.tLoopMomenta = HepLib::vec2lst(fp.tLoopMomenta._g);
+    _fp.tReplacements = fp.tReplacements._g;
+    _fp.lReplacements = fp.lReplacements._g;
+    _fp.nReplacements = fp.nReplacements._g;
+    _fp.Prefactor = fp.Prefactor._expr;
+    _SecDec.Initialize(_fp);
+    FunExp = exvec(_SecDec.FunExp);
+}
+
+void SecDec::Initialize(XIntegrand xint) {
+    HepLib::SD::XIntegrand _xint;
+    _xint.Functions = HepLib::vec2lst(xint.Functions._g);
+    _xint.Exponents = HepLib::vec2lst(xint.Exponents._g);
+    _xint.nReplacements = xint.nReplacements._g;
+    _SecDec.Initialize(_xint);
+    FunExp = exvec(_SecDec.FunExp);
+}
+
+void SecDec::Normalizes() { _SecDec.Normalizes(); }
+void SecDec::Scalelesses() { _SecDec.Scalelesses(); }
+void SecDec::SDPrepares() { _SecDec.SDPrepares(); }
+void SecDec::EpsEpExpands() {
+    _SecDec.epN = epN;
+    _SecDec.epsN = epsN;
+    _SecDec.EpsEpExpands();
+}
+void SecDec::RemoveDeltas() { _SecDec.RemoveDeltas(); }
+void SecDec::XReOrders() { _SecDec.XReOrders(); }
+void SecDec::XTogethers() { _SecDec.XTogethers(); }
+void SecDec::XExpands() { _SecDec.XExpands(); }
+void SecDec::KillPowers(int bits) { _SecDec.KillPowers(bits); }
+void SecDec::CIPrepares(const std::string & key) { _SecDec.CIPrepares(key); }
+void SecDec::Contours(const std::string & key, const std::string & pkey) {
+    _SecDec.Contours(key,pkey);
+}
+void SecDec::Integrates(const std::string & key, const std::string & pkey, int kid) {
+    _SecDec.Integrates(key,pkey,kid);
+}
+void SecDec::ReIntegrates(const std::string & key, const std::string & pkey, expr err) {
+    _SecDec.ReIntegrates(key,pkey,HepLib::ex2q(err._expr));
+}
+void SecDec::MB() { _SecDec.MB(); }
+void SecDec::XEnd() { _SecDec.XEnd(); }
+void SecDec::ChengWu(const expr & ft) { _SecDec.ChengWu(ft._expr); }
+
+void SecDec::Evaluate(XIntegrand xint, const std::string & key) {
+    Initialize(xint);
+    Evaluate(key);
+}
+
+void SecDec::Evaluate(exvec funexp, const std::string & key) {
+    FunExp = funexp;
+    _SecDec.FunExp = FunExp._g;
+    Evaluate(key);
+}
+
+void SecDec::Evaluate(FeynmanParameter fp, const std::string & key) {
+    Initialize(fp);
+    Evaluate(key);
+}
+
+void SecDec::Evaluate(const std::string & key) {
+    _SecDec.epN = epN;
+    _SecDec.epsN = epsN;
+    _SecDec.MB();
+    if(_SecDec.FunExp.size()<1) return;
+    _SecDec.Scalelesses();
+    _SecDec.ChengWu();
+    _SecDec.RemoveDeltas();
+    _SecDec.KillPowers();
+    _SecDec.SDPrepares();
+    _SecDec.EpsEpExpands();
+    _SecDec.CIPrepares(key);
+    auto pps = HepLib::GiNaC_Parallel_Process;
+    HepLib::GiNaC_Parallel_Process = 0;
+    _SecDec.Contours(key);
+    _SecDec.Integrates(key);
+    HepLib::GiNaC_Parallel_Process = pps;
+    ResultError = expr(_SecDec.ResultError);
+    VE = expr(HepLib::SD::VEResult(_SecDec.ResultError));
 }

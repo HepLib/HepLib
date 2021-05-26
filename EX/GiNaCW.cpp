@@ -368,6 +368,10 @@ exvec::exvec(expr e) {
     for(auto it : e._expr) _g.push_back(it);
 }
 
+exvec::exvec(GiNaC::exvector es) {
+    for(auto it : es) _g.push_back(it);
+}
+
 void exvec::push_back(expr e) {
     _g.push_back(e._expr);
 }
@@ -413,6 +417,10 @@ std::string exmap::__str__() {
     return str();
 }
 
+exmap::exmap(GiNaC::exmap es) {
+    for(auto kv : es) _g[kv.first] = kv.second;
+}
+
 exset::exset() { }
 
 exset::exset(std::vector<expr> es) {
@@ -437,6 +445,10 @@ std::string exset::str() {
 
 std::string exset::__str__() {
     return str();
+}
+
+exset::exset(GiNaC::exset es) {
+    for(auto it : es) _g.insert(it);
 }
 
 Function::Function() { }
