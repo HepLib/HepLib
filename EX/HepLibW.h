@@ -5,6 +5,7 @@
 
 #include "HepLib.h"
 
+class exmap;
 class MapFunction;
 class expr {
 public:
@@ -47,6 +48,7 @@ public:
     expr series(const expr &s, int o);
     expr subs(const std::vector<expr> &ev);
     expr subs(const expr &e);
+    expr subs(const exmap &e);
     
     std::string str();
     std::string __str__();
@@ -73,6 +75,7 @@ expr factor(const expr &e);
 expr series(const expr &e, const expr &s, int o);
 expr subs(const expr &e, const std::vector<expr> &ev);
 expr subs(const expr &e1, const expr &e2);
+expr subs(const expr &e1, const exmap &e2);
 
 expr pow(const expr &e1, const expr &e2);
 expr pow(const expr &e1, const int n);
@@ -127,7 +130,11 @@ public:
     GiNaC::exvector _g;
     void push_back(expr e);
     expr __getitem__(const int i);
+    void __setitem__(const int i, expr v);
     int size();
+    void subs(const expr & e);
+    void subs(const std::vector<expr> & e);
+    void subs(const exmap & e);
     std::string str();
     std::string __str__();
     exvec(GiNaC::exvector es); // construct from C++
@@ -271,6 +278,9 @@ void ApartIBP(int IBPmethod, std::vector<expr> &io_vec, AIOption aip);
 expr x(const int i);
 expr y(const int i);
 expr z(const int i);
+expr x(const expr & i);
+expr y(const expr & i);
+expr z(const expr & i);
 extern expr WRA(const expr &e);
 expr lst(const std::vector<expr> &ev);
 void set_form_using_su3(bool yn);
@@ -304,6 +314,7 @@ class XIntegrand {
 public:
     exvec Functions;
     exvec Exponents;
+    exvec Deltas;
     exmap nReplacements;
 };
 
@@ -311,6 +322,27 @@ class SecDec {
 public:
     int epN = 0;
     int epsN = 0;
+    
+    // used in Contours
+    bool CTMaxF = true;
+    expr CTLaMax = expr(10); // CTLaMax<0 for explict REAL mode
+    int CTTryPTS = 3;
+    int CTSavePTS = 3;
+    
+    long long TryPTS = 500000;
+    long long LambdaSplit = 5;
+    expr IntLaMax = expr(50);
+    int CTry = 1;
+    int CTryLeft = 1;
+    int CTryRight = 1;
+    expr CTryRightRatio = expr("1.5");
+    int soLimit = 10000;
+    
+    long long RunMAX = 20;
+    long long RunPTS = 500000;
+    std::map<int, long long> MinPTS;
+    expr EpsAbs = expr("1E-4");
+    int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     
     SecDec();
     void Initialize(FeynmanParameter fp);
@@ -328,7 +360,7 @@ public:
     void Contours(const std::string & key = "", const std::string & pkey = "");
     void Integrates(const std::string & key="", const std::string & pkey="", int kid=0);
     void ReIntegrates(const std::string & key, const std::string & pkey, expr err);
-    void Evaluate(FeynmanParameter fpi, const std::string & key = "");
+    void Evaluate(FeynmanParameter fp, const std::string & key = "");
     void Evaluate(XIntegrand xint, const std::string & key = "");
     void Evaluate(exvec FunExp, const std::string & key = "");
     void Evaluate(const std::string & key = "");

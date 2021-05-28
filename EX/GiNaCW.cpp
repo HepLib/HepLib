@@ -59,6 +59,10 @@ expr expr::subs(const expr &e) {
     return expr(_expr.subs(e._expr));
 }
 
+expr expr::subs(const exmap & e) {
+    return expr(_expr.subs(e._g));
+}
+
 bool expr::match(const expr &e) {
     return _expr.match(e._expr);
 }
@@ -153,6 +157,10 @@ expr subs(const expr &e, const std::vector<expr> &ev) {
 
 expr subs(const expr &e1, const expr &e2) {
     return expr(e1._expr.subs(e2._expr));
+}
+
+expr subs(const expr & e1, const exmap & e2) {
+    return expr(e1._expr.subs(e2._g));
 }
 
 expr series(const expr &e, const expr &s, int o) {
@@ -380,6 +388,10 @@ expr exvec::__getitem__(const int i) {
     return expr(_g[i]);
 }
 
+void exvec::__setitem__(const int i, expr v) {
+    _g[i] = v._expr;
+}
+
 int exvec::size() {
     return _g.size();
 }
@@ -391,6 +403,18 @@ std::string exvec::str() {
 std::string exvec::__str__() {
     return str();
 };
+
+void exvec::subs(const expr & e) {
+    for(auto & it : _g) it = it.subs(e._expr);
+}
+void exvec::subs(const std::vector<expr> & e) {
+    GiNaC::lst ss;
+    for(auto it : e) ss.append(it._expr);
+    for(auto & it : _g) it = it.subs(ss);
+}
+void exvec::subs(const exmap & e) {
+    for(auto & it : _g) it = it.subs(e._g);
+}
 
 exmap::exmap() { }
 exmap::exmap(std::map<expr,expr,expr_is_less> es) {

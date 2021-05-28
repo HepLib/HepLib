@@ -123,6 +123,18 @@ expr z(const int i) {
     return expr(GiNaC::ex(HepLib::z(i)));
 }
 
+expr x(const expr & i) {
+    return expr(GiNaC::ex(HepLib::x(i._expr)));
+}
+
+expr y(const expr & i) {
+    return expr(GiNaC::ex(HepLib::y(i._expr)));
+}
+
+expr z(const expr & i) {
+    return expr(GiNaC::ex(HepLib::z(i._expr)));
+}
+
 expr WRA(const expr &e) {
     return expr(GiNaC::ex(HepLib::SD::WRA(e._expr)));
 }
@@ -277,6 +289,7 @@ void SecDec::Initialize(XIntegrand xint) {
     _xint.Functions = HepLib::vec2lst(xint.Functions._g);
     _xint.Exponents = HepLib::vec2lst(xint.Exponents._g);
     _xint.nReplacements = xint.nReplacements._g;
+    _xint.Deltas = HepLib::vec2lst(xint.Deltas._g);
     _SecDec.Initialize(_xint);
     FunExp = exvec(_SecDec.FunExp);
 }
@@ -296,10 +309,30 @@ void SecDec::XExpands() { _SecDec.XExpands(); }
 void SecDec::KillPowers(int bits) { _SecDec.KillPowers(bits); }
 void SecDec::CIPrepares(const std::string & key) { _SecDec.CIPrepares(key); }
 void SecDec::Contours(const std::string & key, const std::string & pkey) {
+    _SecDec.CTMaxF = CTMaxF;
+    _SecDec.CTLaMax = HepLib::ex2q(CTLaMax._expr); // CTLaMax<0 for explict REAL mode
+    _SecDec.CTTryPTS = CTTryPTS;
+    _SecDec.CTSavePTS = CTSavePTS;
     _SecDec.Contours(key,pkey);
 }
 void SecDec::Integrates(const std::string & key, const std::string & pkey, int kid) {
+    _SecDec.TryPTS = 500000;
+    _SecDec.LambdaSplit = 5;
+    _SecDec.IntLaMax = HepLib::ex2q(IntLaMax._expr);
+    _SecDec.CTry = 1;
+    _SecDec.CTryLeft = 1;
+    _SecDec.CTryRight = 1;
+    _SecDec.CTryRightRatio = HepLib::ex2q(CTryRightRatio._expr);
+    _SecDec.soLimit = soLimit;
+    
+    _SecDec.RunMAX = RunMAX;
+    _SecDec.RunPTS = RunPTS;
+    for(auto kv : MinPTS) _SecDec.MinPTS[kv.first] = kv.second;
+    _SecDec.EpsAbs = HepLib::ex2q(EpsAbs._expr);
+    _SecDec.ReIm = ReIm; // 1-Re, 2-Im, 3-ReIm
     _SecDec.Integrates(key,pkey,kid);
+    ResultError = expr(_SecDec.ResultError);
+    VE = expr(HepLib::SD::VEResult(_SecDec.ResultError));
 }
 void SecDec::ReIntegrates(const std::string & key, const std::string & pkey, expr err) {
     _SecDec.ReIntegrates(key,pkey,HepLib::ex2q(err._expr));
@@ -309,38 +342,37 @@ void SecDec::XEnd() { _SecDec.XEnd(); }
 void SecDec::ChengWu(const expr & ft) { _SecDec.ChengWu(ft._expr); }
 
 void SecDec::Evaluate(XIntegrand xint, const std::string & key) {
+    if(HepLib::Verbose>1) std::cout << std::endl << "  Starting @ " << HepLib::now() << std::endl;
     Initialize(xint);
     Evaluate(key);
 }
 
 void SecDec::Evaluate(exvec funexp, const std::string & key) {
+    if(HepLib::Verbose>1) std::cout << std::endl << "  Starting @ " << HepLib::now() << std::endl;
     FunExp = funexp;
     _SecDec.FunExp = FunExp._g;
     Evaluate(key);
 }
 
 void SecDec::Evaluate(FeynmanParameter fp, const std::string & key) {
+    if(HepLib::Verbose>1) std::cout << std::endl << "  Starting @ " << HepLib::now() << std::endl;
     Initialize(fp);
     Evaluate(key);
 }
 
 void SecDec::Evaluate(const std::string & key) {
-    _SecDec.epN = epN;
-    _SecDec.epsN = epsN;
-    _SecDec.MB();
+    MB();
     if(_SecDec.FunExp.size()<1) return;
-    _SecDec.Scalelesses();
-    _SecDec.ChengWu();
-    _SecDec.RemoveDeltas();
-    _SecDec.KillPowers();
-    _SecDec.SDPrepares();
-    _SecDec.EpsEpExpands();
-    _SecDec.CIPrepares(key);
+    Scalelesses();
+    ChengWu();
+    RemoveDeltas();
+    KillPowers();
+    SDPrepares();
+    EpsEpExpands();
+    CIPrepares(key);
     auto pps = HepLib::GiNaC_Parallel_Process;
     HepLib::GiNaC_Parallel_Process = 0;
-    _SecDec.Contours(key);
-    _SecDec.Integrates(key);
+    Contours(key);
+    Integrates(key);
     HepLib::GiNaC_Parallel_Process = pps;
-    ResultError = expr(_SecDec.ResultError);
-    VE = expr(HepLib::SD::VEResult(_SecDec.ResultError));
 }
