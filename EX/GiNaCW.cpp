@@ -514,3 +514,37 @@ exvec Parallel(int ntotal,
 bool isFunction(const expr &e, std::string sf) {
     return HepLib::isFunction(e._expr, sf);
 }
+
+std::map<std::string,expr> garReadAll(const std::string &garfn) {
+    std::map<std::string, GiNaC::ex> _resMap;
+    HepLib::garRead(garfn, _resMap);
+    std::map<std::string, expr> resMap;
+    for(auto kv : _resMap) resMap[kv.first] = expr(kv.second);
+    return resMap;
+}
+
+expr garRead(const std::string &garfn, const char* key) {
+     return expr(HepLib::garRead(garfn, key));
+}
+
+expr garRead(const std::string &garfn) {
+    return expr(HepLib::garRead(garfn));
+}
+
+void garWrite(const std::string &garfn, const std::map<std::string, expr> &resMap) {
+    std::map<std::string, GiNaC::ex> _resMap;
+    for(auto kv : resMap) _resMap[kv.first] = kv.second._expr;
+    HepLib::garWrite(garfn, _resMap);
+}
+
+void garWrite(const std::map<std::string, expr> &resMap, const std::string &garfn) {
+    garWrite(garfn,resMap);
+}
+
+void garWrite(const std::string &garfn, const expr & res) {
+    HepLib::garWrite(garfn, res._expr);
+}
+
+void garWrite(const expr & res, const std::string &garfn) {
+    garWrite(garfn,res);
+}

@@ -239,6 +239,15 @@ extern exvec Parallel(int ntotal,
         const std::string & key = "",
         bool rm = true,
         const std::string & pre = "  ");
+        
+
+extern std::map<std::string,expr> garReadAll(const std::string &garfn);
+extern expr garRead(const std::string &garfn, const char* key);
+extern expr garRead(const std::string &garfn);
+extern void garWrite(const std::string &garfn, const std::map<std::string, expr> &resMap);
+extern void garWrite(const std::map<std::string, expr> &resMap, const std::string &garfn);
+extern void garWrite(const std::string &garfn, const expr & res);
+extern void garWrite(const expr & res, const std::string &garfn);
 
 /*
 -----------------------------------------

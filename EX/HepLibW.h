@@ -209,6 +209,14 @@ void set_Parallel_Process(int p);
 void set_Verbose(int v);
 bool isFunction(const expr &e, std::string sf);
 
+std::map<std::string,expr> garReadAll(const std::string &garfn);
+expr garRead(const std::string &garfn, const char* key);
+expr garRead(const std::string &garfn);
+void garWrite(const std::string &garfn, const std::map<std::string, expr> &resMap);
+void garWrite(const std::map<std::string, expr> &resMap, const std::string &garfn);
+void garWrite(const std::string &garfn, const expr & res);
+void garWrite(const expr & res, const std::string &garfn);
+
 // --------------------------------------------------------
 
 expr Index(const std::string &s);
