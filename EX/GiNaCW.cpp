@@ -416,6 +416,10 @@ void exvec::subs(const exmap & e) {
     for(auto & it : _g) it = it.subs(e._g);
 }
 
+it4vec exvec::__iter__() {
+    return it4vec(_g.begin(), _g.end());
+}
+
 exmap::exmap() { }
 exmap::exmap(std::map<expr,expr,expr_is_less> es) {
     for(auto it : es) _g[it.first._expr] = it.second._expr;
@@ -443,6 +447,10 @@ std::string exmap::__str__() {
 
 exmap::exmap(GiNaC::exmap es) {
     for(auto kv : es) _g[kv.first] = kv.second;
+}
+
+it4map exmap::__iter__() {
+    return it4map(_g.begin(), _g.end());
 }
 
 exset::exset() { }
@@ -473,6 +481,10 @@ std::string exset::__str__() {
 
 exset::exset(GiNaC::exset es) {
     for(auto it : es) _g.insert(it);
+}
+
+it4set exset::__iter__() {
+    return it4set(_g.begin(), _g.end());
 }
 
 Function::Function() { }

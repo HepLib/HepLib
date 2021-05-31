@@ -122,6 +122,22 @@ expr iquo(const expr &a, const expr &b, const expr &r);
 expr gcd(const expr &a, const expr &b);
 expr lcm(const expr &a, const expr &b);
 
+class StopIteration { };
+class it4vec {
+public:
+    it4vec() { }
+    it4vec(GiNaC::exvector::iterator b, GiNaC::exvector::iterator e) : _c(b), _e(e) {  }
+    it4vec* __iter__() { return this; }
+    expr & __next__() {
+        if (_c != _e) { e = expr(*(_c++)); return e; }
+        else throw StopIteration();
+    }
+private:
+    std::vector<GiNaC::ex>::iterator _c;
+    std::vector<GiNaC::ex>::iterator _e;
+    expr e;
+};
+
 class exvec {
 public:
     exvec();
@@ -138,6 +154,25 @@ public:
     std::string str();
     std::string __str__();
     exvec(GiNaC::exvector es); // construct from C++
+    it4vec __iter__();
+};
+
+class it4map {
+public:
+    it4map() { }
+    it4map(GiNaC::exmap::iterator b, GiNaC::exmap::iterator e) : _c(b), _e(e) {  }
+    it4map* __iter__() { return this; }
+    std::pair<expr,expr> & __next__() {
+        if (_c != _e) {
+            auto e = *(_c++);
+            kv = std::pair<expr,expr>(expr(e.first), expr(e.second));
+            return kv;
+        } else throw StopIteration();
+    }
+private:
+    GiNaC::exmap::iterator _c;
+    GiNaC::exmap::iterator _e;
+    std::pair<expr,expr> kv;
 };
 
 class exmap {
@@ -151,6 +186,22 @@ public:
     std::string str();
     std::string __str__();
     exmap(GiNaC::exmap es); // construct from C++
+    it4map __iter__();
+};
+
+class it4set {
+public:
+    it4set() { }
+    it4set(const GiNaC::exset::iterator b, const GiNaC::exset::iterator e) : _c(b), _e(e) {  }
+    it4set* __iter__() { return this; }
+    expr & __next__() {
+        if (_c != _e) { e = expr(*(_c++)); return e; }
+        else throw StopIteration();
+    }
+private:
+    GiNaC::exset::iterator _c;
+    GiNaC::exset::iterator _e;
+    expr e;
 };
 
 class exset {
@@ -164,6 +215,7 @@ public:
     std::string str();
     std::string __str__();
     exset(GiNaC::exset es); // construct from C++
+    it4set __iter__();
 };
 
 class MapFunction {

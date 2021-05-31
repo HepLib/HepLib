@@ -21,9 +21,13 @@
 %include std_vector.i
 %include std_map.i
 
+class StopIteration { };
 %exception {
     try {
         $action
+    } catch(const StopIteration & e) {
+        PyErr_SetString(PyExc_StopIteration, "End of iterator");
+        SWIG_fail;
     } catch(const std::exception& e) {
         SWIG_exception(SWIG_RuntimeError, e.what());
     } catch (const std::string& e) {
@@ -39,6 +43,7 @@ namespace std {
     %template(string_expr_map) map<string, expr>;
     %template(expr_expr_map) map<expr, expr, expr_is_less>;
     %template(int_longlong_map) std::map<int, long long>;
+    %template(expr_expr_pair) std::pair<expr,expr>;
 }
 
 /*
@@ -166,6 +171,24 @@ extern expr lcm(const expr &a, const expr &b);
 extern expr lst(const std::vector<expr> &ev);
 extern bool isFunction(const expr &e, std::string sf);
 
+class it4vec {
+public:
+    it4vec* __iter__();
+    expr & __next__();
+};
+
+class it4map {
+public:
+    it4map* __iter__();
+    std::pair<expr,expr> & __next__();
+};
+
+class it4set {
+public:
+    it4set* __iter__();
+    expr & __next__();
+};
+
 class exvec {
 public:
     exvec();
@@ -180,6 +203,7 @@ public:
     void subs(const exmap  &e);
     std::string str();
     std::string __str__();
+    it4vec __iter__();
 };
 
 class exmap {
@@ -191,6 +215,7 @@ public:
     int size();
     std::string str();
     std::string __str__();
+    it4map __iter__();
 };
 
 class exset {
@@ -202,6 +227,7 @@ public:
     int size();
     std::string str();
     std::string __str__();
+    it4set __iter__();
 };
 
 class MapFunction {

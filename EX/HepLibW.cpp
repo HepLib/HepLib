@@ -163,7 +163,6 @@ void set_form_using_dim4(bool yn) {
     HepLib::form_using_dim4 = yn;
 }
 
-
 MapFunction::MapFunction() : _map([this](const GiNaC::ex &e, HepLib::MapFunction &self)->GiNaC::ex{ return map(expr(e))._expr; }) {}
 MapFunction::~MapFunction() { }
 expr MapFunction::map(const expr & e) { return e; }
