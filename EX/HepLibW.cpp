@@ -169,7 +169,7 @@ expr MapFunction::map(const expr & e) { return e; }
 expr MapFunction::operator() (const expr &e) { return _map(e._expr); }
 
 std::string Process::Style;
-std::vector<expr> Process::Amplitudes(std::map<std::string,expr> st, bool debug) {
+exvec Process::Amplitudes(std::map<std::string,expr> st, bool debug) {
     HepLib::QGRAF::Process proc;
     if(Style != "") HepLib::QGRAF::Process::Style = Style;
     proc.Model = Model;
@@ -182,7 +182,7 @@ std::vector<expr> Process::Amplitudes(std::map<std::string,expr> st, bool debug)
     GiNaC::symtab _st;
     for(auto kv : st) _st[kv.first] = kv.second._expr;
     auto ret = proc.Amplitudes(_st, debug);
-    std::vector<expr> res;
+    exvec res;
     for(auto item : ret) res.push_back(expr(item));
     return res;
 }
