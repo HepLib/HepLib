@@ -133,6 +133,10 @@ expr expr::series(const expr &s, int o) {
     return expr(HepLib::series_ex(_expr, GiNaC::ex_to<HepLib::Symbol>(s._expr), o));
 }
 
+it4expr expr::__iter__() {
+    return it4expr(_expr.begin(), _expr.end());
+}
+
 expr conjugate(const expr &e) {
     return expr(conjugate(e._expr));
 }
@@ -420,6 +424,10 @@ it4vec exvec::__iter__() {
     return it4vec(_g.begin(), _g.end());
 }
 
+void exvec::sort() {
+    std::sort(_g.begin(), _g.end(), HepLib::ex_less);
+}
+
 exmap::exmap() { }
 exmap::exmap(std::map<expr,expr,expr_is_less> es) {
     for(auto it : es) _g[it.first._expr] = it.second._expr;
@@ -559,4 +567,14 @@ void garWrite(const std::string &garfn, const expr & res) {
 
 void garWrite(const expr & res, const std::string &garfn) {
     garWrite(garfn,res);
+}
+
+MapFunction::MapFunction() : _map([this](const GiNaC::ex &e, HepLib::MapFunction &self)->GiNaC::ex{ return map(expr(e))._expr; }) {}
+MapFunction::~MapFunction() { }
+expr MapFunction::map(const expr & e) { return e; }
+expr MapFunction::operator() (const expr &e) { return _map(e._expr); }
+exvec MapFunction::operator() (const exvec &ev) {
+    exvec ret;
+    for(auto item : ev._g) ret._g.push_back(_map(item));
+    return ret;
 }

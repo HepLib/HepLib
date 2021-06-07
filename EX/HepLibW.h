@@ -5,6 +5,8 @@
 
 #include "HepLib.h"
 
+class StopIteration { };
+class it4expr;
 class exmap;
 class MapFunction;
 class expr {
@@ -52,6 +54,7 @@ public:
     
     std::string str();
     std::string __str__();
+    it4expr __iter__();
     
     bool match(const expr &e);
     bool isSymbol();
@@ -122,7 +125,21 @@ expr iquo(const expr &a, const expr &b, const expr &r);
 expr gcd(const expr &a, const expr &b);
 expr lcm(const expr &a, const expr &b);
 
-class StopIteration { };
+class it4expr {
+public:
+    it4expr() { }
+    it4expr(GiNaC::const_iterator b, GiNaC::const_iterator e) : _c(b), _e(e) {  }
+    it4expr* __iter__() { return this; }
+    expr & __next__() {
+        if (_c != _e) { e = expr(*(_c++)); return e; }
+        else throw StopIteration();
+    }
+private:
+    GiNaC::const_iterator _c;
+    GiNaC::const_iterator _e;
+    expr e;
+};
+
 class it4vec {
 public:
     it4vec() { }
@@ -155,6 +172,7 @@ public:
     std::string __str__();
     exvec(GiNaC::exvector es); // construct from C++
     it4vec __iter__();
+    void sort();
 };
 
 class it4map {
@@ -224,6 +242,7 @@ public:
     virtual ~MapFunction();
     virtual expr map(const expr &e);
     expr operator() (const expr &e);
+    exvec operator() (const exvec & ev);
     friend class expr;
 private:
     HepLib::MapFunction _map;
@@ -251,7 +270,7 @@ exvec Parallel(int ntotal, int nbatch,
         const std::string & key = "",
         bool rm = true,
         const std::string & pre = "  ");
-extern exvec Parallel(int ntotal,
+exvec Parallel(int ntotal,
         ParFun &f,
         const std::string & key = "",
         bool rm = true,
@@ -293,7 +312,6 @@ expr RLI(const expr& i);
 expr RTI(const expr& i);
 expr RDI(const expr& i);
 expr RCI(const expr& i);
-expr IndexL2R(const expr &e);
 
 expr SUNT(const expr &e, const expr &i, const expr &j);
 expr SUNT(const std::vector<expr> &ev, const expr &i, const expr &j);
@@ -326,10 +344,10 @@ class AIOption {
     expr Internal; // Internal for Apart/IBP
     expr External; // External for Apart/IBP
     expr DSP; // DSP for IBP
-    std::map<expr, expr, expr_is_less> smap; // Sign Map for Apart
-    std::vector<expr> Cuts; // Cut Propagators. optional
-    std::vector<expr> CSP; // SP in Cuts, to be cleared. optional
-    std::vector<expr> ISP; // SP for IBP. optional
+    exmap smap; // Sign Map for Apart
+    exvec Cuts; // Cut Propagators. optional
+    exvec CSP; // SP in Cuts, to be cleared. optional
+    exvec ISP; // SP for IBP. optional
     bool CutFirst = true;
     int mcl = 1; // collect_ex level, 0-nothing, 1-exnormal, 2-exfactor
 };
@@ -341,7 +359,7 @@ expr z(const int i);
 expr x(const expr & i);
 expr y(const expr & i);
 expr z(const expr & i);
-extern expr WRA(const expr &e);
+expr WRA(const expr &e);
 expr lst(const std::vector<expr> &ev);
 void set_form_using_su3(bool yn);
 void set_form_using_dim4(bool yn);
@@ -439,7 +457,7 @@ private:
 class Process {
 public:
     static std::string Style;
-    static void DrawPDF(const std::vector<expr>, std::string);
+    static void DrawPDF(const exvec &, std::string);
     std::string Model;
     std::string In;
     std::string Out;
@@ -451,6 +469,39 @@ public:
 };
 void set_LineTeX(expr, std::string);
 void set_InOutTeX(int, std::string);
+exvec ShrinkCut(const expr & e, exvec ev, int n);
+
+expr QuarkPropagator(expr e, expr m=expr(0), bool color=true);
+expr GluonPropagator(expr e, bool color=true);
+expr GhostPropagator(expr e, bool color=true);
+expr q2gVertex(expr e, bool color=true);
+expr g3Vertex(expr e);
+expr g4Vertex(expr e);
+expr gh2gVertex(expr e, bool color=true);
+
+expr IndexL2R(expr e, bool all=true);
+expr IndexCC(expr e, bool all=true);
+
+expr GluonSumL(int qi, bool color=true);
+expr QuarkSumL(int qi, expr p, expr m, bool color=true);
+expr AntiQuarkSumL(int qi, expr p, expr m, bool color=true);
+expr GhostSumL(int qi);
+expr AntiGhostSumL(int qi);
+expr J1SumL(int qi, expr p);
+
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu);
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu);
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu, int i, int j);
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu, int i, int j);
+expr ColorProj(int i, int j, expr a);
+expr ColorProj(int i, int j);
+expr S1L1Proj(expr si, expr qi, expr p);
+expr S1L1Proj(expr si, expr qi, expr mu, expr p);
+expr S1L1Proj(expr si, expr qi, expr mu1, expr mu2, expr p);
+expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu, expr p);
+expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu1, expr mu2, expr p);
+expr S1L1Sum(expr si, expr siR, expr qi, expr qiR, expr p, int J);
+expr LProj(const expr &expr_in, const exvec &pqi, std::string prefix="lpj");
 
 class FIRE {
 public:

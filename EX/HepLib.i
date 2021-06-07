@@ -99,6 +99,7 @@ public:
     
     std::string str();
     std::string __str__();
+    it4expr __iter__();
     
     %pythoncode %{
     
@@ -171,6 +172,12 @@ extern expr lcm(const expr &a, const expr &b);
 extern expr lst(const std::vector<expr> &ev);
 extern bool isFunction(const expr &e, std::string sf);
 
+class it4expr {
+public:
+    it4expr* __iter__();
+    expr & __next__();
+};
+
 class it4vec {
 public:
     it4vec* __iter__();
@@ -200,7 +207,8 @@ public:
     void __setitem__(const int i, expr v);
     void subs(const expr & e);
     void subs(const std::vector<expr> & e);
-    void subs(const exmap  &e);
+    void subs(const exmap &e);
+    void sort();
     std::string str();
     std::string __str__();
     it4vec __iter__();
@@ -236,6 +244,7 @@ public:
     virtual ~MapFunction();
     virtual expr map(const expr &e);
     expr operator() (const expr &e);
+    exvec operator() (const exvec & ev);
 };
 
 class Function {
@@ -299,7 +308,6 @@ extern expr RLI(const expr& i);
 extern expr RTI(const expr& i);
 extern expr RDI(const expr& i);
 extern expr RCI(const expr& i);
-extern expr IndexL2R(const expr &e);
 
 extern expr Index(const std::string &s);
 extern expr IndexCA(const std::string &s);
@@ -426,7 +434,7 @@ public:
 %warnfilter(509) Process;
 class Process {
 public:
-    static void DrawPDF(const std::vector<expr>, std::string);
+    static void DrawPDF(const exvec &, std::string);
     static std::string Style;
     std::string Model;
     std::string In;
@@ -437,8 +445,43 @@ public:
     std::vector<std::string> Others;
     exvec Amplitudes(std::map<std::string,expr> st, bool debug=false);
 };
-void set_LineTeX(expr, std::string);
-void set_InOutTeX(int, std::string);
+extern void set_LineTeX(expr, std::string);
+extern void set_InOutTeX(int, std::string);
+extern exvec ShrinkCut(const expr & e, exvec ev, int n);
+
+// Feynman Rules
+extern expr QuarkPropagator(expr e, expr m=expr(0), bool color=true);
+extern expr GluonPropagator(expr e, bool color=true);
+extern expr GhostPropagator(expr e, bool color=true);
+extern expr q2gVertex(expr e, bool color=true);
+extern expr g3Vertex(expr e);
+extern expr g4Vertex(expr e);
+extern expr gh2gVertex(expr e, bool color=true);
+
+extern expr IndexL2R(expr e, bool all=true);
+extern expr IndexCC(expr e, bool all=true);
+
+extern expr GluonSumL(int qi, bool color=true);
+extern expr QuarkSumL(int qi, expr p, expr m, bool color=true);
+extern expr AntiQuarkSumL(int qi, expr p, expr m, bool color=true);
+extern expr GhostSumL(int qi);
+extern expr AntiGhostSumL(int qi);
+extern expr J1SumL(int qi, expr p);
+
+// QCD
+extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu);
+extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu);
+extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu, int i, int j);
+extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu, int i, int j);
+extern expr ColorProj(int i, int j, expr a);
+extern expr ColorProj(int i, int j);
+extern expr S1L1Proj(expr si, expr qi, expr p);
+extern expr S1L1Proj(expr si, expr qi, expr mu, expr p);
+extern expr S1L1Proj(expr si, expr qi, expr mu1, expr mu2, expr p);
+extern expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu, expr p);
+extern expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu1, expr mu2, expr p);
+extern expr S1L1Sum(expr si, expr siR, expr qi, expr qiR, expr p, int J);
+extern expr LProj(const expr &expr_in, const exvec &pqi, std::string prefix="lpj");
 
 extern expr charge_conjugate(const expr &);
 extern expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);

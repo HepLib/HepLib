@@ -163,11 +163,6 @@ void set_form_using_dim4(bool yn) {
     HepLib::form_using_dim4 = yn;
 }
 
-MapFunction::MapFunction() : _map([this](const GiNaC::ex &e, HepLib::MapFunction &self)->GiNaC::ex{ return map(expr(e))._expr; }) {}
-MapFunction::~MapFunction() { }
-expr MapFunction::map(const expr & e) { return e; }
-expr MapFunction::operator() (const expr &e) { return _map(e._expr); }
-
 std::string Process::Style;
 exvec Process::Amplitudes(std::map<std::string,expr> st, bool debug) {
     HepLib::QGRAF::Process proc;
@@ -187,10 +182,17 @@ exvec Process::Amplitudes(std::map<std::string,expr> st, bool debug) {
     return res;
 }
 
-void Process::DrawPDF(std::vector<expr> amps, std::string fn) {
+void Process::DrawPDF(const exvec & amps, std::string fn) {
     GiNaC::lst amp_lst;
-    for(auto item : amps) amp_lst.append(item._expr);
+    for(auto item : amps._g) amp_lst.append(item);
     HepLib::QGRAF::DrawPDF(amp_lst, fn);
+}
+
+exvec ShrinkCut(const expr & e, exvec ev, int n) {
+    auto ret = HepLib::QGRAF::ShrinkCut(e._expr, HepLib::vec2lst(ev._g), n);
+    exvec res;
+    for(auto item : ret) res._g.push_back(item);
+    return res;
 }
 
 void set_LineTeX(expr f, std::string tex) {
@@ -198,6 +200,68 @@ void set_LineTeX(expr f, std::string tex) {
 }
 void set_InOutTeX(int fn, std::string tex) {
     HepLib::QGRAF::InOutTeX[fn] = tex;
+}
+
+expr QuarkPropagator(expr e, expr m, bool color) { return HepLib::QGRAF::QuarkPropagator(e._expr, m._expr, color); }
+expr GluonPropagator(expr e, bool color) { return HepLib::QGRAF::GluonPropagator(e._expr, color); }
+expr GhostPropagator(expr e, bool color) { return HepLib::QGRAF::GhostPropagator(e._expr, color); }
+expr q2gVertex(expr e, bool color) { return HepLib::QGRAF::q2gVertex(e._expr, color); }
+expr g3Vertex(expr e) { return HepLib::QGRAF::g3Vertex(e._expr); }
+expr g4Vertex(expr e) { return HepLib::QGRAF::g3Vertex(e._expr); }
+expr gh2gVertex(expr e, bool color) { return HepLib::QGRAF::gh2gVertex(e._expr, color); }
+
+expr IndexL2R(expr e, bool all) { return HepLib::QGRAF::IndexL2R(e._expr, all); }
+expr IndexCC(expr e, bool all) { return HepLib::QGRAF::IndexCC(e._expr, all); }
+
+expr GluonSumL(int qi, bool color) { return HepLib::QGRAF::GluonSumL(qi, color); }
+expr QuarkSumL(int qi, expr p, expr m, bool color) { return HepLib::QGRAF::QuarkSumL(qi, p._expr, m._expr, color); }
+expr AntiQuarkSumL(int qi, expr p, expr m, bool color) { return HepLib::QGRAF::AntiQuarkSumL(qi, p._expr, m._expr, color); }
+expr GhostSumL(int qi) { return HepLib::QGRAF::GhostSumL(qi); }
+expr AntiGhostSumL(int qi) { return HepLib::QGRAF::AntiGhostSumL(qi); }
+expr J1SumL(int qi, expr p) { return HepLib::QGRAF::J1SumL(qi, p._expr); }
+
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu) {
+    if(io == "In") return HepLib::QCD::Quarkonium::SpinProj(HepLib::QCD::Quarkonium::IO::In, s, p._expr, pb._expr, m._expr, e._expr, mu._expr);
+    else return HepLib::QCD::Quarkonium::SpinProj(HepLib::QCD::Quarkonium::IO::Out, s, p._expr, pb._expr, m._expr, e._expr, mu._expr);
+}
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu) {
+    if(io == "In") return HepLib::QCD::Quarkonium::SpinProj(HepLib::QCD::Quarkonium::IO::In, s, p._expr, pb._expr, m._expr, e._expr, mb._expr, eb._expr, mu._expr);
+    else return HepLib::QCD::Quarkonium::SpinProj(HepLib::QCD::Quarkonium::IO::Out, s, p._expr, pb._expr, m._expr, e._expr, mb._expr, eb._expr, mu._expr);
+}
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu, int i, int j) {
+    if(io == "In") return HepLib::QCD::Quarkonium::SpinProj(HepLib::QCD::Quarkonium::IO::In, s, p._expr, pb._expr, m._expr, e._expr, mu._expr, i, j);
+    else return HepLib::QCD::Quarkonium::SpinProj(HepLib::QCD::Quarkonium::IO::Out, s, p._expr, pb._expr, m._expr, e._expr, mu._expr, i, j);
+}
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu, int i, int j) {
+    if(io == "In") return HepLib::QCD::Quarkonium::SpinProj(HepLib::QCD::Quarkonium::IO::In, s, p._expr, pb._expr, m._expr, e._expr, mb._expr, eb._expr, mu._expr, i, j);
+    else return HepLib::QCD::Quarkonium::SpinProj(HepLib::QCD::Quarkonium::IO::Out, s, p._expr, pb._expr, m._expr, e._expr, mb._expr, eb._expr, mu._expr, i, j);
+}
+expr ColorProj(int i, int j, expr a) {
+    return HepLib::QCD::Quarkonium::ColorProj(i,j, GiNaC::ex_to<HepLib::Index>(a._expr));
+}
+expr ColorProj(int i, int j) {
+    return HepLib::QCD::Quarkonium::ColorProj(i,j);
+}
+expr S1L1Proj(expr si, expr qi, expr p) {
+    return HepLib::QCD::Quarkonium::S1L1Proj(si._expr,qi._expr,p._expr);
+}
+expr S1L1Proj(expr si, expr qi, expr mu, expr p) {
+    return HepLib::QCD::Quarkonium::S1L1Proj(si._expr,qi._expr,mu._expr,p._expr);
+}
+expr S1L1Proj(expr si, expr qi, expr mu1, expr mu2, expr p) {
+    return HepLib::QCD::Quarkonium::S1L1Proj(si._expr,qi._expr,mu1._expr,mu2._expr,p._expr);
+}
+expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu, expr p) {
+    return HepLib::QCD::Quarkonium::S1L2Proj(si._expr,qi1._expr,qi2._expr,mu._expr,p._expr);
+}
+expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu1, expr mu2, expr p) {
+    return HepLib::QCD::Quarkonium::S1L2Proj(si._expr,qi1._expr,qi2._expr,mu1._expr,mu2._expr,p._expr);
+}
+expr S1L1Sum(expr si, expr siR, expr qi, expr qiR, expr p, int J) {
+    return HepLib::QCD::Quarkonium::S1L1Sum(si._expr,siR._expr,qi._expr,qiR._expr,p._expr,J);
+}
+expr LProj(const expr &expr_in, const exvec &pqi, std::string prefix) {
+    return HepLib::QCD::Quarkonium::LProj(expr_in._expr, HepLib::vec2lst(pqi._g), prefix);
 }
 
 expr charge_conjugate(const expr &e) { return HepLib::charge_conjugate(e._expr); }
