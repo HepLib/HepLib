@@ -67,6 +67,10 @@ bool expr::match(const expr &e) {
     return _expr.match(e._expr);
 }
 
+bool expr::has(const expr &e) {
+    return _expr.has(e._expr);
+}
+
 bool expr::info(std::string sflags) {
     if (sflags == "numeric") return _expr.info(GiNaC::info_flags::numeric);
     else if (sflags == "real") return _expr.info(GiNaC::info_flags::real);
@@ -133,6 +137,10 @@ expr expr::series(const expr &s, int o) {
     return expr(HepLib::series_ex(_expr, GiNaC::ex_to<HepLib::Symbol>(s._expr), o));
 }
 
+expr expr::collect(const expr & s) {
+    return expr(HepLib::collect_o(_expr, s._expr));
+}
+
 it4expr expr::__iter__() {
     return it4expr(_expr.begin(), _expr.end());
 }
@@ -170,6 +178,10 @@ expr subs(const expr & e1, const exmap & e2) {
 expr series(const expr &e, const expr &s, int o) {
     if(!GiNaC::is_a<HepLib::Symbol>(s._expr)) throw HepLib::Error("1st argument should be a Symbol.");
     return expr(HepLib::series_ex(e._expr, GiNaC::ex_to<HepLib::Symbol>(s._expr), o));
+}
+
+expr collect(const expr & e, const expr & s) {
+    return expr(HepLib::collect_o(e._expr, s._expr));
 }
 
 expr pow(const expr &e1, const expr &e2) {
@@ -392,11 +404,19 @@ expr exvec::__getitem__(const int i) {
     return expr(_g[i]);
 }
 
+expr exvec::op(const int i) {
+    return expr(_g[i]);
+}
+
 void exvec::__setitem__(const int i, expr v) {
     _g[i] = v._expr;
 }
 
 int exvec::size() {
+    return _g.size();
+}
+
+int exvec::nops() {
     return _g.size();
 }
 
@@ -445,6 +465,10 @@ int exmap::size() {
     return _g.size();
 }
 
+int exmap::nops() {
+    return _g.size();
+}
+
 std::string exmap::str() {
     return HepLib::ex2str(_g);
 }
@@ -476,6 +500,10 @@ void exset::insert(expr e) {
 }
 
 int exset::size() {
+    return _g.size();
+}
+
+int exset::nops() {
     return _g.size();
 }
 
@@ -533,6 +561,10 @@ exvec Parallel(int ntotal,
 
 bool isFunction(const expr &e, std::string sf) {
     return HepLib::isFunction(e._expr, sf);
+}
+
+expr file2expr(std::string fn) {
+    return expr(HepLib::file2ex(fn));
 }
 
 std::map<std::string,expr> garReadAll(const std::string &garfn) {

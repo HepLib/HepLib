@@ -273,12 +273,25 @@ expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vecto
     return HepLib::TIR(expr_in._expr, lps, eps);
 }
 
+expr TIR(const expr &expr_in, const exvec & loop_ps, const exvec & ext_ps) {
+    GiNaC::lst lps, eps;
+    for(auto item : loop_ps._g) lps.append(item);
+    for(auto item : ext_ps._g) eps.append(item);
+    return HepLib::TIR(expr_in._expr, lps, eps);
+}
+
 expr MatrixContract(const expr & e) {
     return expr(HepLib::MatrixContract(e._expr));
 }
 expr Matrix(const expr & mat, const expr &i, const expr &j) {
     return expr(HepLib::Matrix(mat._expr, i._expr, j._expr));
 }
+
+expr RC::Z2(std::string name, expr m, int loop) { return HepLib::QCD::RC::Z2(name, m._expr, loop); }
+expr RC::Zm(expr m, int loop) { return HepLib::QCD::RC::Zm(m._expr, loop); }
+expr RC::asBare(int loop) { return HepLib::QCD::RC::asBare(loop); }
+expr RC::asLO() { return HepLib::QCD::RC::asLO(); }
+expr RC::Zas(int loop) { return HepLib::QCD::RC::Zas(loop); }
 
 expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr, expr_is_less> sgnmap) {
     GiNaC::lst _vars;
@@ -301,6 +314,32 @@ expr ApartIR2ex(const expr & e) { return HepLib::ApartIR2ex(e._expr); }
 expr ApartIR2F(const expr & e) { return HepLib::ApartIR2F(e._expr); }
 expr F2ex(const expr & e) { return HepLib::F2ex(e._expr); }
 expr ApartIRC(const expr & e) { return HepLib::ApartIRC(e._expr); }
+
+exvec ApartIBP(int IBPmethod, std::vector<expr> &io_vec, const std::vector<expr> & loops, const std::vector<expr> & exts, const std::vector<expr> & cut_props) {
+    GiNaC::exvector _io_vec;
+    for(auto item : io_vec) _io_vec.push_back(item._expr);
+    GiNaC::lst _loops, _exts, _cut_props;
+    for(auto item : loops) _loops.append(item._expr);
+    for(auto item : exts) _exts.append(item._expr);
+    for(auto item : cut_props) _cut_props.append(item._expr);
+    HepLib::ApartIBP(IBPmethod, _io_vec, _loops, _exts, _cut_props);
+    exvec ret;
+    ret._g = _io_vec;
+    return ret;
+}
+
+exvec ApartIBP(int IBPmethod, const exvec &io_vec, const exvec & loops, const exvec & exts, const exvec & cut_props) {
+    GiNaC::exvector _io_vec;
+    for(auto item : io_vec._g) _io_vec.push_back(item);
+    GiNaC::lst _loops, _exts, _cut_props;
+    for(auto item : loops._g) _loops.append(item);
+    for(auto item : exts._g) _exts.append(item);
+    for(auto item : cut_props._g) _cut_props.append(item);
+    HepLib::ApartIBP(IBPmethod, _io_vec, _loops, _exts, _cut_props);
+    exvec ret;
+    ret._g = _io_vec;
+    return ret;
+}
 
 int FIRE::Version = 6;
 int FIRE::Threads = 2;

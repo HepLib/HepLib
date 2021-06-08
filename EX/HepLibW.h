@@ -48,6 +48,7 @@ public:
     expr normal();
     expr factor();
     expr series(const expr &s, int o);
+    expr collect(const expr & s);
     expr subs(const std::vector<expr> &ev);
     expr subs(const expr &e);
     expr subs(const exmap &e);
@@ -57,6 +58,7 @@ public:
     it4expr __iter__();
     
     bool match(const expr &e);
+    bool has(const expr &e);
     bool isSymbol();
     bool isVector();
     bool isIndex();
@@ -76,6 +78,7 @@ expr expand(const expr &e);
 expr normal(const expr &e);
 expr factor(const expr &e);
 expr series(const expr &e, const expr &s, int o);
+expr collect(const expr & e, const expr & s);
 expr subs(const expr &e, const std::vector<expr> &ev);
 expr subs(const expr &e1, const expr &e2);
 expr subs(const expr &e1, const exmap &e2);
@@ -163,8 +166,10 @@ public:
     GiNaC::exvector _g;
     void push_back(expr e);
     expr __getitem__(const int i);
+    expr op(const int i);
     void __setitem__(const int i, expr v);
     int size();
+    int nops();
     void subs(const expr & e);
     void subs(const std::vector<expr> & e);
     void subs(const exmap & e);
@@ -201,6 +206,7 @@ public:
     expr __getitem__(expr e);
     void __setitem__(expr k, expr v);
     int size();
+    int nops();
     std::string str();
     std::string __str__();
     exmap(GiNaC::exmap es); // construct from C++
@@ -230,6 +236,7 @@ public:
     GiNaC::exset _g;
     void insert(expr e);
     int size();
+    int nops();
     std::string str();
     std::string __str__();
     exset(GiNaC::exset es); // construct from C++
@@ -280,6 +287,7 @@ void set_Parallel_Process(int p);
 void set_Verbose(int v);
 bool isFunction(const expr &e, std::string sf);
 
+expr file2expr(std::string fn);
 std::map<std::string,expr> garReadAll(const std::string &garfn);
 expr garRead(const std::string &garfn, const char* key);
 expr garRead(const std::string &garfn);
@@ -329,6 +337,7 @@ expr form(const expr &e, int verb=0);
 
 expr charge_conjugate(const expr &);
 expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);
+expr TIR(const expr &expr_in, const exvec & loop_ps, const exvec & ext_ps);
 expr Matrix(const expr & mat, const expr &i, const expr &j);
 expr MatrixContract(const expr & expr_in);
 expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr, expr_is_less> sgnmap={});
@@ -337,8 +346,8 @@ expr ApartIR2ex(const expr & expr_in);
 expr ApartIR2F(const expr & expr_in);
 expr F2ex(const expr & expr_in);
 expr ApartIRC(const expr & expr_in);
-void ApartIBP(int IBPmethod, std::vector<expr> &io_vec, const std::vector<expr> & loops, const std::vector<expr> & exts,
-    const std::vector<expr> & cut_props={});
+exvec ApartIBP(int IBPmethod, std::vector<expr> &io_vec, const std::vector<expr> & loops, const std::vector<expr> & exts, const std::vector<expr> & cut_props={});
+exvec ApartIBP(int IBPmethod, const exvec &io_vec, const exvec & loops, const exvec & exts, const exvec & cut_props={});
         
 class AIOption {
     expr Internal; // Internal for Apart/IBP
@@ -502,6 +511,15 @@ expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu, expr p);
 expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu1, expr mu2, expr p);
 expr S1L1Sum(expr si, expr siR, expr qi, expr qiR, expr p, int J);
 expr LProj(const expr &expr_in, const exvec &pqi, std::string prefix="lpj");
+
+class RC {
+public:
+    static expr Z2(std::string name, expr m, int loop=2);
+    static expr Zm(expr m, int loop=2);
+    static expr asBare(int loop=2);
+    static expr asLO();
+    static expr Zas(int loop);
+};
 
 class FIRE {
 public:

@@ -83,10 +83,12 @@ public:
     expr normal();
     expr factor();
     expr series(const expr &s, int o);
+    expr collect(const expr & s);
     expr subs(const std::vector<expr> &ev);
     expr subs(const expr &e);
     expr subs(const exmap & e);
     bool match(const expr &e);
+    bool has(const expr &e);
     bool info(std::string sflags);
     expr map(MapFunction &mf);
     
@@ -122,6 +124,7 @@ extern expr expand(const expr &e);
 extern expr normal(const expr &e);
 extern expr factor(const expr &e);
 extern expr series(const expr &e, const expr &s, int o);
+extern expr collect(const expr & e, const expr & s);
 extern expr subs(const expr &e, const std::vector<expr> &ev);
 extern expr subs(const expr &e1, const expr &e2);
 extern expr subs(const expr &e1, const exmap &e2);
@@ -203,7 +206,9 @@ public:
     exvec(expr e);
     void push_back(expr e);
     int size();
+    int nops();
     expr __getitem__(const int i);
+    expr op(const int i);
     void __setitem__(const int i, expr v);
     void subs(const expr & e);
     void subs(const std::vector<expr> & e);
@@ -221,6 +226,7 @@ public:
     expr __getitem__(expr e);
     void __setitem__(expr k, expr v);
     int size();
+    int nops();
     std::string str();
     std::string __str__();
     it4map __iter__();
@@ -233,6 +239,7 @@ public:
     exset(expr e);
     void insert(expr e);
     int size();
+    int nops();
     std::string str();
     std::string __str__();
     it4set __iter__();
@@ -276,6 +283,7 @@ extern exvec Parallel(int ntotal,
         const std::string & pre = "  ");
         
 
+extern expr file2expr(std::string fn);
 extern std::map<std::string,expr> garReadAll(const std::string &garfn);
 extern expr garRead(const std::string &garfn, const char* key);
 extern expr garRead(const std::string &garfn);
@@ -468,6 +476,16 @@ extern expr GhostSumL(int qi);
 extern expr AntiGhostSumL(int qi);
 extern expr J1SumL(int qi, expr p);
 
+// RC
+class RC {
+public:
+    static expr Z2(std::string name, expr m, int loop=2);
+    static expr Zm(expr m, int loop=2);
+    static expr asBare(int loop=2);
+    static expr asLO();
+    static expr Zas(int loop);
+};
+
 // QCD
 extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu);
 extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu);
@@ -485,6 +503,7 @@ extern expr LProj(const expr &expr_in, const exvec &pqi, std::string prefix="lpj
 
 extern expr charge_conjugate(const expr &);
 extern expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);
+extern expr TIR(const expr &expr_in, const exvec & loop_ps, const exvec & ext_ps);
 extern expr MatrixContract(const expr & expr_in);
 extern expr Matrix(const expr & mat, const expr &i, const expr &j);
 extern expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr, expr_is_less> sgnmap={});
@@ -493,6 +512,9 @@ extern expr ApartIR2ex(const expr & expr_in);
 extern expr ApartIR2F(const expr & expr_in);
 extern expr F2ex(const expr & expr_in);
 extern expr ApartIRC(const expr & expr_in);
+
+extern exvec ApartIBP(int IBPmethod, std::vector<expr> &io_vec, const std::vector<expr> & loops, const std::vector<expr> & exts, const std::vector<expr> & cut_props={});
+extern exvec ApartIBP(int IBPmethod, const exvec &io_vec, const exvec & loops, const exvec & exts, const exvec & cut_props={});
 
 // FIRE
 %warnfilter(509) FIRE;
