@@ -298,6 +298,28 @@ void garWrite(const std::map<std::string, expr> &resMap, const std::string &garf
 void garWrite(const std::string &garfn, const expr & res);
 void garWrite(const expr & res, const std::string &garfn);
 
+class cout {
+public:
+    cout & operator << (const expr &e);
+    cout & operator << (const int &e);
+    cout & operator << (const std::string &e);
+    cout & operator << (const char * &e);
+    cout & operator<<(const exvec &ev);
+    cout & operator<<(const exmap &em);
+    cout & operator<<(const exset &es);
+};
+
+class hout {
+public:
+    hout & operator << (const expr &e);
+    hout & operator << (const int &e);
+    hout & operator << (const std::string &e);
+    hout & operator << (const char * &e);
+    hout & operator<<(const exvec &ev);
+    hout & operator<<(const exmap &em);
+    hout & operator<<(const exset &es);
+};
+
 // --------------------------------------------------------
 
 expr Index(const std::string &s);

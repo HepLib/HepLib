@@ -619,3 +619,19 @@ exvec MapFunction::operator() (const exvec &ev) {
     for(auto item : ev._g) ret._g.push_back(_map(item));
     return ret;
 }
+
+cout & cout::operator<<(const expr &e) { std::cout << e._expr; return *this; }
+cout & cout::operator<<(const int &e) { std::cout << e; return *this; }
+cout & cout::operator<<(const std::string &e) { std::cout << e; return *this; }
+cout & cout::operator<<(const char* &e) { std::cout << e; return *this; }
+cout & cout::operator<<(const exvec &ev) { std::cout << ev._g; return *this; }
+cout & cout::operator<<(const exmap &em) { std::cout << em._g; return *this; }
+cout & cout::operator<<(const exset &es) { std::cout << es._g; return *this; }
+
+hout & hout::operator<<(const expr &e) { HepLib::hout << e._expr; return *this; }
+hout & hout::operator<<(const int &e) { HepLib::hout << e; return *this; }
+hout & hout::operator<<(const std::string &e) { HepLib::hout << e; return *this; }
+hout & hout::operator<<(const char* &e) { HepLib::hout << e; return *this; }
+hout & hout::operator<<(const exvec &ev) { HepLib::hout << ev._g; return *this; }
+hout & hout::operator<<(const exmap &em) { HepLib::hout << em._g; return *this; }
+hout & hout::operator<<(const exset &es) { HepLib::hout << es._g; return *this; }

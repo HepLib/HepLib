@@ -296,6 +296,28 @@ extern void garWrite(const std::map<std::string, expr> &resMap, const std::strin
 extern void garWrite(const std::string &garfn, const expr & res);
 extern void garWrite(const expr & res, const std::string &garfn);
 
+class cout {
+public:
+    cout & operator << (const expr &e);
+    cout & operator << (const int &e);
+    cout & operator << (const std::string &e);
+    cout & operator << (const char * &e);
+    cout & operator<<(const exvec &ev);
+    cout & operator<<(const exmap &em);
+    cout & operator<<(const exset &es);
+};
+
+class hout {
+public:
+    hout & operator << (const expr &e);
+    hout & operator << (const int &e);
+    hout & operator << (const std::string &e);
+    hout & operator << (const char * &e);
+    hout & operator<<(const exvec &ev);
+    hout & operator<<(const exmap &em);
+    hout & operator<<(const exset &es);
+};
+
 /*
 -----------------------------------------
     HepLib Wrapper
@@ -585,5 +607,24 @@ w6 = wild(6)
 w7 = wild(7)
 w8 = wild(8)
 w9 = wild(9)
+
+endl = '\n'
+RESET = '\033[0m'
+BLACK =  '\033[30m'
+RED =  '\033[31m'
+GREEN =  '\033[32m'
+YELLOW =  '\033[33m'
+BLUE =  '\033[34m'
+MAGENTA = '\033[35m'
+CYAN = '\033[36m'
+WHITE = '\033[37m'
+BOLDBLACK = '\033[1m\033[30m'
+BOLDRED = '\033[1m\033[31m'
+BOLDGREEN = '\033[1m\033[32m'
+BOLDYELLOW = '\033[1m\033[33m'
+BOLDBLUE = '\033[1m\033[34m'
+BOLDMAGENTA = '\033[1m\033[35m'
+BOLDCYAN = '\033[1m\033[36m'
+BOLDWHITE = '\033[1m\033[37m'
 
 %}
