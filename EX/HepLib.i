@@ -281,7 +281,9 @@ extern exvec Parallel(int ntotal,
         const std::string & key = "",
         bool rm = true,
         const std::string & pre = "  ");
-        
+
+extern void set_Verbose(int v);
+extern void set_Parallel_Process(int p);
 
 extern expr file2expr(std::string fn);
 extern std::map<std::string,expr> garReadAll(const std::string &garfn);
@@ -298,8 +300,9 @@ extern void garWrite(const expr & res, const std::string &garfn);
 -----------------------------------------
 */
 
-extern void set_Verbose(int v);
-extern void set_Parallel_Process(int p);
+
+// from HepLib namespace
+
 extern expr LI(const int i);
 extern expr TI(const int i);
 extern expr DI(const int i);
@@ -358,6 +361,114 @@ extern expr WF(const expr& e1, const expr& e2, const expr& e3, const expr& e4, c
 
 extern void set_form_using_su3(bool yn);
 extern void set_form_using_dim4(bool yn);
+
+extern expr charge_conjugate(const expr &);
+extern expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);
+extern expr TIR(const expr &expr_in, const exvec & loop_ps, const exvec & ext_ps);
+extern expr MatrixContract(const expr & expr_in);
+extern expr Matrix(const expr & mat, const expr &i, const expr &j);
+extern expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr, expr_is_less> sgnmap={});
+extern expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr, expr_is_less> sgnmap={});
+extern expr ApartIR2ex(const expr & expr_in);
+extern expr ApartIR2F(const expr & expr_in);
+extern expr F2ex(const expr & expr_in);
+extern expr ApartIRC(const expr & expr_in);
+
+extern exvec ApartIBP(int IBPmethod, std::vector<expr> &io_vec, const std::vector<expr> & loops, const std::vector<expr> & exts, const std::vector<expr> & cut_props={});
+extern exvec ApartIBP(int IBPmethod, const exvec &io_vec, const exvec & loops, const exvec & exts, const exvec & cut_props={});
+
+// from HepLib::QGRAF namespace
+
+// Process
+%warnfilter(509) Process;
+class Process {
+public:
+    static void DrawPDF(const exvec &, std::string);
+    static std::string Style;
+    std::string Model;
+    std::string In;
+    std::string Out;
+    std::string LoopPrefix;
+    int Loops;
+    std::string Options;
+    std::vector<std::string> Others;
+    exvec Amplitudes(std::map<std::string,expr> st, bool debug=false);
+};
+extern void set_LineTeX(expr, std::string);
+extern void set_InOutTeX(int, std::string);
+extern exvec ShrinkCut(const expr & e, exvec ev, int n);
+
+// Feynman Rules
+extern expr QuarkPropagator(expr e, expr m=expr(0), bool color=true);
+extern expr GluonPropagator(expr e, bool color=true);
+extern expr GhostPropagator(expr e, bool color=true);
+extern expr q2gVertex(expr e, bool color=true);
+extern expr g3Vertex(expr e);
+extern expr g4Vertex(expr e);
+extern expr gh2gVertex(expr e, bool color=true);
+
+extern expr IndexL2R(expr e, bool all=true);
+extern expr IndexCC(expr e, bool all=true);
+
+extern expr GluonSumL(int qi, bool color=true);
+extern expr QuarkSumL(int qi, expr p, expr m, bool color=true);
+extern expr AntiQuarkSumL(int qi, expr p, expr m, bool color=true);
+extern expr GhostSumL(int qi);
+extern expr AntiGhostSumL(int qi);
+extern expr J1SumL(int qi, expr p);
+
+// RC
+class RC {
+public:
+    static expr Z2(std::string name, expr m, int loop=2);
+    static expr Zm(expr m, int loop=2);
+    static expr asBare(int loop=2);
+    static expr asLO();
+    static expr Zas(int loop);
+};
+
+// QCD
+extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu);
+extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu);
+extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu, int i, int j);
+extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu, int i, int j);
+extern expr ColorProj(int i, int j, expr a);
+extern expr ColorProj(int i, int j);
+extern expr S1L1Proj(expr si, expr qi, expr p);
+extern expr S1L1Proj(expr si, expr qi, expr mu, expr p);
+extern expr S1L1Proj(expr si, expr qi, expr mu1, expr mu2, expr p);
+extern expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu, expr p);
+extern expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu1, expr mu2, expr p);
+extern expr S1L1Sum(expr si, expr siR, expr qi, expr qiR, expr p, int J);
+extern expr LProj(const expr &expr_in, const exvec &pqi, std::string prefix="lpj");
+
+// FIRE
+%warnfilter(509) FIRE;
+class FIRE {
+public:
+    static int Version;
+    static int Threads;
+    
+    bool reCut = false;
+    std::string WorkingDir;
+    int ProblemNumber = 0;
+    
+    exvec MIntegrals;
+    exvec Rules;
+    exvec Internal;
+    exvec External;
+    exvec Replacements;
+    exvec Propagators;
+    exvec Integrals; // lst of index lst
+    exvec PIntegrals; // lst of index lst
+    exvec Cuts; // index start from 1
+    exvec DSP; // { {q1,q1}, {q1,p}, ... } Diff SP
+    exvec ISP; // { q1*q1, q1*p } Independent SP
+    std::map<int,expr> Shift;
+    void Reduce();
+};
+
+// from HepLib::SD namespace
 
 %warnfilter(509) FeynmanParameter;
 class FeynmanParameter {
@@ -438,106 +549,3 @@ public:
     expr VE;
 };
 
-// Process
-%warnfilter(509) Process;
-class Process {
-public:
-    static void DrawPDF(const exvec &, std::string);
-    static std::string Style;
-    std::string Model;
-    std::string In;
-    std::string Out;
-    std::string LoopPrefix;
-    int Loops;
-    std::string Options;
-    std::vector<std::string> Others;
-    exvec Amplitudes(std::map<std::string,expr> st, bool debug=false);
-};
-extern void set_LineTeX(expr, std::string);
-extern void set_InOutTeX(int, std::string);
-extern exvec ShrinkCut(const expr & e, exvec ev, int n);
-
-// Feynman Rules
-extern expr QuarkPropagator(expr e, expr m=expr(0), bool color=true);
-extern expr GluonPropagator(expr e, bool color=true);
-extern expr GhostPropagator(expr e, bool color=true);
-extern expr q2gVertex(expr e, bool color=true);
-extern expr g3Vertex(expr e);
-extern expr g4Vertex(expr e);
-extern expr gh2gVertex(expr e, bool color=true);
-
-extern expr IndexL2R(expr e, bool all=true);
-extern expr IndexCC(expr e, bool all=true);
-
-extern expr GluonSumL(int qi, bool color=true);
-extern expr QuarkSumL(int qi, expr p, expr m, bool color=true);
-extern expr AntiQuarkSumL(int qi, expr p, expr m, bool color=true);
-extern expr GhostSumL(int qi);
-extern expr AntiGhostSumL(int qi);
-extern expr J1SumL(int qi, expr p);
-
-// RC
-class RC {
-public:
-    static expr Z2(std::string name, expr m, int loop=2);
-    static expr Zm(expr m, int loop=2);
-    static expr asBare(int loop=2);
-    static expr asLO();
-    static expr Zas(int loop);
-};
-
-// QCD
-extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu);
-extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu);
-extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu, int i, int j);
-extern expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu, int i, int j);
-extern expr ColorProj(int i, int j, expr a);
-extern expr ColorProj(int i, int j);
-extern expr S1L1Proj(expr si, expr qi, expr p);
-extern expr S1L1Proj(expr si, expr qi, expr mu, expr p);
-extern expr S1L1Proj(expr si, expr qi, expr mu1, expr mu2, expr p);
-extern expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu, expr p);
-extern expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu1, expr mu2, expr p);
-extern expr S1L1Sum(expr si, expr siR, expr qi, expr qiR, expr p, int J);
-extern expr LProj(const expr &expr_in, const exvec &pqi, std::string prefix="lpj");
-
-extern expr charge_conjugate(const expr &);
-extern expr TIR(const expr &expr_in, const std::vector<expr> &loop_ps, const std::vector<expr> &ext_ps);
-extern expr TIR(const expr &expr_in, const exvec & loop_ps, const exvec & ext_ps);
-extern expr MatrixContract(const expr & expr_in);
-extern expr Matrix(const expr & mat, const expr &i, const expr &j);
-extern expr Apart(const expr &expr_in, const std::vector<expr> &vars, std::map<expr, expr, expr_is_less> sgnmap={});
-extern expr Apart(const expr &expr_in, const std::vector<expr> &loops, const std::vector<expr> & extmoms, std::map<expr, expr, expr_is_less> sgnmap={});
-extern expr ApartIR2ex(const expr & expr_in);
-extern expr ApartIR2F(const expr & expr_in);
-extern expr F2ex(const expr & expr_in);
-extern expr ApartIRC(const expr & expr_in);
-
-extern exvec ApartIBP(int IBPmethod, std::vector<expr> &io_vec, const std::vector<expr> & loops, const std::vector<expr> & exts, const std::vector<expr> & cut_props={});
-extern exvec ApartIBP(int IBPmethod, const exvec &io_vec, const exvec & loops, const exvec & exts, const exvec & cut_props={});
-
-// FIRE
-%warnfilter(509) FIRE;
-class FIRE {
-public:
-    static int Version;
-    static int Threads;
-    
-    bool reCut = false;
-    std::string WorkingDir;
-    int ProblemNumber = 0;
-    
-    exvec MIntegrals;
-    exvec Rules;
-    exvec Internal;
-    exvec External;
-    exvec Replacements;
-    exvec Propagators;
-    exvec Integrals; // lst of index lst
-    exvec PIntegrals; // lst of index lst
-    exvec Cuts; // index start from 1
-    exvec DSP; // { {q1,q1}, {q1,p}, ... } Diff SP
-    exvec ISP; // { q1*q1, q1*p } Independent SP
-    std::map<int,expr> Shift;
-    void Reduce();
-};

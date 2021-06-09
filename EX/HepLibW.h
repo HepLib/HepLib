@@ -385,6 +385,68 @@ expr call(const std::string func, const std::vector<expr> &ev);
 expr call(const std::string func, const expr &e);
 expr w(const int wi=0);
 
+// --------------------------------------------------------
+
+class Process {
+public:
+    static std::string Style;
+    static void DrawPDF(const exvec &, std::string);
+    std::string Model;
+    std::string In;
+    std::string Out;
+    std::string LoopPrefix = "q";
+    int Loops;
+    std::string Options;
+    std::vector<std::string> Others;
+    exvec Amplitudes(std::map<std::string, expr>, bool debug=false);
+};
+void set_LineTeX(expr, std::string);
+void set_InOutTeX(int, std::string);
+exvec ShrinkCut(const expr & e, exvec ev, int n);
+
+expr QuarkPropagator(expr e, expr m=expr(0), bool color=true);
+expr GluonPropagator(expr e, bool color=true);
+expr GhostPropagator(expr e, bool color=true);
+expr q2gVertex(expr e, bool color=true);
+expr g3Vertex(expr e);
+expr g4Vertex(expr e);
+expr gh2gVertex(expr e, bool color=true);
+
+expr IndexL2R(expr e, bool all=true);
+expr IndexCC(expr e, bool all=true);
+
+expr GluonSumL(int qi, bool color=true);
+expr QuarkSumL(int qi, expr p, expr m, bool color=true);
+expr AntiQuarkSumL(int qi, expr p, expr m, bool color=true);
+expr GhostSumL(int qi);
+expr AntiGhostSumL(int qi);
+expr J1SumL(int qi, expr p);
+
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu);
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu);
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu, int i, int j);
+expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu, int i, int j);
+expr ColorProj(int i, int j, expr a);
+expr ColorProj(int i, int j);
+expr S1L1Proj(expr si, expr qi, expr p);
+expr S1L1Proj(expr si, expr qi, expr mu, expr p);
+expr S1L1Proj(expr si, expr qi, expr mu1, expr mu2, expr p);
+expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu, expr p);
+expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu1, expr mu2, expr p);
+expr S1L1Sum(expr si, expr siR, expr qi, expr qiR, expr p, int J);
+expr LProj(const expr &expr_in, const exvec &pqi, std::string prefix="lpj");
+
+class RC {
+public:
+    static expr Z2(std::string name, expr m, int loop=2);
+    static expr Zm(expr m, int loop=2);
+    static expr asBare(int loop=2);
+    static expr asLO();
+    static expr Zas(int loop);
+};
+
+// --------------------------------------------------------
+
 class FeynmanParameter {
 public:
     exvec Propagators;
@@ -463,63 +525,7 @@ private:
     HepLib::SD::SecDec _SecDec;
 };
 
-class Process {
-public:
-    static std::string Style;
-    static void DrawPDF(const exvec &, std::string);
-    std::string Model;
-    std::string In;
-    std::string Out;
-    std::string LoopPrefix = "q";
-    int Loops;
-    std::string Options;
-    std::vector<std::string> Others;
-    exvec Amplitudes(std::map<std::string, expr>, bool debug=false);
-};
-void set_LineTeX(expr, std::string);
-void set_InOutTeX(int, std::string);
-exvec ShrinkCut(const expr & e, exvec ev, int n);
-
-expr QuarkPropagator(expr e, expr m=expr(0), bool color=true);
-expr GluonPropagator(expr e, bool color=true);
-expr GhostPropagator(expr e, bool color=true);
-expr q2gVertex(expr e, bool color=true);
-expr g3Vertex(expr e);
-expr g4Vertex(expr e);
-expr gh2gVertex(expr e, bool color=true);
-
-expr IndexL2R(expr e, bool all=true);
-expr IndexCC(expr e, bool all=true);
-
-expr GluonSumL(int qi, bool color=true);
-expr QuarkSumL(int qi, expr p, expr m, bool color=true);
-expr AntiQuarkSumL(int qi, expr p, expr m, bool color=true);
-expr GhostSumL(int qi);
-expr AntiGhostSumL(int qi);
-expr J1SumL(int qi, expr p);
-
-expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu);
-expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu);
-expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mu, int i, int j);
-expr SpinProj(std::string io, int s, expr p, expr pb, expr m, expr e, expr mb, expr eb, expr mu, int i, int j);
-expr ColorProj(int i, int j, expr a);
-expr ColorProj(int i, int j);
-expr S1L1Proj(expr si, expr qi, expr p);
-expr S1L1Proj(expr si, expr qi, expr mu, expr p);
-expr S1L1Proj(expr si, expr qi, expr mu1, expr mu2, expr p);
-expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu, expr p);
-expr S1L2Proj(expr si, expr qi1, expr qi2, expr mu1, expr mu2, expr p);
-expr S1L1Sum(expr si, expr siR, expr qi, expr qiR, expr p, int J);
-expr LProj(const expr &expr_in, const exvec &pqi, std::string prefix="lpj");
-
-class RC {
-public:
-    static expr Z2(std::string name, expr m, int loop=2);
-    static expr Zm(expr m, int loop=2);
-    static expr asBare(int loop=2);
-    static expr asLO();
-    static expr Zas(int loop);
-};
+// --------------------------------------------------------
 
 class FIRE {
 public:
