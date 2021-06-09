@@ -102,9 +102,9 @@ namespace HepLib {
     const Symbol NF("NF");
     const Symbol gs("gs");
     const Symbol as("as");
-    const Symbol mu("mu");;
-    const Symbol nL("nL");;
-    const Symbol nH("nH");;
+    const Symbol mu("mu");
+    const Symbol nL("nL");
+    const Symbol nH("nH");
     
     exmap SP_map;
     map<ex,string,ex_is_less> QGRAF::LineTeX; // key is the filed

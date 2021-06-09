@@ -107,10 +107,6 @@ void letSP(const expr &e1, const expr &e2, const expr &e12) {
     HepLib::letSP(e1._expr, e2._expr) = e12._expr;
 }
 
-expr w(const int wi) {
-    return expr(GiNaC::wild(wi));
-}
-
 expr x(const int i) {
     return expr(GiNaC::ex(HepLib::x(i)));
 }

@@ -7,6 +7,7 @@
 
 void set_Parallel_Process(int p) { HepLib::GiNaC_Parallel_Process = p; }
 void set_Verbose(int v) { HepLib::Verbose = v; }
+void set_Digits(int dn) { GiNaC::Digits = dn; }
 
 expr::expr() { _expr = 0; }
 expr::expr(int i) { _expr = i; }
@@ -143,6 +144,10 @@ expr expr::collect(const expr & s) {
 
 it4expr expr::__iter__() {
     return it4expr(_expr.begin(), _expr.end());
+}
+
+expr expr::evalf() {
+    return expr(_expr.evalf());
 }
 
 expr conjugate(const expr &e) {
@@ -356,6 +361,10 @@ expr lcm(const expr &a, const expr &b) {
 
 expr pow(const expr &e, const int n) {
     return expr(GiNaC::ex(GiNaC::pow(e._expr, n)));
+}
+
+expr wild(const int wi) {
+    return expr(GiNaC::wild(wi));
 }
 
 expr call(const std::string func, const std::vector<expr> &ev) {

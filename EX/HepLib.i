@@ -91,6 +91,7 @@ public:
     bool has(const expr &e);
     bool info(std::string sflags);
     expr map(MapFunction &mf);
+    expr evalf();
     
     unsigned gethash();
     bool isSymbol();
@@ -284,6 +285,7 @@ extern exvec Parallel(int ntotal,
 
 extern void set_Verbose(int v);
 extern void set_Parallel_Process(int p);
+extern void set_Digits(int dn);
 
 extern expr file2expr(std::string fn);
 extern std::map<std::string,expr> garReadAll(const std::string &garfn);
@@ -343,7 +345,7 @@ extern void letSP(const expr &e, const expr &e2);
 extern void letSP(const expr &e1, const expr &e2, const expr &e12);
 extern expr call(const std::string func, const std::vector<expr> &ev);
 extern expr call(const std::string func, const expr &e);
-extern expr w(const int wi=0);
+extern expr wild(const int wi=0);
 
 extern expr x(const int i);
 extern expr y(const int i);
@@ -549,3 +551,39 @@ public:
     expr VE;
 };
 
+
+// global variables in python
+
+%pythoncode %{
+    
+ep = expr("ep")
+eps = expr("eps")
+D = expr("D")
+d = expr("d")
+iEpsilon = expr("iEpsilon")
+
+I = expr("I")
+Pi = expr("Pi")
+Euler = expr("Euler")
+
+NA = expr("NA")
+NF = expr("NF")
+gs = expr("gs")
+As = expr("as")
+mu = expr("mu")
+nL = expr("nL")
+nH = expr("nH")
+
+w = wild()
+w0 = wild(0)
+w1 = wild(1)
+w2 = wild(2)
+w3 = wild(3)
+w4 = wild(4)
+w5 = wild(5)
+w6 = wild(6)
+w7 = wild(7)
+w8 = wild(8)
+w9 = wild(9)
+
+%}

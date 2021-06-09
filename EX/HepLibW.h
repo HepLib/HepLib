@@ -52,6 +52,7 @@ public:
     expr subs(const std::vector<expr> &ev);
     expr subs(const expr &e);
     expr subs(const exmap &e);
+    expr evalf();
     
     std::string str();
     std::string __str__();
@@ -285,6 +286,7 @@ exvec Parallel(int ntotal,
         
 void set_Parallel_Process(int p);
 void set_Verbose(int v);
+void set_Digits(int dn);
 bool isFunction(const expr &e, std::string sf);
 
 expr file2expr(std::string fn);
@@ -383,7 +385,7 @@ void letSP(const expr &e1, const expr &e2, const expr &e12);
 
 expr call(const std::string func, const std::vector<expr> &ev);
 expr call(const std::string func, const expr &e);
-expr w(const int wi=0);
+expr wild(const int wi=0);
 
 // --------------------------------------------------------
 
