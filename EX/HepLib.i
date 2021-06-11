@@ -91,7 +91,7 @@ public:
     bool has(const expr &e);
     bool info(std::string sflags);
     expr map(MapFunction &mf);
-    expr evalf();
+    expr evalf() const;
     
     unsigned gethash();
     bool isSymbol();
@@ -122,6 +122,7 @@ public:
 
 extern expr conjugate(const expr &e);
 extern expr expand(const expr &e);
+extern expr evalf(const expr &e);
 extern expr normal(const expr &e);
 extern expr factor(const expr &e);
 extern expr series(const expr &e, const expr &s, int o);
@@ -295,6 +296,7 @@ extern void garWrite(const std::string &garfn, const std::map<std::string, expr>
 extern void garWrite(const std::map<std::string, expr> &resMap, const std::string &garfn);
 extern void garWrite(const std::string &garfn, const expr & res);
 extern void garWrite(const expr & res, const std::string &garfn);
+extern std::string RunOS(const std::string & cmd);
 
 class cout {
 public:
@@ -305,6 +307,8 @@ public:
     cout & operator<<(const exvec &ev);
     cout & operator<<(const exmap &em);
     cout & operator<<(const exset &es);
+    cout & operator<<(const std::vector<expr> &ev);
+    cout & operator<<(const std::map<expr,expr,expr_is_less> &ev);
 };
 
 class hout {
@@ -316,6 +320,8 @@ public:
     hout & operator<<(const exvec &ev);
     hout & operator<<(const exmap &em);
     hout & operator<<(const exset &es);
+    hout & operator<<(const std::vector<expr> &ev);
+    hout & operator<<(const std::map<expr,expr,expr_is_less> &ev);
 };
 
 /*

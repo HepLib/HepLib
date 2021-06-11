@@ -52,7 +52,7 @@ public:
     expr subs(const std::vector<expr> &ev);
     expr subs(const expr &e);
     expr subs(const exmap &e);
-    expr evalf();
+    expr evalf() const;
     
     std::string str();
     std::string __str__();
@@ -76,6 +76,7 @@ struct expr_is_less {
 
 expr conjugate(const expr &e);
 expr expand(const expr &e);
+expr evalf(const expr &e);
 expr normal(const expr &e);
 expr factor(const expr &e);
 expr series(const expr &e, const expr &s, int o);
@@ -297,6 +298,7 @@ void garWrite(const std::string &garfn, const std::map<std::string, expr> &resMa
 void garWrite(const std::map<std::string, expr> &resMap, const std::string &garfn);
 void garWrite(const std::string &garfn, const expr & res);
 void garWrite(const expr & res, const std::string &garfn);
+std::string RunOS(const std::string & cmd);
 
 class cout {
 public:
@@ -307,6 +309,8 @@ public:
     cout & operator<<(const exvec &ev);
     cout & operator<<(const exmap &em);
     cout & operator<<(const exset &es);
+    cout & operator<<(const std::vector<expr> &ev);
+    cout & operator<<(const std::map<expr,expr,expr_is_less> &ev);
 };
 
 class hout {
@@ -318,6 +322,8 @@ public:
     hout & operator<<(const exvec &ev);
     hout & operator<<(const exmap &em);
     hout & operator<<(const exset &es);
+    hout & operator<<(const std::vector<expr> &ev);
+    hout & operator<<(const std::map<expr,expr,expr_is_less> &ev);
 };
 
 // --------------------------------------------------------

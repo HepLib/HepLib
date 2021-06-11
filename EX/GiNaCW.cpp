@@ -146,7 +146,7 @@ it4expr expr::__iter__() {
     return it4expr(_expr.begin(), _expr.end());
 }
 
-expr expr::evalf() {
+expr expr::evalf() const {
     return expr(_expr.evalf());
 }
 
@@ -156,6 +156,10 @@ expr conjugate(const expr &e) {
 
 expr expand(const expr &e) {
     return expr(e._expr.expand());
+}
+
+expr evalf(const expr &e) {
+    return e.evalf();
 }
 
 expr normal(const expr &e) {
@@ -610,6 +614,10 @@ void garWrite(const expr & res, const std::string &garfn) {
     garWrite(garfn,res);
 }
 
+std::string RunOS(const std::string & cmd) {
+    return HepLib::RunOS(cmd);
+}
+
 MapFunction::MapFunction() : _map([this](const GiNaC::ex &e, HepLib::MapFunction &self)->GiNaC::ex{ return map(expr(e))._expr; }) {}
 MapFunction::~MapFunction() { }
 expr MapFunction::map(const expr & e) { return e; }
@@ -627,6 +635,8 @@ cout & cout::operator<<(const char* &e) { std::cout << e; return *this; }
 cout & cout::operator<<(const exvec &ev) { std::cout << ev._g; return *this; }
 cout & cout::operator<<(const exmap &em) { std::cout << em._g; return *this; }
 cout & cout::operator<<(const exset &es) { std::cout << es._g; return *this; }
+cout & cout::operator<<(const std::vector<expr> &ev) { std::cout << exvec(ev)._g; return *this; }
+cout & cout::operator<<(const std::map<expr,expr,expr_is_less> &em) { std::cout << exmap(em)._g; return *this; }
 
 hout & hout::operator<<(const expr &e) { HepLib::hout << e._expr; return *this; }
 hout & hout::operator<<(const int &e) { HepLib::hout << e; return *this; }
@@ -635,3 +645,5 @@ hout & hout::operator<<(const char* &e) { HepLib::hout << e; return *this; }
 hout & hout::operator<<(const exvec &ev) { HepLib::hout << ev._g; return *this; }
 hout & hout::operator<<(const exmap &em) { HepLib::hout << em._g; return *this; }
 hout & hout::operator<<(const exset &es) { HepLib::hout << es._g; return *this; }
+hout & hout::operator<<(const std::vector<expr> &ev) { HepLib::hout << exvec(ev)._g; return *this; }
+hout & hout::operator<<(const std::map<expr,expr,expr_is_less> &em) { HepLib::hout << exmap(em)._g; return *this; }
