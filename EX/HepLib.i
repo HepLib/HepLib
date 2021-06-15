@@ -614,6 +614,11 @@ w7 = wild(7)
 w8 = wild(8)
 w9 = wild(9)
 
+co = cout()
+cout = co
+ho = hout()
+hout = ho
+
 endl = '\n'
 RESET = '\033[0m'
 BLACK =  '\033[30m'
