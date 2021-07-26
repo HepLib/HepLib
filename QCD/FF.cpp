@@ -208,9 +208,9 @@ namespace HepLib::QCD {
          * @brief the prefactor for the z-Integration
          * arXiv:1208.5301v2 [hep-ph] 9 Nov 2012
          * PHYSICAL REVIEW D 91, 074013 (2015)
-         * @param mode 0-Gluon, 1-Quark
          * @param tls the number of particles in cut
          * @param SF the symmetry factor n, will used as 1/n
+         * @param mode 0-Gluon, 1-Quark
          * @return the prefactor for the z-Integration
          */
         ex zIntFactor(int tls, const ex SF, int mode) {

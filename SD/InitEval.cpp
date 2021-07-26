@@ -315,7 +315,7 @@ namespace HepLib::SD {
 
                     ex nxi=0;
                     for(int ij=0; ij<plst.nops(); ij++) {
-                        auto ldeg = plst.op(ij).expand().ldegree(x(i));
+                        auto ldeg = expand_ex(plst.op(ij),x(w)).ldegree(x(i));
                         if(ldeg>0) {
                             plst.let_op(ij) = collect_common_factors(plst.op(ij) / pow(x(i),ldeg));
                             nxi += ldeg * nlst.op(ij);
@@ -353,7 +353,7 @@ namespace HepLib::SD {
                 int nps = fe.op(0).nops();
                 for(int k=0; k<nps; k++) {
                     auto tmp = fe.op(0).op(k);
-                    auto ldeg = tmp.expand().ldegree(x(i));
+                    auto ldeg = expand_ex(tmp,x(w)).ldegree(x(i));
                     if(ldeg>0) {
                         xpn += ldeg * fe.op(1).op(k);
                         tmp = collect_common_factors(tmp / pow(x(i),ldeg));
@@ -421,7 +421,6 @@ namespace HepLib::SD {
             let_op_append(fe, lst{delta});
             FunExp.push_back(fe);
         }
-        
         Normalizes();
         // final check non-f term positive
         for(auto fe : FunExp) {

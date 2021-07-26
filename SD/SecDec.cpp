@@ -515,7 +515,8 @@ namespace HepLib::SD {
                     const_term *= pow(in_plst.op(i), in_nlst.op(i));
                 } else const_term *= exp(log(in_plst.op(i)) * in_nlst.op(i));
             } else {
-                auto ptmp = collect_common_factors(expand_ex(in_plst.op(i),{x(w),y(w),z(w)}));
+                //auto ptmp = collect_common_factors(expand_ex(in_plst.op(i),{x(w),y(w),z(w)}));
+                auto ptmp = in_plst.op(i);
                 auto ntmp = in_nlst.op(i);
                 if(!is_a<mul>(ptmp)) ptmp = lst{ ptmp };
                 
@@ -635,7 +636,6 @@ namespace HepLib::SD {
     void SecDec::Normalizes() {
         for(int ri=0; ri<2; ri++) { // run twice, needs to check in more details
             if(IsZero) return;
-            
             vector<ex> funexp;
             for(auto fe : FunExp) {
                 funexp.push_back(Normalize(fe));

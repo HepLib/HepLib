@@ -377,6 +377,9 @@ namespace HepLib {
     }
     
     #endif
+    
+    
+    ex A0(const ex m2, int n=1, const ex d=4-2*ep);
         
         
 }
