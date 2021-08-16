@@ -1894,7 +1894,8 @@ cout << "." << endl;
                 
         exmap v2f, f2v;
         exmap nn_map;
-        auto nn_pi = cln::nextprobprime(3);
+        auto nn_pi1 = cln::nextprobprime(3);
+        auto nn_pi2 = cln::nextprobprime(3);
         int fvi = 0;
         for(auto vi : rep_vs) {
             auto name = "v" + to_string(fvi);
@@ -1902,8 +1903,9 @@ cout << "." << endl;
             v2f[vi] = s;
             f2v[s] = vi;
             fvi++;
-            nn_pi = cln::nextprobprime(nn_pi+1);
-            nn_map[s] = ex(1)/numeric(nn_pi);
+            nn_pi1 = cln::nextprobprime(nn_pi2+1);
+            nn_pi2 = cln::nextprobprime(nn_pi1+1);
+            nn_map[s] = numeric(nn_pi1)/numeric(nn_pi2);
         }
         
         stringstream ss;
@@ -1984,7 +1986,7 @@ cout << "." << endl;
             else den *= ret.op(1);
         }
         //fermat.Exit();
-                
+        
         auto nn_ret = subs(num/den,nn_map);
         if(nn_chk-nn_ret!=0) {
             cout << nn_chk << " : " << nn_ret << endl;
