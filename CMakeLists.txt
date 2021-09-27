@@ -64,7 +64,7 @@ CONFIGURE_FILE(INC/update "${CMAKE_CURRENT_BINARY_DIR}/OINC/update" @ONLY)
 #-----------------------------------------------
 # External Libraries
 #-----------------------------------------------
-LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic quadmath gomp cubaq)
+LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic_r quadmath gomp cubaq)
  
 #-----------------------------------------------
 PROJECT(HepLib VERSION 1.0 LANGUAGES C CXX Fortran)

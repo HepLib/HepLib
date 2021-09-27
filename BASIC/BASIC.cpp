@@ -898,7 +898,6 @@ namespace HepLib {
                     ok = true;
                     break;
                 }
-cout << "." << endl;
                 exN++;
             }
             if(!ok) throw Error("series_ex seems not working!");
@@ -1469,52 +1468,55 @@ cout << "." << endl;
     }
     
     bool ex_less(const ex &a, const ex &b) {
-        if(a.is_equal(b)) return false;
+        static map<ex,bool,ex_is_less> cache;
+        ex key = lst{a,b};
+        if(cache.find(key)!=cache.end()) return cache[key];
+        if(a.is_equal(b)) return cache[key]=false;
         
         // numeric
         if(is_a<numeric>(a) && is_a<numeric>(b)) {
             auto ab = a-b;
             auto abr = real_part(ab);
-            if(!is_zero(abr)) return (abr < 0);
-            else return (imag_part(ab) < 0);
+            if(!is_zero(abr)) return cache[key]=(abr<0);
+            else return cache[key]=(imag_part(ab)<0);
         }
-        if(is_a<numeric>(a)) return true;
-        if(is_a<numeric>(b)) return false;
+        if(is_a<numeric>(a)) return cache[key]=true;
+        if(is_a<numeric>(b)) return cache[key]=false;
         
         // symbol
-        if(is_a<symbol>(a) && is_a<symbol>(b)) return (ex2str(a) < ex2str(b));
-        if(is_a<symbol>(a)) return true;
-        if(is_a<symbol>(b)) return false;
+        if(is_a<symbol>(a) && is_a<symbol>(b)) return cache[key]=(ex2str(a) < ex2str(b));
+        if(is_a<symbol>(a)) return cache[key]=true;
+        if(is_a<symbol>(b)) return cache[key]=false;
         
         // matrix
         if(is_a<matrix>(a) && is_a<matrix>(b)) {
             auto ma = ex_to<matrix>(a);
             auto mb = ex_to<matrix>(b);
-            if(ma.cols() != mb.cols()) return (ma.cols() < mb.cols());
-            if(ma.rows() != mb.rows()) return (ma.rows() < mb.rows());
+            if(ma.cols() != mb.cols()) return cache[key]=(ma.cols() < mb.cols());
+            if(ma.rows() != mb.rows()) return cache[key]=(ma.rows() < mb.rows());
             for(int c=0; c<ma.cols(); c++) {
             for(int r=0; r<ma.rows(); r++) {
                 if(ma(r,c).is_equal(mb(r,c))) continue;
-                return ex_less(ma(r,c),mb(r,c));
+                return cache[key]=ex_less(ma(r,c),mb(r,c));
             }}
-            return false;
+            return cache[key]=false;
         }
-        if(is_a<matrix>(b)) return true;
-        if(is_a<matrix>(a)) return false;
+        if(is_a<matrix>(b)) return cache[key]=true;
+        if(is_a<matrix>(a)) return cache[key]=false;
         
         // lst
         if(is_a<lst>(a) && is_a<lst>(b)) {
             auto na = a.nops();
             auto nb = b.nops();
-            if(na!=nb) return (na<nb);
+            if(na!=nb) return cache[key]=(na<nb);
             for(int i=0; i<na; i++) {
                 if(a.op(i).is_equal(b.op(i))) continue;
-                return ex_less(a.op(i), b.op(i));
+                return cache[key]=ex_less(a.op(i), b.op(i));
             }
-            return false;
+            return cache[key]=false;
         }
-        if(is_a<lst>(b)) return true;
-        if(is_a<lst>(a)) return false;
+        if(is_a<lst>(b)) return cache[key]=true;
+        if(is_a<lst>(a)) return cache[key]=false;
         
         // atomic
         auto an = a.nops();
@@ -1523,9 +1525,9 @@ cout << "." << endl;
             string na = a.return_type_tinfo().tinfo->name();
             string nb = b.return_type_tinfo().tinfo->name();
             auto nc = na.compare(nb);
-            if(nc<0) return true;
-            else if(nc>0) return false;
-            else return (ex2str(a) < ex2str(b));
+            if(nc<0) return cache[key]=true;
+            else if(nc>0) return cache[key]=false;
+            else return cache[key]=(ex2str(a) < ex2str(b));
         }
         
         // power
@@ -1540,10 +1542,10 @@ cout << "." << endl;
                 be = b.op(0);
                 bn = b.op(1);
             }
-            if(!ae.is_equal(be)) return ex_less(ae,be);
-            if(an.info(info_flags::real) && bn.info(info_flags::real)) return (an<bn);
-            if(!is_zero(an-bn)) return ex_less(an,bn);
-            return false;
+            if(!ae.is_equal(be)) return cache[key]=ex_less(ae,be);
+            if(an.info(info_flags::real) && bn.info(info_flags::real)) return cache[key]=(an<bn);
+            if(!is_zero(an-bn)) return cache[key]=ex_less(an,bn);
+            return cache[key]=false;
         }
         
         // function
@@ -1551,14 +1553,14 @@ cout << "." << endl;
             string na = ex_to<GiNaC::function>(a).get_name();
             string nb = ex_to<GiNaC::function>(b).get_name();
             auto nc = na.compare(nb);
-            if(nc<0) return true;
-            else if(nc>0) return false;
-            if(an!=bn) return (an < bn);
+            if(nc<0) return cache[key]=true;
+            else if(nc>0) return cache[key]=false;
+            if(an!=bn) return cache[key]=(an < bn);
             for(int i=0; i<an; i++) {
                 if(a.op(i).is_equal(b.op(i))) continue;
-                return ex_less(a.op(i), b.op(i));
+                return cache[key]=ex_less(a.op(i), b.op(i));
             }
-            return false;
+            return cache[key]=false;
         }
         
         // add
@@ -1572,13 +1574,13 @@ cout << "." << endl;
             int nn = ((na>nb) ? nb : na);
             for(int i=0; i<nn; i++) {
                 if(as.op(i).is_equal(bs.op(i))) continue;
-                return ex_less(as.op(i), bs.op(i));
+                return cache[key]=ex_less(as.op(i), bs.op(i));
             }
-            if(na!=nb) return (na<nb);
-            return false;
+            if(na!=nb) return cache[key]=(na<nb);
+            return cache[key]=false;
         }
-        if(is_a<add>(a)) return false;
-        if(is_a<add>(b)) return true;
+        if(is_a<add>(a)) return cache[key]=false;
+        if(is_a<add>(b)) return cache[key]=true;
         
         // mul
         if(is_a<mul>(a) && is_a<mul>(b)) {
@@ -1591,34 +1593,34 @@ cout << "." << endl;
             int nn = ((na>nb) ? nb : na);
             for(int i=0; i<nn; i++) {
                 if(as.op(i).is_equal(bs.op(i))) continue;
-                return ex_less(as.op(i), bs.op(i));
+                return cache[key]=ex_less(as.op(i), bs.op(i));
             }
-            if(na!=nb) return (na<nb);
-            return false;
+            if(na!=nb) return cache[key]=(na<nb);
+            return cache[key]=false;
         }
-        if(is_a<mul>(a)) return false;
-        if(is_a<mul>(b)) return true;
+        if(is_a<mul>(a)) return cache[key]=false;
+        if(is_a<mul>(b)) return cache[key]=true;
         
         // type
         string tna = a.return_type_tinfo().tinfo->name();
         string tnb = b.return_type_tinfo().tinfo->name();
         auto tnc = tna.compare(tnb);
-        if(tnc<0) return true;
-        else if(tnc>0) return false;
+        if(tnc<0) return cache[key]=true;
+        else if(tnc>0) return cache[key]=false;
         
         // node_number
         auto nna = node_number(a);
         auto nnb = node_number(b);
-        if(nna!=nnb) return (nna < nnb);
+        if(nna!=nnb) return cache[key]=(nna < nnb);
 
         // all others
         if(an!=bn) return (an<bn);
         for(int i=0; i<an; i++) {
             if(a.op(i).is_equal(b.op(i))) continue;
-            return ex_less(a.op(i), b.op(i));
+            return cache[key]=ex_less(a.op(i), b.op(i));
         }
         
-        return (ex2str(a) < ex2str(b));
+        return cache[key]=(ex2str(a) < ex2str(b));
     }
      
      /**
@@ -1849,6 +1851,100 @@ cout << "." << endl;
         return omp_get_num_procs();
     }
     
+    /**
+     * @brief return the numerator and denominator after normalization
+     * @param expr the input expression
+     * @return fermat evaluated expression
+     */
+    ex fermat_eval(const ex & expr) {
+        static map<pid_t, Fermat> fermat_map;
+        static int v_max = 0;
+
+        auto pid = getpid();
+        if((fermat_map.find(pid)==fermat_map.end())) { // init section
+            fermat_map[pid].Init();
+            v_max = 0;
+        }
+        Fermat &fermat = fermat_map[pid];
+        
+        auto expr_in = expr;
+        exmap map_rat;
+        expr_in = expr_in.to_rational(map_rat);
+        
+        lst rep_vs;
+        map<ex,long long,ex_is_less> s2c;
+        for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
+            if(is_a<symbol>(*i)) {
+                rep_vs.append(*i);
+                s2c[*i]++;
+            }
+        }
+        rep_vs.sort();
+        rep_vs.unique();
+                
+        exmap v2f, f2v;
+        int fvi = 0;
+        for(auto vi : rep_vs) {
+            auto name = "v" + to_string(fvi);
+            Symbol s(name);
+            v2f[vi] = s;
+            f2v[s] = vi;
+            fvi++;
+        }
+        expr_in = expr_in.subs(v2f);
+        
+        stringstream ss;
+        if(fvi>111) {
+            cout << rep_vs << endl;
+            throw Error("Fermat: Too many variables.");
+        }
+        if(fvi>v_max) {
+            for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
+            fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
+            v_max = fvi;
+        }
+        
+        ex res;
+        ss << "res:=" << expr_in << ";" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        static string bstr("[-begin-]"), estr("[-end-]");
+        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
+        ss << "!('" <<bstr<< "',res,'" <<estr<< "')" << endl;
+        auto ostr = fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        // note the order,(normal_fermat will be called again in factor_form)
+        ss << "&(U=0);" << endl; // disable ugly printing
+        ss << "@(res);" << endl;
+        ss << "&_G;" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+
+        // make sure last char is 0
+        if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
+        ostr = ostr.substr(0, ostr.length()-1);
+        auto cpos = ostr.find(bstr);
+        if(cpos==string::npos) throw Error(bstr+" NOT Found.");
+        ostr = ostr.substr(cpos+bstr.length(),string::npos);
+        cpos = ostr.find(estr);
+        if(cpos==string::npos) throw Error(estr+" NOT Found.");
+        ostr = ostr.substr(0,cpos);
+        string_trim(ostr);
+
+        symtab st;
+        Parser fp(st);
+        res = fp.Read(ostr);
+        res = res.subs(f2v);
+        return res.subs(map_rat);
+    }
+    
     
     /**
      * @brief return the numerator and denominator after normalization
@@ -1859,6 +1955,7 @@ cout << "." << endl;
     ex numer_denom_fermat(const ex & expr, bool dfactor) {
         static map<pid_t, Fermat> fermat_map;
         static int v_max = 0;
+        bool use_ncheck = false;
 
         auto pid = getpid();
         if((fermat_map.find(pid)==fermat_map.end())) { // init section
@@ -1923,8 +2020,11 @@ cout << "." << endl;
         
         ex nn_chk(1), num(1), den(1);
         if(!is_a<mul>(expr_in)) expr_in = lst{expr_in};
-        for(auto item : expr_in) {
-            if(!is_a<add>(item)) item = lst{item};
+        for(auto it : expr_in) {
+            lst item;
+            if(!is_a<add>(it)) item = lst{it};
+            else for(auto ii : it) item.append(ii);
+            sort_lst(item);
             if(fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
             else ss << "res:=0;" << endl;
             fermat.Execute(ss.str());
@@ -1934,7 +2034,7 @@ cout << "." << endl;
             ex nn_chk2=0;
             for(int i=0; i<item.nops(); i++) {
                 ex tt = item.op(i).subs(v2f);
-                nn_chk2 += tt.subs(nn_map);
+                if(use_ncheck) nn_chk2 += tt.subs(nn_map);
                 if(fermat_using_array) ss << "m[" << (i+1) << "]:=";
                 else ss << "item:=";
                 ss << tt << ";" << endl;
@@ -1987,15 +2087,18 @@ cout << "." << endl;
         }
         //fermat.Exit();
         
-        auto nn_ret = subs(num/den,nn_map);
-        if(nn_chk-nn_ret!=0) {
-            cout << nn_chk << " : " << nn_ret << endl;
-            throw Error("fermat_together: N Check Failed.");
+        if(use_ncheck) {
+            auto nn_ret = subs(num/den,nn_map);
+            if(nn_chk-nn_ret!=0) {
+                cout << nn_chk << " : " << nn_ret << endl;
+                throw Error("fermat_together: N Check Failed.");
+            }
         }
         
         num = num.subs(f2v).subs(map_rat);
         den = den.subs(f2v).subs(map_rat);
         return lst{num, den};
+        
     }
     
     /**
@@ -2064,6 +2167,52 @@ cout << "." << endl;
         if(opt==1) return numer_denom(factor_form(expr));
         else if(opt==2) return numer_denom_fermat(expr);
         else return numer_denom(expr);
+    }
+    
+    ex form_eval(const ex & expr) {
+        static map<pid_t, Form> form_map;
+        auto pid = getpid();
+        if((form_map.find(pid)==form_map.end())) { // init section
+            ostringstream ss;
+            ss << "AutoDeclare Symbols viff;" << endl;
+            form_map[pid].Init("form");
+            form_map[pid].Execute(ss.str());
+        }
+        Form &fprc = form_map[pid];
+        
+        auto expr_in = expr;
+        exmap map_rat;
+        expr_in = expr_in.to_polynomial(map_rat);
+        
+        exvector vs;
+        for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
+            auto e = (*i);
+            if(is_a<symbol>(e)) vs.push_back(e);
+        }
+        
+        exmap s2v;
+        symtab st;
+        int cid = 0;
+        for(auto ss : vs) {
+            cid++;
+            string cvv = "viff"+to_string(cid);
+            s2v[ss] = Symbol(cvv);
+            st[cvv] = ss.subs(map_rat);
+        }
+        ostringstream oss;
+        expr_in = expr_in.subs(s2v);
+        oss << "Local ff = " << expr_in << ";" << endl;
+        oss << ".sort" << endl;
+        try {
+            auto ostr = fprc.Execute(oss.str(), "ff");
+            Parser fp(st);
+            ex ret = fp.Read(ostr);
+            return ret;
+        } catch(Error& err) {
+            cout << oss.str() << endl;
+            form_map.erase(pid);
+            throw;
+        }
     }
     
     ex inner_factor_form(const ex & expr) {

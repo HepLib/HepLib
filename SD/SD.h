@@ -106,6 +106,7 @@ namespace HepLib::SD {
     public:
         virtual vector<exmap> x2y(const ex &xpol) =0;
         vector<exmap> x2y(const lst &xpols);
+        bool use_XMonomials;
         static bool VerifySD(vector<exmap> vmap, bool quick = true);
         static ex XMonomials(const ex & expr);
     };
@@ -121,9 +122,6 @@ namespace HepLib::SD {
         vector<matrix> ZeroFaces(const matrix &pts);
         matrix NormalVectors(const vector<matrix> &zfs);
         matrix DualCone(const matrix &pts);
-        vector<vector<int>> QHull(const matrix &dc, int dim);
-        vector<matrix> SimplexifyR(const matrix &dc, int dim);
-        vector<matrix> Simplexify(const matrix &dc, int dim);
         vector<matrix> SimplexCones(matrix pts);
     };
 
@@ -370,6 +368,7 @@ namespace HepLib::SD {
         int vsN = 0;
         int PoleRequested = -5;
         bool vs_before_ep = false;
+        bool use_XMonomials = true;
         exmap nReplacements;
         vector<ex> FunExp; // each item : { {f1,f2,...}, {n1,n2,...}, { delta_list1, delta_list2 } }
         vector<ex> Integrands;

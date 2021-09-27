@@ -417,12 +417,14 @@ namespace HepLib {
     ex diff_ex(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
     extern bool fermat_using_array;
+    ex fermat_eval(const ex & expr);
     ex numer_denom_fermat(const ex & expr, bool dfactor=false);
     inline ex fermat_numer_denom(const ex & expr, bool dfactor=false) { return numer_denom_fermat(expr,dfactor); }
     
     ex normal_fermat(const ex & expr, bool dfactor=false);
     inline ex fermat_normal(const ex & expr, bool dfactor=false) { return normal_fermat(expr,dfactor); }
     
+    ex form_eval(const ex & expr);
     ex factor_form(const ex & expr);
     inline ex form_factor(const ex & expr) { return factor_form(expr); }
     

@@ -10,6 +10,7 @@
 
 namespace HepLib::SD {
 
+int nnn = 0;
     ex SecDecBase::XMonomials(const ex & expr_in) {
         auto expr = expr_in;
         auto xs = get_x_from(expr);
@@ -27,14 +28,14 @@ namespace HepLib::SD {
         
         map<int,bool> flag;
         auto nn = degs_vec.size();
-        
+
         for(int i=0; i<nn; i++) flag[i] = true;
         try {
             matrix mat(nn,nx);
             for(int ri=0; ri<nn; ri++) for(int ci=0; ci<nx; ci++) mat(ri,ci) = degs_vec[ri][ci];
             auto vvi = SecDecG::RunQHull(mat);
             for(auto vi : vvi) for(auto ii : vi) flag[ii] = false;
-        } catch(...) { 
+        } catch(...) {
             for(int i=0; i<nn; i++) flag[i] = false;
         }
         
@@ -140,7 +141,7 @@ namespace HepLib::SD {
             for(auto item : xpols_lst) xpols2 *= item;
             if(is_a<lst>(xpols)) xpols = xpols.op(0);
             if(is_zero(xpols2-xpols)) {
-                xpols = XMonomials(xpols);
+                if(use_XMonomials) xpols = XMonomials(xpols);
                 return x2y(xpols);
             }
         }
@@ -243,6 +244,7 @@ namespace HepLib::SD {
                     if( (!tmp.has(x(w)) && !tmp.has(y(w))) || (is_a<numeric>(ntmp) && ntmp>0) ) continue;
                     sdList.append(tmp);
                 }
+
                 vector<exmap> vmap = SecDec->x2y(sdList);
                 
                 for(int ni=0; ni<polist.nops(); ni++) {
@@ -972,6 +974,7 @@ namespace HepLib::SD {
             return;
         }
         
+        SecDec->use_XMonomials = use_XMonomials;
         if(Verbose > 1) cout << Color_HighLight << "  SDPrepares @ " << now() << RESET << endl;
         auto sd_res =
         GiNaC_Parallel(FunExp.size(), [this](int idx)->ex {
@@ -1455,7 +1458,7 @@ namespace HepLib::SD {
                                 }
                                 pref = series_ex(pref, ep, epN-di);
                                 if(!vs_before_ep && pref.has(vs)) pref = series_ex(pref, vs, vsN);
-                                if(is_zero(intg.subs(x(w)==ex(1)/7)) || is_zero(intg.subs(x(w)==ex(1)/13))) {
+                                if(is_zero(intg.subs(x(w)==ex(1)/7)) && is_zero(intg.subs(x(w)==ex(1)/13))) {
                                     intg = normal_fermat(intg);
                                 }
                                 para_res_lst.append(lst{eps_ci * pref * pow(eps, sdi) * pow(ep, di), intg});
