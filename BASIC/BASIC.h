@@ -153,35 +153,6 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     vector<std::string> split(const string& s, char delimiter);
 
-    /**
-     * @brief class as Matrix Helper 
-     */
-    class MatHelper {
-    public:
-        static bool has_zero_row(const matrix &mat);
-        static bool is_zero_row(const matrix &mat, int r);
-        static vector<int> zero_row_index(const matrix &mat);
-        static matrix remove_zero_rows(const matrix &mat);
-        static matrix sub(matrix mat, int r, int nr, int c, int nc);
-        template <typename F> static void map_inplace(matrix &m, F f);
-        template <typename F> static matrix map(const matrix &m, F f);
-    };
-
-    template <typename F>
-    void MatHelper::map_inplace(matrix &m, F f) {
-        for (unsigned i = 0; i < m.nops(); i++) {
-            m.let_op(i) = f(m.op(i));
-        }
-    }
-
-    template <typename F>
-    matrix MatHelper::map(const matrix &m, F f) {
-        matrix r(m.rows(), m.cols());
-        for (unsigned i = 0; i < m.nops(); i++) {
-            r.let_op(i) = f(m.op(i));
-        }
-        return r;
-    }
 
     /**
      * @brief class as lst Helper 

@@ -10,13 +10,59 @@ extern "C" {
 }
 
 namespace HepLib::SD {
+
+    inline vector<int> zero_row_index(const matrix &mat) {
+        vector<int> ret;
+        for(int r=0; r<mat.rows(); r++) {
+            bool iszero = true;
+            for(int c=0; c<mat.cols(); c++) {
+                if(!mat(r,c).is_zero()) {
+                    iszero = false;
+                    break;
+                }
+            }
+            if(iszero) ret.push_back(r);
+        }
+        return ret;
+    }
+
+    inline matrix mat_sub(matrix mat, int r, int nr, int c, int nc) {
+        matrix ret(nr, nc);
+        for(int ir=0; ir<nr; ir++) {
+            for(int ic=0; ic<nc; ic++) {
+                ret(ir, ic) = mat(r+ir, c+ic);
+            }
+        }
+        return ret;
+    }
+
+    inline bool is_zero_row(const matrix &mat, int r) {
+        if(r>=mat.rows()) throw Error("is_zero_row, r>=mat.rows()");
+        for(int c=0; c<mat.cols(); c++) {
+            if(mat(r, c) !=0 ) return false;
+        }
+        return true;
+    }
+
+    inline matrix remove_zero_rows(const matrix &mat) {
+        vector<int> zri = zero_row_index(mat);
+        if(zri.size()<1) return mat;
+        matrix ret(mat.rows()-zri.size(), mat.cols());
+
+        int cr = 0;
+        for(int r=0; r<mat.rows(); r++) {
+            bool iszero = find(zri.begin(), zri.end(), r) != zri.end();
+            if(iszero) continue;
+            for(int c=0; c<mat.cols(); c++) {
+                ret(cr, c) = mat(r, c);
+            }
+            cr++;
+        }
+        return ret;
+    }
     
     inline vector<vector<int>> QHull(const matrix &dc, int dim) {
-        static map<ex,vector<vector<int>>,ex_is_less> cache;
-        ex key = lst{dc,dim};
-        if(cache.find(key)!=cache.end()) return cache[key];
-        
-        if(dim >= dc.cols()) return cache[key]=SecDecG::RunQHull(dc);
+        if(dim >= dc.cols()) return SecDecG::RunQHull(dc);
         
         matrix mdc(dc.rows()-1, dc.cols());
         for(int r=0; r<mdc.rows(); r++) {
@@ -26,7 +72,7 @@ namespace HepLib::SD {
         int n = mdc.cols();
         mdc = mdc.transpose();
         for(int i=0; i<n; i++) {
-            if(MatHelper::is_zero_row(mdc, i)) continue;
+            if(is_zero_row(mdc, i)) continue;
             int pos = -1;
             for(int c=0; c<mdc.cols(); c++) {
                 if(mdc(i,c)!=0) {
@@ -37,7 +83,7 @@ namespace HepLib::SD {
             
             for(int j=i+1; j<n; j++) {
                 if(mdc(j,pos)!=0) {
-                    matrix matj = MatHelper::sub(mdc, j,1, 0,mdc.cols());
+                    matrix matj = mat_sub(mdc, j,1, 0,mdc.cols());
                     for(int c=0; c<mdc.cols(); c++) {
                         mdc(j, c)=matj(0,c) - mdc(i,c) * matj(0, pos)/mdc(i, pos);
                     }
@@ -45,7 +91,7 @@ namespace HepLib::SD {
             }
         }
         
-        mdc = MatHelper::remove_zero_rows(mdc);
+        mdc = remove_zero_rows(mdc);
         mdc = mdc.transpose();
 
         matrix tmp(mdc.rows()+1, mdc.cols());
@@ -66,14 +112,14 @@ namespace HepLib::SD {
             }
         }
         mdc = mdc.mul_scalar(all_lcm);
-        return cache[key]=SecDecG::RunQHull(mdc);
+        return SecDecG::RunQHull(mdc);
     }
 
-    vector<matrix> SimplexifyR(const matrix &dc, int dim) {
+    static vector<matrix> Simplexify(const matrix &dc, int dim) {
         static map<ex,vector<matrix>,ex_is_less> cache;
         ex key = lst{dc,dim};
         if(cache.find(key)!=cache.end()) return cache[key];
-
+        
         int min = -1;
         int i = 0;
         auto tmat = dc;
@@ -83,38 +129,30 @@ namespace HepLib::SD {
             if (true) { // expand original Simplexify function
                 matrix dc = tmat;
                 if(dc.rows()-dim<=0) {
-                    cerr << ErrColor << "SimplexifyR: (dc.rows()-dim<=0)" << RESET << endl;
-                    throw Error("SecDecG::SimplexifyR failed.");
+                    cerr << ErrColor << "Simplexify: (dc.rows()-dim<=0)" << RESET << endl;
+                    throw Error("Simplexify failed.");
                 }
-                vector<matrix> ret;
-                if(dc.rows() == dim+1) {
-                    ret.push_back(dc);
-                    tmp_ret = ret;
-                } else {
+
+                if(dc.rows() == dim+1) tmp_ret.push_back(dc);
+                else {
                     auto tmp = QHull(dc, dim);
                     for(auto vi : tmp) {
                         bool found = find(vi.begin(), vi.end(), 0) != vi.end();
                         if(found) continue;
                         matrix mat(vi.size(), dc.cols());
                         for(int r=0; r<mat.rows(); r++) {
-                            for(int c=0; c<mat.cols(); c++) mat(r,c) = dc(vi[r], c);
+                            for(int c=0; c<mat.cols(); c++) mat(r,c) = dc(vi[r],c);
                         }
-                        auto tmp = SimplexifyR(mat, dim-1);
-                        for(auto it : tmp) ret.push_back(it);
+                        auto tmp = Simplexify(mat, dim-1);
+                        for(auto it : tmp) {
+                            matrix mat(it.rows()+1, it.cols());
+                            for(int r=1; r<mat.rows(); r++) {
+                                for(int c=0; c<mat.cols(); c++) mat(r,c) = it(r-1,c);
+                            }
+                            for(int c=0; c<mat.cols(); c++) mat(0,c) = dc(0,c);
+                            tmp_ret.push_back(mat);
+                        }
                     }
-                    
-                    for(int i=0; i<ret.size(); i++) {
-                        auto tmp = ret[i];
-                        matrix mat(tmp.rows()+1, tmp.cols());
-                        for(int r=1; r<mat.rows(); r++) {
-                            for(int c=0; c<mat.cols(); c++) mat(r,c) = tmp(r-1, c);
-                        }
-                        for(int c=0; c<mat.cols(); c++) {
-                            mat(0,c) = dc(0, c);
-                        }
-                        ret[i] = mat;
-                    }
-                    tmp_ret = ret;
                 }
             }
             
@@ -130,16 +168,10 @@ namespace HepLib::SD {
             for(int c=0; c<tmat.cols(); c++) tmp(0,c) = tmat(tmat.rows()-1, c);
             tmat = tmp;
         }
-
         return cache[key]=ret;
     }
 
     vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
-
-        static map<ex,vector<vector<int>>,ex_is_less> cache;
-        ex key = pts;
-        if(cache.find(key)!=cache.end()) return cache[key];
-        
         vector<vector<int>> ret;
         
         int npts = pts.rows();
@@ -215,19 +247,15 @@ namespace HepLib::SD {
             throw Error("SecDecG::RunQHull failed.");
         }
 
-        return cache[key]=ret;
+        return ret;
     }
 
-    vector<matrix> SecDecG::ZeroFaces(const matrix &pts) {
-        static map<ex,vector<matrix>,ex_is_less> cache;
-        ex key = pts;
-        if(cache.find(key)!=cache.end()) return cache[key];
-        
+    vector<matrix> SecDecG::ZeroFaces(const matrix &pts) {        
         if(pts.rows()<=0) {
             cerr << ErrColor << "ZeroFaces: (pts.rows()<=0)" << RESET << endl;
             throw Error("SecDecG::ZeroFaces failed (1).");
         }
-        auto zri = MatHelper::zero_row_index(pts);
+        auto zri = zero_row_index(pts);
         if(zri.size() <= 0) {
             cerr << ErrColor << "ZeroFaces: (zri.size() <= 0)" << RESET << endl;
             throw Error("SecDecG::ZeroFaces failed.");
@@ -247,8 +275,7 @@ namespace HepLib::SD {
                 ret.push_back(zmat);
             }
         }
-        
-        return cache[key]=ret;
+        return ret;
     }
 
     matrix SecDecG::NormalVectors(const vector<matrix> &zfs) {
@@ -259,12 +286,12 @@ namespace HepLib::SD {
         
             matrix dir;
             if(ii==0) {
-                dir = MatHelper::sub(MatHelper::remove_zero_rows(zfs[1]), 0, 1, 0, ncols);
+                dir = mat_sub(remove_zero_rows(zfs[1]), 0, 1, 0, ncols);
             } else {
-                dir = MatHelper::sub(MatHelper::remove_zero_rows(zfs[0]), 0, 1, 0, ncols);
+                dir = mat_sub(remove_zero_rows(zfs[0]), 0, 1, 0, ncols);
             }
             
-            matrix tmat = MatHelper::remove_zero_rows(zfs[ii]);
+            matrix tmat = remove_zero_rows(zfs[ii]);
             if(tmat.rows() >= zfs[ii].rows()) {
                 cerr << ErrColor << "NormalVectors: (tmat.rows() >= zfs[ii].rows())" << RESET << endl;
                 throw Error("SecDecG::NormalVectors failed (1).");
@@ -282,7 +309,7 @@ namespace HepLib::SD {
                 
                 for(int tj=ti+1; tj<tmat.rows(); tj++) {
                     if(tmat(tj,pos)!=0) {
-                        matrix matj = MatHelper::sub(tmat, tj,1, 0,tmat.cols());
+                        matrix matj = mat_sub(tmat, tj,1, 0,tmat.cols());
                         for(int tc=0; tc<tmat.cols(); tc++) {
                             tmat(tj, tc)=tmat(ti,pos)*matj(0,tc)-matj(0,pos)*tmat(ti,tc);
                         }
@@ -290,7 +317,7 @@ namespace HepLib::SD {
                 }
             }
             
-            tmat = MatHelper::remove_zero_rows(tmat);
+            tmat = remove_zero_rows(tmat);
             if(tmat.rows()!=tmat.cols()-1) {
                 cerr << ErrColor << "NormalVectors: (tmat.rows()!=tmat.cols()-1)" << RESET << endl;
                 throw Error("SecDecG::NormalVectors failed.");
@@ -329,13 +356,9 @@ namespace HepLib::SD {
         return ret;
     }
 
-    matrix SecDecG::DualCone(const matrix &pts) {
-        static map<ex,matrix,ex_is_less> cache;
-        ex key = pts;
-        if(cache.find(key)!=cache.end()) return cache[key];
-        
+    matrix SecDecG::DualCone(const matrix &pts) {        
         auto zfs = ZeroFaces(pts);
-        if(zfs.size()<1 || zfs.size()<pts.cols()) return cache[key]=matrix(0,0);
+        if(zfs.size()<1 || zfs.size()<pts.cols()) return matrix(0,0);
         auto nvs = NormalVectors(zfs);
         ex sum_vec[nvs.rows()];
         ex sum_lcm = 1;
@@ -349,23 +372,19 @@ namespace HepLib::SD {
         for(int r=0; r<nvs.rows(); r++) {
             for(int c=0; c<nvs.cols(); c++) ret(r, c) = sum_lcm/sum_vec[r]*nvs(r,c);
         }
-        return cache[key]=ret;
+        return ret;
     }
 
     vector<matrix> SecDecG::SimplexCones(matrix pts) {
-        static map<ex,vector<matrix>,ex_is_less> cache;
-        ex key = pts;
-        if(cache.find(key)!=cache.end()) return cache[key];
-        
         auto ds = DualCone(pts);
-        if(ds.rows() == 0) return cache[key]=vector<matrix>();
+        if(ds.rows() == 0) return vector<matrix>();
         
         if(ds.rows() < ds.cols()) {
             cerr << ErrColor << "SimplexCones: (ds.rows() < ds.cols())" << RESET << endl;
             throw Error("SecDecG::SimplexCones failed.");
         }
-        if(ds.rank()<ds.cols()) return cache[key]=vector<matrix>();
-        return cache[key]=SimplexifyR(ds, ds.cols()-1);
+        if(ds.rank()<ds.cols()) return vector<matrix>();
+        return Simplexify(ds, ds.cols()-1);
     }
 
     // return a replacement/transformation, using x(-1) as key for determinant
@@ -466,7 +485,6 @@ namespace HepLib::SD {
         vmat.clear();
         vmat.shrink_to_fit();
         return ret;
-        
     }
 
 
