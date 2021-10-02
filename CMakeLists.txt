@@ -43,6 +43,28 @@ IF( "${LIB_POS}" STREQUAL "-1" )
 ENDIF()
 
 #-----------------------------------------------
+# External Libraries
+#-----------------------------------------------
+IF(APPLE)
+    EXECUTE_PROCESS(
+        COMMAND uname -m
+        RESULT_VARIABLE result
+        OUTPUT_VARIABLE OSX_UNAME_M
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    IF(OSX_UNAME_M STREQUAL "arm64")
+        SET(CUBA_QUADMATH "-lcubal")
+        LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic_r gomp cubal)
+    ELSE()
+        SET(CUBA_QUADMATH "-lcubaq -lquadmath")
+        LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic_r quadmath gomp cubaq)
+    ENDIF()
+ELSE()
+    SET(CUBA_QUADMATH "-lcubaq -lquadmath")
+    LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic_r quadmath gomp cubaq)
+ENDIF()
+
+#-----------------------------------------------
 # HepLib - Include & Configure
 #-----------------------------------------------
 INCLUDE_DIRECTORIES(BEFORE MB)
@@ -60,11 +82,6 @@ CONFIGURE_FILE(INC/Init.cpp "${CMAKE_CURRENT_BINARY_DIR}/OINC/Init.cpp" @ONLY)
 CONFIGURE_FILE(INC/HepLib.pc "${CMAKE_CURRENT_BINARY_DIR}/OINC/HepLib.pc" @ONLY)
 CONFIGURE_FILE(INC/heplib++ "${CMAKE_CURRENT_BINARY_DIR}/OINC/heplib++" @ONLY)
 CONFIGURE_FILE(INC/update "${CMAKE_CURRENT_BINARY_DIR}/OINC/update" @ONLY)
-
-#-----------------------------------------------
-# External Libraries
-#-----------------------------------------------
-LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic_r quadmath gomp cubaq)
  
 #-----------------------------------------------
 PROJECT(HepLib VERSION 1.0 LANGUAGES C CXX Fortran)

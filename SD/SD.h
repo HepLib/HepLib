@@ -6,9 +6,7 @@
 #pragma once
 
 #include "BASIC.h"
-
 #include <dlfcn.h>
-
 #include <string>
 #include <signal.h>
 #include <sys/syscall.h>
@@ -16,10 +14,13 @@
 #include <sstream>
 #include <ios>
 #include <regex>
+#include <complex>
 
+#ifdef _GLIBCXX_USE_FLOAT128
 extern "C" {
     #include <quadmath.h>
 }
+#endif
 
 /**
  * @brief namespace for Numerical integration with Sector Decomposition method
@@ -128,8 +129,15 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     // Integrator Classes
     /*-----------------------------------------------------*/
+    
+    
+#ifdef _GLIBCXX_USE_FLOAT128
     typedef __float128 qREAL;
     typedef __complex128 qCOMPLEX;
+#else
+    typedef long double qREAL;
+    typedef complex<qREAL> qCOMPLEX;
+#endif
 
     /**
      * @brief base for numerical integrator
@@ -164,8 +172,8 @@ namespace HepLib::SD {
         int DQMP = 0;
         int QXDim = 0;
         int MPXDim = 0;
-        qREAL QXLimit = 1E-6Q;
-        qREAL MPXLimit = 1E-8Q;
+        qREAL QXLimit = 1E-6;
+        qREAL MPXLimit = 1E-8;
         qREAL QFLimit = -1;
         qREAL MPFLimit = -1;
         
@@ -223,8 +231,11 @@ namespace HepLib::SD {
         qREAL LastAbsErr[2];
     };
 
-
+#ifdef _GLIBCXX_USE_FLOAT128
     typedef long double dREAL;
+#else
+    typedef double dREAL;
+#endif
     /**
      * @brief base for class to minimize a function
      */

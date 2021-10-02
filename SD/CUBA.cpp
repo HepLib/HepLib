@@ -6,16 +6,25 @@
 #include "SD.h"
 #include <math.h>
 #include <complex>
+#ifdef _GLIBCXX_USE_FLOAT128
 extern "C" {
 #include <quadmath.h>
 }
+#endif
 #include "mpreal.h"
 
 using namespace std;
+#ifdef _GLIBCXX_USE_FLOAT128
 typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
 typedef complex<dREAL> dCOMPLEX;
+#else
+typedef long double qREAL;
+typedef complex<qREAL> qCOMPLEX;
+typedef double dREAL;
+typedef complex<dREAL> dCOMPLEX;
+#endif
 typedef mpfr::mpreal mpREAL;
 typedef complex<mpREAL> mpCOMPLEX;
 
@@ -30,7 +39,11 @@ namespace HepLib::SD {
 // CUBA Classes
 /*-----------------------------------------------------*/
 extern "C" {
+#ifdef _GLIBCXX_USE_FLOAT128
 #include "cubaq.h"
+#else
+#include "cubal.h"
+#endif
 }
 
 int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, void *fdata) {
@@ -48,7 +61,11 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
             bool ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
+#ifdef _GLIBCXX_USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
+#else
+                if(isnan(ytmp) || isinf(ytmp)) {
+#endif
                     ok = false;
                     break;
                 }
@@ -59,7 +76,11 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
             bool ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
+#ifdef _GLIBCXX_USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
+#else
+                if(isnan(ytmp) || isinf(ytmp)) {
+#endif
                     ok = false;
                     break;
                 }
@@ -69,7 +90,11 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
             ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
+#ifdef _GLIBCXX_USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
+#else
+                if(isnan(ytmp) || isinf(ytmp)) {
+#endif
                     ok = false;
                     break;
                 }
@@ -81,14 +106,22 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
         bool ok = true;
         for(int j=0; j<ydim; j++) {
             qREAL ytmp = y[i*ydim+j];
+#ifdef _GLIBCXX_USE_FLOAT128
             if(isnanq(ytmp) || isinfq(ytmp)) {
+#else
+            if(isnan(ytmp) || isinf(ytmp)) {
+#endif
                 ok = false;
                 break;
             }
         }
         if(!ok) {
             qREAL xx[xdim];
+#ifdef _GLIBCXX_USE_FLOAT128
             for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] * 0.995Q;
+#else
+            for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] * 0.995L;
+#endif
             self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
         }
     }
@@ -96,7 +129,11 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
     for(int i=0; i<npts; i++) {
         for(int j=0; j<ydim; j++) {
             qREAL ytmp = y[i*ydim+j];
+#ifdef _GLIBCXX_USE_FLOAT128
             if(isnanq(ytmp) || isinfq(ytmp)) {
+#else
+            if(isnan(ytmp) || isinf(ytmp)) {
+#endif
                 self->nNAN++;
                 if(self->nNAN > self->NANMax) {
                     NaNQ = true;
@@ -120,7 +157,11 @@ ex CUBA::Integrate() {
     mpfr_free_cache();
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     mpPi = mpfr::const_pi();
+#ifdef _GLIBCXX_USE_FLOAT128
     mpiEpsilon = complex<mpREAL>(0,cimagq(qiEpsilon));
+#else
+    mpiEpsilon = qiEpsilon;
+#endif
     mpEuler = mpfr::const_euler();
     if(mpfr_buildopt_tls_p()<=0) {
         throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
@@ -159,7 +200,11 @@ ex CUBA::Integrate() {
     NEval = neval;
     
     ex FResult = 0;
+#ifdef _GLIBCXX_USE_FLOAT128
     if(isnanq(result[0]) || isnanq(result[1])) FResult += NaN;
+#else
+    if(isnan(result[0]) || isnan(result[1])) FResult += NaN;
+#endif
     else {
         try{
             FResult += VE(q2ex(result[0]), q2ex(estabs[0]));

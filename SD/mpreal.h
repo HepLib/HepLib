@@ -122,7 +122,10 @@
     #define MPREAL_MSVC_DEBUGVIEW_DATA 
 #endif
 
+#ifdef _GLIBCXX_USE_FLOAT128
 #define MPFR_WANT_FLOAT128
+#endif
+
 #include <mpfr.h>
 
 #if (MPFR_VERSION < MPFR_VERSION_NUM(3,0,0))
@@ -171,7 +174,9 @@ public:
     mpreal(const unsigned int u,           mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
     mpreal(const long int u,               mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
     mpreal(const int u,                    mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
+#ifdef _GLIBCXX_USE_FLOAT128
     mpreal(const __float128 u,             mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
+#endif
     
     // Construct mpreal from mpfr_t structure.
     // shared = true allows to avoid deep copy, so that mpreal and 'u' share the same data & pointers.    
@@ -302,7 +307,9 @@ public:
     float              toFloat     (mp_rnd_t mode = GMP_RNDN)    const;
     double             toDouble    (mp_rnd_t mode = GMP_RNDN)    const;
     long double        toLDouble   (mp_rnd_t mode = GMP_RNDN)    const;
+#ifdef _GLIBCXX_USE_FLOAT128
     __float128         toFloat128  (mp_rnd_t mode = GMP_RNDN)    const;
+#endif
     
 
 #if defined (MPREAL_HAVE_EXPLICIT_CONVERTERS)
@@ -316,7 +323,9 @@ public:
     explicit operator float              () const { return toFloat();                }
     explicit operator double             () const { return toDouble();               }
     explicit operator long double        () const { return toLDouble();              }
+#ifdef _GLIBCXX_USE_FLOAT128
     explicit operator __float128         () const { return toFloat128();             }
+#endif
 #endif
 
     // Get raw pointers so that mpreal can be directly used in raw mpfr_* functions
@@ -668,6 +677,7 @@ inline mpreal::mpreal(const double u, mp_prec_t prec, mp_rnd_t mode)
     MPREAL_MSVC_DEBUGVIEW_CODE;
 }
 
+#ifdef _GLIBCXX_USE_FLOAT128
 inline mpreal::mpreal(const __float128 u, mp_prec_t prec, mp_rnd_t mode)
 {
     mpfr_init2 (mpfr_ptr(), prec);
@@ -675,6 +685,7 @@ inline mpreal::mpreal(const __float128 u, mp_prec_t prec, mp_rnd_t mode)
 
     MPREAL_MSVC_DEBUGVIEW_CODE;
 }
+#endif
 
 inline mpreal::mpreal(const long double u, mp_prec_t prec, mp_rnd_t mode)
 { 
@@ -1742,7 +1753,9 @@ inline double             mpreal::toDouble (mp_rnd_t mode)  const    {    return
 inline long double        mpreal::toLDouble(mp_rnd_t mode)  const    {    return  mpfr_get_ld (mpfr_srcptr(), mode);    }
 inline long long          mpreal::toLLong  (mp_rnd_t mode)  const    {    return  mpfr_get_sj (mpfr_srcptr(), mode);    }
 inline unsigned long long mpreal::toULLong (mp_rnd_t mode)  const    {    return  mpfr_get_uj (mpfr_srcptr(), mode);    }
+#ifdef _GLIBCXX_USE_FLOAT128
 inline __float128         mpreal::toFloat128(mp_rnd_t mode)  const   {    return  mpfr_get_float128 (mpfr_srcptr(), mode);    }
+#endif
 
 inline ::mpfr_ptr     mpreal::mpfr_ptr()             { return mp; }
 inline ::mpfr_srcptr  mpreal::mpfr_ptr()    const    { return mp; }

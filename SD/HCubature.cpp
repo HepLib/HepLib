@@ -6,16 +6,25 @@
 #include "SD.h"
 #include <math.h>
 #include <complex>
+#ifdef _GLIBCXX_USE_FLOAT128
 extern "C" {
 #include <quadmath.h>
 }
+#endif
 #include "mpreal.h"
 
 using namespace std;
+#ifdef _GLIBCXX_USE_FLOAT128
 typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
 typedef complex<dREAL> dCOMPLEX;
+#else
+typedef long double qREAL;
+typedef complex<qREAL> qCOMPLEX;
+typedef double dREAL;
+typedef complex<dREAL> dCOMPLEX;
+#endif
 typedef mpfr::mpreal mpREAL;
 typedef complex<mpREAL> mpCOMPLEX;
 
@@ -48,7 +57,11 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 bool ok = true;
                 for(int j=0; j<ydim; j++) {
                     qREAL ytmp = y[i*ydim+j];
+#ifdef _GLIBCXX_USE_FLOAT128
                     if(isnanq(ytmp) || isinfq(ytmp)) {
+#else
+                    if(isnan(ytmp) || isinf(ytmp)) {
+#endif
                         ok = false;
                         break;
                     }
@@ -62,7 +75,11 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 bool ok = true;
                 for(int j=0; j<ydim; j++) {
                     qREAL ytmp = y[i*ydim+j];
+#ifdef _GLIBCXX_USE_FLOAT128
                     if(isnanq(ytmp) || isinfq(ytmp)) {
+#else
+                    if(isnan(ytmp) || isinf(ytmp)) {
+#endif
                         ok = false;
                         break;
                     }
@@ -75,7 +92,11 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 ok = true;
                 for(int j=0; j<ydim; j++) {
                     qREAL ytmp = y[i*ydim+j];
+#ifdef _GLIBCXX_USE_FLOAT128
                     if(isnanq(ytmp) || isinfq(ytmp)) {
+#else
+                    if(isnan(ytmp) || isinf(ytmp)) {
+#endif
                         ok = false;
                         break;
                     }
@@ -89,7 +110,11 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
             bool ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
+#ifdef _GLIBCXX_USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
+#else
+                if(isnan(ytmp) || isinf(ytmp)) {
+#endif
                     ok = false;
                     break;
                 }
@@ -98,14 +123,22 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 mpfr_free_cache();
                 mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*10));
                 qREAL xx[xdim];
+#ifdef _GLIBCXX_USE_FLOAT128
                 for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.E-30Q ? 1.E-30Q  : x[i*xdim+ii] * 0.95Q;
+#else
+                for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.E-30L ? 1.E-30L  : x[i*xdim+ii] * 0.95L;
+#endif
                 self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
             }
             
             // final check
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
+#ifdef _GLIBCXX_USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
+#else
+                if(isnan(ytmp) || isinf(ytmp)) {
+#endif
                     #pragma omp atomic
                     self->nNAN++;
                     if(self->nNAN > self->NANMax) {
@@ -129,7 +162,11 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
         for(int i=0; i<npts; i++) {
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
+#ifdef _GLIBCXX_USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
+#else
+                if(isnan(ytmp) || isinf(ytmp)) {
+#endif
                     self->nNAN++;
                     if(self->nNAN > self->NANMax) {
                         NaNQ = true;
@@ -165,10 +202,17 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     }
     if(Verbose>10 && self->RunMAX>0 && (*nrun-self->NEval) >= self->RunPTS) {
         char r0[64], r1[64], e0[32], e1[32];
+#ifdef _GLIBCXX_USE_FLOAT128
         quadmath_snprintf(r0, sizeof r0, "%.10QG", result[0]);
         quadmath_snprintf(r1, sizeof r1, "%.10QG", result[1]);
         quadmath_snprintf(e0, sizeof e0, "%.5QG", epsabs[0]);
         quadmath_snprintf(e1, sizeof e1, "%.5QG", epsabs[1]);
+#else
+        sprintf(r0, "%.10L", result[0]);
+        sprintf(r1, "%.10L", result[1]);
+        sprintf(e0, "%.5L", epsabs[0]);
+        sprintf(e1, "%.5L", epsabs[1]);
+#endif
         cout << "     N: " << (*nrun) << ", ";
         if(self->ReIm==3 || self->ReIm==1) cout << "["<<r0 << ", " << e0 << "]";
         if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";
@@ -176,7 +220,11 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     }
     if((*nrun-self->NEval) >= self->RunPTS || self->RunMAX<0) self->NEval = *nrun;
     
+#ifdef _GLIBCXX_USE_FLOAT128
     if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1])) || (isinfq(result[0]) || isinfq(result[1]) || isinfq(epsabs[0]) || isinfq(epsabs[1]))) {
+#else
+    if((isnan(result[0]) || isnan(result[1]) || isnan(epsabs[0]) || isnan(epsabs[1])) || (isinf(result[0]) || isinf(result[1]) || isinf(epsabs[0]) || isinf(epsabs[1]))) {
+#endif
         self->NEval = *nrun;
         *nrun = self->MaxPTS + 1979;
         if(self->LastState>0) self->LastState = -1;
@@ -201,9 +249,14 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         self->lastNRUN = *nrun;
         self->lastnNAN = self->nNAN;
     }
-    
+
+#ifdef _GLIBCXX_USE_FLOAT128
     bool rExit = (epsabs[0] < self->EpsAbs+1E-50Q) || (epsabs[0] < fabsq(result[0])*self->EpsRel+1E-50Q);
     bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabsq(result[1])*self->EpsRel+1E-50Q);
+#else
+    bool rExit = (epsabs[0] < self->EpsAbs+1E-50L) || (epsabs[0] < fabsl(result[0])*self->EpsRel+1E-50L);
+    bool iExit = (epsabs[1] < self->EpsAbs+1E-50L) || (epsabs[1] < fabsl(result[1])*self->EpsRel+1E-50L);
+#endif
     if(rExit && iExit && (*nrun)>self->MinPTS) {
         self->NEval = *nrun;
         *nrun = self->MaxPTS + 1979;
@@ -229,7 +282,11 @@ ex HCubature::Integrate() {
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     mpPi = mpfr::const_pi();
     mpEuler = mpfr::const_euler();
+#ifdef _GLIBCXX_USE_FLOAT128
     mpiEpsilon = complex<mpREAL>(0,cimagq(qiEpsilon));
+#else
+    mpiEpsilon = qiEpsilon;
+#endif
     
     unsigned int xdim = XDim;
     unsigned int ydim = 2;
@@ -237,8 +294,13 @@ ex HCubature::Integrate() {
 
     qREAL xmin[xdim], xmax[xdim];
     for(int i=0; i<xdim; i++) {
+#ifdef _GLIBCXX_USE_FLOAT128
         xmin[i] = 0.0Q;
         xmax[i] = 1.0Q;
+#else
+        xmin[i] = 0.0L;
+        xmax[i] = 1.0L;
+#endif
     }
     LastState = 0;
     NEval = 0;
@@ -251,10 +313,17 @@ ex HCubature::Integrate() {
     
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, MinPTS, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
     if(nok) {
+#ifdef _GLIBCXX_USE_FLOAT128
         if( (cabsq(result[0]+result[1]*1.Qi) < FLT128_EPSILON) && (cabsq(estabs[0]+estabs[1]*1.Qi) < FLT128_EPSILON) ) {
             cout << ErrColor << "HCubature Failed with 0 result returned!" << RESET << endl;
             return NaN;
         }
+#else
+        if( (fabsl(complex<qREAL>(result[0],result[1])) < LDBL_EPSILON) && (fabsl(complex<qREAL>(estabs[0],estabs[1])) < LDBL_EPSILON) ) {
+            cout << ErrColor << "HCubature Failed with 0 result returned!" << RESET << endl;
+            return NaN;
+        }
+#endif
     }
 
     if(LastState==-1 && use_last) {
@@ -267,7 +336,11 @@ ex HCubature::Integrate() {
     }
     
     ex FResult = 0;
+#ifdef _GLIBCXX_USE_FLOAT128
     if(isnanq(result[0]) || isnanq(result[1])) FResult += NaN;
+#else
+    if(isnan(result[0]) || isnan(result[1])) FResult += NaN;
+#endif
     else {
         try{
             FResult += VE(q2ex(result[0]), q2ex(estabs[0]));

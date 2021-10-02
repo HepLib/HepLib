@@ -3,11 +3,10 @@
  * @brief SecDec using Geometric method
  */
  
-#include "SD.h"
-
 extern "C" {
     #include <libqhull_r/qhull_ra.h>
 }
+#include "SD.h"
 
 namespace HepLib::SD {
 
@@ -173,7 +172,6 @@ namespace HepLib::SD {
 
     vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {
         vector<vector<int>> ret;
-        
         int npts = pts.rows();
         int dim = pts.cols();
         ex imax = -1;
@@ -192,7 +190,7 @@ namespace HepLib::SD {
                 else cpts[r*dim + c] = ex_to<numeric>(pts(r,c)).to_double();
             }
         }
-            
+
         char opts[32];
         sprintf(opts, "qhull Fv");
         FILE* dev_null = fopen("/dev/null", "w");
@@ -225,7 +223,7 @@ namespace HepLib::SD {
         }
         fclose(dev_null);
         free(cpts);
-        
+                
         facetT *facet;
         vertexT *vertex, **vertexp;
         FORALLfacets {

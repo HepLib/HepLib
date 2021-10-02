@@ -187,8 +187,13 @@ namespace HepLib::SD {
             /*----------------------------------------------*/
             ofs << "#include \"NFunctions.h\"" << endl;
             /*----------------------------------------------*/
+#ifdef _GLIBCXX_USE_FLOAT128
             auto cppL = CppFormat(ofs, "L");
             auto cppQ = CppFormat(ofs, "Q");
+#else
+            auto cppL = CppFormat(ofs, "D");
+            auto cppQ = CppFormat(ofs, "L");
+#endif
             auto cppMP = CppFormat(ofs, "MP");
             
             // FL_fid
@@ -386,8 +391,13 @@ namespace HepLib::SD {
             } else {
                 sofn << pid << "F.so";
             }
+#ifdef _GLIBCXX_USE_FLOAT128
             cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << " -o " << sofn.str() << " " << pid << "/F*.o";
             cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
+#else
+            cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lmpfr -lgmp " << " -o " << sofn.str() << " " << pid << "/F*.o";
+            cmd << " -lHepLib -lmpfr -lgmp";
+#endif
             system(cmd.str().c_str());
             
             cmd.clear();
@@ -726,7 +736,11 @@ namespace HepLib::SD {
             /*----------------------------------------------*/
             // Quadruple
             /*----------------------------------------------*/
+#ifdef _GLIBCXX_USE_FLOAT128
             auto cppQ = CppFormat(ofs, "Q");
+#else
+            auto cppQ = CppFormat(ofs, "L");
+#endif
             
             // always export non-complex function
             if(true) {
@@ -813,9 +827,13 @@ namespace HepLib::SD {
                 ofs << "qCOMPLEX yy = ";
                 EvalQ(intg.subs(cxRepl).subs(plRepl)).print(cppQ);
                 ofs << ";" << endl;
-                
+#ifdef _GLIBCXX_USE_FLOAT128
                 ofs << "y[0] = crealq(yy);" << endl;
                 ofs << "y[1] = cimagq(yy);" << endl;
+#else
+                ofs << "y[0] = real(yy);" << endl;
+                ofs << "y[1] = imag(yy);" << endl;
+#endif
                 ofs << "return 0;" << endl;
                 ofs << "}" << endl;
                 ofs << endl;
@@ -882,8 +900,13 @@ namespace HepLib::SD {
                                 lst clogs = ex_to<lst>(cse.Parse(logs));
                                 
                                 ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
+#ifdef _GLIBCXX_USE_FLOAT128
                                 ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*cimagq(z[i])/(25*NRCLog);" << endl;
                                 ofs << "else for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*ti*cimagq(z[i])/NRCLog;" << endl;
+#else
+                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = real(z[i]) + 1.Qi*imag(z[i])/(25*NRCLog);" << endl;
+                                ofs << "else for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*ti*imag(z[i])/NRCLog;" << endl;
+#endif
                                 ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                                 for(auto kv : cse.os()) {
                                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -920,8 +943,13 @@ namespace HepLib::SD {
                     ofs << "yy += det * ytmp;" << endl << endl;
                     ofs << "}" << endl;
                 }
+#ifdef _GLIBCXX_USE_FLOAT128
                 ofs << "y[0] = crealq(yy);" << endl;
                 ofs << "y[1] = cimagq(yy);" << endl;
+#else
+                ofs << "y[0] = real(yy);" << endl;
+                ofs << "y[1] = imag(yy);" << endl;
+#endif
                 ofs << "return 0;" << endl;
                 ofs << "}" << endl;
                 ofs << endl;
@@ -1030,8 +1058,13 @@ namespace HepLib::SD {
                 ofs << "mpCOMPLEX yy = ";
                 EvalMP(intg.subs(cxRepl).subs(plRepl)).print(cppMP);
                 ofs << ";" << endl;
+#ifdef _GLIBCXX_USE_FLOAT128
                 ofs << "y[0] = yy.real().toFloat128();" << endl;
                 ofs << "y[1] = yy.imag().toFloat128();" << endl;
+#else
+                ofs << "y[0] = yy.real().toLDouble();" << endl;
+                ofs << "y[1] = yy.imag().toLDouble();" << endl;
+#endif
                 ofs << "return 0;" << endl;
                 ofs << "}" << endl;
                 ofs << endl;
@@ -1142,8 +1175,13 @@ namespace HepLib::SD {
                     ofs << "}" << endl;
                 }
                 
+#ifdef _GLIBCXX_USE_FLOAT128
                 ofs << "y[0] = yy.real().toFloat128();" << endl;
                 ofs << "y[1] = yy.imag().toFloat128();" << endl;
+#else
+                ofs << "y[0] = yy.real().toLDouble();" << endl;
+                ofs << "y[1] = yy.imag().toLDouble();" << endl;
+#endif
                 ofs << "return 0;" << endl;
                 ofs << "}" << endl;
                 ofs << endl;
@@ -1197,10 +1235,17 @@ namespace HepLib::SD {
         if(res_size>soLimit) {
             cmd.clear();
             cmd.str("");
+#ifdef _GLIBCXX_USE_FLOAT128
             cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp";
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 0 " << (soLimit-1) << ")";
             cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
+#else
+            cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lmpfr -lgmp";
+            if(hasF) cmd << " " << fsofn.str();
+            cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 0 " << (soLimit-1) << ")";
+            cmd << " -lHepLib -lmpfr -lgmp";
+#endif
             system(cmd.str().c_str());
             
             for(int n=1; true; n++) {
@@ -1213,22 +1258,38 @@ namespace HepLib::SD {
                 else sofn << pid << "X" << n << ".so";
                 cmd.clear();
                 cmd.str("");
+#ifdef _GLIBCXX_USE_FLOAT128
                 cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp";
                 if(hasF) cmd << " " << fsofn.str();
                 cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' " << start << " " << end << ")";
                 if(hasF) cmd << " " << fsofn.str();
                 cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
+#else
+                cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lmpfr -lgmp";
+                if(hasF) cmd << " " << fsofn.str();
+                cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' " << start << " " << end << ")";
+                if(hasF) cmd << " " << fsofn.str();
+                cmd << " -lHepLib -lmpfr -lgmp";
+#endif
                 system(cmd.str().c_str());
                 if(end>=res_size-1) break;
             }
         } else {
             cmd.clear();
             cmd.str("");
+#ifdef _GLIBCXX_USE_FLOAT128
             cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp";
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -o " << sofn.str() << " " << pid << "/*.o";
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
+#else
+            cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lmpfr -lgmp";
+            if(hasF) cmd << " " << fsofn.str();
+            cmd << " -o " << sofn.str() << " " << pid << "/*.o";
+            if(hasF) cmd << " " << fsofn.str();
+            cmd << " -lHepLib -lmpfr -lgmp";
+#endif
             system(cmd.str().c_str());
         }
         cmd.clear();
