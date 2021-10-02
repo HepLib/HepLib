@@ -516,7 +516,11 @@ namespace HepLib::SD {
             /*----------------------------------------------*/
             // long double
             /*----------------------------------------------*/
-            auto cppL =  CppFormat(ofs, "L");
+#ifdef _GLIBCXX_USE_FLOAT128
+            auto cppL = CppFormat(ofs, "L");
+#else
+            auto cppL = CppFormat(ofs, "D");
+#endif
             // alwasy export non-complex function
             if(true) {
                 ofs << "extern \"C\" " << endl;
@@ -646,10 +650,18 @@ namespace HepLib::SD {
                     ofs << "MatL_"<<ft_n<<"(mat,x0,dff,pl,las);" << endl;
                     for(auto x0i : xs0) {
                         ofs << "ii = " << x0i << ";" << endl;
+#ifdef _GLIBCXX_USE_FLOAT128
                         ofs << "z[ii] = x[ii]-x[ii]*(1.L-x[ii])*r[ii];" << endl;
+#else
+                        ofs << "z[ii] = x[ii]-x[ii]*(1.D-x[ii])*r[ii];" << endl;
+#endif
                         ofs << "for(int j=0; j<nfxs;j++) mat[nfxs*ii+j] = 0;" << endl;
                         ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = 0;" << endl;
+#ifdef _GLIBCXX_USE_FLOAT128
                         ofs << "mat[ii*nfxs+ii] = 1.L-(1.L-2.L*x[ii])*r[ii];" << endl;
+#else
+                        ofs << "mat[ii*nfxs+ii] = 1.D-(1.D-2.D*x[ii])*r[ii];" << endl;
+#endif
                     }
                     ofs  << "det = MatDet(mat, nfxs);" << endl;
                     
@@ -861,10 +873,18 @@ namespace HepLib::SD {
                     ofs << "MatQ_"<<ft_n<<"(mat,x0,dff,pl,las);" << endl;
                     for(auto x0i : xs0) {
                         ofs << "ii = " << x0i << ";" << endl;
+#ifdef _GLIBCXX_USE_FLOAT128
                         ofs << "z[ii] = x[ii]-x[ii]*(1.Q-x[ii])*r[ii];" << endl;
+#else
+                        ofs << "z[ii] = x[ii]-x[ii]*(1.L-x[ii])*r[ii];" << endl;
+#endif
                         ofs << "for(int j=0; j<nfxs;j++) mat[nfxs*ii+j] = 0;" << endl;
                         ofs << "for(int i=0; i<nfxs;i++) mat[nfxs*i+ii] = 0;" << endl;
+#ifdef _GLIBCXX_USE_FLOAT128
                         ofs << "mat[ii*nfxs+ii] = 1.Q-(1.Q-2.Q*x[ii])*r[ii];" << endl;
+#else
+                        ofs << "mat[ii*nfxs+ii] = 1.L-(1.L-2.L*x[ii])*r[ii];" << endl;
+#endif
                     }
                     ofs  << "det = MatDet(mat, nfxs);" << endl;
                     
@@ -901,11 +921,11 @@ namespace HepLib::SD {
                                 
                                 ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
 #ifdef _GLIBCXX_USE_FLOAT128
-                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*cimagq(z[i])/(25*NRCLog);" << endl;
+                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*cimagq(z[i])/(25.Q*NRCLog);" << endl;
                                 ofs << "else for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*ti*cimagq(z[i])/NRCLog;" << endl;
 #else
-                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = real(z[i]) + 1.Qi*imag(z[i])/(25*NRCLog);" << endl;
-                                ofs << "else for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*ti*imag(z[i])/NRCLog;" << endl;
+                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = real(z[i]) + complex<qREAL>(0.L,1.L)*imag(z[i])/(25.L*NRCLog);" << endl;
+                                ofs << "else for(int i=0; i<xn; i++) zz[i] = real(z[i]) + complex<qREAL>(0.L,1.L)*(ti*1.L)*imag(z[i])/(NRCLog*1.L);" << endl;
 #endif
                                 ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                                 for(auto kv : cse.os()) {

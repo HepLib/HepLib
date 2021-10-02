@@ -208,13 +208,13 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         quadmath_snprintf(e0, sizeof e0, "%.5QG", epsabs[0]);
         quadmath_snprintf(e1, sizeof e1, "%.5QG", epsabs[1]);
 #else
-        sprintf(r0, "%.10L", result[0]);
-        sprintf(r1, "%.10L", result[1]);
-        sprintf(e0, "%.5L", epsabs[0]);
-        sprintf(e1, "%.5L", epsabs[1]);
+        sprintf(r0, "%.10LG", result[0]);
+        sprintf(r1, "%.10LG", result[1]);
+        sprintf(e0, "%.5LG", epsabs[0]);
+        sprintf(e1, "%.5LG", epsabs[1]);
 #endif
         cout << "     N: " << (*nrun) << ", ";
-        if(self->ReIm==3 || self->ReIm==1) cout << "["<<r0 << ", " << e0 << "]";
+        if(self->ReIm==3 || self->ReIm==1) cout << "[" << r0 << ", " << e0 << "]";
         if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";
         cout << endl;
     }
@@ -319,7 +319,7 @@ ex HCubature::Integrate() {
             return NaN;
         }
 #else
-        if( (fabsl(complex<qREAL>(result[0],result[1])) < LDBL_EPSILON) && (fabsl(complex<qREAL>(estabs[0],estabs[1])) < LDBL_EPSILON) ) {
+        if( (abs(complex<qREAL>(result[0],result[1])) < LDBL_EPSILON) && (abs(complex<qREAL>(estabs[0],estabs[1])) < LDBL_EPSILON) ) {
             cout << ErrColor << "HCubature Failed with 0 result returned!" << RESET << endl;
             return NaN;
         }

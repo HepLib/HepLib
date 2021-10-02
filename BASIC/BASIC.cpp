@@ -666,7 +666,7 @@ namespace HepLib {
      */
     ex q2ex(long double num) {
         char buffer[128];
-        sprintf(buffer, "%.36L", num);
+        sprintf(buffer, "%.20LG", num);
         numeric ret(buffer);
         return ret;
     }

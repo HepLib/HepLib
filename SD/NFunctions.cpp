@@ -251,7 +251,7 @@ qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
 #ifdef _GLIBCXX_USE_FLOAT128
     if(cutN!=0) ret += cutN * qPi * 2.Qi;
 #else
-    if(cutN!=0) ret += cutN * qPi * complex<qREAL>(0,2);
+    if(cutN!=0) ret += cutN * qPi * complex<qREAL>(0.L,2.L);
 #endif
     return ret;
 }

@@ -243,7 +243,7 @@ namespace HepLib::SD {
                 cout << "\r                                           \r";
                 cout << "  \\--Integrating [" <<current<<"/"<<total<< "] " << flush;
             } 
-            
+
             unsigned int xsize = 0;
             ex co;
             vector<ex> xs, fxs;
@@ -344,7 +344,10 @@ namespace HepLib::SD {
                 }
             }
             
-            if(Verbose>5) cout << "XDim=" << xsize << ", EpsAbs=" << (double)(EpsAbs/cmax/stot) << "/" << (double)cmax << endl;
+            char d1[20], d2[20];
+            sprintf(d1, "%.6G", (double)(EpsAbs/cmax/stot));
+            sprintf(d2, "%.6G", (double)cmax);
+            if(Verbose>5) cout << "XDim=" << xsize << ", EpsAbs=" << d1 << "/" << d2 << endl;
             
             auto las = LambdaMap[ftid];
             bool hasF = (ftid>0);
@@ -819,7 +822,7 @@ namespace HepLib::SD {
                 quadmath_snprintf(es, sizeof es, "%.10QG", cmerr);
                 cout << "  \\--Current Err: " << es << endl;
 #else
-                printf("  \\--Current Err: %.10L\n", es);
+                printf("  \\--Current Err: %.10L\n", cmerr);
 #endif
             }
             if(Verbose>0) {
@@ -923,7 +926,10 @@ namespace HepLib::SD {
                 }
             }
             
-            if(Verbose>5) cout << "XDim=" << xsize << ", EpsAbs=" << (double)(EpsAbs/cmax/stot) << "/" << (double)cmax << endl;
+            char d1[20], d2[20];
+            sprintf(d1, "%.6G", (double)(EpsAbs/cmax/stot));
+            sprintf(d2, "%.6G", (double)cmax);
+            if(Verbose>5) cout << "XDim=" << xsize << ", EpsAbs=" << d1 << "/" << d2 << endl;
             
             auto las = LambdaMap[ftid];
             bool hasF = (ftid>0);

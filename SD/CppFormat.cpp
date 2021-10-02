@@ -72,7 +72,13 @@ namespace HepLib::SD {
         if (p.is_real()) {
             print_real(c, cln::the<cln::cl_R>(p.to_cl_N()));
         } else {
-            if(c.suffix=="L") {
+            if(c.suffix=="D") {
+                c.s << "complex<double>(";
+                print_real(c, cln::realpart(p.to_cl_N()));
+                c.s << ",";
+                print_real(c, cln::imagpart(p.to_cl_N()));
+                c.s << ")";
+            } else if(c.suffix=="L") {
                 c.s << "complex<long double>(";
                 print_real(c, cln::realpart(p.to_cl_N()));
                 c.s << ",";
