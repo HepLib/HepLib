@@ -58,10 +58,12 @@ IF(APPLE)
     ELSE()
         SET(CUBA_QUADMATH "-lcubaq -lquadmath")
         LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic_r quadmath gomp cubaq)
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_FLOAT128")
     ENDIF()
 ELSE()
     SET(CUBA_QUADMATH "-lcubaq -lquadmath")
     LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic_r quadmath gomp cubaq)
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_FLOAT128")
 ENDIF()
 
 #-----------------------------------------------

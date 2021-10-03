@@ -310,8 +310,9 @@ ex HCubature::Integrate() {
     if(MaxPTS<0) MaxPTS = -MaxPTS;
     
     StartTimer = time(NULL);
-    
+
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, MinPTS, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
+
     if(nok) {
 #ifdef _GLIBCXX_USE_FLOAT128
         if( (cabsq(result[0]+result[1]*1.Qi) < FLT128_EPSILON) && (cabsq(estabs[0]+estabs[1]*1.Qi) < FLT128_EPSILON) ) {

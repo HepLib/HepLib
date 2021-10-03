@@ -267,11 +267,11 @@ namespace HepLib::SD {
                 lstRE.append(res*co);
                 continue;
             }
-            
+
             //{ idx, xs.size(), kvf.op(0), ft_n }
             ex intid = item.op(0);
             ex ftid = item.op(3);
-            
+
             if(co.is_zero()) continue;
             co = collect_ex(co, eps);
             if(co.is_zero()) continue;
@@ -279,7 +279,7 @@ namespace HepLib::SD {
             qREAL cmax = -1;
             int reim = 0;
             if(ReIm==3) reim = 3;
-            
+           
             for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
                 auto tmp = co.coeff(eps, si);
                 if(tmp.has(eps)) throw Error("Integrates: eps found @ " + ex2str(tmp));
@@ -348,11 +348,11 @@ namespace HepLib::SD {
             sprintf(d1, "%.6G", (double)(EpsAbs/cmax/stot));
             sprintf(d2, "%.6G", (double)cmax);
             if(Verbose>5) cout << "XDim=" << xsize << ", EpsAbs=" << d1 << "/" << d2 << endl;
-            
+
             auto las = LambdaMap[ftid];
             bool hasF = (ftid>0);
             if(hasF && las.is_zero()) throw Error("Integrates: lambda with the key(ft_n=" + ex2str(ftid) + ") is NOT found!");
-            
+          
             if(hasF && !is_a<lst>(las)) {
                 if(!is_zero(las-ex(1979))) { // the convention for xPositive or explict real mode
                     throw Error("Integrates: something is wrong with the F-term @ ft_n = "+ex2str(ftid) + ", las=" + ex2str(las));
@@ -370,11 +370,12 @@ namespace HepLib::SD {
             if(hasF) fname << "C";
             fname << "SDD_" << idx;
             fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+
             if(fp==NULL) {
                 cout << "dlerror(): " << dlerror() << endl;
                 throw Error("Integrates: fp==NULL");
             }
-            
+
             fname.clear();
             fname.str("");
             if(hasF) fname << "C";
@@ -390,7 +391,7 @@ namespace HepLib::SD {
             if(hasF) fname << "C";
             fname << "SDMP_" << idx;
             fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-                            
+                         
             if(is_a<lst>(las)) {
                 fname.clear();
                 fname.str("");
@@ -401,7 +402,7 @@ namespace HepLib::SD {
                     throw Error("Integrates: ftp==NULL.");
                 }
             }
-            
+
             qREAL lambda[las.nops()];
             qREAL paras[npara+1];
             for(auto kv : Parameter) paras[kv.first] = ex2q(kv.second);
@@ -415,7 +416,7 @@ namespace HepLib::SD {
             Integrator->Parameter = paras;
             Integrator->Lambda = lambda;
             Integrator->XDim = xsize;
-            
+        
             if(hasF) {
                 qREAL lamax = ex2q(las.op(las.nops()-1));
                 if(lamax > IntLaMax) lamax = IntLaMax;
@@ -645,7 +646,6 @@ namespace HepLib::SD {
             if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
             else if(MinPTS[0]>0) Integrator->MinPTS = xsize * MinPTS[0];
             else Integrator->MinPTS = RunPTS/10;
-            
             auto res = Integrator->Integrate();
             if(Verbose>5) {
                 cout << Color_HighLight << "     IRes = "<< HepLib::SD::VEResult(VESimplify(res)) << RESET << endl;
@@ -663,7 +663,7 @@ namespace HepLib::SD {
             }
         }
         //----------------------------------------------------------------
-                
+             
         if(use_dlclose) {
             for(auto module : ex_modules) dlclose(module);
             dlclose(main_module);
@@ -929,12 +929,10 @@ namespace HepLib::SD {
             char d1[20], d2[20];
             sprintf(d1, "%.6G", (double)(EpsAbs/cmax/stot));
             sprintf(d2, "%.6G", (double)cmax);
-            if(Verbose>5) cout << "XDim=" << xsize << ", EpsAbs=" << d1 << "/" << d2 << endl;
-            
+            if(Verbose>5) cout << "XDim=" << xsize << ", EpsAbs=" << d1 << "/" << d2 << endl;           
             auto las = LambdaMap[ftid];
             bool hasF = (ftid>0);
-            if(hasF && las.is_zero()) throw Error("Integrates: lambda with the key(ft_n=" + ex2str(ftid) + ") is NOT found!");
-            
+            if(hasF && las.is_zero()) throw Error("Integrates: lambda with the key(ft_n=" + ex2str(ftid) + ") is NOT found!");         
             if(hasF && !is_a<lst>(las)) {
                 if(!is_zero(las-ex(1979))) { // the convention for xPositive or explict real mode
                     throw Error("Integrates: something is wrong with the F-term @ ft_n = "+ex2str(ftid) + ", las=" + ex2str(las));
@@ -942,7 +940,7 @@ namespace HepLib::SD {
                     hasF = false;
                 }
             }
-            
+
             IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr, fpMP = nullptr;
             IntegratorBase::FT_Type ftp = nullptr;
             int idx = ex_to<numeric>(intid).to_int();

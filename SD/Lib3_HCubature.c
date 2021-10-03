@@ -993,6 +993,7 @@ static int cubature(unsigned fdim, integrand_v f, void *fdata,
     hypercube h;
     int status;
     unsigned i;
+
      
     if (fdim == 0) /* nothing to do */ return SUCCESS;
     if (dim == 0) { /* trivial integration */
