@@ -29,14 +29,14 @@
 #pragma once
 
 //typedef long double cubareal;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 typedef __float128 REAL;
 #else
 typedef long double REAL;
 #endif
 
 #include <stdlib.h> /* for size_t */
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 #include <quadmath.h>
 #endif
 

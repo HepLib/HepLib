@@ -17,7 +17,7 @@
 #include <ios>
 #include <regex>
 
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 extern "C" {
     #include <quadmath.h>
 }

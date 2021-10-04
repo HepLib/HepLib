@@ -16,7 +16,7 @@
 #include <regex>
 #include <complex>
 
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 extern "C" {
     #include <quadmath.h>
 }
@@ -131,7 +131,7 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     
     
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     typedef __float128 qREAL;
     typedef __complex128 qCOMPLEX;
 #else
@@ -172,7 +172,7 @@ namespace HepLib::SD {
         int DQMP = 0;
         int QXDim = 0;
         int MPXDim = 0;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
         qREAL QXLimit = 1E-6Q;
         qREAL MPXLimit = 1E-8Q;
 #else
@@ -236,7 +236,7 @@ namespace HepLib::SD {
         qREAL LastAbsErr[2];
     };
 
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     typedef long double dREAL;
 #else
     typedef double dREAL;

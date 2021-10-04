@@ -253,7 +253,7 @@ namespace HepLib {
     string ex2str(const exmap &expr);
     string ex2str(const exset &expr);
     inline string in2str(int i) { return to_string(i); }
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     ex q2ex(__float128);
     __float128 ex2q(ex);
 #else

@@ -7,7 +7,7 @@
 
 int NRCLog = 5;
 
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 const dREAL dPi = 3.1415926535897932384626433832795028841971693993751L;
 const dREAL dEuler = 0.57721566490153286060651209008240243104215933593992L;
 const dCOMPLEX diEpsilon = complex<dREAL>(0, 1.E-50L);
@@ -32,7 +32,7 @@ mpCOMPLEX mpiEpsilon;
 void X2Z(int nfxs, dREAL(*f)(const dREAL*,const dREAL*), dREAL(*Df)(const int,const dREAL*,const dREAL*),
     const dREAL* x, dCOMPLEX* z, dCOMPLEX* r, dREAL* dff, const dREAL* pl, const dREAL* las) {
     dCOMPLEX ilas[nfxs];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     for(int i=0; i<nfxs; i++) ilas[i] = complex<dREAL>(0.L, las[i]);
 #else
     for(int i=0; i<nfxs; i++) ilas[i] = complex<dREAL>(0.D, las[i]);
@@ -40,7 +40,7 @@ void X2Z(int nfxs, dREAL(*f)(const dREAL*,const dREAL*), dREAL(*Df)(const int,co
     dff[nfxs] = f(x,pl);
     for(int i=0; i<nfxs; i++) dff[i] = Df(i,x,pl);
     for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.L-x[i])*r[i];
 #else
     for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.D-x[i])*r[i];
@@ -59,7 +59,7 @@ void Mat(int nfxs, dREAL(*DDf)(const int,const int,const dREAL*,const dREAL*),
         for(int j=0; j<nfxs; j++) {
             int ij = i*nfxs+j;
             if(i!=j) mat[ij] = 0;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
             else mat[ij] = 1.L-(1.L-2.L*x[i])*dff[i]*ilas[i];
             mat[ij] = mat[ij]-x[i]*(1.L-x[i])*ddf[i][j]*ilas[i];
 #else
@@ -132,7 +132,7 @@ dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
 void X2Z(int nfxs, qREAL(*f)(const qREAL*,const qREAL*), qREAL(*Df)(const int,const qREAL*,const qREAL*),
     const qREAL* x, qCOMPLEX* z, qCOMPLEX* r, qREAL* dff, const qREAL* pl, const qREAL* las) {
     qCOMPLEX ilas[nfxs];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;
 #else
     for(int i=0; i<nfxs; i++) ilas[i] = complex<qREAL>(0,las[i]);
@@ -140,7 +140,7 @@ void X2Z(int nfxs, qREAL(*f)(const qREAL*,const qREAL*), qREAL(*Df)(const int,co
     dff[nfxs] = f(x,pl);
     for(int i=0; i<nfxs; i++) dff[i] = Df(i,x,pl);
     for(int i=0; i<nfxs; i++) r[i] = dff[i]*ilas[i];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.Q-x[i])*r[i];
 #else
     for(int i=0; i<nfxs; i++) z[i] = x[i]-x[i]*(1.L-x[i])*r[i];
@@ -150,7 +150,7 @@ void X2Z(int nfxs, qREAL(*f)(const qREAL*,const qREAL*), qREAL(*Df)(const int,co
 void Mat(int nfxs, qREAL(*DDf)(const int,const int,const qREAL*,const qREAL*), 
     qCOMPLEX *mat, const qREAL* x, const qREAL* dff, const qREAL *pl, const qREAL *las) {
     qCOMPLEX ilas[nfxs];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     for(int i=0; i<nfxs; i++) ilas[i] = las[i] * 1.Qi;
 #else
     for(int i=0; i<nfxs; i++) ilas[i] = complex<qREAL>(0,las[i]);
@@ -163,7 +163,7 @@ void Mat(int nfxs, qREAL(*DDf)(const int,const int,const qREAL*,const qREAL*),
         for(int j=0; j<nfxs; j++) {
             int ij = i*nfxs+j;
             if(i!=j) mat[ij] = 0;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
             else mat[ij] = 1.Q-(1.Q-2.Q*x[i])*dff[i]*ilas[i];
             mat[ij] = mat[ij]-x[i]*(1.Q-x[i])*ddf[i][j]*ilas[i];
 #else
@@ -178,14 +178,14 @@ qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
         if(cabsq(mat[i*n+i])<1.0E-25Q) {
 #else
         if(abs(mat[i*n+i])<1.0E-25L) {
 #endif
             bool is_zero = true;
             for(int j=i+1; j<n; j++) {
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                 if(cabsq(mat[i*n+j])>1.0E-25Q) {
 #else
                 if(abs(mat[i*n+j])>1.0E-25L) {
@@ -215,7 +215,7 @@ qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
 qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
     qCOMPLEX ret = log(xs[n]);
     if(n<2) return ret;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     auto eps = FLT128_EPSILON;
 #else
     auto eps = LDBL_EPSILON;
@@ -223,7 +223,7 @@ qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
     int total=0;
     int ReIm[n+1][2];
     for(int k=0; k<=n; k++) {
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
         auto curR = crealq(xs[k]);
         auto curI = cimagq(xs[k]);
         auto absR = fabsq(curR);
@@ -248,7 +248,7 @@ qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
             else cutN--;
         }
     }
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     if(cutN!=0) ret += cutN * qPi * 2.Qi;
 #else
     if(cutN!=0) ret += cutN * qPi * complex<qREAL>(0.L,2.L);
@@ -288,14 +288,14 @@ mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
         if(abs(mat[i*n+i])<mpREAL(1.0E-35Q)) {
 #else
         if(abs(mat[i*n+i])<mpREAL(1.0E-35L)) {
 #endif
             bool is_zero = true;
             for(int j=i+1; j<n; j++) {
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                 if(abs(mat[i*n+j])>mpREAL(1.0E-35Q)) {
 #else
                 if(abs(mat[i*n+j])>mpREAL(1.0E-35L)) {

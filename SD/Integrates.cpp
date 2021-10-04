@@ -228,7 +228,7 @@ namespace HepLib::SD {
         plRepl.unique();
         
         int total = ciResult.size(), current = 0;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
         qREAL stot = sqrtq(total*1.Q);
 #else
         qREAL stot = sqrtl(total*1.L);
@@ -435,7 +435,7 @@ namespace HepLib::SD {
                 int smin = -1;
                 ex min_err, min_res;
                 long long min_eval;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                 qREAL log_lamax = log10q(lamax);
                 qREAL log_lamin = log_lamax-1.Q;
 #else
@@ -476,7 +476,7 @@ namespace HepLib::SD {
                                 cout << "     ------------------------------" << endl;
                         }
                         auto log_cla = (log_lamin + s * (log_lamax-log_lamin) / LambdaSplit);
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                         auto cla = powq(10.Q, log_cla);
 #else
                         auto cla = powl(10.L, log_cla);
@@ -542,7 +542,7 @@ namespace HepLib::SD {
                     if(smin <= 0) {
                         if((!err_break) && (ctryL >= CTryLeft || ctryR>0)) break;
                         log_lamax = log_lamin;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                         log_lamin -= 1.Q;
 #else
                         log_lamin -= 1.L;
@@ -551,7 +551,7 @@ namespace HepLib::SD {
                     } else if(smin >= LambdaSplit) {
                         if(ctryR >= CTryRight || ctryL>0) break;
                         log_lamin = log_lamax;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                         log_lamax += log10q(CTryRightRatio);
 #else
                         log_lamax += log10l(CTryRightRatio);
@@ -573,7 +573,7 @@ namespace HepLib::SD {
                 }
                 
                 auto log_cla = (log_lamin + smin * (log_lamax-log_lamin) / LambdaSplit);
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                 auto cla = powq(10.Q, log_cla);
 #else
                 auto cla = powl(10.L, log_cla);
@@ -611,7 +611,7 @@ namespace HepLib::SD {
                     if(Verbose>5) {
                         cout << Color_HighLight << "     Final λs: " << RESET;
                         for(int i=0; i<xsize; i++) {
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                             char buffer[128];
                             quadmath_snprintf(buffer, sizeof buffer, "%.6QG", lambda[i]);
                             cout << buffer << " ";
@@ -804,7 +804,7 @@ namespace HepLib::SD {
         plRepl.unique();
         
         int total = ciResult.size(), current = 0;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
         qREAL stot = sqrtq(total*1.Q);
 #else
         qREAL stot = sqrtl(total*1.L);
@@ -817,7 +817,7 @@ namespace HepLib::SD {
             auto cmerr = ex2q(VEMaxErr(lstRE.op(current-1)));
             if(cmerr < err) continue;
             if(Verbose>10) {
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                 char es[64];
                 quadmath_snprintf(es, sizeof es, "%.10QG", cmerr);
                 cout << "  \\--Current Err: " << es << endl;
@@ -1014,7 +1014,7 @@ namespace HepLib::SD {
                 int smin = -1;
                 ex min_err, min_res;
                 long long min_eval;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                 qREAL log_lamax = log10q(lamax);
                 qREAL log_lamin = log_lamax-1.Q;
 #else
@@ -1055,7 +1055,7 @@ namespace HepLib::SD {
                                 cout << "     ------------------------------" << endl;
                         }
                         auto log_cla = (log_lamin + s * (log_lamax-log_lamin) / LambdaSplit);
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                         auto cla = powq(10.Q, log_cla);
 #else
                         auto cla = powl(10.L, log_cla);
@@ -1120,7 +1120,7 @@ namespace HepLib::SD {
                     if(smin <= 0) {
                         if((!err_break) && (ctryL >= CTryLeft || ctryR>0)) break;
                         log_lamax = log_lamin;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                         log_lamin -= 1.Q;
 #else
                         log_lamin -= 1.L;
@@ -1129,7 +1129,7 @@ namespace HepLib::SD {
                     } else if(smin >= LambdaSplit) {
                         if(ctryR >= CTryRight || ctryL>0) break;
                         log_lamin = log_lamax;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                         log_lamax += log10q(CTryRightRatio);
 #else
                         log_lamax += log10l(CTryRightRatio);
@@ -1148,7 +1148,7 @@ namespace HepLib::SD {
                 if(smin == -2) continue;
                 
                 auto log_cla = (log_lamin + smin * (log_lamax-log_lamin) / LambdaSplit);
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                 auto cla = powq(10.Q, log_cla);
 #else
                 auto cla = powl(10.L, log_cla);
@@ -1186,7 +1186,7 @@ namespace HepLib::SD {
                     if(Verbose>5) {
                         cout << Color_HighLight << "     Final λs: " << RESET;
                         for(int i=0; i<xsize; i++) {
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                             char buffer[128];
                             quadmath_snprintf(buffer, sizeof buffer, "%.6QG", lambda[i]);
                             cout << buffer << " ";

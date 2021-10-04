@@ -10,7 +10,7 @@
 #include <math.h>
 #include <complex>
 #include <iostream>
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 extern "C" {
 #include <quadmath.h>
 }
@@ -19,7 +19,7 @@ extern "C" {
 
 using namespace std;
 
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
@@ -67,7 +67,7 @@ dCOMPLEX RCLog(dCOMPLEX xs[], int n);
 qCOMPLEX RCLog(qCOMPLEX xs[], int n);
 mpCOMPLEX RCLog(mpCOMPLEX xs[], int n);
 
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 inline dREAL expt(dREAL a, dREAL b) { return pow(a,b); }
 inline dCOMPLEX expt(dCOMPLEX a, dREAL b) { return pow(a,b); }
 inline dREAL recip(dREAL a) { return 1.L/a; }
@@ -94,7 +94,7 @@ inline mpCOMPLEX expt(mpCOMPLEX a, mpREAL b) { return pow(a,b); }
 inline mpREAL recip(mpREAL a) { return mpREAL(1)/a; }
 inline mpCOMPLEX recip(mpCOMPLEX a) { return mpREAL(1)/a; }
 
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 inline qREAL pow(qREAL x, qREAL y) { return powq(x, y); }
 inline qREAL log(qREAL x) { return logq(x); }
 inline qREAL exp(qREAL x) { return expq(x); }

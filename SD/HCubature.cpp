@@ -6,7 +6,7 @@
 #include "SD.h"
 #include <math.h>
 #include <complex>
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 extern "C" {
 #include <quadmath.h>
 }
@@ -14,7 +14,7 @@ extern "C" {
 #include "mpreal.h"
 
 using namespace std;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
@@ -57,7 +57,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 bool ok = true;
                 for(int j=0; j<ydim; j++) {
                     qREAL ytmp = y[i*ydim+j];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                     if(isnanq(ytmp) || isinfq(ytmp)) {
 #else
                     if(isnan(ytmp) || isinf(ytmp)) {
@@ -75,7 +75,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 bool ok = true;
                 for(int j=0; j<ydim; j++) {
                     qREAL ytmp = y[i*ydim+j];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                     if(isnanq(ytmp) || isinfq(ytmp)) {
 #else
                     if(isnan(ytmp) || isinf(ytmp)) {
@@ -92,7 +92,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 ok = true;
                 for(int j=0; j<ydim; j++) {
                     qREAL ytmp = y[i*ydim+j];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                     if(isnanq(ytmp) || isinfq(ytmp)) {
 #else
                     if(isnan(ytmp) || isinf(ytmp)) {
@@ -110,7 +110,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
             bool ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
 #else
                 if(isnan(ytmp) || isinf(ytmp)) {
@@ -123,7 +123,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
                 mpfr_free_cache();
                 mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*10));
                 qREAL xx[xdim];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                 for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.E-30Q ? 1.E-30Q  : x[i*xdim+ii] * 0.95Q;
 #else
                 for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.E-30L ? 1.E-30L  : x[i*xdim+ii] * 0.95L;
@@ -134,7 +134,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
             // final check
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
 #else
                 if(isnan(ytmp) || isinf(ytmp)) {
@@ -162,7 +162,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
         for(int i=0; i<npts; i++) {
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
 #else
                 if(isnan(ytmp) || isinf(ytmp)) {
@@ -202,7 +202,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     }
     if(Verbose>10 && self->RunMAX>0 && (*nrun-self->NEval) >= self->RunPTS) {
         char r0[64], r1[64], e0[32], e1[32];
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
         quadmath_snprintf(r0, sizeof r0, "%.10QG", result[0]);
         quadmath_snprintf(r1, sizeof r1, "%.10QG", result[1]);
         quadmath_snprintf(e0, sizeof e0, "%.5QG", epsabs[0]);
@@ -220,7 +220,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
     }
     if((*nrun-self->NEval) >= self->RunPTS || self->RunMAX<0) self->NEval = *nrun;
     
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1])) || (isinfq(result[0]) || isinfq(result[1]) || isinfq(epsabs[0]) || isinfq(epsabs[1]))) {
 #else
     if((isnan(result[0]) || isnan(result[1]) || isnan(epsabs[0]) || isnan(epsabs[1])) || (isinf(result[0]) || isinf(result[1]) || isinf(epsabs[0]) || isinf(epsabs[1]))) {
@@ -250,7 +250,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* 
         self->lastnNAN = self->nNAN;
     }
 
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     bool rExit = (epsabs[0] < self->EpsAbs+1E-50Q) || (epsabs[0] < fabsq(result[0])*self->EpsRel+1E-50Q);
     bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabsq(result[1])*self->EpsRel+1E-50Q);
 #else
@@ -282,7 +282,7 @@ ex HCubature::Integrate() {
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     mpPi = mpfr::const_pi();
     mpEuler = mpfr::const_euler();
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     mpiEpsilon = complex<mpREAL>(0,cimagq(qiEpsilon));
 #else
     mpiEpsilon = qiEpsilon;
@@ -294,7 +294,7 @@ ex HCubature::Integrate() {
 
     qREAL xmin[xdim], xmax[xdim];
     for(int i=0; i<xdim; i++) {
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
         xmin[i] = 0.0Q;
         xmax[i] = 1.0Q;
 #else
@@ -314,7 +314,7 @@ ex HCubature::Integrate() {
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, MinPTS, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
 
     if(nok) {
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
         if( (cabsq(result[0]+result[1]*1.Qi) < FLT128_EPSILON) && (cabsq(estabs[0]+estabs[1]*1.Qi) < FLT128_EPSILON) ) {
             cout << ErrColor << "HCubature Failed with 0 result returned!" << RESET << endl;
             return NaN;
@@ -337,7 +337,7 @@ ex HCubature::Integrate() {
     }
     
     ex FResult = 0;
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     if(isnanq(result[0]) || isnanq(result[1])) FResult += NaN;
 #else
     if(isnan(result[0]) || isnan(result[1])) FResult += NaN;

@@ -6,7 +6,7 @@
 #include "BASIC.h"
 #include "cln/cln.h"
 
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
 extern "C" {
     #include <quadmath.h>
 }
@@ -631,7 +631,7 @@ namespace HepLib {
         ex2file(expr, filename);
     }
     
-#ifdef _GLIBCXX_USE_FLOAT128
+#ifdef _USE_FLOAT128
     /**
      * @brief __float128 to ex
      * @param num a __float128 number
