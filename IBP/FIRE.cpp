@@ -179,7 +179,8 @@ namespace HepLib::IBP {
                 if(Propagators.op(i).has(lpi)) ns0.let_op(i) = -1;
                 else ns_vec.push_back(i);
             }
-            for(int n=0; n<std::pow(2,ns_vec.size()); n++) {
+            long long tot = std::pow(2LL,ns_vec.size());
+            for(long long n=0; n<tot; n++) {
                 int cn = n;
                 lst ns1 = ns0;
                 for(int j=0; j<ns_vec.size(); j++) {
@@ -188,6 +189,32 @@ namespace HepLib::IBP {
                 }
                 Rlst.append(ns1);
             } 
+        }
+        
+        // Lee Zero Sector
+        if(true) {
+            IsAlwaysZero = true;
+            lst ns0;
+            for(int i=0; i<pdim; i++) ns0.append(1);
+            long long tot = std::pow(2LL,pdim);
+            for(long long n=0; n<tot; n++) {
+                int cn = n;
+                lst ns1 = ns0;
+                lst sector = ns0;
+                for(int j=0; j<pdim; j++) {
+                    if((cn%2)==1) { ns1.let_op(j) = -1; sector.let_op(j) = 0; }
+                    cn /= 2;
+                }
+                if(IsZero(sector)) Rlst.append(ns1);
+                else if(IsAlwaysZero) IsAlwaysZero = false;
+            } 
+            if(IsAlwaysZero) {
+                lst ws;
+                int pdim = Propagators.nops();
+                for(int i=0; i<pdim; i++) ws.append(wild(i));
+                Rules.append(F(ProblemNumber, ws)==0);
+                return;
+            }
         }
         
         // handle Cut Propagators
@@ -296,6 +323,7 @@ namespace HepLib::IBP {
      * @brief Run FIRE reduction 
      */
     void FIRE::Run() {
+        if(IsAlwaysZero) return;
         ostringstream cmd;
         cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << ")";
         if(Version>5) cmd << " -silent -parallel";
@@ -305,6 +333,8 @@ namespace HepLib::IBP {
         if(!file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) {
             system(cmd.str().c_str());
             system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());
+            cout << "Propagators: " << Propagators << endl;
+            throw Error("FIRE::Run failed!");
         }
     }
     
@@ -312,6 +342,7 @@ namespace HepLib::IBP {
      * @brief Import tables  
      */
     void FIRE::Import() {
+        if(IsAlwaysZero) return;
         string spn = to_string(ProblemNumber);
         ifstream ifs(WorkingDir+"/"+spn+".tables");
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));

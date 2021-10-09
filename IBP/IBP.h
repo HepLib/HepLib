@@ -40,10 +40,12 @@ namespace HepLib::IBP {
         
         lst MIntegrals;
         lst Rules;
+        bool IsAlwaysZero = false;
         
         virtual void Export() { throw Error("Export() not implemented!"); };
         virtual void Run() { throw Error("Run() not implemented!"); };
         virtual void Import() { throw Error("Import() not implemented!"); };
+        bool IsZero(ex sector);
         void Reduce();
         
     };
@@ -53,7 +55,6 @@ namespace HepLib::IBP {
      */
     class FIRE : public Base {
     public:
-    
         void Export() override;
         void Run() override;
         void Import() override;

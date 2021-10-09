@@ -930,10 +930,14 @@ namespace HepLib {
         }
         
         if(IBPmethod==1) {
-            GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
+            auto pRes = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
                 ibp_vec_re[idx]->Export();
-                return 0;
+                return lst{ ibp_vec_re[idx]->IsAlwaysZero ? 1 : 0, ibp_vec_re[idx]->Rules };
             }, "ExPo");
+            for(int i=0; i<ibp_vec_re.size(); i++) {
+                ibp_vec_re[i]->IsAlwaysZero = (pRes[i].op(0)==1 ? true : false);
+                ibp_vec_re[i]->Rules = ex_to<lst>(pRes[i].op(1));
+            }
             //for(auto ibp : ibp_vec_re) ibp->Export();
             
             auto nproc = CpuCores()/FIRE::Threads;

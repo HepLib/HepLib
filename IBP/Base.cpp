@@ -423,5 +423,50 @@ namespace HepLib::IBP {
         if(Verbose>2) cout << "  \\--FindRules: " << ntotal << " :> " << int_lst.nops() << " @ " << now(false) << endl;
         return make_pair(rules,int_lst);
     }
+    
+    bool Base::IsZero(ex sector) {
+        auto props = Propagators;
+        lst xs;
+        int nxi=0;
+        int nps = props.nops();
+        ex ft = 0;
+        for(int i=0; i<nps; i++) {
+            if(is_zero(sector.op(i))) continue;
+            xs.append(x(nxi));
+            ft -= x(nxi) * props.op(i);
+            nxi++;
+        }
+        
+        ex ut = 1;
+        for(int i=0; i<Internal.nops(); i++) {
+            ft = expand(ft);
+            ft = subs_all(ft, Replacements);
+            auto t2 = ft.coeff(Internal.op(i),2);
+            auto t1 = ft.coeff(Internal.op(i),1);
+            auto t0 = ft.subs(Internal.op(i)==0);
+            ut *= t2;
+            if(is_zero(t2)) return true;
+            ft = normal(t0-t1*t1/(4*t2));
+        }
+        ut = normal(subs_all(ut, Replacements));
+        ft = normal(ut*ft);
+        ft = normal(subs_all(ft, Replacements));
+    
+        ex G = ut + ft;
+        ex sum = 0;
+        lst ks;
+        for(auto xi : xs) {
+            symbol ki;
+            ks.append(ki);
+            sum += ki * xi * diff_ex(G,xi);
+        }
+        sum -= G;
+        auto cvs = collect_lst(sum,x(w));
+        lst eqs;
+        for(auto cv : cvs) eqs.append(cv.op(0)==0);
+        auto sol = lsolve(eqs, ks);
+        if(sol.nops()>0) return true;
+        return false;
+    }
 
 }
