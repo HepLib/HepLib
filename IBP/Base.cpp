@@ -424,6 +424,105 @@ namespace HepLib::IBP {
         return make_pair(rules,int_lst);
     }
     
+    static matrix Redrowech(matrix mat) {
+        static map<pid_t, Fermat> fermat_map;
+        static int v_max = 0;
+
+        auto pid = getpid();
+        if((fermat_map.find(pid)==fermat_map.end())) { // init section
+            fermat_map[pid].Init();
+            v_max = 0;
+        }
+        Fermat &fermat = fermat_map[pid];
+        
+        lst rep_vs;
+        ex tree = mat;
+        for(const_preorder_iterator i = tree.preorder_begin(); i != tree.preorder_end(); ++i) {
+            auto e = (*i);
+            if(is_a<symbol>(e) || e.match(a(w))) rep_vs.append(e);
+        }
+        rep_vs.sort();
+        rep_vs.unique();
+        sort_lst(rep_vs);
+        
+        exmap v2f;
+        symtab st;
+        int fvi = 0;
+        for(auto vi : rep_vs) {
+            auto name = "v" + to_string(fvi);
+            v2f[vi] = Symbol(name);
+            st[name] = vi;
+            fvi++;
+        }
+        
+        stringstream ss;
+        if(fvi>111) {
+            cout << rep_vs << endl;
+            throw Error("Fermat: Too many variables.");
+        }
+        if(fvi>v_max) {
+            for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
+            fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
+            v_max = fvi;
+        }
+        
+        int nrow = mat.rows();
+        int ncol = mat.cols();
+        
+        ss << "Array m[" << nrow << "," << ncol << "];" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        ss << "[m]:=[(";
+        for(int c=0; c<ncol; c++) {
+            for(int r=0; r<nrow; r++) {
+                ss << mat(r,c).subs(iEpsilon==0).subs(v2f) << ",";
+            }
+        }
+        ss << ")];" << endl;
+        ss << "Redrowech([m]);" << endl;
+        auto tmp = ss.str();
+        string_replace_all(tmp,",)]",")]");
+        fermat.Execute(tmp);
+        ss.clear();
+        ss.str("");
+
+        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
+        ss << "![m" << endl;
+        auto ostr = fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        //fermat.Exit();
+        
+        // note the order, before exfactor (normal_fermat will be called again here)
+        ss << "&(U=0);" << endl; // disable ugly printing
+        ss << "@([m]);" << endl;
+        ss << "&_G;" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+
+        // make sure last char is 0
+        if(ostr[ostr.length()-1]!='0') throw Error("Direc::Export, last char is NOT 0.");
+        ostr = ostr.substr(0, ostr.length()-1);
+        string_trim(ostr);
+        
+        ostr.erase(0, ostr.find(":=")+2);
+        string_replace_all(ostr, "[", "{");
+        string_replace_all(ostr, "]", "}");
+        Parser fp(st);
+        matrix mr(nrow, ncol);
+        auto res = fp.Read(ostr);
+        for(int r=0; r<nrow; r++) {
+            auto cur = res.op(r);
+            for(int c=0; c<ncol; c++) mr(r,c) = cur.op(c);
+        }
+        return mr;
+    }
+    
     bool Base::IsZero(ex sector) {
         auto props = Propagators;
         lst xs;
@@ -455,18 +554,36 @@ namespace HepLib::IBP {
         ex G = ut + ft;
         ex sum = 0;
         lst ks;
+        exmap ks20;
         for(auto xi : xs) {
             symbol ki;
             ks.append(ki);
+            ks20[ki] = 0;
             sum += ki * xi * diff_ex(G,xi);
         }
         sum -= G;
         auto cvs = collect_lst(sum,x(w));
-        lst eqs;
-        for(auto cv : cvs) eqs.append(cv.op(0)==0);
-        auto sol = lsolve(eqs, ks);
-        if(sol.nops()>0) return true;
-        return false;
+        int rn = cvs.nops();
+        int cn = ks.nops();
+        matrix mat(rn,cn+1);
+        int ri = 0;
+        for(auto cv : cvs) {
+            int ci = 0;
+            for(auto ki : ks) {
+                mat(ri,ci) = cv.op(0).coeff(ki);
+                ci++;
+            }
+            mat(ri,cn) = cv.op(0).subs(ks20);
+            ri++;
+        }
+        auto mat2 = Redrowech(mat);
+        for(int ri=rn-1; ri>=0; ri--) {
+            for(int ci=0; ci<cn; ci++) {
+                if(!is_zero(mat2(ri,ci))) return true;
+            }
+            if(!is_zero(mat2(ri,cn))) return false;
+        }
+        return true;
     }
 
 }
