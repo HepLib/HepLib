@@ -129,7 +129,7 @@ namespace HepLib::IBP {
      * @return lst of {U, F, sign}
      */
     lst LoopUF(const Base & base, const ex & idx) {
-        static map<ex,exmap,ex_is_less> cache_by_prop;
+        
         auto props = base.Propagators;
         
         // handle sign
@@ -165,7 +165,6 @@ namespace HepLib::IBP {
             sign_done: ;
         }
         
-        exmap & cache = cache_by_prop[lst{props,base.Internal}];
         ex ut, ft, uf;
         lst key;
         lst xs;
@@ -185,7 +184,9 @@ namespace HepLib::IBP {
             nxi++;
         }
         
-        if(cache.find(key)==cache.end()) { // no cache item
+        static map<ex,exmap,ex_is_less> cache_by_prop;
+        exmap & cache = cache_by_prop[lst{props,base.Internal}];
+        if(!use_UF_Cache || cache.find(key)==cache.end()) { // no cache item
             ut = 1;
             for(int i=0; i<base.Internal.nops(); i++) {
                 ft = expand(ft);
@@ -202,7 +203,7 @@ namespace HepLib::IBP {
             ut = normal(subs_all(ut, base.Replacements));
             uf = normal(ut*ft);
             
-            cache[key] = lst{ut,ft,uf};
+            if(use_UF_Cache) cache[key] = lst{ut,ft,uf};
         } else {
             auto cc = cache[key];
             ut = cc.op(0);
@@ -281,9 +282,6 @@ namespace HepLib::IBP {
             sign_done: ;
         }
         
-        static map<ex,exmap,ex_is_less> cache_by_prop;
-        exmap & cache = cache_by_prop[lst{ps,loops,tloops}];
-        
         ex ut1, ut2, ft, uf;
         lst key;
         lst xs;
@@ -303,7 +301,9 @@ namespace HepLib::IBP {
             nxi++;
         }
         
-        if(cache.find(key)==cache.end()) { // no cache item
+        static map<ex,exmap,ex_is_less> cache_by_prop;
+        exmap & cache = cache_by_prop[lst{ps,loops,tloops}];
+        if(!use_UF_Cache || cache.find(key)==cache.end()) { // no cache item
             ut1 = 1;
             for(int i=0; i<loops.nops(); i++) {
                 ft = expand(ft);
@@ -335,7 +335,7 @@ namespace HepLib::IBP {
             ut2 = normal(subs_all(ut2, tsubs));
             
             uf = normal(ut1*ut2*ft);
-            cache[key] = lst{ut1,ut2,ft,uf};
+            if(use_UF_Cache) cache[key] = lst{ut1,ut2,ft,uf};
         } else {
             auto cc = cache[key];
             ut1 = cc.op(0);

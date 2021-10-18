@@ -352,7 +352,7 @@ ex HCubature::Integrate() {
     }
     
     // Check nNAN / NEval
-    if(nNAN * 1000 > NEval && RunMAX>0) {
+    if(nNAN * 1000 > NEval && RunMAX>0 && NEval>0) {
         cout << ErrColor << "NAN=" << nNAN << " v.s. RUN=" << NEval << RESET << endl;
     }
     

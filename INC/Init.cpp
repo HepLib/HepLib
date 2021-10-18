@@ -184,6 +184,7 @@ namespace HepLib {
     int IBP::FIRE::Version = 6;
     int IBP::FIRE::Threads = 4;
     exmap IBP::MapPreSP;
+    bool IBP::use_UF_Cache = true;
     
     string IBP::UKIRA::KArgs = "";
     string IBP::KIRA::KArgs = "";

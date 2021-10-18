@@ -227,7 +227,8 @@ namespace HepLib {
      * @return expanded/translasted to Dirac Gamma objects
      */
     ex GAS(const ex &expr, unsigned rl) {
-        if(is_zero(expr-1)) return DGamma(1,rl);
+        if(is_zero(expr)) return 0;
+        else if(is_zero(expr-1)) return DGamma(1,rl);
         else if(is_zero(expr-5)) return DGamma(5,rl);
         else if(is_zero(expr-6)) return DGamma(6,rl);
         else if(is_zero(expr-7)) return DGamma(7,rl);
@@ -246,16 +247,16 @@ namespace HepLib {
             ex c=1, g=1;
             for(auto ii : mul_lst) {
                 if(is_a<Vector>(ii)) {
-                    if(is_a<DGamma>(g)) throw Error("Something Wrong with GAS");
+                    if(is_a<DGamma>(g)) throw Error("Something Wrong with GAS @1, g="+ex2str(g));
                     g = DGamma(ex_to<Vector>(ii),rl);
                 } else if(is_a<Index>(ii)) {
-                    if(is_a<DGamma>(g)) throw Error("Something Wrong with GAS");
+                    if(is_a<DGamma>(g)) throw Error("Something Wrong with GAS @2, g="+ex2str(g));
                     g = DGamma(ex_to<Index>(ii),rl);
                 } else {
                     c *= ii;
                 }
             }
-            if(!is_a<DGamma>(g)) throw Error("Something Wrong with GAS");
+            if(!is_a<DGamma>(g)) throw Error("Something Wrong with GAS @3, g="+ex2str(g));
             res += c * g;
         }
         return res;

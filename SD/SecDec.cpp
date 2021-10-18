@@ -500,13 +500,67 @@ int nnn = 0;
         int pnN = in_plst.nops();
         for(int i=0; i<pnN; i++) {
             auto pi = in_plst.op(i);
+            auto ni = in_nlst.op(i);
+            
             if(!pi.is_polynomial(vars)) {
-                auto nd = numer_denom(exfactor(pi));
-                if(in_nlst.op(i).info(info_flags::integer)) {
-                    in_plst.let_op(i) = nd.op(0);
-                    in_plst.append(nd.op(1));
-                    in_nlst.append(ex(0)-in_nlst.op(i));
-                } else throw Error("SecDec::Normalize, NOT polynomial found: "+ex2str(pi));
+                if(ni.info(info_flags::integer)) {
+                    auto nd = numer_denom(exfactor(pi));
+                    if(nd.op(0).is_polynomial(vars) && nd.op(1).is_polynomial(vars)) {
+                        in_plst.append(nd.op(1));
+                        in_nlst.append(ex(0)-ni);
+                        in_plst.let_op(i) = nd.op(0);
+                        goto ok;
+                    }
+                } else {
+                    auto nd = numer_denom(exfactor(pi));
+                    if(nd.op(0).is_polynomial(vars) && nd.op(1).is_polynomial(vars)) {
+                        if(xPositive(nd.op(0))) {
+                            in_plst.append(nd.op(1));
+                            in_nlst.append(ex(0)-ni);
+                            in_plst.let_op(i) = nd.op(0);
+                            goto ok;
+                        } else if(xPositive(nd.op(1))) {
+                            in_plst.append(nd.op(0));
+                            in_nlst.append(ni);
+                            in_plst.let_op(i) = nd.op(1);
+                            in_nlst.let_op(i) = ex(0)-ni;
+                            goto ok;
+                        }
+                    }
+                }
+                
+                if(true) {
+                    ex pis;
+                    if(!is_a<mul>(pi)) pis = lst{ pi };
+                    else pis = pi;
+                    ex rem = 1;
+                    for(auto item : pis) {
+                        if(item.is_polynomial(vars)) rem *= item;
+                        else if(item.match(pow(w0,w1))) {
+                            ex pp = item.op(0);
+                            ex nn = item.op(1);
+                            if(pp.is_polynomial(vars) && xPositive(pp)) {
+                                in_plst.append(pp);
+                                in_nlst.append(nn*ni);
+                            } else {
+                                auto nd = numer_denom(exfactor(pp));
+                                if(nd.op(0).is_polynomial(vars) && nd.op(1).is_polynomial(vars)) {
+                                    if(xPositive(nd.op(0)) && xPositive(nd.op(1))) {
+                                        in_plst.append(nd.op(0));
+                                        in_plst.append(nd.op(1));
+                                        in_nlst.append(nn*ni);
+                                        in_nlst.append(ex(0)-nn*ni);
+                                    } else goto nok;
+                                } else goto nok;
+                            }
+                        } else goto nok;
+                    }
+                    in_plst.let_op(i) = rem;
+                    goto ok;
+                }
+                
+                nok: throw Error("SecDec::Normalize, NOT polynomial found: "+ex2str(pi));
+                ok: continue;
             }
         }
         
@@ -542,7 +596,7 @@ int nnn = 0;
                             }
                             
                             if(tr>0) {
-                                const_term *=  pow(tmp,ntmp);
+                                const_term *= pow(tmp,ntmp);
                             } else {
                                 const_term *= pow(-tmp,ntmp);
                                 tmul = ex(0) - tmul;

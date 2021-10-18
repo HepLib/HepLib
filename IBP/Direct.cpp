@@ -222,6 +222,32 @@ namespace HepLib::IBP {
             }
         }
         
+        // Lee Zero Sector
+        if(true) {
+            //IsAlwaysZero = true;
+            lst ns0;
+            for(int i=0; i<pdim; i++) ns0.append(1);
+            long long tot = std::pow(2LL,pdim);
+            for(long long n=0; n<tot; n++) {
+                int cn = n;
+                lst ns1 = ns0;
+                lst sector = ns0;
+                for(int j=0; j<pdim; j++) {
+                    if((cn%2)==1) { ns1.let_op(j) = -1; sector.let_op(j) = 0; }
+                    cn /= 2;
+                }
+                //if(IsZero(sector)) Rlst.append(ns1);
+                //else if(IsAlwaysZero) IsAlwaysZero = false;
+            } 
+            if(IsAlwaysZero) {
+                lst ws;
+                int pdim = Propagators.nops();
+                for(int i=0; i<pdim; i++) ws.append(wild(i));
+                Rules.append(F(ProblemNumber, ws)==0);
+                return;
+            }
+        }
+        
         // all sectors
         auto ibps_o = ibps;
         ibps.remove_all();
