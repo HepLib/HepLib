@@ -119,7 +119,7 @@ namespace HepLib::IBP {
                 auto ns = nsa;
                 ns.let_op(i) = nsa.op(i) + 1;
                 auto dp = Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
-                ibp -= (a(i)+Shift[i]) * F(ns) * dp;
+                ibp -= (a(i)+Shift[i+1]) * F(ns) * dp;
             }
             
             ibp = ibp * iep;

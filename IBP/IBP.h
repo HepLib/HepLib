@@ -32,7 +32,7 @@ namespace HepLib::IBP {
         lst Cuts; // index start from 1
         lst DSP; // { {q1,q1}, {q1,p}, ... } Diff SP
         lst ISP; // { q1*q1, q1*p } Independent SP
-        map<int,ex> Shift;
+        map<int,ex> Shift; // index start from 1
         bool reCut = false;
         string WorkingDir;
         int ProblemNumber = 0;
@@ -161,7 +161,6 @@ namespace HepLib::IBP {
     public:
         
         bool using_uw = true;
-        map<int,ex> Shift;
         
         void Export() override;
         void Run() override;

@@ -82,7 +82,7 @@ namespace HepLib::IBP {
                 tmp = tmp.subs(Replacements, subs_options::algebraic);
                 tmp = tmp.subs(sp2s, subs_options::algebraic);
                 tmp = tmp.subs(s2p, subs_options::algebraic);
-                tmp = ex(0) - (Shift[i]+a(i+1))*tmp; // note Shift here
+                tmp = ex(0) - (Shift[i+1]+a(i+1))*tmp; // note Shift here
 
                 for(int j=0; j<pdim; j++) {
                     auto cj = tmp.coeff(iWF(j));

@@ -60,6 +60,21 @@ namespace HepLib::IBP {
             if(i+1<Internal.nops()) oss << ", ";
             else oss << "]" << endl;
         }
+        
+        vector<int> symbolic_ibp;
+        for(auto kv : Shift) {
+            if(kv.second.is_zero()) continue;
+            symbolic_ibp.push_back(kv.first);
+        }
+        if(symbolic_ibp.size()>0) {
+            oss << "    symbolic_ibp: [";
+            for(int i=0; i<symbolic_ibp.size(); i++) {
+                if(i>0) oss << ",";
+                oss << symbolic_ibp[i];
+            }
+            oss << "]" << endl;
+        }
+        
         //oss << "    top_level_sectors: [127]" << endl;
         oss << "    propagators:" << endl;
         for(int i=0; i<Propagators.nops(); i++) {
@@ -104,6 +119,7 @@ namespace HepLib::IBP {
         if(vset.size()>0) {
             oss << "  kinematic_invariants:" << endl;
             for(auto vi : vset) oss << "   - [ " << vi << ", 0 ]" << endl;
+            for(auto i : symbolic_ibp) oss << "   - [ b" << (i-1) << ", 0 ]" << endl;
         }
         
         oss << "  scalarproduct_rules:" << endl;
@@ -205,6 +221,12 @@ namespace HepLib::IBP {
         fn << job_dir << "/results/F/kira_integrals.kira";
         auto strvec = file2strvec(fn.str());
         
+        exmap bMAP;
+        for(auto kv : Shift) {
+            Symbol bi("b"+to_string(kv.first-1));
+            bMAP[bi] = kv.second;
+        }
+        
         ex exL=0, exR=0;
         map<ex,int,ex_is_less> flags;
         lst exRs;
@@ -213,6 +235,7 @@ namespace HepLib::IBP {
         for(auto line : strvec) {
             if(line.size()==0) {
                 if(!is_zero(exL)) {
+                    exR = exR.subs(bMAP);
                     Rules.append(exL==exR);
                     flags[exL] = 0;
                     exRs.append(exR);
@@ -229,6 +252,7 @@ namespace HepLib::IBP {
             }
         }
         if(!is_zero(exL)) {
+            exR = exR.subs(bMAP);
             Rules.append(exL==exR);
             flags[exL] = 0;
             exRs.append(exR);

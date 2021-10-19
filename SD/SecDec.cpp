@@ -550,8 +550,8 @@ int nnn = 0;
                                         in_plst.append(nd.op(1));
                                         in_nlst.append(nn*ni);
                                         in_nlst.append(ex(0)-nn*ni);
-                                    } else goto nok;
-                                } else goto nok;
+                                    } else { cout << item << endl; goto nok; }
+                                } else { cout << item << endl; goto nok; }
                             }
                         } else goto nok;
                     }

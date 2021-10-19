@@ -119,7 +119,7 @@ namespace HepLib::IBP {
                 auto ns = nsa;
                 ns.let_op(i) = nsa.op(i) + 1;
                 auto dp = Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
-                ibp -= (a(i)+Shift[i]) * F(ns) * dp;
+                ibp -= (a(i)+Shift[i+1]) * F(ns) * dp;
             }
             
             ibp = ibp * iep;
@@ -254,7 +254,7 @@ namespace HepLib::IBP {
                         lst ns = ex_to<lst>(fi.op(0));
                         bool has = false;
                         for(int i=0; i<pdim; i++) {
-                            if(is_zero(Shift[i]) && ns.op(i)<=0) continue;
+                            if(is_zero(Shift[i+1]) && ns.op(i)<=0) continue;
                             if(Propagators.op(i).has(li)) {
                                 has = true;
                                 break;
@@ -409,7 +409,6 @@ namespace HepLib::IBP {
         ofstream intg_out(job_dir+"/integrals");
         intg_out << oss.str() << endl;
         intg_out.close();
-        
     }
     
     /**
