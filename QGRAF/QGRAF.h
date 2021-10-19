@@ -5,6 +5,7 @@
  
 #pragma once
 
+#include "BASIC.h"
 #include "HEP.h"
 
 /**
@@ -82,7 +83,7 @@ namespace HepLib::QGRAF {
         int Loops;
         string Options;
         vector<string> Others;
-        lst Amplitudes(symtab st, bool debug=false);
+        lst Amplitudes(symtab st);
         
         #ifndef DOXYGEN_SKIP
         class _init {
@@ -94,7 +95,7 @@ namespace HepLib::QGRAF {
     };
     
     lst TopoLines(const ex & amp);
-    void DrawPDF(const lst & amps, string fn, bool debug=false);
+    void DrawPDF(const lst & amps, string fn);
     vector<lst> ShrinkCut(ex amp, lst prop, int n=1);
     bool HasLoop(ex amp, lst prop);
     extern map<ex,string,ex_is_less> LineTeX;

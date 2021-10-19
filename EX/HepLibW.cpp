@@ -160,7 +160,7 @@ void set_form_using_dim4(bool yn) {
 }
 
 std::string Process::Style;
-exvec Process::Amplitudes(std::map<std::string,expr> st, bool debug) {
+exvec Process::Amplitudes(std::map<std::string,expr> st) {
     HepLib::QGRAF::Process proc;
     if(Style != "") HepLib::QGRAF::Process::Style = Style;
     proc.Model = Model;
@@ -172,7 +172,7 @@ exvec Process::Amplitudes(std::map<std::string,expr> st, bool debug) {
     proc.Others = Others;
     GiNaC::symtab _st;
     for(auto kv : st) _st[kv.first] = kv.second._expr;
-    auto ret = proc.Amplitudes(_st, debug);
+    auto ret = proc.Amplitudes(_st);
     exvec res;
     for(auto item : ret) res.push_back(expr(item));
     return res;

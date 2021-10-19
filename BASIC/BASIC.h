@@ -438,6 +438,7 @@ namespace HepLib {
     extern const Symbol ep;
     extern const Symbol D;
     extern int Verbose;
+    extern bool Debug;
     extern int GiNaC_Parallel_Process;
 
     /*-----------------------------------------------------*/

@@ -514,12 +514,12 @@ int nnn = 0;
                 } else {
                     auto nd = numer_denom(exfactor(pi));
                     if(nd.op(0).is_polynomial(vars) && nd.op(1).is_polynomial(vars)) {
-                        if(xPositive(nd.op(0))) {
+                        if(xPositive(nd.op(1))) {
                             in_plst.append(nd.op(1));
                             in_nlst.append(ex(0)-ni);
                             in_plst.let_op(i) = nd.op(0);
                             goto ok;
-                        } else if(xPositive(nd.op(1))) {
+                        } else if(xPositive(nd.op(0))) {
                             in_plst.append(nd.op(0));
                             in_nlst.append(ni);
                             in_plst.let_op(i) = nd.op(1);
@@ -984,7 +984,7 @@ int nnn = 0;
                 para_res_lst.append(fe);
             }
             return para_res_lst;
-        }, "BiSec", !debug);
+        }, "BiSec", !Debug);
         Verbose = verb;
 
         FunExp.clear();
@@ -993,6 +993,21 @@ int nnn = 0;
             for(auto &it : ex_to<lst>(item)) FunExp.push_back(ex_to<lst>(it));
         }
         if(Verbose > 2) cout << FunExp.size() << endl;
+    }
+    
+    void SecDec::BiSection(ex xi, ex x0) {
+        auto fes = FunExp;
+        FunExp.clear();
+        for(auto fe : fes) {
+            symbol xy;
+            auto tmp = ex_to<lst>(subs(subs(fe, lst{xi==x0*xy}), lst{xy==xi}));
+            tmp.let_op(0).let_op(0) = tmp.op(0).op(0) * x0;
+            FunExp.push_back(tmp);
+            
+            tmp = ex_to<lst>(subs(subs(fe, lst{xi==(x0-1)*xy+1}), lst{xy==xi}));
+            tmp.let_op(0).let_op(0) = tmp.op(0).op(0) * (1-x0);
+            FunExp.push_back(tmp);
+        }
     }
 
     // after SDPrepares, Integrands can be expanded in ep safely.
@@ -1524,7 +1539,7 @@ int nnn = 0;
 
             return para_res_lst;
 
-        }, "EpsEp", !debug);
+        }, "EpsEp", !Debug);
         
         if(Verbose > 1) cout << "  \\--Collecting: ";
         map<ex, ex, ex_is_less> int_pref;

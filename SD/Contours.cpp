@@ -199,7 +199,7 @@ namespace HepLib::SD {
 
             return lst{ ftnxn.op(1), las }; // ft_id, las
         
-        }, "las", !debug);
+        }, "las", !Debug);
         GiNaC_Parallel_Process=opps;
         
         if(use_dlclose) dlclose(module);
@@ -224,7 +224,7 @@ namespace HepLib::SD {
         cmd.clear();
         cmd.str("");
         cmd << "rm -rf " << pid;
-        if(!debug) system(cmd.str().c_str());
+        if(!Debug) system(cmd.str().c_str());
     }
 
 }

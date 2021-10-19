@@ -192,7 +192,7 @@ namespace HepLib::SD {
             }
         }
         
-        if(!debug && key == "") {
+        if(!Debug && key == "") {
             if(file_exists(fsofn.str().c_str())) remove(fsofn.str().c_str());
             remove(sofn.str().c_str());
         }
@@ -214,7 +214,7 @@ namespace HepLib::SD {
                     }
                 }
                 ex_modules.push_back(module);
-                if(!debug && key == "") remove(ex_sofn.str().c_str());
+                if(!Debug && key == "") remove(ex_sofn.str().c_str());
             } else break;
         }
         
@@ -790,7 +790,7 @@ namespace HepLib::SD {
                     }
                 }
                 ex_modules.push_back(module);
-                if(!debug && key == "") remove(ex_sofn.str().c_str());
+                if(!Debug && key == "") remove(ex_sofn.str().c_str());
             } else break;
         }
         

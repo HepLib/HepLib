@@ -422,7 +422,7 @@ public:
     int Loops;
     std::string Options;
     std::vector<std::string> Others;
-    exvec Amplitudes(std::map<std::string,expr> st, bool debug=false);
+    exvec Amplitudes(std::map<std::string,expr> st);
 };
 extern void set_LineTeX(expr, std::string);
 extern void set_InOutTeX(int, std::string);

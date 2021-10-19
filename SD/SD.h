@@ -376,7 +376,6 @@ namespace HepLib::SD {
 
     public:
         static bool use_dlclose;
-        static bool debug;
         static string cpp;
         
         int epN = 0;
@@ -429,6 +428,7 @@ namespace HepLib::SD {
         
         void Initialize(FeynmanParameter fpi);
         void Initialize(XIntegrand xint);
+        void BiSection(ex xi, ex x0);
         void Normalizes();
         void Scalelesses();
         void SDPrepares();

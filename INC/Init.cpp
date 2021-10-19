@@ -41,6 +41,7 @@ namespace HepLib {
     const iSymbol iEpsilon("iEpsilon");
     const ex iEpsilonN = I*pow(ex(10), -50);
     int Verbose = 0;
+    bool Debug = false;
     int GiNaC_Parallel_Process = -1;
     const Symbol D("D");
     bool fermat_using_array = false;
@@ -79,7 +80,6 @@ namespace HepLib {
     const Symbol SD::NaN("NaN");
     
     bool SD::SecDec::use_dlclose = true;
-    bool SD::SecDec::debug = false;
     string SD::SecDec::cpp = "g++";
 
     SD::SecDec::_init::_init() {

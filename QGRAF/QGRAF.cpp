@@ -2,7 +2,7 @@
  * @file
  * @brief QGRAF related
  */
- 
+
 #include "QGRAF.h"
 
 namespace HepLib::QGRAF {
@@ -58,10 +58,9 @@ namespace HepLib::QGRAF {
     /**
      * @brief generte the Amplitudes
      * @param st symtab for the parser, no need for Symbol, usually used for momentum Vector
-     * @param debug true for detailed message, and to keep the files
      * @return Amplitudes for current QGRAF object
      */
-    lst Process::Amplitudes(symtab st, bool debug) {
+    lst Process::Amplitudes(symtab st) {
         system("rm -f qgraf.dat qgraf.out qgraf.sty qgraf.mod");
         std::ofstream style;
         style.open("qgraf.sty", ios::out);
@@ -86,14 +85,14 @@ namespace HepLib::QGRAF {
         for(auto vs : Others) ofs << vs << ";" << endl;
         ofs.close();
         
-        if(debug) system((InstallPrefix+"/bin/qgraf").c_str());
+        if(Debug) system((InstallPrefix+"/bin/qgraf").c_str());
         else system((InstallPrefix+"/bin/qgraf > /dev/null").c_str());
         
         ifstream ifs("qgraf.out");
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
         ifs.close();
         
-        if(!debug) {
+        if(!Debug) {
             if(access("qgraf.dat",F_OK)!=-1) remove("qgraf.dat");
             if(access("qgraf.mod",F_OK)!=-1) remove("qgraf.mod");
             if(access("qgraf.sty",F_OK)!=-1) remove("qgraf.sty");
@@ -160,10 +159,9 @@ namespace HepLib::QGRAF {
      * @brief generate Feynman diagrams for the amplitudes, in PDF format
      * @param amps refers to Amplitudes
      * @param fn the filename of the PDF
-     * @param debug true for more detailed output, and keep the files
      * @return nonthing, check pdf file
      */
-    void DrawPDF(const lst & amps, string fn, bool debug) {
+    void DrawPDF(const lst & amps, string fn) {
         int id=0;
         vector<ex> amp_vec;
         for(auto item : amps) amp_vec.push_back(item);
@@ -271,9 +269,9 @@ namespace HepLib::QGRAF {
         out << "\\end{adjustbox}" << endl;
         out << "\\end{document}" << endl;
         out.close();
-        if(debug)  system(("cd "+tex_path+" && pdflatex diagram && mv diagram.pdf ../"+fn).c_str());
+        if(Debug)  system(("cd "+tex_path+" && pdflatex diagram && mv diagram.pdf ../"+fn).c_str());
         else system(("cd "+tex_path+" && echo X | pdflatex diagram 1>/dev/null && mv diagram.pdf ../"+fn).c_str());
-        if(!debug) system(("rm -r "+tex_path).c_str());
+        if(!Debug) system(("rm -r "+tex_path).c_str());
     }
     
     /**

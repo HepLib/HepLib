@@ -407,7 +407,7 @@ namespace HepLib::SD {
             cmd.clear();
             cmd.str("");
             cmd << "rm -rf " << pid;
-            if(!debug) system(cmd.str().c_str());
+            if(!Debug) system(cmd.str().c_str());
         }
 
 
@@ -538,7 +538,7 @@ namespace HepLib::SD {
                 ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
                 ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
                 
-                if(debug) {
+                if(Debug) {
                     auto tmp = expr.subs(FTX(w1,w2)==1).subs(cxRepl).subs(plRepl);
                     ofs << "//for debug, intg: " << endl << "//" << tmp << endl;
                 }
@@ -1224,7 +1224,7 @@ namespace HepLib::SD {
             cmd << cpp << " -fPIC " << INC_FLAGS <<  " -c -o " << ofn.str() << " " << cppfn.str();
 #endif
             system(cmd.str().c_str());
-            if(!debug) remove(cppfn.str().c_str());
+            if(!Debug) remove(cppfn.str().c_str());
             return lst{ idx, xs.size(), kvf.op(0), ft_n };
         }, "FCI-I", false);
         
@@ -1326,7 +1326,7 @@ namespace HepLib::SD {
         }
         cmd.clear();
         cmd.str("");
-        if(debug) cmd << "rm -rf " << key << "_debug;mv -f " << pid << " " << key << "_debug;rm -f " << key << "_debug/*.o";
+        if(Debug) cmd << "rm -rf " << key << "_debug;mv -f " << pid << " " << key << "_debug;rm -f " << key << "_debug/*.o";
         else cmd << "rm -rf " << pid;
         system(cmd.str().c_str());
 
