@@ -39,6 +39,16 @@ namespace HepLib {
         }
         
     }
+    
+    inline bool has_any(ex expr, lst ps) {
+        for(auto pi : ps) if(expr.has(pi)) return true;
+        return false;
+    }
+    
+    inline bool is_equal_any(ex expr, lst ps) {
+        for(auto pi : ps) if(expr.is_equal(pi)) return true;
+        return false;
+    }
 
     /**
      * @brief Tensor Index Reduction
@@ -56,8 +66,64 @@ namespace HepLib {
         }
 
         if(expr_in.has(coVF(w))) throw Error("TIR error: expr_in has coVF already.");
+        
+        // handle Eps/DGamma
+        auto expr = expr_in;
+        int lproj = 0;
+        expr = MapFunction([&lproj,loop_ps](const ex &e, MapFunction &self)->ex {
+            string prefix = "ti";
+            if(!Eps::has(e) && !DGamma::has(e)) return e;
+            else if(is_a<Eps>(e)) {
+                auto pis0 = ex_to<Eps>(e).pis;
+                ex pis[4];
+                ex cc = 1;
+                for(int i=0; i<4; i++) {
+                    pis[i] = pis0[i];
+                    if(is_equal_any(pis[i],loop_ps)) {
+                        Index idx(prefix+to_string(++lproj));
+                        cc *= SP(pis[i], idx);
+                        pis[i] = idx;
+                    } else if(has_any(pis[i],loop_ps)) throw Error("TIR: Eps still has loops.");
+                }
+                return LC(pis[0], pis[1], pis[2], pis[3]) * cc;
+            } else if(is_a<DGamma>(e)) {
+                Index idx(prefix+to_string(++lproj));
+                auto g = ex_to<DGamma>(e);
+                if(!is_equal_any(g.pi,loop_ps)) throw Error("TIR: g.pi is NOT a loop.");
+                return DGamma(idx, g.rl) * SP(g.pi, idx);
+            } else if (e.match(TR(w))) {
+                auto ret = self(e.op(0));
+                ret = collect_ex(ret, loop_ps, true);
+                ret = ret.subs(coCF(w)==TR(w));
+                return ret;
+            } else if(is_a<add>(e)) {
+                int lpj = lproj;
+                int lpj_max = -100;
+                ex ret = 0;
+                for(auto item : e) {
+                    lproj = lpj;
+                    ret += self(item);
+                    if(lpj_max<lproj) lpj_max = lproj;
+                }
+                lproj = lpj_max;
+                return ret;
+            } else if(is_a<power>(e)) {
+                if(!e.op(1).info(info_flags::posint)) {
+                    cout << e << endl;
+                    throw Error("TIR: power is not info_flags::posint.");
+                }
+                ex ret = 1;
+                int pn = ex_to<numeric>(e.op(1)).to_int();
+                for(int i=0; i<pn; i++) {
+                    ret *= self(e.op(0));
+                }
+                return ret;
+            } else return e.map(self);
+            throw Error("TIR: something should be wrong here");
+            return 0;
+        })(expr);
 
-        auto expr = collect_ex(expr_in, [&loop_ps](const ex & e)->bool{
+        expr = collect_ex(expr, [&loop_ps](const ex & e)->bool{
             if(!Index::hasv(e)) return false;
             for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
                 auto item = *i;

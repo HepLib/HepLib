@@ -22,13 +22,10 @@ namespace HepLib {
                 if(!is_a<numeric>(item.op(1)) || !ex_to<numeric>(item.op(1)).is_integer()) return false;
                 item = item.op(0);
             }
-            bool isOK = true;
-            for(auto v : vars) {
-                if(item.degree(v)>1) return false;
-            }
-            return isOK;
+            exmap vs; symbol s;
+            for(auto v : vars) vs[v] = s*v;
+            return item.subs(vs).degree(s)<=1;
         }
-        
     }
     
     /**
@@ -649,7 +646,9 @@ namespace HepLib {
         nrepl[iEpsilon]=0;
         ex chk = ApartIR2ex(subs(res,nrepl))-subs(expr_in,nrepl);
         chk = normal(chk);
-        if(!is_zero(chk)) throw Error("Apart@2 random check Failed.");
+        if(!is_zero(chk)) {
+            throw Error("Apart@2 random check Failed.");
+        }
         
         return collect_ex(res,ApartIR(w1,w2),false,false,1);
     }

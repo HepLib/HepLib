@@ -10,7 +10,11 @@
 
 namespace HepLib::SD {
 
-int nnn = 0;
+    /**
+     * @brief XMonomials
+     * @param expr_in a expression
+     * @return XMonomials with higher x^n droped
+     */
     ex SecDecBase::XMonomials(const ex & expr_in) {
         auto expr = expr_in;
         auto xs = get_x_from(expr);
@@ -75,6 +79,12 @@ int nnn = 0;
         return ret;
     }
 
+    /**
+     * @brief Verify the Sector Decompostion is valid
+     * @param map_vec x2y map
+     * @param quick use numerical check
+     * @return true for ok, false for invalid
+     */
     bool SecDecBase::VerifySD(vector<exmap> map_vec, bool quick) {
         lst xs;
         exmap nxs;
@@ -114,6 +124,11 @@ int nnn = 0;
         return SecDecBase::VerifySD(map_vec, quick);
     }
     
+    /**
+     * @brief a general x2y procedure
+     * @param in_xpols the input xpols
+     * @return a list of x2y map
+     */
     vector<exmap> SecDecBase::x2y(const lst & in_xpols) {
         if(in_xpols.has(y(w))) throw Error("SecDecBase::x2y: y(w) found @ " + ex2str(in_xpols));
         lst xpols_lst = in_xpols;
@@ -123,7 +138,7 @@ int nnn = 0;
                 if(item.match(x(w))) continue;
                 else if(item.match(pow(x(w1),w2))) continue;
                 else if(item.match(pow(w1,w2))) item = item.op(0);
-                xpols *= exfactor(item);
+                xpols *= factor_form(item, false);
             }
             if(!is_a<mul>(xpols)) xpols = lst{ xpols };
             
@@ -149,9 +164,12 @@ int nnn = 0;
         return vector<exmap>();
     }
 
-    /*-----------------------------------------------------*/
-    /*                   CheckAtEnd                        */
-    /*-----------------------------------------------------*/
+    /**
+     * @brief Check the x-END
+     * @param f the F-term
+     * @param vmap a list of x2y map
+     * @return true for bad
+    */
     bool SecDec::IsBad(ex f, vector<exmap> vmap) {
         for(auto &vi : vmap) {
             auto ft = f.subs(vi);
@@ -195,7 +213,12 @@ int nnn = 0;
         }
         return false;
     }
-
+    
+    /**
+     * @brief Auto BiSection
+     * @param po_ex the list of {ps, ns}
+     * @return a vector of {ps, ns} after BiSection
+    */
     vector<ex> SecDec::AutoEnd(ex po_ex) {
         if(po_ex.nops()>2) throw Error("AutoEnd: Deltas found @ " + ex2str(po_ex));
         lst const exlist = ex_to<lst>(po_ex.op(1));

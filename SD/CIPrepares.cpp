@@ -705,8 +705,8 @@ namespace HepLib::SD {
                                 lst clogs = ex_to<lst>(cse.Parse(logs));
                                 
                                 ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
-                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = complex<dREAL>(z[i].real(), z[i].imag()/(25*NRCLog));" << endl;
-                                ofs << "else for(int i=0; i<xn; i++) zz[i] = complex<dREAL>(z[i].real(), ti*z[i].imag()/NRCLog);" << endl;
+                                ofs << "if(ti==0) { for(int i=0; i<xn; i++) zz[i] = complex<dREAL>(z[i].real(), z[i].imag()/(25*NRCLog)); }" << endl;
+                                ofs << "else { for(int i=0; i<xn; i++) zz[i] = complex<dREAL>(z[i].real(), ti*z[i].imag()/NRCLog); }" << endl;
                                 ofs << "dCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                                 for(auto kv : cse.os()) {
                                     ofs <<cse.oc<< "["<<kv.first<<"] = ";
@@ -929,11 +929,11 @@ namespace HepLib::SD {
                                 
                                 ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
 #ifdef _USE_FLOAT128
-                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*cimagq(z[i])/(25.Q*NRCLog);" << endl;
-                                ofs << "else for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*ti*cimagq(z[i])/NRCLog;" << endl;
+                                ofs << "if(ti==0) { for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*cimagq(z[i])/(25.Q*NRCLog); }" << endl;
+                                ofs << "else { for(int i=0; i<xn; i++) zz[i] = crealq(z[i]) + 1.Qi*ti*cimagq(z[i])/NRCLog; }" << endl;
 #else
-                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = real(z[i]) + complex<qREAL>(0.L,1.L)*imag(z[i])/(25.L*NRCLog);" << endl;
-                                ofs << "else for(int i=0; i<xn; i++) zz[i] = real(z[i]) + complex<qREAL>(0.L,1.L)*(ti*1.L)*imag(z[i])/(NRCLog*1.L);" << endl;
+                                ofs << "if(ti==0) { for(int i=0; i<xn; i++) zz[i] = real(z[i]) + complex<qREAL>(0.L,1.L)*imag(z[i])/(25.L*NRCLog); }" << endl;
+                                ofs << "else { for(int i=0; i<xn; i++) zz[i] = real(z[i]) + complex<qREAL>(0.L,1.L)*(ti*1.L)*imag(z[i])/(NRCLog*1.L); }" << endl;
 #endif
                                 ofs << "qCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                                 for(auto kv : cse.os()) {
@@ -1164,8 +1164,8 @@ namespace HepLib::SD {
                                 lst clogs = ex_to<lst>(cse.Parse(logs));
                                 
                                 ofs << "for(int ti=0; ti<=NRCLog; ti++) {" << endl;
-                                ofs << "if(ti==0) for(int i=0; i<xn; i++) zz[i] = complex<mpREAL>(z[i].real(), z[i].imag()/(25*NRCLog));" << endl;
-                                ofs << "else for(int i=0; i<xn; i++) zz[i] = complex<mpREAL>(z[i].real(), ti*z[i].imag()/NRCLog);" << endl;
+                                ofs << "if(ti==0) { for(int i=0; i<xn; i++) zz[i] = complex<mpREAL>(z[i].real(), z[i].imag()/(25*NRCLog)); }" << endl;
+                                ofs << "else { for(int i=0; i<xn; i++) zz[i] = complex<mpREAL>(z[i].real(), ti*z[i].imag()/NRCLog); }" << endl;
                                 ofs << "mpCOMPLEX "<<cse.oc<<"[" << cse.on()+1 << "];" << endl;
                                 for(auto kv : cse.os()) {
                                     ofs <<cse.oc<< "["<<kv.first<<"] = ";

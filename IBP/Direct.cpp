@@ -28,7 +28,7 @@ namespace HepLib::IBP {
         rep_vs.sort();
         rep_vs.unique();
         sort_lst(rep_vs);
-        
+
         exmap v2f;
         symtab st;
         int fvi = 0;

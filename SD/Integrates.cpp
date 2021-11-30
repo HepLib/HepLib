@@ -408,7 +408,7 @@ namespace HepLib::SD {
             for(auto kv : Parameter) paras[kv.first] = ex2q(kv.second);
             
             Integrator->ReIm = reim;
-            Integrator->MPDigits = MPDigits;
+            if(MPDigits>0) Integrator->MPDigits = MPDigits;
             Integrator->Integrand = fp;
             Integrator->IntegrandQ = fpQ;
             Integrator->IntegrandMP = fpMP;
@@ -987,7 +987,7 @@ namespace HepLib::SD {
             for(auto kv : Parameter) paras[kv.first] = ex2q(kv.second);
             
             Integrator->ReIm = reim;
-            Integrator->MPDigits = MPDigits;
+            if(MPDigits>0) Integrator->MPDigits = MPDigits;
             Integrator->Integrand = fp;
             Integrator->IntegrandQ = fpQ;
             Integrator->IntegrandMP = fpMP;

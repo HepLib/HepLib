@@ -2211,7 +2211,8 @@ namespace HepLib {
      * @param expr the input expression
      * @return factorized result
      */
-    ex factor_form(const ex & expr) {
+    ex factor_form(const ex & expr, bool nd) {
+        if(!nd) return inner_factor_form(expr);
         auto num_den = fermat_numer_denom(expr);
         if(is_zero(num_den.op(1)-1)) return inner_factor_form(num_den.op(0));
         return inner_factor_form(num_den.op(0))/inner_factor_form(num_den.op(1));

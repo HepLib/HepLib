@@ -401,8 +401,8 @@ namespace HepLib {
     inline ex fermat_normal(const ex & expr, bool dfactor=false) { return normal_fermat(expr,dfactor); }
     
     ex form_eval(const ex & expr);
-    ex factor_form(const ex & expr);
-    inline ex form_factor(const ex & expr) { return factor_form(expr); }
+    ex factor_form(const ex & expr, bool nd=true);
+    inline ex form_factor(const ex & expr, bool nd=true) { return factor_form(expr,nd); }
     
     ex exfactor(const ex & expr, int opt = 1);
     ex exnormal(const ex & expr, int opt = 1);

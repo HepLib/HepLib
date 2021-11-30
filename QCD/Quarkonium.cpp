@@ -252,7 +252,7 @@ namespace HepLib::QCD {
                     auto pis0 = ex_to<Eps>(e).pis;
                     ex pis[4];
                     ex cc = 1;
-                    for(int i=0; i<3; i++) {
+                    for(int i=0; i<4; i++) {
                         pis[i] = pis0[i];
                         if(is_zero(pis[i]-q)) {
                             Index idx(prefix+to_string(++lproj));
