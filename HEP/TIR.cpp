@@ -40,16 +40,6 @@ namespace HepLib {
         
     }
     
-    inline bool has_any(ex expr, lst ps) {
-        for(auto pi : ps) if(expr.has(pi)) return true;
-        return false;
-    }
-    
-    inline bool is_equal_any(ex expr, lst ps) {
-        for(auto pi : ps) if(expr.is_equal(pi)) return true;
-        return false;
-    }
-
     /**
      * @brief Tensor Index Reduction
      * @param expr_in expression 
@@ -266,6 +256,7 @@ namespace HepLib {
                         res += bis.op(i) * mat2.op(i).op(n);
                     }
                     res = res.subs(SP_map);
+                    res = exfactor(res);
                     cache_map[map_key] = res;
                     return res;
                 } else {
@@ -282,16 +273,17 @@ namespace HepLib {
                     for(auto lpi : lps)
                         if(!is_zero(lpi-lp0)) ext_ps2.append(lpi);
                     ex ret = TIR(e.op(0), lst{ lp0 }, ext_ps2);
+                    ret = exfactor(ret);
                     ret = TIR(ret, loop_ps, ext_ps);
+                    ret = exfactor(ret);
                     cache_map[map_key] = ret;
                     return ret;
                 }
             } else if (!e.has(coVF(w))) return e;
             else return e.map(self);
         })(expr);
-
-        return expr;
         
+        return expr;        
     }
 
 }

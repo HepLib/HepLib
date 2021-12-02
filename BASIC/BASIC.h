@@ -51,6 +51,29 @@ namespace HepLib {
     using namespace std;
     using namespace GiNaC;
     
+    inline bool has_any(ex expr, lst ps) {
+        for(auto pi : ps) if(expr.has(pi)) return true;
+        return false;
+    }
+    inline bool has_all(ex expr, lst ps) {
+        for(auto pi : ps) if(!expr.has(pi)) return false;
+        return true;
+    }
+    
+    inline bool is_equal_any(ex expr, lst ps) {
+        for(auto pi : ps) if(expr.is_equal(pi)) return true;
+        return false;
+    }
+    
+    inline bool match_any(ex expr, lst ps) {
+        for(auto pi : ps) if(expr.match(pi)) return true;
+        return false;
+    }
+    inline bool match_all(ex expr, lst ps) {
+        for(auto pi : ps) if(!expr.match(pi)) return false;
+        return true;
+    }
+    
     /*-----------------------------------------------------*/
     // Terminal Color
     /*-----------------------------------------------------*/
