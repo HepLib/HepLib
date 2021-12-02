@@ -126,7 +126,7 @@ namespace HepLib {
         expr = MapFunction([ext_ps,loop_ps](const ex &e, MapFunction &self)->ex{
             if(e.is_equal(coVF(1))) return 1;
             else if(e.match(coVF(w))) {
-                ex map_key = lst{e,loop_ps,ext_ps};
+                ex map_key = lst{e,ext_ps};
                 if(cache_map.find(map_key)!=cache_map.end()) return cache_map[map_key];
                 lst vis, lps;
                 map<ex,int,ex_is_less> pc;
@@ -256,7 +256,7 @@ namespace HepLib {
                         res += bis.op(i) * mat2.op(i).op(n);
                     }
                     res = res.subs(SP_map);
-                    res = exfactor(res);
+                    res = exnormal(res);
                     cache_map[map_key] = res;
                     return res;
                 } else {
@@ -273,9 +273,8 @@ namespace HepLib {
                     for(auto lpi : lps)
                         if(!is_zero(lpi-lp0)) ext_ps2.append(lpi);
                     ex ret = TIR(e.op(0), lst{ lp0 }, ext_ps2);
-                    ret = exfactor(ret);
                     ret = TIR(ret, loop_ps, ext_ps);
-                    ret = exfactor(ret);
+                    ret = exnormal(ret);
                     cache_map[map_key] = ret;
                     return ret;
                 }
