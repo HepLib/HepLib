@@ -43,9 +43,12 @@ namespace HepLib {
     int Verbose = 0;
     bool Debug = false;
     int GiNaC_Parallel_Process = -1;
+    int GiNaC_Parallel_BatchMax = 100;
     const Symbol D("D");
     bool fermat_using_array = false;
+    bool using_cache = true;
     int NNDigits = 100;
+    exmap fast_sort_map;
     
     HepFormat::_init::_init() {
         set_print_func<add, HepFormat>(HepFormat::add_print);
@@ -134,8 +137,6 @@ namespace HepLib {
     const int form_expand_li = 3;
     const int form_expand_all = 4;
     int form_expand_mode = form_expand_tr;
-    
-    bool Apart_using_cache = true;
     bool Apart_using_fermat = true;
     bool form_using_su3 = true;
     bool form_using_dim4 = false;
@@ -184,7 +185,6 @@ namespace HepLib {
     int IBP::FIRE::Version = 6;
     int IBP::FIRE::Threads = 4;
     exmap IBP::MapPreSP;
-    bool IBP::use_UF_Cache = true;
     
     string IBP::UKIRA::KArgs = "";
     string IBP::KIRA::KArgs = "";

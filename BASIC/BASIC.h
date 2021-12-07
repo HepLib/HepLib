@@ -415,6 +415,7 @@ namespace HepLib {
     
     ex diff_ex(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
+    extern bool using_cache;
     extern bool fermat_using_array;
     ex fermat_eval(const ex & expr);
     ex numer_denom_fermat(const ex & expr, bool dfactor=false);
@@ -463,6 +464,7 @@ namespace HepLib {
     extern int Verbose;
     extern bool Debug;
     extern int GiNaC_Parallel_Process;
+    extern int GiNaC_Parallel_BatchMax;
 
     /*-----------------------------------------------------*/
     // Global Colors
@@ -626,11 +628,14 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // sort
     /*-----------------------------------------------------*/
+    extern exmap fast_sort_map;
     long long node_number(const ex & expr, int level=0);
     bool ex_less(const ex &a, const ex &b);
     void sort_lst(lst & ilst, bool less=true);
+    void fast_sort_lst(lst & ilst, bool less=true);
     void sort_lst_by(lst & ilst, int n, bool less=true);
     void sort_vec(exvector & ivec, bool less=true);
+    void fast_sort_vec(exvector & ivec, bool less=true); 
     void sort_vec_by(exvector & ivec, int n, bool less=true);
     
     /*-----------------------------------------------------*/

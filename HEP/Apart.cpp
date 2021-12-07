@@ -115,7 +115,7 @@ namespace HepLib {
     ex Apart(const matrix & mat) {
     
         static exmap mat_cache;
-        if(Apart_using_cache && mat_cache.find(mat)!=mat_cache.end()) return mat_cache[mat];
+        if(using_cache && mat_cache.find(mat)!=mat_cache.end()) return mat_cache[mat];
         
         int nrow = mat.rows()-2;
         int ncol = mat.cols();
@@ -256,7 +256,7 @@ namespace HepLib {
         }
         if(is_null) {
             ex res = ApartIR(mat);
-            if(Apart_using_cache) mat_cache[mat] = res;
+            if(using_cache) mat_cache[mat] = res;
             return res;
         }
         
@@ -317,7 +317,7 @@ namespace HepLib {
                 }
             }
             res = collect_ex(res,ApartIR(w));
-            if(Apart_using_cache) mat_cache[mat] = res;
+            if(using_cache) mat_cache[mat] = res;
             return res;
         }
         
@@ -358,7 +358,7 @@ namespace HepLib {
             }
             res = res/cres;
             res = collect_ex(res,ApartIR(w));
-            if(Apart_using_cache) mat_cache[mat] = res;
+            if(using_cache) mat_cache[mat] = res;
             return res;
         } else {
             int ni=-1;
@@ -392,7 +392,7 @@ namespace HepLib {
             }
             res = res/nvec.op(ni);
             res = collect_ex(res,ApartIR(w));
-            if(Apart_using_cache) mat_cache[mat] = res;
+            if(using_cache) mat_cache[mat] = res;
             return res;
         }
     }

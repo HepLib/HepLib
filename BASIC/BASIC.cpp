@@ -183,6 +183,7 @@ namespace HepLib {
         
         if(nbatch<=0) nbatch = ntotal/para_max_run/5;
         else if(nbatch > ntotal/para_max_run) nbatch = ntotal/para_max_run;
+        if(nbatch>GiNaC_Parallel_BatchMax) nbatch = GiNaC_Parallel_BatchMax;
         if(nbatch<1) nbatch = 1;
         int btotal = ntotal/nbatch + ((ntotal%nbatch)==0 ? 0 : 1);
         
@@ -1407,53 +1408,53 @@ namespace HepLib {
     bool ex_less(const ex &a, const ex &b) {
         static map<ex,bool,ex_is_less> cache;
         ex key = lst{a,b};
-        if(cache.find(key)!=cache.end()) return cache[key];
-        if(a.is_equal(b)) return cache[key]=false;
+        if(using_cache && cache.find(key)!=cache.end()) return cache[key];
+        if(a.is_equal(b)) return using_cache ? (cache[key]=false) : false;
         
         // numeric
         if(is_a<numeric>(a) && is_a<numeric>(b)) {
             auto ab = a-b;
             auto abr = real_part(ab);
-            if(!is_zero(abr)) return cache[key]=(abr<0);
-            else return cache[key]=(imag_part(ab)<0);
+            if(!is_zero(abr)) return using_cache ? (cache[key]=(abr<0)) : (abr<0);
+            else return using_cache ? (cache[key]=(imag_part(ab)<0)) : (imag_part(ab)<0);
         }
-        if(is_a<numeric>(a)) return cache[key]=true;
-        if(is_a<numeric>(b)) return cache[key]=false;
+        if(is_a<numeric>(a)) return using_cache ? (cache[key]=true) : true;
+        if(is_a<numeric>(b)) return using_cache ? (cache[key]=false) : false;
         
         // symbol
-        if(is_a<symbol>(a) && is_a<symbol>(b)) return cache[key]=(ex2str(a) < ex2str(b));
-        if(is_a<symbol>(a)) return cache[key]=true;
-        if(is_a<symbol>(b)) return cache[key]=false;
+        if(is_a<symbol>(a) && is_a<symbol>(b)) return using_cache ? (cache[key]=(ex2str(a) < ex2str(b))) : (ex2str(a) < ex2str(b));
+        if(is_a<symbol>(a)) return using_cache ? (cache[key]=true) : true;
+        if(is_a<symbol>(b)) return using_cache ? (cache[key]=false) : false;
         
         // matrix
         if(is_a<matrix>(a) && is_a<matrix>(b)) {
             auto ma = ex_to<matrix>(a);
             auto mb = ex_to<matrix>(b);
-            if(ma.cols() != mb.cols()) return cache[key]=(ma.cols() < mb.cols());
-            if(ma.rows() != mb.rows()) return cache[key]=(ma.rows() < mb.rows());
+            if(ma.cols() != mb.cols()) return using_cache ? (cache[key]=(ma.cols() < mb.cols())) : (ma.cols() < mb.cols());
+            if(ma.rows() != mb.rows()) return using_cache ? (cache[key]=(ma.rows() < mb.rows())) : (cache[key]=(ma.rows() < mb.rows()));
             for(int c=0; c<ma.cols(); c++) {
             for(int r=0; r<ma.rows(); r++) {
                 if(ma(r,c).is_equal(mb(r,c))) continue;
-                return cache[key]=ex_less(ma(r,c),mb(r,c));
+                return using_cache ? (cache[key]=ex_less(ma(r,c),mb(r,c))) : ex_less(ma(r,c),mb(r,c));
             }}
-            return cache[key]=false;
+            return using_cache ? (cache[key]=false) : false;
         }
-        if(is_a<matrix>(b)) return cache[key]=true;
-        if(is_a<matrix>(a)) return cache[key]=false;
+        if(is_a<matrix>(b)) return using_cache ? (cache[key]=true) : true;
+        if(is_a<matrix>(a)) return using_cache ? (cache[key]=false) : false;
         
         // lst
         if(is_a<lst>(a) && is_a<lst>(b)) {
             auto na = a.nops();
             auto nb = b.nops();
-            if(na!=nb) return cache[key]=(na<nb);
+            if(na!=nb) return using_cache ? (cache[key]=(na<nb)) : (na<nb);
             for(int i=0; i<na; i++) {
                 if(a.op(i).is_equal(b.op(i))) continue;
-                return cache[key]=ex_less(a.op(i), b.op(i));
+                return using_cache ? (cache[key]=ex_less(a.op(i), b.op(i))) : ex_less(a.op(i), b.op(i));
             }
-            return cache[key]=false;
+            return using_cache ? (cache[key]=false) : false;
         }
-        if(is_a<lst>(b)) return cache[key]=true;
-        if(is_a<lst>(a)) return cache[key]=false;
+        if(is_a<lst>(b)) return using_cache ? (cache[key]=true) : true;
+        if(is_a<lst>(a)) return using_cache ? (cache[key]=false) : false;
         
         // atomic
         auto an = a.nops();
@@ -1462,9 +1463,9 @@ namespace HepLib {
             string na = a.return_type_tinfo().tinfo->name();
             string nb = b.return_type_tinfo().tinfo->name();
             auto nc = na.compare(nb);
-            if(nc<0) return cache[key]=true;
-            else if(nc>0) return cache[key]=false;
-            else return cache[key]=(ex2str(a) < ex2str(b));
+            if(nc<0) return using_cache ? (cache[key]=true) : true;
+            else if(nc>0) return using_cache ? (cache[key]=false) : false;
+            else return using_cache ? (cache[key]=(ex2str(a) < ex2str(b))) : (ex2str(a) < ex2str(b));
         }
         
         // power
@@ -1479,10 +1480,10 @@ namespace HepLib {
                 be = b.op(0);
                 bn = b.op(1);
             }
-            if(!ae.is_equal(be)) return cache[key]=ex_less(ae,be);
-            if(an.info(info_flags::real) && bn.info(info_flags::real)) return cache[key]=(an<bn);
-            if(!is_zero(an-bn)) return cache[key]=ex_less(an,bn);
-            return cache[key]=false;
+            if(!ae.is_equal(be)) return using_cache ? (cache[key]=ex_less(ae,be)) : ex_less(ae,be);
+            if(an.info(info_flags::real) && bn.info(info_flags::real)) return using_cache ? (cache[key]=(an<bn)) : (an<bn);
+            if(!is_zero(an-bn)) return using_cache ? (cache[key]=ex_less(an,bn)) : ex_less(an,bn);
+            return using_cache ? (cache[key]=false) : false;
         }
         
         // function
@@ -1490,14 +1491,14 @@ namespace HepLib {
             string na = ex_to<GiNaC::function>(a).get_name();
             string nb = ex_to<GiNaC::function>(b).get_name();
             auto nc = na.compare(nb);
-            if(nc<0) return cache[key]=true;
-            else if(nc>0) return cache[key]=false;
-            if(an!=bn) return cache[key]=(an < bn);
+            if(nc<0) return using_cache ? (cache[key]=true) : true;
+            else if(nc>0) return using_cache ? (cache[key]=false) : false;
+            if(an!=bn) return using_cache ? (cache[key]=(an < bn)) : (an < bn);
             for(int i=0; i<an; i++) {
                 if(a.op(i).is_equal(b.op(i))) continue;
-                return cache[key]=ex_less(a.op(i), b.op(i));
+                return using_cache ? (cache[key]=ex_less(a.op(i), b.op(i))) : ex_less(a.op(i), b.op(i));
             }
-            return cache[key]=false;
+            return using_cache ? (cache[key]=false) : false;
         }
         
         // add
@@ -1511,13 +1512,13 @@ namespace HepLib {
             int nn = ((na>nb) ? nb : na);
             for(int i=0; i<nn; i++) {
                 if(as.op(i).is_equal(bs.op(i))) continue;
-                return cache[key]=ex_less(as.op(i), bs.op(i));
+                return using_cache ? (cache[key]=ex_less(as.op(i), bs.op(i))) : ex_less(as.op(i), bs.op(i));
             }
-            if(na!=nb) return cache[key]=(na<nb);
-            return cache[key]=false;
+            if(na!=nb) return using_cache ? (cache[key]=(na<nb)) : (na<nb);
+            return using_cache ? (cache[key]=false) : false;
         }
-        if(is_a<add>(a)) return cache[key]=false;
-        if(is_a<add>(b)) return cache[key]=true;
+        if(is_a<add>(a)) return using_cache ? (cache[key]=false) : false;
+        if(is_a<add>(b)) return using_cache ? (cache[key]=true) : true;
         
         // mul
         if(is_a<mul>(a) && is_a<mul>(b)) {
@@ -1530,34 +1531,34 @@ namespace HepLib {
             int nn = ((na>nb) ? nb : na);
             for(int i=0; i<nn; i++) {
                 if(as.op(i).is_equal(bs.op(i))) continue;
-                return cache[key]=ex_less(as.op(i), bs.op(i));
+                return using_cache ? (cache[key]=ex_less(as.op(i), bs.op(i))) : ex_less(as.op(i), bs.op(i));
             }
-            if(na!=nb) return cache[key]=(na<nb);
-            return cache[key]=false;
+            if(na!=nb) return using_cache ? (cache[key]=(na<nb)) : (na<nb);
+            return using_cache ? (cache[key]=false) : false;
         }
-        if(is_a<mul>(a)) return cache[key]=false;
-        if(is_a<mul>(b)) return cache[key]=true;
+        if(is_a<mul>(a)) return using_cache ? (cache[key]=false) : false;
+        if(is_a<mul>(b)) return using_cache ? (cache[key]=true) : true;
         
         // type
         string tna = a.return_type_tinfo().tinfo->name();
         string tnb = b.return_type_tinfo().tinfo->name();
         auto tnc = tna.compare(tnb);
-        if(tnc<0) return cache[key]=true;
-        else if(tnc>0) return cache[key]=false;
+        if(tnc<0) return using_cache ? (cache[key]=true) : true;
+        else if(tnc>0) return using_cache ? (cache[key]=false) : false;
         
         // node_number
         auto nna = node_number(a);
         auto nnb = node_number(b);
-        if(nna!=nnb) return cache[key]=(nna < nnb);
+        if(nna!=nnb) return using_cache ? (cache[key]=(nna < nnb)) : (nna < nnb);
 
         // all others
         if(an!=bn) return (an<bn);
         for(int i=0; i<an; i++) {
             if(a.op(i).is_equal(b.op(i))) continue;
-            return cache[key]=ex_less(a.op(i), b.op(i));
+            return using_cache ? (cache[key]=ex_less(a.op(i), b.op(i))) : ex_less(a.op(i), b.op(i));
         }
         
-        return cache[key]=(ex2str(a) < ex2str(b));
+        return using_cache ? (cache[key]=(ex2str(a) < ex2str(b))) : (ex2str(a) < ex2str(b));
     }
      
      /**
@@ -1567,7 +1568,15 @@ namespace HepLib {
       */
      void sort_lst(lst & ilst, bool less) {
         auto ivec = lst2vec(ilst);
-        std::sort(ivec.begin(), ivec.end(), ex_less);
+        sort_vec(ivec, less);
+        auto n = ivec.size();
+        if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
+        else for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[n-1-i];
+     }
+     
+     void fast_sort_lst(lst & ilst, bool less) {
+        auto ivec = lst2vec(ilst);
+        fast_sort_vec(ivec, less);
         auto n = ivec.size();
         if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
         else for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[n-1-i];
@@ -1599,6 +1608,22 @@ namespace HepLib {
             if(less) return ex_less(a,b);
             else return ex_less(b,a);
         });
+     }
+     
+     void fast_sort_vec(exvector & ivec, bool less) {
+        exvector nivec;
+        for(int i=0; i<ivec.size(); i++) nivec.push_back(lst{ivec[i].subs(fast_sort_map), ivec[i]});
+        
+        std::sort(nivec.begin(), nivec.end(), [less](const auto &a, const auto &b) {
+            if(!a.op(0).is_equal(b.op(0))) {
+                if(less) return ex_less(a.op(0),b.op(0));
+                else return ex_less(b.op(0),a.op(0));
+            }
+            if(less) return ex_less(a.op(1),b.op(1));
+            else return ex_less(b.op(1),a.op(1));
+        });
+        
+        for(int i=0; i<ivec.size(); i++) ivec[i] = nivec[i].op(1);
      }
      
      /**
@@ -1956,72 +1981,69 @@ namespace HepLib {
         }
         
         ex nn_chk(1), num(1), den(1);
-        if(!is_a<mul>(expr_in)) expr_in = lst{expr_in};
-        for(auto it : expr_in) {
-            lst item;
-            if(!is_a<add>(it)) item = lst{it};
-            else for(auto ii : it) item.append(ii);
-            sort_lst(item);
-            if(fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
-            else ss << "res:=0;" << endl;
+        lst item;
+        if(!is_a<add>(expr_in)) item = lst{expr_in};
+        else for(auto ii : expr_in) item.append(ii);
+        sort_lst(item);
+        if(fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
+        else ss << "res:=0;" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        ex nn_chk2=0;
+        for(int i=0; i<item.nops(); i++) {
+            ex tt = item.op(i).subs(v2f);
+            if(use_ncheck) nn_chk2 += tt.subs(nn_map);
+            if(fermat_using_array) ss << "m[" << (i+1) << "]:=";
+            else ss << "item:=";
+            ss << tt << ";" << endl;
+            if(!fermat_using_array) ss << "res:=res+item;" << endl;
             fermat.Execute(ss.str());
             ss.clear();
             ss.str("");
-            
-            ex nn_chk2=0;
-            for(int i=0; i<item.nops(); i++) {
-                ex tt = item.op(i).subs(v2f);
-                if(use_ncheck) nn_chk2 += tt.subs(nn_map);
-                if(fermat_using_array) ss << "m[" << (i+1) << "]:=";
-                else ss << "item:=";
-                ss << tt << ";" << endl;
-                if(!fermat_using_array) ss << "res:=res+item;" << endl;
-                fermat.Execute(ss.str());
-                ss.clear();
-                ss.str("");
-            }
-            if(fermat_using_array) {
-                ss << "res:=Sumup([m]);" << endl;
-                fermat.Execute(ss.str());
-                ss.clear();
-                ss.str("");
-            }
-            nn_chk *= nn_chk2;
-            
-            static string bstr("[-begin-]"), estr("[-end-]");
-            ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
-            ss << "!('" <<bstr<< "','{',Numer(res),',',Denom(res),'}','" <<estr<< "')" << endl;
-            auto ostr = fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-            
-            // note the order,(normal_fermat will be called again in factor_form)
-            ss << "&(U=0);" << endl; // disable ugly printing
-            if(fermat_using_array) ss << "@(res,[m]);" << endl;
-            else ss << "@(res,item);" << endl;
-            ss << "&_G;" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-
-            // make sure last char is 0
-            if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
-            ostr = ostr.substr(0, ostr.length()-1);
-            auto cpos = ostr.find(bstr);
-            if(cpos==string::npos) throw Error(bstr+" NOT Found.");
-            ostr = ostr.substr(cpos+bstr.length(),string::npos);
-            cpos = ostr.find(estr);
-            if(cpos==string::npos) throw Error(estr+" NOT Found.");
-            ostr = ostr.substr(0,cpos);
-            string_trim(ostr);
-
-            symtab st;
-            Parser fp(st);
-            auto ret = fp.Read(ostr);
-            num *= ret.op(0);
-            if(dfactor) den *= factor_form(ret.op(1));
-            else den *= ret.op(1);
         }
+        if(fermat_using_array) {
+            ss << "res:=Sumup([m]);" << endl;
+            fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
+        }
+        nn_chk *= nn_chk2;
+        
+        static string bstr("[-begin-]"), estr("[-end-]");
+        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
+        ss << "!('" <<bstr<< "','{',Numer(res),',',Denom(res),'}','" <<estr<< "')" << endl;
+        auto ostr = fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        // note the order,(normal_fermat will be called again in factor_form)
+        ss << "&(U=0);" << endl; // disable ugly printing
+        if(fermat_using_array) ss << "@(res,[m]);" << endl;
+        else ss << "@(res,item);" << endl;
+        ss << "&_G;" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+
+        // make sure last char is 0
+        if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
+        ostr = ostr.substr(0, ostr.length()-1);
+        auto cpos = ostr.find(bstr);
+        if(cpos==string::npos) throw Error(bstr+" NOT Found.");
+        ostr = ostr.substr(cpos+bstr.length(),string::npos);
+        cpos = ostr.find(estr);
+        if(cpos==string::npos) throw Error(estr+" NOT Found.");
+        ostr = ostr.substr(0,cpos);
+        string_trim(ostr);
+
+        symtab st;
+        Parser fp(st);
+        auto ret = fp.Read(ostr);
+        num *= ret.op(0);
+        if(dfactor) den *= factor_form(ret.op(1));
+        else den *= ret.op(1);
         //fermat.Exit();
         
         if(use_ncheck) {

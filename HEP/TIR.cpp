@@ -127,7 +127,7 @@ namespace HepLib {
             if(e.is_equal(coVF(1))) return 1;
             else if(e.match(coVF(w))) {
                 ex map_key = lst{e,ext_ps};
-                if(cache_map.find(map_key)!=cache_map.end()) return cache_map[map_key];
+                if(using_cache && cache_map.find(map_key)!=cache_map.end()) return cache_map[map_key];
                 lst vis, lps;
                 map<ex,int,ex_is_less> pc;
                 if(is_a<mul>(e.op(0))) {
@@ -257,7 +257,7 @@ namespace HepLib {
                     }
                     res = res.subs(SP_map);
                     res = exnormal(res);
-                    cache_map[map_key] = res;
+                    if(using_cache) cache_map[map_key] = res;
                     return res;
                 } else {
                     int cmin=10000, cmax=-1;
@@ -275,7 +275,7 @@ namespace HepLib {
                     ex ret = TIR(e.op(0), lst{ lp0 }, ext_ps2);
                     ret = TIR(ret, loop_ps, ext_ps);
                     ret = exnormal(ret);
-                    cache_map[map_key] = ret;
+                    if(using_cache) cache_map[map_key] = ret;
                     return ret;
                 }
             } else if (!e.has(coVF(w))) return e;

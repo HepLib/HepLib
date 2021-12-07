@@ -117,7 +117,7 @@ namespace HepLib::SD {
     static vector<matrix> Simplexify(const matrix &dc, int dim) {
         static map<ex,vector<matrix>,ex_is_less> cache;
         ex key = lst{dc,dim};
-        if(cache.find(key)!=cache.end()) return cache[key];
+        if(using_cache && cache.find(key)!=cache.end()) return cache[key];
         
         int min = -1;
         int i = 0;
@@ -167,7 +167,8 @@ namespace HepLib::SD {
             for(int c=0; c<tmat.cols(); c++) tmp(0,c) = tmat(tmat.rows()-1, c);
             tmat = tmp;
         }
-        return cache[key]=ret;
+        if(using_cache) cache[key]=ret;
+        return ret;
     }
 
     vector<vector<int>> SecDecG::RunQHull(const matrix &pts) {

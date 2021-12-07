@@ -46,7 +46,7 @@ namespace HepLib::IBP {
             auto cv_lst = collect_lst(expr, xs);
             exvector cvs;
             for(auto item : cv_lst) cvs.push_back(item);
-            sort_vec(cvs);
+            fast_sort_vec(cvs);
                     
             int nxi = xs.nops();
             bool first = true;
@@ -59,7 +59,7 @@ namespace HepLib::IBP {
                 if(is_zero(cc)) continue;
                 if(!first && !is_zero(cc-clast)) {
                     for(int i=0; i<nxi; i++) {
-                        sort_lst(subkey[i]);
+                        fast_sort_lst(subkey[i]);
                         for(auto item : subkey[i]) xkey[i].append(item);
                         subkey[i].remove_all();
                     }
@@ -69,7 +69,7 @@ namespace HepLib::IBP {
                 for(int i=0; i<nxi; i++) subkey[i].append(vv.degree(xs.op(i)));
             }
             for(int i=0; i<nxi; i++) {
-                sort_lst(subkey[i]);
+                fast_sort_lst(subkey[i]);
                 for(auto item : subkey[i]) xkey[i].append(item);
                 subkey[i].remove_all();
             }
@@ -79,7 +79,7 @@ namespace HepLib::IBP {
                 key_xi.push_back(lst{xkey[i], xs.op(i)});
                 pgrp[xkey[i]].push_back(i); // i w.r.t. position of xs
             }
-            sort_vec(key_xi);
+            fast_sort_vec(key_xi);
             
             xRepl.remove_all();
             for(auto item : key_xi) xRepl.append(item.op(1));  
@@ -186,7 +186,7 @@ namespace HepLib::IBP {
         
         static map<ex,exmap,ex_is_less> cache_by_prop;
         exmap & cache = cache_by_prop[lst{props,base.Internal}];
-        if(!use_UF_Cache || cache.find(key)==cache.end()) { // no cache item
+        if(!using_cache || cache.find(key)==cache.end()) { // no cache item
             ut = 1;
             for(int i=0; i<base.Internal.nops(); i++) {
                 ft = expand(ft);
@@ -196,14 +196,14 @@ namespace HepLib::IBP {
                 auto t0 = ft.subs(base.Internal.op(i)==0);
                 ut *= t2;
                 if(is_zero(t2)) return lst{0,0,1};
-                ft = normal(t0-t1*t1/(4*t2));
+                ft = exnormal(t0-t1*t1/(4*t2));
             }
-            ft = normal(ut*ft);
-            ft = normal(subs_all(ft, base.Replacements));
-            ut = normal(subs_all(ut, base.Replacements));
-            uf = normal(ut*ft);
+            ft = exnormal(ut*ft);
+            ft = exnormal(subs_all(ft, base.Replacements));
+            ut = exnormal(subs_all(ut, base.Replacements));
+            uf = exnormal(ut*ft);
             
-            if(use_UF_Cache) cache[key] = lst{ut,ft,uf};
+            if(using_cache) cache[key] = lst{ut,ft,uf};
         } else {
             auto cc = cache[key];
             ut = cc.op(0);
@@ -303,7 +303,7 @@ namespace HepLib::IBP {
         
         static map<ex,exmap,ex_is_less> cache_by_prop;
         exmap & cache = cache_by_prop[lst{ps,loops,tloops}];
-        if(!use_UF_Cache || cache.find(key)==cache.end()) { // no cache item
+        if(!using_cache || cache.find(key)==cache.end()) { // no cache item
             ut1 = 1;
             for(int i=0; i<loops.nops(); i++) {
                 ft = expand(ft);
@@ -313,11 +313,11 @@ namespace HepLib::IBP {
                 auto t0 = ft.subs(loops.op(i)==0);
                 ut1 *= t2;
                 if(is_zero(t2)) return lst{0,0,0,1};
-                ft = normal(t0-t1*t1/(4*t2));
+                ft = exnormal(t0-t1*t1/(4*t2));
             }
-            ft = normal(ut1*ft);
-            ft = normal(subs_all(ft, lsubs));
-            ut1 = normal(subs_all(ut1, lsubs));
+            ft = exnormal(ut1*ft);
+            ft = exnormal(subs_all(ft, lsubs));
+            ut1 = exnormal(subs_all(ut1, lsubs));
 
             ut2 = 1;
             for(int i=0; i<tloops.nops(); i++) {
@@ -328,14 +328,14 @@ namespace HepLib::IBP {
                 auto t0 = ft.subs(tloops.op(i)==0);
                 ut2 *= t2;
                 if(is_zero(t2)) return lst{0,0,0,1};
-                ft = normal(t0-t1*t1/(4*t2));
+                ft = exnormal(t0-t1*t1/(4*t2));
             }
-            ft = normal(ut2*ft);
-            ft = normal(subs_all(ft, tsubs));
-            ut2 = normal(subs_all(ut2, tsubs));
+            ft = exnormal(ut2*ft);
+            ft = exnormal(subs_all(ft, tsubs));
+            ut2 = exnormal(subs_all(ut2, tsubs));
             
-            uf = normal(ut1*ut2*ft);
-            if(use_UF_Cache) cache[key] = lst{ut1,ut2,ft,uf};
+            uf = exnormal(ut1*ut2*ft);
+            if(using_cache) cache[key] = lst{ut1,ut2,ft,uf};
         } else {
             auto cc = cache[key];
             ut1 = cc.op(0);
@@ -378,14 +378,22 @@ namespace HepLib::IBP {
      */
     pair<exmap,lst> FindRules(vector<Base*> fs, bool mi, std::function<lst(const Base &, const ex &)> uf) {
         vector<pair<Base*,ex>> ibp_idx_vec;
+        exset vs;
         for(auto fi : fs) {
-            if(mi) {
-                for(auto item : fi->MIntegrals) ibp_idx_vec.push_back(make_pair(fi, item));
-            } else {
-                for(auto item : fi->Integrals) ibp_idx_vec.push_back(make_pair(fi, F(fi->ProblemNumber,item)));
+            if(mi) for(auto item : fi->MIntegrals) ibp_idx_vec.push_back(make_pair(fi, item));
+            else for(auto item : fi->Integrals) ibp_idx_vec.push_back(make_pair(fi, F(fi->ProblemNumber,item)));
+            for(auto e : fi->Replacements) {
+                for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
+                    if(is_a<symbol>(*i)) vs.insert(*i);
+                }
             }
         }
         
+        for(auto vi : vs) fast_sort_map[vi] = 1; 
+        fast_sort_map[x(w)] = w+111;
+        fast_sort_map[a(w)] = w+11;
+        auto ogpp = GiNaC_Parallel_Process;
+        if(ogpp<0) GiNaC_Parallel_Process = CpuCores() / 3;
         exvector uf_smi_vec = GiNaC_Parallel(ibp_idx_vec.size(), [&ibp_idx_vec,&uf](int idx)->ex {
             auto p = ibp_idx_vec[idx];
             const Base & fi = (*p.first);
@@ -396,6 +404,7 @@ namespace HepLib::IBP {
             for(int i=0; i<nk; i++) key.append(expand(ks.op(i)));
             return lst{ key, lst{ ks.op(nk), mi } }; // ks.op(nk) -> the sign
         }, "FR");
+        GiNaC_Parallel_Process = ogpp;
             
         map<ex,lst,ex_is_less> group;
         int ntotal = 0;
@@ -409,7 +418,7 @@ namespace HepLib::IBP {
         lst int_lst;
         for(auto g : group) {
             lst gs = ex_to<lst>(g.second);
-            sort_lst(gs);
+            fast_sort_lst(gs);
             auto c0 = gs.op(0).op(0);
             auto v0 = gs.op(0).op(1);
             for(int i=1; i<gs.nops(); i++) {
@@ -545,11 +554,11 @@ namespace HepLib::IBP {
             auto t0 = ft.subs(Internal.op(i)==0);
             ut *= t2;
             if(is_zero(t2)) return true;
-            ft = normal(t0-t1*t1/(4*t2));
+            ft = exnormal(t0-t1*t1/(4*t2));
         }
-        ut = normal(subs_all(ut, Replacements));
-        ft = normal(ut*ft);
-        ft = normal(subs_all(ft, Replacements));
+        ut = exnormal(subs_all(ut, Replacements));
+        ft = exnormal(ut*ft);
+        ft = exnormal(subs_all(ft, Replacements));
     
         ex G = ut + ft;
         ex sum = 0;

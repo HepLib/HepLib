@@ -36,7 +36,6 @@ namespace HepLib {
     extern const int form_expand_li;
     extern const int form_expand_all;
     
-    extern bool Apart_using_cache;
     extern bool Apart_using_fermat;
     extern bool form_using_su3;
     extern bool form_using_dim4;

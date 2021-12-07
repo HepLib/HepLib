@@ -188,7 +188,6 @@ namespace HepLib::IBP {
      };
     
     extern exmap MapPreSP;
-    extern bool use_UF_Cache;
     lst SortPermutation(const ex & in_expr, const lst & xs);
     lst LoopUF(const Base & fire, const ex & corner);
     lst UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs);
