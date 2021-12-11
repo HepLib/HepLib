@@ -731,7 +731,7 @@ namespace HepLib {
         if(!aparted) {
             auto ret = GiNaC_Parallel(air_vec.size(), [air_vec,lmom] (int idx) {
                 return collect_lst(air_vec[idx],lmom);
-            }, "ApartC");
+            }, "ApartPre");
         
             exset vset;
             for(int i=0; i<air_vec.size(); i++) {
@@ -742,7 +742,7 @@ namespace HepLib {
             
             exvector vvec;
             for(auto item : vset) vvec.push_back(item);
-            //sort_vec(vvec); // no need
+            sort_vec(vvec); // no need
             ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
                 auto air = vvec[idx];
                 air = Apart(air,lmom,emom,aio.smap);
@@ -756,27 +756,25 @@ namespace HepLib {
                 ex res = 0;
                 for(auto cv : cvs) res += cv.op(0) * v2v[cv.op(1)];
                 return res;
-            }, "ApartR");
+            }, "ApartPos");
             for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i];
-        }
+        } 
         
         auto ret = GiNaC_Parallel(air_vec.size(), [air_vec] (int idx) {
             auto air = air_vec[idx];
             air = air.subs(SP_map);
             air = ApartIRC(air);
-            air = collect_lst(air,ApartIR(w1, w2));
             return air;
-        }, "CoL");
+        }, "ApartIRC");
+        for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIRC
         
-        exset intg_set;
-        for(int i=0; i<air_vec.size(); i++) {
-            auto air = ret[i];
-            for(auto item : air) intg_set.insert(item.op(1));
-            air_vec[i] = air;
-        }
         exvector intg;
-        for(auto item : intg_set) intg.push_back(item);
-        sort_vec(intg); // need sort
+        if(true) { // scope for intg_set
+            exset intg_set;
+            for(auto air : ret) find(air, ApartIR(w1,w2), intg_set);
+            for(auto item : intg_set) intg.push_back(item);
+            sort_vec(intg); // need sort
+        }
         
         for(auto sp : aio.CSP) SP_map.erase(sp);
         // from here, Vector will be replaced by its name Symbol
@@ -889,7 +887,7 @@ namespace HepLib {
 
         if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << nints << "/" << ibp_vec_re.size() << " @ " << now(false) << endl;
         
-        MapFunction _F2ex([ibp_vec](const ex &e, MapFunction &self)->ex {
+        MapFunction _F2ex([ibp_vec,aio](const ex &e, MapFunction &self)->ex {
             if(!e.has(F(w1,w2))) return e;
             else if(e.match(F(w1,w2))) {
                 int pn = ex_to<numeric>(e.op(0)).to_int();
@@ -897,7 +895,7 @@ namespace HepLib {
                 auto nso = ex_to<lst>(e.op(1));
                 lst ps, ns;
                 for(int i=0; i<pso.nops(); i++) {
-                    if(nso.op(i).is_zero()) continue;
+                    if(!aio.keep0F && nso.op(i).is_zero()) continue;
                     ps.append(pso.op(i));
                     ns.append(nso.op(i));
                 }
@@ -905,20 +903,29 @@ namespace HepLib {
             } else return e.map(self);
         });
         
+        MapFunction _AIR2F([&AIR2F](const ex &e, MapFunction &self)->ex {
+            if(!e.has(ApartIR(w1,w2))) return e;
+            else if(e.match(ApartIR(w1,w2))) return AIR2F[e];
+            else return e.map(self);
+        });
+        
         if(IBPmethod==0) {
+            if(true) { // scope for fi_vec / mi_vec
+                exvector fi_vec;
+                for(auto kv : AIR2F) fi_vec.push_back(kv.second);
+                auto mi_vec = GiNaC_Parallel(fi_vec.size(), 1, [&fi_vec,&int_fr,&_F2ex,&aio](int idx)->ex {
+                    ex res = fi_vec[idx];
+                    res = res.subs(int_fr.first);
+                    res = _F2ex(res);
+                    res = collect_o(res,F(w1,w2),aio.mcl);
+                    return res;
+                }, "F2MI");
+                for(int i=0; i<mi_vec.size(); i++) AIR2F[fi_vec[i]] = mi_vec[i];
+            }
+            
             auto air_res =
-            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&AIR2F,&int_fr,&_F2ex,&aio](int idx)->ex {
-                ex res = 0;
-                for(auto cv : air_vec[idx]) {
-                    auto vv = cv.op(1);
-                    vv = AIR2F[vv];
-                    vv = vv.subs(int_fr.first);
-                    vv = _F2ex(vv);
-                    vv = collect_o(vv, F(w1,w2));
-                    res += cv.op(0) * vv;
-                }
-                res = collect_o(res,F(w1,w2),aio.mcl);
-                return res;
+            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_AIR2F](int idx)->ex {
+                return _AIR2F(air_vec[idx]);
             }, "A2F");
             
             for(auto fp : ibp_vec) delete fp;
@@ -929,7 +936,7 @@ namespace HepLib {
         }
         
         if(IBPmethod==1) {
-            auto pRes = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
+            auto pRes = GiNaC_Parallel(ibp_vec_re.size(), 5, [&ibp_vec_re](int idx)->ex {
                 ibp_vec_re[idx]->Export();
                 return lst{ ibp_vec_re[idx]->IsAlwaysZero ? 1 : 0, ibp_vec_re[idx]->Rules };
             }, "ExPo");
@@ -966,22 +973,28 @@ namespace HepLib {
         for(auto item : ibp_vec_re) {
             for(auto ri : item->Rules) ibpr[ri.op(0)] = ri.op(1);
         }
-    
-        auto air_res =
-        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&AIR2F,&int_fr,&ibpr,&mi_fr,&_F2ex,&aio](int idx)->ex {
-            ex res = 0;
-            for(auto cv : air_vec[idx]) {
-                auto vv = cv.op(1);
-                vv = AIR2F[vv];
-                vv = vv.subs(int_fr.first);
-                vv = vv.subs(ibpr);
-                vv = vv.subs(mi_fr.first);
-                vv = _F2ex(vv);
-                vv = collect_o(vv, F(w1,w2));
-                res += cv.op(0) * vv;
+        
+        if(true) { // scope for fi_vec / mi_vec
+            exvector air_vec,fi_vec;
+            for(auto kv : AIR2F) {
+                air_vec.push_back(kv.first);
+                fi_vec.push_back(kv.second);
             }
-            res = collect_o(res,F(w1,w2),aio.mcl);
-            return res;
+            auto mi_vec = GiNaC_Parallel(fi_vec.size(), 1, [&fi_vec,&int_fr,&ibpr,&mi_fr,&_F2ex,&aio](int idx)->ex {
+                ex res = fi_vec[idx];
+                res = res.subs(int_fr.first);
+                res = res.subs(ibpr);
+                res = res.subs(mi_fr.first);
+                res = _F2ex(res);
+                res = collect_o(res,F(w1,w2),aio.mcl);
+                return res;
+            }, "F2MI");
+            for(int i=0; i<fi_vec.size(); i++) AIR2F[air_vec[i]] = mi_vec[i];
+        }
+
+        auto air_res =
+        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_AIR2F](int idx)->ex {
+            return _AIR2F(air_vec[idx]);
         }, "A2F");
                                     
         for(auto fp : ibp_vec) delete fp;

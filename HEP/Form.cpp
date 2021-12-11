@@ -108,7 +108,7 @@ namespace HepLib {
         };
         
         string init_script = R"EOF(
-CFunction pow,sqrt,gamma,HF,Matrix;
+CFunction pow,sqrt,gamma,HF,Matrix,WF;
 Tensor TTR(cyclic), f(antisymmetric), T, f4, colTp;
 Symbols reX,I2R,NF,NA,D,I,Pi;
 AutoDeclare Symbols gCF, trcN;
@@ -191,7 +191,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             } else if(is_a<symbol>(*i)) sym_lst.append(*i);
             else if(is_a<GiNaC::function>(*i)) {
                 static vector<string> fun_vec = { 
-                    "iWF", "TR", "sin", "cos", "HF", "TTR", "Matrix"
+                    "iWF", "WF", "TR", "sin", "cos", "HF", "TTR", "Matrix"
                 };
                 auto func = ex_to<GiNaC::function>(*i).get_name();
                 bool ok = false;

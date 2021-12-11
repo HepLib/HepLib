@@ -355,6 +355,7 @@ namespace HepLib {
         lst ISP; // SP for IBP. optional
         bool CutFirst = true;
         int mcl = 1; // collect_ex level, 0-nothing, 1-exnormal, 2-exfactor
+        bool keep0F = false; // keep 0 exponent in F
         std::function<lst(const Base &, const ex &)> UF = IBP::LoopUF;
     };
     void ApartIBP(int IBPmethod, exvector &io_vec, AIOption aip);

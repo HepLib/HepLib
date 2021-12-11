@@ -48,7 +48,7 @@ namespace HepLib {
     bool fermat_using_array = false;
     bool using_cache = true;
     int NNDigits = 100;
-    exmap fast_sort_map;
+    exmap nsort_map;
     
     HepFormat::_init::_init() {
         set_print_func<add, HepFormat>(HepFormat::add_print);

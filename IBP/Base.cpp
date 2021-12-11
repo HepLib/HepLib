@@ -46,7 +46,7 @@ namespace HepLib::IBP {
             auto cv_lst = collect_lst(expr, xs);
             exvector cvs;
             for(auto item : cv_lst) cvs.push_back(item);
-            fast_sort_vec(cvs);
+            sort_vec(cvs);
                     
             int nxi = xs.nops();
             bool first = true;
@@ -59,7 +59,7 @@ namespace HepLib::IBP {
                 if(is_zero(cc)) continue;
                 if(!first && !is_zero(cc-clast)) {
                     for(int i=0; i<nxi; i++) {
-                        fast_sort_lst(subkey[i]);
+                        sort_lst(subkey[i]);
                         for(auto item : subkey[i]) xkey[i].append(item);
                         subkey[i].remove_all();
                     }
@@ -69,7 +69,7 @@ namespace HepLib::IBP {
                 for(int i=0; i<nxi; i++) subkey[i].append(vv.degree(xs.op(i)));
             }
             for(int i=0; i<nxi; i++) {
-                fast_sort_lst(subkey[i]);
+                sort_lst(subkey[i]);
                 for(auto item : subkey[i]) xkey[i].append(item);
                 subkey[i].remove_all();
             }
@@ -79,7 +79,7 @@ namespace HepLib::IBP {
                 key_xi.push_back(lst{xkey[i], xs.op(i)});
                 pgrp[xkey[i]].push_back(i); // i w.r.t. position of xs
             }
-            fast_sort_vec(key_xi);
+            sort_vec(key_xi);
             
             xRepl.remove_all();
             for(auto item : key_xi) xRepl.append(item.op(1));  
@@ -389,11 +389,6 @@ namespace HepLib::IBP {
             }
         }
         
-        for(auto vi : vs) fast_sort_map[vi] = 1; 
-        fast_sort_map[x(w)] = w+111;
-        fast_sort_map[a(w)] = w+11;
-        auto ogpp = GiNaC_Parallel_Process;
-        if(ogpp<0) GiNaC_Parallel_Process = CpuCores() / 3;
         exvector uf_smi_vec = GiNaC_Parallel(ibp_idx_vec.size(), [&ibp_idx_vec,&uf](int idx)->ex {
             auto p = ibp_idx_vec[idx];
             const Base & fi = (*p.first);
@@ -404,7 +399,6 @@ namespace HepLib::IBP {
             for(int i=0; i<nk; i++) key.append(expand(ks.op(i)));
             return lst{ key, lst{ ks.op(nk), mi } }; // ks.op(nk) -> the sign
         }, "FR");
-        GiNaC_Parallel_Process = ogpp;
             
         map<ex,lst,ex_is_less> group;
         int ntotal = 0;
@@ -418,7 +412,7 @@ namespace HepLib::IBP {
         lst int_lst;
         for(auto g : group) {
             lst gs = ex_to<lst>(g.second);
-            fast_sort_lst(gs);
+            sort_lst(gs);
             auto c0 = gs.op(0).op(0);
             auto v0 = gs.op(0).op(1);
             for(int i=1; i<gs.nops(); i++) {
