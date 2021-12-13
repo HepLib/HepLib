@@ -376,8 +376,8 @@ expr ApartIR2ex(const expr & expr_in);
 expr ApartIR2F(const expr & expr_in);
 expr F2ex(const expr & expr_in);
 expr ApartIRC(const expr & expr_in);
-exvec ApartIBP(int IBPmethod, std::vector<expr> &io_vec, const std::vector<expr> & loops, const std::vector<expr> & exts, const std::vector<expr> & cut_props={});
-exvec ApartIBP(int IBPmethod, const exvec &io_vec, const exvec & loops, const exvec & exts, const exvec & cut_props={});
+exvec ApartIBP(std::vector<expr> &io_vec, int IBPmethod, const std::vector<expr> & loops, const std::vector<expr> & exts, const std::vector<expr> & cut_props={});
+exvec ApartIBP(const exvec &io_vec, int IBPmethod, const exvec & loops, const exvec & exts, const exvec & cut_props={});
         
 class AIOption {
     expr Internal; // Internal for Apart/IBP

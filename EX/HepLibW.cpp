@@ -318,7 +318,7 @@ exvec ApartIBP(int IBPmethod, std::vector<expr> &io_vec, const std::vector<expr>
     for(auto item : loops) _loops.append(item._expr);
     for(auto item : exts) _exts.append(item._expr);
     for(auto item : cut_props) _cut_props.append(item._expr);
-    HepLib::ApartIBP(IBPmethod, _io_vec, _loops, _exts, _cut_props);
+    HepLib::ApartIBP(_io_vec, IBPmethod, _loops, _exts, _cut_props);
     exvec ret;
     ret._g = _io_vec;
     return ret;
@@ -331,7 +331,7 @@ exvec ApartIBP(int IBPmethod, const exvec &io_vec, const exvec & loops, const ex
     for(auto item : loops._g) _loops.append(item);
     for(auto item : exts._g) _exts.append(item);
     for(auto item : cut_props._g) _cut_props.append(item);
-    HepLib::ApartIBP(IBPmethod, _io_vec, _loops, _exts, _cut_props);
+    HepLib::ApartIBP(_io_vec, IBPmethod, _loops, _exts, _cut_props);
     exvec ret;
     ret._g = _io_vec;
     return ret;

@@ -332,34 +332,26 @@ namespace HepLib {
       */
      void sort_lst(lst & ilst, bool less) {
         auto ivec = lst2vec(ilst);
-        std::sort(ivec.begin(), ivec.end(), ex_less);
-        auto n = ivec.size();
-        if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
-        else for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[n-1-i];
+        sort_vec(ivec,less);
+        for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
      }
      
      void sort_lst(lst & ilst, sort_cache_type &cache, bool less) {
         auto ivec = lst2vec(ilst);
         sort_vec(ivec, cache, less);
-        auto n = ivec.size();
-        if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
-        else for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[n-1-i];
+        for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
      }
      
      void nsort_lst(lst & ilst, bool less) {
         auto ivec = lst2vec(ilst);
         nsort_vec(ivec, less);
-        auto n = ivec.size();
-        if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
-        else for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[n-1-i];
+        for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
      }
      
      void nsort_lst(lst & ilst, sort_cache_type &cache, bool less) {
         auto ivec = lst2vec(ilst);
         nsort_vec(ivec, cache, less);
-        auto n = ivec.size();
-        if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
-        else for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[n-1-i];
+        for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
      }
 
      

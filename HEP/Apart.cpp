@@ -710,69 +710,74 @@ namespace HepLib {
      * @param aio AIOption for ApartIBP input
      * @return nothing returned, the input air_vec will be updated
      */
-    void ApartIBP(int IBPmethod, exvector &air_vec, AIOption aio) {
-                
+    void ApartIBP(exvector &air_vec, AIOption aio) {
+        int IBPmethod = aio.IBPmethod;
         string wdir = to_string(getpid());
         if(IBPmethod==1) wdir = wdir + "_FIRE";
         else if(IBPmethod==2) wdir = wdir + "_KIRA";
         else if(IBPmethod==3) wdir = wdir + "_UKIRA";
         
-        bool aparted = false;
-        for(auto air : air_vec) {
-            if(air.has(ApartIR(w1,w2))) {
-                aparted = true;
-                break;
-            }
-        }
-        
         lst lmom = ex_to<lst>(aio.Internal);
         lst emom = ex_to<lst>(aio.External);
         
-        if(!aparted) {
-            auto ret = GiNaC_Parallel(air_vec.size(), [air_vec,lmom] (int idx) {
-                return collect_lst(air_vec[idx],lmom);
-            }, "ApartPre");
-        
-            exset vset;
-            for(int i=0; i<air_vec.size(); i++) {
-                auto cvs = ret[i];
-                for(auto cv : cvs) vset.insert(cv.op(1));
-                air_vec[i] = cvs;
+        if(true) {
+            bool aparted = false;
+            for(auto air : air_vec) {
+                if(air.has(ApartIR(w1,w2))) {
+                    aparted = true;
+                    break;
+                }
             }
             
-            exvector vvec;
-            for(auto item : vset) vvec.push_back(item);
-            sort_vec(vvec); // no need
-            ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
-                auto air = vvec[idx];
-                air = Apart(air,lmom,emom,aio.smap);
-                return air;
-            }, "Apart");
-            exmap v2v;
-            for(int i=0; i<vvec.size(); i++) v2v[vvec[i]] = ret[i];
+            if(!aparted) {
+                auto ret = GiNaC_Parallel(air_vec.size(), [air_vec,lmom] (int idx) {
+                    return collect_lst(air_vec[idx],lmom);
+                }, "ApartPre");
             
-            ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&v2v] (int idx) {
-                auto cvs = air_vec[idx];
-                ex res = 0;
-                for(auto cv : cvs) res += cv.op(0) * v2v[cv.op(1)];
-                return res;
-            }, "ApartPos");
-            for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i];
-        } 
-        
-        auto ret = GiNaC_Parallel(air_vec.size(), [air_vec] (int idx) {
-            auto air = air_vec[idx];
-            air = air.subs(SP_map);
-            air = ApartIRC(air);
-            return air;
-        }, "ApartIRC");
-        for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIRC
+                exset vset;
+                for(int i=0; i<air_vec.size(); i++) {
+                    auto cvs = ret[i];
+                    for(auto cv : cvs) vset.insert(cv.op(1));
+                    air_vec[i] = cvs;
+                }
+                
+                exvector vvec;
+                for(auto item : vset) vvec.push_back(item);
+                sort_vec(vvec); // no need
+                ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
+                    auto air = vvec[idx];
+                    air = Apart(air,lmom,emom,aio.smap);
+                    return air;
+                }, "Apart");
+                exmap v2v;
+                for(int i=0; i<vvec.size(); i++) v2v[vvec[i]] = ret[i];
+                
+                ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&v2v] (int idx) {
+                    auto cvs = air_vec[idx];
+                    ex res = 0;
+                    for(auto cv : cvs) res += cv.op(0) * v2v[cv.op(1)];
+                    return res;
+                }, "ApartPost");
+                for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i];
+            } 
+            
+            auto ret = GiNaC_Parallel(air_vec.size(), [air_vec] (int idx) {
+                auto air = air_vec[idx];
+                air = air.subs(SP_map);
+                air = ApartIRC(air);
+                return air;
+            }, "ApartIRC");
+            for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIRC
+            
+        }
         
         exvector intg;
         if(true) { // scope for intg_set
             exset intg_set;
-            for(auto air : ret) find(air, ApartIR(w1,w2), intg_set);
+            for(auto air : air_vec) find(air, ApartIR(w1,w2), intg_set);
             for(auto item : intg_set) intg.push_back(item);
+            //sort_cache_type cache;
+            //sort_vec(intg, cache); // need sort
             sort_vec(intg); // need sort
         }
         
@@ -866,9 +871,13 @@ namespace HepLib {
         
         if(Verbose>0) cout << "  \\--Total Ints/Pros: " << intg.size() << "/" << ibp_vec.size() << " @ " << now(false) << endl;
         
-        vector<Base*> base_vec;
-        for(auto ibp : ibp_vec) base_vec.push_back(ibp);
-        auto int_fr = FindRules(base_vec, false, aio.UF);
+        pair<exmap,lst> int_fr;
+        
+        if(true) {
+            vector<Base*> base_vec;
+            for(auto ibp : ibp_vec) base_vec.push_back(ibp);
+            int_fr = FindRules(base_vec, false, aio.UF);
+        }
 
         map<int,lst> pn_ints_map;
         for(auto item : int_fr.second) {
@@ -1011,10 +1020,11 @@ namespace HepLib {
      * @param uf the function to compute UF polynomial
      * @return nothing returned, the input air_vec will be updated
      */
-    void ApartIBP(int IBPmethod, exvector &air_vec, const lst & loops, const lst & exts, const lst & cut_props,
+    void ApartIBP(exvector &air_vec, int IBPmethod, const lst & loops, const lst & exts, const lst & cut_props,
         std::function<lst(const Base &, const ex &)> uf) {
                 
         AIOption aio;
+        aio.IBPmethod = IBPmethod;
         aio.Internal = loops;
         aio.External = exts;
         aio.Cuts = cut_props;
@@ -1028,7 +1038,7 @@ namespace HepLib {
         }
         for(auto li : loops) aio.smap[SP(li)] = 1;
         aio.UF = uf;
-        ApartIBP(IBPmethod, air_vec, aio);
+        ApartIBP(air_vec, aio);
     }
 
 }

@@ -342,10 +342,15 @@ namespace HepLib {
     ex ApartIR2F(const ex & expr_in);
     ex F2ex(const ex & expr_in);
     ex ApartIRC(const ex & expr_in);
-    void ApartIBP(int IBPmethod, exvector &io_vec, const lst & loops, const lst & exts,
+    void ApartIBP(exvector &io_vec, int IBPmethod, const lst & loops, const lst & exts,
         const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
+    inline void ApartIBP(int IBPmethod, exvector &io_vec, const lst & loops, const lst & exts,
+        const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF) {
+        return ApartIBP(io_vec, IBPmethod, loops, exts, cut_props, uf);
+    }
         
     struct AIOption {
+        int IBPmethod = 1; // 0
         lst Internal; // Internal for Apart/IBP
         lst External; // External for Apart/IBP
         lst DSP; // DSP for IBP
@@ -358,7 +363,7 @@ namespace HepLib {
         bool keep0F = false; // keep 0 exponent in F
         std::function<lst(const Base &, const ex &)> UF = IBP::LoopUF;
     };
-    void ApartIBP(int IBPmethod, exvector &io_vec, AIOption aip);
+    void ApartIBP(exvector &io_vec, AIOption aip);
     
     bool IsZero(const ex & e);
     

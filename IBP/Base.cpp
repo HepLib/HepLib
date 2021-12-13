@@ -6,6 +6,8 @@
 #include "IBP.h"
 #include <cmath>
 
+//#define using_sort_cache
+
 namespace HepLib::IBP {
 
     static void a_print(const ex & ex_in, const print_context & c) {
@@ -27,6 +29,9 @@ namespace HepLib::IBP {
      * @return 1st of sorted xs
      */
     lst SortPermutation(const ex & in_expr, const lst & xs) {
+        #ifdef using_sort_cache
+        sort_cache_type sort_cache;
+        #endif
         auto expr = in_expr;
         bool isPoly = true;
         lst xRepl;
@@ -46,7 +51,11 @@ namespace HepLib::IBP {
             auto cv_lst = collect_lst(expr, xs);
             exvector cvs;
             for(auto item : cv_lst) cvs.push_back(item);
+            #ifdef using_sort_cache
+            sort_vec(cvs,sort_cache);
+            #else
             sort_vec(cvs);
+            #endif
                     
             int nxi = xs.nops();
             bool first = true;
@@ -59,7 +68,11 @@ namespace HepLib::IBP {
                 if(is_zero(cc)) continue;
                 if(!first && !is_zero(cc-clast)) {
                     for(int i=0; i<nxi; i++) {
+                        #ifdef using_sort_cache
+                        sort_lst(subkey[i],sort_cache);
+                        #else
                         sort_lst(subkey[i]);
+                        #endif
                         for(auto item : subkey[i]) xkey[i].append(item);
                         subkey[i].remove_all();
                     }
@@ -69,7 +82,11 @@ namespace HepLib::IBP {
                 for(int i=0; i<nxi; i++) subkey[i].append(vv.degree(xs.op(i)));
             }
             for(int i=0; i<nxi; i++) {
+                #ifdef using_sort_cache
+                sort_lst(subkey[i],sort_cache);
+                #else
                 sort_lst(subkey[i]);
+                #endif
                 for(auto item : subkey[i]) xkey[i].append(item);
                 subkey[i].remove_all();
             }
@@ -79,7 +96,11 @@ namespace HepLib::IBP {
                 key_xi.push_back(lst{xkey[i], xs.op(i)});
                 pgrp[xkey[i]].push_back(i); // i w.r.t. position of xs
             }
+            #ifdef using_sort_cache
+            sort_vec(key_xi,sort_cache);
+            #else
             sort_vec(key_xi);
+            #endif
             
             xRepl.remove_all();
             for(auto item : key_xi) xRepl.append(item.op(1));  
