@@ -170,7 +170,7 @@ namespace HepLib {
         return using_cache ? (cache[key]=(ex2str(a) < ex2str(b))) : (ex2str(a) < ex2str(b));
     }
     
-    bool ex_less_cache(const ex &a, const ex &b, sort_cache_type &cache) {
+    bool ex_less_cache(const ex &a, const ex &b, map<ex,bool,ex_is_less> &cache) {
         ex key = lst{a,b};
         if(cache.find(key)!=cache.end()) return cache[key];
         if(a.is_equal(b)) return cache[key]=false;
@@ -336,24 +336,11 @@ namespace HepLib {
         for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
      }
      
-     void sort_lst(lst & ilst, sort_cache_type &cache, bool less) {
+     void sort_lst(lst & ilst, map<ex,bool,ex_is_less> &cache, bool less) {
         auto ivec = lst2vec(ilst);
         sort_vec(ivec, cache, less);
         for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
      }
-     
-     void nsort_lst(lst & ilst, bool less) {
-        auto ivec = lst2vec(ilst);
-        nsort_vec(ivec, less);
-        for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
-     }
-     
-     void nsort_lst(lst & ilst, sort_cache_type &cache, bool less) {
-        auto ivec = lst2vec(ilst);
-        nsort_vec(ivec, cache, less);
-        for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
-     }
-
      
      /**
       * @brief sort the list in less order, or the reverse
@@ -383,43 +370,11 @@ namespace HepLib {
         });
      }
      
-     void sort_vec(exvector & ivec, sort_cache_type &cache, bool less) {
+     void sort_vec(exvector & ivec, map<ex,bool,ex_is_less> &cache, bool less) {
         std::sort(ivec.begin(), ivec.end(), [&cache,less](const auto &a, const auto &b){
             if(less) return ex_less_cache(a,b,cache);
             else return ex_less_cache(b,a,cache);
         });
-     }
-     
-     void nsort_vec(exvector & ivec, bool less) {
-        exvector nivec;
-        for(int i=0; i<ivec.size(); i++) nivec.push_back(lst{ivec[i].subs(nsort_map), ivec[i]});
-        
-        std::sort(nivec.begin(), nivec.end(), [less](const auto &a, const auto &b) {
-            if(!a.op(0).is_equal(b.op(0))) {
-                if(less) return ex_less(a.op(0),b.op(0));
-                else return ex_less(b.op(0),a.op(0));
-            }
-            if(less) return ex_less(a.op(1),b.op(1));
-            else return ex_less(b.op(1),a.op(1));
-        });
-        
-        for(int i=0; i<ivec.size(); i++) ivec[i] = nivec[i].op(1);
-     }
-     
-     void nsort_vec(exvector & ivec, sort_cache_type &cache, bool less) {
-        exvector nivec;
-        for(int i=0; i<ivec.size(); i++) nivec.push_back(lst{ivec[i].subs(nsort_map), ivec[i]});
-        
-        std::sort(nivec.begin(), nivec.end(), [&cache,less](const auto &a, const auto &b) {
-            if(!a.op(0).is_equal(b.op(0))) {
-                if(less) return ex_less_cache(a.op(0),b.op(0),cache);
-                else return ex_less_cache(b.op(0),a.op(0),cache);
-            }
-            if(less) return ex_less_cache(a.op(1),b.op(1),cache);
-            else return ex_less_cache(b.op(1),a.op(1),cache);
-        });
-        
-        for(int i=0; i<ivec.size(); i++) ivec[i] = nivec[i].op(1);
      }
      
      /**

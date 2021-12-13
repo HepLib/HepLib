@@ -628,22 +628,16 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // sort
     /*-----------------------------------------------------*/
-    extern exmap nsort_map;
     long long node_number(const ex & expr, int level=0);
     bool ex_less(const ex &a, const ex &b);
     void sort_lst(lst & ilst, bool less=true);
-    void nsort_lst(lst & ilst, bool less=true);
     void sort_lst_by(lst & ilst, int n, bool less=true);
     void sort_vec(exvector & ivec, bool less=true);
-    void nsort_vec(exvector & ivec, bool less=true); 
     void sort_vec_by(exvector & ivec, int n, bool less=true);
     
-    typedef map<ex,bool,ex_is_less> sort_cache_type;
-    bool ex_less_cache(const ex &a, const ex &b, sort_cache_type &cache);
-    void sort_lst(lst & ilst, sort_cache_type &cache, bool less=true);
-    void nsort_lst(lst & ilst, sort_cache_type &cache, bool less=true);
-    void sort_vec(exvector & ivec, sort_cache_type &cache, bool less=true);
-    void nsort_vec(exvector & ivec, sort_cache_type &cache, bool less=true); 
+    bool ex_less_cache(const ex &a, const ex &b, map<ex,bool,ex_is_less> &cache);
+    void sort_lst(lst & ilst, map<ex,bool,ex_is_less> &cache, bool less=true);
+    void sort_vec(exvector & ivec, map<ex,bool,ex_is_less> &cache, bool less=true);
     
     /*-----------------------------------------------------*/
     // Other Functions

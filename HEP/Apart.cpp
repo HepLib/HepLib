@@ -6,6 +6,8 @@
 #include "HEP.h"
 #include "cln/cln.h"
 
+#define using_sort_cache
+
 namespace HepLib {
 
     #ifndef DOXYGEN_SKIP
@@ -732,7 +734,7 @@ namespace HepLib {
             if(!aparted) {
                 auto ret = GiNaC_Parallel(air_vec.size(), [air_vec,lmom] (int idx) {
                     return collect_lst(air_vec[idx],lmom);
-                }, "ApartPre");
+                }, "ApPre");
             
                 exset vset;
                 for(int i=0; i<air_vec.size(); i++) {
@@ -757,7 +759,7 @@ namespace HepLib {
                     ex res = 0;
                     for(auto cv : cvs) res += cv.op(0) * v2v[cv.op(1)];
                     return res;
-                }, "ApartPost");
+                }, "ApPost");
                 for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i];
             } 
             
@@ -766,7 +768,7 @@ namespace HepLib {
                 air = air.subs(SP_map);
                 air = ApartIRC(air);
                 return air;
-            }, "ApartIRC");
+            }, "ApIRC");
             for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIRC
             
         }
@@ -776,9 +778,12 @@ namespace HepLib {
             exset intg_set;
             for(auto air : air_vec) find(air, ApartIR(w1,w2), intg_set);
             for(auto item : intg_set) intg.push_back(item);
-            //sort_cache_type cache;
-            //sort_vec(intg, cache); // need sort
+            #ifdef using_sort_cache
+            map<ex,bool,ex_is_less> cache;
+            sort_vec(intg, cache); // need sort
+            #else
             sort_vec(intg); // need sort
+            #endif
         }
         
         for(auto sp : aio.CSP) SP_map.erase(sp);

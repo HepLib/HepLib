@@ -6,7 +6,7 @@
 #include "IBP.h"
 #include <cmath>
 
-//#define using_sort_cache
+#define using_sort_cache
 
 namespace HepLib::IBP {
 
@@ -30,7 +30,7 @@ namespace HepLib::IBP {
      */
     lst SortPermutation(const ex & in_expr, const lst & xs) {
         #ifdef using_sort_cache
-        sort_cache_type sort_cache;
+        map<ex,bool,ex_is_less> sort_cache;
         #endif
         auto expr = in_expr;
         bool isPoly = true;
