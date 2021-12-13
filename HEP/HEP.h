@@ -362,6 +362,7 @@ namespace HepLib {
         int mcl = 1; // collect_ex level, 0-nothing, 1-exnormal, 2-exfactor
         bool keep0F = false; // keep 0 exponent in F
         std::function<lst(const Base &, const ex &)> UF = IBP::LoopUF;
+        void init_smap() { for(auto li : Internal) smap[SP(li)] = 1; }
     };
     void ApartIBP(exvector &io_vec, AIOption aip);
     
