@@ -287,25 +287,25 @@ int IntegratorBase::inDQMP(qREAL const *x) {
         static qREAL ft0;
         if(last_ft!=FT) {
             qREAL x0[xdim];
-#ifdef _USE_FLOAT128
+            #ifdef _USE_FLOAT128
             for(int i=0; i<xdim; i++) x0[i]=0.521Q;
-#else
+            #else
             for(int i=0; i<xdim; i++) x0[i]=0.521L;
-#endif
+            #endif
 
-#ifdef _USE_FLOAT128
+            #ifdef _USE_FLOAT128
             qREAL ft0 = fabsq(FT(x0, Parameter));
-#else
+            #else
             qREAL ft0 = fabsl(FT(x0, Parameter));
-#endif
+            #endif
             if(ft0<1E-50) ft0 = 1;
             last_ft = FT;
         } 
-#ifdef _USE_FLOAT128
+        #ifdef _USE_FLOAT128
         ft = fabsq(FT(x, Parameter));
-#else
+        #else
         ft = fabsl(FT(x, Parameter));
-#endif
+        #endif
         ft = ft/ft0;
         if(ft<MPFLimit) return 3;
         else if(ft<QFLimit) return 2;

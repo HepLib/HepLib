@@ -260,6 +260,7 @@ namespace HepLib {
     inline void garWrite(const map<string, ex> &resMap, const string &garfn) { garWrite(garfn,resMap); }
     void garWrite(const string &garfn, const ex & res);
     inline void garWrite(const ex & res, const string &garfn) { garWrite(garfn,res); }
+    
     ex str2ex(const string &expr, symtab stab);
     ex str2ex(const string &expr);
     lst str2lst(const string &expr, symtab stab);
@@ -276,13 +277,13 @@ namespace HepLib {
     string ex2str(const exmap &expr);
     string ex2str(const exset &expr);
     inline string in2str(int i) { return to_string(i); }
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     ex q2ex(__float128);
     __float128 ex2q(ex);
-#else
+    #else
     ex q2ex(long double);
     long double ex2q(ex);
-#endif
+    #endif
     lst vec2lst(const exvector & exvec);
     exvector lst2vec(const lst & alst);
     lst add2lst(const ex & expr);
@@ -803,4 +804,15 @@ namespace HepLib {
     };
     extern MMAFormat mout;
     
+    void garWrite(exvector &exv, string garfn);
+    inline void garWrite(string garfn, exvector &exv) { garWrite(exv,garfn); }
+    void garRead(exvector &exv, string garfn);
+    inline void garRead(string garfn, exvector &exv) { garRead(exv, garfn); }
+    void exVectorPut(exvector &exv, string garfn);
+    void exVectorGet(exvector &exv, string garfn);
+    ex add_collect_normal(const exvector &exv, lst const &pats);
+    
+    typedef ex (*IParRun) (int idx);
+    exvector ParRun(lst elst, exvector input, string dll, string func);
+ 
 }

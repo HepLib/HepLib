@@ -174,9 +174,9 @@ public:
     mpreal(const unsigned int u,           mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
     mpreal(const long int u,               mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
     mpreal(const int u,                    mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     mpreal(const __float128 u,             mp_prec_t prec = mpreal::get_default_prec(), mp_rnd_t mode = mpreal::get_default_rnd());
-#endif
+    #endif
     
     // Construct mpreal from mpfr_t structure.
     // shared = true allows to avoid deep copy, so that mpreal and 'u' share the same data & pointers.    
@@ -307,9 +307,9 @@ public:
     float              toFloat     (mp_rnd_t mode = GMP_RNDN)    const;
     double             toDouble    (mp_rnd_t mode = GMP_RNDN)    const;
     long double        toLDouble   (mp_rnd_t mode = GMP_RNDN)    const;
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     __float128         toFloat128  (mp_rnd_t mode = GMP_RNDN)    const;
-#endif
+    #endif
     
 
 #if defined (MPREAL_HAVE_EXPLICIT_CONVERTERS)
@@ -323,9 +323,9 @@ public:
     explicit operator float              () const { return toFloat();                }
     explicit operator double             () const { return toDouble();               }
     explicit operator long double        () const { return toLDouble();              }
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     explicit operator __float128         () const { return toFloat128();             }
-#endif
+    #endif
 #endif
 
     // Get raw pointers so that mpreal can be directly used in raw mpfr_* functions

@@ -47,6 +47,8 @@ namespace HepLib::IBP {
         virtual void Import() { throw Error("Import() not implemented!"); };
         bool IsZero(ex sector);
         void Reduce();
+        void Export(string garfn); // Export to .gar
+        void Import(string garfn); // Import from .gar
         
     };
 

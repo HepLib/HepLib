@@ -61,11 +61,11 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
             bool ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
-#else
+                #else
                 if(isnan(ytmp) || isinf(ytmp)) {
-#endif
+                #endif
                     ok = false;
                     break;
                 }
@@ -76,11 +76,11 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
             bool ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
-#else
+                #else
                 if(isnan(ytmp) || isinf(ytmp)) {
-#endif
+                #endif
                     ok = false;
                     break;
                 }
@@ -90,11 +90,11 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
             ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 if(isnanq(ytmp) || isinfq(ytmp)) {
-#else
+                #else
                 if(isnan(ytmp) || isinf(ytmp)) {
-#endif
+                #endif
                     ok = false;
                     break;
                 }
@@ -106,22 +106,22 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
         bool ok = true;
         for(int j=0; j<ydim; j++) {
             qREAL ytmp = y[i*ydim+j];
-#ifdef _USE_FLOAT128
+            #ifdef _USE_FLOAT128
             if(isnanq(ytmp) || isinfq(ytmp)) {
-#else
+            #else
             if(isnan(ytmp) || isinf(ytmp)) {
-#endif
+            #endif
                 ok = false;
                 break;
             }
         }
         if(!ok) {
             qREAL xx[xdim];
-#ifdef _USE_FLOAT128
+            #ifdef _USE_FLOAT128
             for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] * 0.995Q;
-#else
+            #else
             for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] * 0.995L;
-#endif
+            #endif
             self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
         }
     }
@@ -129,11 +129,11 @@ int CUBA::Wrapper(const int *pxdim, const qREAL *x, const int *pydim, qREAL *y, 
     for(int i=0; i<npts; i++) {
         for(int j=0; j<ydim; j++) {
             qREAL ytmp = y[i*ydim+j];
-#ifdef _USE_FLOAT128
+            #ifdef _USE_FLOAT128
             if(isnanq(ytmp) || isinfq(ytmp)) {
-#else
+            #else
             if(isnan(ytmp) || isinf(ytmp)) {
-#endif
+            #endif
                 self->nNAN++;
                 if(self->nNAN > self->NANMax) {
                     NaNQ = true;
@@ -157,11 +157,11 @@ ex CUBA::Integrate() {
     mpfr_free_cache();
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     mpPi = mpfr::const_pi();
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     mpiEpsilon = complex<mpREAL>(0,cimagq(qiEpsilon));
-#else
+    #else
     mpiEpsilon = qiEpsilon;
-#endif
+    #endif
     mpEuler = mpfr::const_euler();
     if(mpfr_buildopt_tls_p()<=0) {
         throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
@@ -200,11 +200,11 @@ ex CUBA::Integrate() {
     NEval = neval;
     
     ex FResult = 0;
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     if(isnanq(result[0]) || isnanq(result[1])) FResult += NaN;
-#else
+    #else
     if(isnan(result[0]) || isnan(result[1])) FResult += NaN;
-#endif
+    #endif
     else {
         try{
             FResult += VE(q2ex(result[0]), q2ex(estabs[0]));

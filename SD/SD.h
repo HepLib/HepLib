@@ -131,13 +131,13 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     
     
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     typedef __float128 qREAL;
     typedef __complex128 qCOMPLEX;
-#else
+    #else
     typedef long double qREAL;
     typedef complex<qREAL> qCOMPLEX;
-#endif
+    #endif
 
     /**
      * @brief base for numerical integrator
@@ -172,13 +172,13 @@ namespace HepLib::SD {
         int DQMP = 0;
         int QXDim = 0;
         int MPXDim = 0;
-#ifdef _USE_FLOAT128
+        #ifdef _USE_FLOAT128
         qREAL QXLimit = 1E-6Q;
         qREAL MPXLimit = 1E-8Q;
-#else
+        #else
         qREAL QXLimit = 1E-6L;
         qREAL MPXLimit = 1E-8L;
-#endif
+        #endif
         qREAL QFLimit = -1;
         qREAL MPFLimit = -1;
         
@@ -236,11 +236,11 @@ namespace HepLib::SD {
         qREAL LastAbsErr[2];
     };
 
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     typedef long double dREAL;
-#else
+    #else
     typedef double dREAL;
-#endif
+    #endif
     /**
      * @brief base for class to minimize a function
      */

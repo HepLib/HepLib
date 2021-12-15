@@ -2274,4 +2274,60 @@ namespace HepLib {
         return *this;
     }
     
+    void garWrite(exvector &exv, string garfn) {
+        archive ar;
+        ar.archive_ex(exv.size(), "size");
+        for(int i=0; i<exv.size(); i++) {
+            ar.archive_ex(exv[i], to_string(i).c_str());
+        }
+        ofstream out(garfn);
+        out << ar;
+        out.close();
+    }
+        
+    void garRead(exvector &exv, string garfn) {
+        archive ar;
+        ifstream in(garfn);
+        in >> ar;
+        in.close();
+        auto size = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "size")).to_int();
+        exvector res;
+        for(int i=0; i<size; i++) {
+            ex tmp = ar.unarchive_ex(GiNaC_archive_Symbols, to_string(i).c_str());
+            exv.push_back(tmp);
+        }
+    } 
+    
+    void exVectorPut(exvector &exv, string garfn) {
+        garWrite(exv.size(), garfn+".gar");
+        GiNaC_Parallel(exv.size(), [&exv,garfn](int idx) {
+            garWrite(exv[idx], garfn+"-"+to_string(idx)+".gar");
+            return 0;
+        }, "vecPut");
+    }
+    
+    void exVectorGet(exvector &exv, string garfn) {
+        auto size = ex_to<numeric>(garRead(garfn+".gar")).to_int();
+        if(exv.size()>0) {
+            if(size != exv.size()) throw Error("size not matched.");
+            for(int i=0; i<size; i++) exv[i] = garRead(garfn+"-"+to_string(i)+".gar");
+        } else {
+            for(int i=0; i<size; i++) exv.push_back(garRead(garfn+"-"+to_string(i)+".gar"));
+        }
+    } 
+    
+    ex add_collect_normal(const exvector &exv, lst const &pats) {
+        auto cvs_vec = GiNaC_Parallel(exv.size(), [&exv,pats](int idx)->ex {
+            return collect_lst(exv[idx], pats);
+        }, "ColEx");
+        exmap res_map;
+        for(auto cvs : cvs_vec) for(auto cv : cvs) res_map[cv.op(1)] += cv.op(0);
+        exvector res_vec;
+        for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
+        res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec](int idx)->ex {
+            return exnormal(res_vec[idx].op(0)) * res_vec[idx].op(1);
+        }, "NorEx");
+        return add(res_vec);
+    }
+        
 }

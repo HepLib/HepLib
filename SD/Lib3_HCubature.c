@@ -61,13 +61,13 @@ static hypercube make_hypercube_range(unsigned dim, const REAL *xmin, const REAL
     unsigned i;
     if (h.data) {
         for (i = 0; i < dim; ++i) {
-#ifdef _USE_FLOAT128
+            #ifdef _USE_FLOAT128
             h.data[i] = 0.5Q * (xmin[i] + xmax[i]);
             h.data[i + dim] = 0.5Q * (xmax[i] - xmin[i]);
-#else
+            #else
             h.data[i] = 0.5L * (xmin[i] + xmax[i]);
             h.data[i + dim] = 0.5L * (xmax[i] - xmin[i]);
-#endif
+            #endif
         }
         h.vol = compute_vol(&h);
     }
@@ -93,11 +93,11 @@ static region make_region(const hypercube *h, unsigned fdim) {
     R.splitDim = 0;
     R.fdim = fdim;
     R.ee = R.h.data ? (esterr *) malloc(sizeof(esterr) * fdim) : NULL;
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     R.errmax = HUGE_VALQ;
-#else
+    #else
     R.errmax = HUGE_VALL;
-#endif
+    #endif
     return R;
 }
 
@@ -110,13 +110,13 @@ static void destroy_region(region *R) {
 static int cut_region(region *R, region *R2) {
     unsigned d = R->splitDim, dim = R->h.dim;
     *R2 = *R;
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     R->h.data[d + dim] *= 0.5Q;
     R->h.vol *= 0.5Q;
-#else
+    #else
     R->h.data[d + dim] *= 0.5L;
     R->h.vol *= 0.5L;
-#endif
+    #endif
     R2->h = make_hypercube(dim, R->h.data, R->h.data + dim);
     if (!R2->h.data) return FAILURE;
     R->h.data[d] -= R->h.data[d + dim];
@@ -326,7 +326,7 @@ static void destroy_rule75genzmalik(rule *r_) {
 
 static int rule75genzmalik_evalError(rule *r_, unsigned fdim, integrand_v f, void *fdata, unsigned nR, region *R) {
     /* lambda2 = sqrtq(9/70), lambda4 = sqrtq(9/10), lambda5 = sqrtq(9/19) */
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     const REAL lambda2 = 0.3585685828003180919906451539079374954541Q;
     const REAL lambda4 = 0.9486832980505137995996680633298155601160Q;
     const REAL lambda5 = 0.6882472016116852977216287342936235251269Q;
@@ -334,7 +334,7 @@ static int rule75genzmalik_evalError(rule *r_, unsigned fdim, integrand_v f, voi
     const REAL weight4 = 200.Q / 19683.Q;
     const REAL weightE2 = 245.Q / 486.Q;
     const REAL weightE4 = 25.Q / 729.Q;
-#else
+    #else
     const REAL lambda2 = 0.3585685828003180919906451539079374954541L;
     const REAL lambda4 = 0.9486832980505137995996680633298155601160L;
     const REAL lambda5 = 0.6882472016116852977216287342936235251269L;
@@ -342,7 +342,7 @@ static int rule75genzmalik_evalError(rule *r_, unsigned fdim, integrand_v f, voi
     const REAL weight4 = 200.L / 19683.L;
     const REAL weightE2 = 245.L / 486.L;
     const REAL weightE4 = 25.L / 729.L;
-#endif
+    #endif
     const REAL ratio = (lambda2 * lambda2) / (lambda4 * lambda4);
 
     rule75genzmalik *r = (rule75genzmalik *) r_;
@@ -409,11 +409,11 @@ static int rule75genzmalik_evalError(rule *r_, unsigned fdim, integrand_v f, voi
 
                 sum2 += v0 + v1;
                 sum3 += v2 + v3;
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 diff[iR * dim + k] += fabsq(v0 + v1 - 2*val0 - ratio * (v2 + v3 - 2*val0));
-#else
+                #else
                 diff[iR * dim + k] += fabsl(v0 + v1 - 2*val0 - ratio * (v2 + v3 - 2*val0));
-#endif
+                #endif
             }
             k0 += 4*k;
 
@@ -427,11 +427,11 @@ static int rule75genzmalik_evalError(rule *r_, unsigned fdim, integrand_v f, voi
             res5th = R[iR].h.vol * (r->weightE1 * val0 + weightE2 * sum2 + r->weightE3 * sum3 + weightE4 * sum4);
 
             R[iR].ee[j].val = result;
-#ifdef _USE_FLOAT128
+            #ifdef _USE_FLOAT128
             R[iR].ee[j].err = fabsq(res5th - result);
-#else
+            #else
             R[iR].ee[j].err = fabsl(res5th - result);
-#endif
+            #endif
 
             v += r_->num_points * fdim;
         }
@@ -500,7 +500,7 @@ static int rule15gauss_evalError(rule *r,
     weights as evaluated with 80 decimal digit arithmetic by
     L. W. Fullerton, Bell Labs, Nov. 1981. */
     const unsigned n = 8;
-#ifdef _USE_FLOAT128
+    #ifdef _USE_FLOAT128
     const REAL xgk[8] = {  /* abscissae of the 15-point kronrod rule */
         0.991455371120812639206854697526329Q,
         0.949107912342758524526189684047851Q,
@@ -529,7 +529,7 @@ static int rule15gauss_evalError(rule *r,
         0.204432940075298892414161999234649Q,
         0.209482141084727828012999174891714Q
     };
-#else
+    #else
     const REAL xgk[8] = {  /* abscissae of the 15-point kronrod rule */
         0.991455371120812639206854697526329L,
         0.949107912342758524526189684047851L,
@@ -558,7 +558,7 @@ static int rule15gauss_evalError(rule *r,
         0.204432940075298892414161999234649L,
         0.209482141084727828012999174891714L
     };
-#endif
+    #endif
     unsigned j, k, iR;
     long long npts = 0;
     REAL *pts, *vals;
@@ -596,11 +596,11 @@ static int rule15gauss_evalError(rule *r,
             const REAL halfwidth = R[iR].h.data[1];
             REAL result_gauss = vk[0] * wg[n/2 - 1];
             REAL result_kronrod = vk[0] * wgk[n - 1];
-#ifdef _USE_FLOAT128
+            #ifdef _USE_FLOAT128
             REAL result_abs = fabsq(result_kronrod);
-#else
+            #else
             REAL result_abs = fabsl(result_kronrod);
-#endif
+            #endif
             REAL result_asc, mean, err;
 
             /* accumulate integrals */
@@ -610,21 +610,21 @@ static int rule15gauss_evalError(rule *r,
                 REAL v = vk[fdim*npts] + vk[fdim*npts+fdim];
                 result_gauss += wg[j] * v;
                 result_kronrod += wgk[j2] * v;
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 result_abs += wgk[j2] * (fabsq(vk[fdim*npts]) + fabsq(vk[fdim*npts+fdim]));
-#else
+                #else
                 result_abs += wgk[j2] * (fabsl(vk[fdim*npts]) + fabsl(vk[fdim*npts+fdim]));
-#endif
+                #endif
                 npts += 2;
             }
             for (j = 0; j < n/2; ++j) {
                 int j2 = 2*j;
                 result_kronrod += wgk[j2] * (vk[fdim*npts] + vk[fdim*npts+fdim]);
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 result_abs += wgk[j2] * (fabsq(vk[fdim*npts]) + fabsq(vk[fdim*npts+fdim]));
-#else
+                #else
                 result_abs += wgk[j2] * (fabsl(vk[fdim*npts]) + fabsl(vk[fdim*npts+fdim]));
-#endif
+                #endif
                 npts += 2;
             }
 
@@ -635,45 +635,45 @@ static int rule15gauss_evalError(rule *r,
             (from GSL, probably dates back to QUADPACK
             ... not completely clear to me why we don't just use
             fabsq(result_kronrod - result_gauss) * halfwidth */
-#ifdef _USE_FLOAT128
+            #ifdef _USE_FLOAT128
             mean = result_kronrod * 0.5Q;
             result_asc = wgk[n - 1] * fabsq(vk[0] - mean);
-#else
+            #else
             mean = result_kronrod * 0.5L;
             result_asc = wgk[n - 1] * fabsl(vk[0] - mean);
-#endif
+            #endif
             npts = 1;
             for (j = 0; j < (n - 1) / 2; ++j) {
                 int j2 = 2*j + 1;
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 result_asc += wgk[j2] * (fabsq(vk[fdim*npts]-mean) + fabsq(vk[fdim*npts+fdim]-mean));
-#else
+                #else
                 result_asc += wgk[j2] * (fabsl(vk[fdim*npts]-mean) + fabsl(vk[fdim*npts+fdim]-mean));
-#endif
+                #endif
                 npts += 2;
             }
             for (j = 0; j < n/2; ++j) {
                 int j2 = 2*j;
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 result_asc += wgk[j2] * (fabsq(vk[fdim*npts]-mean) + fabsq(vk[fdim*npts+fdim]-mean));
-#else
+                #else
                 result_asc += wgk[j2] * (fabsl(vk[fdim*npts]-mean) + fabsl(vk[fdim*npts+fdim]-mean));
-#endif
+                #endif
                 npts += 2;
             }
-#ifdef _USE_FLOAT128
+            #ifdef _USE_FLOAT128
             err = fabsq(result_kronrod - result_gauss) * halfwidth;
-#else
+            #else
             err = fabsl(result_kronrod - result_gauss) * halfwidth;
-#endif
+            #endif
             result_abs *= halfwidth;
             result_asc *= halfwidth;
             if (result_asc != 0 && err != 0) {
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 REAL scale = powq((200 * err / result_asc), 1.5Q);
-#else
+                #else
                 REAL scale = powl((200 * err / result_asc), 1.5L);
-#endif
+                #endif
                 err = (scale < 1) ? result_asc * scale : result_asc;
             }
             
@@ -874,11 +874,11 @@ static int rulecubature(rule *r, unsigned fdim,
                 if(ok) break;
                 REAL err_left = 0;
                 for (j = 0; j < fdim; ++j) err_left += ee[j].err;
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 ok = (err_left <= 0.5Q * err_sum);
-#else
+                #else
                 ok = (err_left <= 0.5L * err_sum);
-#endif
+                #endif
                 if(ok && nR > 10) break;
             }
             
@@ -900,11 +900,11 @@ static int rulecubature(rule *r, unsigned fdim,
                     if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);
                     goto done;
                 }
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 if(PrintHooker!=NULL && (xmin<1E-8Q || (numEval-runs)>runEval)) {
-#else
+                #else
                 if(PrintHooker!=NULL && (xmin<1E-8L || (numEval-runs)>runEval)) {
-#endif
+                #endif
                     if((numEval-runs)>runEval) runs = numEval;
                     PrintHooker(val, err, &numEval, fdata);
                 }
@@ -937,11 +937,11 @@ static int rulecubature(rule *r, unsigned fdim,
                     if(PrintHooker != NULL) PrintHooker(val, err, &numEval, fdata);
                     goto done;
                 }
-#ifdef _USE_FLOAT128
+                #ifdef _USE_FLOAT128
                 if(PrintHooker!=NULL && (xmin<1E-8Q || (numEval-runs)>runEval)) {
-#else
+                #else
                 if(PrintHooker!=NULL && (xmin<1E-8L || (numEval-runs)>runEval)) {
-#endif
+                #endif
                     if((numEval-runs)>runEval) runs = numEval;
                     PrintHooker(val, err, &numEval, fdata);
                 }
@@ -1006,11 +1006,11 @@ static int cubature(unsigned fdim, integrand_v f, void *fdata,
     if (!r) {
         for (i = 0; i < fdim; ++i) {
             val[i] = 0;
-#ifdef _USE_FLOAT128
+            #ifdef _USE_FLOAT128
             err[i] = HUGE_VALQ;
-#else
+            #else
             err[i] = HUGE_VALL;
-#endif
+            #endif
         }
         return FAILURE;
     }

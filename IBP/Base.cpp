@@ -22,6 +22,67 @@ namespace HepLib::IBP {
         Import();
     }
     
+    void Base::Export(string garfn) {
+        archive ar;
+        ar.archive_ex(Internal, "Internal");
+        ar.archive_ex(External, "External");
+        ar.archive_ex(Replacements, "Replacements");
+        ar.archive_ex(Propagators, "Propagators");
+        ar.archive_ex(Cuts, "Cuts");
+        ar.archive_ex(DSP, "DSP");
+        ar.archive_ex(ISP, "ISP");
+        
+        ar.archive_ex(Shift.size(), "NShift");
+        int n = 0;
+        for(auto kv : Shift) {
+            ar.archive_ex(kv.first, ("ShiftK-"+to_string(n)).c_str());
+            ar.archive_ex(kv.second, ("ShiftV-"+to_string(n)).c_str());
+        }
+        
+        ar.archive_ex(reCut, "reCut"); // bool
+        ar.archive_ex(ProblemNumber, "ProblemNumber"); // int
+        ar.archive_ex(Symbol(WorkingDir), "WorkingDir"); // string
+        ar.archive_ex(PIntegrals, "PIntegrals");
+        ar.archive_ex(MIntegrals, "MIntegrals");
+        ar.archive_ex(Rules, "Rules");
+        ar.archive_ex(IsAlwaysZero, "IsAlwaysZero"); // bool
+        
+        ofstream out(garfn);
+        out << ar;
+        out.close();
+    }
+    
+    void Base::Import(string garfn) {
+        archive ar;
+        ifstream in(garfn);
+        in >> ar;
+        in.close();
+        
+        Internal = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Internal"));
+        External = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "External"));
+        Replacements = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Replacements"));
+        Propagators = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Propagators"));
+        Cuts = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Cuts"));
+        DSP = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "DSP"));
+        ISP = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "ISP"));
+        
+        int n = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "NShift")).to_int();
+        for(int i=0; i<n; i++) {
+            int key = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, ("ShiftK-"+to_string(i)).c_str())).to_int();
+            ex val = ar.unarchive_ex(GiNaC_archive_Symbols, ("ShiftV-"+to_string(i)).c_str());
+            Shift[key] = val;
+        }
+        
+        reCut = !(ar.unarchive_ex(GiNaC_archive_Symbols,"reCut").is_zero()); // bool
+        ProblemNumber = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "ProblemNumber")).to_int(); // int
+        WorkingDir = ex_to<Symbol>(ar.unarchive_ex(GiNaC_archive_Symbols, "WorkingDir")).get_name();
+        PIntegrals = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "PIntegrals"));
+        MIntegrals = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "MIntegrals"));
+        Rules = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Rules"));
+        IsAlwaysZero = !(ar.unarchive_ex(GiNaC_archive_Symbols,"ååIsAlwaysZero").is_zero()); // bool
+    
+    }
+    
     /**
      * @brief Sort for all permuations, and return xs w.r.t. 1st permutation
      * @param in_expr the input expression, as the sort key, no need of polynormial of xs
@@ -37,6 +98,7 @@ namespace HepLib::IBP {
         lst xRepl;
         map<ex,vector<int>,ex_is_less> pgrp;
         if(!expr.is_polynomial(xs)) {
+            if(Verbose>2) cout << "SortPermutation: NOT a polynomials, try ALL permutations!" << endl;
             expr = expr.numer_denom();
             if(true || !expr.op(0).is_polynomial(xs) || !expr.op(1).is_polynomial(xs)) {
                 isPoly = false;
@@ -131,7 +193,11 @@ namespace HepLib::IBP {
                     if(vi[j]!=vi2[j]) x2x[xs.op(vi[j])]=xs.op(vi2[j]);
                 }
                 ex expr2 = expr.subs(x2x);
+                #ifdef using_sort_cache
+                if(ex_less_cache(expr2,expr1,sort_cache)) {
+                #else
                 if(ex_less(expr2,expr1)) {
+                #endif
                     expr1 = expr2;
                     xRepl1 = ex_to<lst>(xRepl.subs(x2x));
                 }
@@ -209,15 +275,17 @@ namespace HepLib::IBP {
         exmap & cache = cache_by_prop[lst{props,base.Internal}];
         if(!using_cache || cache.find(key)==cache.end()) { // no cache item
             ut = 1;
+            ft = expand_ex(ft);
+            ft = subs_all(ft, base.Replacements);
             for(int i=0; i<base.Internal.nops(); i++) {
-                ft = expand(ft);
-                ft = subs_all(ft, base.Replacements);
                 auto t2 = ft.coeff(base.Internal.op(i),2);
                 auto t1 = ft.coeff(base.Internal.op(i),1);
                 auto t0 = ft.subs(base.Internal.op(i)==0);
                 ut *= t2;
                 if(is_zero(t2)) return lst{0,0,1};
                 ft = exnormal(t0-t1*t1/(4*t2));
+                ft = expand_ex(ft);
+                ft = subs_all(ft, base.Replacements);
             }
             ft = exnormal(ut*ft);
             ft = exnormal(subs_all(ft, base.Replacements));
@@ -231,6 +299,7 @@ namespace HepLib::IBP {
             ft = cc.op(1);
             uf = cc.op(2);
         }
+
         ut = ut.subs(x2ax);
         ft = ft.subs(x2ax);
         uf = uf.subs(x2ax);
@@ -326,30 +395,34 @@ namespace HepLib::IBP {
         exmap & cache = cache_by_prop[lst{ps,loops,tloops}];
         if(!using_cache || cache.find(key)==cache.end()) { // no cache item
             ut1 = 1;
+            ft = expand(ft);
+            ft = subs_all(ft, lsubs);
             for(int i=0; i<loops.nops(); i++) {
-                ft = expand(ft);
-                ft = subs_all(ft, lsubs);
                 auto t2 = ft.coeff(loops.op(i),2);
                 auto t1 = ft.coeff(loops.op(i),1);
                 auto t0 = ft.subs(loops.op(i)==0);
                 ut1 *= t2;
                 if(is_zero(t2)) return lst{0,0,0,1};
                 ft = exnormal(t0-t1*t1/(4*t2));
+                ft = expand(ft);
+                ft = subs_all(ft, lsubs);
             }
             ft = exnormal(ut1*ft);
             ft = exnormal(subs_all(ft, lsubs));
             ut1 = exnormal(subs_all(ut1, lsubs));
 
             ut2 = 1;
+            ft = expand(ft);
+            ft = subs_all(ft, tsubs);
             for(int i=0; i<tloops.nops(); i++) {
-                ft = expand(ft);
-                ft = subs_all(ft, tsubs);
                 auto t2 = ft.coeff(tloops.op(i),2);
                 auto t1 = ft.coeff(tloops.op(i),1);
                 auto t0 = ft.subs(tloops.op(i)==0);
                 ut2 *= t2;
                 if(is_zero(t2)) return lst{0,0,0,1};
                 ft = exnormal(t0-t1*t1/(4*t2));
+                ft = expand(ft);
+                ft = subs_all(ft, tsubs);
             }
             ft = exnormal(ut2*ft);
             ft = exnormal(subs_all(ft, tsubs));
@@ -418,7 +491,10 @@ namespace HepLib::IBP {
             int nk = ks.nops()-1;
             lst key;
             for(int i=0; i<nk; i++) key.append(expand(ks.op(i)));
-            return lst{ key, lst{ ks.op(nk), mi } }; // ks.op(nk) -> the sign
+            lst pi = fi.Propagators; 
+            sort_lst(pi);
+            return lst{ key, lst{ pi, ks.op(nk), mi } }; 
+            // ks.op(nk) -> the sign, 1st in lst used for sorting and must update n0=1 below
         }, "FR");
             
         map<ex,lst,ex_is_less> group;
@@ -434,17 +510,18 @@ namespace HepLib::IBP {
         for(auto g : group) {
             lst gs = ex_to<lst>(g.second);
             sort_lst(gs);
-            auto c0 = gs.op(0).op(0);
-            auto v0 = gs.op(0).op(1);
+            int n0 = 1;
+            auto c0 = gs.op(0).op(0+n0);
+            auto v0 = gs.op(0).op(1+n0);
             for(int i=1; i<gs.nops(); i++) {
-                auto ci = gs.op(i).op(0);
-                auto vi = gs.op(i).op(1);
+                auto ci = gs.op(i).op(0+n0);
+                auto vi = gs.op(i).op(1+n0);
                 rules[vi] = v0 * c0 / ci;
             }
             int_lst.append(v0);
         }
         
-        if(Verbose>2) cout << "  \\--FindRules: " << ntotal << " :> " << int_lst.nops() << " @ " << now(false) << endl;
+        if(Verbose>2) cout << "  \\--FindRules: " << WHITE << ntotal << " :> " << int_lst.nops() << RESET << " @ " << now(false) << endl;
         return make_pair(rules,int_lst);
     }
     
@@ -561,15 +638,17 @@ namespace HepLib::IBP {
         }
         
         ex ut = 1;
+        ft = expand(ft);
+        ft = subs_all(ft, Replacements);
         for(int i=0; i<Internal.nops(); i++) {
-            ft = expand(ft);
-            ft = subs_all(ft, Replacements);
             auto t2 = ft.coeff(Internal.op(i),2);
             auto t1 = ft.coeff(Internal.op(i),1);
             auto t0 = ft.subs(Internal.op(i)==0);
             ut *= t2;
             if(is_zero(t2)) return true;
             ft = exnormal(t0-t1*t1/(4*t2));
+            ft = expand(ft);
+            ft = subs_all(ft, Replacements);
         }
         ut = exnormal(subs_all(ut, Replacements));
         ft = exnormal(ut*ft);
