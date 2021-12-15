@@ -193,21 +193,56 @@ namespace HepLib::IBP {
         
         // Lee Zero Sector
         if(true) {
+            exset sectors;
             IsAlwaysZero = true;
             lst ns0;
             for(int i=0; i<pdim; i++) ns0.append(1);
             long long tot = std::pow(2LL,pdim);
+            
             for(long long n=0; n<tot; n++) {
                 int cn = n;
-                lst ns1 = ns0;
                 lst sector = ns0;
                 for(int j=0; j<pdim; j++) {
-                    if((cn%2)==1) { ns1.let_op(j) = -1; sector.let_op(j) = 0; }
+                    if((cn%2)==1) sector.let_op(j) = 0;
                     cn /= 2;
                 }
-                if(IsZero(sector)) Rlst.append(ns1);
-                else if(IsAlwaysZero) IsAlwaysZero = false;
-            } 
+                sectors.insert(sector);
+            }
+            
+            while(!sectors.empty()) {
+                auto first = *(sectors.begin());
+                sectors.erase(first);
+                
+                auto sector = ex_to<lst>(first);
+                if(IsZero(sector)) { // from LiteRed: all subsector is zero
+                    lst ns1 = sector;
+                    for(int j=0; j<pdim; j++) {
+                        if(sector.op(j).is_zero()) ns1.let_op(j) = -1;
+                    }
+                    Rlst.append(ns1);
+                    exset subsets;
+                    for(auto item : sectors) {
+                        bool ok = true;
+                        for(int j=0; j<pdim; j++) {
+                            if(sector.op(j)<item.op(j)) { ok = false; break; }
+                        }
+                        if(ok) subsets.insert(item);
+                    }
+                    for(auto item : subsets) sectors.erase(item);
+                } else { // from LiteRed: all supersector is non-zero
+                    if(IsAlwaysZero) IsAlwaysZero = false;
+                    exset supsets;
+                    for(auto item : sectors) {
+                        bool ok = true;
+                        for(int j=0; j<pdim; j++) {
+                            if(sector.op(j)>item.op(j)) { ok = false; break; }
+                        }
+                        if(ok) supsets.insert(item);
+                    }
+                    for(auto item : supsets) sectors.erase(item);
+                }
+            }
+            
             if(IsAlwaysZero) {
                 lst ws;
                 int pdim = Propagators.nops();

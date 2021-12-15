@@ -43,7 +43,7 @@ namespace HepLib {
     int Verbose = 0;
     bool Debug = false;
     int GiNaC_Parallel_Process = -1;
-    int GiNaC_Parallel_BatchMax = 100;
+    int GiNaC_Parallel_BatchMax = 999;
     const Symbol D("D");
     bool fermat_using_array = false;
     bool using_cache = true;

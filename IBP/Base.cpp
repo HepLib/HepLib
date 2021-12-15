@@ -79,7 +79,7 @@ namespace HepLib::IBP {
         PIntegrals = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "PIntegrals"));
         MIntegrals = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "MIntegrals"));
         Rules = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Rules"));
-        IsAlwaysZero = !(ar.unarchive_ex(GiNaC_archive_Symbols,"ååIsAlwaysZero").is_zero()); // bool
+        IsAlwaysZero = !(ar.unarchive_ex(GiNaC_archive_Symbols,"IsAlwaysZero").is_zero()); // bool
     
     }
     

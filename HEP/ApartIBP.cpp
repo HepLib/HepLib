@@ -705,35 +705,67 @@ namespace HepLib {
     
     namespace {
 
-        void FRSave(pair<exmap,lst> &fr, string garfn) {
+        void FRSave(string fpre, exmap &AIR2F, vector<IBP::Base*> &ibp_vec, pair<exmap,lst> &int_fr) {
             archive ar;
-            ar.archive_ex(fr.first.size(), "size");
+            
+            ar.archive_ex(AIR2F.size(), "air_size");
             int i=0;
-            for(auto kv : fr.first) {
-                ar.archive_ex(kv.first, to_string(2*i).c_str());
-                ar.archive_ex(kv.second, to_string(2*i+1).c_str());
+            for(auto kv : AIR2F) {
+                ar.archive_ex(kv.first, ("air_"+to_string(2*i)).c_str());
+                ar.archive_ex(kv.second, ("air_"+to_string(2*i+1)).c_str());
                 i++;
             }
-            ar.archive_ex(fr.second, "2nd");
-            ofstream out(garfn);
+            
+            ar.archive_ex(ibp_vec.size(), "ibp_size");
+            for(int i=0; i<ibp_vec.size(); i++) ibp_vec[i]->Export(fpre+"-ibp-"+to_string(i)+".gar");
+            
+            ar.archive_ex(int_fr.first.size(), "fr_size");
+            i=0;
+            for(auto kv : int_fr.first) {
+                ar.archive_ex(kv.first, ("fr_"+to_string(2*i)).c_str());
+                ar.archive_ex(kv.second, ("fr_"+to_string(2*i+1)).c_str());
+                i++;
+            }
+            ar.archive_ex(int_fr.second, "fr_2nd");
+            
+            ofstream out(fpre+".gar");
             out << ar;
             out.close();
         }
-        
-        pair<exmap,lst> FRImport(string garfn) {
+
+        void FRImport(string fpre, exmap &AIR2F, vector<IBP::Base*> &ibp_vec, pair<exmap,lst> &int_fr, int IBPmethod) {
             archive ar;
-            ifstream in(garfn);
+            ifstream in(fpre+".gar");
             in >> ar;
             in.close();
-            auto lst2 = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "2nd"));
-            auto size = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "size")).to_int();
-            exmap map;
+            
+            auto size = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "air_size")).to_int();
             for(int i=0; i<size; i++) {
-                ex k = ar.unarchive_ex(GiNaC_archive_Symbols, to_string(2*i).c_str());
-                ex v = ar.unarchive_ex(GiNaC_archive_Symbols, to_string(2*i+1).c_str());
-                map[k] = v;
+                ex k = ar.unarchive_ex(GiNaC_archive_Symbols, ("air_"+to_string(2*i)).c_str());
+                ex v = ar.unarchive_ex(GiNaC_archive_Symbols, ("air_"+to_string(2*i+1)).c_str());
+                AIR2F[k] = v;
             }
-            return make_pair(map,lst2);
+            
+            size = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "ibp_size")).to_int();
+            for(int i=0; i<size; i++) {
+                IBP::Base* ibp;
+                if(IBPmethod==0) ibp = new Base();
+                else if(IBPmethod==1) ibp = new FIRE();
+                else if(IBPmethod==2) ibp = new KIRA();
+                else if(IBPmethod==3) ibp = new UKIRA();
+                else ibp = new Base();
+                ibp->Import(fpre+"-ibp-"+to_string(i)+".gar");
+                ibp_vec.push_back(ibp);
+            }
+            
+            int_fr.second = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "fr_2nd"));
+            size = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "fr_size")).to_int();
+            for(int i=0; i<size; i++) {
+                ex k = ar.unarchive_ex(GiNaC_archive_Symbols, ("fr_"+to_string(2*i)).c_str());
+                ex v = ar.unarchive_ex(GiNaC_archive_Symbols, ("fr_"+to_string(2*i+1)).c_str());
+                int_fr.first[k] = v;
+            }
+            
         }
     }
     
@@ -844,7 +876,7 @@ namespace HepLib {
         vector<IBP::Base*> ibp_vec;
         pair<exmap,lst> int_fr;
         if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/FR.gar")) {
-            int_fr = FRImport(aio.SaveDir+"/FR.gar");
+            FRImport(aio.SaveDir+"/FR", AIR2F, ibp_vec, int_fr, IBPmethod);
             goto FR_Done;
         }
         
@@ -931,7 +963,7 @@ namespace HepLib {
                 vector<Base*> base_vec;
                 for(auto ibp : ibp_vec) base_vec.push_back(ibp);
                 int_fr = FindRules(base_vec, false, aio.UF);
-                if(aio.SaveDir != "") FRSave(int_fr, aio.SaveDir+"/FR.gar");
+                if(aio.SaveDir != "") FRSave(aio.SaveDir+"/FR", AIR2F, ibp_vec, int_fr);
             }
         }
         FR_Done: ;
@@ -981,7 +1013,7 @@ namespace HepLib {
             if(true) { // scope for fi_vec / mi_vec
                 exvector fi_vec;
                 for(auto kv : AIR2F) fi_vec.push_back(kv.second);
-                auto mi_vec = GiNaC_Parallel(fi_vec.size(), 1, [&fi_vec,&int_fr,&_F2ex,&aio](int idx)->ex {
+                auto mi_vec = GiNaC_Parallel(fi_vec.size(), [&fi_vec,&int_fr,&_F2ex,&aio](int idx)->ex {
                     ex res = fi_vec[idx];
                     res = res.subs(int_fr.first);
                     res = _F2ex(res);
@@ -1004,10 +1036,10 @@ namespace HepLib {
         }
         
         if(IBPmethod==1) {
-            auto pRes = GiNaC_Parallel(ibp_vec_re.size(), 5, [&ibp_vec_re](int idx)->ex {
+            auto pRes = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
                 ibp_vec_re[idx]->Export();
                 return lst{ ibp_vec_re[idx]->IsAlwaysZero ? 1 : 0, ibp_vec_re[idx]->Rules };
-            }, "ExPo");
+            }, "Expo");
             for(int i=0; i<ibp_vec_re.size(); i++) {
                 ibp_vec_re[i]->IsAlwaysZero = (pRes[i].op(0)==1 ? true : false);
                 ibp_vec_re[i]->Rules = ex_to<lst>(pRes[i].op(1));
@@ -1048,7 +1080,7 @@ namespace HepLib {
                 air_vec.push_back(kv.first);
                 fi_vec.push_back(kv.second);
             }
-            auto mi_vec = GiNaC_Parallel(fi_vec.size(), 1, [&fi_vec,&int_fr,&ibpr,&mi_fr,&_F2ex,&aio](int idx)->ex {
+            auto mi_vec = GiNaC_Parallel(fi_vec.size(), [&fi_vec,&int_fr,&ibpr,&mi_fr,&_F2ex,&aio](int idx)->ex {
                 ex res = fi_vec[idx];
                 res = res.subs(int_fr.first);
                 res = res.subs(ibpr);
