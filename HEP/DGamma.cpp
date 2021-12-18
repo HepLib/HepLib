@@ -101,10 +101,10 @@ namespace HepLib {
     
     void DGamma::print(const print_dflt &c, unsigned level) const {
         if(is_zero(pi-1)) {
-            c.s << "𝕚";
+            c.s << "\u0130";
             return;
         }
-        c.s << "(" << "𝛾";
+        c.s << "(" << "\u0263";
         if(is_a<numeric>(pi)) c.s << pi;
         else c.s << "." << pi;
         c.s << ")";

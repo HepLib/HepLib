@@ -26,6 +26,15 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Symbol
     /*-----------------------------------------------------*/
+    
+    namespace {
+        const symbol & get_symbol(const string & s) {
+            static map<string, symbol> dict;
+            string key = "_Symbol_"+s;
+            if (dict.find(key) == dict.end()) dict[key] = symbol(s);
+            return dict[key];
+        }
+    }   
 
     DEFAULT_CTOR(Symbol)
     GINAC_BIND_UNARCHIVER(Symbol);
@@ -61,7 +70,6 @@ namespace HepLib {
      */
     void Symbol::read_archive(const archive_node& n, lst& sym_lst) {
         inherited::read_archive(n, sym_lst);
-        bool is_real;
         *this = Symbol(get_name());
     }
     
@@ -71,8 +79,9 @@ namespace HepLib {
     ex Symbol::real_part() const { return *this; }
     ex Symbol::imag_part() const { return 0; }
     unsigned Symbol::calchash() const {
-        static unsigned _hash = symbol("_").gethash();
-        return _hash;
+        static std::map<string,unsigned> hm;
+        if(hm.find(name)==hm.end()) hm[name] = symbol("_Symbol_"+name).gethash();
+        return hm[name];
     }
     
     void Symbol::set(const ex & v) const { vmap[*this] = v; }
@@ -283,18 +292,6 @@ namespace HepLib {
             else if(Verbose > 1) cout << "\r                                                   \r" << flush;
         }
         return ovec;
-    }
-    
-    /**
-     * @brief get the symbol from symbol factory, if not exsit, a new one will be created
-     * @param s the name of the symbol
-     * @return return the found/created symbol
-     */
-    const symbol & get_symbol(const string & s) {
-        static map<string, symbol> directory;
-        map<string, symbol>::iterator i = directory.find(s);
-        if (i != directory.end()) return i->second;
-        else return directory.insert(make_pair(s, symbol(s))).first->second;
     }
 
     /**
@@ -1882,7 +1879,7 @@ namespace HepLib {
      * @return factorized result
      */
     ex exnormal(const ex & expr, int opt) {
-        if(opt==1) return normal_fermat(expr,true);
+        if(opt==1) return normal_fermat(expr);
         else return normal(expr);
     }
     
@@ -2310,9 +2307,21 @@ namespace HepLib {
         auto size = ex_to<numeric>(garRead(garfn+".gar")).to_int();
         if(exv.size()>0) {
             if(size != exv.size()) throw Error("size not matched.");
-            for(int i=0; i<size; i++) exv[i] = garRead(garfn+"-"+to_string(i)+".gar");
+            for(int i=0; i<size; i++) {
+                archive ar;
+                ifstream in(garfn+"-"+to_string(i)+".gar");
+                in >> ar;
+                in.close();
+                exv[i] = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
+            }
         } else {
-            for(int i=0; i<size; i++) exv.push_back(garRead(garfn+"-"+to_string(i)+".gar"));
+            for(int i=0; i<size; i++) {
+                archive ar;
+                ifstream in(garfn+"-"+to_string(i)+".gar");
+                in >> ar;
+                in.close();
+                exv.push_back(ar.unarchive_ex(GiNaC_archive_Symbols, "res"));
+            }
         }
     } 
     

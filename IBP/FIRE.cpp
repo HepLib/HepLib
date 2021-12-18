@@ -12,6 +12,9 @@ namespace HepLib::IBP {
      * @brief Export start config intgral etc. files
      */
     void FIRE::Export() {
+        // check already exported, used while restarting from check point
+        if(file_exists(WorkingDir+"/"+to_string(ProblemNumber)+".intg")) return;
+    
         int pdim = Propagators.nops();
         if(Integrals.nops()<1) return;
         int pn = 0; // to avoid unsigned short overflow in FIRE
@@ -82,6 +85,7 @@ namespace HepLib::IBP {
                 tmp = tmp.subs(Replacements, subs_options::algebraic);
                 tmp = tmp.subs(sp2s, subs_options::algebraic);
                 tmp = tmp.subs(s2p, subs_options::algebraic);
+                tmp = tmp.subs(Replacements, subs_options::algebraic); // TODO: need to check
                 tmp = ex(0) - (Shift[i+1]+a(i+1))*tmp; // note Shift here
 
                 for(int j=0; j<pdim; j++) {
@@ -108,6 +112,14 @@ namespace HepLib::IBP {
         }
 
         auto Variables = gather_symbols(IBPvec);
+        for(auto e : External) {
+            if(Variables.has(e)) {
+                cout << "IBPvec: " << IBPvec << endl;
+                cout << "Replacements: " << Replacements << endl;
+                cout << "Variables: " << Variables << endl;
+                throw Error("FIRE: Replacement NOT work!");
+            }
+        }
         
         ostringstream start;
 
@@ -301,8 +313,11 @@ namespace HepLib::IBP {
         config << "#variables ";
         bool first = true;
         for(auto v : Variables) { 
-            if(!islower(ex_to<symbol>(v).get_name()[0])) 
-                throw Error("Reduce: Fermat requires a name must begin with a lower case letter.");
+            if(!islower(ex_to<symbol>(v).get_name()[0])) {
+                cout << "Replacements: " << Replacements << endl;
+                cout << "IBPvec: " << IBPvec << endl;
+                throw Error("FIRE: Fermat requires a name must begin with a lower case letter: "+ex_to<symbol>(v).get_name());
+            }
             config << (first ? "" : ",") << v; 
             first=false; 
         }
@@ -351,7 +366,7 @@ namespace HepLib::IBP {
         ofstream intg_out(WorkingDir+"/"+spn+".intg");
         intg_out << intg.str() << endl;
         intg_out.close();
-    
+        
     }
     
     /**
@@ -359,18 +374,23 @@ namespace HepLib::IBP {
      */
     void FIRE::Run() {
         if(IsAlwaysZero) return;
-        ostringstream cmd;
-        cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << ")";
-        if(Version>5) cmd << " -silent -parallel";
-        cmd << " -c " << ProblemNumber << " >/dev/null";
-        system(cmd.str().c_str());
-        system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());
-        if(!file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) {
+        if(file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) return;
+        int tried = 0;
+        while(tried<3) {
+            tried++;
+            ostringstream cmd;
+            cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << ")";
+            if(Version>5) cmd << " -silent -parallel";
+            cmd << " -c " << ProblemNumber << " >/dev/null";
             system(cmd.str().c_str());
             system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());
+            if(file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) break;
+            system("sleep 3");
+        }
+        if(!file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) {
             cout << "Propagators: " << Propagators << endl;
             throw Error("FIRE::Run failed!");
-        }
+        }    
     }
     
     /**

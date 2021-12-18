@@ -1,6 +1,7 @@
 #include "BASIC.h"
 #include <netdb.h>
 #include <getopt.h>
+#include <dlfcn.h>
 
 using namespace std;
 using namespace HepLib;
@@ -27,10 +28,9 @@ int main(int argc, char** argv) {
             case 'p': arg_p = optarg; break;
             case 's': arg_s = optarg; break;
             default:
-                cout << "A ParRun Client" << endl;
-                cout << "Supported Options:" << endl;
-                cout << "  --port: server port @server/@client." << endl;
-                cout << "  --server: server ip or hostname @client." << endl;
+                cout << "A ParRun Client with supported options:" << endl;
+                cout << "  --port: server port." << endl;
+                cout << "  --server: server ip or hostname." << endl;
                 exit(1);
         }
     }
@@ -80,29 +80,21 @@ int main(int argc, char** argv) {
         std::string data = buf;
         close(sockfd);  
         
-        if(file_exists(data+".log")) continue;
-        // check .exit
-        auto pid = getpid();
-        if(file_exists(to_string(pid)+".exit")) exit(0);
+        void* module = dlopen("dll.so", RTLD_NOW);
+        if(module == nullptr) {
+            module = dlopen("dll.so", RTLD_NOW);
+            if(module == nullptr) {
+                cout << "dlerror(): " << dlerror() << endl;
+                throw Error("Integrates: could not open main module!");
+            }
+        }
         
-//        std::string cmd = arg_c;
-//        string_replace_all(cmd, "[i]", data);
-//        system(cmd.c_str());
-        
-//        void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW);
-//        if(main_module == nullptr) {
-//            main_module = dlopen(("./"+sofn.str()).c_str(), RTLD_NOW);
-//            if(main_module == nullptr) {
-//                cout << "dlerror(): " << dlerror() << endl;
-//                throw Error("Integrates: could not open main module!");
-//            }
-//        }
-        
-//        fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-//        if(fp==NULL) {
-//            cout << "dlerror(): " << dlerror() << endl;
-//            throw Error("Integrates: fp==NULL");
-//        }
+        auto run = (RUN)dlsym(module, "ParRun");
+        if(run==NULL) {
+            cout << "dlerror(): " << dlerror() << endl;
+            throw Error("Integrates: fp==NULL");
+        }
+        run();
             
     }    
     

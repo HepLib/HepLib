@@ -33,10 +33,11 @@ namespace HepLib::IBP {
         ar.archive_ex(ISP, "ISP");
         
         ar.archive_ex(Shift.size(), "NShift");
-        int n = 0;
+        int i = 0;
         for(auto kv : Shift) {
-            ar.archive_ex(kv.first, ("ShiftK-"+to_string(n)).c_str());
-            ar.archive_ex(kv.second, ("ShiftV-"+to_string(n)).c_str());
+            ar.archive_ex(kv.first, ("ShiftK-"+to_string(i)).c_str());
+            ar.archive_ex(kv.second, ("ShiftV-"+to_string(i)).c_str());
+            i++;
         }
         
         ar.archive_ex(reCut, "reCut"); // bool
@@ -472,16 +473,8 @@ namespace HepLib::IBP {
      */
     pair<exmap,lst> FindRules(vector<Base*> fs, bool mi, std::function<lst(const Base &, const ex &)> uf) {
         vector<pair<Base*,ex>> ibp_idx_vec;
-        exset vs;
-        for(auto fi : fs) {
-            if(mi) for(auto item : fi->MIntegrals) ibp_idx_vec.push_back(make_pair(fi, item));
-            else for(auto item : fi->Integrals) ibp_idx_vec.push_back(make_pair(fi, F(fi->ProblemNumber,item)));
-            for(auto e : fi->Replacements) {
-                for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
-                    if(is_a<symbol>(*i)) vs.insert(*i);
-                }
-            }
-        }
+        if(mi) for(auto fi : fs) for(auto item : fi->MIntegrals) ibp_idx_vec.push_back(make_pair(fi, item));
+        else for(auto fi : fs) for(auto item : fi->Integrals) ibp_idx_vec.push_back(make_pair(fi, F(fi->ProblemNumber,item)));
         
         exvector uf_smi_vec = GiNaC_Parallel(ibp_idx_vec.size(), [&ibp_idx_vec,&uf](int idx)->ex {
             auto p = ibp_idx_vec[idx];

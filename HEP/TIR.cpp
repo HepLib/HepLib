@@ -278,8 +278,7 @@ namespace HepLib {
                     if(using_cache) cache_map[map_key] = ret;
                     return ret;
                 }
-            } else if (!e.has(coVF(w))) return e;
-            else return e.map(self);
+            } else return e.map(self);
         })(expr);
         
         return expr;        

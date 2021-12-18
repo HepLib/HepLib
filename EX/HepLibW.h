@@ -388,7 +388,6 @@ class AIOption {
     exvec CSP; // SP in Cuts, to be cleared. optional
     exvec ISP; // SP for IBP. optional
     bool CutFirst = true;
-    int mcl = 1; // collect_ex level, 0-nothing, 1-exnormal, 2-exfactor
 };
 void ApartIBP(int IBPmethod, std::vector<expr> &io_vec, AIOption aip);
 

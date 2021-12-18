@@ -148,8 +148,7 @@ namespace HepLib::QGRAF {
             if(e.match(iWF(w))) {
                 auto vid = fid2vid[e.op(0)];
                 return lst{vid, vid2fs[vid]};
-            } else if(!e.has(iWF(w))) return e;
-            else return e.map(self);
+            } else return e.map(self);
         })(lines));
         
         return lines.sort();

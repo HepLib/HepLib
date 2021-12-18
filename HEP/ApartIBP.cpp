@@ -48,8 +48,7 @@ namespace HepLib {
                     ret *= pow(sum, mat(mat.rows()-1,c));
                 }
                 return ret;
-            } else if(!e.has((ApartIR(w))) && !e.has((ApartIR(w1,w2)))) return e;
-            else return e.map(self);
+            } else return e.map(self);
         })(ret);
         return ret;
     }
@@ -81,8 +80,7 @@ namespace HepLib {
                     ns.append(item.op(1));
                 }
                 return F(ps, ns);
-            } else if(!e.has((ApartIR(w))) && !e.has((ApartIR(w1,w2)))) return e;
-            else return e.map(self);
+            } else return e.map(self);
         })(ret);
         return ret;
     }
@@ -101,8 +99,7 @@ namespace HepLib {
                 ex res = 1;
                 for(int i=0; i<ps.nops(); i++) res *= pow(ps.op(i), ex(0)-ns.op(i));
                 return res;
-            } else if(!e.has((F(w1,w2)))) return e;
-            else return e.map(self);
+            } else return e.map(self);
         })(ret);
         return ret;
      }
@@ -660,8 +657,7 @@ namespace HepLib {
      */
     ex ApartIRC(const ex & expr_in) {
         return MapFunction([](const ex & e, MapFunction &self)->ex {
-            if(!e.has(ApartIR(w1,w2))) return e;
-            else if(e.match(ApartIR(w1,w2))) {
+            if(e.match(ApartIR(w1,w2))) {
                 int n = e.op(1).nops();
                 if((e.op(0)).is_equal(1)) {
                     matrix mat(n+2,n);
@@ -717,7 +713,10 @@ namespace HepLib {
             }
             
             ar.archive_ex(ibp_vec.size(), "ibp_size");
-            for(int i=0; i<ibp_vec.size(); i++) ibp_vec[i]->Export(fpre+"-ibp-"+to_string(i)+".gar");
+            GiNaC_Parallel(ibp_vec.size(), [fpre,&ibp_vec](int i) { 
+                ibp_vec[i]->Export(fpre+"-ibp-"+to_string(i)+".gar");
+                return 0;
+            }, "ibpEx");
             
             ar.archive_ex(int_fr.first.size(), "fr_size");
             i=0;
@@ -779,10 +778,6 @@ namespace HepLib {
     void ApartIBP(exvector &air_vec, AIOption aio) {
         if(aio.smap.size()<1) aio.init_smap();
         int IBPmethod = aio.IBPmethod;
-        string wdir = to_string(getpid());
-        if(IBPmethod==1) wdir = wdir + "_FIRE";
-        else if(IBPmethod==2) wdir = wdir + "_KIRA";
-        else if(IBPmethod==3) wdir = wdir + "_UKIRA";
         
         lst lmom = ex_to<lst>(aio.Internal);
         lst emom = ex_to<lst>(aio.External);
@@ -792,7 +787,7 @@ namespace HepLib {
                 exVectorGet(air_vec, aio.SaveDir+"/ApIRC");
                 goto ApIRC_Done;
             } else system(("mkdir -p "+aio.SaveDir).c_str());
-        }
+        } 
         
         if(true) {
             bool aparted = false;
@@ -853,6 +848,18 @@ namespace HepLib {
         }
         ApIRC_Done: ;
         
+        string wdir;
+        if(aio.SaveDir != "") {
+            if(IBPmethod==1) wdir = aio.SaveDir + "/FIRE";
+            else if(IBPmethod==2) wdir = aio.SaveDir + "/KIRA";
+            else if(IBPmethod==3) wdir = aio.SaveDir + "/UKIRA";
+        } else {
+            wdir = to_string(getpid());
+            if(IBPmethod==1) wdir = wdir + "_FIRE";
+            else if(IBPmethod==2) wdir = wdir + "_KIRA";
+            else if(IBPmethod==3) wdir = wdir + "_UKIRA";
+        }
+        
         if(Verbose>0) cout << "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction @ " << now(false) << endl;
         
         for(auto sp : aio.CSP) SP_map.erase(sp);
@@ -877,6 +884,7 @@ namespace HepLib {
         pair<exmap,lst> int_fr;
         if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/FR.gar")) {
             FRImport(aio.SaveDir+"/FR", AIR2F, ibp_vec, int_fr, IBPmethod);
+            for(auto ibp : ibp_vec) ibp->WorkingDir = wdir; // update working directory
             goto FR_Done;
         }
         
@@ -988,8 +996,7 @@ namespace HepLib {
         } 
         
         MapFunction _F2ex([ibp_vec,aio](const ex &e, MapFunction &self)->ex {
-            if(!e.has(F(w1,w2))) return e;
-            else if(e.match(F(w1,w2))) {
+            if(e.match(F(w1,w2))) {
                 int pn = ex_to<numeric>(e.op(0)).to_int();
                 auto pso = ex_to<lst>(ibp_vec[pn-1]->Propagators);
                 auto nso = ex_to<lst>(e.op(1));
@@ -1004,8 +1011,7 @@ namespace HepLib {
         });
         
         MapFunction _AIR2F([&AIR2F](const ex &e, MapFunction &self)->ex {
-            if(!e.has(ApartIR(w1,w2))) return e;
-            else if(e.match(ApartIR(w1,w2))) return AIR2F[e];
+            if(e.match(ApartIR(w1,w2))) return AIR2F[e];
             else return e.map(self);
         });
         
@@ -1017,7 +1023,6 @@ namespace HepLib {
                     ex res = fi_vec[idx];
                     res = res.subs(int_fr.first);
                     res = _F2ex(res);
-                    res = collect_o(res,F(w1,w2),aio.mcl);
                     return res;
                 }, "F2MI");
                 for(int i=0; i<mi_vec.size(); i++) AIR2F[fi_vec[i]] = mi_vec[i];
@@ -1029,7 +1034,7 @@ namespace HepLib {
             }, "A2F");
             
             for(auto fp : ibp_vec) delete fp;
-            system(("rm -rf "+wdir).c_str());
+            if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
 
             for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];
             return;
@@ -1044,7 +1049,6 @@ namespace HepLib {
                 ibp_vec_re[i]->IsAlwaysZero = (pRes[i].op(0)==1 ? true : false);
                 ibp_vec_re[i]->Rules = ex_to<lst>(pRes[i].op(1));
             }
-            //for(auto ibp : ibp_vec_re) ibp->Export();
             
             auto nproc = 2*CpuCores()/FIRE::Threads;
             int cproc = 0;
@@ -1059,19 +1063,30 @@ namespace HepLib {
             }
             if(Verbose>1) cout << "@" << now(false) << endl;
             for(auto item : ibp_vec_re) item->Import();
-            system(("rm -rf "+wdir).c_str());
+            if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
         } else if(IBPmethod==2 || IBPmethod==3) {
             for(auto ibp : ibp_vec_re) ibp->Reduce();
-            system(("rm -rf "+wdir).c_str());
+            if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
         }
         
-        vector<Base*> base_re;
-        for(auto f : ibp_vec_re) base_re.push_back(f);
-        auto mi_fr = FindRules(base_re, true, aio.UF);
+        // Find Rules in MIs
+        auto mi_fr = FindRules(ibp_vec_re, true, aio.UF);
         
         exmap ibpr;
-        for(auto item : ibp_vec_re) {
-            for(auto ri : item->Rules) ibpr[ri.op(0)] = ri.op(1);
+        if(true) { // scope for ret
+            MapFunction _F2F([&mi_fr](const ex &e, MapFunction &self)->ex {
+                if(e.match(F(w1,w2))) return mi_fr.first[e];
+                else return e.map(self);
+            });
+            auto ris_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&_F2F](int idx)->ex {
+                ex rules = ibp_vec_re[idx]->Rules;
+                lst res;
+                for(auto ri : rules) res.append(lst { ri.op(0),  _F2F(ri.op(1).subs(d==D)) });
+                return res;
+            }, "FR2MI");
+            for(auto ris : ris_vec) {
+                for(auto ri : ris) ibpr[ri.op(0)] = ri.op(1);
+            }
         }
         
         if(true) { // scope for fi_vec / mi_vec
@@ -1084,10 +1099,7 @@ namespace HepLib {
                 ex res = fi_vec[idx];
                 res = res.subs(int_fr.first);
                 res = res.subs(ibpr);
-                res = res.subs(mi_fr.first);
-                res = res.subs(d==D);
                 res = _F2ex(res);
-                res = collect_o(res,F(w1,w2),aio.mcl);
                 return res;
             }, "F2MI");
             for(int i=0; i<fi_vec.size(); i++) AIR2F[air_vec[i]] = mi_vec[i];

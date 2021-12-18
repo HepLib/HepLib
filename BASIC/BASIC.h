@@ -166,14 +166,6 @@ namespace HepLib {
         Error(string _msg);
     };
 
-    /*-----------------------------------------------------*/
-    // Global Symbol
-    /*-----------------------------------------------------*/
-    const symbol & get_symbol(const string & s);
-
-    /*-----------------------------------------------------*/
-    // split
-    /*-----------------------------------------------------*/
     vector<std::string> split(const string& s, char delimiter);
 
 
@@ -408,7 +400,6 @@ namespace HepLib {
             return false;
         }, opt);
     }
-    
     
     inline lst collect_lst(const ex &expr, ex const &pat, int opt=0) {
         return collect_lst(expr, [pat](const ex & e)->bool { return e.has(pat); }, opt);
@@ -812,7 +803,7 @@ namespace HepLib {
     void exVectorGet(exvector &exv, string garfn);
     ex add_collect_normal(const exvector &exv, lst const &pats);
     
-    typedef ex (*IParRun) (int idx);
+    typedef void (*RUN)();
     exvector ParRun(lst elst, exvector input, string dll, string func);
  
 }

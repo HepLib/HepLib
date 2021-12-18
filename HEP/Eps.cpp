@@ -65,7 +65,7 @@ namespace HepLib {
     }
     
     void Eps::print(const print_dflt &c, unsigned level) const {
-        c.s << "𝜀" << "(";
+        c.s << "\u03B5" << "(";
         for(int i=0; i<3; i++) c.s << pis[i] << ",";
         c.s << pis[3] << ")";
     }

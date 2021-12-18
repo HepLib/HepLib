@@ -191,8 +191,7 @@ namespace HepLib::IBP {
                         lst tmp = ex_to<lst>(e.op(0));
                         tmp.let_op(i) = tmp.op(i)-1;
                         return F(tmp);
-                    } else if(!e.has(F(w))) return e;
-                    else return e.map(self);
+                    } else return e.map(self);
                 })(ci);
                 res += ci;
             }

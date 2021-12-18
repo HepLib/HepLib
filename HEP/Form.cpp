@@ -78,8 +78,7 @@ namespace HepLib {
         struct mapTR : public map_function {
         public:
             ex operator()(const ex &e) {
-                if (!e.has(TR(w))) return e;
-                else if (e.match(TR(w))) {
+                if (e.match(TR(w))) {
                     ex gs = e.op(0);
                     gline++;
                     gs = mapGamma(gline)(gs);

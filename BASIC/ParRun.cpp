@@ -8,43 +8,13 @@ namespace HepLib {
 
     string cpp = "c++";
     
-    exvector ParRun(lst elst, exvector input, string code_block) {
+    exvector ParRun(int total, string dir) {
         
-        auto pid = getpid();
-        ostringstream cmd;
-        cmd << "mkdir -p " << pid;
-        system(cmd.str().c_str());
-        cmd.clear();
-        cmd.str("");
-        
-        cmd << pid << "/ParRun.cpp";
-        ofstream out(cmd.str());
-        cmd.clear();
-        cmd.str("");
-        
-        out << "#include \"HepLib.h\"" << endl;
-        out << "ex ParRunFunc(lst input, int idx) {" << endl;
-        out << code_block << endl;
-        out << "}" << endl;
-        out.close();
-        
-        #ifdef _USE_FLOAT128
-        cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -D_USE_FLOAT128 -shared -lHepLib -lquadmath -lmpfr -lgmp " << " -o " << pid << "/ParRun.so " << pid << "/ParRun.cpp";
-        cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
-        #else
-        cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lmpfr -lgmp " << " -o " << pid << "/ParRun.so " << pid << "/ParRun.cpp";
-        cmd << " -lHepLib -lmpfr -lgmp";
-        #endif
-        system(cmd.str().c_str());
-        cmd.clear();
-        cmd.str("");
-    
         int socket_fd;
         struct sockaddr_in servaddr;  
         char buff[MAXSIZE];  
         
         int port = 8890;
-        int total = input.size();
         int round = 3;
         
         if( (socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1 ) {  
@@ -83,10 +53,7 @@ namespace HepLib {
                         continue;
                     }
                     
-                    cmd.clear();
-                    cmd.str("");
-                    cmd << pid << " " << current;
-                    string data = cmd.str();
+                    string data = dir+"/"+to_string(current);
                     if(send(connect_fd, data.c_str(),data.length(),0) == -1) perror("send error");
                     close(connect_fd);
                 }
