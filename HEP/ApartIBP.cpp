@@ -738,14 +738,21 @@ namespace HepLib {
             in >> ar;
             in.close();
             
-            auto size = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "air_size")).to_int();
+            map<string, ex> dict;
+            for(int i=0; i<ar.num_expressions(); i++) {
+                string name;
+                ex res = ar.unarchive_ex(GiNaC_archive_Symbols, name, i);
+                dict[name] = res;
+            }
+            
+            auto size = ex_to<numeric>(dict["air_size"]).to_int();
             for(int i=0; i<size; i++) {
-                ex k = ar.unarchive_ex(GiNaC_archive_Symbols, ("air_"+to_string(2*i)).c_str());
-                ex v = ar.unarchive_ex(GiNaC_archive_Symbols, ("air_"+to_string(2*i+1)).c_str());
+                ex k = dict["air_"+to_string(2*i)];
+                ex v = dict["air_"+to_string(2*i+1)];
                 AIR2F[k] = v;
             }
             
-            size = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "ibp_size")).to_int();
+            size = ex_to<numeric>(dict["ibp_size"]).to_int();
             for(int i=0; i<size; i++) {
                 IBP::Base* ibp;
                 if(IBPmethod==0) ibp = new Base();
@@ -757,11 +764,11 @@ namespace HepLib {
                 ibp_vec.push_back(ibp);
             }
             
-            int_fr.second = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "fr_2nd"));
-            size = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "fr_size")).to_int();
+            int_fr.second = ex_to<lst>(dict["fr_2nd"]);
+            size = ex_to<numeric>(dict["fr_size"]).to_int();
             for(int i=0; i<size; i++) {
-                ex k = ar.unarchive_ex(GiNaC_archive_Symbols, ("fr_"+to_string(2*i)).c_str());
-                ex v = ar.unarchive_ex(GiNaC_archive_Symbols, ("fr_"+to_string(2*i+1)).c_str());
+                ex k = dict["fr_"+to_string(2*i)];
+                ex v = dict["fr_"+to_string(2*i+1)];
                 int_fr.first[k] = v;
             }
             
@@ -1040,7 +1047,7 @@ namespace HepLib {
             return;
         }
         
-        if(IBPmethod==1) {
+        if(IBPmethod==1) { 
             auto pRes = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
                 ibp_vec_re[idx]->Export();
                 return lst{ ibp_vec_re[idx]->IsAlwaysZero ? 1 : 0, ibp_vec_re[idx]->Rules };
@@ -1062,7 +1069,23 @@ namespace HepLib {
                 ibp_vec_re[pi]->Run();
             }
             if(Verbose>1) cout << "@" << now(false) << endl;
-            for(auto item : ibp_vec_re) item->Import();
+            
+            GiNaC_Parallel(ibp_vec_re.size(), 10, [&ibp_vec_re,wdir](int idx)->ex {
+                ibp_vec_re[idx]->Import();
+                ibp_vec_re[idx]->Export(wdir+"/res-"+to_string(idx)+".gar");
+                return idx;
+            }, "Impo");
+            for(int i=0; i<ibp_vec_re.size(); i++) ibp_vec_re[i]->Import(wdir+"/res-"+to_string(i)+".gar");
+            
+            
+//            cproc = 0;
+//            for(auto item : ibp_vec_re) {
+//                if(Verbose>1) cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Import [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
+//                item->Import();
+//            }
+//            if(Verbose>1) cout << "@" << now(false) << endl;
+            
+            
             if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
         } else if(IBPmethod==2 || IBPmethod==3) {
             for(auto ibp : ibp_vec_re) ibp->Reduce();

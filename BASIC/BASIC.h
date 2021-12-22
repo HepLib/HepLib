@@ -803,7 +803,18 @@ namespace HepLib {
     void exVectorGet(exvector &exv, string garfn);
     ex add_collect_normal(const exvector &exv, lst const &pats);
     
-    typedef void (*RUN)();
-    exvector ParRun(lst elst, exvector input, string dll, string func);
+    class Server {
+    public:
+        int Round = 3;
+        int Port = 0;
+        unsigned Total;
+        void Start();
+        int Verbose = 1;
+        string Skip = "[ID].run";
+        string DL;
+        string FUNC;
+    };
  
 }
+
+typedef void (*RUN)(std::string dir_id);

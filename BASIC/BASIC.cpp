@@ -30,7 +30,7 @@ namespace HepLib {
     namespace {
         const symbol & get_symbol(const string & s) {
             static map<string, symbol> dict;
-            string key = "_Symbol_"+s;
+            string key = s;
             if (dict.find(key) == dict.end()) dict[key] = symbol(s);
             return dict[key];
         }
@@ -79,9 +79,9 @@ namespace HepLib {
     ex Symbol::real_part() const { return *this; }
     ex Symbol::imag_part() const { return 0; }
     unsigned Symbol::calchash() const {
-        static std::map<string,unsigned> hm;
-        if(hm.find(name)==hm.end()) hm[name] = symbol("_Symbol_"+name).gethash();
-        return hm[name];
+        hashvalue = get_symbol(get_name()).gethash();
+        setflag(status_flags::hash_calculated);
+        return hashvalue;
     }
     
     void Symbol::set(const ex & v) const { vmap[*this] = v; }
@@ -174,6 +174,8 @@ namespace HepLib {
         const string & key,
         bool rm,
         const string &pre) {
+        int ec = 0;
+        int nactive = 0;
         int nproc = GiNaC_Parallel_Process;
         
         // nproc=0, non-parallel
@@ -209,22 +211,33 @@ namespace HepLib {
             }
         }
         
+        nactive = 0;
         pgid = getpid(); // should be groud leader @ here
         for(int bi=0; bi<btotal; bi++) {
+            nactive++;
+            restart: ;
+            for(int i=0; i<btotal; i++) if(waitpid(-pgid,NULL,WNOHANG)>0) nactive--;
             if(Verbose > 1 && !nst) {
-                cout << "\r                                                   \r" << pre;
+                cout << "\r                                                                  \r" << pre;
                 cout << "\\--Evaluating ";
                 if(key != "") cout << Color_HighLight << key << RESET << " ";
                 cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
             }
             
             auto pid = fork();
-            if(pid < 0) throw Error("GiNaC_Parallel: Error (2) @ fork()");
+            if(pid < 0) {
+                if(getpid()!=pgid) exit(0); // make sure exit child process
+                ec++;
+                if(ec>3*btotal) throw Error("GiNaC_Parallel: Error (2) @ fork()");
+                if(Verbose>1) cout << " - fork(" << ec << ")" << endl;
+                if(waitpid(-pgid,NULL,0)>0) nactive--;
+                goto restart; // parent process goes next cycle
+            }
             if(pid==0 && setpgid(0, pgid)!=0) {
                 if(setpgid(0, pgid)) throw Error("GiNaC_Parallel: setpgid(0, pgid) Failed.");
             }
-            if(pid != 0) {
-                if(bi+1 >= para_max_run || pid < 0) waitpid(-pgid,NULL,0);
+            if(pid>0) {
+                if(nactive >= para_max_run) if(waitpid(-pgid,NULL,0)>0) nactive--;
                 continue; // parent process goes next cycle
             }
             
@@ -275,10 +288,30 @@ namespace HepLib {
             ostringstream garfn;
             if(key == "") garfn << ppid << "/" << bi << ".gar";
             else garfn << ppid << "/" << bi << "." << key << ".gar";
-            if(!file_exists(garfn.str())) throw Error("File Not Found: " + garfn.str());
-            auto res_lst = garRead(garfn.str());
-            remove(garfn.str().c_str());
-            for(auto res : res_lst) ovec.push_back(res);
+            ex res_lst;
+            try {
+                if(file_exists(garfn.str())) {
+                    res_lst = garRead(garfn.str());
+                    remove(garfn.str().c_str());
+                    for(auto res : res_lst) ovec.push_back(res);
+                } 
+                goto done;
+            } catch(exception &p) { }
+            cout << "GiNaC_Parallel: ReTRY & ReRUN!" << endl;
+            try {
+                lst res_lst;
+                for(int ri=0; ri<nbatch; ri++) {
+                    int i = bi*nbatch + ri;
+                    if(i<ntotal) res_lst.append(f(i));
+                    else break;
+                }
+                for(auto res : res_lst) ovec.push_back(res);
+            } catch(exception &p) { 
+                cout << ErrColor << "Failed in GiNaC_Parallel!" << RESET << endl;
+                cout << ErrColor << p.what() << RESET << endl;
+                throw Error("GiNaC_Parallel_ReTRY: "+string(p.what()));
+            }
+            done: ;
         }
         
         if(rm) {
@@ -2306,22 +2339,34 @@ namespace HepLib {
     void exVectorGet(exvector &exv, string garfn) {
         auto size = ex_to<numeric>(garRead(garfn+".gar")).to_int();
         if(exv.size()>0) {
-            if(size != exv.size()) throw Error("size not matched.");
+            if(size != exv.size()) throw Error("size not matched: "+to_string(size)+" v.s. "+to_string(exv.size())+" in "+garfn);
+            ifstream in;
             for(int i=0; i<size; i++) {
+                if(Verbose>1) {
+                    cout << "\r                                                 \r" << "  \\--" << WHITE << "<< " << garfn << RESET << " [" << i << "/" << size << "] " << flush;
+                }
                 archive ar;
-                ifstream in(garfn+"-"+to_string(i)+".gar");
+                in.open(garfn+"-"+to_string(i)+".gar");
                 in >> ar;
+                in.clear();
                 in.close();
                 exv[i] = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
             }
+            if(Verbose>1) cout << "@ " << now(false) << endl;
         } else {
+            ifstream in;
             for(int i=0; i<size; i++) {
+                if(Verbose>1) {
+                    cout << "\r                                                 \r" << "  \\--" << WHITE << "<< " << garfn << RESET << " [" << i << "/" << size << "] " << flush;
+                }
                 archive ar;
-                ifstream in(garfn+"-"+to_string(i)+".gar");
+                in.open(garfn+"-"+to_string(i)+".gar");
                 in >> ar;
+                in.clear();
                 in.close();
                 exv.push_back(ar.unarchive_ex(GiNaC_archive_Symbols, "res"));
             }
+            if(Verbose>1) cout << "@ " << now(false) << endl;
         }
     } 
     
