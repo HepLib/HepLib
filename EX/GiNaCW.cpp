@@ -547,26 +547,10 @@ expr Function::operator()(const expr &e1,const expr &e2,const expr &e3,const exp
 ParFun::ParFun() { }
 ParFun::~ParFun() { }
 expr ParFun::__call__(const int i) { throw HepLib::Error("Not implemented yet!"); return expr(1979); }
-exvec Parallel(int ntotal, int nbatch,
-        ParFun &f,
-        const std::string & key,
-        bool rm,
-        const std::string & pre) {
-    auto ret = HepLib::GiNaC_Parallel(ntotal, nbatch,
-        [&f](int i)->GiNaC::ex{ return f.__call__(i)._expr; },
-        key, rm, pre);
-    exvec res;
-    for(auto item : ret) res._g.push_back(item);
-    return res;
-}
-exvec Parallel(int ntotal,
-        ParFun &f,
-        const std::string & key,
-        bool rm,
-        const std::string & pre) {
+exvec Parallel(int ntotal, ParFun &f, const std::string & key) {
     auto ret = HepLib::GiNaC_Parallel(ntotal,
         [&f](int i)->GiNaC::ex{ return f.__call__(i)._expr; },
-        key, rm, pre);
+        key);
     exvec res;
     for(auto item : ret) res._g.push_back(item);
     return res;

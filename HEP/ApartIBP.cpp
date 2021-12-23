@@ -831,6 +831,7 @@ namespace HepLib {
                     air = Apart(air,lmom,emom,aio.smap);
                     return air;
                 }, "Apart");
+                
                 exmap v2v;
                 for(int i=0; i<vvec.size(); i++) v2v[vvec[i]] = ret[i];
                 
@@ -1002,7 +1003,7 @@ namespace HepLib {
             if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << WHITE << nints << "/" << ibp_vec_re.size() << RESET << " @ " << now(false) << endl;
         } 
         
-        MapFunction _F2ex([ibp_vec,aio](const ex &e, MapFunction &self)->ex {
+        MapFunction _F2ex([&ibp_vec,aio](const ex &e, MapFunction &self)->ex {
             if(e.match(F(w1,w2))) {
                 int pn = ex_to<numeric>(e.op(0)).to_int();
                 auto pso = ex_to<lst>(ibp_vec[pn-1]->Propagators);
@@ -1018,25 +1019,34 @@ namespace HepLib {
         });
         
         MapFunction _AIR2F([&AIR2F](const ex &e, MapFunction &self)->ex {
-            if(e.match(ApartIR(w1,w2))) return AIR2F[e];
-            else return e.map(self);
+            if(e.match(ApartIR(w1,w2))) {
+                auto air = AIR2F.find(e);
+                if(air == AIR2F.end()) throw Error("AIR2F: item NOT found!");
+                return air->second;
+            } else return e.map(self);
         });
         
         if(IBPmethod==0) {
+            MapFunction _F2F2ex([&int_fr,&_F2ex](const ex &e, MapFunction &self)->ex {
+                if(e.match(F(w1,w2))) {
+                    auto f = int_fr.first.find(e);
+                    if(f==int_fr.first.end()) return _F2ex(e); // master integral
+                    else return _F2ex(f->second);
+                }
+                else return e.map(self);
+            });
+        
             if(true) { // scope for fi_vec / mi_vec
                 exvector fi_vec;
                 for(auto kv : AIR2F) fi_vec.push_back(kv.second);
-                auto mi_vec = GiNaC_Parallel(fi_vec.size(), [&fi_vec,&int_fr,&_F2ex,&aio](int idx)->ex {
-                    ex res = fi_vec[idx];
-                    res = res.subs(int_fr.first);
-                    res = _F2ex(res);
-                    return res;
+                auto mi_vec = GiNaC_Parallel(fi_vec.size(), [&fi_vec,&_F2F2ex](int idx)->ex {
+                    return _F2F2ex(fi_vec[idx]);
                 }, "F2MI");
                 for(int i=0; i<mi_vec.size(); i++) AIR2F[fi_vec[i]] = mi_vec[i];
             }
             
             auto air_res =
-            GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_AIR2F](int idx)->ex {
+            GiNaC_Parallel(air_vec.size(), [&air_vec,&_AIR2F](int idx)->ex {
                 return _AIR2F(air_vec[idx]);
             }, "A2F");
             
@@ -1057,7 +1067,7 @@ namespace HepLib {
                 ibp_vec_re[i]->Rules = ex_to<lst>(pRes[i].op(1));
             }
             
-            auto nproc = 2*CpuCores()/FIRE::Threads;
+            int nproc = 2*CpuCores()/FIRE::Threads;
             int cproc = 0;
             if(nproc<2) nproc = 2;
             #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
@@ -1070,21 +1080,21 @@ namespace HepLib {
             }
             if(Verbose>1) cout << "@" << now(false) << endl;
             
-            GiNaC_Parallel(ibp_vec_re.size(), 10, [&ibp_vec_re,wdir](int idx)->ex {
-                ibp_vec_re[idx]->Import();
-                ibp_vec_re[idx]->Export(wdir+"/res-"+to_string(idx)+".gar");
-                return idx;
-            }, "Impo");
-            for(int i=0; i<ibp_vec_re.size(); i++) ibp_vec_re[i]->Import(wdir+"/res-"+to_string(i)+".gar");
-            
-            
-//            cproc = 0;
-//            for(auto item : ibp_vec_re) {
-//                if(Verbose>1) cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Import [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
-//                item->Import();
-//            }
-//            if(Verbose>1) cout << "@" << now(false) << endl;
-            
+            if(ibp_vec_re.size()>5000) {
+                GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,wdir](int idx)->ex {
+                    ibp_vec_re[idx]->Import();
+                    ibp_vec_re[idx]->Export(wdir+"/res-"+to_string(idx)+".gar");
+                    return idx;
+                }, "Impo");
+                for(int i=0; i<ibp_vec_re.size(); i++) ibp_vec_re[i]->Import(wdir+"/res-"+to_string(i)+".gar");
+            } else {
+                cproc = 0;
+                for(auto item : ibp_vec_re) {
+                    if(Verbose>1) cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Import [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
+                    item->Import();
+                }
+                if(Verbose>1) cout << "@" << now(false) << endl;
+            }
             
             if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
         } else if(IBPmethod==2 || IBPmethod==3) {
@@ -1094,19 +1104,23 @@ namespace HepLib {
         
         // Find Rules in MIs
         auto mi_fr = FindRules(ibp_vec_re, true, aio.UF);
-        
-        exmap ibpr;
-        if(true) { // scope for ret
-            MapFunction _F2F([&mi_fr](const ex &e, MapFunction &self)->ex {
-                if(e.match(F(w1,w2))) return mi_fr.first[e];
+    
+        exmap ibpr; // all rules to exmap
+        if(true) { // scope for ris_vec
+            MapFunction _MF2F([&mi_fr](const ex &e, MapFunction &self)->ex {
+                if(e.match(F(w1,w2))) {
+                    auto f = mi_fr.first.find(e);
+                    if(f==mi_fr.first.end()) return e; // master integral
+                    else return f->second;
+                }
                 else return e.map(self);
             });
-            auto ris_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&_F2F](int idx)->ex {
+            auto ris_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&_MF2F](int idx)->ex {
                 ex rules = ibp_vec_re[idx]->Rules;
                 lst res;
-                for(auto ri : rules) res.append(lst { ri.op(0),  _F2F(ri.op(1).subs(d==D)) });
+                for(auto ri : rules) res.append(lst { ri.op(0),  _MF2F(ri.op(1).subs(d==D)) });
                 return res;
-            }, "FR2MI");
+            }, "FR-MI");
             for(auto ris : ris_vec) {
                 for(auto ri : ris) ibpr[ri.op(0)] = ri.op(1);
             }
@@ -1118,18 +1132,22 @@ namespace HepLib {
                 air_vec.push_back(kv.first);
                 fi_vec.push_back(kv.second);
             }
-            auto mi_vec = GiNaC_Parallel(fi_vec.size(), [&fi_vec,&int_fr,&ibpr,&mi_fr,&_F2ex,&aio](int idx)->ex {
-                ex res = fi_vec[idx];
-                res = res.subs(int_fr.first);
-                res = res.subs(ibpr);
-                res = _F2ex(res);
-                return res;
+            MapFunction _F2F2ex([&int_fr,&ibpr,&_F2ex](const ex &e, MapFunction &self)->ex {
+                if(e.match(F(w1,w2))) {
+                    auto f = int_fr.first.find(e);
+                    if(f==int_fr.first.end()) return _F2ex(e.subs(ibpr)); // master integral
+                    else return _F2ex(f->second.subs(ibpr));
+                } else return e.map(self);
+            });
+        
+            auto mi_vec = GiNaC_Parallel(fi_vec.size(), [&fi_vec,&_F2F2ex](int idx)->ex {
+                return _F2F2ex(fi_vec[idx]);
             }, "F2MI");
             for(int i=0; i<fi_vec.size(); i++) AIR2F[air_vec[i]] = mi_vec[i];
         }
-
+        
         auto air_res =
-        GiNaC_Parallel(air_vec.size(), 1, [&air_vec,&_AIR2F](int idx)->ex {
+        GiNaC_Parallel(air_vec.size(), [&air_vec,&_AIR2F](int idx)->ex {
             return _AIR2F(air_vec[idx]);
         }, "A2F");
                                     

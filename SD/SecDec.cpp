@@ -996,6 +996,7 @@ namespace HepLib::SD {
     void SecDec::XEnd() {
         if(Verbose > 2) cout << "  \\--BiSection: " << FunExp.size() << " :> " << flush;
         auto verb = Verbose; Verbose=0;
+        GiNaC_Parallel_RM["BiSec"] = !Debug;
         auto funexps =
         GiNaC_Parallel(FunExp.size(), [this](int idx)->ex {
             auto fe = FunExp[idx];
@@ -1007,7 +1008,7 @@ namespace HepLib::SD {
                 para_res_lst.append(fe);
             }
             return para_res_lst;
-        }, "BiSec", !Debug);
+        }, "BiSec");
         Verbose = verb;
 
         FunExp.clear();
@@ -1450,6 +1451,7 @@ namespace HepLib::SD {
         }
         if(Verbose > 1) cout << Integrands.size() << endl;
 
+        GiNaC_Parallel_RM["EpsEp"] = !Debug;
         auto res =
         GiNaC_Parallel(Integrands.size(), [this](int idx)->ex {
             // return { {two elements}, {two elements}, ...},
@@ -1562,7 +1564,7 @@ namespace HepLib::SD {
 
             return para_res_lst;
 
-        }, "EpsEp", !Debug);
+        }, "EpsEp");
         
         if(Verbose > 1) cout << "  \\--Collecting: ";
         map<ex, ex, ex_is_less> int_pref;

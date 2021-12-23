@@ -161,22 +161,22 @@ namespace HepLib {
     /**
      * @brief GiNaC Parallel Evaluation using fork
      * @param ntotal the number of total items, 0 for non-parallel version
-     * @param nbatch the batch number for each run, if nbatch<=0, then nbatch = ntotal/para_max_run/10
      * @param f function to be applied on the index, from 0 to (ntotal-1)
      * @param key key used in archive file name and display message
      * @param rm default true, and false will keep the archive file
      * @param pre the pre-string in the print message
      * @return return the ntotal-element vector, i.e., [f(0), ..., f(ntotal-1)]
      */
-    vector<ex> GiNaC_Parallel(
-        int ntotal, int nbatch, 
-        std::function<ex(int)> f,
-        const string & key,
-        bool rm,
-        const string &pre) {
+    vector<ex> GiNaC_Parallel(int ntotal, std::function<ex(int)> f, const string & key) {
         int ec = 0;
         int nactive = 0;
         int nproc = GiNaC_Parallel_Process;
+        if(GiNaC_Parallel_NP.find(key)!=GiNaC_Parallel_NP.end()) nproc = GiNaC_Parallel_NP[key];
+        
+        bool rm = true;
+        if(GiNaC_Parallel_RM.find(key)!=GiNaC_Parallel_RM.end()) rm = GiNaC_Parallel_RM[key]; 
+        string pre = "  ";
+        if(GiNaC_Parallel_PRE.find(key)!=GiNaC_Parallel_PRE.end()) pre = GiNaC_Parallel_PRE[key]; 
         
         // nproc=0, non-parallel
         if(nproc==0) {
@@ -192,9 +192,10 @@ namespace HepLib {
         cmd << "mkdir -p " << ppid;
         if(!dir_exists(to_string(ppid))) system(cmd.str().c_str());
         
+        int nbatch = GiNaC_Parallel_Batch;
+        if(GiNaC_Parallel_NB.find(key)!=GiNaC_Parallel_NB.end()) nbatch = GiNaC_Parallel_NB[key];
         if(nbatch<=0) nbatch = ntotal/para_max_run/5;
         else if(nbatch > ntotal/para_max_run) nbatch = ntotal/para_max_run;
-        if(nbatch>GiNaC_Parallel_BatchMax) nbatch = GiNaC_Parallel_BatchMax;
         if(nbatch<1) nbatch = 1;
         int btotal = ntotal/nbatch + ((ntotal%nbatch)==0 ? 0 : 1);
         
@@ -214,7 +215,6 @@ namespace HepLib {
         nactive = 0;
         pgid = getpid(); // should be groud leader @ here
         for(int bi=0; bi<btotal; bi++) {
-            nactive++;
             restart: ;
             for(int i=0; i<btotal; i++) if(waitpid(-pgid,NULL,WNOHANG)>0) nactive--;
             if(Verbose > 1 && !nst) {
@@ -237,6 +237,7 @@ namespace HepLib {
                 if(setpgid(0, pgid)) throw Error("GiNaC_Parallel: setpgid(0, pgid) Failed.");
             }
             if(pid>0) {
+                nactive++;
                 if(nactive >= para_max_run) if(waitpid(-pgid,NULL,0)>0) nactive--;
                 continue; // parent process goes next cycle
             }

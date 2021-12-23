@@ -226,20 +226,13 @@ namespace HepLib {
     // vector : GiNaC_Parallel
     /*-----------------------------------------------------*/
     extern lst GiNaC_archive_Symbols;
-    vector<ex> GiNaC_Parallel(
-        int ntotal, int nbatch,
-        std::function<ex(int)> f,
-        const string & key = "",
-        bool rm = true,
-        const string & pre = "  "
-    );
-    inline vector<ex> GiNaC_Parallel(
-        int ntotal,
-        std::function<ex(int)> f,
-        const string & key = "",
-        bool rm = true,
-        const string & pre = "  "
-    ) { return  GiNaC_Parallel(ntotal, 0, f, key, rm, pre); }
+    extern int GiNaC_Parallel_Process;
+    extern map<string, int> GiNaC_Parallel_NP;
+    extern int GiNaC_Parallel_Batch;
+    extern map<string,int> GiNaC_Parallel_NB;
+    extern map<string,bool> GiNaC_Parallel_RM;
+    extern map<string,string> GiNaC_Parallel_PRE;
+    vector<ex> GiNaC_Parallel(int ntotal, std::function<ex(int)> f, const string & key = "");
     
     /*-----------------------------------------------------*/
     // Helpers
@@ -455,8 +448,6 @@ namespace HepLib {
     extern const Symbol D;
     extern int Verbose;
     extern bool Debug;
-    extern int GiNaC_Parallel_Process;
-    extern int GiNaC_Parallel_BatchMax;
 
     /*-----------------------------------------------------*/
     // Global Colors

@@ -21,7 +21,8 @@ namespace HepLib::SD {
         
         if(Verbose > 0) cout << Color_HighLight << "  CIPrepares @ " << now() << RESET << endl;
         auto pid = getpid();
-                
+        
+        GiNaC_Parallel_RM["FCI-F"] = false;
         auto resf =
         GiNaC_Parallel(expResult.size(), [this](int idx)->ex {
             // return lst{ kv.op(0), kv.op(1), ft};
@@ -73,7 +74,7 @@ namespace HepLib::SD {
             ft = collect_common_factors(ft);
             return lst{ kv.op(0), kv.op(1), ft};
             
-        }, "FCI-F", false);
+        }, "FCI-F");
         
 
     //============================================================================================================
@@ -137,6 +138,7 @@ namespace HepLib::SD {
     //============================================================================================================
 
         // Prepare FT-lambda
+        GiNaC_Parallel_RM["FCI-C"] = false;
         GiNaC_Parallel(ftnvec.size(), [&ftnvec,pid](int idx)->ex {
             // return nothing
             auto kv = ftnvec[idx];
@@ -385,7 +387,7 @@ namespace HepLib::SD {
             
             return 0;
         
-        }, "FCI-C", false);
+        }, "FCI-C");
         
         bool hasF = (ftnvec.size()>0);
         if(hasF) {
@@ -420,15 +422,12 @@ namespace HepLib::SD {
             cmd.clear();
             cmd.str("");
             cmd << "echo ''>" << pid << "/null.cpp;";
-            #ifdef _USE_FLOAT128
             cmd << cpp << " -fPIC -c -o " << pid << "/null.o " << pid << "/null.cpp";
-            #else
-
-            #endif
             system(cmd.str().c_str());
         }
 
         // Prepare Integrand
+        GiNaC_Parallel_RM["FCI-I"] = false;
         auto res =
         GiNaC_Parallel(res_vec.size(), [&res_vec,pid](int idx)->ex {
             // return lst{ no-x-result, xn, x-indepent prefactor, ft_n }
@@ -1226,7 +1225,7 @@ namespace HepLib::SD {
             system(cmd.str().c_str());
             if(!Debug) remove(cppfn.str().c_str());
             return lst{ idx, xs.size(), kvf.op(0), ft_n };
-        }, "FCI-I", false);
+        }, "FCI-I");
         
 
     //============================================================================================================
