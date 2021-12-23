@@ -6,6 +6,8 @@
 #include "HEP.h"
 #include "cln/cln.h"
 
+auto nopat = GiNaC::subs_options::no_pattern;
+
 namespace HepLib {
 
     #ifndef DOXYGEN_SKIP
@@ -175,7 +177,7 @@ namespace HepLib {
                 ss << "[m]:=[(";
                 for(int c=0; c<ncol; c++) {
                     for(int r=0; r<nrow; r++) {
-                        ss << mat(r,c).subs(iEpsilon==0).subs(v2f) << ",";
+                        ss << mat(r,c).subs(iEpsilon==0,nopat).subs(v2f) << ",";
                     }
                 }
                 for(int r=0; r<nrow; r++) ss << "0,";
@@ -235,7 +237,7 @@ namespace HepLib {
                 }
                 // Solve M*V = 0
                 matrix zero(nrow, 1);
-                matrix s = ex_to<matrix>(sub_matrix(mat,0,nrow,0,ncol).subs(iEpsilon==0)).solve(v,zero);
+                matrix s = ex_to<matrix>(sub_matrix(mat,0,nrow,0,ncol).subs(iEpsilon==0,nopat)).solve(v,zero);
                 for(int r=0; r<ncol; r++) null_vec.append(s(r,0).subs(sRepl));
             }
             null_cache[sub_matrix(mat,0,nrow,0,ncol)] = null_vec;
@@ -277,7 +279,7 @@ namespace HepLib {
                 sol -= nvec.op(c) * (iWF(c)-mat(nrow,c)); // iWF(c) refer to c-th column, and minus the const term
             }
             sol = sol/nvec.op(ni) + mat(nrow,ni); // last one: const term
-            sol = collect_ex(pow(sol.subs(iEpsilon==0), mat(nrow+1,ni)), iWF(w)); // expand the numerator with power
+            sol = collect_ex(pow(sol.subs(iEpsilon==0,nopat), mat(nrow+1,ni)), iWF(w)); // expand the numerator with power
 
             if(!is_a<add>(sol)) sol = lst{ sol };
             ex res = 0;
@@ -321,7 +323,7 @@ namespace HepLib {
         // handle all denominators
         ex cres0 = 0;
         for(int c=0; c<ncol; c++) cres0 += mat(nrow,c)*null_vec.op(c);
-        cres0 = cres0.subs(iEpsilon==0);
+        cres0 = cres0.subs(iEpsilon==0,nopat);
         auto cres = subs(cres0, iWF(w)==w+1);
         auto nvec = subs(null_vec, iWF(w)==w+1);
         if(is_zero(cres)) {
@@ -530,7 +532,7 @@ namespace HepLib {
                         break;
                     }
                 }
-                ex key = expand(pc.subs(iEpsilon==0));
+                ex key = expand(pc.subs(iEpsilon==0,nopat));
                 count_ip[key] = count_ip[key]+1;
                 pnlst.append(lst{ pc, nc });
             } else pref *= item;
@@ -545,7 +547,7 @@ namespace HepLib {
             exmap imap;
             for(auto pn : pnlst) {
                 auto key = pn.op(0);
-                if(key.has(iEpsilon)) imap[key.subs(iEpsilon==0)] = key;
+                if(key.has(iEpsilon)) imap[key.subs(iEpsilon==0,nopat)] = key;
             }
             exmap p2n;
             for(auto pn : pnlst) {
@@ -559,7 +561,7 @@ namespace HepLib {
                 auto k = kv.first;
                 auto v = kv.second;
                 if(is_a<numeric>(v) && ex_to<numeric>(v)>0) {
-                    k = k.subs(iEpsilon==0);
+                    k = k.subs(iEpsilon==0,nopat);
                 }
                 pnlst.append(lst{k, v});
             }
@@ -1020,18 +1022,18 @@ namespace HepLib {
         
         MapFunction _AIR2F([&AIR2F](const ex &e, MapFunction &self)->ex {
             if(e.match(ApartIR(w1,w2))) {
-                auto air = AIR2F.find(e);
-                if(air == AIR2F.end()) throw Error("AIR2F: item NOT found!");
-                return air->second;
+                auto kv = AIR2F.find(e);
+                if(kv == AIR2F.end()) throw Error("AIR2F: item NOT found!");
+                return kv->second;
             } else return e.map(self);
         });
         
         if(IBPmethod==0) {
             MapFunction _F2F2ex([&int_fr,&_F2ex](const ex &e, MapFunction &self)->ex {
                 if(e.match(F(w1,w2))) {
-                    auto f = int_fr.first.find(e);
-                    if(f==int_fr.first.end()) return _F2ex(e); // master integral
-                    else return _F2ex(f->second);
+                    auto kv = int_fr.first.find(e);
+                    if(kv==int_fr.first.end()) return _F2ex(e); // master integral
+                    else return _F2ex(kv->second);
                 }
                 else return e.map(self);
             });
@@ -1041,7 +1043,7 @@ namespace HepLib {
                 for(auto kv : AIR2F) fi_vec.push_back(kv.second);
                 auto mi_vec = GiNaC_Parallel(fi_vec.size(), [&fi_vec,&_F2F2ex](int idx)->ex {
                     return _F2F2ex(fi_vec[idx]);
-                }, "F2MI");
+                }, "F2ex");
                 for(int i=0; i<mi_vec.size(); i++) AIR2F[fi_vec[i]] = mi_vec[i];
             }
             
@@ -1105,50 +1107,51 @@ namespace HepLib {
         // Find Rules in MIs
         auto mi_fr = FindRules(ibp_vec_re, true, aio.UF);
     
-        exmap ibpr; // all rules to exmap
+        map<int,exmap> pnRules; // rules for each problem number
         if(true) { // scope for ris_vec
-            MapFunction _MF2F([&mi_fr](const ex &e, MapFunction &self)->ex {
+            MapFunction _MI2MI([&mi_fr](const ex &e, MapFunction &self)->ex {
                 if(e.match(F(w1,w2))) {
-                    auto f = mi_fr.first.find(e);
-                    if(f==mi_fr.first.end()) return e; // master integral
-                    else return f->second;
-                }
-                else return e.map(self);
-            });
-            auto ris_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&_MF2F](int idx)->ex {
-                ex rules = ibp_vec_re[idx]->Rules;
-                lst res;
-                for(auto ri : rules) res.append(lst { ri.op(0),  _MF2F(ri.op(1).subs(d==D)) });
-                return res;
-            }, "FR-MI");
-            for(auto ris : ris_vec) {
-                for(auto ri : ris) ibpr[ri.op(0)] = ri.op(1);
-            }
-        }
-        
-        if(true) { // scope for fi_vec / mi_vec
-            exvector air_vec,fi_vec;
-            for(auto kv : AIR2F) {
-                air_vec.push_back(kv.first);
-                fi_vec.push_back(kv.second);
-            }
-            MapFunction _F2F2ex([&int_fr,&ibpr,&_F2ex](const ex &e, MapFunction &self)->ex {
-                if(e.match(F(w1,w2))) {
-                    auto f = int_fr.first.find(e);
-                    if(f==int_fr.first.end()) return _F2ex(e.subs(ibpr)); // master integral
-                    else return _F2ex(f->second.subs(ibpr));
+                    auto kv = mi_fr.first.find(e);
+                    if(kv==mi_fr.first.end()) return e; // master integral 
+                    else return kv->second;
                 } else return e.map(self);
             });
-        
-            auto mi_vec = GiNaC_Parallel(fi_vec.size(), [&fi_vec,&_F2F2ex](int idx)->ex {
-                return _F2F2ex(fi_vec[idx]);
-            }, "F2MI");
-            for(int i=0; i<fi_vec.size(); i++) AIR2F[air_vec[i]] = mi_vec[i];
+            auto ris_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&_MI2MI](int idx)->ex {
+                ex rules = ibp_vec_re[idx]->Rules;
+                lst res;
+                for(auto ri : rules) res.append(lst { ri.op(0),  _MI2MI(ri.op(1).subs(d==D,nopat)) });
+                return res;
+            }, "MI-FR");
+            for(auto ris : ris_vec) {
+                for(auto ri : ris) {
+                    int pn = ex_to<numeric>(ri.op(0).op(0)).to_int();
+                    pnRules[pn][ri.op(0)] = ri.op(1);
+                }
+            }
         }
+                
+        MapFunction _F2MI([&pnRules](const ex &e, MapFunction &self)->ex {
+            if(e.match(F(w1,w2))) return e.subs(pnRules[ex_to<numeric>(e.op(0)).to_int()],nopat);
+            else return e.map(self);
+        });
         
         auto air_res =
-        GiNaC_Parallel(air_vec.size(), [&air_vec,&_AIR2F](int idx)->ex {
-            return _AIR2F(air_vec[idx]);
+        GiNaC_Parallel(air_vec.size(), [&air_vec,&AIR2F,&int_fr,&_F2MI,&_F2ex](int idx)->ex {
+            ex res = air_vec[idx];
+            res = res.subs(AIR2F,nopat);
+cout << "1" << flush;
+            res = collect_ex(res,F(w1,w2));
+cout << "2" << flush;
+            res = res.subs(int_fr.first,nopat);
+cout << "3" << flush;
+            res = collect_ex(res,F(w1,w2));
+cout << "4" << flush;
+            res = _F2MI(res);
+cout << "5" << flush;
+            res = collect_ex(res,F(w1,w2));
+cout << "6" << flush;
+            res = _F2ex(res);
+            return res;
         }, "A2F");
                                     
         for(auto fp : ibp_vec) delete fp;

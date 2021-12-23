@@ -39,7 +39,9 @@ namespace HepLib::IBP {
         lst PIntegrals;
         
         lst MIntegrals;
-        lst Rules;
+        lst Rules; 
+        // note that Rules includes the pattern for Master Integral: { ..., mi==mi, ... }
+        // this pattern will be used in ApartIBP
         bool IsAlwaysZero = false;
         
         virtual void Export() { throw Error("Export() not implemented!"); };

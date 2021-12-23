@@ -289,30 +289,29 @@ namespace HepLib {
             ostringstream garfn;
             if(key == "") garfn << ppid << "/" << bi << ".gar";
             else garfn << ppid << "/" << bi << "." << key << ".gar";
-            ex res_lst;
+            lst res_lst;
             try {
                 if(file_exists(garfn.str())) {
-                    res_lst = garRead(garfn.str());
+                    res_lst = ex_to<lst>(garRead(garfn.str()));
                     remove(garfn.str().c_str());
-                    for(auto res : res_lst) ovec.push_back(res);
+                    goto done;
                 } 
-                goto done;
             } catch(exception &p) { }
             cout << "GiNaC_Parallel: ReTRY & ReRUN!" << endl;
             try {
-                lst res_lst;
+                res_lst.remove_all();
                 for(int ri=0; ri<nbatch; ri++) {
                     int i = bi*nbatch + ri;
                     if(i<ntotal) res_lst.append(f(i));
                     else break;
                 }
-                for(auto res : res_lst) ovec.push_back(res);
             } catch(exception &p) { 
                 cout << ErrColor << "Failed in GiNaC_Parallel!" << RESET << endl;
                 cout << ErrColor << p.what() << RESET << endl;
                 throw Error("GiNaC_Parallel_ReTRY: "+string(p.what()));
             }
             done: ;
+            for(auto res : res_lst) ovec.push_back(res);
         }
         
         if(rm) {
@@ -324,6 +323,9 @@ namespace HepLib {
         if(ntotal > 0 && !nst) {
             if(Verbose > 10) cout << endl;
             else if(Verbose > 1) cout << "\r                                                   \r" << flush;
+        }
+        if(ovec.size() != ntotal) {
+            throw Error("GiNaC_Parallel: The output size is wrong!");
         }
         return ovec;
     }

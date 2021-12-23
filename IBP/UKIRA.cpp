@@ -459,7 +459,12 @@ namespace HepLib::IBP {
             exRs.append(exR);
         }
         MIntegrals.remove_all();
-        for(auto kv : flags) if(kv.second!=0) MIntegrals.append(kv.first);
+        for(auto kv : flags) {
+            if(kv.second!=0) {  
+                MIntegrals.append(kv.first);
+                Rules.append(kv.first==kv.first);
+            }
+        }
         exset miset;
         find(exRs,F(w1,w2),miset);
         for(auto mi : miset) MIntegrals.append(mi);

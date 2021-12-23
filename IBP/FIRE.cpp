@@ -420,7 +420,7 @@ namespace HepLib::IBP {
                 right += it.op(0).subs(id2F) * it.op(1);
             }
             if(left.is_equal(right)) MIntegrals.append(left);
-            else Rules.append(left==right);
+            Rules.append(left==right);
         }
         MIntegrals.sort();
         MIntegrals.unique();
