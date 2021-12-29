@@ -50,6 +50,7 @@ namespace HepLib {
     map<string, string> GiNaC_Parallel_PRE;
     const Symbol D("D");
     bool fermat_using_array = false;
+    map<ex,long long,ex_is_less> fermat_weight;
     bool using_cache = true;
     int NNDigits = 100;
     
@@ -222,8 +223,7 @@ namespace HepLib {
         
         auto opath = getenv("PATH");
         if(opath != NULL) oss << ":" << opath;
-        setenv("PATH", oss.str().c_str(), true);
-        
+        setenv("PATH", oss.str().c_str(), true);        
     }
     _global_init::_init _global_init::init_object;
     

@@ -128,7 +128,10 @@ namespace HepLib {
         }
         string_trim(ostr);
 
-        if(ostr.find("***")!=string::npos) throw Error(ostr.c_str());
+        if(ostr.find("***")!=string::npos) {
+            cout << endl << expr << endl << endl;
+            throw Error(ostr.c_str());
+        }
         return ostr;
     }
     

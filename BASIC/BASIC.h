@@ -111,6 +111,7 @@ namespace HepLib {
         ex real_part() const override;
         ex imag_part() const override;
         unsigned calchash() const override;
+        bool is_equal_same_type(const basic & other) const override;
         
         unsigned get_domain() const override { return domain::positive; }
         
@@ -148,6 +149,8 @@ namespace HepLib {
         ex conjugate() const override;
         ex real_part() const override;
         ex imag_part() const override;
+        unsigned calchash() const override;
+        bool is_equal_same_type(const basic & other) const override;
         
         static bool has(const ex &e);
         static lst all(const ex &e);
@@ -406,6 +409,7 @@ namespace HepLib {
     ex numer_denom_fermat(const ex & expr, bool dfactor=false);
     inline ex fermat_numer_denom(const ex & expr, bool dfactor=false) { return numer_denom_fermat(expr,dfactor); }
     
+    extern map<ex,long long,ex_is_less> fermat_weight;
     ex normal_fermat(const ex & expr, bool dfactor=false);
     inline ex fermat_normal(const ex & expr, bool dfactor=false) { return normal_fermat(expr,dfactor); }
     

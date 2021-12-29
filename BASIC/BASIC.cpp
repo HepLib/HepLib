@@ -55,6 +55,11 @@ namespace HepLib {
         else return 1;
     }
     
+    bool Symbol::is_equal_same_type(const basic & other) const {
+        const Symbol *o = static_cast<const Symbol *>(&other);
+        return get_name()==o->get_name();
+    }
+    
     /**
      * @brief Symbol archive
      * @param n archive node
@@ -70,7 +75,6 @@ namespace HepLib {
      */
     void Symbol::read_archive(const archive_node& n, lst& sym_lst) {
         inherited::read_archive(n, sym_lst);
-        *this = Symbol(get_name());
     }
     
     ex Symbol::eval() const { return *this; }
@@ -125,6 +129,17 @@ namespace HepLib {
         else return 1;
     }
     
+    bool iSymbol::is_equal_same_type(const basic & other) const {
+        const iSymbol *o = static_cast<const iSymbol *>(&other);
+        return get_name()==o->get_name();
+    }
+    
+    unsigned iSymbol::calchash() const {
+        hashvalue = get_symbol(get_name()).gethash();
+        setflag(status_flags::hash_calculated);
+        return hashvalue;
+    }
+    
     /**
      * @brief Symbol archive
      * @param n archive node
@@ -140,7 +155,6 @@ namespace HepLib {
      */
     void iSymbol::read_archive(const archive_node& n, lst& sym_lst) {
         inherited::read_archive(n, sym_lst);
-        *this = iSymbol(get_name());
     }
     
     ex iSymbol::eval() const { return *this; }
@@ -377,12 +391,12 @@ namespace HepLib {
      * @return all symbols in the input
      */
     lst gather_symbols(const ex & e) {
-        lst sym_lst;
+        exset ss;
         for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
-            if(is_a<symbol>(*i)) sym_lst.append(*i);
+            if(is_a<symbol>(*i)) ss.insert(*i);
         }
-        sym_lst.sort();
-        sym_lst.unique();
+        lst sym_lst;
+        for(auto item : ss) sym_lst.append(item);
         return sym_lst;
     }
 
@@ -392,14 +406,14 @@ namespace HepLib {
      * @return all symbols in the input
      */
     lst gather_symbols(const vector<ex> & ve) {
-        lst sym_lst;
+        exset ss;
         for(auto e : ve) {
             for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
-                if(is_a<symbol>(*i)) sym_lst.append(*i);
+                if(is_a<symbol>(*i)) ss.insert(*i);
             }
         }
-        sym_lst.sort();
-        sym_lst.unique();
+        lst sym_lst;
+        for(auto item : ss) sym_lst.append(item);
         return sym_lst;
     }
 
@@ -1001,7 +1015,7 @@ namespace HepLib {
         for(auto ep : co_epv.second) ret += ep.second * ep.first;
         return ret;
     }
-
+    
     /**
      * @brief the collect function like Mathematica
      * @param expr_in input expression
@@ -1639,15 +1653,24 @@ namespace HepLib {
         expr_in = expr_in.to_rational(map_rat);
         
         lst rep_vs;
-        map<ex,long long,ex_is_less> s2c;
-        for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
-            if(is_a<symbol>(*i)) {
-                rep_vs.append(*i);
-                s2c[*i]++;
+        if(true) {
+            exset sset;
+            map<ex,long long,ex_is_less> s2c;
+            for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
+                if(is_a<symbol>(*i)) {
+                    sset.insert(*i);
+                    s2c[*i]++;
+                }
             }
+            for(auto kv : map_rat) s2c[kv.first] += 1000;
+            for(auto kv : fermat_weight) s2c[kv.first] += kv.second;
+            exvector vs_vec_sort;
+            for(auto ss : sset) {
+                vs_vec_sort.push_back(lst{ s2c[ss], ss.subs(map_rat), ss });
+            }
+            sort_vec(vs_vec_sort);
+            for(auto item : vs_vec_sort) rep_vs.append(item.op(2));
         }
-        rep_vs.sort();
-        rep_vs.unique();
                 
         exmap v2f, f2v;
         int fvi = 0;
@@ -1736,25 +1759,24 @@ namespace HepLib {
         expr_in = expr_in.to_rational(map_rat);
         
         lst rep_vs;
-        map<ex,long long,ex_is_less> s2c;
-        for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
-            if(is_a<symbol>(*i)) {
-                rep_vs.append(*i);
-                s2c[*i]++;
+        if(true) {
+            exset sset;
+            map<ex,long long,ex_is_less> s2c;
+            for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
+                if(is_a<symbol>(*i)) {
+                    sset.insert(*i);
+                    s2c[*i]--;
+                }
             }
+            for(auto kv : map_rat) s2c[kv.first] += 1000;
+            for(auto kv : fermat_weight) s2c[kv.first] += kv.second;
+            exvector vs_vec_sort;
+            for(auto ss : sset) {
+                vs_vec_sort.push_back(lst{ s2c[ss], ss.subs(map_rat), ss });
+            }
+            sort_vec(vs_vec_sort);
+            for(auto item : vs_vec_sort) rep_vs.append(item.op(2));
         }
-        rep_vs.sort();
-        rep_vs.unique();
-        
-        exvector vs_vec_sort;
-        auto rep_vs_tot = rep_vs.nops();
-        for(int i=0; i<rep_vs_tot; i++) {
-            auto ss = rep_vs.op(i);
-            vs_vec_sort.push_back(lst{ s2c[ss], ss.subs(map_rat), ss });
-        }
-        sort_vec(vs_vec_sort);
-        rep_vs.remove_all();
-        for(auto item : vs_vec_sort) rep_vs.append(item.op(2));
                 
         exmap v2f, f2v;
         exmap nn_map;
@@ -1916,6 +1938,7 @@ namespace HepLib {
      */
     ex exnormal(const ex & expr, int opt) {
         if(opt==1) return normal_fermat(expr);
+        else if(opt==2) return normal_fermat(expr,true);
         else return normal(expr);
     }
     

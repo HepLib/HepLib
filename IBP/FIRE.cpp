@@ -256,10 +256,8 @@ namespace HepLib::IBP {
             }
             
             if(IsAlwaysZero) {
-                lst ws;
-                int pdim = Propagators.nops();
-                for(int i=0; i<pdim; i++) ws.append(wild(i));
-                Rules.append(F(ProblemNumber, ws)==0);
+                Rules.remove_all();
+                for(auto ii : Integrals) Rules.append(F(ProblemNumber, ii)==0);
                 return;
             }
         }
@@ -420,7 +418,7 @@ namespace HepLib::IBP {
                 right += it.op(0).subs(id2F) * it.op(1);
             }
             if(left.is_equal(right)) MIntegrals.append(left);
-            Rules.append(left==right);
+            else Rules.append(left==right);
         }
         MIntegrals.sort();
         MIntegrals.unique();
