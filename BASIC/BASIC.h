@@ -798,8 +798,6 @@ namespace HepLib {
     inline void garWrite(string garfn, exvector &exv) { garWrite(exv,garfn); }
     void garRead(exvector &exv, string garfn);
     inline void garRead(string garfn, exvector &exv) { garRead(exv, garfn); }
-    void exVectorPut(exvector &exv, string garfn);
-    void exVectorGet(exvector &exv, string garfn);
     ex add_collect_normal(const exvector &exv, lst const &pats);
     
     class Server {

@@ -359,10 +359,10 @@ namespace HepLib {
                 if(Verbose > 1) {
                     if(key == "") {
                         cout << "\r                                                   \r" << pre;
-                        cout << "\\--Memory Sharing @ " << now(false) << flush;
+                        cout << "\\--Memory Sharing" << flush;
                     } else {
                         cout << "\r                                                   \r" << pre;
-                        cout << "\\--Memory Sharing - " << Color_HighLight << key << RESET << " @ " << now(false) << flush;
+                        cout << "\\--Memory Sharing " << Color_HighLight << key << RESET << flush;
                     }
                 }
             }
@@ -373,7 +373,7 @@ namespace HepLib {
             garWrite(garfn.str(), ovec_tmp);
             garRead(garfn.str(), ovec);
             
-            if(Verbose > 1) cout << endl;
+            if(Verbose > 1) cout << " @ " << now(false) << endl;
         }
         
         if(rm) {
@@ -2395,48 +2395,6 @@ namespace HepLib {
         for(int i=0; i<size; i++) {
             ex tmp = ar.unarchive_ex(GiNaC_archive_Symbols, to_string(i).c_str());
             exv.push_back(tmp);
-        }
-    } 
-    
-    void exVectorPut(exvector &exv, string garfn) {
-        garWrite(exv.size(), garfn+".gar");
-        GiNaC_Parallel(exv.size(), [&exv,garfn](int idx) {
-            garWrite(exv[idx], garfn+"-"+to_string(idx)+".gar");
-            return 0;
-        }, "vecPut");
-    }
-    
-    void exVectorGet(exvector &exv, string garfn) {
-        auto size = ex_to<numeric>(garRead(garfn+".gar")).to_int();
-        if(exv.size()>0) {
-            if(size != exv.size()) throw Error("size not matched: "+to_string(size)+" v.s. "+to_string(exv.size())+" in "+garfn);
-            ifstream in;
-            for(int i=0; i<size; i++) {
-                if(Verbose>1) {
-                    cout << "\r                                                 \r" << "  \\--" << WHITE << "<< " << garfn << RESET << " [" << i << "/" << size << "] " << flush;
-                }
-                archive ar;
-                in.open(garfn+"-"+to_string(i)+".gar");
-                in >> ar;
-                in.clear();
-                in.close();
-                exv[i] = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
-            }
-            if(Verbose>1) cout << "@ " << now(false) << endl;
-        } else {
-            ifstream in;
-            for(int i=0; i<size; i++) {
-                if(Verbose>1) {
-                    cout << "\r                                                 \r" << "  \\--" << WHITE << "<< " << garfn << RESET << " [" << i << "/" << size << "] " << flush;
-                }
-                archive ar;
-                in.open(garfn+"-"+to_string(i)+".gar");
-                in >> ar;
-                in.clear();
-                in.close();
-                exv.push_back(ar.unarchive_ex(GiNaC_archive_Symbols, "res"));
-            }
-            if(Verbose>1) cout << "@ " << now(false) << endl;
         }
     } 
     
