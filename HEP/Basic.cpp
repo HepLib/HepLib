@@ -225,6 +225,11 @@ namespace HepLib {
         else return 1;
     }
     
+    bool Index::is_equal_same_type(const basic & other) const {
+        const Index &o = static_cast<const Index &>(other);
+        return (name.get_name() == o.name.get_name());
+    }
+    
     void Index::print(const print_context &c, unsigned level) const {
         c.s << name;
     }
@@ -285,6 +290,11 @@ namespace HepLib {
         else return 1;
     }
     
+    bool Vector::is_equal_same_type(const basic & other) const {
+        const Vector &o = static_cast<const Vector &>(other);
+        return (name.get_name() == o.name.get_name());
+    }
+    
     void Vector::print(const print_context &c, unsigned level) const {
         c.s << name;
     }
@@ -331,6 +341,14 @@ namespace HepLib {
             if(c!=0) return c;
         }
         return 0;
+    }
+    
+    bool SUNT::is_equal_same_type(const basic & other) const {
+        const SUNT &o = static_cast<const SUNT &>(other);
+        for(int i=0; i<3; i++) {
+            if(!aij[i].is_equal(o.aij[i])) return false;
+        }
+        return true;
     }
     
     void SUNT::form_print(const FormFormat &c, unsigned level) const {
@@ -414,6 +432,14 @@ namespace HepLib {
         return 0;
     }
     
+    bool SUNF::is_equal_same_type(const basic & other) const {
+        const SUNF &o = static_cast<const SUNF &>(other);
+        for(int i=0; i<3; i++) {
+            if(!ijk[i].is_equal(o.ijk[i])) return false;
+        }
+        return true;
+    }
+    
     ex SUNF::eval() const { 
         if(flags & status_flags::evaluated) return *this;
         if(ijk[0].is_equal(ijk[1]) || ijk[1].is_equal(ijk[2]) || ijk[0].is_equal(ijk[2])) return 0;
@@ -491,6 +517,14 @@ namespace HepLib {
             if(c!=0) return c;
         }
         return 0;
+    }
+    
+    bool SUNF4::is_equal_same_type(const basic & other) const {
+        const SUNF4 &o = static_cast<const SUNF4 &>(other);
+        for(int i=0; i<4; i++) {
+            if(!ijkl[i].is_equal(o.ijkl[i])) return false;
+        }
+        return true;
     }
     
     /**

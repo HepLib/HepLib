@@ -112,6 +112,7 @@ namespace HepLib {
         ex imag_part() const override;
         unsigned calchash() const override;
         bool is_equal_same_type(const basic & other) const override;
+        void set_name(string n);
         
         unsigned get_domain() const override { return domain::positive; }
         
@@ -121,6 +122,8 @@ namespace HepLib {
         
         void set(const ex & v) const;
         void unset() const;
+        
+        unsigned get_serial() { return serial; }
         
         static exmap vmap;
         static void set(const Symbol & s, const ex & v);
@@ -151,6 +154,7 @@ namespace HepLib {
         ex imag_part() const override;
         unsigned calchash() const override;
         bool is_equal_same_type(const basic & other) const override;
+        void set_name(string n);
         
         static bool has(const ex &e);
         static lst all(const ex &e);

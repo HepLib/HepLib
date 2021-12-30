@@ -73,6 +73,13 @@ namespace HepLib {
         return pi.compare(o.pi);
     }
     
+    bool DGamma::is_equal_same_type(const basic & other) const {
+        const DGamma &o = static_cast<const DGamma &>(other);
+        if (rl != o.rl) return false;
+        return pi.is_equal(o.pi);
+    }
+
+    
     DGamma::DGamma(int int_1567, unsigned _rl) : pi(int_1567), rl(_rl) { }
     DGamma::DGamma(const Vector &p, unsigned _rl) : pi(p), rl(_rl) { }
     DGamma::DGamma(const Index &i, unsigned _rl) : pi(i), rl(_rl) { }

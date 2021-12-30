@@ -73,6 +73,12 @@ namespace HepLib {
         return c2;
     }
     
+    bool Pair::is_equal_same_type(const basic & other) const {
+        const Pair &o = static_cast<const Pair &>(other);
+        if(!lr[0].is_equal(o.lr[0])) return false;
+        return lr[1].is_equal(o.lr[1]);
+    }
+    
     /**
      * @brief default print function
      * @param c default print format

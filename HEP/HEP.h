@@ -126,6 +126,7 @@ namespace HepLib {
         static bool hasv(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
+        bool is_equal_same_type(const basic & other) const override;
     };
     GINAC_DECLARE_UNARCHIVER(Index);
     
@@ -145,6 +146,7 @@ namespace HepLib {
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
+        bool is_equal_same_type(const basic & other) const override;
     };
     GINAC_DECLARE_UNARCHIVER(Vector);
     
@@ -168,6 +170,7 @@ namespace HepLib {
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
         ex conjugate() const override;
+        bool is_equal_same_type(const basic & other) const override;
     };
     GINAC_DECLARE_UNARCHIVER(SUNT);
     
@@ -191,6 +194,7 @@ namespace HepLib {
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
+        bool is_equal_same_type(const basic & other) const override;
     };
     GINAC_DECLARE_UNARCHIVER(SUNF);
     
@@ -214,6 +218,7 @@ namespace HepLib {
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
+        bool is_equal_same_type(const basic & other) const override;
     };
     GINAC_DECLARE_UNARCHIVER(SUNF4);
     
@@ -239,6 +244,7 @@ namespace HepLib {
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
+        bool is_equal_same_type(const basic & other) const override;
     private:
         ex lr[2];
     };
@@ -283,6 +289,7 @@ namespace HepLib {
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
+        bool is_equal_same_type(const basic & other) const override;
     };
     GINAC_DECLARE_UNARCHIVER(Eps);
     ex LC(ex pi1, ex pi2, ex pi3, ex pi4);
@@ -316,6 +323,7 @@ namespace HepLib {
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
         ex conjugate() const override;
+        bool is_equal_same_type(const basic & other) const override;
     };
     GINAC_DECLARE_UNARCHIVER(DGamma);
     

@@ -41,6 +41,14 @@ namespace HepLib {
         return 0;
     }
     
+    bool Eps::is_equal_same_type(const basic & other) const {
+        const Eps &o = static_cast<const Eps &>(other);
+        for(int i=0; i<4; i++) {
+            if(!pis[i].is_equal(o.pis[i])) return false;
+        }
+        return true;
+    }
+    
     ex Eps::eval() const {
         if(flags & status_flags::evaluated) return *this;
         bool ok = true;

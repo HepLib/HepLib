@@ -726,6 +726,82 @@ namespace HepLib {
         }
     }
     
+    namespace {
+
+        void FRSave(string fpre, exmap &AIR2F, vector<IBP::Base*> &ibp_vec, pair<exmap,lst> &int_fr) {
+            archive ar;
+            
+            ar.archive_ex(AIR2F.size(), "air_size");
+            int i=0;
+            for(auto kv : AIR2F) {
+                ar.archive_ex(kv.first, ("air_"+to_string(2*i)).c_str());
+                ar.archive_ex(kv.second, ("air_"+to_string(2*i+1)).c_str());
+                i++;
+            }
+            
+            ar.archive_ex(ibp_vec.size(), "ibp_size");
+            GiNaC_Parallel(ibp_vec.size(), [fpre,&ibp_vec](int i) { 
+                ibp_vec[i]->Export(fpre+"-ibp-"+to_string(i)+".gar");
+                return 0;
+            }, "ibpEx");
+            
+            ar.archive_ex(int_fr.first.size(), "fr_size");
+            i=0;
+            for(auto kv : int_fr.first) {
+                ar.archive_ex(kv.first, ("fr_"+to_string(2*i)).c_str());
+                ar.archive_ex(kv.second, ("fr_"+to_string(2*i+1)).c_str());
+                i++;
+            }
+            ar.archive_ex(int_fr.second, "fr_2nd");
+            
+            ofstream out(fpre+".gar");
+            out << ar;
+            out.close();
+        }
+
+        void FRImport(string fpre, exmap &AIR2F, vector<IBP::Base*> &ibp_vec, pair<exmap,lst> &int_fr, int IBPmethod) {
+            archive ar;
+            ifstream in(fpre+".gar");
+            in >> ar;
+            in.close();
+            
+            map<string, ex> dict;
+            for(int i=0; i<ar.num_expressions(); i++) {
+                string name;
+                ex res = ar.unarchive_ex(GiNaC_archive_Symbols, name, i);
+                dict[name] = res;
+            }
+            
+            auto size = ex_to<numeric>(dict["air_size"]).to_int();
+            for(int i=0; i<size; i++) {
+                ex k = dict["air_"+to_string(2*i)];
+                ex v = dict["air_"+to_string(2*i+1)];
+                AIR2F[k] = v;
+            }
+            
+            size = ex_to<numeric>(dict["ibp_size"]).to_int();
+            for(int i=0; i<size; i++) {
+                IBP::Base* ibp;
+                if(IBPmethod==0) ibp = new Base();
+                else if(IBPmethod==1) ibp = new FIRE();
+                else if(IBPmethod==2) ibp = new KIRA();
+                else if(IBPmethod==3) ibp = new UKIRA();
+                else ibp = new Base();
+                ibp->Import(fpre+"-ibp-"+to_string(i)+".gar");
+                ibp_vec.push_back(ibp);
+            }
+            
+            int_fr.second = ex_to<lst>(dict["fr_2nd"]);
+            size = ex_to<numeric>(dict["fr_size"]).to_int();
+            for(int i=0; i<size; i++) {
+                ex k = dict["fr_"+to_string(2*i)];
+                ex v = dict["fr_"+to_string(2*i+1)];
+                int_fr.first[k] = v;
+            }
+            
+        }
+    }
+    
     /**
      * @brief perform IBP reduction on the Aparted input
      * @param IBPmethod ibp method used, 0-No IBP, 1-FIRE, 2-KIRA
@@ -734,6 +810,386 @@ namespace HepLib {
      * @return nothing returned, the input air_vec will be updated
      */
     void ApartIBP(exvector &air_vec, AIOption aio) {
+        if(aio.smap.size()<1) aio.init_smap();
+        int IBPmethod = aio.IBPmethod;
+        
+        lst lmom = ex_to<lst>(aio.Internal);
+        lst emom = ex_to<lst>(aio.External);
+        
+        if(aio.SaveDir != "") {
+            if(file_exists(aio.SaveDir+"/ApIRC.gar")) {
+                exVectorGet(air_vec, aio.SaveDir+"/ApIRC");
+                goto ApIRC_Done;
+            } else system(("mkdir -p "+aio.SaveDir).c_str());
+        } 
+        
+        if(true) {
+            bool aparted = false;
+            for(auto air : air_vec) {
+                if(air.has(ApartIR(w1,w2))) {
+                    aparted = true;
+                    goto check_done;
+                }
+                for(auto li : lmom) {
+                    if(air.has(li)) { 
+                        aparted = false; 
+                        goto check_done;
+                    }
+                }
+            }
+            check_done: ;
+            
+            if(!aparted) {
+                auto ret = GiNaC_Parallel(air_vec.size(), [air_vec,lmom] (int idx) {
+                    return collect_lst(air_vec[idx],lmom);
+                }, "ApPre");
+            
+                exset vset;
+                for(int i=0; i<air_vec.size(); i++) {
+                    auto cvs = ret[i];
+                    for(auto cv : cvs) vset.insert(cv.op(1));
+                    air_vec[i] = cvs;
+                }
+                exvector vvec;
+                for(auto item : vset) vvec.push_back(item);
+                
+                ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
+                    auto air = vvec[idx];
+                    air = Apart(air,lmom,emom,aio.smap);
+                    return air;
+                }, "Apart");
+                
+                exmap v2v;
+                for(int i=0; i<vvec.size(); i++) v2v[vvec[i]] = ret[i];
+                
+                ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&v2v] (int idx) {
+                    auto cvs = air_vec[idx];
+                    ex res = 0;
+                    for(auto cv : cvs) res += cv.op(0) * v2v[cv.op(1)];
+                    return res;
+                }, "ApPost");
+                for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i];
+            } 
+            
+            auto ret = GiNaC_Parallel(air_vec.size(), [air_vec] (int idx) {
+                auto air = air_vec[idx];
+                air = air.subs(SP_map);
+                air = ApartIRC(air);
+                return air;
+            }, "ApIRC");
+            for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIRC
+            
+            if(aio.SaveDir != "") exVectorPut(air_vec,aio.SaveDir+"/ApIRC");
+        }
+        ApIRC_Done: ;
+        
+        string wdir;
+        if(aio.SaveDir != "") {
+            if(IBPmethod==1) wdir = aio.SaveDir + "/FIRE";
+            else if(IBPmethod==2) wdir = aio.SaveDir + "/KIRA";
+            else if(IBPmethod==3) wdir = aio.SaveDir + "/UKIRA";
+        } else {
+            wdir = to_string(getpid());
+            if(IBPmethod==1) wdir = wdir + "_FIRE";
+            else if(IBPmethod==2) wdir = wdir + "_KIRA";
+            else if(IBPmethod==3) wdir = wdir + "_UKIRA";
+        }
+        
+        if(Verbose>0) cout << "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction @ " << now(false) << endl;
+        
+        for(auto sp : aio.CSP) SP_map.erase(sp);
+        // from here, Vector will be replaced by its name Symbol
+        
+        lst repls;
+        auto sps = sp_map();
+        for(auto kv : sps) repls.append(kv.first == kv.second);
+                
+        lst loops, exts; // to match FIRE notation, not Vector, just Symbol
+        for(auto li : lmom) {
+            if(is_a<Vector>(li)) loops.append(ex_to<Vector>(li).name);
+            else loops.append(li);
+        }
+        for(auto li : emom) {
+            if(is_a<Vector>(li)) exts.append(ex_to<Vector>(li).name);
+            else exts.append(li);
+        }
+        
+        exmap AIR2F;
+        vector<IBP::Base*> ibp_vec;
+        pair<exmap,lst> int_fr;
+        if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/FR.gar")) {
+            FRImport(aio.SaveDir+"/FR", AIR2F, ibp_vec, int_fr, IBPmethod);
+            for(auto ibp : ibp_vec) ibp->WorkingDir = wdir; // update working directory
+            goto FR_Done;
+        }
+        
+        if(true) {
+            exvector intg;
+            if(true) { // scope for intg_set
+                exset intg_set;
+                for(auto air : air_vec) find(air, ApartIR(w1,w2), intg_set);
+                for(auto item : intg_set) intg.push_back(item);
+            }
+        
+            std::map<ex, IBP::Base*, ex_is_less> p2IBP;
+            int pn=1;
+            for(auto ir : intg) {
+                auto mat = ex_to<matrix>(ir.op(0));
+                auto vars = ex_to<lst>(ir.op(1));
+                lst pns;
+                int nrow = mat.rows();
+                for(int c=0; c<mat.cols(); c++) {
+                    ex pc = 0;
+                    for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
+                    pc += mat(nrow-2,c);
+                    pc = SP2sp(pc);
+                    pns.append(lst{ pc, ex(0)-mat(nrow-1,c) }); // note the convension
+                }
+                sort_lst(pns); // sort before cuts
+                
+                int nCuts = aio.Cuts.nops();
+                if(nCuts>0) {
+                    ex cuts = aio.Cuts;
+                    cuts = cuts.subs(SP_map);
+                    if(aio.CutFirst) for(auto cut : cuts) pns.prepend(lst{ SP2sp(cut), 1 });
+                    else for(auto cut : cuts) pns.append(lst{ SP2sp(cut), 1 });
+                }
+                
+                lst props, ns;
+                for(auto item : pns) {
+                    props.append(item.op(0));
+                    ns.append(item.op(1));
+                }
+
+                if(p2IBP.find(props)==p2IBP.end()) {
+                    IBP::Base* ibp;
+                    if(IBPmethod==0) ibp = new Base();
+                    else if(IBPmethod==1) ibp = new FIRE();
+                    else if(IBPmethod==2) ibp = new KIRA();
+                    else if(IBPmethod==3) ibp = new UKIRA();
+                    else {
+                        ibp = new Base();
+                        IBPmethod = 0;
+                    }
+                    
+                    p2IBP[props] = ibp;
+                    ibp->Propagators = props;
+                    ibp->Internal = loops;
+                    ibp->External = exts;
+                    ibp->Replacements = repls;
+                    if(aio.ISP.nops()>0) for(auto item : aio.ISP) ibp->ISP.append(SP2sp(item));
+                    if(aio.DSP.nops()>0) {
+                        for(auto item : aio.DSP) {
+                            lst sp = ex_to<lst>(item);
+                            if(is_a<Vector>(sp.op(0))) sp.let_op(0) = (ex_to<Vector>(sp.op(0)).name);
+                            if(is_a<Vector>(sp.op(1))) sp.let_op(1) = (ex_to<Vector>(sp.op(1)).name);
+                            ibp->DSP.append(sp);
+                        }
+                    }
+                    ibp->WorkingDir = wdir;
+                    ibp->ProblemNumber = pn;
+                    pn++;
+                    if(nCuts>0) {
+                        if(aio.CutFirst) for(int i=0; i<nCuts; i++) ibp->Cuts.append(i+1);
+                        else for(int i=0; i<nCuts; i++) ibp->Cuts.append(nCuts-i);
+                    }
+                    ibp_vec.push_back(ibp);
+                }
+                IBP::Base* ibp = p2IBP[props];
+                ibp->Integrals.append(ns);
+                AIR2F[ir] = F(ibp->ProblemNumber, ns);
+            }
+
+            if(Verbose>0) cout << "  \\--Total Ints/Pros: " << WHITE << intg.size() << "/" << ibp_vec.size() << RESET << " @ " << now(false) << endl;
+        
+            if(true) {
+                vector<Base*> base_vec;
+                for(auto ibp : ibp_vec) base_vec.push_back(ibp);
+                int_fr = FindRules(base_vec, false, aio.UF);
+                if(aio.SaveDir != "") FRSave(aio.SaveDir+"/FR", AIR2F, ibp_vec, int_fr);
+            }
+        }
+        FR_Done: ;
+
+        vector<IBP::Base*> ibp_vec_re;
+        if(true) {
+            map<int,lst> pn_ints_map;
+            for(auto item : int_fr.second) {
+                int pn = ex_to<numeric>(item.op(0)).to_int();
+                pn_ints_map[pn].append(item.op(1));
+            }
+
+            int nints = 0;
+            for(auto pi : pn_ints_map) {
+                auto ibp = ibp_vec[pi.first-1];
+                ibp->Integrals = pi.second;
+                nints += ibp->Integrals.nops();
+                ibp_vec_re.push_back(ibp);
+            }
+
+            if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << WHITE << nints << "/" << ibp_vec_re.size() << RESET << " @ " << now(false) << endl;
+        } 
+        
+        MapFunction _F2ex([&ibp_vec,aio](const ex &e, MapFunction &self)->ex {
+            if(e.match(F(w1,w2))) {
+                int pn = ex_to<numeric>(e.op(0)).to_int();
+                auto pso = ex_to<lst>(ibp_vec[pn-1]->Propagators);
+                auto nso = ex_to<lst>(e.op(1));
+                lst ps, ns;
+                for(int i=0; i<pso.nops(); i++) {
+                    if(!aio.keep0F && nso.op(i).is_zero()) continue;
+                    ps.append(pso.op(i));
+                    ns.append(nso.op(i));
+                }
+                return F(ps,ns);
+            } else return e.map(self);
+        });
+        
+        MapFunction _AIR2F([&AIR2F](const ex &e, MapFunction &self)->ex {
+            if(e.match(ApartIR(w1,w2))) {
+                auto air = AIR2F.find(e);
+                if(air == AIR2F.end()) throw Error("AIR2F: item NOT found!");
+                return air->second;
+            } else return e.map(self);
+        });
+        
+        if(IBPmethod==0) {
+            MapFunction _F2F2ex([&int_fr,&_F2ex](const ex &e, MapFunction &self)->ex {
+                if(e.match(F(w1,w2))) {
+                    auto f = int_fr.first.find(e);
+                    if(f==int_fr.first.end()) return _F2ex(e); // master integral
+                    else return _F2ex(f->second);
+                }
+                else return e.map(self);
+            });
+        
+            if(true) { // scope for fi_vec / mi_vec
+                exvector fi_vec;
+                for(auto kv : AIR2F) fi_vec.push_back(kv.second);
+                auto mi_vec = GiNaC_Parallel(fi_vec.size(), [&fi_vec,&_F2F2ex](int idx)->ex {
+                    return _F2F2ex(fi_vec[idx]);
+                }, "F2MI");
+                for(int i=0; i<mi_vec.size(); i++) AIR2F[fi_vec[i]] = mi_vec[i];
+            }
+            
+            auto air_res =
+            GiNaC_Parallel(air_vec.size(), [&air_vec,&_AIR2F](int idx)->ex {
+                return _AIR2F(air_vec[idx]);
+            }, "A2F");
+            
+            for(auto fp : ibp_vec) delete fp;
+            if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
+
+            for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];
+            return;
+        }
+        
+        if(IBPmethod==1) { 
+            auto pRes = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
+                ibp_vec_re[idx]->Export();
+                return lst{ ibp_vec_re[idx]->IsAlwaysZero ? 1 : 0, ibp_vec_re[idx]->Rules };
+            }, "Expo");
+            for(int i=0; i<ibp_vec_re.size(); i++) {
+                ibp_vec_re[i]->IsAlwaysZero = (pRes[i].op(0)==1 ? true : false);
+                ibp_vec_re[i]->Rules = ex_to<lst>(pRes[i].op(1));
+            }
+            
+            int nproc = 2*CpuCores()/FIRE::Threads;
+            int cproc = 0;
+            if(nproc<2) nproc = 2;
+            #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
+            for(int pi=0; pi<ibp_vec_re.size(); pi++) {
+                if(Verbose>1) {
+                    #pragma omp critical
+                    cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Reduction [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
+                }
+                ibp_vec_re[pi]->Run();
+            }
+            if(Verbose>1) cout << "@" << now(false) << endl;
+            
+            if(ibp_vec_re.size()>5000) {
+                GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,wdir](int idx)->ex {
+                    ibp_vec_re[idx]->Import();
+                    ibp_vec_re[idx]->Export(wdir+"/res-"+to_string(idx)+".gar");
+                    return idx;
+                }, "Impo");
+                for(int i=0; i<ibp_vec_re.size(); i++) ibp_vec_re[i]->Import(wdir+"/res-"+to_string(i)+".gar");
+            } else {
+                cproc = 0;
+                for(auto item : ibp_vec_re) {
+                    if(Verbose>1) cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Import [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
+                    item->Import();
+                }
+                if(Verbose>1) cout << "@" << now(false) << endl;
+            }
+            
+            if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
+        } else if(IBPmethod==2 || IBPmethod==3) {
+            for(auto ibp : ibp_vec_re) ibp->Reduce();
+            if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
+        }
+        
+        // Find Rules in MIs
+        auto mi_fr = FindRules(ibp_vec_re, true, aio.UF);
+    
+        exmap ibpr; // all rules to exmap
+        if(true) { // scope for ris_vec
+            MapFunction _MF2F([&mi_fr](const ex &e, MapFunction &self)->ex {
+                if(e.match(F(w1,w2))) {
+                    auto f = mi_fr.first.find(e);
+                    if(f==mi_fr.first.end()) return e; // master integral
+                    else return f->second;
+                }
+                else return e.map(self);
+            });
+            auto ris_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&_MF2F](int idx)->ex {
+                ex rules = ibp_vec_re[idx]->Rules;
+                lst res;
+                for(auto ri : rules) res.append(lst { ri.op(0),  _MF2F(ri.op(1).subs(d==D)) });
+                return res;
+            }, "FR-MI");
+            for(auto ris : ris_vec) {
+                for(auto ri : ris) ibpr[ri.op(0)] = ri.op(1);
+            }
+        }
+        
+        if(true) { // scope for fi_vec / mi_vec
+            exvector air_vec,fi_vec;
+            for(auto kv : AIR2F) {
+                air_vec.push_back(kv.first);
+                fi_vec.push_back(kv.second);
+            }
+            MapFunction _F2F2ex([&int_fr,&ibpr,&_F2ex](const ex &e, MapFunction &self)->ex {
+                if(e.match(F(w1,w2))) {
+                    auto f = int_fr.first.find(e);
+                    if(f==int_fr.first.end()) return _F2ex(e.subs(ibpr)); // master integral
+                    else return _F2ex(f->second.subs(ibpr));
+                } else return e.map(self);
+            });
+        
+            auto mi_vec = GiNaC_Parallel(fi_vec.size(), [&fi_vec,&_F2F2ex](int idx)->ex {
+                return _F2F2ex(fi_vec[idx]);
+            }, "F2MI");
+            for(int i=0; i<fi_vec.size(); i++) AIR2F[air_vec[i]] = mi_vec[i];
+        }
+        
+        auto air_res =
+        GiNaC_Parallel(air_vec.size(), [&air_vec,&_AIR2F](int idx)->ex {
+            return _AIR2F(air_vec[idx]);
+        }, "A2F");
+                                    
+        for(auto fp : ibp_vec) delete fp;
+        for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];
+    }
+    
+    /**
+     * @brief perform IBP reduction on the Aparted input
+     * @param IBPmethod ibp method used, 0-No IBP, 1-FIRE, 2-KIRA
+     * @param air_vec vector contains aparted input, ApartIRC will be call internally
+     * @param aio AIOption for ApartIBP input
+     * @return nothing returned, the input air_vec will be updated
+     */
+    void ApartIBP22(exvector &air_vec, AIOption aio) {
         if(aio.smap.size()<1) aio.init_smap();
         int IBPmethod = aio.IBPmethod;
         
