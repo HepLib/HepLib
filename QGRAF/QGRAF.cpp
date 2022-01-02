@@ -162,7 +162,7 @@ namespace HepLib::QGRAF {
      */
     void DrawPDF(const lst & amps, string fn) {
         int id=0;
-        vector<ex> amp_vec;
+        exvector amp_vec;
         for(auto item : amps) amp_vec.push_back(item);
         string tex_path = to_string(getpid()) + "_TeX/";
         if(!dir_exists(tex_path)) system(("mkdir -p "+tex_path).c_str());

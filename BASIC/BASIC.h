@@ -99,7 +99,28 @@ namespace HepLib {
      * @brief class extended to GiNaC symbol class, represent a positive symbol
      */
     class Symbol : public symbol {
-    GINAC_DECLARE_REGISTERED_CLASS(Symbol, symbol)
+    //GINAC_DECLARE_REGISTERED_CLASS(Symbol, symbol)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const Symbol &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef symbol inherited; // supername
+        Symbol(); // classname
+        Symbol * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
     public:
         Symbol(const string &s);
         void archive(archive_node & n) const override;
@@ -131,15 +152,35 @@ namespace HepLib {
         static void unset(const Symbol &s);
         static void unset(const string &str);
         static void unset_all();
-        static ex set_all(const ex & expr);
+        static ex set_all(const ex & expr);        
     };
-    GINAC_DECLARE_UNARCHIVER(Symbol);
     
     /**
      * @brief class extended to GiNaC symbol class, pure imaginary symbol 
      */
     class iSymbol : public symbol {
-    GINAC_DECLARE_REGISTERED_CLASS(iSymbol, symbol)
+    //GINAC_DECLARE_REGISTERED_CLASS(iSymbol, symbol)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const iSymbol &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef symbol inherited; // supername
+        iSymbol(); // classname
+        iSymbol * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
     public:
         iSymbol(const string &s);
         void archive(archive_node & n) const override;
@@ -158,9 +199,8 @@ namespace HepLib {
         
         static bool has(const ex &e);
         static lst all(const ex &e);
-        static std::map<std::string, ex> Table;
+        static std::map<std::string, ex> Table;        
     };
-    GINAC_DECLARE_UNARCHIVER(iSymbol);
     
     
     /**
@@ -207,7 +247,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     string now(bool use_date = true);
     lst gather_symbols(const ex & e);
-    lst gather_symbols(const vector<ex> & ve);
+    lst gather_symbols(const exvector & ve);
 
     inline bool file_exists(string fn) {
         return (access(fn.c_str(),F_OK)!=-1);
@@ -239,7 +279,7 @@ namespace HepLib {
     extern map<string,int> GiNaC_Parallel_NB;
     extern map<string,bool> GiNaC_Parallel_RM;
     extern map<string,string> GiNaC_Parallel_PRE;
-    vector<ex> GiNaC_Parallel(int ntotal, std::function<ex(int)> f, const string & key = "");
+    exvector GiNaC_Parallel(int ntotal, std::function<ex(int)> f, const string & key = "");
     
     /*-----------------------------------------------------*/
     // Helpers
@@ -651,7 +691,28 @@ namespace HepLib {
      * @brief XIntegral Class, preface to SecDec
      */
     class XIntegral : public basic {
-    GINAC_DECLARE_REGISTERED_CLASS(XIntegral, basic)
+    //GINAC_DECLARE_REGISTERED_CLASS(XIntegral, basic)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const XIntegral &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef basic inherited; // supername
+        XIntegral(); // classname
+        XIntegral * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
     public:
         ex Functions=lst{};
         ex Exponents=lst{};
@@ -665,9 +726,8 @@ namespace HepLib {
         static bool has(const ex &e);
         static lst all(const ex &e);
         XIntegral(ex fed);
-        XIntegral(ex loops, ex ps, ex ns);
+        XIntegral(ex loops, ex ps, ex ns);        
     };
-    GINAC_DECLARE_UNARCHIVER(XIntegral);
     
     #ifndef DOXYGEN_SKIP
     class _global_init {
@@ -794,8 +854,8 @@ namespace HepLib {
     };
     extern MMAFormat mout;
     
-    void garWrite(exvector &exv, string garfn);
-    inline void garWrite(string garfn, exvector &exv) { garWrite(exv,garfn); }
+    void garWrite(const exvector &exv, string garfn);
+    inline void garWrite(string garfn, const exvector &exv) { garWrite(exv,garfn); }
     void garRead(exvector &exv, string garfn);
     inline void garRead(string garfn, exvector &exv) { garRead(exv, garfn); }
     ex add_collect_normal(const exvector &exv, lst const &pats);

@@ -110,7 +110,28 @@ namespace HepLib {
      * @brief class for index object
      */
     class Index : public basic {
-    GINAC_DECLARE_REGISTERED_CLASS(Index, basic)
+    //GINAC_DECLARE_REGISTERED_CLASS(Index, basic)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const Index &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef basic inherited; // supername
+        Index(); // classname
+        Index * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
     public:
         enum Type {VD, CF, CA};
         Index(const string &s, const Type type=Type::VD);
@@ -126,15 +147,35 @@ namespace HepLib {
         static bool hasv(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
-        bool is_equal_same_type(const basic & other) const override;
+        bool is_equal_same_type(const basic & other) const override;        
     };
-    GINAC_DECLARE_UNARCHIVER(Index);
     
     /**
      * @brief class for vector object
      */
     class Vector : public basic {
-    GINAC_DECLARE_REGISTERED_CLASS(Vector, basic)
+    //GINAC_DECLARE_REGISTERED_CLASS(Vector, basic)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const Vector &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef basic inherited; // supername
+        Vector(); // classname
+        Vector * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
     public:
         Vector(const string &s);
         Pair operator() (const Vector & p);
@@ -146,15 +187,35 @@ namespace HepLib {
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
-        bool is_equal_same_type(const basic & other) const override;
+        bool is_equal_same_type(const basic & other) const override;        
     };
-    GINAC_DECLARE_UNARCHIVER(Vector);
     
     /**
      * @brief class for SUNT object
      */
     class SUNT : public basic {
-    GINAC_DECLARE_REGISTERED_CLASS(SUNT, basic)
+    //GINAC_DECLARE_REGISTERED_CLASS(SUNT, basic)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const SUNT &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef basic inherited; // supername
+        SUNT(); // classname
+        SUNT * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
     public:
         SUNT(ex a, ex i, ex j);
         ex aij[3]; // Index
@@ -170,15 +231,35 @@ namespace HepLib {
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
         ex conjugate() const override;
-        bool is_equal_same_type(const basic & other) const override;
+        bool is_equal_same_type(const basic & other) const override;        
     };
-    GINAC_DECLARE_UNARCHIVER(SUNT);
     
     /**
      * @brief class for SUNF object
      */
     class SUNF : public basic {
-    GINAC_DECLARE_REGISTERED_CLASS(SUNF, basic)
+    //GINAC_DECLARE_REGISTERED_CLASS(SUNF, basic)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const SUNF &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef basic inherited; // supername
+        SUNF(); // classname
+        SUNF * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
     public:
         SUNF(ex i, ex j, ex k);
         ex ijk[3]; // Index
@@ -194,15 +275,36 @@ namespace HepLib {
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
-        bool is_equal_same_type(const basic & other) const override;
+        bool is_equal_same_type(const basic & other) const override;        
     };
-    GINAC_DECLARE_UNARCHIVER(SUNF);
+    
     
     /**
      * @brief class for SUNF4 object
      */
     class SUNF4 : public basic {
-    GINAC_DECLARE_REGISTERED_CLASS(SUNF4, basic)
+    //GINAC_DECLARE_REGISTERED_CLASS(SUNF4, basic)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const SUNF4 &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef basic inherited; // supername
+        SUNF4(); // classname
+        SUNF4 * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
     public:
         SUNF4(ex i, ex j, ex k, ex l);
         ex ijkl[4]; // Index
@@ -218,15 +320,35 @@ namespace HepLib {
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
-        bool is_equal_same_type(const basic & other) const override;
+        bool is_equal_same_type(const basic & other) const override;        
     };
-    GINAC_DECLARE_UNARCHIVER(SUNF4);
     
     /**
      * @brief class for Pair object
      */
     class Pair : public basic {
-    GINAC_DECLARE_REGISTERED_CLASS(Pair, basic)
+    //GINAC_DECLARE_REGISTERED_CLASS(Pair, basic)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const Pair &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef basic inherited; // supername
+        Pair(); // classname
+        Pair * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
     public:
         Pair(const Vector &p1, const Vector &p2);
         Pair(const Index &i1, const Index &i2);
@@ -248,7 +370,7 @@ namespace HepLib {
     private:
         ex lr[2];
     };
-    GINAC_DECLARE_UNARCHIVER(Pair);
+    
     ex SP(const ex &a, bool use_map=false);
     ex SP(const ex &a, const ex &b, bool use_map=false);
     ex sp(const ex & a, const ex & b);
@@ -268,7 +390,28 @@ namespace HepLib {
      * LC is real in HepLib, while e_ is imaginary in FORM.
      */
     class Eps : public basic {
-    GINAC_DECLARE_REGISTERED_CLASS(Eps, basic)
+    //GINAC_DECLARE_REGISTERED_CLASS(Eps, basic)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const Eps &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef basic inherited; // supername
+        Eps(); // classname
+        Eps * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
     public:
         ex pis[4];
         Eps(const Vector &p1, const Vector &p2, const Vector &p3, const Vector &p4);
@@ -291,14 +434,34 @@ namespace HepLib {
         ex derivative(const symbol & s) const override;
         bool is_equal_same_type(const basic & other) const override;
     };
-    GINAC_DECLARE_UNARCHIVER(Eps);
     ex LC(ex pi1, ex pi2, ex pi3, ex pi4);
     
     /**
      * @brief class for Dirac Gamma object
      */
     class DGamma : public basic {
-    GINAC_DECLARE_REGISTERED_CLASS(DGamma, basic)
+    //GINAC_DECLARE_REGISTERED_CLASS(DGamma, basic)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const DGamma &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef basic inherited; // supername
+        DGamma(); // classname
+        DGamma * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
     public:
         ex pi;
         unsigned rl;
@@ -325,7 +488,6 @@ namespace HepLib {
         ex conjugate() const override;
         bool is_equal_same_type(const basic & other) const override;
     };
-    GINAC_DECLARE_UNARCHIVER(DGamma);
     
     //-----------------------------------------------------------
     // TR/GAS functions

@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
         cout << "  Poincare Rank: " << pr << endl;
         
         auto ev_map = eigenvalues(a0);
-        vector<vector<ex>> ev_groups;
+        vector<exvector> ev_groups;
         for(auto &kv : ev_map) {
             auto ev = kv.first;
             bool in_g = false;
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
                 }
             }
             if(!in_g) {
-                vector<ex> gi_new;
+                exvector gi_new;
                 gi_new.push_back(ev);
                 ev_groups.push_back(gi_new);
             }

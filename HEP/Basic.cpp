@@ -9,23 +9,22 @@
 namespace HepLib {
 
     DEFAULT_CTOR(Index)
-    GINAC_BIND_UNARCHIVER(Index);
     IMPLEMENT_HAS(Index)
     IMPLEMENT_ALL(Index)
+    
     DEFAULT_CTOR(Vector)
-    GINAC_BIND_UNARCHIVER(Vector);
     IMPLEMENT_HAS(Vector)
     IMPLEMENT_ALL(Vector)
+    
     DEFAULT_CTOR(SUNT)
-    GINAC_BIND_UNARCHIVER(SUNT);
     IMPLEMENT_HAS(SUNT)
     IMPLEMENT_ALL(SUNT)
+    
     DEFAULT_CTOR(SUNF)
-    GINAC_BIND_UNARCHIVER(SUNF);
     IMPLEMENT_HAS(SUNF)
     IMPLEMENT_ALL(SUNF)
+    
     DEFAULT_CTOR(SUNF4)
-    GINAC_BIND_UNARCHIVER(SUNF4);
     IMPLEMENT_HAS(SUNF4)
     IMPLEMENT_ALL(SUNF4)
 
@@ -212,9 +211,15 @@ namespace HepLib {
     //-----------------------------------------------------------
     // Index Class
     //-----------------------------------------------------------
-    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(Index, basic,
-        print_func<print_context>(&Index::print)
-    )
+    //GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(Index, basic,print_func<print_context>(&Index::print))
+    GiNaC::registered_class_info & Index::get_class_info_static() { return reg_info; }
+    Index::visitor::~visitor() { }
+    Index * Index::duplicate() const { Index * bp = new Index(*this); bp->setflag(GiNaC::status_flags::dynallocated); return bp; }
+    void Index::accept(GiNaC::visitor & v) const { if (visitor *p = dynamic_cast<visitor *>(&v)) p->visit(*this); else inherited::accept(v); }
+    const GiNaC::registered_class_info &Index::get_class_info() const { return get_class_info_static(); }
+    GiNaC::registered_class_info &Index::get_class_info() { return get_class_info_static(); }
+    const char *Index::class_name() const { return get_class_info_static().options.get_name(); }
+    //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
     Index::Index(const string &s, const Type t) : name(s), type(t) { }
     int Index::compare_same_type(const basic &other) const {
@@ -277,9 +282,15 @@ namespace HepLib {
     //-----------------------------------------------------------
     // Vector Class
     //-----------------------------------------------------------
-    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(Vector, basic,
-        print_func<print_context>(&Vector::print)
-    )
+    //GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(Vector, basic,print_func<print_context>(&Vector::print))
+    GiNaC::registered_class_info & Vector::get_class_info_static() { return reg_info; }
+    Vector::visitor::~visitor() { }
+    Vector * Vector::duplicate() const { Vector * bp = new Vector(*this); bp->setflag(GiNaC::status_flags::dynallocated); return bp; }
+    void Vector::accept(GiNaC::visitor & v) const { if (visitor *p = dynamic_cast<visitor *>(&v)) p->visit(*this); else inherited::accept(v); }
+    const GiNaC::registered_class_info &Vector::get_class_info() const { return get_class_info_static(); }
+    GiNaC::registered_class_info &Vector::get_class_info() { return get_class_info_static(); }
+    const char *Vector::class_name() const { return get_class_info_static().options.get_name(); }
+    //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
     Vector::Vector(const string &s) : name(s) { }
     int Vector::compare_same_type(const basic &other) const {
@@ -324,14 +335,15 @@ namespace HepLib {
         return 0;
     }
     
-    //-----------------------------------------------------------
-    // SUNT/SUNF/SUNF4 Class
-    //-----------------------------------------------------------
-    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNT, basic,
-        print_func<print_dflt>(&SUNT::print).
-        print_func<FormFormat>(&SUNT::form_print).
-        print_func<FCFormat>(&SUNT::fc_print)
-    )
+    //GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNT, basic,print_func<print_dflt>(&SUNT::print).print_func<FormFormat>(&SUNT::form_print).print_func<FCFormat>(&SUNT::fc_print))
+    GiNaC::registered_class_info & SUNT::get_class_info_static() { return reg_info; }
+    SUNT::visitor::~visitor() { }
+    SUNT * SUNT::duplicate() const { SUNT * bp = new SUNT(*this); bp->setflag(GiNaC::status_flags::dynallocated); return bp; }
+    void SUNT::accept(GiNaC::visitor & v) const { if (visitor *p = dynamic_cast<visitor *>(&v)) p->visit(*this); else inherited::accept(v); }
+    const GiNaC::registered_class_info &SUNT::get_class_info() const { return get_class_info_static(); }
+    GiNaC::registered_class_info &SUNT::get_class_info() { return get_class_info_static(); }
+    const char *SUNT::class_name() const { return get_class_info_static().options.get_name(); }
+    //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
     SUNT::SUNT(ex a, ex i, ex j) : aij{a,i,j} { }
     int SUNT::compare_same_type(const basic &other) const {
@@ -416,11 +428,15 @@ namespace HepLib {
         return SUNT(as, aij[2], aij[1]);
     }
     
-    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNF, basic,
-        print_func<print_dflt>(&SUNF::print).
-        print_func<FormFormat>(&SUNF::form_print).
-        print_func<FCFormat>(&SUNF::fc_print)
-    )
+    //GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNF, basic,print_func<print_dflt>(&SUNF::print).print_func<FormFormat>(&SUNF::form_print).print_func<FCFormat>(&SUNF::fc_print))
+    GiNaC::registered_class_info & SUNF::get_class_info_static() { return reg_info; }
+    SUNF::visitor::~visitor() { }
+    SUNF * SUNF::duplicate() const { SUNF * bp = new SUNF(*this); bp->setflag(GiNaC::status_flags::dynallocated); return bp; }
+    void SUNF::accept(GiNaC::visitor & v) const { if (visitor *p = dynamic_cast<visitor *>(&v)) p->visit(*this); else inherited::accept(v); }
+    const GiNaC::registered_class_info &SUNF::get_class_info() const { return get_class_info_static(); }
+    GiNaC::registered_class_info &SUNF::get_class_info() { return get_class_info_static(); }
+    const char *SUNF::class_name() const { return get_class_info_static().options.get_name(); }
+    //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
     SUNF::SUNF(ex i, ex j, ex k) : ijk{i,j,k} { }
     int SUNF::compare_same_type(const basic &other) const {
@@ -503,11 +519,15 @@ namespace HepLib {
         return 0;
     }
     
-    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNF4, basic,
-        print_func<print_dflt>(&SUNF4::print).
-        print_func<FormFormat>(&SUNF4::form_print).
-        print_func<FCFormat>(&SUNF4::fc_print)
-    )
+    //GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(SUNF4, basic,print_func<print_dflt>(&SUNF4::print).print_func<FormFormat>(&SUNF4::form_print).print_func<FCFormat>(&SUNF4::fc_print))
+    GiNaC::registered_class_info & SUNF4::get_class_info_static() { return reg_info; }
+    SUNF4::visitor::~visitor() { }
+    SUNF4 * SUNF4::duplicate() const { SUNF4 * bp = new SUNF4(*this); bp->setflag(GiNaC::status_flags::dynallocated); return bp; }
+    void SUNF4::accept(GiNaC::visitor & v) const { if (visitor *p = dynamic_cast<visitor *>(&v)) p->visit(*this); else inherited::accept(v); }
+    const GiNaC::registered_class_info &SUNF4::get_class_info() const { return get_class_info_static(); }
+    GiNaC::registered_class_info &SUNF4::get_class_info() { return get_class_info_static(); }
+    const char *SUNF4::class_name() const { return get_class_info_static().options.get_name(); }
+    //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
     SUNF4::SUNF4(ex i, ex j, ex k, ex l) : ijkl{i,j,k,l} { }
     int SUNF4::compare_same_type(const basic &other) const {

@@ -146,7 +146,7 @@ namespace HepLib::SD {
     void SecDec::DoAsy() {
         
         while(true) {
-            vector<ex> funexp;
+            exvector funexp;
             for(auto fe : FunExp) {
                 funexp.push_back(fe);
             }

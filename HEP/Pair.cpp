@@ -10,14 +10,18 @@ namespace HepLib {
     //-----------------------------------------------------------
     // Pair Class
     //-----------------------------------------------------------
-    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(Pair, basic,
-        print_func<print_dflt>(&Pair::print).
-        print_func<FormFormat>(&Pair::form_print).
-        print_func<FCFormat>(&Pair::fc_print)
-    )
+    //GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(Pair, basic,print_func<print_dflt>(&Pair::print).print_func<FormFormat>(&Pair::form_print).print_func<FCFormat>(&Pair::fc_print))
+    //GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(Eps, basic,print_func<print_dflt>(&Eps::print).print_func<FormFormat>(&Eps::form_print).print_func<FCFormat>(&Eps::fc_print))
+    GiNaC::registered_class_info & Pair::get_class_info_static() { return reg_info; }
+    Pair::visitor::~visitor() { }
+    Pair * Pair::duplicate() const { Pair * bp = new Pair(*this); bp->setflag(GiNaC::status_flags::dynallocated); return bp; }
+    void Pair::accept(GiNaC::visitor & v) const { if (visitor *p = dynamic_cast<visitor *>(&v)) p->visit(*this); else inherited::accept(v); }
+    const GiNaC::registered_class_info &Pair::get_class_info() const { return get_class_info_static(); }
+    GiNaC::registered_class_info &Pair::get_class_info() { return get_class_info_static(); }
+    const char *Pair::class_name() const { return get_class_info_static().options.get_name(); }
+    //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
     DEFAULT_CTOR(Pair)
-    GINAC_BIND_UNARCHIVER(Pair);
     IMPLEMENT_HAS(Pair)
     IMPLEMENT_ALL(Pair)
 

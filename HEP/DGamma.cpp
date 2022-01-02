@@ -42,14 +42,17 @@ namespace HepLib {
     //-----------------------------------------------------------
     // DGamma Class
     //-----------------------------------------------------------
-    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(DGamma, basic,
-        print_func<print_dflt>(&DGamma::print).
-        print_func<FormFormat>(&DGamma::form_print).
-        print_func<FCFormat>(&DGamma::fc_print)
-    )
+    //GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(DGamma, basic,print_func<print_dflt>(&DGamma::print).print_func<FormFormat>(&DGamma::form_print).print_func<FCFormat>(&DGamma::fc_print))
+    GiNaC::registered_class_info & DGamma::get_class_info_static() { return reg_info; }
+    DGamma::visitor::~visitor() { }
+    DGamma * DGamma::duplicate() const { DGamma * bp = new DGamma(*this); bp->setflag(GiNaC::status_flags::dynallocated); return bp; }
+    void DGamma::accept(GiNaC::visitor & v) const { if (visitor *p = dynamic_cast<visitor *>(&v)) p->visit(*this); else inherited::accept(v); }
+    const GiNaC::registered_class_info &DGamma::get_class_info() const { return get_class_info_static(); }
+    GiNaC::registered_class_info &DGamma::get_class_info() { return get_class_info_static(); }
+    const char *DGamma::class_name() const { return get_class_info_static().options.get_name(); }
+    //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
     DEFAULT_CTOR(DGamma)
-    GINAC_BIND_UNARCHIVER(DGamma);
     IMPLEMENT_HAS(DGamma)
     IMPLEMENT_ALL(DGamma)
         

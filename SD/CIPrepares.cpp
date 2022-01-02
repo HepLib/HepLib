@@ -87,7 +87,7 @@ namespace HepLib::SD {
         fts.sort();
         fts.unique();
         
-        vector<ex> ftnvec;
+        exvector ftnvec;
         map<ex,int,ex_is_less> ftnmap;
         int ft_n = 1;
         FT_N_XN.remove_all();
@@ -100,7 +100,7 @@ namespace HepLib::SD {
         }
         //ftnvec item: lst { ft, ft-id }
         
-        vector<ex> res_vec;
+        exvector res_vec;
         exmap cf_int;
         
         for(auto &item : resf) {

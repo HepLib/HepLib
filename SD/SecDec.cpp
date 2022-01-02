@@ -219,7 +219,7 @@ namespace HepLib::SD {
      * @param po_ex the list of {ps, ns}
      * @return a vector of {ps, ns} after BiSection
     */
-    vector<ex> SecDec::AutoEnd(ex po_ex) {
+    exvector SecDec::AutoEnd(ex po_ex) {
         if(po_ex.nops()>2) throw Error("AutoEnd: Deltas found @ " + ex2str(po_ex));
         lst const exlist = ex_to<lst>(po_ex.op(1));
         if(!(exlist.op(0)-1).is_zero()) throw Error("AutoEnd: (!(exlist.op(0)-1).is_zero())");
@@ -283,15 +283,15 @@ namespace HepLib::SD {
             }
 
             if(OK) {
-                vector<ex> res;
+                exvector res;
                 for(auto item : polists) res.push_back(lst{ex_to<lst>(item), exlist});
-                return res;
+                return exvector(std::move(res));
             }
         }}
         
         cerr << ErrColor << "polynormial list: " << po_ex.op(0) << RESET << endl;
         throw Error("AutoEnd Failed @ ALL possible bisections!");
-        return vector<ex>();
+        return exvector();
     }
 
     /*-----------------------------------------------------*/
@@ -299,7 +299,7 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     //return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }
     //e1 is a const term, e2 still the F-term
-    vector<ex> SecDec::DS(const ex po_ex) {
+    exvector SecDec::DS(const ex po_ex) {
         // 1st element in input polist is the constant term, guess NOT necessary
         // 2nd element in input polist is the F-term, required!
         lst const polist = ex_to<lst>(po_ex.op(0));
@@ -320,7 +320,7 @@ namespace HepLib::SD {
             throw Error("VerifySD Failed!");
         }
 
-        vector<ex> sd;
+        exvector sd;
         for(auto vi : vmap) {
             auto ypolist = polist.subs(vi);
             auto xs_tmp = get_x_from(ypolist);
@@ -508,7 +508,7 @@ namespace HepLib::SD {
             sd.push_back(lst{x_n_lst, pol_exp_lst});
         }
         
-        return sd;
+        return exvector(std::move(sd));
     }
 
     // 1st element in output is the constant term
@@ -715,7 +715,7 @@ namespace HepLib::SD {
     void SecDec::Normalizes() {
         for(int ri=0; ri<2; ri++) { // run twice, needs to check in more details
             if(IsZero) return;
-            vector<ex> funexp;
+            exvector funexp;
             for(auto fe : FunExp) {
                 funexp.push_back(Normalize(fe));
             }
@@ -756,7 +756,7 @@ namespace HepLib::SD {
 
     // working with or without Deltas
     void SecDec::XTogethers() {
-        vector<ex> funexp;
+        exvector funexp;
         for(auto fe : FunExp) {
             funexp.push_back(fe);
         }
@@ -797,7 +797,7 @@ namespace HepLib::SD {
 
     // working with or without Deltas
     void SecDec::XExpands() {
-        vector<ex> funexp;
+        exvector funexp;
         for(auto fe : FunExp) {
             funexp.push_back(fe);
         }
@@ -930,7 +930,7 @@ namespace HepLib::SD {
         
         while(true) {
             bool exit = true;
-            vector<ex> funexp = FunExp;
+            exvector funexp = FunExp;
             FunExp.clear();
             FunExp.shrink_to_fit();
             for(auto fe : funexp) {
@@ -1129,7 +1129,7 @@ namespace HepLib::SD {
         }, "SD");
         
         ex min_expn = 1, min_expn2 = 10;
-        vector<ex> ibp_in_vec;
+        exvector ibp_in_vec;
         for(auto &item : sd_res) {
             for(auto &it : ex_to<lst>(item)) {
                 ex expn = 0;
@@ -1162,7 +1162,7 @@ namespace HepLib::SD {
         if(Verbose > 1) cout << "  \\--" << Color_HighLight << "Maximum x^-n: All(" << ex(0)-min_expn << "+1X), Max(" << (ex(0)-min_expn2) << "+1)" << RESET << endl;
 
         int pn = 0;
-        vector<ex> ibp_res_vec;
+        exvector ibp_res_vec;
         while(ibp_in_vec.size()>0) {
             pn++;
             ostringstream spn;
@@ -1374,7 +1374,7 @@ namespace HepLib::SD {
         
         // Take z-residues
         bool zResides = false;
-        vector<ex> ints;
+        exvector ints;
         for(auto &item : res) {
             for(auto it : ex_to<lst>(item)) {
                 if(!it.is_zero()) ints.push_back(it);

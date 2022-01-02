@@ -37,7 +37,7 @@ namespace HepLib::SD {
         if(FT_N_XN.nops()<1) return;
         if(Verbose > 0) cout << Color_HighLight << "  Contours @ " << now() << RESET << endl;
         
-        vector<ex> ftnxn_vec;
+        exvector ftnxn_vec;
         //change 1->0 from GiNaC 1.7.7
         for(int i=0; i<FT_N_XN.nops(); i++) ftnxn_vec.push_back(FT_N_XN.op(i));
         

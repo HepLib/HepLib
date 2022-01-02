@@ -274,7 +274,7 @@ void Laporta::Reduce() {
     if(Verbose > 0) cout << now() << " - IBP Reduce ..." << endl << flush;
     
     if(Verbose > 1) cout << " - Sorting ... @ " << now(false) << endl << flush;
-    vector<ex> ibps;
+    exvector ibps;
     for(auto item : IBPs) {
         if(item.is_zero()) continue;
         I2lst(item);
@@ -284,7 +284,7 @@ void Laporta::Reduce() {
 
     exset fs;
     find(IBPs, F(w), fs);
-    vector<ex> fvec;
+    exvector fvec;
     for(auto item : fs) fvec.push_back(item);
         
     // sort Fs

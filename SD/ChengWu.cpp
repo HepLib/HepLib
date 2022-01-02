@@ -58,8 +58,8 @@ namespace HepLib::SD {
      * @param fe_vec the input vector of fe
      * @return ChengWu-rized vector of fe
      */
-    exvector ChengWu::Apply(const vector<ex> & fe_vec, const ex & ft) {
-        vector<ex> ret_fe_vec;
+    exvector ChengWu::Apply(const exvector & fe_vec, const ex & ft) {
+        exvector ret_fe_vec;
         for(auto fe : fe_vec) {
             ex cft = ft;
             if(is_zero(cft)) {
@@ -82,7 +82,7 @@ namespace HepLib::SD {
             for(auto item : ret) ret_fe_vec.push_back(item);
         }
 
-        return ret_fe_vec;
+        return exvector(std::move(ret_fe_vec));
     }
     
     /**
@@ -219,7 +219,7 @@ namespace HepLib::SD {
     exvector ChengWu::Binarize(ex const fe, ex const eqn) {
         exvector ovec;
         Binarize(fe, eqn, ovec);
-        return ovec;
+        return exvector(std::move(ovec));
     }
     
     /**
@@ -645,12 +645,12 @@ namespace HepLib::SD {
      * @param in_fe input fe, ft = in_fe.op(0).op(0), and in_fe.op(1).op(0) should be 0
      * @return vector of fe, and fe_op(0).op(0) replaced by 1-ok, 2-nok
      */
-    vector<ex> ChengWu::Evaluate(const ex & in_fe) {
-        vector<ex> fe_lst, ret_lst;
+    exvector ChengWu::Evaluate(const ex & in_fe) {
+        exvector fe_lst, ret_lst;
         fe_lst.push_back(in_fe);
         static int total_modes = 5;
         while(true) {
-            vector<ex> fe_lst2;
+            exvector fe_lst2;
             for(int i=0; i<fe_lst.size(); i++) {
                 auto fe = fe_lst[i];
                 auto ft = get_op(fe, 0, 0);
@@ -721,7 +721,7 @@ namespace HepLib::SD {
             fe_lst = fe_lst2;
         }
 
-        return ret_lst;
+        return exvector(std::move(ret_lst));
     }
     
     namespace {
@@ -741,7 +741,7 @@ namespace HepLib::SD {
      * @return vector of fe
      */
     exvector ChengWu::WickRotation(const exvector & fe_vec) {
-        vector<ex> ret_vec, run_vec, run2_vec;
+        exvector ret_vec, run_vec, run2_vec;
         run_vec = fe_vec;
         ReRun:
         for(auto fe : run_vec) {
@@ -905,7 +905,7 @@ namespace HepLib::SD {
             run2_vec.clear();
             goto ReRun;
         }
-        return ret_vec;
+        return exvector(std::move(ret_vec));
     }
     
 }

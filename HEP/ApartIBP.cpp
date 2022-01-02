@@ -658,8 +658,11 @@ namespace HepLib {
      * @return ApartIR with complete matrix rank, ready for IBP reduction
      */
     ex ApartIRC(const ex & expr_in) {
-        return MapFunction([](const ex & e, MapFunction &self)->ex {
+        exmap cache;
+        MapFunction map([&cache](const ex & e, MapFunction &self)->ex {
             if(e.match(ApartIR(w1,w2))) {
+                auto i = cache.find(e);
+                if(i!=cache.end()) return i->second;
                 int n = e.op(1).nops();
                 if((e.op(0)).is_equal(1)) {
                     matrix mat(n+2,n);
@@ -667,7 +670,7 @@ namespace HepLib {
                         for(int c=0; c<n; c++) mat(r,c) = 0;
                     }
                     for(int i=0; i<n; i++) mat(i,i) = 1;
-                    return ApartIR(mat, e.op(1));
+                    return cache[e] = ApartIR(mat, e.op(1));
                 }
                 if(!is_a<matrix>(e.op(0))) throw Error("ApartIRC: Not matrix : " + ex2str(e.op(0)));
                 auto mat0 = ex_to<matrix>(e.op(0));
@@ -696,23 +699,53 @@ namespace HepLib {
                         for(int c=0; c<mat0.cols(); c++) mat(r,c) = mat0(r,c);
                     }
                 }
-                return ApartIR(mat, e.op(1));
+                return cache[e] = ApartIR(mat, e.op(1));
             } else return e.map(self);
-        })(expr_in);
+        });
+        return map(expr_in);
     }
     
     namespace {
 
-        void IBPSave(string dir, vector<IBP::Base*> &ibp_vec) {
-            garWrite(dir+"/IBP.gar", ibp_vec.size());
-            GiNaC_Parallel(ibp_vec.size(), [dir,&ibp_vec](int i) { 
-                ibp_vec[i]->Export(dir+"/IBP-"+to_string(i)+".gar");
-                return 0;
-            }, "ibpEX");
+        void A2FSave(string garfn, exvector air_vec, ex IntFs, vector<IBP::Base*> &ibp_vec) {
+            archive ar;
+            
+            ar.archive_ex(air_vec.size(), "air_vec_size");
+            for(int i=0; i<air_vec.size(); i++) {
+                ar.archive_ex(air_vec[i], ("air_"+to_string(i)).c_str());
+            }
+            
+            ar.archive_ex(IntFs, "IntFs");
+            
+            ar.archive_ex(ibp_vec.size(), "ibp_vec_size");
+            for(int i=0; i<ibp_vec.size(); i++) {
+                ar.archive_ex(ibp_vec[i]->TO(), ("ibp_"+to_string(i)).c_str());
+            }
+
+            ofstream out(garfn);
+            out << ar;
+            out.close();
         }
 
-        void IBPGet(string dir, vector<IBP::Base*> &ibp_vec, int IBPmethod) {
-            int size = ex_to<numeric>(garRead(dir+"/IBP.gar")).to_int();
+        void A2FGet(string garfn, exvector &air_vec, ex &IntFs, vector<IBP::Base*> &ibp_vec, int IBPmethod) {
+            archive ar;
+            ifstream in(garfn);
+            in >> ar;
+            in.close();
+            
+            map<string, ex> dict;
+            for(int i=0; i<ar.num_expressions(); i++) {
+                string name;
+                ex res = ar.unarchive_ex(GiNaC_archive_Symbols, name, i);
+                dict[name] = res;
+            }
+            
+            auto size = ex_to<numeric>(dict["air_vec_size"]).to_int();
+            if(size != air_vec.size()) throw Error("ApartIBP: ari_vec size is wrong!");
+            for(int i=0; i<size; i++) air_vec[i] = dict["air_"+to_string(i)];
+            
+            size = ex_to<numeric>(dict["ibp_vec_size"]).to_int();
+            ibp_vec.resize(size);
             for(int i=0; i<size; i++) {
                 IBP::Base* ibp;
                 if(IBPmethod==0) ibp = new Base();
@@ -720,9 +753,11 @@ namespace HepLib {
                 else if(IBPmethod==2) ibp = new KIRA();
                 else if(IBPmethod==3) ibp = new UKIRA();
                 else ibp = new Base();
-                ibp->Import(dir+"/IBP-"+to_string(i)+".gar");
-                ibp_vec.push_back(ibp);
+                ibp->FROM(dict["ibp_"+to_string(i)]);
+                ibp_vec[i] = ibp;
             }
+            
+            IntFs = dict["IntFs"];
         }
     }
     
@@ -841,12 +876,10 @@ namespace HepLib {
         
         ex IntFs;
         vector<IBP::Base*> ibp_vec;
-        if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/IBP.gar")) {
-            garRead(air_vec,aio.SaveDir+"/AIR2F.gar");
-            IBPGet(aio.SaveDir, ibp_vec, IBPmethod);
-            IntFs = garRead(aio.SaveDir+"/IntFs.gar");
+        if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/A2F.gar")) {
+            A2FGet(aio.SaveDir+"/A2F.gar", air_vec, IntFs, ibp_vec, IBPmethod);
             for(auto ibp : ibp_vec) ibp->WorkingDir = wdir; // update working directory
-            goto IBP_Done;
+            goto A2F_Done;
         }
         
         if(true) {
@@ -943,14 +976,10 @@ namespace HepLib {
                     return air;
                 }, "AIR2F");
                 for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIRC
-                if(aio.SaveDir != "") {
-                    garWrite(air_vec,aio.SaveDir+"/AIR2F.gar");
-                    garWrite(aio.SaveDir+"/IntFs.gar", IntFs);
-                    IBPSave(aio.SaveDir, ibp_vec);
-                }
+                if(aio.SaveDir != "") A2FSave(aio.SaveDir+"/A2F.gar", air_vec, IntFs, ibp_vec);
             }
         }
-        IBP_Done: ;
+        A2F_Done: ;
 
         vector<IBP::Base*> ibp_vec_re;
         if(true) {

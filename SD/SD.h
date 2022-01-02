@@ -42,11 +42,11 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     // Global Functions
     /*-----------------------------------------------------*/
-    vector<ex> get_xy_from(ex pol);
-    vector<ex> get_x_from(ex pol);
-    vector<ex> get_y_from(ex pol);
-    vector<ex> get_z_from(ex pol);
-    vector<ex> get_pl_from(ex pol);
+    exvector get_xy_from(ex pol);
+    exvector get_x_from(ex pol);
+    exvector get_y_from(ex pol);
+    exvector get_z_from(ex pol);
+    exvector get_pl_from(ex pol);
     int epRank(ex);
     int epsRank(ex);
     int vsRank(ex);
@@ -352,8 +352,8 @@ namespace HepLib::SD {
         static void Projectivize(ex &fe, const ex delta, const ex xsum=0);
         static void Scalelize(ex &fe, const lst xs, const ex cy);
         static void Scalelize(ex &fe, const ex xi, const ex cy);
-        static vector<ex> Binarize(ex const fe, ex const eqn);
-        static void Binarize(ex const fe, ex const eqn, vector<ex> & ovec);
+        static exvector Binarize(ex const fe, ex const eqn);
+        static void Binarize(ex const fe, ex const eqn, exvector & ovec);
         static bool isLinearizable(const ex ft, const ex delta, lst & xcs);
         static void Linearize(const lst xcs, ex & fe, ex & ft);
         static bool isPartilizable(const ex ft, const ex delta, lst &xcs, int mode=0);
@@ -361,7 +361,7 @@ namespace HepLib::SD {
         
         static exvector Evaluate(const ex & fe);
         static exvector WickRotation(const exvector & fe_vec);
-        static exvector Apply(const vector<ex> & fe_vec, const ex & ft=0);
+        static exvector Apply(const exvector & fe_vec, const ex & ft=0);
         inline static exvector Apply(const ex & fe, const ex & ft=0) {
             exvector fe_vec;
             fe_vec.push_back(fe);
@@ -385,9 +385,9 @@ namespace HepLib::SD {
         bool vs_before_ep = false;
         bool use_XMonomials = true;
         exmap nReplacements;
-        vector<ex> FunExp; // each item : { {f1,f2,...}, {n1,n2,...}, { delta_list1, delta_list2 } }
-        vector<ex> Integrands;
-        vector<ex> expResult;
+        exvector FunExp; // each item : { {f1,f2,...}, {n1,n2,...}, { delta_list1, delta_list2 } }
+        exvector Integrands;
+        exvector expResult;
         SecDecBase *SecDec = NULL;
         IntegratorBase *Integrator = NULL;
         MinimizeBase *Minimizer = NULL;
@@ -439,14 +439,14 @@ namespace HepLib::SD {
         void XExpands();
         void KillPowers(int bits=1+2);
         bool IsBad(ex f, vector<exmap> vmap);
-        vector<ex> AutoEnd(ex po_ex);
+        exvector AutoEnd(ex po_ex);
         void CIPrepares(const string & key = "");
         void Contours(const string & key = "", const string & pkey = "");
         void Integrates(const string & key="", const string & pkey="", int kid=0);
         void ReIntegrates(const string & key, const string & pkey, qREAL err);
         void Evaluate(FeynmanParameter fpi, const string & key = "");
         void Evaluate(XIntegrand xint, const string & key = "");
-        void Evaluate(vector<ex> FunExp, const string & key = "");
+        void Evaluate(const exvector & FunExp, const string & key = "");
         void MB();
         void XEnd();
         void ChengWu(const ex & ft=0);
@@ -469,7 +469,7 @@ namespace HepLib::SD {
         ~SecDec();
                 
     private:
-        vector<ex> DS(const ex po_ex);
+        exvector DS(const ex po_ex);
         lst Normalize(const ex &input);
         void DoAsy();
         bool KillPowerD(ex fe, int kpi);

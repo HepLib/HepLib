@@ -53,6 +53,13 @@ namespace HepLib::IBP {
         out.close();
     }
     
+    ex Base::TO() {
+        lst shift;
+        for(auto kv : Shift) shift.append(lst{kv.first, kv.second});
+        
+        return lst{ Internal, External, Replacements, Propagators, Cuts, DSP, ISP, shift, reCut, ProblemNumber, Symbol(WorkingDir), PIntegrals, MIntegrals, Rules, IsAlwaysZero };
+    }
+    
     void Base::Import(string garfn) {
         archive ar;
         ifstream in(garfn);
@@ -82,6 +89,26 @@ namespace HepLib::IBP {
         Rules = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Rules"));
         IsAlwaysZero = !(ar.unarchive_ex(GiNaC_archive_Symbols,"IsAlwaysZero").is_zero()); // bool
     
+    }
+    
+    void Base::FROM(ex s) {
+        int i = 0;
+        Internal = ex_to<lst>(s.op(i++));
+        External = ex_to<lst>(s.op(i++));
+        Replacements = ex_to<lst>(s.op(i++));
+        Propagators = ex_to<lst>(s.op(i++));
+        Cuts = ex_to<lst>(s.op(i++));
+        DSP = ex_to<lst>(s.op(i++));
+        ISP = ex_to<lst>(s.op(i++));
+        lst shift = ex_to<lst>(s.op(i++));
+        reCut = s.op(i++).is_equal(1);
+        ProblemNumber = ex_to<numeric>(s.op(i++)).to_int();
+        WorkingDir = ex_to<Symbol>(s.op(i++)).get_name();
+        PIntegrals = ex_to<lst>(s.op(i++));
+        MIntegrals = ex_to<lst>(s.op(i++));
+        Rules = ex_to<lst>(s.op(i++));
+        IsAlwaysZero = s.op(i++).is_equal(1);
+        for(auto item : shift) Shift[ex_to<numeric>(item.op(0)).to_int()] = item.op(1);
     }
     
     /**

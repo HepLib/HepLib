@@ -11,82 +11,79 @@ namespace HepLib::SD {
     // Global Functions
     /*-----------------------------------------------------*/
 
-    vector<ex> get_xy_from(ex pol) {
+    exvector get_xy_from(ex pol) {
         exset xyset;
         bool ok = pol.find(x(w), xyset);
         if(!ok) {
             ok = pol.find(y(w), xyset);
-            if(!ok) {
-                vector<ex> xys(0);
-                return xys;
-            }
+            if(!ok) return exvector();
         }
-        vector<ex> xys(xyset.size());
+        exvector xys(xyset.size());
         copy(xyset.begin(), xyset.end(), xys.begin());
         sort(xys.begin(), xys.end(), [](const auto &a, const auto &b){
             return normal((b-a)).subs(lst{ x(w)==w, y(w)==w }).info(info_flags::positive);
         });
-        return xys;
+        return exvector(std::move(xys));
     }
 
-    vector<ex> get_x_from(ex pol) {
+    exvector get_x_from(ex pol) {
         exset xset;
         bool ok = pol.find(x(w), xset);
         if(!ok) {
-            vector<ex> xs(0);
+            exvector xs(0);
             return xs;
         }
-        vector<ex> xs(xset.size());
+        exvector xs(xset.size());
         copy(xset.begin(), xset.end(), xs.begin());
         sort(xs.begin(), xs.end(), [](const auto &a, const auto &b){
             return normal((b-a)).subs(lst{ x(w)==w }).info(info_flags::positive);
         });
-        return xs;
+        return exvector(std::move(xs));
     }
 
-    vector<ex> get_y_from(ex pol) {
+    exvector get_y_from(ex pol) {
         exset yset;
         bool ok = pol.find(y(w), yset);
         if(!ok) {
-            vector<ex> ys(0);
+            exvector ys(0);
             return ys;
         }
-        vector<ex> ys(yset.size());
+        exvector ys(yset.size());
         copy(yset.begin(), yset.end(), ys.begin());
         sort(ys.begin(), ys.end(), [](const auto &a, const auto &b){
             return normal((b-a)).subs(lst{ y(w)==w }).info(info_flags::positive);
         });
-        return ys;
+        return exvector(std::move(ys));
     }
     
-    vector<ex> get_z_from(ex pol) {
+    exvector get_z_from(ex pol) {
         exset zset;
         bool ok = pol.find(z(w), zset);
         if(!ok) {
-            vector<ex> zs(0);
+            exvector zs(0);
             return zs;
         }
-        vector<ex> zs(zset.size());
+        exvector zs(zset.size());
         copy(zset.begin(), zset.end(), zs.begin());
         sort(zs.begin(), zs.end(), [](const auto &a, const auto &b){
             return normal((b-a)).subs(lst{ z(w)==w }).info(info_flags::positive);
         });
-        return zs;
+        return exvector(std::move(zs));
     }
 
-    vector<ex> get_pl_from(ex pol) {
+    exvector get_pl_from(ex pol) {
         exset plset;
         bool ok = pol.find(PL(w), plset);
         if(!ok) {
-            vector<ex> pls(0);
+            exvector pls(0);
             return pls;
         }
-        vector<ex> pls(plset.size());
+        exvector pls(plset.size());
         copy(plset.begin(), plset.end(), pls.begin());
         sort(pls.begin(), pls.end(), [](const auto &a, const auto &b){
             return normal((b-a)).subs(lst{ PL(w)==w }).info(info_flags::positive);
         });
-        return pls;
+        return exvector(std::move(pls));
     }
 
     /*-----------------------------------------------------*/

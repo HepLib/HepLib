@@ -223,9 +223,57 @@ namespace HepLib {
         
         auto opath = getenv("PATH");
         if(opath != NULL) oss << ":" << opath;
-        setenv("PATH", oss.str().c_str(), true);        
+        setenv("PATH", oss.str().c_str(), true);
+        
+        // similar to GINAC_DECLARE_UNARCHIVER/GINAC_BIND_UNARCHIVER
+        GiNaC::unarchive_table_t table;
+        table.insert(std::string("Symbol"), []()->GiNaC::basic*{ return new Symbol(); });
+        table.insert(std::string("iSymbol"), []()->GiNaC::basic*{ return new iSymbol(); });
+        table.insert(std::string("XIntegral"), []()->GiNaC::basic*{ return new XIntegral(); });
+        table.insert(std::string("Index"), []()->GiNaC::basic*{ return new Index(); });
+        table.insert(std::string("Vector"), []()->GiNaC::basic*{ return new Vector(); });
+        table.insert(std::string("SUNT"), []()->GiNaC::basic*{ return new SUNT(); });
+        table.insert(std::string("SUNF"), []()->GiNaC::basic*{ return new SUNF(); });
+        table.insert(std::string("SUNF4"), []()->GiNaC::basic*{ return new SUNF4(); });
+        table.insert(std::string("DGamma"), []()->GiNaC::basic*{ return new DGamma(); });
+        table.insert(std::string("Eps"), []()->GiNaC::basic*{ return new Eps(); });
+        table.insert(std::string("Pair"), []()->GiNaC::basic*{ return new Pair(); });
     }
     _global_init::_init _global_init::init_object;
+    
+    // similar to GINAC_DECLARE_UNARCHIVER/GINAC_IMPLEMENT_REGISTERED_CLASS_OPT
+    GiNaC::registered_class_info Symbol::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("Symbol", "symbol", typeid(Symbol)));
+    
+    GiNaC::registered_class_info iSymbol::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("iSymbol", "symbol", typeid(iSymbol)));
+    
+    GiNaC::registered_class_info XIntegral::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("XIntegral", "basic", typeid(XIntegral)).print_func<print_dflt>(&XIntegral::print));
+    
+    GiNaC::registered_class_info Index::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("Index", "basic", typeid(Index)).print_func<print_context>(&Index::print));
+    
+    GiNaC::registered_class_info Vector::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("Vector", "basic", typeid(Vector)).print_func<print_context>(&Vector::print));
+    
+    GiNaC::registered_class_info SUNT::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("SUNT", "basic", typeid(SUNT)).print_func<print_dflt>(&SUNT::print).print_func<FormFormat>(&SUNT::form_print).print_func<FCFormat>(&SUNT::fc_print));
+            
+    GiNaC::registered_class_info SUNF::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("SUNF", "basic", typeid(SUNF)).print_func<print_dflt>(&SUNF::print).print_func<FormFormat>(&SUNF::form_print).print_func<FCFormat>(&SUNF::fc_print));
+    
+    GiNaC::registered_class_info SUNF4::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("SUNF4", "basic", typeid(SUNF4)).print_func<print_dflt>(&SUNF4::print).print_func<FormFormat>(&SUNF4::form_print).print_func<FCFormat>(&SUNF4::fc_print));
+    
+    GiNaC::registered_class_info DGamma::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("DGamma", "basic", typeid(DGamma)).print_func<print_dflt>(&DGamma::print).print_func<FormFormat>(&DGamma::form_print).print_func<FCFormat>(&DGamma::fc_print));
+    
+    GiNaC::registered_class_info Eps::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("Eps", "basic", typeid(Eps)).print_func<print_dflt>(&Eps::print).print_func<FormFormat>(&Eps::form_print).print_func<FCFormat>(&Eps::fc_print));
+    
+    GiNaC::registered_class_info Pair::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("Pair", "basic", typeid(Pair)).print_func<print_dflt>(&Pair::print).print_func<FormFormat>(&Pair::form_print).print_func<FCFormat>(&Pair::fc_print));
     
     // QCD::FF
     int QCD::FF::cur_mode = 0; // 0 - gluon, 1 - quark, 2 - anti-quark

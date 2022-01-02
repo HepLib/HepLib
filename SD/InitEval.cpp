@@ -301,14 +301,14 @@ namespace HepLib::SD {
             fList2.append(uList2[i]);
         }
 
-        vector<ex> ret;
+        exvector ret;
         ret.push_back(lst{fList1, fList2});
 
         // negative index
         for(int i=0; i<xn; i++) {
         if(ns.op(i).info(info_flags::negint)) {
             for(int j=0; j<ex(0)-ns.op(i); j++) {
-                vector<ex> nret;
+                exvector nret;
                 for(auto fe : ret) {
                     auto plst = ex_to<lst>(fe.op(0));
                     auto nlst = ex_to<lst>(fe.op(1));
@@ -345,7 +345,7 @@ namespace HepLib::SD {
                         nret.push_back(lst{plst2, nlst2});
                     }
                 }
-                ret = nret;
+                ret = exvector(std::move(nret));
             }
             
             for(auto &fe : ret) {   
@@ -509,7 +509,7 @@ namespace HepLib::SD {
         if(Verbose>1) cout << "  Finished @ " << now() << endl << endl;
     }
     
-    void SecDec::Evaluate(vector<ex> funexp, const string & key) {
+    void SecDec::Evaluate(const exvector & funexp, const string & key) {
         
         if(Verbose>1) cout << endl << "  Starting @ " << now() << endl;
         

@@ -49,6 +49,8 @@ namespace HepLib::IBP {
         void Reduce();
         void Export(string garfn); // Export to .gar
         void Import(string garfn); // Import from .gar
+        ex TO(); // to single list for output
+        void FROM(ex s); // from a single expression 
         
     };
 

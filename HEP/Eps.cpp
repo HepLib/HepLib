@@ -10,14 +10,17 @@ namespace HepLib {
     //-----------------------------------------------------------
     // Eps Class
     //-----------------------------------------------------------
-    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(Eps, basic,
-        print_func<print_dflt>(&Eps::print).
-        print_func<FormFormat>(&Eps::form_print).
-        print_func<FCFormat>(&Eps::fc_print)
-    )
+    //GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(Eps, basic,print_func<print_dflt>(&Eps::print).print_func<FormFormat>(&Eps::form_print).print_func<FCFormat>(&Eps::fc_print))
+    GiNaC::registered_class_info & Eps::get_class_info_static() { return reg_info; }
+    Eps::visitor::~visitor() { }
+    Eps * Eps::duplicate() const { Eps * bp = new Eps(*this); bp->setflag(GiNaC::status_flags::dynallocated); return bp; }
+    void Eps::accept(GiNaC::visitor & v) const { if (visitor *p = dynamic_cast<visitor *>(&v)) p->visit(*this); else inherited::accept(v); }
+    const GiNaC::registered_class_info &Eps::get_class_info() const { return get_class_info_static(); }
+    GiNaC::registered_class_info &Eps::get_class_info() { return get_class_info_static(); }
+    const char *Eps::class_name() const { return get_class_info_static().options.get_name(); }
+    //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
     DEFAULT_CTOR(Eps)
-    GINAC_BIND_UNARCHIVER(Eps);
     IMPLEMENT_HAS(Eps)
     IMPLEMENT_ALL(Eps)
 

@@ -1551,7 +1551,7 @@ ostream& operator<<(ostream& o, const vector<EvalPoint>& v)
 #endif // def DEBUGFACTOR
 
 // forward declaration
-static vector<ex> multivar_diophant(const vector<ex>& a_, const ex& x, const ex& c, const vector<EvalPoint>& I, unsigned int d, unsigned int p, unsigned int k);
+static exvector multivar_diophant(const exvector& a_, const ex& x, const ex& c, const vector<EvalPoint>& I, unsigned int d, unsigned int p, unsigned int k);
 
 /** Utility function for multivariate Hensel lifting.
  *
@@ -1580,11 +1580,11 @@ static upvec multiterm_eea_lift(const upvec& a, const ex& x, unsigned int p, uns
 	umodpoly beta(1, R->one());
 	upvec s;
 	for ( size_t j=1; j<r; ++j ) {
-		vector<ex> mdarg(2);
+		exvector mdarg(2);
 		mdarg[0] = umodpoly_to_ex(q[j-1], x);
 		mdarg[1] = umodpoly_to_ex(a[j-1], x);
 		vector<EvalPoint> empty;
-		vector<ex> exsigma = multivar_diophant(mdarg, x, umodpoly_to_ex(beta, x), empty, 0, p, k);
+		exvector exsigma = multivar_diophant(mdarg, x, umodpoly_to_ex(beta, x), empty, 0, p, k);
 		umodpoly sigma1;
 		umodpoly_from_ex(sigma1, exsigma[0], x, R);
 		umodpoly sigma2;
@@ -1767,19 +1767,19 @@ static ex make_modular(const ex& e, const cl_modint_ring& R)
  *  @param d   maximum total degree of result
  *  @param p   prime number
  *  @param k   p^k is modulus
- *  @return    vector of polynomials (s_i)
+ *  @return vector of polynomials (s_i)
  */
-static vector<ex> multivar_diophant(const vector<ex>& a_, const ex& x, const ex& c, const vector<EvalPoint>& I,
+static exvector multivar_diophant(const exvector& a_, const ex& x, const ex& c, const vector<EvalPoint>& I,
                                     unsigned int d, unsigned int p, unsigned int k)
 {
-	vector<ex> a = a_;
+	exvector a = a_;
 
 	const cl_I modulus = expt_pos(cl_I(p),k);
 	const cl_modint_ring R = find_modint_ring(modulus);
 	const size_t r = a.size();
 	const size_t nu = I.size() + 1;
 
-	vector<ex> sigma;
+	exvector sigma;
 	if ( nu > 1 ) {
 		ex xnu = I.back().x;
 		int alphanu = I.back().evalpoint;
@@ -1788,12 +1788,12 @@ static vector<ex> multivar_diophant(const vector<ex>& a_, const ex& x, const ex&
 		for ( size_t i=0; i<r; ++i ) {
 			A *= a[i];
 		}
-		vector<ex> b(r);
+		exvector b(r);
 		for ( size_t i=0; i<r; ++i ) {
 			b[i] = normal(A / a[i]);
 		}
 
-		vector<ex> anew = a;
+		exvector anew = a;
 		for ( size_t i=0; i<r; ++i ) {
 			anew[i] = anew[i].subs(xnu == alphanu);
 		}
@@ -1815,7 +1815,7 @@ static vector<ex> multivar_diophant(const vector<ex>& a_, const ex& x, const ex&
 			ex cm = e.diff(ex_to<symbol>(xnu), m).subs(xnu==alphanu) / factorial(m);
 			cm = make_modular(cm, R);
 			if ( !cm.is_zero() ) {
-				vector<ex> delta_s = multivar_diophant(anew, x, cm, Inew, d, p, k);
+				exvector delta_s = multivar_diophant(anew, x, cm, Inew, d, p, k);
 				ex buf = e;
 				for ( size_t j=0; j<delta_s.size(); ++j ) {
 					delta_s[j] *= monomial;
@@ -1884,12 +1884,12 @@ static vector<ex> multivar_diophant(const vector<ex>& a_, const ex& x, const ex&
  *              empty if Hensel lifting did not succeed
  */
 static ex hensel_multivar(const ex& a, const ex& x, const vector<EvalPoint>& I,
-                          unsigned int p, const cl_I& l, const upvec& u, const vector<ex>& lcU)
+                          unsigned int p, const cl_I& l, const upvec& u, const exvector& lcU)
 {
 	const size_t nu = I.size() + 1;
 	const cl_modint_ring R = find_modint_ring(expt_pos(cl_I(p),l));
 
-	vector<ex> A(nu);
+	exvector A(nu);
 	A[nu-1] = a;
 
 	for ( size_t j=nu; j>=2; --j ) {
@@ -1906,13 +1906,13 @@ static ex hensel_multivar(const ex& a, const ex& x, const vector<EvalPoint>& I,
 	}
 
 	const size_t n = u.size();
-	vector<ex> U(n);
+	exvector U(n);
 	for ( size_t i=0; i<n; ++i ) {
 		U[i] = umodpoly_to_ex(u[i], x);
 	}
 
 	for ( size_t j=2; j<=nu; ++j ) {
-		vector<ex> U1 = U;
+		exvector U1 = U;
 		ex monomial = 1;
 		for ( size_t m=0; m<n; ++m) {
 			if ( lcU[m] != 1 ) {
@@ -1946,7 +1946,7 @@ static ex hensel_multivar(const ex& a, const ex& x, const vector<EvalPoint>& I,
 				ex dif = e.diff(ex_to<symbol>(xj), k);
 				ex c = dif.subs(xj==alphaj) / factorial(k);
 				if ( !c.is_zero() ) {
-					vector<ex> deltaU = multivar_diophant(U1, x, c, newI, maxdeg, p, cl_I_to_uint(l));
+					exvector deltaU = multivar_diophant(U1, x, c, newI, maxdeg, p, cl_I_to_uint(l));
 					for ( size_t i=0; i<n; ++i ) {
 						deltaU[i] *= monomial;
 						U[i] += deltaU[i];
@@ -2196,7 +2196,7 @@ static ex factor_multivariate(const ex& poly, const exset& syms)
 		}
 
 		// determine true leading coefficients for the Hensel lifting
-		vector<ex> C(factor_count);
+		exvector C(factor_count);
 		if ( is_a<numeric>(vn) ) {
 			// easy case
 			for ( size_t i=1; i<ufaclst.nops(); ++i ) {
@@ -2220,7 +2220,7 @@ static ex factor_multivariate(const ex& poly, const exset& syms)
 			}
 			// calculate D and C
 			vector<bool> used_flag(ftilde.size(), false);
-			vector<ex> D(factor_count, 1);
+			exvector D(factor_count, 1);
 			if ( delta == 1 ) {
 				for ( int i=0; i<factor_count; ++i ) {
 					numeric prefac = ex_to<numeric>(ufaclst.op(i+1).lcoeff(x));

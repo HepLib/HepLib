@@ -51,10 +51,17 @@ namespace HepLib {
     }   
 
     //DEFAULT_CTOR(Symbol)
-    GINAC_BIND_UNARCHIVER(Symbol);
     IMPLEMENT_HAS(Symbol)
     IMPLEMENT_ALL(Symbol)
-    GINAC_IMPLEMENT_REGISTERED_CLASS(Symbol, symbol)
+    //GINAC_IMPLEMENT_REGISTERED_CLASS(Symbol, symbol)
+    GiNaC::registered_class_info & Symbol::get_class_info_static() { return reg_info; }
+    Symbol::visitor::~visitor() { }
+    Symbol * Symbol::duplicate() const { Symbol * bp = new Symbol(*this); bp->setflag(GiNaC::status_flags::dynallocated); return bp; }
+    void Symbol::accept(GiNaC::visitor & v) const { if (visitor *p = dynamic_cast<visitor *>(&v)) p->visit(*this); else inherited::accept(v); }
+    const GiNaC::registered_class_info &Symbol::get_class_info() const { return get_class_info_static(); }
+    GiNaC::registered_class_info &Symbol::get_class_info() { return get_class_info_static(); }
+    const char *Symbol::class_name() const { return get_class_info_static().options.get_name(); }
+    //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
     /**
      * @brief Symbol constructor
@@ -130,10 +137,16 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     
     //DEFAULT_CTOR(iSymbol)
-    GINAC_BIND_UNARCHIVER(iSymbol);
-    IMPLEMENT_HAS(iSymbol)
     IMPLEMENT_ALL(iSymbol)
-    GINAC_IMPLEMENT_REGISTERED_CLASS(iSymbol, symbol)
+    //GINAC_IMPLEMENT_REGISTERED_CLASS(iSymbol, symbol)
+    GiNaC::registered_class_info & iSymbol::get_class_info_static() { return reg_info; }
+    iSymbol::visitor::~visitor() { }
+    iSymbol * iSymbol::duplicate() const { iSymbol * bp = new iSymbol(*this); bp->setflag(GiNaC::status_flags::dynallocated); return bp; }
+    void iSymbol::accept(GiNaC::visitor & v) const { if (visitor *p = dynamic_cast<visitor *>(&v)) p->visit(*this); else inherited::accept(v); }
+    const GiNaC::registered_class_info &iSymbol::get_class_info() const { return get_class_info_static(); }
+    GiNaC::registered_class_info &iSymbol::get_class_info() { return get_class_info_static(); }
+    const char *iSymbol::class_name() const { return get_class_info_static().options.get_name(); }
+    //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
     /**
      * @brief Symbol constructor
@@ -204,7 +217,7 @@ namespace HepLib {
      * @param pre the pre-string in the print message
      * @return return the ntotal-element vector, i.e., [f(0), ..., f(ntotal-1)]
      */
-    vector<ex> GiNaC_Parallel(int ntotal, std::function<ex(int)> f, const string & key) {
+    exvector GiNaC_Parallel(int ntotal, std::function<ex(int)> f, const string & key) {
         int ec = 0;
         int nactive = 0;
         int nproc = GiNaC_Parallel_Process;
@@ -217,9 +230,9 @@ namespace HepLib {
         
         // nproc=0, non-parallel
         if(nproc==0) {
-            vector<ex> ovec;
+            exvector ovec;
             for(int i=0; i<ntotal; i++) ovec.push_back(f(i));
-            return ovec;
+            return exvector(std::move(ovec));
         }
         
         auto ppid = getpid();
@@ -310,67 +323,69 @@ namespace HepLib {
         wait_label:
         if(npid!=0) waitpid(npid,NULL,0); // wait nest process to exit
         
-        vector<ex> ovec;
+        exvector ovec;
         if(true) {
-            vector<ex> ovec_tmp;
-            for(int bi=0; bi<btotal; bi++) {
-                if(Verbose > 1 && !nst) {
-                    if(key == "") {
-                        cout << "\r                                                   \r" << pre;
-                        cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
-                    } else {
-                        cout << "\r                                                   \r" << pre;
-                        cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
-                    }
-                }
-
-                ostringstream garfn;
-                if(key == "") garfn << ppid << "/" << bi << ".gar";
-                else garfn << ppid << "/" << bi << "." << key << ".gar";
-                lst res_lst;
-                try {
-                    if(file_exists(garfn.str())) {
-                        res_lst = ex_to<lst>(garRead(garfn.str()));
-                        remove(garfn.str().c_str());
-                        goto done;
-                    } 
-                } catch(exception &p) { }
-                cout << "GiNaC_Parallel: ReTRY & ReRUN!" << endl;
-                try {
-                    res_lst.remove_all();
-                    for(int ri=0; ri<nbatch; ri++) {
-                        int i = bi*nbatch + ri;
-                        if(i<ntotal) res_lst.append(f(i));
-                        else break;
-                    }
-                } catch(exception &p) { 
-                    cout << ErrColor << "Failed in GiNaC_Parallel!" << RESET << endl;
-                    cout << ErrColor << p.what() << RESET << endl;
-                    throw Error("GiNaC_Parallel_ReTRY: "+string(p.what()));
-                }
-                done: ;
-                for(auto res : res_lst) ovec_tmp.push_back(res);
-            }
-            
-            if(ntotal > 0 && !nst) {
-                if(Verbose > 10) cout << endl;
-                else if(Verbose > 1) cout << "\r                                                   \r" << flush;
-                
-                if(Verbose > 1) {
-                    if(key == "") {
-                        cout << "\r                                                   \r" << pre;
-                        cout << "\\--Memory Sharing" << flush;
-                    } else {
-                        cout << "\r                                                   \r" << pre;
-                        cout << "\\--Memory Sharing " << Color_HighLight << key << RESET << flush;
-                    }
-                }
-            }
-        
             ostringstream garfn;
             if(key == "") garfn << ppid << "/all.gar";
             else garfn << ppid << "/all." << key << ".gar";
-            garWrite(garfn.str(), ovec_tmp);
+            if(true) {
+                exvector ovec_tmp;
+                for(int bi=0; bi<btotal; bi++) {
+                    if(Verbose > 1 && !nst) {
+                        if(key == "") {
+                            cout << "\r                                                   \r" << pre;
+                            cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
+                        } else {
+                            cout << "\r                                                   \r" << pre;
+                            cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
+                        }
+                    }
+
+                    ostringstream garfn;
+                    if(key == "") garfn << ppid << "/" << bi << ".gar";
+                    else garfn << ppid << "/" << bi << "." << key << ".gar";
+                    lst res_lst;
+                    try {
+                        if(file_exists(garfn.str())) {
+                            res_lst = ex_to<lst>(garRead(garfn.str()));
+                            remove(garfn.str().c_str());
+                            goto done;
+                        } 
+                    } catch(exception &p) { }
+                    cout << "GiNaC_Parallel: ReTRY & ReRUN!" << endl;
+                    try {
+                        res_lst.remove_all();
+                        for(int ri=0; ri<nbatch; ri++) {
+                            int i = bi*nbatch + ri;
+                            if(i<ntotal) res_lst.append(f(i));
+                            else break;
+                        }
+                    } catch(exception &p) { 
+                        cout << ErrColor << "Failed in GiNaC_Parallel!" << RESET << endl;
+                        cout << ErrColor << p.what() << RESET << endl;
+                        throw Error("GiNaC_Parallel_ReTRY: "+string(p.what()));
+                    }
+                    done: ;
+                    for(auto res : res_lst) ovec_tmp.push_back(res);
+                }
+                
+                if(ntotal > 0 && !nst) {
+                    if(Verbose > 10) cout << endl;
+                    else if(Verbose > 1) cout << "\r                                                   \r" << flush;
+                    
+                    if(Verbose > 1) {
+                        if(key == "") {
+                            cout << "\r                                                   \r" << pre;
+                            cout << "\\--Memory Sharing" << flush;
+                        } else {
+                            cout << "\r                                                   \r" << pre;
+                            cout << "\\--Memory Sharing " << Color_HighLight << key << RESET << flush;
+                        }
+                    }
+                }
+            
+                garWrite(garfn.str(), ovec_tmp);
+            }
             garRead(garfn.str(), ovec);
             
             if(Verbose > 1) cout << " @ " << now(false) << endl;
@@ -385,7 +400,7 @@ namespace HepLib {
         if(ovec.size() != ntotal) {
             throw Error("GiNaC_Parallel: The output size is wrong!");
         }
-        return ovec;
+        return exvector(std::move(ovec));
     }
 
     /**
@@ -449,7 +464,7 @@ namespace HepLib {
      * @param ve input expression vector
      * @return all symbols in the input
      */
-    lst gather_symbols(const vector<ex> & ve) {
+    lst gather_symbols(const exvector & ve) {
         exset ss;
         for(auto e : ve) {
             for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
@@ -807,7 +822,7 @@ namespace HepLib {
     exvector lst2vec(const lst & alst) {
         exvector ret;
         for(auto item : alst) ret.push_back(item);
-        return ret;
+        return exvector(std::move(ret));
     }
     
     /**
@@ -1506,12 +1521,17 @@ namespace HepLib {
     //-----------------------------------------------------------
     // XIntegral Class
     //-----------------------------------------------------------
-    GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(XIntegral, basic,
-        print_func<print_dflt>(&XIntegral::print)
-    )
+    //GINAC_IMPLEMENT_REGISTERED_CLASS_OPT(XIntegral, basic,print_func<print_dflt>(&XIntegral::print))
+    GiNaC::registered_class_info & XIntegral::get_class_info_static() { return reg_info; }
+    XIntegral::visitor::~visitor() { }
+    XIntegral * XIntegral::duplicate() const { XIntegral * bp = new XIntegral(*this); bp->setflag(GiNaC::status_flags::dynallocated); return bp; }
+    void XIntegral::accept(GiNaC::visitor & v) const { if (visitor *p = dynamic_cast<visitor *>(&v)) p->visit(*this); else inherited::accept(v); }
+    const GiNaC::registered_class_info &XIntegral::get_class_info() const { return get_class_info_static(); }
+    GiNaC::registered_class_info &XIntegral::get_class_info() { return get_class_info_static(); }
+    const char *XIntegral::class_name() const { return get_class_info_static().options.get_name(); }
+    //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
     DEFAULT_CTOR(XIntegral)
-    GINAC_BIND_UNARCHIVER(XIntegral);
     IMPLEMENT_HAS(XIntegral)
     IMPLEMENT_ALL(XIntegral)
 
@@ -2374,7 +2394,7 @@ namespace HepLib {
         return *this;
     }
     
-    void garWrite(exvector &exv, string garfn) {
+    void garWrite(const exvector &exv, string garfn) {
         archive ar;
         ar.archive_ex(exv.size(), "size");
         for(int i=0; i<exv.size(); i++) {
@@ -2390,12 +2410,18 @@ namespace HepLib {
         ifstream in(garfn);
         in >> ar;
         in.close();
-        auto size = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "size")).to_int();
-        exvector res;
-        for(int i=0; i<size; i++) {
-            ex tmp = ar.unarchive_ex(GiNaC_archive_Symbols, to_string(i).c_str());
-            exv.push_back(tmp);
+        
+        map<string, ex> dict;
+        for(int i=0; i<ar.num_expressions(); i++) {
+            string name;
+            ex res = ar.unarchive_ex(GiNaC_archive_Symbols, name, i);
+            dict[name] = res;
         }
+        
+        auto size = ex_to<numeric>(dict["size"]).to_int();
+        if(exv.size()>0 && size != exv.size()) throw Error("garRead: exvector size>0 & not match!");
+        if(exv.size()<1) exv.resize(size);
+        for(int i=0; i<size; i++) exv[i] = dict[to_string(i)];
     } 
     
     ex add_collect_normal(const exvector &exv, lst const &pats) {

@@ -390,7 +390,7 @@ namespace HepLib::SD {
     vector<exmap> SecDecG::x2y(const ex &xpol) {
         if(xpol.has(y(w))) throw Error("SecDecG::x2y failed with y(w) found.");
         auto cvs = collect_lst(xpol, x(w));
-        vector<ex> vpols;
+        exvector vpols;
         lst xpol2;
         for(auto cv : cvs) {
             if(is_zero(expand(cv.op(0)))) continue;

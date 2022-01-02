@@ -272,7 +272,7 @@ void matrix_hack::resize(unsigned nrows) {
 // rescale_submatrix
 //----------------------------------------
 void rescale_submatrix(matrix &m, unsigned r, unsigned nr, unsigned c, unsigned nc) {
-    vector<ex> n(nr*nc), d(nr*nc);
+    exvector n(nr*nc), d(nr*nc);
     ex mul = 0;
     ex div = 0;
     auto it_n = n.begin();

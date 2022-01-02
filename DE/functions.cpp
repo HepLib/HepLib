@@ -283,7 +283,7 @@ pair<matrix,matrix> normalize(const matrix &mat, const symbol &x) {
     
         matrix a0 = a0_matrix(m, x, 0);
         auto ev_map = eigenvalues(a0);
-        vector<vector<ex>> ev_groups;
+        vector<exvector> ev_groups;
         for(auto &kv : ev_map) {
             auto ev = kv.first;
             bool in_g = false;
@@ -299,7 +299,7 @@ pair<matrix,matrix> normalize(const matrix &mat, const symbol &x) {
                 }
             }
             if(!in_g) {
-                vector<ex> gi_new;
+                exvector gi_new;
                 gi_new.push_back(ev);
                 ev_groups.push_back(gi_new);
             }
@@ -376,7 +376,7 @@ pair<matrix, matrix> shearing(const matrix &mat, const symbol &x, const symbol e
     
         cout << "  eigen values of A0 summary:" << endl;
         auto ev_map = eigenvalues(a0);
-        vector<vector<ex>> ev_groups;
+        vector<exvector> ev_groups;
         for(auto &kv : ev_map) {
             auto ev = kv.first;
             bool in_g = false;
@@ -392,7 +392,7 @@ pair<matrix, matrix> shearing(const matrix &mat, const symbol &x, const symbol e
                 }
             }
             if(!in_g) {
-                vector<ex> gi_new;
+                exvector gi_new;
                 gi_new.push_back(ev);
                 ev_groups.push_back(gi_new);
             }
@@ -642,7 +642,7 @@ matrix dess(const matrix mat, const symbol &x, const symbol &ep,
     if(normal(qlcm.subs(x==0)).is_zero()) qlcm = normal(qlcm/x); //make sure check
     qlcm = qlcm.expand().collect(x);
     int qmax = qlcm.degree(x);
-    vector<ex> dessq;
+    exvector dessq;
     for(int ii=0; ii<=qmax; ii++) {
         dessq.push_back(qlcm.coeff(x, ii));
     }

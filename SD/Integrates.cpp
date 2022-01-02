@@ -246,7 +246,7 @@ namespace HepLib::SD {
 
             unsigned int xsize = 0;
             ex co;
-            vector<ex> xs, fxs;
+            exvector xs, fxs;
             xsize = ex_to<numeric>(item.op(1)).to_int();
             co = item.op(2).subs(plRepl).subs(iEpsilon==iEpsilonN);
             if(co.has(WRA(w))) co = ContinuousWRA(co);
@@ -832,7 +832,7 @@ namespace HepLib::SD {
             
             unsigned int xsize = 0;
             ex co;
-            vector<ex> xs, fxs;
+            exvector xs, fxs;
             xsize = ex_to<numeric>(item.op(1)).to_int();
             co = item.op(2).subs(plRepl).subs(iEpsilon==iEpsilonN);
             if(co.has(WRA(w))) co = ContinuousWRA(co);

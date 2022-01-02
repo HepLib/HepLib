@@ -439,7 +439,7 @@ namespace HepLib::SD {
                 cout << "Warning: kip>10, (kpi=" << kpi << ") maybe a dead loop!" << endl;
             }
             
-            vector<ex> funexp;
+            exvector funexp;
             for(auto fe : FunExp) {
                 funexp.push_back(fe);
             }
