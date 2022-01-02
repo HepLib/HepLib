@@ -6,6 +6,10 @@
 #include "BASIC.h"
 #include "cln/cln.h"
 
+inline unsigned golden_ratio_hash(uintptr_t n) {
+	return n * UINT64_C(0x4f1bbcdd);
+}
+
 #ifdef _USE_FLOAT128
 extern "C" {
     #include <quadmath.h>
@@ -102,14 +106,19 @@ namespace HepLib {
     ex Symbol::real_part() const { return *this; }
     ex Symbol::imag_part() const { return 0; }
     unsigned Symbol::calchash() const {
-        hashvalue = get_symbol(get_name()).gethash();
+        //hashvalue = get_symbol(get_name()).gethash();
+        //setflag(status_flags::hash_calculated);
+        //return hashvalue;
+        static std::hash<std::string> hs;
+        unsigned seed = hs(get_name()+typeid(*this).name());
+        hashvalue = golden_ratio_hash(seed);
         setflag(status_flags::hash_calculated);
         return hashvalue;
     }
     
     bool Symbol::is_equal_same_type(const basic & other) const {
         const Symbol *o = static_cast<const Symbol *>(&other);
-        return serial==o->serial; // should be the same as symbol class
+        return get_name()==o->get_name(); // should be the same as symbol class
     }
     
     void Symbol::set_name(string n) { throw Error("Symbol can not reset the name!"); }
