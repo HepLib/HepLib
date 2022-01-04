@@ -116,6 +116,7 @@ namespace HepLib::SD {
 
     static vector<matrix> Simplexify(const matrix &dc, int dim) {
         static map<ex,vector<matrix>,ex_is_less> cache;
+        if(using_cache && cache_limit>0 && cache.size() > cache_limit) cache.clear();
         ex key = lst{dc,dim};
         if(using_cache && cache.find(key)!=cache.end()) return cache[key];
         

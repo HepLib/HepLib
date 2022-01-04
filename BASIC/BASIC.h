@@ -316,7 +316,7 @@ namespace HepLib {
     ex q2ex(long double);
     long double ex2q(ex);
     #endif
-    lst vec2lst(const exvector & exvec);
+    lst vec2lst(const exvector & ev);
     exvector lst2vec(const lst & alst);
     lst add2lst(const ex & expr);
     lst mul2lst(const ex & expr);
@@ -448,6 +448,7 @@ namespace HepLib {
     ex diff_ex(ex const expr, ex const xp, unsigned nth=1, bool expand=false);
     
     extern bool using_cache;
+    extern long long cache_limit;
     extern bool fermat_using_array;
     ex fermat_eval(const ex & expr);
     ex numer_denom_fermat(const ex & expr, bool dfactor=false);
@@ -871,6 +872,9 @@ namespace HepLib {
         string DL;
         string FUNC;
     };
+    
+    void ReShare(ex & e);
+    void ReShare(exvector & ev);
  
 }
 

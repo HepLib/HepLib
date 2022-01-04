@@ -133,7 +133,8 @@ void Laporta::Prepare(lst loop, lst ext, lst prop, lst repl) {
             for(int i=0; i<prop.nops(); i++) {
                 auto ci = ibp_tmp.coeff(iWF(i), 1);
                 ci = MapFunction([i](const ex & e, MapFunction &self)->ex{
-                    if(e.match(F(w))) {
+                    if(!e.has(F(w))) return e;
+                    else if(e.match(F(w))) {
                         auto tmp = e.op(0);
                         tmp.let_op(i) = tmp.op(i)-1;
                         return F(tmp);
@@ -155,7 +156,8 @@ void Laporta::Prepare(lst loop, lst ext, lst prop, lst repl) {
             for(int i=0; i<prop.nops(); i++) {
                 auto ci = ibp_tmp.coeff(iWF(i), 1);
                 ci = MapFunction([i](const ex &e, MapFunction &self)->ex {
-                    if(e.match(F(w))) {
+                    if(!e.has(F(w))) return e;
+                    else if(e.match(F(w))) {
                         auto tmp = e.op(0);
                         tmp.let_op(i) = tmp.op(i)-1;
                         return F(tmp);

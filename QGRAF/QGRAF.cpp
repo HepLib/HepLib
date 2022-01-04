@@ -145,7 +145,8 @@ namespace HepLib::QGRAF {
             }
         }
         lines = ex_to<lst>(MapFunction([&vid2fs,&fid2vid](const ex &e, MapFunction &self)->ex{
-            if(e.match(iWF(w))) {
+            if(!e.has(iWF(w))) return e;
+            else if(e.match(iWF(w))) {
                 auto vid = fid2vid[e.op(0)];
                 return lst{vid, vid2fs[vid]};
             } else return e.map(self);

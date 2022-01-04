@@ -42,7 +42,8 @@ namespace HepLib {
     
     ex MapFunction::subs(const ex & expr, const ex & pat, std::function<ex(const ex &)>f) {
         MapFunction map([pat,f](const ex & e, MapFunction &self)->ex{
-            if(e.match(pat)) return f(e);
+            if(!e.has(pat)) return e;
+            else if(e.match(pat)) return f(e);
             else return e.map(self);
         });
         return map(expr);

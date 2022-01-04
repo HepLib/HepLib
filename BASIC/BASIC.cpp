@@ -817,10 +817,8 @@ namespace HepLib {
      * @param exvec input exvector
      * @return lst
      */
-    lst vec2lst(const exvector & exvec) {
-        lst ret;
-        for(auto item : exvec) ret.append(item);
-        return ret;
+    lst vec2lst(const exvector & ev) {
+        return GiNaC::lst(ev.begin(), ev.end());
     }
     
     /**
@@ -829,8 +827,7 @@ namespace HepLib {
      * @return exvector
      */
     exvector lst2vec(const lst & alst) {
-        exvector ret;
-        for(auto item : alst) ret.push_back(item);
+        exvector ret(alst.begin(), alst.end());
         return exvector(std::move(ret));
     }
     
@@ -979,20 +976,6 @@ namespace HepLib {
             res += cv.op(0) * cv.op(1).diff(s,nth).subs(s==xp);
         }
         return res;
-    }
-    
-    ex expand_using_map(ex const &expr_in, std::function<bool(const ex &)> has_func) {
-        auto map = MapFunction([has_func](const ex & e, MapFunction & self)->ex {
-            if(is_a<add>(e)) 
-                return ex_to<basic>(e.map(self)).setflag(status_flags::expanded);
-            else if(is_a<mul>(e)) 
-                return ex_to<basic>(expand(e.map(self))).setflag(status_flags::expanded);
-            else if(is_a<power>(e) && e.op(1).info(info_flags::nonnegint)) 
-                return ex_to<basic>(expand(e.map(self))).setflag(status_flags::expanded);
-            else 
-                return ex_to<basic>(e).setflag(status_flags::expanded);
-        });
-        return map(expr_in);
     }
     
     typedef vector<pair<ex,ex>> epvec_t; // first-rest, second-coeff
@@ -2445,6 +2428,21 @@ namespace HepLib {
             return exnormal(res_vec[idx].op(0)) * res_vec[idx].op(1);
         }, "NorEx");
         return add(res_vec);
+    }
+    
+    void ReShare(ex & e) {
+        string garfn = to_string(getpid())+"-ReShare.gar";
+        garWrite(e, garfn);
+        e = garRead(garfn);
+        system(("rm -rf "+garfn).c_str());
+    }
+    
+    void ReShare(exvector & ev) {
+        string garfn = to_string(getpid())+"-ReShare.gar";
+        garWrite(ev, garfn);
+        ev.clear();
+        garRead(garfn, ev);
+        system(("rm -rf "+garfn).c_str());
     }
         
 }

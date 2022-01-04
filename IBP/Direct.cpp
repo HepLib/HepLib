@@ -187,7 +187,8 @@ namespace HepLib::IBP {
             for(int i=0; i<pdim; i++) {
                 auto ci = ibp.coeff(iWF(i), 1);
                 ci = MapFunction([i](const ex &e, MapFunction &self)->ex {
-                    if(e.match(F(w))) {
+                    if(!e.has(F(w))) return e;
+                    else if(e.match(F(w))) {
                         lst tmp = ex_to<lst>(e.op(0));
                         tmp.let_op(i) = tmp.op(i)-1;
                         return F(tmp);

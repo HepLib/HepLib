@@ -300,6 +300,7 @@ namespace HepLib::IBP {
         }
         
         static map<ex,exmap,ex_is_less> cache_by_prop;
+        if(using_cache && cache_limit>0 && cache_by_prop.size() > cache_limit/10) cache_by_prop.clear();
         exmap & cache = cache_by_prop[lst{props,base.Internal}];
         if(!using_cache || cache.find(key)==cache.end()) { // no cache item
             ut = 1;

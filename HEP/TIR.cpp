@@ -125,6 +125,7 @@ namespace HepLib {
         static exmap cache_map;
         expr = MapFunction([ext_ps,loop_ps](const ex &e, MapFunction &self)->ex{
             if(e.is_equal(coVF(1))) return 1;
+            else if(!e.has(coVF(w))) return e;
             else if(e.match(coVF(w))) {
                 ex map_key = lst{e,ext_ps};
                 if(using_cache && cache_map.find(map_key)!=cache_map.end()) return cache_map[map_key];

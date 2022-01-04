@@ -16,6 +16,7 @@ namespace HepLib {
     
     bool ex_less(const ex &a, const ex &b) {
         static map<ex,bool,ex_is_less> cache;
+        if(using_cache && cache_limit>0 && cache.size() > cache_limit) cache.clear();
         ex key = lst{a,b};
         if(using_cache && cache.find(key)!=cache.end()) return cache[key];
         if(a.is_equal(b)) return using_cache ? (cache[key]=false) : false;

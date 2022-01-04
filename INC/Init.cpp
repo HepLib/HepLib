@@ -52,6 +52,7 @@ namespace HepLib {
     bool fermat_using_array = false;
     map<ex,long long,ex_is_less> fermat_weight;
     bool using_cache = true;
+    long long cache_limit = -1;
     int NNDigits = 100;
     
     HepFormat::_init::_init() {
