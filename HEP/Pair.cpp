@@ -147,10 +147,10 @@ namespace HepLib {
         for(int i=0; i<2; i++) n.add_ex("lr"+to_string(i), lr[i]);
     }
     
-    void Pair::read_archive(const archive_node& n, lst& sym_lst) {
-        inherited::read_archive(n, sym_lst);
+    void Pair::read_archive(const archive_node& n) {
+        inherited::read_archive(n);
         for(int i=0; i<2; i++) {
-            n.find_ex("lr"+to_string(i), lr[i], sym_lst);
+            n.find_ex("lr"+to_string(i), lr[i]);
         }
     }
     

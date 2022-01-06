@@ -139,7 +139,7 @@ namespace HepLib {
         Type type;
         void print(const print_context &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
-        void read_archive(const archive_node& n, lst& sym_lst) override;
+        void read_archive(const archive_node& n) override;
         static bool has(const ex &e);
         static bool hasc(const ex &e);
         static bool hasv(const ex &e);
@@ -181,7 +181,7 @@ namespace HepLib {
         Symbol name;
         void print(const print_context &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
-        void read_archive(const archive_node& n, lst& sym_lst) override;
+        void read_archive(const archive_node& n) override;
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
@@ -224,7 +224,7 @@ namespace HepLib {
         void fc_print(const FCFormat &c, unsigned level = 0) const;
         void print(const print_dflt &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
-        void read_archive(const archive_node& n, lst& sym_lst) override;
+        void read_archive(const archive_node& n) override;
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
@@ -269,7 +269,7 @@ namespace HepLib {
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void fc_print(const FCFormat &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
-        void read_archive(const archive_node& n, lst& sym_lst) override;
+        void read_archive(const archive_node& n) override;
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
@@ -314,7 +314,7 @@ namespace HepLib {
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void fc_print(const FCFormat &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
-        void read_archive(const archive_node& n, lst& sym_lst) override;
+        void read_archive(const archive_node& n) override;
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
@@ -360,7 +360,7 @@ namespace HepLib {
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void fc_print(const FCFormat &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
-        void read_archive(const archive_node& n, lst& sym_lst) override;
+        void read_archive(const archive_node& n) override;
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
@@ -426,7 +426,7 @@ namespace HepLib {
         void form_print(const FormFormat &c, unsigned level = 0) const;
         void fc_print(const FCFormat &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
-        void read_archive(const archive_node& n, lst& sym_lst) override;
+        void read_archive(const archive_node& n) override;
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
@@ -479,7 +479,7 @@ namespace HepLib {
         ex& let_op(size_t i) override;
         ex eval() const override;
         void archive(archive_node & n) const override;
-        void read_archive(const archive_node& n, lst& sym_lst) override;
+        void read_archive(const archive_node& n) override;
         static bool has(const ex &e);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;

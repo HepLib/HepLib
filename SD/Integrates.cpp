@@ -132,15 +132,15 @@ namespace HepLib::SD {
             ifstream in(garfn.str());
             in >> ar;
             in.close();
-            auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
+            auto c = ar.unarchive_ex("c");
             if(c!=19790923) throw Error("Integrates: *.ci.gar error!");
-            auto gl = ar.unarchive_ex(GiNaC_archive_Symbols, "soLimit");
-            auto epn = ar.unarchive_ex(GiNaC_archive_Symbols, "epN");
-            auto epsn = ar.unarchive_ex(GiNaC_archive_Symbols, "epsN");
+            auto gl = ar.unarchive_ex("soLimit");
+            auto epn = ar.unarchive_ex("epN");
+            auto epsn = ar.unarchive_ex("epsN");
             soLimit = ex2int(gl);
             epN = ex2int(epn);
             epsN = ex2int(epsn);
-            auto res = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
+            auto res = ar.unarchive_ex("res");
             ciResult.clear();
             for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
             garfn.clear();
@@ -153,8 +153,8 @@ namespace HepLib::SD {
                 ifstream la_in(garfn.str());
                 la_in >> la_ar;
                 la_in.close();
-                auto la_c = la_ar.unarchive_ex(GiNaC_archive_Symbols, "c");
-                auto la_res = la_ar.unarchive_ex(GiNaC_archive_Symbols, "res");
+                auto la_c = la_ar.unarchive_ex("c");
+                auto la_res = la_ar.unarchive_ex("res");
                 if(la_c!=19790923) throw Error("Integrates: *.ci.gar error!");
                 for(auto item : ex_to<lst>(la_res)) {
                     LambdaMap[item.op(0)] = item.op(1);
@@ -175,8 +175,8 @@ namespace HepLib::SD {
                 ifstream res_in(garfn.str());
                 res_in >> res_ar;
                 res_in.close();
-                auto res_c = res_ar.unarchive_ex(GiNaC_archive_Symbols, "c");
-                auto relst = res_ar.unarchive_ex(GiNaC_archive_Symbols, "relst");
+                auto res_c = res_ar.unarchive_ex("c");
+                auto relst = res_ar.unarchive_ex("relst");
                 if(res_c!=19790923) throw Error("*.res.gar error with kid!");
                 lstRE = ex_to<lst>(relst);
             }
@@ -716,15 +716,15 @@ namespace HepLib::SD {
             ifstream in(garfn.str());
             in >> ar;
             in.close();
-            auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
+            auto c = ar.unarchive_ex("c");
             if(c!=19790923) throw Error("Integrates: *.ci.gar error!");
-            auto gl = ar.unarchive_ex(GiNaC_archive_Symbols, "soLimit");
-            auto epn = ar.unarchive_ex(GiNaC_archive_Symbols, "epN");
-            auto epsn = ar.unarchive_ex(GiNaC_archive_Symbols, "epsN");
+            auto gl = ar.unarchive_ex("soLimit");
+            auto epn = ar.unarchive_ex("epN");
+            auto epsn = ar.unarchive_ex("epsN");
             soLimit = ex2int(gl);
             epN = ex2int(epn);
             epsN = ex2int(epsn);
-            auto res = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
+            auto res = ar.unarchive_ex("res");
             ciResult.clear();
             for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
             garfn.clear();
@@ -737,8 +737,8 @@ namespace HepLib::SD {
                 ifstream la_in(garfn.str());
                 la_in >> la_ar;
                 la_in.close();
-                auto la_c = la_ar.unarchive_ex(GiNaC_archive_Symbols, "c");
-                auto la_res = la_ar.unarchive_ex(GiNaC_archive_Symbols, "res");
+                auto la_c = la_ar.unarchive_ex("c");
+                auto la_res = la_ar.unarchive_ex("res");
                 if(la_c!=19790923) throw Error("Integrates: *.ci.gar error!");
                 for(auto item : ex_to<lst>(la_res)) {
                     LambdaMap[item.op(0)] = item.op(1);
@@ -759,8 +759,8 @@ namespace HepLib::SD {
                 ifstream res_in(garfn.str());
                 res_in >> res_ar;
                 res_in.close();
-                auto res_c = res_ar.unarchive_ex(GiNaC_archive_Symbols, "c");
-                auto relst = res_ar.unarchive_ex(GiNaC_archive_Symbols, "relst");
+                auto res_c = res_ar.unarchive_ex("c");
+                auto relst = res_ar.unarchive_ex("relst");
                 if(res_c!=19790923) throw Error("*.res.gar error with ReIntegrates!");
                 lstRE = ex_to<lst>(relst);
             }

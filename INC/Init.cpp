@@ -57,7 +57,6 @@ namespace HepLib {
     
     MMAFormat mout(cout);
     
-    lst GiNaC_archive_Symbols = lst{};
     string InstallPrefix = "@CMAKE_INSTALL_PREFIX@";
     string INC_FLAGS = "@INC_FLAGS@";
     string LIB_FLAGS = "@LIB_FLAGS@";
@@ -76,13 +75,6 @@ namespace HepLib {
     
     bool SD::SecDec::use_dlclose = true;
     string SD::SecDec::cpp = "g++";
-
-    SD::SecDec::_init::_init() {
-        // for later use
-        GiNaC_archive_Symbols.sort();
-        GiNaC_archive_Symbols.unique();
-    }
-    SD::SecDec::_init SD::SecDec::SD_init;
     
     SD::CppFormat::_init::_init() {
         set_print_func<numeric, CppFormat>(CppFormat::print_numeric);

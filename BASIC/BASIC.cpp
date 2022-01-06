@@ -35,7 +35,7 @@ namespace HepLib {
         const symbol & get_symbol(const string & s) {
             static map<string, symbol> dict;
             string key = s;
-            if (dict.find(key) == dict.end()) dict[key] = symbol(s);
+            if (dict.find(key) == dict.end()) dict[key] = symbol(s,0);
             return dict[key];
         }
         
@@ -93,11 +93,9 @@ namespace HepLib {
     /**
      * @brief Symbol read_archive
      * @param n archive node
-     * @param sym_lst symbol lst
      */
-    void Symbol::read_archive(const archive_node& n, lst& sym_lst) {
-        inherited::read_archive(n, sym_lst);
-        serial = get_Symbol(get_name()).serial;
+    void Symbol::read_archive(const archive_node& n) {
+        inherited::read_archive(n);
     }
     
     ex Symbol::eval() const { return *this; }
@@ -106,9 +104,6 @@ namespace HepLib {
     ex Symbol::real_part() const { return *this; }
     ex Symbol::imag_part() const { return 0; }
     unsigned Symbol::calchash() const {
-        //hashvalue = get_symbol(get_name()).gethash();
-        //setflag(status_flags::hash_calculated);
-        //return hashvalue;
         static std::hash<std::string> hs;
         unsigned seed = hs(get_name()+typeid(*this).name());
         hashvalue = golden_ratio_hash(seed);
@@ -195,11 +190,9 @@ namespace HepLib {
     /**
      * @brief Symbol read_archive
      * @param n archive node
-     * @param sym_lst symbol lst
      */
-    void iSymbol::read_archive(const archive_node& n, lst& sym_lst) {
-        inherited::read_archive(n, sym_lst);
-        serial = get_iSymbol(get_name()).serial;
+    void iSymbol::read_archive(const archive_node& n) {
+        inherited::read_archive(n);
     }
     
     ex iSymbol::eval() const { return *this; }
@@ -520,7 +513,7 @@ namespace HepLib {
         in.close();
         for(int i=0; i<ar.num_expressions(); i++) {
             string name;
-            ex res = ar.unarchive_ex(GiNaC_archive_Symbols, name, i);
+            ex res = ar.unarchive_ex(name, i);
             resMap[name] = res;
         }
         Digits = oDigits;
@@ -539,7 +532,7 @@ namespace HepLib {
         ifstream in(garfn);
         in >> ar;
         in.close();
-        auto res = ar.unarchive_ex(GiNaC_archive_Symbols, key);
+        auto res = ar.unarchive_ex(key);
         Digits = oDigits;
         return res;
     }
@@ -556,8 +549,8 @@ namespace HepLib {
         ifstream in(garfn);
         in >> ar;
         in.close();
-        auto c = ar.unarchive_ex(GiNaC_archive_Symbols, "c");
-        auto res = ar.unarchive_ex(GiNaC_archive_Symbols, "res");
+        auto c = ar.unarchive_ex("c");
+        auto res = ar.unarchive_ex("res");
         if(c!=19790923) throw Error("garRead: check faild for file: " + garfn);
         Digits = oDigits;
         return res;
@@ -1567,11 +1560,11 @@ namespace HepLib {
         n.add_ex("Deltas", Deltas);
     }
     
-    void XIntegral::read_archive(const archive_node& n, lst& sym_lst) {
-        inherited::read_archive(n, sym_lst);
-        n.find_ex("Functions", Functions, sym_lst);
-        n.find_ex("Exponents", Exponents, sym_lst);
-        n.find_ex("Deltas", Deltas, sym_lst);
+    void XIntegral::read_archive(const archive_node& n) {
+        inherited::read_archive(n);
+        n.find_ex("Functions", Functions);
+        n.find_ex("Exponents", Exponents);
+        n.find_ex("Deltas", Deltas);
     }
         
     XIntegral::XIntegral(ex fed)  { 
@@ -2231,7 +2224,7 @@ namespace HepLib {
         map<string, ex> dict;
         for(int i=0; i<ar.num_expressions(); i++) {
             string name;
-            ex res = ar.unarchive_ex(GiNaC_archive_Symbols, name, i);
+            ex res = ar.unarchive_ex(name, i);
             dict[name] = res;
         }
         

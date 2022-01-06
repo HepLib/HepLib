@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
         map<string, ex> dict;
         for(int i=0; i<ar.num_expressions(); i++) {
             string name;
-            ex res = ar.unarchive_ex(GiNaC_archive_Symbols, name, i);
+            ex res = ar.unarchive_ex(name, i);
             dict[name] = res;
         }
         

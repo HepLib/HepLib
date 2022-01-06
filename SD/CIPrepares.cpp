@@ -153,7 +153,7 @@ namespace HepLib::SD {
             for(int i=0; i<npls+1; i++) {
                 ostringstream pl;
                 pl << "pl[" << i << "]";
-                plRepl.append(PL(i) == symbol(pl.str()));
+                plRepl.append(PL(i) == Symbol(pl.str()));
             }
             
             ex DFs[fxs.size()], DDFs[fxs.size()][fxs.size()];
@@ -181,9 +181,9 @@ namespace HepLib::SD {
             for (int i=0; i<fxs.size(); i++) {
                 ostringstream sx, sz;
                 sx << "x[" << i << "]";
-                cxRepl.append(fxs[i] == symbol(sx.str()));
+                cxRepl.append(fxs[i] == Symbol(sx.str()));
                 sz << "z[" << i << "]";
-                czRepl.append(fxs[i] == symbol(sz.str()));
+                czRepl.append(fxs[i] == Symbol(sz.str()));
             }
 
             /*----------------------------------------------*/
@@ -468,9 +468,9 @@ namespace HepLib::SD {
                 xs << "x[" << i << "]";
                 zs << "z[" << i << "]";
                 zzs << "zz[" << i << "]";
-                cxRepl.append(fxs[i] == symbol(xs.str()));
-                czRepl.append(fxs[i] == symbol(zs.str()));
-                czzRepl.append(fxs[i] == symbol(zzs.str()));
+                cxRepl.append(fxs[i] == Symbol(xs.str()));
+                czRepl.append(fxs[i] == Symbol(zs.str()));
+                czzRepl.append(fxs[i] == Symbol(zzs.str()));
             }
             int count = fxs.size();
             for(auto xi : xs) {
@@ -478,9 +478,9 @@ namespace HepLib::SD {
                 if(is_zero(xii-xi)) {
                     ostringstream xs, zs;
                     xs << "x[" << count << "]";
-                    cxRepl.append(xi == symbol(xs.str()));
-                    czRepl.append(xi == symbol(xs.str()));
-                    czzRepl.append(xi == symbol(xs.str()));
+                    cxRepl.append(xi == Symbol(xs.str()));
+                    czRepl.append(xi == Symbol(xs.str()));
+                    czzRepl.append(xi == Symbol(xs.str()));
                     count++;
                 }
             }
@@ -490,7 +490,7 @@ namespace HepLib::SD {
             for(int i=0; i<npls+1; i++) {
                 ostringstream pl;
                 pl << "pl[" << i << "]";
-                plRepl.append(PL(i) == symbol(pl.str()));
+                plRepl.append(PL(i) == Symbol(pl.str()));
             }
             
             if(!dir_exists(to_string(pid))) system(("mkdir -p "+to_string(pid)).c_str());
@@ -600,7 +600,7 @@ namespace HepLib::SD {
                             ofs << "LogZ["<<i<<"][ti] = ";
                             EvalL(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppL);
                             ofs << ";" << endl;
-                            log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                            log_subs[log(logs.op(i))] = Symbol("CLog["+to_string(i)+"]");
                         }
                         ofs << "}" << endl;
                         ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
@@ -718,7 +718,7 @@ namespace HepLib::SD {
                                     ofs << "LogZ["<<i<<"][ti] = ";
                                     EvalL(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppL);
                                     ofs << ";" << endl;
-                                    log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                                    log_subs[log(logs.op(i))] = Symbol("CLog["+to_string(i)+"]");
                                 }
                                 ofs << "}" << endl;
                                 ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
@@ -824,7 +824,7 @@ namespace HepLib::SD {
                             ofs << "LogZ["<<i<<"][ti] = ";
                             EvalQ(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppQ);
                             ofs << ";" << endl;
-                            log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                            log_subs[log(logs.op(i))] = Symbol("CLog["+to_string(i)+"]");
                         }
                         ofs << "}" << endl;
                         ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
@@ -946,7 +946,7 @@ namespace HepLib::SD {
                                     ofs << "LogZ["<<i<<"][ti] = ";
                                     EvalQ(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppQ);
                                     ofs << ";" << endl;
-                                    log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                                    log_subs[log(logs.op(i))] = Symbol("CLog["+to_string(i)+"]");
                                 }
                                 ofs << "}" << endl;
                                 ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
@@ -1063,7 +1063,7 @@ namespace HepLib::SD {
                             ofs << "LogZ["<<i<<"][ti] = ";
                             EvalMP(clogs.op(i).subs(cxRepl).subs(plRepl)).print(cppMP);
                             ofs << ";" << endl;
-                            log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                            log_subs[log(logs.op(i))] = Symbol("CLog["+to_string(i)+"]");
                         }
                         ofs << "}" << endl;
                         ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;
@@ -1177,7 +1177,7 @@ namespace HepLib::SD {
                                     ofs << "LogZ["<<i<<"][ti] = ";
                                     EvalMP(clogs.op(i).subs(czzRepl).subs(plRepl)).print(cppMP);
                                     ofs << ";" << endl;
-                                    log_subs[log(logs.op(i))] = symbol("CLog["+to_string(i)+"]");
+                                    log_subs[log(logs.op(i))] = Symbol("CLog["+to_string(i)+"]");
                                 }
                                 ofs << "}" << endl;
                                 ofs << "for(int li=0; li<nlog; li++) CLog[li] = RCLog(LogZ[li],NRCLog);" << endl;

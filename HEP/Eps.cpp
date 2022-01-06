@@ -125,10 +125,10 @@ namespace HepLib {
         for(int i=0; i<4; i++) n.add_ex("pis"+to_string(i), pis[i]);
     }
     
-    void Eps::read_archive(const archive_node& n, lst& sym_lst) {
-        inherited::read_archive(n, sym_lst);
+    void Eps::read_archive(const archive_node& n) {
+        inherited::read_archive(n);
         for(int i=0; i<4; i++) {
-            n.find_ex("pis"+to_string(i), pis[i], sym_lst);
+            n.find_ex("pis"+to_string(i), pis[i]);
         }
     }
     

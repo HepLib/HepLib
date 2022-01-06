@@ -787,7 +787,7 @@ namespace HepLib {
             map<string, ex> dict;
             for(int i=0; i<ar.num_expressions(); i++) {
                 string name;
-                ex res = ar.unarchive_ex(GiNaC_archive_Symbols, name, i);
+                ex res = ar.unarchive_ex(name, i);
                 dict[name] = res;
             }
             
@@ -905,7 +905,11 @@ namespace HepLib {
                 ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&v2v] (int idx) {
                     auto cvs = air_vec[idx];
                     ex res = 0;
-                    for(auto cv : cvs) res += cv.op(0) * v2v[cv.op(1)];
+                    for(auto cv : cvs) {
+                        auto airs = v2v[cv.op(1)];
+                        airs = ApartIRC(airs.subs(SP_map,nopat));
+                        res += cv.op(0) * airs;
+                    }
                     return res;
                 }, "ApPost");
                 v2v.clear();
@@ -918,19 +922,11 @@ namespace HepLib {
         
         if(true) {
         
-            exvector AIRo, AIR;
+            exvector AIR;
             if(true) {
                 exset intg;
                 for(auto air : air_vec) find(air, ApartIR(w1,w2), intg);
-                AIRo.resize(intg.size());
-                AIR.resize(intg.size());
-                int i = 0;
-                for(auto air : intg) {
-                    AIRo[i] = air;
-                    AIR[i] = ApartIRC(air.subs(SP_map,nopat));
-                    i++;
-                }
-                intg.clear();
+                AIR = exvector(intg.begin(), intg.end());
             }
             
             for(auto sp : aio.CSP) SP_map.erase(sp);
@@ -1023,7 +1019,7 @@ namespace HepLib {
                 IBP::Base* ibp = p2IBP[props];
                 ibp->Integrals.append(ns);
 
-                AIR2F[AIRo[i]] = F(ibp->ProblemNumber, ns);
+                AIR2F[AIR[i]] = F(ibp->ProblemNumber, ns);
             }
             if(Verbose>0) cout << endl;
 

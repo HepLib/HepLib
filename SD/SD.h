@@ -461,11 +461,6 @@ namespace HepLib::SD {
         static int PRank(matrix m);
         static ex ContinuousWRA(ex expr_in, int nc=15);
         
-        #ifndef DOXYGEN_SKIP
-        class _init {
-            public: _init();
-        };
-        #endif
         ~SecDec();
                 
     private:
@@ -480,9 +475,6 @@ namespace HepLib::SD {
         lst FT_N_XN; // list of { ft, n, xn }
         exmap LambdaMap;
         
-        #ifndef DOXYGEN_SKIP
-        static _init SD_init;
-        #endif
     };
 
     /**

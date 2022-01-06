@@ -21,8 +21,12 @@ namespace HepLib {
         if(is_a<numeric>(a)) return true;
         if(is_a<numeric>(b)) return false;
         
-        // symbol
-        if(is_a<symbol>(a) && is_a<symbol>(b)) return ex2str(a) < ex2str(b);
+        // symbol/Symbol
+        if(is_a<symbol>(a) && is_a<symbol>(b)) {
+            string sa = ex_to<symbol>(a).get_name();
+            string sb = ex_to<symbol>(b).get_name();
+            return sa < sb;
+        }
         if(is_a<symbol>(a)) return true;
         if(is_a<symbol>(b)) return false;
         
@@ -42,34 +46,6 @@ namespace HepLib {
         
         return less(a,b);
     }
-     
-     /**
-      * @brief sort the list in less order, or the reverse
-      * @param ilst input lst, will be updated after call
-      * @param less true for less order
-      */
-     void sort_lst(lst & ilst, bool less) {
-        auto ivec = lst2vec(ilst);
-        sort_vec(ivec,less);
-        for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
-     }
-     
-     /**
-      * @brief sort the list in less order, or the reverse
-      * @param ilst input lst, will be updated after call
-      * @param ki the sort key is at .op(n)
-      * @param less true for less order
-      */
-     void sort_lst_by(lst & ilst, int ki, bool less) {
-        auto ivec = lst2vec(ilst);
-        std::sort(ivec.begin(), ivec.end(), [ki](const auto &as, const auto &bs){
-            return ex_less(as.op(ki),bs.op(ki));
-        });
-        auto n = ivec.size();
-        if(less) for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[i];
-        else for(auto i=0; i<n; i++) ilst.let_op(i) = ivec[n-1-i];
-     }
-     
      /**
       * @brief sort the list in less order, or the reverse
       * @param ivec input exvector, will be updated after call
@@ -94,5 +70,29 @@ namespace HepLib {
             else return ex_less(bs.op(ki),as.op(ki));
         });
      }
+     
+     /**
+      * @brief sort the list in less order, or the reverse
+      * @param ilst input lst, will be updated after call
+      * @param less true for less order
+      */
+     void sort_lst(lst & ilst, bool less) {
+        auto ivec = lst2vec(ilst);
+        sort_vec(ivec,less);
+        for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
+     }
+     
+     /**
+      * @brief sort the list in less order, or the reverse
+      * @param ilst input lst, will be updated after call
+      * @param ki the sort key is at .op(n)
+      * @param less true for less order
+      */
+     void sort_lst_by(lst & ilst, int ki, bool less) {
+        auto ivec = lst2vec(ilst);
+        sort_vec_by(ivec,ki,less);
+        for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
+     }
+    
     
 }

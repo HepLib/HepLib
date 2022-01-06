@@ -68,28 +68,28 @@ namespace HepLib::IBP {
         in >> ar;
         in.close();
         
-        Internal = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Internal"));
-        External = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "External"));
-        Replacements = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Replacements"));
-        Propagators = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Propagators"));
-        Cuts = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Cuts"));
-        DSP = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "DSP"));
-        ISP = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "ISP"));
+        Internal = ex_to<lst>(ar.unarchive_ex("Internal"));
+        External = ex_to<lst>(ar.unarchive_ex("External"));
+        Replacements = ex_to<lst>(ar.unarchive_ex("Replacements"));
+        Propagators = ex_to<lst>(ar.unarchive_ex("Propagators"));
+        Cuts = ex_to<lst>(ar.unarchive_ex("Cuts"));
+        DSP = ex_to<lst>(ar.unarchive_ex("DSP"));
+        ISP = ex_to<lst>(ar.unarchive_ex("ISP"));
         
-        int n = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "NShift")).to_int();
+        int n = ex_to<numeric>(ar.unarchive_ex("NShift")).to_int();
         for(int i=0; i<n; i++) {
-            int key = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, ("ShiftK-"+to_string(i)).c_str())).to_int();
-            ex val = ar.unarchive_ex(GiNaC_archive_Symbols, ("ShiftV-"+to_string(i)).c_str());
+            int key = ex_to<numeric>(ar.unarchive_ex(("ShiftK-"+to_string(i)).c_str())).to_int();
+            ex val = ar.unarchive_ex(("ShiftV-"+to_string(i)).c_str());
             Shift[key] = val;
         }
         
-        reCut = !(ar.unarchive_ex(GiNaC_archive_Symbols,"reCut").is_zero()); // bool
-        ProblemNumber = ex_to<numeric>(ar.unarchive_ex(GiNaC_archive_Symbols, "ProblemNumber")).to_int(); // int
-        WorkingDir = ex_to<Symbol>(ar.unarchive_ex(GiNaC_archive_Symbols, "WorkingDir")).get_name();
-        PIntegrals = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "PIntegrals"));
-        MIntegrals = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "MIntegrals"));
-        Rules = ex_to<lst>(ar.unarchive_ex(GiNaC_archive_Symbols, "Rules"));
-        IsAlwaysZero = !(ar.unarchive_ex(GiNaC_archive_Symbols,"IsAlwaysZero").is_zero()); // bool
+        reCut = !(ar.unarchive_ex("reCut").is_zero()); // bool
+        ProblemNumber = ex_to<numeric>(ar.unarchive_ex("ProblemNumber")).to_int(); // int
+        WorkingDir = ex_to<Symbol>(ar.unarchive_ex("WorkingDir")).get_name();
+        PIntegrals = ex_to<lst>(ar.unarchive_ex("PIntegrals"));
+        MIntegrals = ex_to<lst>(ar.unarchive_ex("MIntegrals"));
+        Rules = ex_to<lst>(ar.unarchive_ex("Rules"));
+        IsAlwaysZero = !(ar.unarchive_ex("IsAlwaysZero").is_zero()); // bool
     
     }
     
@@ -492,33 +492,80 @@ namespace HepLib::IBP {
             lst key;
             for(int i=0; i<nk; i++) key.append(expand(ks.op(i)));
             lst pi = fi.Propagators; 
-            sort_lst(pi);
-            return lst{ key, lst{ pi, ks.op(nk), mi } }; 
-            // ks.op(nk) -> the sign, 1st in lst used for sorting and must update n0=1 below
+            return lst{ key, lst{ pi, ks.op(nk), mi } };  // ks.op(nk) -> the sign
         }, "FR");
             
         map<ex,lst,ex_is_less> group;
         int ntotal = 0;
         for(auto item : uf_smi_vec) {
-            ex key = item.op(0);
-            group[key].append(item.op(1));
+            group[item.op(0)].append(item.op(1));
             ntotal++;
         }
 
         exmap rules;
         lst int_lst;
-        for(auto g : group) {
-            lst gs = ex_to<lst>(g.second);
-            sort_lst(gs); // using sort_lst
-            int n0 = 1; // update HERE
-            auto c0 = gs.op(0).op(0+n0);
-            auto v0 = gs.op(0).op(1+n0);
-            for(int i=1; i<gs.nops(); i++) {
-                auto ci = gs.op(i).op(0+n0);
-                auto vi = gs.op(i).op(1+n0);
-                rules[vi] = v0 * c0 / ci;
+        while(!group.empty()) {
+            bool found = false;
+            ex key, value, pi;
+            for(auto g : group) {
+                if(g.second.nops()==1) { // must include
+                    found = true;
+                    key = g.first;
+                    value = g.second.op(0);
+                }
             }
-            int_lst.append(v0);
+            if(found) { // must include case
+                pi = value.op(0);
+                auto v0 = value.op(2);
+                int_lst.append(v0);
+                group.erase(key);
+            } else { // pi most occurence
+                map<ex, long long, ex_is_less> pi2n;
+                for(auto g : group) {
+                    exset pis;
+                    for(auto gi : g.second) pis.insert(gi.op(0));
+                    for(auto pi : pis) pi2n[pi]++; // per group                    
+                }
+                int tmax = -1, tmin = 0;
+                for(auto kv : pi2n) {
+                    if(kv.second > tmax) {
+                        tmax = kv.second;
+                        pi = kv.first;
+                        tmin = 0;
+                        for(auto item : pi) tmin += item.nops();
+                    } else if(kv.second==tmax) {
+                        int nc = 0;
+                        for(auto item : pi) nc += item.nops();
+                        if(tmin>nc) { // using minimal terms
+                            pi = kv.first;
+                            tmin = nc;
+                        }
+                    }
+                }
+            }
+            // now we have pi
+            exvector ks;
+            for(auto g : group) {
+                ex c0, v0;
+                for(auto gi : g.second) {
+                    if(gi.op(0).is_equal(pi)) {
+                        ks.push_back(g.first);
+                        c0 = gi.op(1);
+                        v0 = gi.op(2);
+                        goto found;
+                    }
+                }
+                continue; // if not found pi
+                found: ;
+                int_lst.append(v0);
+                for(auto gi : g.second) {
+                    auto ci = gi.op(1);
+                    auto vi = gi.op(2);
+                    if(v0.is_equal(vi)) continue;
+                    rules[vi] = v0 * c0 / ci;
+                }
+            }
+            for(auto k : ks) group.erase(k);
         }
         
         if(Verbose>2) cout << "  \\--FindRules: " << WHITE << ntotal << " :> " << int_lst.nops() << RESET << " @ " << now(false) << endl;

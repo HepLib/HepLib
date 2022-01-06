@@ -19,7 +19,7 @@
 #include <sys/stat.h>
 
 #define DEFAULT_CTOR(classname) \
-classname::classname() { setflag(status_flags::evaluated | status_flags::expanded); }
+classname::classname() { setflag(status_flags::evaluated | status_flags::expanded | status_flags::hf_expanded); }
 
 #define IMPLEMENT_HAS(classname) \
 bool classname::has(const ex &e) { \
@@ -122,7 +122,7 @@ namespace HepLib {
     public:
         Symbol(const string &s);
         void archive(archive_node & n) const override;
-        void read_archive(const archive_node& n, lst& sym_lst) override;
+        void read_archive(const archive_node& n) override;
         
         ex eval() const override; // for performance reasons
         ex evalf() const override; // for performance reasons
@@ -182,7 +182,7 @@ namespace HepLib {
     public:
         iSymbol(const string &s);
         void archive(archive_node & n) const override;
-        void read_archive(const archive_node& n, lst& sym_lst) override;
+        void read_archive(const archive_node& n) override;
         
         unsigned get_domain() const override { return domain::complex; }
         
@@ -270,7 +270,6 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // vector : GiNaC_Parallel
     /*-----------------------------------------------------*/
-    extern lst GiNaC_archive_Symbols;
     extern int GiNaC_Parallel_Process;
     extern map<string, int> GiNaC_Parallel_NP;
     extern int GiNaC_Parallel_Batch;
@@ -717,7 +716,7 @@ namespace HepLib {
         ex & let_op(size_t i) override;
         void print(const print_dflt &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
-        void read_archive(const archive_node& n, lst& sym_lst) override;
+        void read_archive(const archive_node& n) override;
         static bool has(const ex &e);
         static lst all(const ex &e);
         XIntegral(ex fed);

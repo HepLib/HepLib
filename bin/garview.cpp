@@ -18,7 +18,6 @@ int main(int argc, char **argv) {
  
 	bool dump_mode = false;
 	try {
-		lst l;
 		while (argc) {
 			if (strcmp(*argv, "-d") == 0) {
 				dump_mode = true;
@@ -33,7 +32,7 @@ int main(int argc, char **argv) {
 			} else {
 				for (unsigned int i=0; i<ar.num_expressions(); ++i) {
 					std::string name;
-					ex e = ar.unarchive_ex(l, name, i);
+					ex e = ar.unarchive_ex(name, i);
 					std::cout << name << " = " << e << std::endl;
 				}
 			}

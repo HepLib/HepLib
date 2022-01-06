@@ -145,10 +145,10 @@ namespace HepLib {
         n.add_unsigned("rl", rl);
     }
     
-    void DGamma::read_archive(const archive_node& n, lst& sym_lst) {
-        inherited::read_archive(n, sym_lst);
+    void DGamma::read_archive(const archive_node& n) {
+        inherited::read_archive(n);
         n.find_unsigned("rl", rl);
-        n.find_ex("pi", pi, sym_lst);
+        n.find_ex("pi", pi);
     }
     
     ex DGamma::derivative(const symbol & s) const {

@@ -209,8 +209,8 @@ namespace HepLib {
         n.add_unsigned("type", type);
     }
     
-    void Index::read_archive(const archive_node& n, lst& sym_lst) {
-        inherited::read_archive(n, sym_lst);
+    void Index::read_archive(const archive_node& n) {
+        inherited::read_archive(n);
         string nstr;
         unsigned t;
         n.find_string("name", nstr);
@@ -279,8 +279,8 @@ namespace HepLib {
         n.add_string("name", name.get_name());
     }
     
-    void Vector::read_archive(const archive_node& n, lst& sym_lst) {
-        inherited::read_archive(n, sym_lst);
+    void Vector::read_archive(const archive_node& n) {
+        inherited::read_archive(n);
         string nstr;
         unsigned t;
         n.find_string("name", nstr);
@@ -361,14 +361,14 @@ namespace HepLib {
         n.add_ex("j", aij[2]);
     }
     
-    void SUNT::read_archive(const archive_node& n, lst& sym_lst) {
-        inherited::read_archive(n, sym_lst);
+    void SUNT::read_archive(const archive_node& n) {
+        inherited::read_archive(n);
         ex o;
-        n.find_ex("a", o, sym_lst);
+        n.find_ex("a", o);
         aij[0] = ex_to<Index>(o);
-        n.find_ex("i", o, sym_lst);
+        n.find_ex("i", o);
         aij[1] = ex_to<Index>(o);
-        n.find_ex("j", o, sym_lst);
+        n.find_ex("j", o);
         aij[2] = ex_to<Index>(o);
     }
     
@@ -455,14 +455,14 @@ namespace HepLib {
         n.add_ex("k", ijk[2]);
     }
     
-    void SUNF::read_archive(const archive_node& n, lst& sym_lst) {
-        inherited::read_archive(n, sym_lst);
+    void SUNF::read_archive(const archive_node& n) {
+        inherited::read_archive(n);
         ex o;
-        n.find_ex("i", o, sym_lst);
+        n.find_ex("i", o);
         ijk[0] = ex_to<Index>(o);
-        n.find_ex("j", o, sym_lst);
+        n.find_ex("j", o);
         ijk[1] = ex_to<Index>(o);
-        n.find_ex("k", o, sym_lst);
+        n.find_ex("k", o);
         ijk[2] = ex_to<Index>(o);
     }
     
@@ -565,18 +565,17 @@ namespace HepLib {
     /**
      * @brief read from archive
      * @param n the archive_node
-     * @param sym_lst the symbol lst
      */
-    void SUNF4::read_archive(const archive_node& n, lst& sym_lst) {
-        inherited::read_archive(n, sym_lst);
+    void SUNF4::read_archive(const archive_node& n) {
+        inherited::read_archive(n);
         ex o;
-        n.find_ex("i", o, sym_lst);
+        n.find_ex("i", o);
         ijkl[0] = ex_to<Index>(o);
-        n.find_ex("j", o, sym_lst);
+        n.find_ex("j", o);
         ijkl[1] = ex_to<Index>(o);
-        n.find_ex("k", o, sym_lst);
+        n.find_ex("k", o);
         ijkl[2] = ex_to<Index>(o);
-        n.find_ex("l", o, sym_lst);
+        n.find_ex("l", o);
         ijkl[3] = ex_to<Index>(o);
     }
     
