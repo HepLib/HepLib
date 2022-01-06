@@ -55,19 +55,6 @@ namespace HepLib {
     long long cache_limit = -1;
     int NNDigits = 100;
     
-    HepFormat::_init::_init() {
-        set_print_func<add, HepFormat>(HepFormat::add_print);
-        set_print_func<mul, HepFormat>(HepFormat::mul_print);
-    }
-    HepFormat::_init HepFormat_init;
-    
-    HepFormat hout(cout);
-    
-    MMAFormat::_init::_init() {
-        set_print_func<add, MMAFormat>(MMAFormat::add_print);
-        set_print_func<mul, MMAFormat>(MMAFormat::mul_print);
-    }
-    MMAFormat::_init MMAFormat_init;
     MMAFormat mout(cout);
     
     lst GiNaC_archive_Symbols = lst{};

@@ -229,6 +229,7 @@ namespace HepLib {
     exvector GiNaC_Parallel(int ntotal, std::function<ex(int)> f, const string & key) {
         int ec = 0;
         int nactive = 0;
+        string exstr = "";
         int nproc = GiNaC_Parallel_Process;
         if(GiNaC_Parallel_NP.find(key)!=GiNaC_Parallel_NP.end()) nproc = GiNaC_Parallel_NP[key];
         
@@ -280,7 +281,7 @@ namespace HepLib {
                 cout << "\r                                                                  \r" << pre;
                 cout << "\\--Evaluating ";
                 if(key != "") cout << Color_HighLight << key << RESET << " ";
-                cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
+                cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] @ " << now(false) << exstr << flush;
             }
             
             auto pid = fork();
@@ -288,7 +289,7 @@ namespace HepLib {
                 if(getpid()!=pgid) exit(0); // make sure exit child process
                 ec++;
                 if(ec>3*btotal) throw Error("GiNaC_Parallel: Error (2) @ fork()");
-                if(Verbose>1) cout << " - fork(" << ec << ")" << endl;
+                exstr = " - fork(" + to_string(ec) + ")";
                 if(waitpid(-pgid,NULL,0)>0) nactive--;
                 goto restart; // parent process goes next cycle
             }
@@ -1787,8 +1788,8 @@ namespace HepLib {
         symtab st;
         Parser fp(st);
         res = fp.Read(ostr);
-        res = res.subs(f2v);
-        return res.subs(map_rat);
+        res = res.subs(f2v,subs_options::no_pattern);
+        return res.subs(map_rat,subs_options::no_pattern);
     }
     
     
@@ -1935,8 +1936,8 @@ namespace HepLib {
             }
         }
         
-        num = num.subs(f2v).subs(map_rat);
-        den = den.subs(f2v).subs(map_rat);
+        num = num.subs(f2v,subs_options::no_pattern).subs(map_rat,subs_options::no_pattern);
+        den = den.subs(f2v,subs_options::no_pattern).subs(map_rat,subs_options::no_pattern);
         return lst{num, den};
         
     }
@@ -2121,139 +2122,7 @@ namespace HepLib {
         if(is_zero(num_den.op(1)-1)) return inner_factor_form(num_den.op(0));
         return inner_factor_form(num_den.op(0))/inner_factor_form(num_den.op(1));
     }
-    
-    //-----------------------------------------------------------
-    // HepFormat Output
-    //-----------------------------------------------------------
-    HepFormat::HepFormat(ostream &os, unsigned opt) : print_dflt(os, opt) {}
-    HepFormat::HepFormat() : print_dflt(std::cout) {}
-    GINAC_IMPLEMENT_PRINT_CONTEXT(HepFormat, print_dflt)
-    
-    const HepFormat & HepFormat::operator << (const basic & v) const {
-        v.print(*this);
-        return *this;
-    }
-    const HepFormat & HepFormat::operator << (const ex & v) const {
-        v.print(*this);
-        return *this;
-    }
-    const HepFormat & HepFormat::operator << (const lst & v) const {
-        v.print(*this);
-        return *this;
-    }
-    const HepFormat & HepFormat::operator<<(std::ostream& (*v)(std::ostream&)) const {
-        s << v;
-        return *this;
-    }
         
-    void HepFormat::add_print(const add & a, const HepFormat & c, unsigned level) {
-        auto as = add2lst(a);
-        sort_lst(as);
-        auto cl = a.precedence();
-        bool first = true;
-        if(cl<=level) c.s << '(';
-        for(auto item : as) {
-            if(!first) c.s << "+";
-            item.print(c, cl);
-            first = false;
-        }
-        if(a.precedence()<=level) c.s << ')';
-    }
-    
-    void HepFormat::mul_print(const mul & m, const HepFormat & c, unsigned level) {
-        auto ms = mul2lst(m);
-        sort_lst(ms);
-        auto cl = m.precedence();
-        
-        // handle negative number
-        int nn = ms.nops();
-        auto ex0 = ms.op(0);
-        if(nn>1 && ex0.info(info_flags::real) && ex0<0) {
-            ex exn = ms.op(nn-1);
-            if(is_a<add>(exn)) {
-                exn = numeric(-1) * exn;
-                if(is_a<add>(exn)) {
-                    ms.let_op(0) = numeric(-1) * ms.op(0);
-                    ms.let_op(nn-1) = exn;
-                }
-            }
-        }
-        
-        bool first = true;
-        if(cl<=level) c.s << '(';
-        for(auto item : ms) {
-            if(is_a<numeric>(item) && is_zero(item-1)) continue;
-            if(!first) c.s << "*";
-            item.print(c, cl);
-            first = false;
-        }
-        if(cl<=level) c.s << ')';
-    }
-    
-    const HepFormat & HepFormat::operator << (const matrix & mat) const {
-        s << "[";
-        int nr = mat.rows();
-        int nc = mat.cols();
-        for(int r=0; r<nr; r++) {
-            s << "[";
-            for(int c=0; c<nc; c++) {
-                mat(r,c).print(*this);
-                if(c+1!=nc) s << ",";
-            }
-            s << "]";
-            if(r+1!=nr) s << ",";
-        }
-        s << "]";
-        return *this;
-    }
-    
-    const HepFormat & HepFormat::operator << (const exvector & e) const {
-        auto i = e.begin();
-        auto vend = e.end();
-        if (i==vend) { s << "[]"; return *this; }
-        s << "[";
-        while (true) {
-            i->print(*this);
-            ++i;
-            if(i==vend) break;
-            s << ",";
-        }
-        s << "]";
-        return *this;
-    }
-
-    const HepFormat & HepFormat::operator << (const exset & e) const {
-        auto i = e.begin();
-        auto send = e.end();
-        if (i==send) { s << "<>"; return *this; }
-        s << "<";
-        while (true) {
-            i->print(*this);
-            ++i;
-            if(i==send) break;
-            s << ",";
-        }
-        s << ">";
-        return *this;
-    }
-
-    const HepFormat & HepFormat::operator << (const exmap & e) const {
-        auto i = e.begin();
-        auto mend = e.end();
-        if (i==mend) { s << "{}"; return *this; }
-        s << "{";
-        while (true) {
-            i->first.print(*this);
-            s << "==";
-            i->second.print(*this);
-            ++i;
-            if(i==mend) break;
-            s << ",";
-        }
-        s << "}";
-        return *this;
-    }
-    
     //-----------------------------------------------------------
     // MMAFormat Output
     //-----------------------------------------------------------
@@ -2278,50 +2147,6 @@ namespace HepLib {
         return *this;
     }
         
-    void MMAFormat::add_print(const add & a, const MMAFormat & c, unsigned level) {
-        auto as = add2lst(a);
-        sort_lst(as);
-        auto cl = a.precedence();
-        bool first = true;
-        if(cl<=level) c.s << '(';
-        for(auto item : as) {
-            if(!first) c.s << "+";
-            item.print(c, cl);
-            first = false;
-        }
-        if(a.precedence()<=level) c.s << ')';
-    }
-    
-    void MMAFormat::mul_print(const mul & m, const MMAFormat & c, unsigned level) {
-        auto ms = mul2lst(m);
-        sort_lst(ms);
-        auto cl = m.precedence();
-        
-        // handle negative number
-        int nn = ms.nops();
-        auto ex0 = ms.op(0);
-        if(nn>1 && ex0.info(info_flags::real) && ex0<0) {
-            ex exn = ms.op(nn-1);
-            if(is_a<add>(exn)) {
-                exn = numeric(-1) * exn;
-                if(is_a<add>(exn)) {
-                    ms.let_op(0) = numeric(-1) * ms.op(0);
-                    ms.let_op(nn-1) = exn;
-                }
-            }
-        }
-        
-        bool first = true;
-        if(cl<=level) c.s << '(';
-        for(auto item : ms) {
-            if(is_a<numeric>(item) && is_zero(item-1)) continue;
-            if(!first) c.s << "*";
-            item.print(c, cl);
-            first = false;
-        }
-        if(cl<=level) c.s << ')';
-    }
-    
     const MMAFormat & MMAFormat::operator << (const matrix & mat) const {
         s << "{";
         int nr = mat.rows();

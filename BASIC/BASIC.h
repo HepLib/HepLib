@@ -74,9 +74,7 @@ namespace HepLib {
         return true;
     }
     
-    /*-----------------------------------------------------*/
     // Terminal Color
-    /*-----------------------------------------------------*/
     #define RESET "\033[0m"
     #define BLACK "\033[30m"
     #define RED "\033[31m"
@@ -666,11 +664,7 @@ namespace HepLib {
     void sort_lst_by(lst & ilst, int n, bool less=true);
     void sort_vec(exvector & ivec, bool less=true);
     void sort_vec_by(exvector & ivec, int n, bool less=true);
-    
-    bool ex_less_cache(const ex &a, const ex &b, map<ex,bool,ex_is_less> &cache);
-    void sort_lst(lst & ilst, map<ex,bool,ex_is_less> &cache, bool less=true);
-    void sort_vec(exvector & ivec, map<ex,bool,ex_is_less> &cache, bool less=true);
-    
+        
     /*-----------------------------------------------------*/
     // Other Functions
     /*-----------------------------------------------------*/
@@ -788,40 +782,7 @@ namespace HepLib {
         pid_t pid = 0;
     };
     
-    
-    /**
-     * @brief class for HepLib Format Output
-     */
-    class HepFormat : public print_dflt {
-        GINAC_DECLARE_PRINT_CONTEXT(HepFormat, print_dflt)
-    public:
-        HepFormat(ostream &os, unsigned opt=0);
-        static void add_print(const add & a, const HepFormat & c, unsigned level=0);
-        static void mul_print(const mul & m, const HepFormat & c, unsigned level=0);
         
-        template<class T> const HepFormat & operator << (const T & v) const {
-            s << v;
-            return *this;
-        };
-        const HepFormat & operator << (const basic & v) const;
-        const HepFormat & operator << (const ex & v) const;
-        const HepFormat & operator << (const lst & v) const;
-        const HepFormat & operator<<(std::ostream& (*v)(std::ostream&)) const;
-        const HepFormat & operator << (const matrix & v) const;
-        const HepFormat & operator << (const exvector & v) const;
-        const HepFormat & operator << (const exmap & v) const;
-        const HepFormat & operator << (const exset & v) const;
-        
-        #ifndef DOXYGEN_SKIP
-        class _init {
-            public: _init();
-        };
-    private:
-        static _init HepFormat_init;
-        #endif
-    };
-    extern HepFormat hout;
-    
     /**
      * @brief class for Mathematica Format Output
      */
@@ -829,8 +790,6 @@ namespace HepLib {
         GINAC_DECLARE_PRINT_CONTEXT(MMAFormat, print_dflt)
     public:
         MMAFormat(ostream &os, unsigned opt=0);
-        static void add_print(const add & a, const MMAFormat & c, unsigned level=0);
-        static void mul_print(const mul & m, const MMAFormat & c, unsigned level=0);
         
         template<class T> const MMAFormat & operator << (const T & v) const {
             s << v;
@@ -844,14 +803,6 @@ namespace HepLib {
         const MMAFormat & operator << (const exvector & v) const;
         const MMAFormat & operator << (const exmap & v) const;
         const MMAFormat & operator << (const exset & v) const;
-        
-        #ifndef DOXYGEN_SKIP
-        class _init {
-            public: _init();
-        };
-    private:
-        static _init MMAFormat_init;
-        #endif
     };
     extern MMAFormat mout;
     

@@ -284,7 +284,7 @@ namespace HepLib::IBP {
         
         Rlst.sort();
         Rlst.unique();
-        sort_lst(Rlst);
+        //sort_lst(Rlst);
         
         for(auto iR : Rlst) {
             start << "SBasisR[" << pn << ",{";

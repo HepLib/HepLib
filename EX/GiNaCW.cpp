@@ -621,13 +621,3 @@ cout & cout::operator<<(const exmap &em) { std::cout << em._g; return *this; }
 cout & cout::operator<<(const exset &es) { std::cout << es._g; return *this; }
 cout & cout::operator<<(const std::vector<expr> &ev) { std::cout << exvec(ev)._g; return *this; }
 cout & cout::operator<<(const std::map<expr,expr,expr_is_less> &em) { std::cout << exmap(em)._g; return *this; }
-
-hout & hout::operator<<(const expr &e) { HepLib::hout << e._expr; return *this; }
-hout & hout::operator<<(const int &e) { HepLib::hout << e; return *this; }
-hout & hout::operator<<(const std::string &e) { HepLib::hout << e; return *this; }
-hout & hout::operator<<(const char* &e) { HepLib::hout << e; return *this; }
-hout & hout::operator<<(const exvec &ev) { HepLib::hout << ev._g; return *this; }
-hout & hout::operator<<(const exmap &em) { HepLib::hout << em._g; return *this; }
-hout & hout::operator<<(const exset &es) { HepLib::hout << es._g; return *this; }
-hout & hout::operator<<(const std::vector<expr> &ev) { HepLib::hout << exvec(ev)._g; return *this; }
-hout & hout::operator<<(const std::map<expr,expr,expr_is_less> &em) { HepLib::hout << exmap(em)._g; return *this; }

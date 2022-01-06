@@ -27,7 +27,7 @@ namespace HepLib::IBP {
         }
         rep_vs.sort();
         rep_vs.unique();
-        sort_lst(rep_vs);
+        //sort_lst(rep_vs);
 
         exmap v2f;
         symtab st;
@@ -425,7 +425,7 @@ namespace HepLib::IBP {
         }
         lvls.sort();
         lvls.unique();
-        sort_lst(lvls);
+        //sort_lst(lvls);
 
         for(int i=0; i<lvls.nops(); i++) {
             int si = ex2int(lvls.op(i));

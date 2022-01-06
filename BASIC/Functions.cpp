@@ -139,7 +139,7 @@ namespace HepLib {
                 repl[kv.second] = Symbol(ss);
             }
         }
-        if(redo) return ret.subs(repl);
+        if(redo) return ret.subs(repl,subs_options::no_pattern);
         else return ret;
     }
     ex Parser::ReadFile(string filename, bool s2S) {

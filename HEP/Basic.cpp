@@ -84,50 +84,6 @@ namespace HepLib {
         return *this;
     }
     
-    void FCFormat::add_print(const add & a, const FCFormat & c, unsigned level) {
-        auto as = add2lst(a);
-        sort_lst(as);
-        auto cl = a.precedence();
-        bool first = true;
-        if(cl<=level) c.s << '(';
-        for(auto item : as) {
-            if(!first) c.s << "+";
-            item.print(c, cl);
-            first = false;
-        }
-        if(a.precedence()<=level) c.s << ')';
-    }
-    
-    void FCFormat::mul_print(const mul & m, const FCFormat & c, unsigned level) {
-        auto ms = mul2lst(m);
-        sort_lst(ms);
-        auto cl = m.precedence();
-        
-        // handle negative number
-        int nn = ms.nops();
-        auto ex0 = ms.op(0);
-        if(nn>1 && ex0.info(info_flags::real) && ex0<0) {
-            ex exn = ms.op(nn-1);
-            if(is_a<add>(exn)) {
-                exn = numeric(-1) * exn;
-                if(is_a<add>(exn)) {
-                    ms.let_op(0) = numeric(-1) * ms.op(0);
-                    ms.let_op(nn-1) = exn;
-                }
-            }
-        }
-        
-        bool first = true;
-        if(cl<=level) c.s << '(';
-        for(auto item : ms) {
-            if(is_a<numeric>(item) && is_zero(item-1)) continue;
-            if(!first) c.s << "*";
-            item.print(c, cl);
-            first = false;
-        }
-        if(cl<=level) c.s << ')';
-    }
-    
     const FCFormat & FCFormat::operator << (const matrix & mat) const {
         s << "{";
         int nr = mat.rows();

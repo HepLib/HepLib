@@ -77,7 +77,7 @@ namespace HepLib {
                     if(is_zero(mat(mat.rows()-1,c))) continue;
                     pns.append(lst{ sum, ex(0)-mat(mat.rows()-1,c) });
                 }
-                sort_lst(pns);
+                pns.sort();
                 lst ps, ns;
                 for(auto item : pns) {
                     ps.append(item.op(0));
@@ -115,10 +115,9 @@ namespace HepLib {
      * @return sum of coefficient * ApartIR
      */
     ex Apart(const matrix & mat) {
-    
         static exmap mat_cache;
         if(using_cache && cache_limit>0 && mat_cache.size() > cache_limit) mat_cache.clear();
-        if(using_cache && mat_cache.find(mat)!=mat_cache.end()) return mat_cache[mat];
+        if(mat_cache.find(mat)!=mat_cache.end()) return mat_cache[mat];
         
         int nrow = mat.rows()-2;
         int ncol = mat.cols();
@@ -149,7 +148,6 @@ namespace HepLib {
                 }
                 rep_vs.sort();
                 rep_vs.unique();
-                sort_lst(rep_vs);
                 
                 exmap v2f;
                 symtab st;
@@ -274,10 +272,30 @@ namespace HepLib {
         }
         
         if(ni!=-1) {
-            auto nvec = subs(null_vec, iWF(w)==w+1);
-            if(is_zero(nvec.op(ni))) nvec = subs(null_vec, iWF(w)==w*w+1);
-            if(is_zero(nvec.op(ni))) nvec = subs(null_vec, iWF(w)==w*w*w+1);
-            if(is_zero(nvec.op(ni))) throw Error("Apart: iWF to int failed with "+ex2str(null_vec.op(ni)));
+            ex nvec;
+            if(true) {
+                exset wfs;
+                find(null_vec.op(ni),iWF(w),wfs);
+                if(wfs.size()<1) throw Error("Apart: something is wrong!");
+                symbol s;
+                
+                int max = -1;
+                for(auto wf : wfs) {
+                    auto n1 = subs(null_vec, wf==s);
+                    n1 = subs(n1, iWF(w)==0);
+                    for(int i=0; i<3; i++) {
+                        auto n2 = subs(n1, s==i);
+                        if(!is_zero(n2.op(ni))) {
+                            int nt = 0;
+                            for(auto ii : n2) if(ii.is_zero()) nt++;
+                            if(nt>max && nt!=ncol) { nvec = n2; max = nt; }
+                            break;
+                        }
+                    }
+                }
+                if(is_zero(nvec.op(ni))) throw Error("Apart: iWF to int failed with "+ex2str(null_vec.op(ni)));
+            }
+            
             ex sol = 0;
             for(int c=0; c<ncol; c++) {
                 if(c==ni) continue;
@@ -329,16 +347,39 @@ namespace HepLib {
         ex cres0 = 0;
         for(int c=0; c<ncol; c++) cres0 += mat(nrow,c)*null_vec.op(c);
         cres0 = cres0.subs(iEpsilon==0,nopat);
-        auto cres = subs(cres0, iWF(w)==w+1);
-        auto nvec = subs(null_vec, iWF(w)==w+1);
-        if(is_zero(cres)) {
-            cres = subs(cres0, iWF(w)==w*w+1);
-            nvec = subs(null_vec, iWF(w)==w*w+1);
-        }
-        if(is_zero(cres)) {
-            cres = subs(cres0, iWF(w)==w*w*w+1);
-            nvec = subs(null_vec, iWF(w)==w*w*w+1);
-        }
+        
+        ex nvec,cres;
+        if(true) {
+            exset wfs;
+            find(cres0,iWF(w),wfs);
+            if(wfs.size()<1) {
+                cres = cres0;
+                nvec = null_vec;
+            } else {
+                symbol s;
+                int max = -1;
+                bool c0 = true;
+                for(auto wf : wfs) {
+                    auto c1 = subs(cres0, wf==s);
+                    auto n1 = subs(null_vec, wf==s);
+                    c1 = subs(c1, iWF(w)==0);
+                    n1 = subs(n1, iWF(w)==0);
+                    for(int i=0; i<5; i++) {
+                        auto c2 = subs(c1, s==i).normal();
+                        auto n2 = subs(n1, s==i);
+                        if(!c0 && c2.is_zero()) continue;
+                        if(c0 && !c2.is_zero()) {
+                            c0 = false;
+                            nvec = n2; cres = c2;
+                        } else {
+                            int nt = 0;
+                            for(auto ii : n2) if(ii.is_zero()) nt++;
+                            if(nt>max && nt!=ncol) { nvec = n2; cres = c2; max = nt; }
+                        }
+                    }
+                }
+            }
+        } // end if(true)
 
         // handle const is NOT zero
         if(!IsZero(cres)) {
@@ -433,7 +474,7 @@ namespace HepLib {
             }
             nrepl[iEpsilon]=0;
             ex chk = ApartIR2ex(subs(res,nrepl))-subs(expr_ino,nrepl);
-            chk = normal_fermat(chk);
+            chk = exnormal(chk);
             if(!is_zero(chk)) throw Error("Apart@1 random check Failed.");
             return res;
         }
@@ -441,6 +482,10 @@ namespace HepLib {
         // Apart on monomial term
         if(expr_ino.nops()!=1) throw Error("Apart: wrong convention found!");
         ex expr_in = expr_ino.op(0);
+
+        static exmap cache;
+        if(using_cache && cache_limit>0 && cache.size() > cache_limit) cache.clear();
+        if(cache.find(expr_in)!=cache.end()) return cache[expr_in];
     
         exmap map1, map2;
         lst vars;
@@ -571,9 +616,9 @@ namespace HepLib {
                 pnlst.append(lst{k, v});
             }
         }
-        sort_lst(pnlst); // sort needed
+        pnlst.sort();
         
-        if(pnlst.nops()==0) return pref * ApartIR(1,vars_in);
+        if(pnlst.nops()==0) return cache[expr_in] = pref * ApartIR(1,vars_in);
         
         int nrow=vars.nops(), ncol=pnlst.nops();
         exmap vars0;
@@ -588,14 +633,15 @@ namespace HepLib {
             }
             mat(nrow,c) = normal_fermat(tmp.subs(vars0,nopat));
         }
+        
         ex ret = Apart(mat);
         auto cv_lst = collect_lst(ret,ApartIR(w));
         ret = 0;
         for(auto cv : cv_lst) {
-            ret += cv.op(0) * ApartIR(cv.op(1).op(0), vars);
+            ret += pref * cv.op(0) * ApartIR(cv.op(1).op(0), vars).subs(map2,nopat);
         }
-        ret = pref * ret;
-        return ret.subs(map2,nopat);
+
+        return cache[expr_in] = ret;
     }
     
     /**
@@ -623,7 +669,6 @@ namespace HepLib {
         }
         sps.sort();
         sps.unique();
-        sort_lst(sps);
         
         auto cv_lst = collect_lst(expr, loops);
         ex res = 0;
@@ -653,8 +698,8 @@ namespace HepLib {
         if(!is_zero(chk)) {
             throw Error("Apart@2 random check Failed.");
         }
-        
-        return collect_ex(res,ApartIR(w1,w2),false,false,1);
+
+        return res;
     }
     
     /**
@@ -813,11 +858,11 @@ namespace HepLib {
                 if(Verbose > 1) cout << "  \\--Read AP.gar" << flush;
                 garRead(air_vec, aio.SaveDir+"/AP.gar");
                 if(Verbose > 1) cout << " @ " << now(false) << endl; 
-                goto ApIRC_Done;
+                goto Apart_Done;
             } else system(("mkdir -p "+aio.SaveDir).c_str());
         } 
         
-        if(true) { // NO ApIRC_Done
+        if(true) { // NO Apart_Done
             bool aparted = false;
             for(auto air : air_vec) {
                 if(air.has(ApartIR(w1,w2))) {
@@ -846,11 +891,11 @@ namespace HepLib {
                 }
                 exvector vvec;
                 for(auto item : vset) vvec.push_back(item);
+                vset.clear();
                 
                 ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
                     auto air = vvec[idx];
                     air = Apart(air,lmom,emom,aio.smap);
-                    air = ApartIRC(air);
                     return air;
                 }, "Apart");
                 
@@ -863,23 +908,31 @@ namespace HepLib {
                     for(auto cv : cvs) res += cv.op(0) * v2v[cv.op(1)];
                     return res;
                 }, "ApPost");
-                for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIRC
-            } else {
-                auto ret = GiNaC_Parallel(air_vec.size(), [air_vec] (int idx) {
-                    auto air = air_vec[idx];
-                    air = air.subs(SP_map,nopat);
-                    air = ApartIRC(air);
-                    return air;
-                }, "ApIRC");
-                for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIRC
+                v2v.clear();
+                
+                for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIR
+                if(aio.SaveDir != "") garWrite(air_vec,aio.SaveDir+"/AP.gar");
             }
-            
-            if(aio.SaveDir != "") garWrite(air_vec,aio.SaveDir+"/AP.gar");
         }
-        ApIRC_Done: ;
+        Apart_Done: ;
         
         if(true) {
         
+            exvector AIRo, AIR;
+            if(true) {
+                exset intg;
+                for(auto air : air_vec) find(air, ApartIR(w1,w2), intg);
+                AIRo.resize(intg.size());
+                AIR.resize(intg.size());
+                int i = 0;
+                for(auto air : intg) {
+                    AIRo[i] = air;
+                    AIR[i] = ApartIRC(air.subs(SP_map,nopat));
+                    i++;
+                }
+                intg.clear();
+            }
+            
             for(auto sp : aio.CSP) SP_map.erase(sp);
             // from here, Vector will be replaced by its name Symbol
             
@@ -899,16 +952,13 @@ namespace HepLib {
         
             if(Verbose>0) cout <<  "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction @ " << now(false) << flush;
             
-            exset intg;
-            for(auto air : air_vec) find(air, ApartIR(w1,w2), intg);
-        
             exmap AIR2F;
             std::map<ex, IBP::Base*, ex_is_less> p2IBP;
             int pn=1;
-            int ntot = intg.size();
-            int ncur = 0;
-            for(auto ir : intg) {
-                if(Verbose>0) cout << "\r                                 \r" << "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction [" << (++ncur) << "/" << ntot << "] @ " << now(false) << flush;
+            int ntot = AIR.size();
+            for(int i=0; i<ntot; i++) {
+                if(Verbose>0) cout << "\r                                 \r" << "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction [" << (i+1) << "/" << ntot << "] @ " << now(false) << flush;
+                auto const & ir = AIR[i];
                 auto mat = ex_to<matrix>(ir.op(0));
                 auto vars = ex_to<lst>(ir.op(1));
                 lst pns;
@@ -920,7 +970,7 @@ namespace HepLib {
                     pc = SP2sp(pc);
                     pns.append(lst{ pc, ex(0)-mat(nrow-1,c) }); // note the convension
                 }
-                sort_lst(pns); // sort before cuts
+                pns.sort();
                 
                 int nCuts = aio.Cuts.nops();
                 if(nCuts>0) {
@@ -972,11 +1022,12 @@ namespace HepLib {
                 }
                 IBP::Base* ibp = p2IBP[props];
                 ibp->Integrals.append(ns);
-                AIR2F[ir] = F(ibp->ProblemNumber, ns);
+
+                AIR2F[AIRo[i]] = F(ibp->ProblemNumber, ns);
             }
             if(Verbose>0) cout << endl;
 
-            if(Verbose>0) cout << "  \\--Total Ints/Pros: " << WHITE << intg.size() << "/" << ibp_vec.size() << RESET << " @ " << now(false) << endl;
+            if(Verbose>0) cout << "  \\--Total Ints/Pros: " << WHITE << ntot << "/" << ibp_vec.size() << RESET << " @ " << now(false) << endl;
         
             if(true) {
                 vector<Base*> base_vec;
@@ -1045,9 +1096,11 @@ namespace HepLib {
         }
         
         if(IBPmethod==1) { 
+            if(GiNaC_Parallel_NB.find("Expo")==GiNaC_Parallel_NB.end() || GiNaC_Parallel_NB["Expo"]>100) GiNaC_Parallel_NB["Expo"] = 100;
             auto pRes = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
                 ibp_vec_re[idx]->Export();
-                return lst{ ibp_vec_re[idx]->IsAlwaysZero ? 1 : 0, ibp_vec_re[idx]->Rules };
+                auto ret = lst{ ibp_vec_re[idx]->IsAlwaysZero ? 1 : 0, ibp_vec_re[idx]->Rules };
+                return ret;
             }, "Expo");
             for(int i=0; i<ibp_vec_re.size(); i++) {
                 ibp_vec_re[i]->IsAlwaysZero = (pRes[i].op(0)==1 ? true : false);
@@ -1092,21 +1145,24 @@ namespace HepLib {
         auto mi_fr = FindRules(ibp_vec_re, true, aio.UF);
     
         exmap ibpRules; // rules from IBP reducton
-        for(auto ibp : ibp_vec_re) {
-            for(auto ri : ibp->Rules) {
-                if(ri.op(0)!=ri.op(1)) ibpRules[ri.op(0)] = ri.op(1);
+        if(true) { // scope for ret
+            auto ris_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&mi_fr](int idx)->ex {
+                ex rules = ibp_vec_re[idx]->Rules;
+                lst res;
+                for(auto ri : rules) res.append(lst { ri.op(0),  ri.op(1).subs(mi_fr.first,nopat).subs(d==D,nopat) });
+                return res;
+            }, "FR2MI");
+            for(auto ris : ris_vec) {
+                for(auto ri : ris) if(ri.op(0)!=ri.op(1)) ibpRules[ri.op(0)] = ri.op(1);
             }
         }
         
         auto air_res =
         GiNaC_Parallel(air_vec.size(), [&air_vec,&ibpRules,&mi_fr,&_F2ex](int idx)->ex {
-            exmap dmap;
-            dmap[d] = D;
             ex res = air_vec[idx];
             res = res.subs(ibpRules,nopat);
-            res = res.subs(mi_fr.first,nopat);
-            res = res.subs(dmap,nopat);
-            //res = _F2ex(res);
+            res = res.subs(mi_fr.first,nopat); // still needed
+            res = _F2ex(res);
             return res;
         }, "F2MI");
                                     

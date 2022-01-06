@@ -6,9 +6,11 @@
 #include "IBP.h"
 #include <cmath>
 
-#define using_sort_cache
-
 namespace HepLib::IBP {
+
+    namespace {
+        ex_is_less less;
+    }
 
     static void a_print(const ex & ex_in, const print_context & c) {
         c.s << "a[" << ex_in << "]";
@@ -118,9 +120,6 @@ namespace HepLib::IBP {
      * @return 1st of sorted xs
      */
     lst SortPermutation(const ex & in_expr, const lst & xs) {
-        #ifdef using_sort_cache
-        map<ex,bool,ex_is_less> sort_cache;
-        #endif
         auto expr = in_expr;
         bool isPoly = true;
         lst xRepl;
@@ -141,11 +140,7 @@ namespace HepLib::IBP {
             auto cv_lst = collect_lst(expr, xs);
             exvector cvs;
             for(auto item : cv_lst) cvs.push_back(item);
-            #ifdef using_sort_cache
-            sort_vec(cvs,sort_cache);
-            #else
             sort_vec(cvs);
-            #endif
                     
             int nxi = xs.nops();
             bool first = true;
@@ -158,11 +153,7 @@ namespace HepLib::IBP {
                 if(is_zero(cc)) continue;
                 if(!first && !is_zero(cc-clast)) {
                     for(int i=0; i<nxi; i++) {
-                        #ifdef using_sort_cache
-                        sort_lst(subkey[i],sort_cache);
-                        #else
                         sort_lst(subkey[i]);
-                        #endif
                         for(auto item : subkey[i]) xkey[i].append(item);
                         subkey[i].remove_all();
                     }
@@ -172,11 +163,7 @@ namespace HepLib::IBP {
                 for(int i=0; i<nxi; i++) subkey[i].append(vv.degree(xs.op(i)));
             }
             for(int i=0; i<nxi; i++) {
-                #ifdef using_sort_cache
-                sort_lst(subkey[i],sort_cache);
-                #else
                 sort_lst(subkey[i]);
-                #endif
                 for(auto item : subkey[i]) xkey[i].append(item);
                 subkey[i].remove_all();
             }
@@ -186,11 +173,7 @@ namespace HepLib::IBP {
                 key_xi.push_back(lst{xkey[i], xs.op(i)});
                 pgrp[xkey[i]].push_back(i); // i w.r.t. position of xs
             }
-            #ifdef using_sort_cache
-            sort_vec(key_xi,sort_cache);
-            #else
             sort_vec(key_xi);
-            #endif
             
             xRepl.remove_all();
             for(auto item : key_xi) xRepl.append(item.op(1));  
@@ -221,11 +204,7 @@ namespace HepLib::IBP {
                     if(vi[j]!=vi2[j]) x2x[xs.op(vi[j])]=xs.op(vi2[j]);
                 }
                 ex expr2 = expr.subs(x2x);
-                #ifdef using_sort_cache
-                if(ex_less_cache(expr2,expr1,sort_cache)) {
-                #else
                 if(ex_less(expr2,expr1)) {
-                #endif
                     expr1 = expr2;
                     xRepl1 = ex_to<lst>(xRepl.subs(x2x));
                 }
@@ -530,8 +509,8 @@ namespace HepLib::IBP {
         lst int_lst;
         for(auto g : group) {
             lst gs = ex_to<lst>(g.second);
-            sort_lst(gs);
-            int n0 = 1;
+            sort_lst(gs); // using sort_lst
+            int n0 = 1; // update HERE
             auto c0 = gs.op(0).op(0+n0);
             auto v0 = gs.op(0).op(1+n0);
             for(int i=1; i<gs.nops(); i++) {

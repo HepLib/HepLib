@@ -311,19 +311,6 @@ public:
     cout & operator<<(const std::map<expr,expr,expr_is_less> &ev);
 };
 
-class hout {
-public:
-    hout & operator << (const expr &e);
-    hout & operator << (const int &e);
-    hout & operator << (const std::string &e);
-    hout & operator << (const char * &e);
-    hout & operator<<(const exvec &ev);
-    hout & operator<<(const exmap &em);
-    hout & operator<<(const exset &es);
-    hout & operator<<(const std::vector<expr> &ev);
-    hout & operator<<(const std::map<expr,expr,expr_is_less> &ev);
-};
-
 /*
 -----------------------------------------
     HepLib Wrapper
@@ -616,8 +603,6 @@ w9 = wild(9)
 
 co = cout()
 cout = co
-ho = hout()
-hout = ho
 
 endl = '\n'
 RESET = '\033[0m'

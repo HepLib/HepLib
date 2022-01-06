@@ -78,8 +78,6 @@ namespace HepLib {
         GINAC_DECLARE_PRINT_CONTEXT(FCFormat, print_dflt)
     public:
         FCFormat(ostream &os, unsigned opt=0);
-        static void add_print(const add & a, const FCFormat & c, unsigned level=0);
-        static void mul_print(const mul & m, const FCFormat & c, unsigned level=0);
         static void ncmul_print(const ncmul & p, const FCFormat & c, unsigned level=0);
         
         template<class T> const FCFormat & operator << (const T & v) const {

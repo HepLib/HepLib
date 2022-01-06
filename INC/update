@@ -29,6 +29,7 @@ then
     cd ginac
     ./configure --prefix="@CMAKE_INSTALL_PREFIX@" PKG_CONFIG_PATH="@CMAKE_INSTALL_PREFIX@/lib/pkgconfig"
     make -j $jn
+    rm -rf @CMAKE_INSTALL_PREFIX@/libginac* @CMAKE_INSTALL_PREFIX@/include/ginac
     make install
     echo "GiNaC updated."
 fi
@@ -45,6 +46,7 @@ fi
     cd build
     cmake -DCMAKE_INSTALL_PREFIX="@CMAKE_INSTALL_PREFIX@" ..
     make -j $jn
+    rm -rf @CMAKE_INSTALL_PREFIX@/lib/libHepLib* @CMAKE_INSTALL_PREFIX@/bin/heplib*
     make install
     echo "HepLib updated."
 #fi
