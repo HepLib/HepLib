@@ -75,6 +75,7 @@ namespace HepLib {
     Symbol::Symbol() : symbol(get_symbol("")) { Table[""]=*this; }
     
     int Symbol::compare_same_type(const basic &other) const {
+        if(!is_a<Symbol>(other)) throw Error("Symbol::compare_same_type");;
         const Symbol &o = static_cast<const Symbol &>(other);
         int ret = get_name().compare(o.get_name());
         if(ret==0) return 0;
@@ -112,8 +113,27 @@ namespace HepLib {
     }
     
     bool Symbol::is_equal_same_type(const basic & other) const {
+        if(!is_a<Symbol>(other)) throw Error("Symbol::is_equal_same_type");
         const Symbol *o = static_cast<const Symbol *>(&other);
         return get_name()==o->get_name(); // should be the same as symbol class
+    }
+    
+    ex Symbol::derivative(const symbol & s) const { 
+        if(!is_exactly_a<Symbol>(s)) return 0;
+        if(is_equal_same_type(s)) return 1;
+        else return 0;
+    }
+    
+    ex Symbol::series(const relational & r, int order, unsigned options) const {
+        epvector seq;
+        const ex point = r.rhs();
+    
+        if (is_exactly_a<Symbol>(r.lhs()) && this->is_equal_same_type(ex_to<Symbol>(r.lhs()))) {
+            if (order>0 && !point.is_zero()) seq.emplace_back(expair(point, 0));
+            if (order>1) seq.emplace_back(expair(1, 1));
+            else seq.emplace_back(expair(Order(1), numeric(order)));
+        } else seq.emplace_back(expair(*this, 0));
+        return pseries(r, std::move(seq));
     }
     
     void Symbol::set_name(string n) { throw Error("Symbol can not reset the name!"); }
@@ -159,6 +179,7 @@ namespace HepLib {
     iSymbol::iSymbol(const string &s) : symbol(get_symbol(s)) { Table[s]=*this; }
     iSymbol::iSymbol() : symbol(get_symbol("")) { Table[""]=*this; }
     int iSymbol::compare_same_type(const basic &other) const {
+        if(!is_a<iSymbol>(other)) throw Error("iSymbol::compare_same_type");
         const iSymbol &o = static_cast<const iSymbol &>(other);
         int ret = get_name().compare(o.get_name());
         if(ret==0) return 0;
@@ -167,8 +188,15 @@ namespace HepLib {
     }
     
     bool iSymbol::is_equal_same_type(const basic & other) const {
+        if(!is_a<iSymbol>(other)) throw Error("iSymbol::is_equal_same_type");
         const iSymbol *o = static_cast<const iSymbol *>(&other);
         return serial==o->serial; // should be the same as symbol class
+    }
+    
+    ex iSymbol::derivative(const symbol & s) const {
+        if(!is_exactly_a<iSymbol>(s)) return 0;
+        if(is_equal_same_type(s)) return 1;
+        else return 0;
     }
     
     void iSymbol::set_name(string n) { throw Error("iSymbol can not reset the name!"); }
@@ -909,7 +937,7 @@ namespace HepLib {
         if(expr.has(sqrt(s0))) sn_lcm = lcm(sn_lcm, numeric(2));
         expr = expr.subs(repl1st);
         
-        static symbol s("s");
+        symbol s("s");
         if(!sn_lcm.is_integer()) throw Error("series_ex: Not integer with " + ex2str(sn_lcm));
         if(sn_lcm<0) sn_lcm = numeric(0)-sn_lcm;
         int sn = sn0 * sn_lcm.to_int();
@@ -1523,6 +1551,7 @@ namespace HepLib {
     IMPLEMENT_ALL(XIntegral)
 
     int XIntegral::compare_same_type(const basic &other) const {
+        if(!is_a<XIntegral>(other)) throw Error("XIntegral::compare_same_type");
         const XIntegral &o = static_cast<const XIntegral &>(other);
         auto c = Functions.compare(o.Functions);
         if(c!=0) return c;

@@ -36,6 +36,7 @@ namespace HepLib {
     }
 
     int Eps::compare_same_type(const basic &other) const {
+        if(!is_a<Eps>(other)) throw Error("Eps::compare_same_type");
         const Eps &o = static_cast<const Eps &>(other);
         for(int i=0; i<4; i++) {
             auto c = pis[i].compare(o.pis[i]);
@@ -45,6 +46,7 @@ namespace HepLib {
     }
     
     bool Eps::is_equal_same_type(const basic & other) const {
+        if(!is_a<Eps>(other)) throw Error("Eps::is_equal_same_type");
         const Eps &o = static_cast<const Eps &>(other);
         for(int i=0; i<4; i++) {
             if(!pis[i].is_equal(o.pis[i])) return false;

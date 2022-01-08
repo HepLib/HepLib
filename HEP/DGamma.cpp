@@ -71,12 +71,14 @@ namespace HepLib {
     }
     
     int DGamma::compare_same_type(const basic &other) const {
+        if(!is_a<DGamma>(other)) throw Error("DGamma::compare_same_type");
         const DGamma &o = static_cast<const DGamma &>(other);
         if (rl != o.rl) return rl < o.rl ? -1 : 1;
         return pi.compare(o.pi);
     }
     
     bool DGamma::is_equal_same_type(const basic & other) const {
+        if(!is_a<DGamma>(other)) throw Error("DGamma::is_equal_same_type");
         const DGamma &o = static_cast<const DGamma &>(other);
         if (rl != o.rl) return false;
         return pi.is_equal(o.pi);

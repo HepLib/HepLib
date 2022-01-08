@@ -70,6 +70,7 @@ namespace HepLib {
     Pair::Pair(const Index &i, const Vector &p) : lr{p, i} { }
 
     int Pair::compare_same_type(const basic &other) const {
+        if(!is_a<Pair>(other)) throw Error("Pair::compare_same_type");
         const Pair &o = static_cast<const Pair &>(other);
         int c1 = lr[0].compare(o.lr[0]);
         if(c1!=0) return c1;
@@ -78,6 +79,7 @@ namespace HepLib {
     }
     
     bool Pair::is_equal_same_type(const basic & other) const {
+        if(!is_a<Pair>(other)) throw Error("Pair::is_equal_same_type");
         const Pair &o = static_cast<const Pair &>(other);
         if(!lr[0].is_equal(o.lr[0])) return false;
         return lr[1].is_equal(o.lr[1]);

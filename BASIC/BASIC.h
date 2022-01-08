@@ -120,17 +120,23 @@ namespace HepLib {
     // GINAC_DECLARE_REGISTERED_CLASS END
     
     public:
-        Symbol(const string &s);
+        explicit Symbol(const string &s);
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n) override;
         
+        //bool info(unsigned inf) const override; 
         ex eval() const override; // for performance reasons
         ex evalf() const override; // for performance reasons
+        ex series(const relational & s, int order, unsigned options = 0) const override;
+        ex subs(const exmap & m, unsigned options = 0) const override { return subs_one_level(m, options); } // overwrites basic::subs() for performance reasons
+        //ex normal(exmap & repl, exmap & rev_lookup, lst & modifier) const override;
+        //ex to_rational(exmap & repl) const override;
+        //ex to_polynomial(exmap & repl) const override;
+        //bool is_polynomial(const ex & var) const override;
+    
         ex conjugate() const override;
         ex real_part() const override;
         ex imag_part() const override;
-        unsigned calchash() const override;
-        bool is_equal_same_type(const basic & other) const override;
         void set_name(string n);
         
         unsigned get_domain() const override { return domain::positive; }
@@ -150,7 +156,11 @@ namespace HepLib {
         static void unset(const Symbol &s);
         static void unset(const string &str);
         static void unset_all();
-        static ex set_all(const ex & expr);        
+        static ex set_all(const ex & expr);   
+    protected:
+        unsigned calchash() const override;
+        ex derivative(const symbol & s) const override;
+        bool is_equal_same_type(const basic & other) const override;
     };
     
     /**
@@ -186,18 +196,29 @@ namespace HepLib {
         
         unsigned get_domain() const override { return domain::complex; }
         
+        //bool info(unsigned inf) const override; 
         ex eval() const override; // for performance reasons
         ex evalf() const override; // for performance reasons
+        //ex series(const relational & s, int order, unsigned options = 0) const override;
+        ex subs(const exmap & m, unsigned options = 0) const override { return subs_one_level(m, options); } // overwrites basic::subs() for performance reasons
+        //ex normal(exmap & repl, exmap & rev_lookup, lst & modifier) const override;
+        //ex to_rational(exmap & repl) const override;
+        //ex to_polynomial(exmap & repl) const override;
+        //bool is_polynomial(const ex & var) const override;
+        
         ex conjugate() const override;
         ex real_part() const override;
         ex imag_part() const override;
-        unsigned calchash() const override;
-        bool is_equal_same_type(const basic & other) const override;
         void set_name(string n);
         
         static bool has(const ex &e);
         static lst all(const ex &e);
-        static std::map<std::string, ex> Table;        
+        static std::map<std::string, ex> Table; 
+        
+    protected:
+        unsigned calchash() const override;
+        ex derivative(const symbol & s) const override;
+        bool is_equal_same_type(const basic & other) const override;       
     };
     
     

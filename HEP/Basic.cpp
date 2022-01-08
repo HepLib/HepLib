@@ -179,6 +179,7 @@ namespace HepLib {
     
     Index::Index(const string &s, const Type t) : name(s), type(t) { }
     int Index::compare_same_type(const basic &other) const {
+        if(!is_a<Index>(other)) throw Error("Index::compare_same_type");
         const Index &o = static_cast<const Index &>(other);
         auto ret = name.get_name().compare(o.name.get_name());
         if(ret==0) return 0;
@@ -187,6 +188,7 @@ namespace HepLib {
     }
     
     bool Index::is_equal_same_type(const basic & other) const {
+        if(!is_a<Index>(other)) throw Error("Index::is_equal_same_type");
         const Index &o = static_cast<const Index &>(other);
         return (name.get_name() == o.name.get_name());
     }
@@ -250,6 +252,7 @@ namespace HepLib {
     
     Vector::Vector(const string &s) : name(s) { }
     int Vector::compare_same_type(const basic &other) const {
+        if(!is_a<Vector>(other)) throw Error("Vector::compare_same_type");
         const Vector &o = static_cast<const Vector &>(other);
         auto ret = name.get_name().compare(o.name.get_name());
         if(ret==0) return 0;
@@ -258,6 +261,7 @@ namespace HepLib {
     }
     
     bool Vector::is_equal_same_type(const basic & other) const {
+        if(!is_a<Vector>(other)) throw Error("Vector::is_equal_same_type");
         const Vector &o = static_cast<const Vector &>(other);
         return (name.get_name() == o.name.get_name());
     }
@@ -303,6 +307,7 @@ namespace HepLib {
     
     SUNT::SUNT(ex a, ex i, ex j) : aij{a,i,j} { }
     int SUNT::compare_same_type(const basic &other) const {
+        if(!is_a<SUNT>(other)) throw Error("SUNT::compare_same_type");
         const SUNT &o = static_cast<const SUNT &>(other);
         for(int i=0; i<3; i++) {
             auto c = aij[i].compare(o.aij[i]);
@@ -312,6 +317,7 @@ namespace HepLib {
     }
     
     bool SUNT::is_equal_same_type(const basic & other) const {
+        if(!is_a<SUNT>(other)) throw Error("SUNT::is_equal_same_type");
         const SUNT &o = static_cast<const SUNT &>(other);
         for(int i=0; i<3; i++) {
             if(!aij[i].is_equal(o.aij[i])) return false;
@@ -396,6 +402,7 @@ namespace HepLib {
     
     SUNF::SUNF(ex i, ex j, ex k) : ijk{i,j,k} { }
     int SUNF::compare_same_type(const basic &other) const {
+        if(!is_a<SUNF>(other)) throw Error("SUNF::compare_same_type");
         const SUNF &o = static_cast<const SUNF &>(other);
         for(int i=0; i<3; i++) {
             auto c = ijk[i].compare(o.ijk[i]);
@@ -405,6 +412,7 @@ namespace HepLib {
     }
     
     bool SUNF::is_equal_same_type(const basic & other) const {
+        if(!is_a<SUNF>(other)) throw Error("SUNF::is_equal_same_type");
         const SUNF &o = static_cast<const SUNF &>(other);
         for(int i=0; i<3; i++) {
             if(!ijk[i].is_equal(o.ijk[i])) return false;
@@ -487,6 +495,7 @@ namespace HepLib {
     
     SUNF4::SUNF4(ex i, ex j, ex k, ex l) : ijkl{i,j,k,l} { }
     int SUNF4::compare_same_type(const basic &other) const {
+        if(!is_a<SUNF4>(other)) throw Error("SUNF4::compare_same_type");
         const SUNF4 &o = static_cast<const SUNF4 &>(other);
         for(int i=0; i<4; i++) {
             auto c = ijkl[i].compare(o.ijkl[i]);
@@ -496,6 +505,7 @@ namespace HepLib {
     }
     
     bool SUNF4::is_equal_same_type(const basic & other) const {
+        if(!is_a<SUNF4>(other)) throw Error("SUNF4::is_equal_same_type");
         const SUNF4 &o = static_cast<const SUNF4 &>(other);
         for(int i=0; i<4; i++) {
             if(!ijkl[i].is_equal(o.ijkl[i])) return false;
