@@ -220,6 +220,7 @@ namespace HepLib {
      * @return return the ntotal-element vector, i.e., [f(0), ..., f(ntotal-1)]
      */
     exvector GiNaC_Parallel(int ntotal, std::function<ex(int)> f, const string & key) {
+        if(ntotal<1) return exvector();
         int ec = 0;
         int nactive = 0;
         string exstr = "";
@@ -317,8 +318,8 @@ namespace HepLib {
         
         if(getpid()!=pgid) exit(0); // make sure child exit
         while (waitpid(-pgid,NULL,0) != -1) { }
-        if(ntotal > 0 && !nst) {
-            if(Verbose > 10) cout << endl;
+        if(!nst) {
+            if(Verbose > 1) cout << endl;
             else if(Verbose > 1) cout << "\r                                                   \r" << flush;
         }
         if(getpid()!=ppid) exit(0); // make the forked group leader exit
@@ -372,8 +373,8 @@ namespace HepLib {
                     for(auto res : res_lst) ovec_tmp.push_back(res);
                 }
                 
-                if(ntotal > 0 && !nst) {
-                    if(Verbose > 10) cout << endl;
+                if(!nst) {
+                    if(Verbose > 1) cout << endl;
                     else if(Verbose > 1) cout << "\r                                                   \r" << flush;
                     
                     if(Verbose > 1) {
@@ -391,7 +392,7 @@ namespace HepLib {
             }
             garRead(garfn.str(), ovec);
             
-            if(Verbose > 1) cout << " @ " << now(false) << endl;
+            if(Verbose > 1 && !nst) cout << " @ " << now(false) << endl;
         }
         
         if(rm) {

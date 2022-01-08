@@ -516,6 +516,7 @@ namespace HepLib {
         const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF) {
         return ApartIBP(io_vec, IBPmethod, loops, exts, cut_props, uf);
     }
+    exmap ApartRules(const exvector &airs);
         
     struct AIOption {
         int IBPmethod = 1; // 0

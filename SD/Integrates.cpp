@@ -668,7 +668,6 @@ namespace HepLib::SD {
             for(auto module : ex_modules) dlclose(module);
             dlclose(main_module);
         }
-        if(total>0 && Verbose>1) cout << "@" << now(false) << endl;
         
         if(!ResultError.is_equal(NaN)) {
             ResultError = 0;
@@ -1239,7 +1238,6 @@ namespace HepLib::SD {
             for(auto module : ex_modules) dlclose(module);
             dlclose(main_module);
         }
-        if(total>0 && Verbose>1) cout << "@" << now(false) << endl;
         
         if(!ResultError.is_equal(NaN)) {
             ResultError = 0;

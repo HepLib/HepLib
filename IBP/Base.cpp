@@ -504,68 +504,58 @@ namespace HepLib::IBP {
 
         exmap rules;
         lst int_lst;
-        while(!group.empty()) {
-            bool found = false;
-            ex key, value, pi;
+        exset pis;
+        if(true) { // single element case
+            exset ks, vs;
             for(auto g : group) {
-                if(g.second.nops()==1) { // must include
-                    found = true;
-                    key = g.first;
-                    value = g.second.op(0);
+                if(g.second.nops()==1) {
+                    ks.insert(g.first);
+                    vs.insert(g.second.op(0));
                 }
             }
-            if(found) { // must include case
-                pi = value.op(0);
-                auto v0 = value.op(2);
-                int_lst.append(v0);
-                group.erase(key);
-            } else { // pi most occurence
-                map<ex, long long, ex_is_less> pi2n;
+            for(auto vi : vs) {
+                pis.insert(vi.op(0));
+                int_lst.append(vi.op(2));
+            }
+            for(auto ki : ks) group.erase(ki);
+        }
+        
+        while(!group.empty()) {
+            if(pis.size()>0) {
+                exset ks;
                 for(auto g : group) {
-                    exset pis;
-                    for(auto gi : g.second) pis.insert(gi.op(0));
-                    for(auto pi : pis) pi2n[pi]++; // per group                    
-                }
-                int tmax = -1, tmin = 0;
-                for(auto kv : pi2n) {
-                    if(kv.second > tmax) {
-                        tmax = kv.second;
-                        pi = kv.first;
-                        tmin = 0;
-                        for(auto item : pi) tmin += item.nops();
-                    } else if(kv.second==tmax) {
-                        int nc = 0;
-                        for(auto item : pi) nc += item.nops();
-                        if(tmin>nc) { // using minimal terms
-                            pi = kv.first;
-                            tmin = nc;
+                    ex c0, v0;
+                    for(auto gi : g.second) {
+                        for(auto pi : pis) {
+                            if(gi.op(0).is_equal(pi)) {
+                                ks.insert(g.first);
+                                c0 = gi.op(1);
+                                v0 = gi.op(2);
+                                goto found;
+                            }
                         }
                     }
-                }
-            }
-            // now we have pi
-            exvector ks;
-            for(auto g : group) {
-                ex c0, v0;
-                for(auto gi : g.second) {
-                    if(gi.op(0).is_equal(pi)) {
-                        ks.push_back(g.first);
-                        c0 = gi.op(1);
-                        v0 = gi.op(2);
-                        goto found;
+                    continue; // if not found pi
+                    found: ;
+                    int_lst.append(v0);
+                    for(auto gi : g.second) {
+                        auto ci = gi.op(1);
+                        auto vi = gi.op(2);
+                        if(v0.is_equal(vi)) continue;
+                        rules[vi] = v0 * c0 / ci;
                     }
                 }
-                continue; // if not found pi
-                found: ;
-                int_lst.append(v0);
-                for(auto gi : g.second) {
-                    auto ci = gi.op(1);
-                    auto vi = gi.op(2);
-                    if(v0.is_equal(vi)) continue;
-                    rules[vi] = v0 * c0 / ci;
-                }
+                for(auto ki : ks) group.erase(ki);
+                if(group.empty()) break;
             }
-            for(auto k : ks) group.erase(k);
+            pis.clear();
+            
+            int cur = 0;
+            for(auto g : group) {
+                cur++;
+                if(cur>100) break;
+                pis.insert(g.second.op(0).op(0));
+            }
         }
         
         if(Verbose>2) cout << "  \\--FindRules: " << WHITE << ntotal << " :> " << int_lst.nops() << RESET << " @ " << now(false) << endl;

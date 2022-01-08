@@ -4,758 +4,13 @@
  */
 
 #include "HEP.h"
-#include "cln/cln.h"
 
-auto nopat = GiNaC::subs_options::no_pattern;
+namespace {
+    auto nopat = GiNaC::subs_options::no_pattern;
+}
 
 namespace HepLib {
 
-    #ifndef DOXYGEN_SKIP
-    
-    unsigned ApartIR1_SERIAL::serial = GiNaC::function::register_new(function_options("ApartIR",1).do_not_evalf_params().overloaded(2));
-    unsigned ApartIR2_SERIAL::serial = GiNaC::function::register_new(function_options("ApartIR",2).do_not_evalf_params().overloaded(2));
-    
-    #endif
-
-    namespace {
-        inline bool isOK(const ex &expr_in, const lst &vars) {
-            ex item = expr_in;
-            if(is_a<power>(item)) {
-                if(!is_a<numeric>(item.op(1)) || !ex_to<numeric>(item.op(1)).is_integer()) return false;
-                item = item.op(0);
-            }
-            exmap vs; symbol s;
-            for(auto v : vars) vs[v] = s*v;
-            return item.subs(vs,nopat).degree(s)<=1;
-        }
-    }
-    
-    /**
-     * @brief convert ApartIR to ex
-     * @param expr_in expression contains ApartIR
-     * @return ApartIR converted into normal ex
-     */
-    ex ApartIR2ex(const ex & expr_in) {
-        ex ret = expr_in;
-        ret = MapFunction([](const ex & e, MapFunction &self)->ex{
-            if(e.match(ApartIR(1)) || e.match(ApartIR(1,w))) return 1;
-            else if(!e.has(ApartIR(w1,w2))) return e;
-            else if(e.match(ApartIR(w1, w2))) {
-                ex vars = e.op(1);
-                ex ret=1;
-                matrix mat = ex_to<matrix>(e.op(0));
-                for(int c=0; c<mat.cols(); c++) {
-                    ex sum=0;
-                    for(int r=0; r<mat.rows()-2; r++) sum += mat(r,c) * vars.op(r);
-                    sum += mat(mat.rows()-2,c);
-                    ret *= pow(sum, mat(mat.rows()-1,c));
-                }
-                return ret;
-            } else return e.map(self);
-        })(ret);
-        return ret;
-    }
-    
-    /**
-     * @brief convert ApartIR to F(ps, ns), ns is like FIRE convention
-     * @param expr_in expression contains ApartIR
-     * @return ApartIR converted into F(ps, ns)
-     */
-    ex ApartIR2F(const ex & expr_in) {
-        ex ret = expr_in;
-        ret = MapFunction([](const ex & e, MapFunction &self)->ex{
-            if(e.match(ApartIR(1)) || e.match(ApartIR(1,w))) return 1;
-            else if(!e.has(ApartIR(w1,w2))) return e;
-            else if(e.match(ApartIR(w1, w2))) {
-                ex vars = e.op(1);
-                matrix mat = ex_to<matrix>(e.op(0));
-                lst pns;
-                for(int c=0; c<mat.cols(); c++) {
-                    ex sum=0;
-                    for(int r=0; r<mat.rows()-2; r++) sum += mat(r,c) * vars.op(r);
-                    sum += mat(mat.rows()-2,c);
-                    if(is_zero(mat(mat.rows()-1,c))) continue;
-                    pns.append(lst{ sum, ex(0)-mat(mat.rows()-1,c) });
-                }
-                pns.sort();
-                lst ps, ns;
-                for(auto item : pns) {
-                    ps.append(item.op(0));
-                    ns.append(item.op(1));
-                }
-                return F(ps, ns);
-            } else return e.map(self);
-        })(ret);
-        return ret;
-    }
-    
-    /**
-     * @brief convert F(ps, ns) to normal ex, ns is like FIRE convention
-     * @param expr_in expression contains F
-     * @return F(ps, ns) converted into normal expression
-     */
-     ex F2ex(const ex & expr_in) {
-        ex ret = expr_in;
-        ret = MapFunction([](const ex & e, MapFunction &self)->ex{
-            if(!e.has(F(w1,w2))) return e;
-            else if(e.match(F(w1, w2))) {
-                auto ps = e.op(0);
-                auto ns = e.op(1);
-                ex res = 1;
-                for(int i=0; i<ps.nops(); i++) res *= pow(ps.op(i), ex(0)-ns.op(i));
-                return res;
-            } else return e.map(self);
-        })(ret);
-        return ret;
-     }
-    
-    /**
-     * @brief Apart on matrix
-     * @param mat each column: [c1,...,cn,c0,n] -> (c1 x1+...+cn xn+c0)^n
-     * @return sum of coefficient * ApartIR
-     */
-    ex Apart(const matrix & mat) {
-        static exmap mat_cache;
-        if(using_cache && cache_limit>0 && mat_cache.size() > cache_limit) mat_cache.clear();
-        if(mat_cache.find(mat)!=mat_cache.end()) return mat_cache[mat];
-        
-        int nrow = mat.rows()-2;
-        int ncol = mat.cols();
-        lst null_vec;
-        
-        // null vector
-        static exmap null_cache;
-        if(cache_limit>0 && null_cache.size() > cache_limit) null_cache.clear();
-        if(null_cache.find(sub_matrix(mat,0,nrow,0,ncol))==null_cache.end()) {
-            if(Apart_using_fermat) {
-                static map<pid_t, Fermat> fermat_map;
-                static int v_max = 0;
-        
-                auto pid = getpid();
-                if((fermat_map.find(pid)==fermat_map.end())) { // init section
-                    fermat_map[pid].Init();
-                    v_max = 0;
-                }
-                Fermat &fermat = fermat_map[pid];
-        
-                lst rep_vs;
-                ex tree = mat;
-                for(const_preorder_iterator i = tree.preorder_begin(); i != tree.preorder_end(); ++i) {
-                    auto e = (*i);
-                    if(is_a<symbol>(e) || is_a<Pair>(e) || is_a<Eps>(e)) {
-                        rep_vs.append(e);
-                    }
-                }
-                rep_vs.sort();
-                rep_vs.unique();
-                
-                exmap v2f;
-                symtab st;
-                int fvi = 0;
-                for(auto vi : rep_vs) {
-                    auto name = "v" + to_string(fvi);
-                    v2f[vi] = Symbol(name);
-                    st[name] = vi;
-                    fvi++;
-                }
-                
-                stringstream ss;
-                if(fvi>111) {
-                    cout << rep_vs << endl;
-                    throw Error("Fermat: Too many variables.");
-                }
-                if(fvi>v_max) {
-                    for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
-                    fermat.Execute(ss.str());
-                    ss.clear();
-                    ss.str("");
-                    v_max = fvi;
-                }
-                
-                ss << "Array m[" << nrow << "," << ncol+1 << "];" << endl;
-                fermat.Execute(ss.str());
-                ss.clear();
-                ss.str("");
-                
-                ss << "[m]:=[(";
-                for(int c=0; c<ncol; c++) {
-                    for(int r=0; r<nrow; r++) {
-                        ss << mat(r,c).subs(iEpsilon==0,nopat).subs(v2f,nopat) << ",";
-                    }
-                }
-                for(int r=0; r<nrow; r++) ss << "0,";
-                ss << ")];" << endl;
-                ss << "Redrowech([m]);" << endl;
-                auto tmp = ss.str();
-                string_replace_all(tmp,",)]",")]");
-                fermat.Execute(tmp);
-                ss.clear();
-                ss.str("");
-
-                ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
-                ss << "![m" << endl;
-                auto ostr = fermat.Execute(ss.str());
-                ss.clear();
-                ss.str("");
-                //fermat.Exit();
-                
-                // note the order, before exfactor (normal_fermat will be called again here)
-                ss << "&(U=0);" << endl; // disable ugly printing
-                ss << "@([m]);" << endl;
-                ss << "&_G;" << endl;
-                fermat.Execute(ss.str());
-                ss.clear();
-                ss.str("");
-
-                // make sure last char is 0
-                if(ostr[ostr.length()-1]!='0') throw Error("Apart: last char is NOT 0.");
-                ostr = ostr.substr(0, ostr.length()-1);
-                string_trim(ostr);
-                
-                ostr.erase(0, ostr.find(":=")+2);
-                string_replace_all(ostr, "[", "{");
-                string_replace_all(ostr, "]", "}");
-                Parser fp(st);
-                auto mat2 = fp.Read(ostr);
-                
-                exmap xs;
-                for(int c=0; c<ncol; c++) xs[c] = iWF(c);
-                for(int r=nrow-1; r>=0; r--) {
-                    ex xadd = 0;
-                    int pi=-1;
-                    for(int c=0; c<ncol; c++) {
-                        if(!is_zero(get_op(mat2,r,c)) && pi<0) pi = c;
-                        else xadd -= get_op(mat2,r,c)*xs[c];
-                    }
-                    xs[pi] = xadd;
-                }
-                for(int c=0; c<ncol; c++) null_vec.append(xs[c]);
-            } else {
-                matrix v(ncol, 1);
-                exmap sRepl;
-                for (int c=0; c<ncol; c++) {
-                    symbol t;
-                    v(c,0) = t;
-                    sRepl[t]=iWF(c);
-                }
-                // Solve M*V = 0
-                matrix zero(nrow, 1);
-                matrix s = ex_to<matrix>(sub_matrix(mat,0,nrow,0,ncol).subs(iEpsilon==0,nopat)).solve(v,zero);
-                for(int r=0; r<ncol; r++) null_vec.append(s(r,0).subs(sRepl,nopat));
-            }
-            null_cache[sub_matrix(mat,0,nrow,0,ncol)] = null_vec;
-        } else {
-            null_vec = ex_to<lst>(null_cache[sub_matrix(mat,0,nrow,0,ncol)]);
-        }
-        
-        // check null & return ApartIR
-        bool is_null = true;
-        for(int c=0; c<ncol; c++) {
-            if(!is_zero(null_vec.op(c))) {
-                is_null = false;
-                break;
-            }
-        }
-        if(is_null) {
-            ex res = ApartIR(mat);
-            if(using_cache) mat_cache[mat] = res;
-            return res;
-        }
-        
-        // handle numerator
-        int ni=-1;
-        for(int c=0; c<ncol; c++) {
-            if(mat(nrow+1,c)>0 && !is_zero(null_vec.op(c))) {
-                ni = c;
-                break;
-            }
-        }
-        
-        if(ni!=-1) {
-            ex nvec;
-            if(true) {
-                exset wfs;
-                find(null_vec.op(ni),iWF(w),wfs);
-                if(wfs.size()<1) throw Error("Apart: something is wrong!");
-                symbol s;
-                
-                int max = -1;
-                for(auto wf : wfs) {
-                    auto n1 = subs(null_vec, wf==s);
-                    n1 = subs(n1, iWF(w)==0);
-                    for(int i=0; i<3; i++) {
-                        auto n2 = subs(n1, s==i);
-                        if(!is_zero(n2.op(ni))) {
-                            int nt = 0;
-                            for(auto ii : n2) if(ii.is_zero()) nt++;
-                            if(nt>max && nt!=ncol) { nvec = n2; max = nt; }
-                            break;
-                        }
-                    }
-                }
-                if(is_zero(nvec.op(ni))) throw Error("Apart: iWF to int failed with "+ex2str(null_vec.op(ni)));
-            }
-            
-            ex sol = 0;
-            for(int c=0; c<ncol; c++) {
-                if(c==ni) continue;
-                sol -= nvec.op(c) * (iWF(c)-mat(nrow,c)); // iWF(c) refer to c-th column, and minus the const term
-            }
-            sol = sol/nvec.op(ni) + mat(nrow,ni); // last one: const term
-            sol = collect_ex(pow(sol.subs(iEpsilon==0,nopat), mat(nrow+1,ni)), iWF(w)); // expand the numerator with power
-
-            if(!is_a<add>(sol)) sol = lst{ sol };
-            ex res = 0;
-            for(auto item : sol) {
-                int nzero = 0;
-                matrix mat2(nrow+2, ncol-1);
-                for(int c=0; c<ncol; c++) {
-                    if(c==ni) continue;
-                    int c2 = (c<ni ? c : c-1);
-                    for(int r=0; r<nrow+1; r++) {
-                        mat2(r,c2) = mat(r,c);
-                    }
-                    auto expn = mat(nrow+1,c) + item.degree(iWF(c));
-                    if(is_zero(expn)) nzero++;
-                    mat2(nrow+1,c2) = expn;
-                }
-                if(nzero>0) {
-                    if((ncol-1-nzero)==0) {
-                        res += ApartIR(1) * item.subs(iWF(w)==1);
-                    } else {
-                        matrix mat3(nrow+2, ncol-1-nzero);
-                        int cc=0;
-                        for(int c=0; c<ncol-1; c++) {
-                            if(is_zero(mat2(nrow+1,c))) continue;
-                            for(int r=0; r<nrow+2; r++) {
-                                mat3(r,cc) = mat2(r,c);
-                            }
-                            cc++;
-                        }
-                        res += Apart(mat3) * item.subs(iWF(w)==1);
-                    }
-                } else {
-                    res += Apart(mat2) * item.subs(iWF(w)==1);
-                }
-            }
-            res = collect_ex(res,ApartIR(w));
-            if(using_cache) mat_cache[mat] = res;
-            return res;
-        }
-        
-        // handle all denominators
-        ex cres0 = 0;
-        for(int c=0; c<ncol; c++) cres0 += mat(nrow,c)*null_vec.op(c);
-        cres0 = cres0.subs(iEpsilon==0,nopat);
-        
-        ex nvec,cres;
-        if(true) {
-            exset wfs;
-            find(cres0,iWF(w),wfs);
-            if(wfs.size()<1) {
-                cres = cres0;
-                nvec = null_vec;
-            } else {
-                symbol s;
-                int max = -1;
-                bool c0 = true;
-                for(auto wf : wfs) {
-                    auto c1 = subs(cres0, wf==s);
-                    auto n1 = subs(null_vec, wf==s);
-                    c1 = subs(c1, iWF(w)==0);
-                    n1 = subs(n1, iWF(w)==0);
-                    for(int i=0; i<5; i++) {
-                        auto c2 = subs(c1, s==i).normal();
-                        auto n2 = subs(n1, s==i);
-                        if(!c0 && c2.is_zero()) continue;
-                        if(c0 && !c2.is_zero()) {
-                            c0 = false;
-                            nvec = n2; cres = c2;
-                        } else {
-                            int nt = 0;
-                            for(auto ii : n2) if(ii.is_zero()) nt++;
-                            if(nt>max && nt!=ncol) { nvec = n2; cres = c2; max = nt; }
-                        }
-                    }
-                }
-            }
-        } // end if(true)
-
-        // handle const is NOT zero
-        if(!IsZero(cres)) {
-            ex res=0;
-            for(int c=0; c<ncol; c++) {
-                if(is_zero(nvec.op(c))) continue;
-                if(is_zero(mat(nrow+1,c)+1)) {
-                    matrix mat2(nrow+2,ncol-1);
-                    int ccc = 0;
-                    for(int cc=0; cc<ncol; cc++) {
-                        if(cc==c) continue;
-                        for(int r=0; r<nrow+2; r++) mat2(r,ccc)=mat(r,cc);
-                        ccc++;
-                    }
-                    res += Apart(mat2) * nvec.op(c);
-                } else {
-                    matrix mat2(mat);
-                    mat2(nrow+1,c) = mat2(nrow+1,c)+1;
-                    res += Apart(mat2) * nvec.op(c);
-                }
-            }
-            res = res/cres;
-            res = collect_ex(res,ApartIR(w));
-            if(using_cache) mat_cache[mat] = res;
-            return res;
-        } else {
-            int ni=-1;
-            for(int c=0; c<ncol; c++) {
-                if(!is_zero(nvec.op(c))) {
-                    ni = c;
-                    break;
-                }
-            }
-
-            ex res=0;
-            for(int c=0; c<ncol; c++) {
-                if(is_zero(nvec.op(c)) || c==ni) continue;
-                if(is_zero(mat(nrow+1,c)+1)) {
-                    matrix mat2(nrow+2,ncol-1);
-                    int ccc = 0;
-                    for(int cc=0; cc<ncol; cc++) {
-                        if(cc==c) continue;
-                        for(int r=0; r<nrow+2; r++) mat2(r,ccc)=mat(r,cc);
-                        ccc++;
-                    }
-                    int ni2 = ni>c ? ni-1 : ni;
-                    mat2(nrow+1,ni2) = mat2(nrow+1,ni2)-1;
-                    res -= Apart(mat2) * nvec.op(c);
-                } else {
-                    matrix mat2(mat);
-                    mat2(nrow+1,c) = mat2(nrow+1,c)+1;
-                    mat2(nrow+1,ni) = mat2(nrow+1,ni)-1;
-                    res -= Apart(mat2) * nvec.op(c);
-                }
-            }
-            res = res/nvec.op(ni);
-            res = collect_ex(res,ApartIR(w));
-            if(using_cache) mat_cache[mat] = res;
-            return res;
-        }
-    }
-
-    /**
-     * @brief Apart on ex
-     * @param expr_ino normal expresion, product of [ linear w.r.t. vars ]^n
-     * @param vars_in independent variables
-     * @param smap the sign map
-     * @return sum of coefficient * ApartIR
-     */
-    ex Apart(const ex &expr_ino, const lst &vars_in, exmap smap) {
-        // Apart on rational terms
-        if(!is_a<lst>(expr_ino)) {
-            auto cv_lst = collect_lst(expr_ino, vars_in);
-            ex res = 0;
-            for(auto item : cv_lst) res += item.op(0) * Apart(lst{item.op(1)}, vars_in, smap);
-            res = collect_ex(res, ApartIR(w1,w2));
-
-            // random check
-            lst nlst;
-            for(const_preorder_iterator i = res.preorder_begin(); i != res.preorder_end(); ++i) {
-                auto e = (*i);
-                if(is_a<symbol>(e) || is_a<Pair>(e)) nlst.append(e);
-            }
-            for(auto var : vars_in) nlst.append(var);
-            nlst.sort();
-            nlst.unique();
-            exmap nrepl;
-            auto pi = cln::nextprobprime(3);
-            for(auto ni : nlst) {
-                pi = cln::nextprobprime(pi+1);
-                nrepl[ni] = ex(1)/numeric(pi);
-            }
-            nrepl[iEpsilon]=0;
-            ex chk = ApartIR2ex(subs(res,nrepl))-subs(expr_ino,nrepl);
-            chk = exnormal(chk);
-            if(!is_zero(chk)) throw Error("Apart@1 random check Failed.");
-            return res;
-        }
-        
-        // Apart on monomial term
-        if(expr_ino.nops()!=1) throw Error("Apart: wrong convention found!");
-        ex expr_in = expr_ino.op(0);
-
-        static exmap cache;
-        if(using_cache && cache_limit>0 && cache.size() > cache_limit) cache.clear();
-        if(cache.find(expr_in)!=cache.end()) return cache[expr_in];
-    
-        exmap map1, map2;
-        lst vars;
-        for(int i=0; i<vars_in.nops(); i++) {
-            auto v = vars_in.op(i);
-            Symbol s("_apX"+to_string(i));
-            map1[v]=s;
-            map2[s]=v;
-            vars.append(s);
-        }
-        exmap sgnmap;
-        for(auto kv : smap) sgnmap[kv.first.subs(map1,nopat)] = kv.second.subs(map1,nopat);
-        
-        ex expr = expr_in.subs(map1,nopat);
-        if(!is_a<mul>(expr)) expr = lst{expr};
-        
-        // check only, try normal_fermat if faild
-        bool ok = true;
-        for(auto item : expr) {
-            bool has_var=false;
-            for(auto v : vars) {
-                if(item.has(v)) {
-                    has_var=true;
-                    break;
-                }
-            }
-            if(has_var) {
-                if(!isOK(item,vars)) {
-                    ok = false;
-                    break;
-                }
-            }
-        }
-        if(!ok) {
-            expr = expr_in.subs(map1,nopat);
-            expr = normal_fermat(expr,true); // need option factor=true, factor denominator
-            if(!is_a<mul>(expr)) expr = lst{expr};
-        }
-        
-        lst pnlst;
-        ex pref = 1;
-        map<ex,int,ex_is_less> count_ip;
-        for(auto item : expr) {
-            bool has_var=false;
-            for(auto v : vars) {
-                if(item.has(v)) {
-                    has_var=true;
-                    break;
-                }
-            }
-            if(has_var) {
-                if(!isOK(item,vars)) {
-                    cout << expr_in << endl;
-                    cout << item << endl;
-                    throw Error("Apart: item is not linear wrt vars.");
-                }
-                
-                ex pc, nc;
-                if(is_a<power>(item)) {
-                    pc = item.op(0);
-                    nc = item.op(1);
-                } else {
-                    pc = item;
-                    nc = 1;
-                }
-                
-                // consider sign
-                bool has_sgn = false;
-                for(auto v : vars) {
-                    if(pc.has(iEpsilon) && key_exists(sgnmap,iEpsilon) && !is_zero(sgnmap[iEpsilon])) { // iEpsilon first
-                        ex sign = sgnmap[iEpsilon]/pc.coeff(iEpsilon);
-                        pref /= pow(sign, nc);
-                        pc *= sign;
-                        has_sgn = true;
-                        break;
-                    } else {
-                        auto cc = pc.coeff(v);
-                        if(is_zero(cc) || !key_exists(sgnmap,v) || is_zero(sgnmap[v])) continue;
-                        ex sign = sgnmap[v]/cc;
-                        pref /= pow(sign, nc);
-                        pc *= sign;
-                        has_sgn = true;
-                        break;
-                    }
-                }
-                if(!has_sgn) {
-                    for(auto v : vars) {
-                        if(key_exists(sgnmap,v)) continue;
-                        auto cc = pc.coeff(v);
-                        if(is_zero(cc) || !is_a<numeric>(cc)) continue;
-                        ex sign = 1/cc;
-                        pref /= pow(sign, nc);
-                        pc *= sign;
-                        break;
-                    }
-                }
-                ex key = expand(pc.subs(iEpsilon==0,nopat));
-                count_ip[key] = count_ip[key]+1;
-                pnlst.append(lst{ pc, nc });
-            } else pref *= item;
-        }
-        
-        // handle iEpsilon
-        bool needs_again = false;
-        for(auto kv : count_ip) {
-            if(kv.second>1) { needs_again = true; break; }
-        }
-        if(needs_again) {
-            exmap imap;
-            for(auto pn : pnlst) {
-                auto key = pn.op(0);
-                if(key.has(iEpsilon)) imap[key.subs(iEpsilon==0,nopat)] = key;
-            }
-            exmap p2n;
-            for(auto pn : pnlst) {
-                auto key = pn.op(0);
-                if(!key.has(iEpsilon)) key = key.subs(imap,nopat);
-                p2n[key] = p2n[key] + pn.op(1);
-            }
-            pnlst.remove_all();
-            for(auto kv : p2n) {
-                if(is_zero(kv.second)) continue;
-                auto k = kv.first;
-                auto v = kv.second;
-                if(is_a<numeric>(v) && ex_to<numeric>(v)>0) {
-                    k = k.subs(iEpsilon==0,nopat);
-                }
-                pnlst.append(lst{k, v});
-            }
-        }
-        pnlst.sort();
-        
-        if(pnlst.nops()==0) return cache[expr_in] = pref * ApartIR(1,vars_in);
-        
-        int nrow=vars.nops(), ncol=pnlst.nops();
-        exmap vars0;
-        for(auto v : vars) vars0[v]=0;
-        matrix mat(nrow+2, ncol);
-        for(int c=0; c<ncol; c++) {
-            ex pn = pnlst.op(c);
-            mat(nrow+1,c) = normal(pn.op(1));
-            auto tmp = pn.op(0);
-            for(int r=0; r<nrow; r++) {
-                mat(r,c) = normal_fermat(tmp.coeff(vars.op(r)));
-            }
-            mat(nrow,c) = normal_fermat(tmp.subs(vars0,nopat));
-        }
-        
-        ex ret = Apart(mat);
-        auto cv_lst = collect_lst(ret,ApartIR(w));
-        ret = 0;
-        for(auto cv : cv_lst) {
-            ret += pref * cv.op(0) * ApartIR(cv.op(1).op(0), vars).subs(map2,nopat);
-        }
-
-        return cache[expr_in] = ret;
-    }
-    
-    /**
-     * @brief Apart on ex
-     * @param expr_ino input expression
-     * @param loops list of loop Vector
-     * @param extps list of external Vector
-     * @param smap the sign map
-     * @return sum of coefficient * ApartIR
-     */
-    ex Apart(const ex &expr_ino, const lst &loops, const lst & extps, exmap smap) {
-        auto expr_in = expr_ino.subs(SP_map,nopat);
-        auto expr = expr_in;
-        
-        lst sps;
-        for(auto li : loops) {
-            for(auto li2: loops) {
-                auto item = SP(li, li2).subs(SP_map,nopat);
-                if(is_a<Pair>(item)) sps.append(item);
-            }
-            for(auto ei: extps) {
-                auto item = SP(li, ei).subs(SP_map,nopat);
-                if(is_a<Pair>(item)) sps.append(item);
-            }
-        }
-        sps.sort();
-        sps.unique();
-        
-        auto cv_lst = collect_lst(expr, loops);
-        ex res = 0;
-        for(auto item : cv_lst) {
-            res += item.op(0) * Apart(lst{item.op(1)}, sps, smap);
-        }
-        
-        res = collect_ex(res, ApartIR(w1,w2));
-
-        // random check
-        lst nlst;
-        for(const_preorder_iterator i = res.preorder_begin(); i != res.preorder_end(); ++i) {
-            auto e = (*i);
-            if(is_a<symbol>(e) || is_a<Pair>(e)) nlst.append(e);
-        }
-        nlst.sort();
-        nlst.unique();
-        exmap nrepl;
-        auto pi = cln::nextprobprime(3);
-        for(auto ni : nlst) {
-            pi = cln::nextprobprime(pi+1);
-            nrepl[ni] = ex(1)/numeric(pi);
-        }
-        nrepl[iEpsilon]=0;
-        ex chk = ApartIR2ex(subs(res,nrepl))-subs(expr_in,nrepl);
-        chk = normal(chk);
-        if(!is_zero(chk)) {
-            throw Error("Apart@2 random check Failed.");
-        }
-
-        return res;
-    }
-    
-    /**
-     * @brief complete the ApartIR elements
-     * @param expr_in input expression
-     * @return ApartIR with complete matrix rank, ready for IBP reduction
-     */
-    ex ApartIRC(const ex & expr_in) {
-        exmap cache;
-        MapFunction map([&cache](const ex & e, MapFunction &self)->ex {
-            if(!e.has(ApartIR(w1,w2))) return e;
-            else if(e.match(ApartIR(w1,w2))) {
-                auto i = cache.find(e);
-                if(i!=cache.end()) return i->second;
-                int n = e.op(1).nops();
-                if((e.op(0)).is_equal(1)) {
-                    matrix mat(n+2,n);
-                    for(int r=0; r<n+2; r++) {
-                        for(int c=0; c<n; c++) mat(r,c) = 0;
-                    }
-                    for(int i=0; i<n; i++) mat(i,i) = 1;
-                    return cache[e] = ApartIR(mat, e.op(1));
-                }
-                if(!is_a<matrix>(e.op(0))) throw Error("ApartIRC: Not matrix : " + ex2str(e.op(0)));
-                auto mat0 = ex_to<matrix>(e.op(0));
-                matrix mat(n+2,n);
-                int cc = mat0.cols();
-                if(cc==n) mat=mat0;
-                else {
-                    // zero each element
-                    for(int r=0; r<n+2; r++) {
-                        for(int c=0; c<cc; c++) mat(r,c) = 0;
-                    }
-                    // n-row from mat0 to mat, note the last 2 rows still 0
-                    for(int r=0; r<n; r++) {
-                        for(int c=0; c<cc; c++) mat(r,c) = mat0(r,c);
-                    }
-                    for(int i=0; i<n; i++) {
-                        mat(i,cc) = 1;
-                        auto r = mat.rank();
-                        if(r==n) break;
-                        if(r==cc+1) cc++;
-                        else mat(i,cc) = 0;
-                    }
-                    if(mat.rank()!=n) throw Error("ApartIRC failed, NOT full rank.");
-                    // last 2 rows from mat0 to mat
-                    for(int r=n; r<n+2; r++) {
-                        for(int c=0; c<mat0.cols(); c++) mat(r,c) = mat0(r,c);
-                    }
-                }
-                return cache[e] = ApartIR(mat, e.op(1));
-            } else return e.map(self);
-        });
-        return map(expr_in);
-    }
-    
     namespace {
 
         void A2FSave(string garfn, exvector air_vec, ex IntFs, vector<IBP::Base*> &ibp_vec) {
@@ -815,8 +70,26 @@ namespace HepLib {
         }
     }
     
+    /**
+     * @brief convert F(ps, ns) to normal ex, ns is like FIRE convention
+     * @param expr_in expression contains F
+     * @return F(ps, ns) converted into normal expression
+     */
+     ex F2ex(const ex & expr_in) {
+        ex ret = expr_in;
+        ret = MapFunction([](const ex & e, MapFunction &self)->ex{
+            if(!e.has(F(w1,w2))) return e;
+            else if(e.match(F(w1, w2))) {
+                auto ps = e.op(0);
+                auto ns = e.op(1);
+                ex res = 1;
+                for(int i=0; i<ps.nops(); i++) res *= pow(ps.op(i), ex(0)-ns.op(i));
+                return res;
+            } else return e.map(self);
+        })(ret);
+        return ret;
+     }
 
-    
     /**
      * @brief perform IBP reduction on the Aparted input
      * @param IBPmethod ibp method used, 0-No IBP, 1-FIRE, 2-KIRA
@@ -862,61 +135,48 @@ namespace HepLib {
             } else system(("mkdir -p "+aio.SaveDir).c_str());
         } 
         
-        if(true) { // NO Apart_Done
-            bool aparted = false;
-            for(auto air : air_vec) {
-                if(air.has(ApartIR(w1,w2))) {
-                    aparted = true;
-                    goto check_done;
-                }
-                for(auto li : lmom) {
-                    if(air.has(li)) { 
-                        aparted = false; 
-                        goto check_done;
-                    }
-                }
+        if(true) {
+            auto ret = GiNaC_Parallel(air_vec.size(), [air_vec,lmom] (int idx) {
+                return collect_lst(air_vec[idx],lmom);
+            }, "ApPre");
+        
+            exset vset;
+            for(int i=0; i<air_vec.size(); i++) {
+                auto cvs = ret[i];
+                for(auto cv : cvs) vset.insert(cv.op(1));
+                air_vec[i] = cvs;
             }
-            check_done: ;
+            exvector vvec(vset.begin(), vset.end());
+            vset.clear();
             
-            if(!aparted) {
-                auto ret = GiNaC_Parallel(air_vec.size(), [air_vec,lmom] (int idx) {
-                    return collect_lst(air_vec[idx],lmom);
-                }, "ApPre");
+            ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
+                auto air = vvec[idx];
+                air = Apart(air,lmom,emom,aio.smap);
+                return air;
+            }, "Apart");
+            exmap v2ap;
+            for(int i=0; i<vvec.size(); i++) v2ap[vvec[i]] = ret[i];
+            vvec.clear();
             
-                exset vset;
-                for(int i=0; i<air_vec.size(); i++) {
-                    auto cvs = ret[i];
-                    for(auto cv : cvs) vset.insert(cv.op(1));
-                    air_vec[i] = cvs;
+            exset ap_set;
+            for(auto item : ret) find(item, ApartIR(w1,w2), ap_set);
+            exvector ap_vec(ap_set.begin(), ap_set.end());
+            ap_set.clear();
+            auto ap_rules = ApartRules(ap_vec); // including ApartIRC
+            
+            ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&v2ap,&ap_rules] (int idx) {
+                auto cvs = air_vec[idx];
+                ex res = 0;
+                for(auto cv : cvs) {
+                    auto airs = v2ap[cv.op(1)].subs(ap_rules,nopat);
+                    res += cv.op(0) * airs;
                 }
-                exvector vvec;
-                for(auto item : vset) vvec.push_back(item);
-                vset.clear();
-                
-                ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
-                    auto air = vvec[idx];
-                    air = Apart(air,lmom,emom,aio.smap);
-                    return air;
-                }, "Apart");
-                
-                exmap v2v;
-                for(int i=0; i<vvec.size(); i++) v2v[vvec[i]] = ret[i];
-                
-                ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&v2v] (int idx) {
-                    auto cvs = air_vec[idx];
-                    ex res = 0;
-                    for(auto cv : cvs) {
-                        auto airs = v2v[cv.op(1)];
-                        airs = ApartIRC(airs.subs(SP_map,nopat));
-                        res += cv.op(0) * airs;
-                    }
-                    return res;
-                }, "ApPost");
-                v2v.clear();
-                
-                for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIR
-                if(aio.SaveDir != "") garWrite(air_vec,aio.SaveDir+"/AP.gar");
-            }
+                return res;
+            }, "ApPost");
+            v2ap.clear();
+            
+            for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIR
+            if(aio.SaveDir != "") garWrite(air_vec,aio.SaveDir+"/AP.gar");
         }
         Apart_Done: ;
         
@@ -924,8 +184,16 @@ namespace HepLib {
         
             exvector AIR;
             if(true) {
+                auto ret = GiNaC_Parallel(air_vec.size(), [&air_vec](int idx)->ex {
+                    auto air = air_vec[idx];
+                    exset airs;
+                    find(air, ApartIR(w1,w2), airs);
+                    lst ret;
+                    for(auto item : airs) ret.append(item);
+                    return ret;
+                }, "ApIRC");
                 exset intg;
-                for(auto air : air_vec) find(air, ApartIR(w1,w2), intg);
+                for(auto airs : ret) for(auto air : airs) intg.insert(air);
                 AIR = exvector(intg.begin(), intg.end());
             }
             
@@ -966,7 +234,7 @@ namespace HepLib {
                     pc = SP2sp(pc);
                     pns.append(lst{ pc, ex(0)-mat(nrow-1,c) }); // note the convension
                 }
-                pns.sort();
+                sort_lst(pns); // use sort_lst
                 
                 int nCuts = aio.Cuts.nops();
                 if(nCuts>0) {
