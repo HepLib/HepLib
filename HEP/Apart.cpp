@@ -124,9 +124,9 @@ namespace HepLib {
             mat(nrow+1,c) = normal(pn.op(1));
             auto tmp = pn.op(0);
             for(int r=0; r<nrow; r++) {
-                mat(r,c) = tmp.coeff(vars.op(r));
+                mat(r,c) = (tmp.coeff(vars.op(r))); // remove exnormal
             }
-            mat(nrow,c) = tmp.subs(vars0,nopat);
+            mat(nrow,c) = (tmp.subs(vars0,nopat)); // remove exnormal
         }
         return mat;
     }
@@ -158,7 +158,7 @@ namespace HepLib {
         return l;
     }
     
-    exmap ApartRules(const exvector &airs) { // including ApartIRC
+    exmap ApartRules(const exvector &airs, bool irc) { // irc=true to include ApartIRC
         
         #define CHECK true
         int nlimit = 50;
@@ -213,7 +213,6 @@ namespace HepLib {
                     lst nn;
                     for(int i=0; i<pp.nops(); i++) nn.append(p2n[pp.op(i)]);
                     ex air = ApartIR(pn2mat(pp,nn,airs[k].op(1)),airs[k].op(1));
-                    air = ApartIRC(air);
                     if(CHECK) { // check
                         ex eL=1, eR=1;
                         for(int i=0; i<p.nops(); i++) if(!n.op(i).is_zero()) eL *= pow(WF(p.op(i)), n.op(i));
@@ -225,11 +224,12 @@ namespace HepLib {
                             throw Error("ApartRules: check failed!");
                         }
                     }
+                    if(irc) air = ApartIRC(air);
                     rules[airs[k]] = air;
-                }
+                } else if(irc) rules[airs[k]] = ApartIRC(airs[k]);
             }
         } else {
-            auto ret = GiNaC_Parallel(airs.size(), [&airs,&s2s](int k)->ex{
+            auto ret = GiNaC_Parallel(airs.size(), [&airs,&s2s,irc](int k)->ex{
                 auto pn = air2pn(airs[k]);
                 auto p = pn.op(0);
                 auto n = pn.op(1);
@@ -253,9 +253,10 @@ namespace HepLib {
                             throw Error("ApartRules: check failed!");
                         }
                     }
+                    if(irc) air = ApartIRC(air);
                     return lst{ airs[k], air };
-                }
-                return lst{ };
+                } else if(irc) return lst{ airs[k], ApartIRC(airs[k]) };
+                else return lst{ };
             }, "ApRule");
             for(auto lr : ret) if(lr.nops()>1) rules[lr.op(0)] = lr.op(1);
         }
@@ -784,9 +785,9 @@ namespace HepLib {
             mat(nrow+1,c) = normal(pn.op(1));
             auto tmp = pn.op(0);
             for(int r=0; r<nrow; r++) {
-                mat(r,c) = normal_fermat(tmp.coeff(vars.op(r)));
+                mat(r,c) = exnormal(tmp.coeff(vars.op(r)));
             }
-            mat(nrow,c) = normal_fermat(tmp.subs(vars0,nopat));
+            mat(nrow,c) = exnormal(tmp.subs(vars0,nopat));
         }
         
         ex ret = Apart(mat);
