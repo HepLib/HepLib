@@ -199,7 +199,7 @@ namespace HepLib {
         //bool info(unsigned inf) const override; 
         ex eval() const override; // for performance reasons
         ex evalf() const override; // for performance reasons
-        //ex series(const relational & s, int order, unsigned options = 0) const override;
+        ex series(const relational & s, int order, unsigned options = 0) const override;
         ex subs(const exmap & m, unsigned options = 0) const override { return subs_one_level(m, options); } // overwrites basic::subs() for performance reasons
         //ex normal(exmap & repl, exmap & rev_lookup, lst & modifier) const override;
         //ex to_rational(exmap & repl) const override;
@@ -291,6 +291,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // vector : GiNaC_Parallel
     /*-----------------------------------------------------*/
+    extern bool GiNaC_Parallel_MS; // Memeory Sharing or NOT
     extern int GiNaC_Parallel_Process;
     extern map<string, int> GiNaC_Parallel_NP;
     extern int GiNaC_Parallel_Batch;

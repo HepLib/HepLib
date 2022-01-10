@@ -199,6 +199,18 @@ namespace HepLib {
         else return 0;
     }
     
+    ex iSymbol::series(const relational & r, int order, unsigned options) const {
+        epvector seq;
+        const ex point = r.rhs();
+    
+        if (is_exactly_a<iSymbol>(r.lhs()) && this->is_equal_same_type(ex_to<iSymbol>(r.lhs()))) {
+            if (order>0 && !point.is_zero()) seq.emplace_back(expair(point, 0));
+            if (order>1) seq.emplace_back(expair(1, 1));
+            else seq.emplace_back(expair(Order(1), numeric(order)));
+        } else seq.emplace_back(expair(*this, 0));
+        return pseries(r, std::move(seq));
+    }
+    
     void iSymbol::set_name(string n) { throw Error("iSymbol can not reset the name!"); }
     
     unsigned iSymbol::calchash() const {
@@ -384,7 +396,7 @@ namespace HepLib {
                             goto done;
                         } 
                     } catch(exception &p) { }
-                    cout << "GiNaC_Parallel: ReTRY & ReRUN!" << endl;
+                    cout << " - ReTry" << endl;
                     try {
                         res_lst.remove_all();
                         for(int ri=0; ri<nbatch; ri++) {
@@ -405,7 +417,7 @@ namespace HepLib {
                     if(Verbose > 1) cout << endl;
                     else if(Verbose > 1) cout << "\r                                                   \r" << flush;
                     
-                    if(Verbose > 1) {
+                    if(Verbose > 1 && GiNaC_Parallel_MS) {
                         if(key == "") {
                             cout << "\r                                                   \r" << pre;
                             cout << "\\--Memory Sharing" << flush;
@@ -416,11 +428,13 @@ namespace HepLib {
                     }
                 }
             
-                garWrite(garfn.str(), ovec_tmp);
+                if(GiNaC_Parallel_MS) garWrite(garfn.str(), ovec_tmp);
+                else ovec = exvector(std::move(ovec_tmp));
             }
-            garRead(garfn.str(), ovec);
-            
-            if(Verbose > 1 && !nst) cout << " @ " << now(false) << endl;
+            if(GiNaC_Parallel_MS) {
+                garRead(garfn.str(), ovec);
+                if(Verbose > 1 && !nst) cout << " @ " << now(false) << endl;
+            }
         }
         
         if(rm) {

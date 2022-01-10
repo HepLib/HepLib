@@ -192,7 +192,7 @@ namespace HepLib::IBP {
      };
     
     extern exmap MapPreSP;
-    lst SortPermutation(const ex & in_expr, const lst & xs);
+    exmap SortPermutation(const ex & in_expr, const lst & xs);
     lst LoopUF(const Base & fire, const ex & corner);
     lst UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs);
     pair<exmap,lst> FindRules(vector<Base*> fs, bool mi=true, std::function<lst(const Base &, const ex &)> uf=LoopUF);

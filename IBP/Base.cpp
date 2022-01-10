@@ -10,6 +10,7 @@ namespace HepLib::IBP {
 
     namespace {
         ex_is_less less;
+        auto nopat = subs_options::no_pattern;
     }
 
     static void a_print(const ex & ex_in, const print_context & c) {
@@ -117,20 +118,23 @@ namespace HepLib::IBP {
      * @brief Sort for all permuations, and return xs w.r.t. 1st permutation
      * @param in_expr the input expression, as the sort key, no need of polynormial of xs
      * @param xs the permutation list
-     * @return 1st of sorted xs
+     * @return x-replacement
      */
-    lst SortPermutation(const ex & in_expr, const lst & xs) {
+    exmap SortPermutation(const ex & in_expr, const lst & xs) {
         auto expr = in_expr;
         bool isPoly = true;
-        lst xRepl;
+        exmap xmap; // note that we need xmap.size == xs.nops()
+        
         map<ex,vector<int>,ex_is_less> pgrp;
         if(!expr.is_polynomial(xs)) {
             if(Verbose>2) cout << "SortPermutation: NOT a polynomials, try ALL permutations!" << endl;
             expr = expr.numer_denom();
             if(true || !expr.op(0).is_polynomial(xs) || !expr.op(1).is_polynomial(xs)) {
                 isPoly = false;
-                xRepl = xs;
-                for(int i=0; i<xs.nops(); i++) pgrp[-1].push_back(i); // all permuations
+                for(int i=0; i<xs.nops(); i++) {
+                    pgrp[-1].push_back(i); // all permuations
+                    xmap[xs.op(i)] = xs.op(i); 
+                }
             } else {
                 expr = expr.op(0) * expr.op(1);
             }
@@ -140,7 +144,7 @@ namespace HepLib::IBP {
             auto cv_lst = collect_lst(expr, xs);
             exvector cvs;
             for(auto item : cv_lst) cvs.push_back(item);
-            sort_vec(cvs);
+            sort_vec(cvs); // first sort by coefficient
                     
             int nxi = xs.nops();
             bool first = true;
@@ -151,7 +155,7 @@ namespace HepLib::IBP {
                 ex cc = cv.op(0);
                 ex vv = cv.op(1);
                 if(is_zero(cc)) continue;
-                if(!first && !is_zero(cc-clast)) {
+                if(!first && !is_zero(cc-clast)) { // equal coefficient to the same key
                     for(int i=0; i<nxi; i++) {
                         sort_lst(subkey[i]);
                         for(auto item : subkey[i]) xkey[i].append(item);
@@ -162,58 +166,60 @@ namespace HepLib::IBP {
                 clast = cc;
                 for(int i=0; i<nxi; i++) subkey[i].append(vv.degree(xs.op(i)));
             }
-            for(int i=0; i<nxi; i++) {
-                sort_lst(subkey[i]);
+
+            for(int i=0; i<nxi; i++) { // add last subkey
+                sort_lst(subkey[i]); // need sort due to equal coefficient
                 for(auto item : subkey[i]) xkey[i].append(item);
                 subkey[i].remove_all();
             }
             
             exvector key_xi;
-            for(int i=0; i<nxi; i++) {
-                key_xi.push_back(lst{xkey[i], xs.op(i)});
-                pgrp[xkey[i]].push_back(i); // i w.r.t. position of xs
-            }
-            sort_vec(key_xi);
+            for(int i=0; i<nxi; i++) key_xi.push_back(lst{xkey[i], xs.op(i)});
+            sort_vec(key_xi); // first sort by key
             
-            xRepl.remove_all();
-            for(auto item : key_xi) xRepl.append(item.op(1));  
+            for(int i=0; i<nxi; i++) {
+                auto xi = key_xi[i].op(1);
+                auto xki = key_xi[i].op(0);
+                xmap[xi] = xs.op(i); // initial x-replacement
+                pgrp[xki].push_back(i);
+            }
+            expr = in_expr.subs(xmap, nopat); // need to update expr before permutations
         }
-        
+ 
         // pgrp - needs to permuation explicitly 
-        expr = in_expr;
         for(auto pi : pgrp) {
             auto vi = pi.second;
             int nvi = vi.size();
             if(nvi<2) continue;
-            ex expr1 = expr;
-            auto xRepl1 = xRepl;
+            ex expr_min = expr;
+            exmap xmap_min;
             
             // https://stackoverflow.com/questions/1995328/are-there-any-better-methods-to-do-permutation-of-string
             long long nf = 1;
             for(int i=2; i<=nvi; i++) nf *= i;
-            for(long long ck=1; ck<=nf; ck++) { // n! permutations
+            for(long long ck=0; ck<nf; ck++) { // n! permutations, from 0 to nf-1
                 auto vi2 = vi;
                 int k = ck;
-                for(int j=1; j<nvi; ++j) {
+                for(int j=1; j<nvi; ++j) { // startoverflow: j starts from 1
                     std::swap(vi2[k%(j+1)], vi2[j]); 
                     k=k/(j+1);
                 }
                 
-                exmap x2x;
+                exmap xmap_tmp;
                 for(int j=0; j<nvi; j++) {
-                    if(vi[j]!=vi2[j]) x2x[xs.op(vi[j])]=xs.op(vi2[j]);
+                    if(vi[j]!=vi2[j]) xmap_tmp[xs.op(vi[j])] = xs.op(vi2[j]);
                 }
-                ex expr2 = expr.subs(x2x);
-                if(ex_less(expr2,expr1)) {
-                    expr1 = expr2;
-                    xRepl1 = ex_to<lst>(xRepl.subs(x2x));
+                ex expr_tmp = expr.subs(xmap_tmp,nopat);
+                if(ex_less(expr_tmp, expr_min)) {
+                    expr_min = expr_tmp;
+                    xmap_min = xmap_tmp;
                 }
             }
             
-            expr = expr1;
-            xRepl = xRepl1;
+            for(auto & kv : xmap) kv.second = kv.second.subs(xmap_min,nopat);
         }
-        return xRepl;
+
+        return xmap;
     }
     
     /**
@@ -313,10 +319,9 @@ namespace HepLib::IBP {
         uf = uf.subs(x2ax);
         
         uf = uf.subs(MapPreSP);
-        auto xRepl = SortPermutation(uf,xs);
-        for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
-        ut = (ut.subs(xRepl));
-        ft = (ft.subs(xRepl));
+        auto xmap = SortPermutation(uf,xs);
+        ut = (ut.subs(xmap));
+        ft = (ft.subs(xmap));
         return lst{ut, ft, sign};
     }  
     
@@ -451,23 +456,21 @@ namespace HepLib::IBP {
         uf = uf.subs(x2ax);
         
         uf = uf.subs(MapPreSP);
-        lst xRepl = SortPermutation(uf,xs);
-        for(int i=0; i<nxi; i++) xRepl.let_op(i)=(xRepl.op(i)==x(i));
-        uf = uf.subs(xRepl);
+        auto xmap = SortPermutation(uf,xs);
+        uf = uf.subs(xmap);
 
         // z Permuatations
         if(tloops.nops()>1) {
             lst zs;
             auto nzi = tloops.nops();
             for(int i=0; i<nzi; i++) zs.append(z(i+1));
-            auto zRepl = SortPermutation(uf,zs);
-            for(int i=0; i<nzi; i++) zRepl.let_op(i)=(zRepl.op(i)==z(i+1));
-            for(auto item : zRepl) xRepl.append(item);
+            auto zmap = SortPermutation(uf,zs);
+            for(auto kv : zmap) xmap[kv.first] = kv.second; // add to xmap
         }
 
-        ut1 = (ut1.subs(xRepl));
-        ut2 = (ut2.subs(xRepl));
-        ft = (ft.subs(xRepl));
+        ut1 = (ut1.subs(xmap));
+        ut2 = (ut2.subs(xmap));
+        ft = (ft.subs(xmap));
         return lst{ut1, ut2, ft, sign};
     }
     
@@ -505,7 +508,7 @@ namespace HepLib::IBP {
         exmap rules;
         lst int_lst;
         exset pis;
-        if(true) { // single element case
+        if(true) { // single element case // TODO: here
             exset ks, vs;
             for(auto g : group) {
                 if(g.second.nops()==1) {
@@ -555,6 +558,7 @@ namespace HepLib::IBP {
                 cur++;
                 if(cur>100) break;
                 pis.insert(g.second.op(0).op(0));
+                break; // TODO: here
             }
         }
         

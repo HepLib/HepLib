@@ -310,13 +310,17 @@ namespace HepLib::IBP {
         //config << "#fthreads 4" << endl;
         config << "#variables ";
         bool first = true;
-        for(auto v : Variables) { 
-            if(!islower(ex_to<symbol>(v).get_name()[0])) {
+        exvector ev_sort;
+        for(auto v : Variables) ev_sort.push_back(lst{ fermat_weight[v], Variables });
+        sort_vec(ev_sort);
+        for(auto nv : ev_sort) { 
+            const symbol & s = ex_to<symbol>(nv.op(1));
+            if(!islower(s.get_name()[0])) {
                 cout << "Replacements: " << Replacements << endl;
                 cout << "IBPvec: " << IBPvec << endl;
-                throw Error("FIRE: Fermat requires a name must begin with a lower case letter: "+ex_to<symbol>(v).get_name());
+                throw Error("FIRE: Fermat requires a name must begin with a lower case letter: "+s.get_name());
             }
-            config << (first ? "" : ",") << v; 
+            config << (first ? "" : ",") << s; 
             first=false; 
         }
         config << endl;
