@@ -85,7 +85,8 @@ namespace HepLib::IBP {
                 tmp = tmp.subs(Replacements, subs_options::algebraic);
                 tmp = tmp.subs(sp2s, subs_options::algebraic);
                 tmp = tmp.subs(s2p, subs_options::algebraic);
-                tmp = tmp.subs(Replacements, subs_options::algebraic); // TODO: need to check
+                tmp = tmp.subs(Replacements, subs_options::algebraic);
+                
                 tmp = ex(0) - (Shift[i+1]+a(i+1))*tmp; // note Shift here
 
                 for(int j=0; j<pdim; j++) {
@@ -311,7 +312,7 @@ namespace HepLib::IBP {
         config << "#variables ";
         bool first = true;
         exvector ev_sort;
-        for(auto v : Variables) ev_sort.push_back(lst{ fermat_weight[v], Variables });
+        for(auto v : Variables) ev_sort.push_back(lst{ fermat_weight[v], v });
         sort_vec(ev_sort);
         for(auto nv : ev_sort) { 
             const symbol & s = ex_to<symbol>(nv.op(1));

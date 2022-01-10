@@ -244,7 +244,7 @@ namespace HepLib::IBP {
                         sign = pow(-1, idx.op(i));
                         props.let_op(i) = ex(0)-props.op(i);
                     }
-                    props.let_op(i) = props.op(i).subs(iEpsilon==0);
+                    props.let_op(i) = props.op(i).subs(iEpsilon==0,nopat);
                     goto sign_done;
                 } else throw Error("LoopUF: sign of iEpsilon NOT determined.");
             }
@@ -294,7 +294,7 @@ namespace HepLib::IBP {
             for(int i=0; i<base.Internal.nops(); i++) {
                 auto t2 = ft.coeff(base.Internal.op(i),2);
                 auto t1 = ft.coeff(base.Internal.op(i),1);
-                auto t0 = ft.subs(base.Internal.op(i)==0);
+                auto t0 = ft.subs(base.Internal.op(i)==0,nopat);
                 ut *= t2;
                 if(is_zero(t2)) return lst{0,0,1};
                 ft = exnormal(t0-t1*t1/(4*t2));
@@ -314,14 +314,14 @@ namespace HepLib::IBP {
             uf = cc.op(2);
         }
 
-        ut = ut.subs(x2ax);
-        ft = ft.subs(x2ax);
-        uf = uf.subs(x2ax);
+        ut = ut.subs(x2ax,nopat);
+        ft = ft.subs(x2ax,nopat);
+        uf = uf.subs(x2ax,nopat);
         
         uf = uf.subs(MapPreSP);
         auto xmap = SortPermutation(uf,xs);
-        ut = (ut.subs(xmap));
-        ft = (ft.subs(xmap));
+        ut = (ut.subs(xmap,nopat));
+        ft = (ft.subs(xmap,nopat));
         return lst{ut, ft, sign};
     }  
     
@@ -350,7 +350,7 @@ namespace HepLib::IBP {
                         sign = pow(-1, ns.op(i));
                         ps.let_op(i) = ex(0)-ps.op(i);
                     }
-                    ps.let_op(i) = ps.op(i).subs(iEpsilon==0);
+                    ps.let_op(i) = ps.op(i).subs(iEpsilon==0,nopat);
                     goto sign_done;
                 } else throw Error("UF: sign of iEpsilon NOT determined.");
             }
@@ -413,7 +413,7 @@ namespace HepLib::IBP {
             for(int i=0; i<loops.nops(); i++) {
                 auto t2 = ft.coeff(loops.op(i),2);
                 auto t1 = ft.coeff(loops.op(i),1);
-                auto t0 = ft.subs(loops.op(i)==0);
+                auto t0 = ft.subs(loops.op(i)==0,nopat);
                 ut1 *= t2;
                 if(is_zero(t2)) return lst{0,0,0,1};
                 ft = exnormal(t0-t1*t1/(4*t2));
@@ -430,7 +430,7 @@ namespace HepLib::IBP {
             for(int i=0; i<tloops.nops(); i++) {
                 auto t2 = ft.coeff(tloops.op(i),2);
                 auto t1 = ft.coeff(tloops.op(i),1);
-                auto t0 = ft.subs(tloops.op(i)==0);
+                auto t0 = ft.subs(tloops.op(i)==0,nopat);
                 ut2 *= t2;
                 if(is_zero(t2)) return lst{0,0,0,1};
                 ft = exnormal(t0-t1*t1/(4*t2));
@@ -450,14 +450,14 @@ namespace HepLib::IBP {
             ft = cc.op(2);
             uf = cc.op(3);
         }
-        ut1 = ut1.subs(x2ax);
-        ut2 = ut2.subs(x2ax);
-        ft = ft.subs(x2ax);
-        uf = uf.subs(x2ax);
+        ut1 = ut1.subs(x2ax,nopat);
+        ut2 = ut2.subs(x2ax,nopat);
+        ft = ft.subs(x2ax,nopat);
+        uf = uf.subs(x2ax,nopat);
         
         uf = uf.subs(MapPreSP);
         auto xmap = SortPermutation(uf,xs);
-        uf = uf.subs(xmap);
+        uf = uf.subs(xmap,nopat);
 
         // z Permuatations
         if(tloops.nops()>1) {
@@ -468,9 +468,9 @@ namespace HepLib::IBP {
             for(auto kv : zmap) xmap[kv.first] = kv.second; // add to xmap
         }
 
-        ut1 = (ut1.subs(xmap));
-        ut2 = (ut2.subs(xmap));
-        ft = (ft.subs(xmap));
+        ut1 = (ut1.subs(xmap,nopat));
+        ut2 = (ut2.subs(xmap,nopat));
+        ft = (ft.subs(xmap,nopat));
         return lst{ut1, ut2, ft, sign};
     }
     
@@ -508,7 +508,7 @@ namespace HepLib::IBP {
         exmap rules;
         lst int_lst;
         exset pis;
-        if(true) { // single element case // TODO: here
+        if(true) { // single element case
             exset ks, vs;
             for(auto g : group) {
                 if(g.second.nops()==1) {
@@ -558,7 +558,6 @@ namespace HepLib::IBP {
                 cur++;
                 if(cur>100) break;
                 pis.insert(g.second.op(0).op(0));
-                break; // TODO: here
             }
         }
         
@@ -621,7 +620,7 @@ namespace HepLib::IBP {
         ss << "[m]:=[(";
         for(int c=0; c<ncol; c++) {
             for(int r=0; r<nrow; r++) {
-                ss << mat(r,c).subs(iEpsilon==0).subs(v2f) << ",";
+                ss << mat(r,c).subs(iEpsilon==0,nopat).subs(v2f,nopat) << ",";
             }
         }
         ss << ")];" << endl;
@@ -684,7 +683,7 @@ namespace HepLib::IBP {
         for(int i=0; i<Internal.nops(); i++) {
             auto t2 = ft.coeff(Internal.op(i),2);
             auto t1 = ft.coeff(Internal.op(i),1);
-            auto t0 = ft.subs(Internal.op(i)==0);
+            auto t0 = ft.subs(Internal.op(i)==0,nopat);
             ut *= t2;
             if(is_zero(t2)) return true;
             ft = exnormal(t0-t1*t1/(4*t2));
@@ -717,7 +716,7 @@ namespace HepLib::IBP {
                 mat(ri,ci) = cv.op(0).coeff(ki);
                 ci++;
             }
-            mat(ri,cn) = cv.op(0).subs(ks20);
+            mat(ri,cn) = cv.op(0).subs(ks20,nopat);
             ri++;
         }
         auto mat2 = Redrowech(mat);
