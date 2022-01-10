@@ -113,7 +113,7 @@ namespace HepLib::IBP {
         IsAlwaysZero = s.op(i++).is_equal(1);
         for(auto item : shift) Shift[ex_to<numeric>(item.op(0)).to_int()] = item.op(1);
     }
-    
+        
     /**
      * @brief Sort for all permuations, and return xs w.r.t. 1st permutation
      * @param in_expr the input expression, as the sort key, no need of polynormial of xs
@@ -187,38 +187,42 @@ namespace HepLib::IBP {
         }
  
         // pgrp - needs to permuation explicitly 
+        ex expr_min = expr;
+        exmap xmap_min;
+        long long npt = 1;
         for(auto pi : pgrp) {
-            auto vi = pi.second;
-            int nvi = vi.size();
-            if(nvi<2) continue;
-            ex expr_min = expr;
-            exmap xmap_min;
+            int nvi = pi.second.size();
+            for(int i=1; i<=nvi; i++) npt *= i;  // nvi!
+        }
+        for(long long np=0; np<npt; np++) {
+            long long npc = np;
+            exmap xmap_tmp;
+            for(auto pi : pgrp) {
+                auto vi = pi.second;
+                int nvi = vi.size();
+                if(nvi<2) continue;
+                long long npti = 1;
+                for(int i=1; i<=nvi; i++) npti *= i; // nvi!
+                int ck = npc % npti; // kth permutation
+                npc = npc / npti;
             
-            // https://stackoverflow.com/questions/1995328/are-there-any-better-methods-to-do-permutation-of-string
-            long long nf = 1;
-            for(int i=2; i<=nvi; i++) nf *= i;
-            for(long long ck=0; ck<nf; ck++) { // n! permutations, from 0 to nf-1
-                auto vi2 = vi;
+                // https://stackoverflow.com/questions/1995328/are-there-any-better-methods-to-do-permutation-of-string
+                auto vip = vi;
                 int k = ck;
                 for(int j=1; j<nvi; ++j) { // startoverflow: j starts from 1
-                    std::swap(vi2[k%(j+1)], vi2[j]); 
+                    std::swap(vip[k%(j+1)], vip[j]); 
                     k=k/(j+1);
                 }
                 
-                exmap xmap_tmp;
-                for(int j=0; j<nvi; j++) {
-                    if(vi[j]!=vi2[j]) xmap_tmp[xs.op(vi[j])] = xs.op(vi2[j]);
-                }
-                ex expr_tmp = expr.subs(xmap_tmp,nopat);
-                if(ex_less(expr_tmp, expr_min)) {
-                    expr_min = expr_tmp;
-                    xmap_min = xmap_tmp;
-                }
+                for(int j=0; j<nvi; j++) xmap_tmp[xs.op(vi[j])] = xs.op(vip[j]);
             }
-            
-            for(auto & kv : xmap) kv.second = kv.second.subs(xmap_min,nopat);
+            ex expr_tmp = expr.subs(xmap_tmp,nopat);
+            if(ex_less(expr_tmp, expr_min)) {
+                expr_min = expr_tmp;
+                xmap_min = xmap_tmp;
+            }
         }
-
+        for(auto & kv : xmap) kv.second = kv.second.subs(xmap_min,nopat);
         return xmap;
     }
     
