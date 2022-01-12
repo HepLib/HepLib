@@ -221,7 +221,7 @@ namespace HepLib {
             int pn=1;
             int ntot = AIR.size();
             for(int i=0; i<ntot; i++) {
-                if(Verbose>0 && (i%100)==0) cout << "\r                                 \r" << "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction [" << (i+1) << "/" << ntot << "] @ " << now(false) << flush;
+                if(Verbose>0 && ((i%100)==0 || i+1==ntot)) cout << "\r                                 \r" << "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction [" << (i+1) << "/" << ntot << "] @ " << now(false) << flush;
                 auto const & ir = AIR[i];
                 auto mat = ex_to<matrix>(ir.op(0));
                 auto vars = ex_to<lst>(ir.op(1));
@@ -359,7 +359,7 @@ namespace HepLib {
             return;
         }
         
-        if(IBPmethod==1) { 
+        if(IBPmethod==1) {
             if(GiNaC_Parallel_NB.find("Expo")==GiNaC_Parallel_NB.end() || GiNaC_Parallel_NB["Expo"]>100) GiNaC_Parallel_NB["Expo"] = 100;
             auto pRes = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
                 ibp_vec_re[idx]->Export();
@@ -427,6 +427,7 @@ namespace HepLib {
             res = collect_ex(res,F(w1,w2));
             res = res.subs(ibpRules,nopat);
             res = res.subs(mi_fr.first,nopat); // still needed
+            res = collect_ex(res,F(w1,w2),false,false,1);
             res = _F2ex(res);
             return res;
         }, "F2MI");

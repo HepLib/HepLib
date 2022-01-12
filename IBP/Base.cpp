@@ -183,7 +183,8 @@ namespace HepLib::IBP {
                 xmap[xi] = xs.op(i); // initial x-replacement
                 pgrp[xki].push_back(i);
             }
-            expr = in_expr.subs(xmap, nopat); // need to update expr before permutations
+            expr = expr.subs(xmap, nopat); // need to update expr before permutations
+            expr = collect_ex(expr, xs); // need collect here
         }
  
         // pgrp - needs to permuation explicitly 
@@ -222,6 +223,7 @@ namespace HepLib::IBP {
                 xmap_min = xmap_tmp;
             }
         }
+
         for(auto & kv : xmap) kv.second = kv.second.subs(xmap_min,nopat);
         return xmap;
     }

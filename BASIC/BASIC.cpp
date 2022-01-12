@@ -1015,7 +1015,52 @@ namespace HepLib {
         return res;
     }
     
-    typedef vector<pair<ex,ex>> epvec_t; // first-rest, second-coeff
+    typedef vector<pair<ex,ex>> epvec_t; // first-pat, second-coeff
+    typedef pair<ex,epvec_t> co_epvec_t; // first - overall coeff
+    co_epvec_t power_expand_2(const co_epvec_t & co_epv, int n) {
+        if(n==1) return co_epv;
+        else if(n==2) {
+            ex co = pow(co_epv.first,2);
+            exmap pcmap;
+            if(true) {
+                auto epv = co_epv.second;
+                if(epv.size()>10000) cout << "Warning: power_expand_2: epv.size > 10000" << endl;
+                for(int i=0; i<epv.size(); i++) { 
+                    pcmap[epv[i].first] += 2*co_epv.first*epv[i].second;
+                    pcmap[pow(epv[i].first,2)] += pow(epv[i].second,2);
+                    for(int j=i+1; j<epv.size(); j++) pcmap[epv[i].first*epv[j].first] += 2*epv[i].second*epv[j].second;
+                }
+            }
+            epvec_t epv;
+            epv.reserve(pcmap.size());
+            for(auto kv : pcmap) {
+                if(is_zero(kv.first) || is_zero(kv.second)) continue;
+                epv.push_back(make_pair(kv.first, kv.second));
+            }
+            return make_pair(co, epvec_t(std::move(epv)));
+        }
+        int n2 = n/2;
+        auto co_epv2 = power_expand_2(co_epv, n2);
+        co_epv2 = power_expand_2(co_epv2, 2);
+        if((n % 2)==0) return co_epvec_t(std::move(co_epv2));
+        
+        ex co = co_epv.first * co_epv2.first;
+        exmap pcmap;
+        for(auto ep1 : co_epv.second) {
+            pcmap[ep1.first] += ep1.second * co_epv2.first;
+            for(auto ep2 : co_epv2.second) pcmap[ep2.first * ep1.first] += ep1.second * ep2.second;
+        }
+        for(auto ep2 : co_epv2.second) pcmap[ep2.first] += ep2.second * co_epv.first;
+        
+        epvec_t epv;
+        epv.reserve(pcmap.size());
+        for(auto kv : pcmap) {
+            if(is_zero(kv.first) || is_zero(kv.second)) continue;
+            epv.push_back(make_pair(kv.first, kv.second));
+        }
+        return make_pair(co, epvec_t(std::move(epv)));
+    }
+    
     pair<ex,epvec_t> inner_expand_collect(ex const &expr_in, std::function<bool(const ex &)> has_func, int depth=0) {
         if(!has_func(expr_in)) {
             ex co;
@@ -1024,7 +1069,6 @@ namespace HepLib {
             return make_pair(co,epv);
         } if(is_a<add>(expr_in)) {
             ex co = 0;
-            epvec_t epv;
             exmap pcmap;
             for(auto item : expr_in) {
                 if(has_func(item)) {
@@ -1033,11 +1077,13 @@ namespace HepLib {
                     for(auto ep : co_epv.second) pcmap[ep.first] += ep.second;
                 } else co += item;
             }
+            epvec_t epv;
+            epv.reserve(pcmap.size());
             for(auto kv : pcmap) {
                 if(is_zero(kv.first) || is_zero(kv.second)) continue;
                 epv.push_back(make_pair(kv.first, kv.second));
             }
-            return make_pair(co,epv);
+            return make_pair(co, epvec_t(std::move(epv)));
         } else if(is_a<mul>(expr_in)) {
             ex co = 1;
             epvec_t epv;
@@ -1055,38 +1101,23 @@ namespace HepLib {
                     for(auto ep1 : epv) pcmap[ep1.first] += ep1.second * co_epv.first;
                     co *= co_epv.first;
                     epv.clear();
+                    epv.reserve(pcmap.size());
                     for(auto kv : pcmap) {
                         if(is_zero(kv.first) || is_zero(kv.second)) continue;
                         epv.push_back(make_pair(kv.first, kv.second));
                     }
                 }
             }
-            return make_pair(co,epv);
+            return make_pair(co,epvec_t(std::move(epv)));
         } else if(is_a<power>(expr_in) && expr_in.op(1).info(info_flags::nonnegint)) {
-            ex co = 1;
-            epvec_t epv;
             int n = ex_to<numeric>(expr_in.op(1)).to_int();
             auto co_epv = inner_expand_collect(expr_in.op(0), has_func, depth+1);
-            for(int i=0; i<n; i++) {
-                exmap pcmap;
-                for(auto ep2 : co_epv.second) {
-                    pcmap[ep2.first] += ep2.second * co;
-                    for(auto ep1 : epv) pcmap[ep1.first * ep2.first] += ep1.second * ep2.second;
-                }
-                for(auto ep1 : epv) pcmap[ep1.first] += ep1.second * co_epv.first;
-                co *= co_epv.first;
-                epv.clear();
-                for(auto kv : pcmap) {
-                    if(is_zero(kv.first) || is_zero(kv.second)) continue;
-                    epv.push_back(make_pair(kv.first, kv.second));
-                }
-            }
-            return make_pair(co,epv);
+            return power_expand_2(co_epv,n);
         } else {
             ex co = 0;
             epvec_t epv;
             epv.push_back(make_pair(expr_in, 1));
-            return make_pair(co,epv);
+            return make_pair(co,epvec_t(std::move(epv)));
         }
         throw Error("inner_expand_collect unexpected region reached.");
     }
@@ -1748,22 +1779,23 @@ namespace HepLib {
         
         lst rep_vs;
         if(true) {
-            exset sset;
             map<ex,long long,ex_is_less> s2c;
             for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
-                if(is_a<symbol>(*i)) {
-                    sset.insert(*i);
-                    s2c[*i]++;
-                }
+                if(is_a<symbol>(*i)) s2c[*i]++;
             }
-            for(auto kv : map_rat) s2c[kv.first] += 1000;
-            for(auto kv : fermat_weight) s2c[kv.first] += kv.second;
-            exvector vs_vec_sort;
-            for(auto ss : sset) {
-                vs_vec_sort.push_back(lst{ s2c[ss], ss.subs(map_rat), ss });
+            exvector sv1, sv2, sv3; // sv2:fermat_weight, sv3:map_rat
+            for(auto kv : s2c) {
+                auto fw = fermat_weight.find(kv.first);
+                if(fw!=fermat_weight.end()) sv2.push_back(lst{fw->second, fw->first});
+                else if(map_rat.find(kv.first)!=map_rat.end()) sv3.push_back(lst{kv.second, kv.first});
+                else sv1.push_back(lst{kv.second, kv.first});
             }
-            sort_vec(vs_vec_sort);
-            for(auto item : vs_vec_sort) rep_vs.append(item.op(2));
+            sort_vec(sv1);
+            sort_vec(sv2);
+            sort_vec(sv3);
+            for(auto sv : sv1) rep_vs.append(sv.op(1));
+            for(auto sv : sv2) rep_vs.append(sv.op(1));
+            for(auto sv : sv3) rep_vs.append(sv.op(1));
         }
                 
         exmap v2f, f2v;
@@ -1854,22 +1886,23 @@ namespace HepLib {
         
         lst rep_vs;
         if(true) {
-            exset sset;
             map<ex,long long,ex_is_less> s2c;
             for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
-                if(is_a<symbol>(*i)) {
-                    sset.insert(*i);
-                    s2c[*i]--;
-                }
+                if(is_a<symbol>(*i)) s2c[*i]++;
             }
-            for(auto kv : map_rat) s2c[kv.first] += 1000;
-            for(auto kv : fermat_weight) s2c[kv.first] += kv.second;
-            exvector vs_vec_sort;
-            for(auto ss : sset) {
-                vs_vec_sort.push_back(lst{ s2c[ss], ss.subs(map_rat), ss });
+            exvector sv1, sv2, sv3; // sv2:fermat_weight, sv3:map_rat
+            for(auto kv : s2c) {
+                auto fw = fermat_weight.find(kv.first);
+                if(fw!=fermat_weight.end()) sv2.push_back(lst{fw->second, fw->first});
+                else if(map_rat.find(kv.first)!=map_rat.end()) sv3.push_back(lst{kv.second, kv.first});
+                else sv1.push_back(lst{kv.second, kv.first});
             }
-            sort_vec(vs_vec_sort);
-            for(auto item : vs_vec_sort) rep_vs.append(item.op(2));
+            sort_vec(sv1);
+            sort_vec(sv2);
+            sort_vec(sv3);
+            for(auto sv : sv1) rep_vs.append(sv.op(1));
+            for(auto sv : sv2) rep_vs.append(sv.op(1));
+            for(auto sv : sv3) rep_vs.append(sv.op(1));
         }
                 
         exmap v2f, f2v;

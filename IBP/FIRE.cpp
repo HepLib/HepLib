@@ -312,7 +312,11 @@ namespace HepLib::IBP {
         config << "#variables ";
         bool first = true;
         exvector ev_sort;
-        for(auto v : Variables) ev_sort.push_back(lst{ fermat_weight[v], v });
+        for(auto v : Variables) {
+            auto fw = fermat_weight.find(v);
+            if(fw!=fermat_weight.end()) ev_sort.push_back(lst{ fw->second, v });
+            else ev_sort.push_back(lst{ 0, v });
+        }
         sort_vec(ev_sort);
         for(auto nv : ev_sort) { 
             const symbol & s = ex_to<symbol>(nv.op(1));
