@@ -1936,9 +1936,9 @@ namespace HepLib {
         
         ex nn_chk=0, num, den;
         lst item;
-        if(!is_a<add>(expr_in)) item = lst{expr_in};
+        if(!is_a<add>(expr_in)) item = lst{ expr_in };
         else for(auto ii : expr_in) item.append(ii);
-        sort_lst(item);
+        //sort_lst(item); // no need
         if(fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
         else ss << "res:=0;" << endl;
         fermat.Execute(ss.str());
@@ -1946,8 +1946,8 @@ namespace HepLib {
         ss.str("");
         
         for(int i=0; i<item.nops(); i++) {
-            ex tt = item.op(i).subs(v2f);
-            if(use_ncheck) nn_chk += tt.subs(nn_map);
+            ex tt = item.op(i).subs(v2f, subs_options::no_pattern);
+            if(use_ncheck) nn_chk += tt.subs(nn_map, subs_options::no_pattern);
             if(fermat_using_array) ss << "m[" << (i+1) << "]:=";
             else ss << "item:=";
             ss << tt << ";" << endl;

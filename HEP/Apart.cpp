@@ -282,7 +282,8 @@ namespace HepLib {
         // null vector
         static exmap null_cache;
         if(cache_limit>0 && null_cache.size() > cache_limit) null_cache.clear();
-        if(null_cache.find(sub_matrix(mat,0,nrow,0,ncol))==null_cache.end()) {
+        ex key = sub_matrix(mat,0,nrow,0,ncol);
+        if(true || null_cache.find(key)==null_cache.end()) {
             if(Apart_using_fermat) {
                 static map<pid_t, Fermat> fermat_map;
                 static int v_max = 0;
@@ -373,7 +374,7 @@ namespace HepLib {
                 string_replace_all(ostr, "]", "}");
                 Parser fp(st);
                 auto mat2 = fp.Read(ostr);
-                
+
                 exmap xs;
                 for(int c=0; c<ncol; c++) xs[c] = iWF(c);
                 for(int r=nrow-1; r>=0; r--) {
@@ -396,13 +397,14 @@ namespace HepLib {
                 }
                 // Solve M*V = 0
                 matrix zero(nrow, 1);
-                matrix s = ex_to<matrix>(sub_matrix(mat,0,nrow,0,ncol).subs(iEpsilon==0,nopat)).solve(v,zero);
+                matrix s = ex_to<matrix>(key.subs(iEpsilon==0,nopat)).solve(v,zero);
                 for(int r=0; r<ncol; r++) null_vec.append(s(r,0).subs(sRepl,nopat));
             }
-            null_cache[sub_matrix(mat,0,nrow,0,ncol)] = null_vec;
+            null_cache[key] = null_vec;
         } else {
-            null_vec = ex_to<lst>(null_cache[sub_matrix(mat,0,nrow,0,ncol)]);
+            null_vec = ex_to<lst>(null_cache[key]);
         }
+
         
         // check null & return ApartIR
         bool is_null = true;
@@ -773,6 +775,7 @@ namespace HepLib {
             }
         }
         sort_lst(pnlst); // need sort_lst 
+
         
         if(pnlst.nops()==0) return cache[expr_in] = pref * ApartIR(1,vars_in);
         
@@ -789,8 +792,9 @@ namespace HepLib {
             }
             mat(nrow,c) = exnormal(tmp.subs(vars0,nopat));
         }
-        
+
         ex ret = Apart(mat);
+
         auto cv_lst = collect_lst(ret,ApartIR(w));
         ret = 0;
         for(auto cv : cv_lst) {
