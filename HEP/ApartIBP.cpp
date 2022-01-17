@@ -139,6 +139,7 @@ namespace HepLib {
             auto ret = GiNaC_Parallel(air_vec.size(), [air_vec,lmom] (int idx) {
                 return collect_lst(air_vec[idx],lmom);
             }, "ApPre");
+            ReShare(ret,air_vec);
         
             exset vset;
             for(int i=0; i<air_vec.size(); i++) {
@@ -154,6 +155,7 @@ namespace HepLib {
                 air = Apart(air,lmom,emom,aio.smap);
                 return air;
             }, "Apart");
+            ReShare(ret,vvec);
 
             exmap v2ap;
             for(int i=0; i<vvec.size(); i++) v2ap[vvec[i]] = ret[i];
@@ -167,14 +169,17 @@ namespace HepLib {
             
             ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&v2ap,&ap_rules] (int idx) {
                 auto cvs = air_vec[idx];
-                ex res = 0;
+                exmap vc;
                 for(auto cv : cvs) {
-                    auto airs = v2ap[cv.op(1)].subs(ap_rules,nopat);
-                    res += cv.op(0) * airs;
+                    auto cvs2 = collect_lst(v2ap[cv.op(1)].subs(ap_rules,nopat), ApartIR(w1,w2));
+                    for(auto cv2 : cvs2) vc[cv2.op(1)] += cv.op(0) * cv2.op(0);
                 }
+                ex res = 0;
+                for(auto kv : vc) res += kv.first * kv.second;
                 return res;
             }, "ApPost");
             v2ap.clear();
+            ReShare(ret,air_vec);
             
             for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIR
             if(aio.SaveDir != "") garWrite(air_vec,aio.SaveDir+"/AP.gar");
@@ -193,6 +198,7 @@ namespace HepLib {
                     for(auto item : airs) ret.append(item);
                     return ret;
                 }, "ApIRC");
+                ReShare(ret,air_vec);
                 exset intg;
                 for(auto airs : ret) for(auto air : airs) intg.insert(air);
                 AIR = exvector(intg.begin(), intg.end());
@@ -305,6 +311,7 @@ namespace HepLib {
                     air = air.subs(int_fr.first,nopat);
                     return air;
                 }, "AIR2F");
+                ReShare(ret,air_vec);
                 for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIRC
                 if(aio.SaveDir != "") A2FSave(aio.SaveDir+"/A2F.gar", air_vec, IntFs, ibp_vec);
             }
@@ -390,6 +397,7 @@ namespace HepLib {
                     ibp_vec_re[idx]->Import();
                     return ibp_vec_re[idx]->TO();
                 }, "Impo");
+                ReShare(ret,ibp_vec_re);
                 for(int i=0; i<ibp_vec_re.size(); i++) ibp_vec_re[i]->FROM(ret[i]);
             } else {
                 cproc = 0;
@@ -414,9 +422,13 @@ namespace HepLib {
             auto ris_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&mi_fr](int idx)->ex {
                 ex rules = ibp_vec_re[idx]->Rules;
                 lst res;
-                for(auto ri : rules) res.append(lst { ri.op(0),  ri.op(1).subs(mi_fr.first,nopat).subs(d==D,nopat) });
+                for(auto ri : rules) res.append(lst { 
+                    ri.op(0),  
+                    collect_ex(ri.op(1).subs(mi_fr.first,nopat).subs(d==D,nopat), F(w1,w2), false, false, 1)
+                });
                 return res;
             }, "FR2MI");
+            ReShare(ris_vec,ibp_vec_re);
             for(auto ris : ris_vec) {
                 for(auto ri : ris) if(ri.op(0)!=ri.op(1)) ibpRules[ri.op(0)] = ri.op(1);
             }
@@ -432,6 +444,7 @@ namespace HepLib {
             res = _F2ex(res);
             return res;
         }, "F2MI");
+        ReShare(air_res,air_vec);
                                     
         for(auto fp : ibp_vec) delete fp;
         for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];

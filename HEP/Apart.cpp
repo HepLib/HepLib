@@ -160,7 +160,7 @@ namespace HepLib {
     
     exmap ApartRules(const exvector &airs, bool irc) { // irc=true to include ApartIRC
         
-        #define CHECK true
+        #define CHECK false
         int nlimit = 50;
         vector<exset> nps_set(airs[0].op(1).nops());
         for(auto air : airs) {
@@ -218,8 +218,9 @@ namespace HepLib {
                 exmap p2n;
                 for(int i=0; i<p.nops(); i++) if(!is_zero(n.op(i))) p2n[p.op(i)] = n.op(i);
                 auto pk = pn2p(pn);
-                if(s2s.find(pk)!=s2s.end()) {
-                    auto pp = s2s[pk];
+                auto fi = s2s.find(pk);
+                if(fi!=s2s.end()) {
+                    auto pp = fi->second;
                     lst nn;
                     for(int i=0; i<pp.nops(); i++) nn.append(p2n[pp.op(i)]);
                     ex air = ApartIR(pn2mat(pp,nn,airs[k].op(1)),airs[k].op(1));
@@ -246,8 +247,9 @@ namespace HepLib {
                 exmap p2n;
                 for(int i=0; i<p.nops(); i++) if(!is_zero(n.op(i))) p2n[p.op(i)] = n.op(i);
                 auto pk = pn2p(pn);
-                if(s2s.find(pk)!=s2s.end()) {
-                    auto pp = s2s[pk];
+                auto fi = s2s.find(pk);
+                if(fi!=s2s.end()) {
+                    auto pp = fi->second;
                     lst nn;
                     for(int i=0; i<pp.nops(); i++) nn.append(p2n[pp.op(i)]);
                     ex air = ApartIR(pn2mat(pp,nn,airs[k].op(1)),airs[k].op(1));
@@ -268,9 +270,9 @@ namespace HepLib {
                 } else if(irc) return lst{ airs[k], ApartIRC(airs[k]) };
                 else return lst{ };
             }, "ApRule");
+            ReShare(ret,airs);
             for(auto lr : ret) if(lr.nops()>1) rules[lr.op(0)] = lr.op(1);
         }
-
         return rules;
 
     } 

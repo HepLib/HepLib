@@ -139,8 +139,9 @@ namespace HepLib {
                 repl[kv.second] = Symbol(ss);
             }
         }
-        if(redo) return ret.subs(repl,subs_options::no_pattern);
-        else return ret;
+        if(redo) ret = ret.subs(repl,subs_options::no_pattern);
+        ReShare(ret);
+        return ret;
     }
     ex Parser::ReadFile(string filename, bool s2S) {
         ifstream ifs(filename);

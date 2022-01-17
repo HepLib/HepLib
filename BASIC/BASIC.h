@@ -291,7 +291,6 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // vector : GiNaC_Parallel
     /*-----------------------------------------------------*/
-    extern bool GiNaC_Parallel_MS; // Memeory Sharing or NOT
     extern int GiNaC_Parallel_Process;
     extern map<string, int> GiNaC_Parallel_NP;
     extern int GiNaC_Parallel_Batch;
@@ -848,9 +847,9 @@ namespace HepLib {
         static string Next(string sip, string sport);
     };
     
-    void ReShare(ex & e);
-    void ReShare(exvector & ev);
- 
+    void ReShare(const ex & e);
+    void ReShare(const exvector & ev);
+    void ReShare(const exvector & ev1, const exvector & ev2);
 }
 
 typedef void (*RUN)(std::string dir_id);

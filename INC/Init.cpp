@@ -42,7 +42,6 @@ namespace HepLib {
     const ex iEpsilonN = I*pow(ex(10), -50);
     int Verbose = 0;
     bool Debug = false;
-    bool GiNaC_Parallel_MS = true;
     int GiNaC_Parallel_Process = -1;
     map<string, int> GiNaC_Parallel_NP;
     int GiNaC_Parallel_Batch = 0;

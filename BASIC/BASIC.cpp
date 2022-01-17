@@ -373,7 +373,6 @@ namespace HepLib {
             if(key == "") garfn << ppid << "/all.gar";
             else garfn << ppid << "/all." << key << ".gar";
             if(true) {
-                exvector ovec_tmp;
                 for(int bi=0; bi<btotal; bi++) {
                     if(Verbose > 1 && !nst) {
                         if(key == "") {
@@ -410,30 +409,21 @@ namespace HepLib {
                         throw Error("GiNaC_Parallel_ReTRY: "+string(p.what()));
                     }
                     done: ;
-                    for(auto res : res_lst) ovec_tmp.push_back(res);
+                    for(auto res : res_lst) ovec.push_back(res);
                 }
                 
-                if(!nst) {
-                    if(Verbose > 1) cout << endl;
-                    else if(Verbose > 1) cout << "\r                                                   \r" << flush;
-                    
-                    if(Verbose > 1 && GiNaC_Parallel_MS) {
-                        if(key == "") {
-                            cout << "\r                                                   \r" << pre;
-                            cout << "\\--Memory Sharing" << flush;
-                        } else {
-                            cout << "\r                                                   \r" << pre;
-                            cout << "\\--Memory Sharing " << Color_HighLight << key << RESET << flush;
-                        }
+                if(!nst && Verbose>1) {
+                    cout << endl;
+                    if(key == "") {
+                        cout << "\r                                                   \r" << pre;
+                        cout << "\\--Memory Sharing" << flush;
+                    } else {
+                        cout << "\r                                                   \r" << pre;
+                        cout << "\\--Memory Sharing " << Color_HighLight << key << RESET << flush;
                     }
+                    ReShare(ovec);
+                    cout << " @ " << now(false) << endl;
                 }
-            
-                if(GiNaC_Parallel_MS) garWrite(garfn.str(), ovec_tmp);
-                else ovec = exvector(std::move(ovec_tmp));
-            }
-            if(GiNaC_Parallel_MS) {
-                garRead(garfn.str(), ovec);
-                if(Verbose > 1 && !nst) cout << " @ " << now(false) << endl;
             }
         }
         
@@ -446,6 +436,7 @@ namespace HepLib {
         if(ovec.size() != ntotal) {
             throw Error("GiNaC_Parallel: The output size is wrong!");
         }
+        
         return exvector(std::move(ovec));
     }
 
@@ -2467,19 +2458,20 @@ namespace HepLib {
         return add(res_vec);
     }
     
-    void ReShare(ex & e) {
-        string garfn = to_string(getpid())+"-ReShare.gar";
-        garWrite(e, garfn);
-        e = garRead(garfn);
-        system(("rm -rf "+garfn).c_str());
+    void ReShare(const ex & e) {
+        archive ar;
+        ar.archive_ex(e, "e");
     }
     
-    void ReShare(exvector & ev) {
-        string garfn = to_string(getpid())+"-ReShare.gar";
-        garWrite(ev, garfn);
-        ev.clear();
-        garRead(garfn, ev);
-        system(("rm -rf "+garfn).c_str());
+    void ReShare(const exvector & ev) {
+        archive ar;
+        for(auto & e : ev) ar.archive_ex(e, "e");
+    }
+    
+    void ReShare(const exvector & ev1, const exvector & ev2) {
+        archive ar;
+        for(auto & e : ev1) ar.archive_ex(e, "e");
+        for(auto & e : ev2) ar.archive_ex(e, "e");
     }
         
 }
