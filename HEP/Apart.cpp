@@ -417,7 +417,6 @@ namespace HepLib {
             null_vec = ex_to<lst>(null_cache[key]);
         }
 
-        
         // check null & return ApartIR
         bool is_null = true;
         for(int c=0; c<ncol; c++) {
@@ -463,7 +462,7 @@ namespace HepLib {
                         }
                     }
                 }
-                if(is_zero(nvec.op(ni))) throw Error("Apart: iWF to int failed with "+ex2str(null_vec.op(ni)));
+                if(nvec.has(iWF(w)) || is_zero(nvec.op(ni))) throw Error("Apart: iWF to int failed with "+ex2str(null_vec.op(ni)));
             }
             
             ex sol = 0;
@@ -521,7 +520,7 @@ namespace HepLib {
         ex nvec,cres;
         if(true) {
             exset wfs;
-            find(cres0,iWF(w),wfs);
+            find(lst{cres0, null_vec},iWF(w),wfs);
             if(wfs.size()<1) {
                 cres = cres0;
                 nvec = null_vec;
@@ -551,6 +550,11 @@ namespace HepLib {
             }
         } // end if(true)
 
+        if(nvec.has(iWF(w)) || cres.has(iWF(w))) {
+            cout << cres0 << ", " << null_vec << endl;
+            throw Error("Apart: iWF still left.");
+        }
+        
         // handle const is NOT zero
         if(!IsZero(cres)) {
             ex res=0;

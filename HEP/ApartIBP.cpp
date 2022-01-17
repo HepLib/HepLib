@@ -137,7 +137,7 @@ namespace HepLib {
         
         if(true) {
             auto ret = GiNaC_Parallel(air_vec.size(), [air_vec,lmom] (int idx) {
-                return collect_lst(air_vec[idx],lmom);
+                return collect_lst(air_vec[idx],lmom,1);
             }, "ApPre");
             ReShare(ret,air_vec);
         
@@ -175,7 +175,7 @@ namespace HepLib {
                     for(auto cv2 : cvs2) vc[cv2.op(1)] += cv.op(0) * cv2.op(0);
                 }
                 ex res = 0;
-                for(auto kv : vc) res += kv.first * kv.second;
+                for(auto kv : vc) res += exnormal(kv.first) * kv.second;
                 return res;
             }, "ApPost");
             v2ap.clear();
@@ -397,7 +397,6 @@ namespace HepLib {
                     ibp_vec_re[idx]->Import();
                     return ibp_vec_re[idx]->TO();
                 }, "Impo");
-                ReShare(ret,ibp_vec_re);
                 for(int i=0; i<ibp_vec_re.size(); i++) ibp_vec_re[i]->FROM(ret[i]);
             } else {
                 cproc = 0;
@@ -428,7 +427,6 @@ namespace HepLib {
                 });
                 return res;
             }, "FR2MI");
-            ReShare(ris_vec,ibp_vec_re);
             for(auto ris : ris_vec) {
                 for(auto ri : ris) if(ri.op(0)!=ri.op(1)) ibpRules[ri.op(0)] = ri.op(1);
             }

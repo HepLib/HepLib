@@ -279,9 +279,11 @@ namespace HepLib {
             return exvector(std::move(ovec));
         }
         
-        auto ppid = getpid();
         int para_max_run = nproc<0 ? omp_get_num_procs()-1 : nproc;
-        if(para_max_run<1) para_max_run = 1;
+        if(para_max_run<0) para_max_run = 0;
+        if(para_max_run>omp_get_num_procs()-1) para_max_run = omp_get_num_procs()-1;
+        
+        auto ppid = getpid();
         ostringstream cmd;
         cmd << "mkdir -p " << ppid;
         if(!dir_exists(to_string(ppid))) system(cmd.str().c_str());
@@ -373,6 +375,7 @@ namespace HepLib {
             if(key == "") garfn << ppid << "/all.gar";
             else garfn << ppid << "/all." << key << ".gar";
             if(true) {
+                exvector ovec_tmp;
                 for(int bi=0; bi<btotal; bi++) {
                     if(Verbose > 1 && !nst) {
                         if(key == "") {
@@ -409,22 +412,25 @@ namespace HepLib {
                         throw Error("GiNaC_Parallel_ReTRY: "+string(p.what()));
                     }
                     done: ;
-                    for(auto res : res_lst) ovec.push_back(res);
+                    for(auto res : res_lst) ovec_tmp.push_back(res);
                 }
                 
                 if(!nst && Verbose>1) {
                     cout << endl;
                     if(key == "") {
                         cout << "\r                                                   \r" << pre;
-                        cout << "\\--Memory Sharing" << flush;
+                        cout << "\\--ReSharing" << flush;
                     } else {
                         cout << "\r                                                   \r" << pre;
-                        cout << "\\--Memory Sharing " << Color_HighLight << key << RESET << flush;
+                        cout << "\\--ReSharing " << Color_HighLight << key << RESET << flush;
                     }
-                    ReShare(ovec);
-                    cout << " @ " << now(false) << endl;
                 }
+                garWrite(garfn.str(), ovec_tmp);
             }
+            
+            garRead(garfn.str(), ovec);
+            ReShare(ovec);
+            cout << " @ " << now(false) << endl;
         }
         
         if(rm) {
