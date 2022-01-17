@@ -277,24 +277,31 @@ namespace HepLib::QGRAF {
     /**
      * @brief cut the amplitude, and return the connected parts, may have many different cuts
      * @param amp one of the Amplitudes
-     * @param prop the line type to be cutted
+     * @param prop the line type to be cutted, can be lst{g,g} or lst{ lst{g,g}, lst{A,A} }
      * @param n the number of lines to be cutted
      * @return vector of lst, each element in the vector, is actually a lst of lst, different connectted parts
      */
     vector<lst> ShrinkCut(ex amp, lst prop, int n) {
         vector<lst> ret;
+        if(prop.nops()<1) throw Error("ShrinkCut: no cut provided!");
         auto tls = TopoLines(amp);
         vector<int> cls_vec;
         for(int i=0; i<tls.nops(); i++) {
             auto pi = tls.op(i).op(2);
             if(pi.nops()<2) continue;
-            if(is_zero(pi.op(0)-prop.op(0)) && is_zero(pi.op(1)-prop.op(1))) cls_vec.push_back(i);
+            if(!is_a<lst>(prop.op(0))) { // prop : lst{ g, g }
+                if(is_zero(pi.op(0)-prop.op(0)) && is_zero(pi.op(1)-prop.op(1))) cls_vec.push_back(i);
+            } else {
+                for(auto iprop : prop) {
+                    if(is_zero(pi.op(0)-iprop.op(0)) && is_zero(pi.op(1)-iprop.op(1))) cls_vec.push_back(i);
+                }
+            }
         }
         if(cls_vec.size()<n) return ret;
         
         Combinations(cls_vec.size(), n, [n,&ret,cls_vec,tls](const int * is)->void {
             int cls[n];
-            for(int i=0; i<n; i++) cls[i] = cls_vec[is[i]];;
+            for(int i=0; i<n; i++) cls[i] = cls_vec[is[i]];
             
             // cut each line into 2 half-lines, labeled with 0
             auto tls2 = tls;

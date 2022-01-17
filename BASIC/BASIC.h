@@ -471,6 +471,7 @@ namespace HepLib {
     extern bool fermat_using_array;
     ex fermat_eval(const ex & expr);
     ex numer_denom_fermat(const ex & expr, bool dfactor=false);
+    ex numer_fermat(const ex & expr);
     inline ex fermat_numer_denom(const ex & expr, bool dfactor=false) { return numer_denom_fermat(expr,dfactor); }
     
     extern map<ex,long long,ex_is_less> fermat_weight;
@@ -843,6 +844,8 @@ namespace HepLib {
         string Skip = "[ID].run";
         string DL;
         string FUNC;
+        
+        static string Next(string sip, string sport);
     };
     
     void ReShare(ex & e);

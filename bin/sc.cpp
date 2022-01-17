@@ -94,6 +94,11 @@ int main(int argc, char** argv) {
                         continue;
                     }
                     
+                    struct linger so_linger;
+                    so_linger.l_onoff = 1; 
+                    so_linger.l_linger = 0; 
+                    setsockopt(connect_fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger); 
+                    
                     std::string data = to_string(current);
                     if(send(connect_fd, data.c_str(),data.length(),0) == -1) perror("send error");
                     close(connect_fd);

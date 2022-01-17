@@ -162,12 +162,15 @@ namespace HepLib {
         
         #define CHECK true
         int nlimit = 50;
-        vector<exset> nps(airs[0].op(1).nops());
+        vector<exset> nps_set(airs[0].op(1).nops());
         for(auto air : airs) {
             auto pn = air2pn(air);
             auto l = pn2p(pn);
-            nps[l.nops()-1].insert(l);
+            nps_set[l.nops()-1].insert(l);
         }
+        vector<exvector> nps(nps_set.size());
+        for(int i=0; i<nps_set.size(); i++) nps[i] = exvector(nps_set[i].begin(), nps_set[i].end());
+        nps_set.clear();
         
         exmap s2s;
         for(int i=0; i<nps.size()-1; i++) {
@@ -189,13 +192,20 @@ namespace HepLib {
                     auto si = psi_vec[idx];
                     for(int j=nps.size()-1; j>i; j--) {
                         auto psj = nps[j];
-                        for(auto sj : psj) {
-                            if(is_subset(si,sj)) return lst{si, sj};
+                        for(int jj=0; jj<psj.size(); jj++) {
+                            //if(is_subset(si,sj)) return lst{si, sj};
+                            auto sj = psj[jj];
+                            if(is_subset(si,sj)) return lst{idx, j, jj};
                         }
                     }
                     return lst{ };
                 }, "Ap-"+to_string(nps.size()-1)+"-"+to_string(i+1));
-                for(auto lr : ret) if(lr.nops()>1) s2s[lr.op(0)] = lr.op(1);
+                for(auto item : ret) if(item.nops()>1) {
+                    int idx = ex_to<numeric>(item.op(0)).to_int();
+                    int j = ex_to<numeric>(item.op(1)).to_int();
+                    int jj = ex_to<numeric>(item.op(2)).to_int();
+                    s2s[psi_vec[idx]] = nps[j][jj];
+                }
             }
         }
 

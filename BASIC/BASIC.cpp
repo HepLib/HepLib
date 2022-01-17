@@ -1150,6 +1150,7 @@ namespace HepLib {
         for(auto cv : cvs) {
             auto cc = cv.op(0);
             auto vv = cv.op(1);
+            if(cc.is_zero() || vv.is_zero()) continue;
             if(cf) cc = coCF(cc);
             if(vf) vv = coVF(vv);
             res += cc * vv;
@@ -2012,6 +2013,146 @@ namespace HepLib {
         
     }
     
+    ex numer_fermat(const ex & expr) {
+        static map<pid_t, Fermat> fermat_map;
+        static int v_max = 0;
+        bool use_ncheck = false;
+
+        auto pid = getpid();
+        if((fermat_map.find(pid)==fermat_map.end())) { // init section
+            fermat_map[pid].Init();
+            v_max = 0;
+        }
+        Fermat &fermat = fermat_map[pid];
+        
+        auto expr_in = expr;
+        exmap map_rat;
+        expr_in = expr_in.to_polynomial(map_rat);
+        
+        lst rep_vs;
+        if(true) {
+            map<ex,long long,ex_is_less> s2c;
+            for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
+                if(is_a<symbol>(*i)) s2c[*i]++;
+            }
+            exvector sv1, sv2, sv3; // sv2:fermat_weight, sv3:map_rat
+            for(auto kv : s2c) {
+                auto fw = fermat_weight.find(kv.first);
+                if(fw!=fermat_weight.end()) sv2.push_back(lst{fw->second, fw->first});
+                else if(map_rat.find(kv.first)!=map_rat.end()) sv3.push_back(lst{kv.second, kv.first});
+                else sv1.push_back(lst{kv.second, kv.first});
+            }
+            sort_vec(sv1);
+            sort_vec(sv2);
+            sort_vec(sv3);
+            for(auto sv : sv1) rep_vs.append(sv.op(1));
+            for(auto sv : sv2) rep_vs.append(sv.op(1));
+            for(auto sv : sv3) rep_vs.append(sv.op(1));
+        }
+                
+        exmap v2f, f2v;
+        exmap nn_map;
+        auto nn_pi1 = cln::nextprobprime(3);
+        auto nn_pi2 = cln::nextprobprime(3);
+        int fvi = 0;
+        for(auto vi : rep_vs) {
+            auto name = "v" + to_string(fvi);
+            Symbol s(name);
+            v2f[vi] = s;
+            f2v[s] = vi;
+            fvi++;
+            nn_pi1 = cln::nextprobprime(nn_pi2+1);
+            nn_pi2 = cln::nextprobprime(nn_pi1+1);
+            nn_map[s] = numeric(nn_pi1)/numeric(nn_pi2);
+        }
+        
+        stringstream ss;
+        if(fvi>111) {
+            cout << rep_vs << endl;
+            throw Error("Fermat: Too many variables.");
+        }
+        if(fvi>v_max) {
+            for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
+            fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
+            v_max = fvi;
+        }
+        
+        ex nn_chk=0, nres;
+        lst item;
+        if(!is_a<add>(expr_in)) item = lst{ expr_in };
+        else for(auto ii : expr_in) item.append(ii);
+        //sort_lst(item); // no need
+        if(fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
+        else ss << "res:=0;" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        for(int i=0; i<item.nops(); i++) {
+            ex tt = item.op(i).subs(v2f, subs_options::no_pattern);
+            if(use_ncheck) nn_chk += tt.subs(nn_map, subs_options::no_pattern);
+            if(fermat_using_array) ss << "m[" << (i+1) << "]:=";
+            else ss << "item:=";
+            ss << tt << ";" << endl;
+            if(!fermat_using_array) ss << "res:=res+item;" << endl;
+            fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
+        }
+        if(fermat_using_array) {
+            ss << "res:=Sumup([m]);" << endl;
+            fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
+        }
+        
+        static string bstr("[-begin-]"), estr("[-end-]");
+        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
+        ss << "!('" <<bstr<< "',res,'" <<estr<< "')" << endl;
+        auto ostr = fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        // note the order,(normal_fermat will be called again in factor_form)
+        ss << "&(U=0);" << endl; // disable ugly printing
+        if(fermat_using_array) ss << "@(res,[m]);" << endl;
+        else ss << "@(res,item);" << endl;
+        ss << "&_G;" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+
+        // make sure last char is 0
+        if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
+        ostr = ostr.substr(0, ostr.length()-1);
+        auto cpos = ostr.find(bstr);
+        if(cpos==string::npos) throw Error(bstr+" NOT Found.");
+        ostr = ostr.substr(cpos+bstr.length(),string::npos);
+        cpos = ostr.find(estr);
+        if(cpos==string::npos) throw Error(estr+" NOT Found.");
+        ostr = ostr.substr(0,cpos);
+        string_trim(ostr);
+
+        symtab st;
+        Parser fp(st);
+        auto ret = fp.Read(ostr);
+        //fermat.Exit();
+        
+        if(use_ncheck) {
+            auto nn_ret = subs(ret,nn_map);
+            if(nn_chk-nn_ret!=0) {
+                cout << nn_chk << " : " << nn_ret << endl;
+                throw Error("fermat_together: N Check Failed.");
+            }
+        }
+        
+        ret = ret.subs(f2v,subs_options::no_pattern).subs(map_rat,subs_options::no_pattern);
+        return ret;
+        
+    }
+    
     /**
      * @brief return the normalizatied expression, using fermat_numer_denom
      * @param expr the input expression
@@ -2066,6 +2207,7 @@ namespace HepLib {
     ex exnormal(const ex & expr, int opt) {
         if(opt==1) return normal_fermat(expr);
         else if(opt==2) return normal_fermat(expr,true);
+        else if(opt==3) return numer_fermat(expr);
         else return normal(expr);
     }
     

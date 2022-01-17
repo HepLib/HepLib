@@ -1,9 +1,52 @@
 #include "BASIC.h"
 #include <netdb.h>
-#include <getopt.h>
+#include <sstream>
 
 namespace HepLib {
 
+    string Server::Next(string sip, string sport) {
+        static const int MAXSIZE = 4096;
+        auto port = stoi(sport);
+        
+        int sockfd, n,rec_len;  
+        char recvline[MAXSIZE], sendline[MAXSIZE];  
+        char buf[MAXSIZE];  
+        struct sockaddr_in servaddr;  
+            
+        if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) { 
+            ostringstream oss;
+            oss << "create socket error(" << errno << "): " << strerror(errno);  
+            throw Error(oss.str());
+        }
+      
+        memset(&servaddr, 0, sizeof(servaddr));  
+        servaddr.sin_family = AF_INET;  
+        servaddr.sin_port = htons(port);  
+        struct hostent *hext;
+        if ( (hext = gethostbyname(sip.c_str())) == NULL ) {
+            ostringstream oss;
+            oss << "gethostbyname error for " << sip << endl;  
+            throw Error(oss.str());
+        }
+        memcpy(&servaddr.sin_addr, hext->h_addr_list[0], hext->h_length);
+       
+        if( connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {  
+            ostringstream oss;
+            oss << "connect error(" << errno << "): " << strerror(errno) << endl;  
+            throw Error(oss.str());
+        }  
+         
+        if((rec_len = recv(sockfd, buf, MAXSIZE,0)) == -1) {  
+            ostringstream oss;
+            oss << "recv error(" << errno << "): " << strerror(errno) << endl;  
+            throw Error(oss.str());
+        }  
+        
+        buf[rec_len]  = '\0';  
+        string ret = buf;
+        close(sockfd);  
+        return ret;
+    }
     
     void Server::Start() {
         
