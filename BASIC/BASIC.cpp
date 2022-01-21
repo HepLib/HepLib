@@ -2240,6 +2240,34 @@ namespace HepLib {
         else return expand(expr);
     }
     
+    namespace {
+        exvector ev_fermat_pern(const exvector & ev, int np) {
+            if(ev.size()<np) return ev;
+            int tn = ev.size();
+            exvector evs;
+            int ci = 0;
+            while(ci<tn) {
+                ex sum = 0;
+                for(int i=0; i<np; i++) {
+                    sum += ev[ci];
+                    ci++;
+                    if(ci==tn) break;
+                }
+                ex tt = normal_fermat(sum);
+                evs.push_back(tt);
+            }
+            return exvector(std::move(evs));
+        }
+        
+        ex normal_fermat_pern(const ex & e, int np) {
+            if(!is_a<add>(e)) return normal_fermat(e);
+            exvector evs(e.begin(), e.end());
+            while(evs.size()>np) evs = ev_fermat_pern(evs,np);
+            ex res = normal_fermat(add(evs));
+            return res;
+        }
+    }
+    
     /**
      * @brief normalize a expression
      * @param expr the input expression
@@ -2247,7 +2275,8 @@ namespace HepLib {
      * @return factorized result
      */
     ex exnormal(const ex & expr, int opt) {
-        if(opt==1) return normal_fermat(expr);
+        if(opt<0) return normal_fermat_pern(expr,-opt);
+        else if(opt==1) return normal_fermat(expr);
         else if(opt==2) return normal_fermat(expr,true);
         else if(opt==3) return numer_fermat(expr);
         else return normal(expr);
@@ -2503,7 +2532,7 @@ namespace HepLib {
         for(auto cvs : cvs_vec) for(auto cv : cvs) res_map[cv.op(1)] += cv.op(0);
         exvector res_vec;
         for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
-        GiNaC_Parallel_NB["NorEx"] = 1;
+        if(GiNaC_Parallel_NB.find("NorEx")==GiNaC_Parallel_NB.end()) GiNaC_Parallel_NB["NorEx"] = 1;
         res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec](int idx)->ex {
             return exnormal(res_vec[idx].op(0)) * res_vec[idx].op(1);
         }, "NorEx");
