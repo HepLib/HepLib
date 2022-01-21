@@ -52,6 +52,7 @@ namespace HepLib::IBP {
         ex TO(); // to single list for output
         void FROM(ex s); // from a single expression 
         
+        static void ReShare(const vector<Base*> & fs);
     };
 
     /**

@@ -136,53 +136,74 @@ namespace HepLib {
         } 
         
         if(true) {
-            auto ret = GiNaC_Parallel(air_vec.size(), [air_vec,lmom] (int idx) {
+            int av_size = air_vec.size();
+            air_vec = GiNaC_Parallel(av_size, [air_vec,lmom] (int idx) {
                 return collect_lst(air_vec[idx],lmom,1);
             }, "ApPre");
-            ReShare(ret,air_vec);
-        
+            
             exset vset;
-            for(int i=0; i<air_vec.size(); i++) {
-                auto cvs = ret[i];
-                for(auto cv : cvs) vset.insert(cv.op(1));
-                air_vec[i] = cvs;
+            for(int i=0; i<av_size; i++) {
+                for(auto cv : air_vec[i]) vset.insert(cv.op(1));
             }
             exvector vvec(vset.begin(), vset.end());
             vset.clear();
             
-            ret = GiNaC_Parallel(vvec.size(), [vvec,lmom,emom,aio] (int idx) {
+            if(true) {
+                exmap v2ap;
+                for(int i=0; i<vvec.size(); i++) v2ap[vvec[i]] = i;
+                for(int i=0; i<av_size; i++) {
+                    int n = air_vec[i].nops();
+                    for(int j=0; j<n; j++) {
+                        auto & v = air_vec[i][j][1]; // reference here
+                        v = v2ap[v];
+                    }
+                }
+                v2ap.clear();
+            }
+        
+            auto ap_vec = GiNaC_Parallel(vvec.size(), [&vvec,lmom,emom,aio] (int idx) {
                 auto air = vvec[idx];
                 air = Apart(air,lmom,emom,aio.smap);
+                air = collect_lst(air, ApartIR(w1,w2), 1);
                 return air;
             }, "Apart");
-            ReShare(ret,vvec);
-
-            exmap v2ap;
-            for(int i=0; i<vvec.size(); i++) v2ap[vvec[i]] = ret[i];
             vvec.clear();
             
             exset ap_set;
-            for(auto item : ret) find(item, ApartIR(w1,w2), ap_set);
-            exvector ap_vec(ap_set.begin(), ap_set.end());
+            for(auto cvs : ap_vec) for(auto cv : cvs) ap_set.insert(cv.op(1));
+            exvector ap_ir_vec(ap_set.begin(), ap_set.end());
             ap_set.clear();
-            auto ap_rules = ApartRules(ap_vec); // including ApartIRC
+            auto ap_rules = ApartRules(ap_ir_vec); // including ApartIRC
+            ap_ir_vec.clear();
             
-            ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&v2ap,&ap_rules] (int idx) {
-                auto cvs = air_vec[idx];
-                exmap vc;
-                for(auto cv : cvs) {
-                    auto cvs2 = collect_lst(v2ap[cv.op(1)].subs(ap_rules,nopat), ApartIR(w1,w2));
-                    for(auto cv2 : cvs2) vc[cv2.op(1)] += cv.op(0) * cv2.op(0);
-                }
+            ap_vec = GiNaC_Parallel(ap_vec.size(), [&ap_vec,&ap_rules] (int idx) {
+                auto cvs = ap_vec[idx];
                 ex res = 0;
-                for(auto kv : vc) res += exnormal(kv.first) * kv.second;
+                for(auto cv : cvs) {
+                    auto fi = ap_rules.find(cv.op(1));
+                    if(fi==ap_rules.end()) res += cv.op(0) * cv.op(1);
+                    else res += cv.op(0) * fi->second;
+                }
                 return res;
-            }, "ApPost");
-            v2ap.clear();
-            ReShare(ret,air_vec);
+            }, "ApRule");
+            ap_rules.clear();
             
-            for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIR
-            if(aio.SaveDir != "") garWrite(air_vec,aio.SaveDir+"/AP.gar");
+            air_vec = GiNaC_Parallel(av_size, [&air_vec,&ap_vec] (int idx) {
+                auto & cvs = air_vec[idx];
+                ex res = 0;
+                for(auto const & cv : cvs) {
+                    int idx = ex_to<numeric>(cv.op(1)).to_int();
+                    res += cv.op(0) * ap_vec[idx];
+                }
+                res = collect_ex(res, ApartIR(w1,w2), false, false, 1);
+                return res; // air_vec updated to ApartIR
+            }, "ApPost");
+            ap_vec.clear();
+            
+            if(aio.SaveDir != "") {
+                garWrite(air_vec,aio.SaveDir+"/AP.gar");
+                garRead(air_vec,aio.SaveDir+"/AP.gar");
+            }
         }
         Apart_Done: ;
         
@@ -198,7 +219,6 @@ namespace HepLib {
                     for(auto item : airs) ret.append(item);
                     return ret;
                 }, "ApIRC");
-                ReShare(ret,air_vec);
                 exset intg;
                 for(auto airs : ret) for(auto air : airs) intg.insert(air);
                 AIR = exvector(intg.begin(), intg.end());
@@ -228,7 +248,7 @@ namespace HepLib {
             int pn=1;
             int ntot = AIR.size();
             for(int i=0; i<ntot; i++) {
-                if(Verbose>0 && ((i%100)==0 || i+1==ntot)) cout << "\r                                 \r" << "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction [" << (i+1) << "/" << ntot << "] @ " << now(false) << flush;
+                if(Verbose>0 && (((i+1)%1000)==0 || i+1==ntot)) cout << "\r                                 \r" << "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction [" << (i+1) << "/" << ntot << "] @ " << now(false) << flush;
                 auto const & ir = AIR[i];
                 auto mat = ex_to<matrix>(ir.op(0));
                 auto vars = ex_to<lst>(ir.op(1));
@@ -305,14 +325,13 @@ namespace HepLib {
                 for(auto ibp : ibp_vec) base_vec.push_back(ibp);
                 auto int_fr = FindRules(base_vec, false, aio.UF);
                 IntFs = int_fr.second;
-                auto ret = GiNaC_Parallel(air_vec.size(), [&air_vec,&AIR2F,&int_fr] (int idx) {
+                air_vec = GiNaC_Parallel(air_vec.size(), [&air_vec,&AIR2F,&int_fr] (int idx) {
                     auto air = air_vec[idx];
                     air = air.subs(AIR2F,nopat);
                     air = air.subs(int_fr.first,nopat);
+                    air = collect_ex(air, F(w1,w2), false, false, 1);
                     return air;
                 }, "AIR2F");
-                ReShare(ret,air_vec);
-                for(int i=0; i<ret.size(); i++) air_vec[i] = ret[i]; // air_vec updated to ApartIRC
                 if(aio.SaveDir != "") A2FSave(aio.SaveDir+"/A2F.gar", air_vec, IntFs, ibp_vec);
             }
         }
@@ -354,16 +373,12 @@ namespace HepLib {
         });
         
         if(IBPmethod==0) {
-            auto air_res =
-            GiNaC_Parallel(air_vec.size(), [&air_vec,&_F2ex](int idx)->ex {
+            air_vec = GiNaC_Parallel(air_vec.size(), [&air_vec,&_F2ex](int idx)->ex {
                 auto res = air_vec[idx];
                 return _F2ex(res);
             }, "F2F");
-            
             for(auto fp : ibp_vec) delete fp;
             if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
-
-            for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];
             return;
         }
         
@@ -406,6 +421,7 @@ namespace HepLib {
                 }
                 if(Verbose>1) cout << "@" << now(false) << endl;
             }
+            //Base::ReShare(ibp_vec_re);
             
             if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
         } else if(IBPmethod==2 || IBPmethod==3) {
@@ -432,20 +448,18 @@ namespace HepLib {
             }
         }
         
-        auto air_res =
-        GiNaC_Parallel(air_vec.size(), [&air_vec,&ibpRules,&mi_fr,&_F2ex](int idx)->ex {
+        air_vec =
+        GiNaC_Parallel(air_vec.size(), [&air_vec,&ibpRules,&mi_fr,&_F2ex,&aio](int idx)->ex {
             ex res = air_vec[idx];
-            res = collect_ex(res,F(w1,w2));
             res = res.subs(ibpRules,nopat);
             res = res.subs(mi_fr.first,nopat); // still needed
-            res = collect_ex(res,F(w1,w2),false,false,1);
+            if(aio.exnormal) res = collect_ex(res,F(w1,w2),false,false,1);
+            else res = collect_ex(res,F(w1,w2));
             res = _F2ex(res);
             return res;
         }, "F2MI");
-        ReShare(air_res,air_vec);
                                     
         for(auto fp : ibp_vec) delete fp;
-        for(int i=0; i<air_vec.size(); i++) air_vec[i] = air_res[i];
     }
     
     /**

@@ -264,6 +264,7 @@ namespace HepLib {
         int ec = 0;
         int nactive = 0;
         string exstr = "";
+        int fork_retried = 0;
         int nproc = GiNaC_Parallel_Process;
         if(GiNaC_Parallel_NP.find(key)!=GiNaC_Parallel_NP.end()) nproc = GiNaC_Parallel_NP[key];
         
@@ -308,129 +309,164 @@ namespace HepLib {
             }
         }
         
-        nactive = 0;
         pgid = getpid(); // should be groud leader @ here
-        for(int bi=0; bi<btotal; bi++) {
-            restart: ;
-            for(int i=0; i<btotal; i++) if(waitpid(-pgid,NULL,WNOHANG)>0) nactive--;
-            if(Verbose > 1 && !nst) {
-                cout << "\r                                                                  \r" << pre;
-                cout << "\\--Evaluating ";
-                if(key != "") cout << Color_HighLight << key << RESET << " ";
-                cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] @ " << now(false) << exstr << flush;
-            }
-            
-            auto pid = fork();
-            if(pid < 0) {
-                if(getpid()!=pgid) exit(0); // make sure exit child process
-                ec++;
-                if(ec>3*btotal) throw Error("GiNaC_Parallel: Error (2) @ fork()");
-                exstr = " - fork(" + to_string(ec) + ")";
-                if(waitpid(-pgid,NULL,0)>0) nactive--;
-                goto restart; // parent process goes next cycle
-            }
-            if(pid==0 && setpgid(0, pgid)!=0) {
-                if(setpgid(0, pgid)) throw Error("GiNaC_Parallel: setpgid(0, pgid) Failed.");
-            }
-            if(pid>0) {
-                nactive++;
-                if(nactive >= para_max_run) if(waitpid(-pgid,NULL,0)>0) nactive--;
-                continue; // parent process goes next cycle
-            }
-            
-            // pid = 0, child process
-            GiNaC_Parallel_Level++;
-            try {
-                lst res_lst;
-                for(int ri=0; ri<nbatch; ri++) {
-                    int i = bi*nbatch + ri;
-                    if(i<ntotal) res_lst.append(f(i));
-                    else break;
+        while(fork_retried<5) {
+            ec = 0;
+            exstr = "";
+            nactive = 0;
+            for(int bi=0; bi<btotal; bi++) {
+                restart: ;
+                for(int i=0; i<btotal; i++) if(waitpid(-pgid,NULL,WNOHANG)>0) nactive--;
+                if(Verbose > 1 && !nst) {
+                    cout << "\r                                                                  \r" << pre;
+                    cout << "\\--Evaluating ";
+                    if(key != "") cout << Color_HighLight << key << RESET << " ";
+                    cout << Color_HighLight << nbatch << "x" << RESET << "[" << (bi+1) << "/" << btotal << "] @ " << now(false) << exstr << flush;
                 }
+                
+                if(fork_retried>0) { // skip when bi.*.gar exists
+                    ostringstream garfn;
+                    if(key == "") garfn << ppid << "/" << bi << ".gar";
+                    else garfn << ppid << "/" << bi << "." << key << ".gar";
+                    if(file_exists(garfn.str())) continue;
+                }
+                
+                auto pid = fork();
+                if(pid < 0) {
+                    if(getpid()!=pgid) exit(0); // make sure exit child process
+                    ec++;
+                    if(ec>3*btotal) throw Error("GiNaC_Parallel: Error (2) @ fork()");
+                    exstr = " [fork(" + to_string(ec) + ")]";
+                    if(waitpid(-pgid,NULL,0)>0) nactive--;
+                    goto restart; // parent process goes next cycle
+                }
+                if(pid==0 && setpgid(0, pgid)!=0) {
+                    if(setpgid(0, pgid)) throw Error("GiNaC_Parallel: setpgid(0, pgid) Failed.");
+                }
+                if(pid>0) {
+                    nactive++;
+                    if(nactive >= para_max_run) if(waitpid(-pgid,NULL,0)>0) nactive--;
+                    continue; // parent process goes next cycle
+                }
+                
+                // pid = 0, child process
+                GiNaC_Parallel_Level++;
+                try {
+                    lst res_lst;
+                    for(int ri=0; ri<nbatch; ri++) {
+                        int i = bi*nbatch + ri;
+                        if(i<ntotal) res_lst.append(f(i));
+                        else break;
+                    }
+                    ostringstream garfn;
+                    if(key == "") garfn << ppid << "/" << bi << ".gar";
+                    else garfn << ppid << "/" << bi << "." << key << ".gar";
+                    garWrite(garfn.str(), res_lst);
+                } catch(exception &p) { // NOT use Error
+                    cout << ErrColor << "Failed in GiNaC_Parallel!" << RESET << endl;
+                    cout << ErrColor << p.what() << RESET << endl;
+                }
+                exit(0);
+            }
+            
+            if(getpid()!=pgid) exit(0); // make sure child exit
+            while (waitpid(-pgid,NULL,0) != -1) { }
+            if(!nst && Verbose > 1) cout << endl;
+            if(getpid()!=ppid) exit(0); // make the forked group leader exit
+            
+            if(ec<2) break;
+            // check all *.gar and retry
+            bool all_gar_exists = true;
+            for(int bi=0; bi<btotal; bi++) {
                 ostringstream garfn;
                 if(key == "") garfn << ppid << "/" << bi << ".gar";
                 else garfn << ppid << "/" << bi << "." << key << ".gar";
-                garWrite(garfn.str(), res_lst);
-            } catch(exception &p) { // NOT use Error
-                cout << ErrColor << "Failed in GiNaC_Parallel!" << RESET << endl;
-                cout << ErrColor << p.what() << RESET << endl;
+                if(!file_exists(garfn.str())) {
+                    all_gar_exists = false;
+                    break;
+                }
             }
-            exit(0);
+            if(all_gar_exists) break;
+            para_max_run = para_max_run/2;
+            if(para_max_run<2) break;
+            fork_retried++;
         }
-        
-        if(getpid()!=pgid) exit(0); // make sure child exit
-        while (waitpid(-pgid,NULL,0) != -1) { }
-        if(!nst) {
-            if(Verbose > 1) cout << endl;
-            else if(Verbose > 1) cout << "\r                                                   \r" << flush;
-        }
-        if(getpid()!=ppid) exit(0); // make the forked group leader exit
         
         wait_label:
         if(npid!=0) waitpid(npid,NULL,0); // wait nest process to exit
         
+        #define use_gar_write
+        
         exvector ovec;
         if(true) {
-            ostringstream garfn;
-            if(key == "") garfn << ppid << "/all.gar";
-            else garfn << ppid << "/all." << key << ".gar";
-            if(true) {
-                exvector ovec_tmp;
-                for(int bi=0; bi<btotal; bi++) {
-                    if(Verbose > 1 && !nst) {
-                        if(key == "") {
-                            cout << "\r                                                   \r" << pre;
-                            cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
-                        } else {
-                            cout << "\r                                                   \r" << pre;
-                            cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
-                        }
-                    }
-
-                    ostringstream garfn;
-                    if(key == "") garfn << ppid << "/" << bi << ".gar";
-                    else garfn << ppid << "/" << bi << "." << key << ".gar";
-                    lst res_lst;
-                    try {
-                        if(file_exists(garfn.str())) {
-                            res_lst = ex_to<lst>(garRead(garfn.str()));
-                            remove(garfn.str().c_str());
-                            goto done;
-                        } 
-                    } catch(exception &p) { }
-                    cout << " - ReTry" << endl;
-                    try {
-                        res_lst.remove_all();
-                        for(int ri=0; ri<nbatch; ri++) {
-                            int i = bi*nbatch + ri;
-                            if(i<ntotal) res_lst.append(f(i));
-                            else break;
-                        }
-                    } catch(exception &p) { 
-                        cout << ErrColor << "Failed in GiNaC_Parallel!" << RESET << endl;
-                        cout << ErrColor << p.what() << RESET << endl;
-                        throw Error("GiNaC_Parallel_ReTRY: "+string(p.what()));
-                    }
-                    done: ;
-                    for(auto res : res_lst) ovec_tmp.push_back(res);
-                }
-                
-                if(!nst && Verbose>1) {
-                    cout << endl;
+            #ifdef use_gar_write
+            exvector ovec_tmp;
+            #endif
+            for(int bi=0; bi<btotal; bi++) {
+                if(Verbose > 1 && !nst) {
                     if(key == "") {
                         cout << "\r                                                   \r" << pre;
-                        cout << "\\--ReSharing" << flush;
+                        cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
                     } else {
                         cout << "\r                                                   \r" << pre;
-                        cout << "\\--ReSharing " << Color_HighLight << key << RESET << flush;
+                        cout << "\\--Reading *." << Color_HighLight << key << RESET << ".gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
                     }
                 }
-                garWrite(garfn.str(), ovec_tmp);
+
+                ostringstream garfn;
+                if(key == "") garfn << ppid << "/" << bi << ".gar";
+                else garfn << ppid << "/" << bi << "." << key << ".gar";
+                lst res_lst;
+                try {
+                    if(file_exists(garfn.str())) {
+                        res_lst = ex_to<lst>(garRead(garfn.str()));
+                        remove(garfn.str().c_str());
+                        goto done;
+                    } 
+                } catch(exception &p) { }
+                if(Verbose > 1 && !nst) cout << " - ReTry" << endl;
+                try {
+                    res_lst.remove_all();
+                    for(int ri=0; ri<nbatch; ri++) {
+                        int i = bi*nbatch + ri;
+                        if(i<ntotal) res_lst.append(f(i));
+                        else break;
+                    }
+                } catch(exception &p) { 
+                    cout << ErrColor << "Failed in GiNaC_Parallel!" << RESET << endl;
+                    cout << ErrColor << p.what() << RESET << endl;
+                    throw Error("GiNaC_Parallel_ReTRY: "+string(p.what()));
+                }
+                done: ;
+                #ifdef use_gar_write
+                for(auto res : res_lst) ovec_tmp.push_back(res);
+                #else 
+                for(auto res : res_lst) ovec.push_back(res);
+                #endif
             }
             
+            if(!nst && Verbose>1) {
+                cout << endl;
+                if(key == "") {
+                    cout << "\r                                                   \r" << pre;
+                    cout << "\\--ReWR" << flush;
+                } else {
+                    cout << "\r                                                   \r" << pre;
+                    cout << "\\--ReWR " << Color_HighLight << key << RESET << flush;
+                }
+            }
+            #ifdef use_gar_write
+            ostringstream garfn;
+            if(key == "") garfn << ppid << "/ReWR.gar";
+            else garfn << ppid << "/ReWR." << key << ".gar";
+            garWrite(garfn.str(), ovec_tmp);
+            ovec_tmp.clear();
             garRead(garfn.str(), ovec);
+            #else 
             ReShare(ovec);
-            cout << " @ " << now(false) << endl;
+            #endif
+            
+            if(!nst && Verbose>1) cout << " @ " << now(false) << endl;
         }
         
         if(rm) {
@@ -1867,6 +1903,7 @@ namespace HepLib {
      * @return a list of { numer, denom }
      */
     ex numer_denom_fermat(const ex & expr, bool dfactor) {
+        bool _fermat_using_array = fermat_using_array;
         static map<pid_t, Fermat> fermat_map;
         static int v_max = 0;
         bool use_ncheck = false;
@@ -1937,7 +1974,9 @@ namespace HepLib {
         if(!is_a<add>(expr_in)) item = lst{ expr_in };
         else for(auto ii : expr_in) item.append(ii);
         //sort_lst(item); // no need
-        if(fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
+        if(item.nops()>999999) _fermat_using_array = false;
+        else if(item.nops()>500) _fermat_using_array = true;
+        if(_fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
         else ss << "res:=0;" << endl;
         fermat.Execute(ss.str());
         ss.clear();
@@ -1946,16 +1985,17 @@ namespace HepLib {
         for(int i=0; i<item.nops(); i++) {
             ex tt = item.op(i).subs(v2f, subs_options::no_pattern);
             if(use_ncheck) nn_chk += tt.subs(nn_map, subs_options::no_pattern);
-            if(fermat_using_array) ss << "m[" << (i+1) << "]:=";
+            if(_fermat_using_array) ss << "m[" << (i+1) << "]:=";
             else ss << "item:=";
             ss << tt << ";" << endl;
-            if(!fermat_using_array) ss << "res:=res+item;" << endl;
+            if(!_fermat_using_array) ss << "res:=*res+*item;" << endl;
             fermat.Execute(ss.str());
             ss.clear();
             ss.str("");
         }
-        if(fermat_using_array) {
-            ss << "res:=Sumup([m]);" << endl;
+        if(_fermat_using_array) {
+            //ss << "res:=Sumup([m]);" << endl;
+            ss << "res:=Sigma<i=1,"<<item.nops()<<">(*m[i]);" << endl;
             fermat.Execute(ss.str());
             ss.clear();
             ss.str("");
@@ -1970,7 +2010,7 @@ namespace HepLib {
         
         // note the order,(normal_fermat will be called again in factor_form)
         ss << "&(U=0);" << endl; // disable ugly printing
-        if(fermat_using_array) ss << "@(res,[m]);" << endl;
+        if(_fermat_using_array) ss << "@(res,[m]);" << endl;
         else ss << "@(res,item);" << endl;
         ss << "&_G;" << endl;
         fermat.Execute(ss.str());
@@ -1991,6 +2031,7 @@ namespace HepLib {
         symtab st;
         Parser fp(st);
         auto ret = fp.Read(ostr);
+        ReShare(ret,expr);
         num = ret.op(0);
         if(dfactor) den = factor_form(ret.op(1));
         else den = ret.op(1);
@@ -2011,6 +2052,7 @@ namespace HepLib {
     }
     
     ex numer_fermat(const ex & expr) {
+        bool _fermat_using_array = fermat_using_array;
         static map<pid_t, Fermat> fermat_map;
         static int v_max = 0;
         bool use_ncheck = false;
@@ -2081,7 +2123,9 @@ namespace HepLib {
         if(!is_a<add>(expr_in)) item = lst{ expr_in };
         else for(auto ii : expr_in) item.append(ii);
         //sort_lst(item); // no need
-        if(fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
+        if(item.nops()>999999) _fermat_using_array = false;
+        else if(item.nops()>500) _fermat_using_array = true;
+        if(_fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
         else ss << "res:=0;" << endl;
         fermat.Execute(ss.str());
         ss.clear();
@@ -2090,16 +2134,17 @@ namespace HepLib {
         for(int i=0; i<item.nops(); i++) {
             ex tt = item.op(i).subs(v2f, subs_options::no_pattern);
             if(use_ncheck) nn_chk += tt.subs(nn_map, subs_options::no_pattern);
-            if(fermat_using_array) ss << "m[" << (i+1) << "]:=";
+            if(_fermat_using_array) ss << "m[" << (i+1) << "]:=";
             else ss << "item:=";
             ss << tt << ";" << endl;
-            if(!fermat_using_array) ss << "res:=res+item;" << endl;
+            if(!_fermat_using_array) ss << "res:=*res+*item;" << endl;
             fermat.Execute(ss.str());
             ss.clear();
             ss.str("");
         }
-        if(fermat_using_array) {
-            ss << "res:=Sumup([m]);" << endl;
+        if(_fermat_using_array) {
+            //ss << "res:=Sumup([m]);" << endl;
+            ss << "res:=Sigma<i=1,"<<item.nops()<<">(*m[i]);" << endl;
             fermat.Execute(ss.str());
             ss.clear();
             ss.str("");
@@ -2114,7 +2159,7 @@ namespace HepLib {
         
         // note the order,(normal_fermat will be called again in factor_form)
         ss << "&(U=0);" << endl; // disable ugly printing
-        if(fermat_using_array) ss << "@(res,[m]);" << endl;
+        if(_fermat_using_array) ss << "@(res,[m]);" << endl;
         else ss << "@(res,item);" << endl;
         ss << "&_G;" << endl;
         fermat.Execute(ss.str());
@@ -2458,15 +2503,34 @@ namespace HepLib {
         for(auto cvs : cvs_vec) for(auto cv : cvs) res_map[cv.op(1)] += cv.op(0);
         exvector res_vec;
         for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
+        GiNaC_Parallel_NB["NorEx"] = 1;
         res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec](int idx)->ex {
             return exnormal(res_vec[idx].op(0)) * res_vec[idx].op(1);
         }, "NorEx");
         return add(res_vec);
     }
-    
+        
     void ReShare(const ex & e) {
         archive ar;
         ar.archive_ex(e, "e");
+    }
+    
+    void ReShare(const lst & es) {
+        archive ar;
+        for(auto const & e : es) ar.archive_ex(e, "e");
+    }
+    
+    void ReShare(const ex & e1, const ex & e2) {
+        archive ar;
+        ar.archive_ex(e1, "e");
+        ar.archive_ex(e2, "e");
+    }
+    
+    void ReShare(const ex & e1, const ex & e2, const ex & e3) {
+        archive ar;
+        ar.archive_ex(e1, "e");
+        ar.archive_ex(e2, "e");
+        ar.archive_ex(e3, "e");
     }
     
     void ReShare(const exvector & ev) {

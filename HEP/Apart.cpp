@@ -199,7 +199,7 @@ namespace HepLib {
                         }
                     }
                     return lst{ };
-                }, "Ap-"+to_string(nps.size()-1)+"-"+to_string(i+1));
+                }, "AR-"+to_string(nps.size()-1)+"-"+to_string(i+1));
                 for(auto item : ret) if(item.nops()>1) {
                     int idx = ex_to<numeric>(item.op(0)).to_int();
                     int j = ex_to<numeric>(item.op(1)).to_int();
@@ -269,7 +269,7 @@ namespace HepLib {
                     return lst{ airs[k], air };
                 } else if(irc) return lst{ airs[k], ApartIRC(airs[k]) };
                 else return lst{ };
-            }, "ApRule");
+            }, "AR");
             ReShare(ret,airs);
             for(auto lr : ret) if(lr.nops()>1) rules[lr.op(0)] = lr.op(1);
         }

@@ -113,6 +113,54 @@ namespace HepLib::IBP {
         IsAlwaysZero = s.op(i++).is_equal(1);
         for(auto item : shift) Shift[ex_to<numeric>(item.op(0)).to_int()] = item.op(1);
     }
+    
+    void Base::ReShare(const vector<Base*> & fs) {
+        string garfn = to_string(getpid())+".ReShare.gar";
+        if(true) {
+            archive ar;
+            for(int i=0; i<fs.size(); i++) {
+                string si = to_string(i);
+                ar.archive_ex(fs[i]->Internal, (si+"-1").c_str());
+                ar.archive_ex(fs[i]->External, (si+"-2").c_str());
+                ar.archive_ex(fs[i]->Replacements, (si+"-3").c_str());
+                ar.archive_ex(fs[i]->Propagators, (si+"-4").c_str());
+                ar.archive_ex(fs[i]->DSP, (si+"-5").c_str());
+                ar.archive_ex(fs[i]->ISP, (si+"-6").c_str());
+                ar.archive_ex(fs[i]->PIntegrals, (si+"-7").c_str());
+                ar.archive_ex(fs[i]->MIntegrals, (si+"-8").c_str());
+                ar.archive_ex(fs[i]->Rules, (si+"-9").c_str());
+            }
+            ofstream out(garfn);
+            out << ar;
+            out.close();
+        }
+        if(true) {
+            archive ar;
+            ifstream in(garfn);
+            in >> ar;
+            in.close();
+            
+            map<string, ex> dict;
+            for(int i=0; i<ar.num_expressions(); i++) {
+                string name;
+                ex res = ar.unarchive_ex(name, i);
+                dict[name] = res;
+            }
+            
+            for(int i=0; i<fs.size(); i++) {
+                string si = to_string(i);
+                fs[i]->Internal = ex_to<lst>(dict[si+"-1"]);
+                fs[i]->External = ex_to<lst>(dict[si+"-2"]);
+                fs[i]->Replacements = ex_to<lst>(dict[si+"-3"]);
+                fs[i]->Propagators = ex_to<lst>(dict[si+"-4"]);
+                fs[i]->DSP = ex_to<lst>(dict[si+"-5"]);
+                fs[i]->ISP = ex_to<lst>(dict[si+"-6"]);
+                fs[i]->PIntegrals = ex_to<lst>(dict[si+"-7"]);
+                fs[i]->MIntegrals = ex_to<lst>(dict[si+"-8"]);
+                fs[i]->Rules = ex_to<lst>(dict[si+"-9"]);
+            }
+        }
+    }
         
     /**
      * @brief Sort for all permuations, and return xs w.r.t. 1st permutation
@@ -310,7 +358,7 @@ namespace HepLib::IBP {
             ft = exnormal(ut*ft);
             ft = exnormal(subs_all(ft, base.Replacements));
             ut = exnormal(subs_all(ut, base.Replacements));
-            uf = exnormal(ut*ft);
+            uf = exnormal(ut+ft); // ut*ft, replay with ut+ft
             
             if(using_cache) cache[key] = lst{ut,ft,uf};
         } else {

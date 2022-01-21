@@ -17,10 +17,46 @@ namespace HepLib {
     // Initialization Unit
     // to make sure the initialization order is correct,
     // i.e., ordered in one compilation unit
+    
+    // FROM class
+    
+    // similar to GINAC_DECLARE_UNARCHIVER/GINAC_IMPLEMENT_REGISTERED_CLASS_OPT
+    GiNaC::registered_class_info Symbol::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("Symbol", "symbol", typeid(Symbol)));
+    
+    GiNaC::registered_class_info iSymbol::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("iSymbol", "symbol", typeid(iSymbol)));
+    
+    GiNaC::registered_class_info XIntegral::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("XIntegral", "basic", typeid(XIntegral)).print_func<print_dflt>(&XIntegral::print));
+    
+    GiNaC::registered_class_info Index::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("Index", "basic", typeid(Index)).print_func<print_context>(&Index::print));
+    
+    GiNaC::registered_class_info Vector::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("Vector", "basic", typeid(Vector)).print_func<print_context>(&Vector::print));
+    
+    GiNaC::registered_class_info SUNT::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("SUNT", "basic", typeid(SUNT)).print_func<print_dflt>(&SUNT::print).print_func<FormFormat>(&SUNT::form_print).print_func<FCFormat>(&SUNT::fc_print));
+            
+    GiNaC::registered_class_info SUNF::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("SUNF", "basic", typeid(SUNF)).print_func<print_dflt>(&SUNF::print).print_func<FormFormat>(&SUNF::form_print).print_func<FCFormat>(&SUNF::fc_print));
+    
+    GiNaC::registered_class_info SUNF4::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("SUNF4", "basic", typeid(SUNF4)).print_func<print_dflt>(&SUNF4::print).print_func<FormFormat>(&SUNF4::form_print).print_func<FCFormat>(&SUNF4::fc_print));
+    
+    GiNaC::registered_class_info DGamma::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("DGamma", "basic", typeid(DGamma)).print_func<print_dflt>(&DGamma::print).print_func<FormFormat>(&DGamma::form_print).print_func<FCFormat>(&DGamma::fc_print));
+    
+    GiNaC::registered_class_info Eps::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("Eps", "basic", typeid(Eps)).print_func<print_dflt>(&Eps::print).print_func<FormFormat>(&Eps::form_print).print_func<FCFormat>(&Eps::fc_print));
+    
+    GiNaC::registered_class_info Pair::reg_info = 
+        GiNaC::registered_class_info(GiNaC::registered_class_options("Pair", "basic", typeid(Pair)).print_func<print_dflt>(&Pair::print).print_func<FormFormat>(&Pair::form_print).print_func<FCFormat>(&Pair::fc_print));
+    
+    // FROM BASIC
 
-    //----------------------------------------
-    // HepLib
-    //----------------------------------------
+    string Version = "1.1 - 2021-01-18 12:55";
     exmap Symbol::vmap;
     std::map<std::string, ex> Symbol::Table; // alias as symtab in parser
     std::map<std::string, ex> iSymbol::Table; // alias as symtab in parser
@@ -64,9 +100,6 @@ namespace HepLib {
     int Fermat::buffer_size = 1024*128;
     int Form::buffer_size = 1024*128;
 
-    //----------------------------------------
-    // HepLib::SD
-    //----------------------------------------
     const Symbol SD::eps("eps");
     const Symbol SD::vs("vs");
     const Symbol SD::vz("vz");
@@ -82,9 +115,8 @@ namespace HepLib {
     SD::CppFormat::_init SD::CppFormat::CppFormat_init;
     int SD::VEO_Digits = 10;
     
-    //----------------------------------------
-    // HepLib HEP
-    //----------------------------------------
+    // FROM HEP
+    
     const Symbol NA("NA");
     const Symbol NF("NF");
     const Symbol gs("gs");
@@ -125,9 +157,6 @@ namespace HepLib {
     bool form_using_su3 = true;
     bool form_using_dim4 = false;
     
-    //----------------------------------------
-    // Process _init
-    //----------------------------------------
     QGRAF::Process::_init::_init() {
         auto A = Symbol("A");
         auto q = Symbol("q");
@@ -162,9 +191,8 @@ namespace HepLib {
     }
     QGRAF::Process::_init QGRAF::Process::Process_init;
     
-    //----------------------------------------
-    // HepLib::IBP
-    //----------------------------------------
+    // FROM IBP
+    
     const Symbol IBP::d("d");
     int IBP::FIRE::Version = 6;
     int IBP::FIRE::Threads = 4;
@@ -173,9 +201,7 @@ namespace HepLib {
     string IBP::UKIRA::KArgs = "";
     string IBP::KIRA::KArgs = "";
     
-    //----------------------------------------
     // Rationalize
-    //----------------------------------------
     
     MapFunction Rationalize([](const ex & e, MapFunction & self)->ex{
         if(is_a<numeric>(e)) {
@@ -188,8 +214,11 @@ namespace HepLib {
         } else return e.map(self);
     });
     
+    // FROM QCD
+    int QCD::FF::cur_mode = 0; // 0 - gluon, 1 - quark, 2 - anti-quark
     
-    // global init class
+    // global init
+    
     _global_init::_init::_init() {
         ostringstream oss;
         string path = InstallPrefix + "/bin";
@@ -220,43 +249,6 @@ namespace HepLib {
         table.insert(std::string("Pair"), []()->GiNaC::basic*{ return new Pair(); });
     }
     _global_init::_init _global_init::init_object;
-    
-    // similar to GINAC_DECLARE_UNARCHIVER/GINAC_IMPLEMENT_REGISTERED_CLASS_OPT
-    GiNaC::registered_class_info Symbol::reg_info = 
-        GiNaC::registered_class_info(GiNaC::registered_class_options("Symbol", "symbol", typeid(Symbol)));
-    
-    GiNaC::registered_class_info iSymbol::reg_info = 
-        GiNaC::registered_class_info(GiNaC::registered_class_options("iSymbol", "symbol", typeid(iSymbol)));
-    
-    GiNaC::registered_class_info XIntegral::reg_info = 
-        GiNaC::registered_class_info(GiNaC::registered_class_options("XIntegral", "basic", typeid(XIntegral)).print_func<print_dflt>(&XIntegral::print));
-    
-    GiNaC::registered_class_info Index::reg_info = 
-        GiNaC::registered_class_info(GiNaC::registered_class_options("Index", "basic", typeid(Index)).print_func<print_context>(&Index::print));
-    
-    GiNaC::registered_class_info Vector::reg_info = 
-        GiNaC::registered_class_info(GiNaC::registered_class_options("Vector", "basic", typeid(Vector)).print_func<print_context>(&Vector::print));
-    
-    GiNaC::registered_class_info SUNT::reg_info = 
-        GiNaC::registered_class_info(GiNaC::registered_class_options("SUNT", "basic", typeid(SUNT)).print_func<print_dflt>(&SUNT::print).print_func<FormFormat>(&SUNT::form_print).print_func<FCFormat>(&SUNT::fc_print));
-            
-    GiNaC::registered_class_info SUNF::reg_info = 
-        GiNaC::registered_class_info(GiNaC::registered_class_options("SUNF", "basic", typeid(SUNF)).print_func<print_dflt>(&SUNF::print).print_func<FormFormat>(&SUNF::form_print).print_func<FCFormat>(&SUNF::fc_print));
-    
-    GiNaC::registered_class_info SUNF4::reg_info = 
-        GiNaC::registered_class_info(GiNaC::registered_class_options("SUNF4", "basic", typeid(SUNF4)).print_func<print_dflt>(&SUNF4::print).print_func<FormFormat>(&SUNF4::form_print).print_func<FCFormat>(&SUNF4::fc_print));
-    
-    GiNaC::registered_class_info DGamma::reg_info = 
-        GiNaC::registered_class_info(GiNaC::registered_class_options("DGamma", "basic", typeid(DGamma)).print_func<print_dflt>(&DGamma::print).print_func<FormFormat>(&DGamma::form_print).print_func<FCFormat>(&DGamma::fc_print));
-    
-    GiNaC::registered_class_info Eps::reg_info = 
-        GiNaC::registered_class_info(GiNaC::registered_class_options("Eps", "basic", typeid(Eps)).print_func<print_dflt>(&Eps::print).print_func<FormFormat>(&Eps::form_print).print_func<FCFormat>(&Eps::fc_print));
-    
-    GiNaC::registered_class_info Pair::reg_info = 
-        GiNaC::registered_class_info(GiNaC::registered_class_options("Pair", "basic", typeid(Pair)).print_func<print_dflt>(&Pair::print).print_func<FormFormat>(&Pair::form_print).print_func<FCFormat>(&Pair::fc_print));
-    
-    // QCD::FF
-    int QCD::FF::cur_mode = 0; // 0 - gluon, 1 - quark, 2 - anti-quark
     
 }
 

@@ -51,6 +51,8 @@ namespace HepLib {
     using namespace std;
     using namespace GiNaC;
     
+    extern string Version;
+    
     inline bool has_any(ex expr, lst ps) {
         for(auto pi : ps) if(expr.has(pi)) return true;
         return false;
@@ -848,6 +850,9 @@ namespace HepLib {
     };
     
     void ReShare(const ex & e);
+    void ReShare(const lst & e);
+    void ReShare(const ex & e1, const ex & e2);
+    void ReShare(const ex & e1, const ex & e2, const ex & e3);
     void ReShare(const exvector & ev);
     void ReShare(const exvector & ev1, const exvector & ev2);
 }
