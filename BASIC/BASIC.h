@@ -484,7 +484,7 @@ namespace HepLib {
     inline ex form_factor(const ex & expr, bool nd=true) { return factor_form(expr,nd); }
     
     ex exfactor(const ex & expr, int opt = 1);
-    ex exnormal(const ex & expr, int opt = -5);
+    ex exnormal(const ex & expr, int opt = 1);
     ex exnd(const ex & expr, int opt = 1);
     
     ex collect_factors(const ex & expr);

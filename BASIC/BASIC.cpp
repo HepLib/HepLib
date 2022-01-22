@@ -1911,6 +1911,7 @@ namespace HepLib {
         auto pid = getpid();
         if((fermat_map.find(pid)==fermat_map.end())) { // init section
             fermat_map[pid].Init();
+            fermat_map[pid].Execute("Function ReAdd(a,n;n2,i) = if n<2 then a[1] else n2:=(n-(n|2))/2; for i=1,n2 do a[i]:=*a[i]+*a[n+1-i] od; if (n|2)=0 then ReAdd([a],n2) else ReAdd([a],n2+1) fi fi.");
             v_max = 0;
         }
         Fermat &fermat = fermat_map[pid];
@@ -1975,7 +1976,7 @@ namespace HepLib {
         else for(auto ii : expr_in) item.append(ii);
         //sort_lst(item); // no need
         if(item.nops()>999999) _fermat_using_array = false;
-        else if(item.nops()>500) _fermat_using_array = true;
+        else if(item.nops()>100) _fermat_using_array = true;
         if(_fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
         else ss << "res:=0;" << endl;
         fermat.Execute(ss.str());
@@ -1995,7 +1996,8 @@ namespace HepLib {
         }
         if(_fermat_using_array) {
             //ss << "res:=Sumup([m]);" << endl;
-            ss << "res:=Sigma<i=1,"<<item.nops()<<">(*m[i]);" << endl;
+            //ss << "res:=Sigma<i=1,"<<item.nops()<<">(*m[i]);" << endl;
+            ss << "res:=ReAdd([m]," << item.nops() << ");" << endl;
             fermat.Execute(ss.str());
             ss.clear();
             ss.str("");
