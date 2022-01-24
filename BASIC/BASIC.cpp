@@ -1911,7 +1911,6 @@ namespace HepLib {
         auto pid = getpid();
         if((fermat_map.find(pid)==fermat_map.end())) { // init section
             fermat_map[pid].Init();
-            fermat_map[pid].Execute("Function ReAdd(a,n;n2,i) = if n<2 then a[1] else n2:=(n-(n|2))/2; for i=1,n2 do a[i]:=*a[i]+*a[n+1-i] od; if (n|2)=0 then ReAdd([a],n2) else ReAdd([a],n2+1) fi fi.");
             v_max = 0;
         }
         Fermat &fermat = fermat_map[pid];
@@ -1997,7 +1996,11 @@ namespace HepLib {
         if(_fermat_using_array) {
             //ss << "res:=Sumup([m]);" << endl;
             //ss << "res:=Sigma<i=1,"<<item.nops()<<">(*m[i]);" << endl;
-            ss << "res:=ReAdd([m]," << item.nops() << ");" << endl;
+                        
+            ss << "n:=" << item.nops() << ";" << endl;
+            ss << "while n>1 do n2:=n\\2; for i=1,n2 do m[i]:=*m[i]+*m[n+1-i] od; &_G; if (n|2)=0 then n:=n2 else n:=n2+1 fi od;" << endl;
+            ss << "res:=*m[1];" << endl;
+            
             fermat.Execute(ss.str());
             ss.clear();
             ss.str("");
@@ -2005,7 +2008,7 @@ namespace HepLib {
         
         static string bstr("[-begin-]"), estr("[-end-]");
         ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
-        ss << "!('" <<bstr<< "','{',Numer(res),',',Denom(res),'}','" <<estr<< "')" << endl;
+        ss << "!('" <<bstr<< "','{',Numer(^res),',',Denom(^res),'}','" <<estr<< "')" << endl;
         auto ostr = fermat.Execute(ss.str());
         ss.clear();
         ss.str("");

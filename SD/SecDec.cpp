@@ -379,7 +379,7 @@ namespace HepLib::SD {
                 }
             }
 
-            if(!need_contour_deformation) {
+            if(disable_Contour || !need_contour_deformation) {
                 auto tmp = NN(ft.subs(y(w)==1).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
                 }));
@@ -1182,6 +1182,7 @@ namespace HepLib::SD {
                 exset fts;
                 pns.op(0).find(FTX(w1,w2), fts);
                 bool noFT = (fts.size()==1) && ( is_zero((*(fts.begin())).op(0)-1) );
+                if(!noFT && disable_Contour) noFT = true;
                 
                 ex pole_requested = -1;
                 if(noFT || PoleRequested > -1) pole_requested = PoleRequested;

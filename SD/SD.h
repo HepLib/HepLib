@@ -384,6 +384,7 @@ namespace HepLib::SD {
         int PoleRequested = -5;
         bool vs_before_ep = false;
         bool use_XMonomials = true;
+        bool disable_Contour = false;
         exmap nReplacements;
         exvector FunExp; // each item : { {f1,f2,...}, {n1,n2,...}, { delta_list1, delta_list2 } }
         exvector Integrands;
