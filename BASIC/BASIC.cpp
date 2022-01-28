@@ -2529,7 +2529,7 @@ namespace HepLib {
         for(int i=0; i<size; i++) exv[i] = dict[to_string(i)];
     } 
     
-    ex add_collect_normal(const exvector &exv, lst const &pats) {
+    ex add_collect_normal(const exvector &exv, ex const &pats) {
         auto cvs_vec = GiNaC_Parallel(exv.size(), [&exv,pats](int idx)->ex {
             return collect_lst(exv[idx], pats);
         }, "ColEx");
@@ -2542,6 +2542,11 @@ namespace HepLib {
             return exnormal(res_vec[idx].op(0)) * res_vec[idx].op(1);
         }, "NorEx");
         return add(res_vec);
+    }
+    ex add_collect_normal(const ex & e, ex const &pats) {
+        if(!is_a<add>(e)) throw Error("add_collect_normal: input is NOT a add class.");
+        exvector exv(e.begin(), e.end());
+        return add_collect_normal(exv, pats);
     }
         
     void ReShare(const ex & e) {

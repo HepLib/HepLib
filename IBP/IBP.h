@@ -66,6 +66,8 @@ namespace HepLib::IBP {
         int pos_pref = 1;
         static int Version;
         static int Threads;
+        static int fThreads;
+        static int sThreads;
     };
     
     /**

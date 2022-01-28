@@ -241,7 +241,14 @@ namespace HepLib::IBP {
                         }
                         if(ok) subsets.insert(item);
                     }
-                    for(auto item : subsets) sectors.erase(item);
+                    for(auto item : subsets) {
+                        sectors.erase(item);
+                        lst ns1 = ex_to<lst>(item);
+                        for(int j=0; j<pdim; j++) {
+                            if(sector.op(j).is_zero()) ns1.let_op(j) = -1;
+                        }
+                        Rlst.append(ns1);
+                    }
                 } else { // from LiteRed: all supersector is non-zero
                     if(IsAlwaysZero) IsAlwaysZero = false;
                     exset supsets;
@@ -308,7 +315,8 @@ namespace HepLib::IBP {
         ostringstream config;
         if(Version>5) config << "#compressor none" << endl;
         config << "#threads " << Threads << endl;
-        //config << "#fthreads 4" << endl;
+        config << "#fthreads " << fThreads << endl;
+        if(Version>5) config << "#sthreads " << sThreads << endl;
         config << "#variables ";
         bool first = true;
         exvector ev_sort;

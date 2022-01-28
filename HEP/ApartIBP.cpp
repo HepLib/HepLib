@@ -394,7 +394,7 @@ namespace HepLib {
                 ibp_vec_re[i]->Rules = ex_to<lst>(pRes[i].op(1));
             }
             
-            int nproc = 2*CpuCores()/FIRE::Threads;
+            int nproc = 2*CpuCores()/FIRE::fThreads;
             int cproc = 0;
             if(nproc<2) nproc = 2;
             #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
