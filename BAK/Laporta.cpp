@@ -104,8 +104,8 @@ void Laporta::Prepare(lst loop, lst ext, lst prop, lst repl) {
     lst eqns;
     for(int i=0; i<prop.nops(); i++) {
         auto eq = prop.op(i).expand();
-        eq = eq.subs(sp2s, subs_options::algebraic);
-        eq = eq.subs(repl, subs_options::algebraic);
+        eq = eq.subs(sp2s, algbr);
+        eq = eq.subs(repl, algbr);
         eqns.append(eq == iWF(i));
     }
     auto s2p = lsolve(eqns, ss);
@@ -126,9 +126,9 @@ void Laporta::Prepare(lst loop, lst ext, lst prop, lst repl) {
         for(auto ii : ext) {
             auto ibp_tmp = ibp * ii;
             ibp_tmp = ibp_tmp.expand();
-            ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
-            ibp_tmp = ibp_tmp.subs(repl, subs_options::algebraic);
-            ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
+            ibp_tmp = ibp_tmp.subs(sp2s, algbr);
+            ibp_tmp = ibp_tmp.subs(repl, algbr);
+            ibp_tmp = ibp_tmp.subs(s2p, algbr);
             ex res = 0;
             for(int i=0; i<prop.nops(); i++) {
                 auto ci = ibp_tmp.coeff(iWF(i), 1);
@@ -149,9 +149,9 @@ void Laporta::Prepare(lst loop, lst ext, lst prop, lst repl) {
         for(auto ii : loop) {
             auto ibp_tmp = ibp * ii;
             ibp_tmp = ibp_tmp.expand();
-            ibp_tmp = ibp_tmp.subs(sp2s, subs_options::algebraic);
-            ibp_tmp = ibp_tmp.subs(repl, subs_options::algebraic);
-            ibp_tmp = ibp_tmp.subs(s2p, subs_options::algebraic);
+            ibp_tmp = ibp_tmp.subs(sp2s, algbr);
+            ibp_tmp = ibp_tmp.subs(repl, algbr);
+            ibp_tmp = ibp_tmp.subs(s2p, algbr);
             ex res = 0;
             for(int i=0; i<prop.nops(); i++) {
                 auto ci = ibp_tmp.coeff(iWF(i), 1);

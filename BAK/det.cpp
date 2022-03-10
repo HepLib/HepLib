@@ -76,7 +76,6 @@ int main(int argc, char *argv[]) {
         cout << "n-matrix saved to " << n_path << endl;
         if(strlen(t_path)>0) cout << "t-matrix saved to " << t_path << endl;
     } else if ((argc > 1) && !strcmp(argv[0], "dess")) {
-        Digits = 100;
         symbol x(x_name), ep(ep_name);
         parser reader(symtab({{ep_name, ep}, {x_name, x}}));
         

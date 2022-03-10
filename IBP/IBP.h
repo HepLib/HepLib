@@ -45,6 +45,7 @@ namespace HepLib::IBP {
         virtual void Export() { throw Error("Export() not implemented!"); };
         virtual void Run() { throw Error("Run() not implemented!"); };
         virtual void Import() { throw Error("Import() not implemented!"); };
+        void FindRules(bool mi=true);
         bool IsZero(ex sector);
         void Reduce();
         void Export(string garfn); // Export to .gar
@@ -63,11 +64,14 @@ namespace HepLib::IBP {
         void Export() override;
         void Run() override;
         void Import() override;
-        int pos_pref = 1;
+        int pos_pref = 2;
         static int Version;
         static int Threads;
         static int fThreads;
+        static int lThreads;
         static int sThreads;
+        static void RRTables(const string & filename, int pnum);
+        static void ThieleTables(const string & filename, int si, int ei);
     };
     
     /**
@@ -204,6 +208,7 @@ namespace HepLib::IBP {
         fs.push_back(&ibp);
         return FindRules(fs, mi, uf);
     }
-
-
+    
+    ex GPolynomial(const Base & base);
+    void GPermutation(const ex & uf, const lst & xs);
 }

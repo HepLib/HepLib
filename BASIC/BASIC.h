@@ -51,7 +51,14 @@ namespace HepLib {
     using namespace std;
     using namespace GiNaC;
     
+    typedef std::initializer_list<ex> init_list;
     extern string Version;
+    extern unsigned nopat;
+    extern unsigned algbr;
+    
+    inline ex subs(const ex & e, init_list sl) { 
+        return e.subs(lst(sl)); 
+    }
     
     inline bool has_any(ex expr, lst ps) {
         for(auto pi : ps) if(expr.has(pi)) return true;
@@ -94,6 +101,19 @@ namespace HepLib {
     #define BOLDMAGENTA "\033[1m\033[35m"
     #define BOLDCYAN "\033[1m\033[36m"
     #define BOLDWHITE "\033[1m\033[37m"
+    
+    extern const int o_none;
+    extern const int o_normal;
+    extern const int o_normalF;
+    extern const int o_normalFD;
+    extern const int o_normalNF;
+    extern const int o_factor;
+    extern const int o_factorF;
+    extern const int o_normal_normalF;
+    extern const int o_normal_factor;
+    extern const int o_normal_factorF;
+    extern const int o_normalF_factor;
+    extern const int o_normalF_factorF;
     
     /**
      * @brief class extended to GiNaC symbol class, represent a positive symbol
@@ -284,20 +304,22 @@ namespace HepLib {
     }
         
     inline ex subs_all(const ex & expr, const ex & repls) {
-        return subs(expr, repls, subs_options::algebraic);
+        return subs(expr, repls, algbr);
     };
     inline ex subs_all(const ex & expr, const exmap & repls) {
-        return subs(expr, repls, subs_options::algebraic);
+        return subs(expr, repls, algbr);
     };
     
     /*-----------------------------------------------------*/
     // vector : GiNaC_Parallel
     /*-----------------------------------------------------*/
     extern int GiNaC_Parallel_Process;
+    extern map<string, int> GiNaC_Parallel_Verb;
     extern map<string, int> GiNaC_Parallel_NP;
     extern int GiNaC_Parallel_Batch;
     extern map<string,int> GiNaC_Parallel_NB;
     extern map<string,bool> GiNaC_Parallel_RM;
+    extern map<string,bool> GiNaC_Parallel_ReWR;
     extern map<string,string> GiNaC_Parallel_PRE;
     exvector GiNaC_Parallel(int ntotal, std::function<ex(int)> f, const string & key = "");
     
@@ -317,7 +339,9 @@ namespace HepLib {
     ex str2ex(const string &expr);
     lst str2lst(const string &expr, symtab stab);
     lst str2lst(const string &expr);
+    matrix lst2mat(const lst & ls);
     string file2str(string filename);
+    void str2file(const string & ostr, string filename);
     vector<string> file2strvec(string filename, bool skip_empty=false);
     ex file2ex(string filename);
     ex file2ex(string filename, symtab st);
@@ -399,69 +423,86 @@ namespace HepLib {
         return expand_ex(expr, [pat](const ex & e)->bool { return e.has(pat); });
     }
     
-    ex collect_ex(const ex &expr, std::function<bool(const ex &)>, bool cf=false, bool vf=false, int opt=0);
+    ex collect_ex(const ex &expr, std::function<bool(const ex &)>, bool cf=false, bool vf=false, int opt=o_none);
     
-    inline ex collect_ex(const ex &expr, lst const &pats, bool cf=false, bool vf=false, int opt=0) {
+    inline ex collect_ex(const ex &expr, init_list const &pats, bool cf=false, bool vf=false, int opt=o_none) {
         return collect_ex(expr, [pats](const ex & e)->bool {
             for(auto pat : pats) { if(e.has(pat)) return true; }
             return false;
         }, cf, vf, opt);
     }
     
-    inline ex collect_ex(const ex &expr, ex const &pat, bool cf=false, bool vf=false, int opt=0) {
+    inline ex collect_ex(const ex &expr, lst const &pats, bool cf=false, bool vf=false, int opt=o_none) {
+        return collect_ex(expr, [pats](const ex & e)->bool {
+            for(auto pat : pats) { if(e.has(pat)) return true; }
+            return false;
+        }, cf, vf, opt);
+    }
+    
+    inline ex collect_ex(const ex &expr, ex const &pat, bool cf=false, bool vf=false, int opt=o_none) {
         return collect_ex(expr, [pat](const ex & e)->bool { return e.has(pat); }, cf, vf, opt);
     }
     
-    inline ex collect_o(const ex &expr, std::function<bool(const ex &)> f, int opt=0) {
+    inline ex collect_o(const ex &expr, std::function<bool(const ex &)> f, int opt=o_none) {
         return collect_ex(expr, f, false, false, opt);
     }
-    inline ex collect_o(const ex &expr, lst const &pats, int opt=0) {
+    inline ex collect_o(const ex &expr, lst const &pats, int opt=o_none) {
         return collect_ex(expr, pats, false, false, opt);
     }
-    inline ex collect_o(const ex &expr, ex const &pat, int opt=0) {
+    inline ex collect_o(const ex &expr, ex const &pat, int opt=o_none) {
         return collect_ex(expr, pat, false, false, opt);
     }
     
-    inline ex collect_c(const ex &expr, std::function<bool(const ex &)> f, int opt=0) {
+    inline ex collect_c(const ex &expr, std::function<bool(const ex &)> f, int opt=o_none) {
         return collect_ex(expr, f, true, false, opt);
     }
-    inline ex collect_c(const ex &expr, lst const &pats, int opt=0) {
+    inline ex collect_c(const ex &expr, lst const &pats, int opt=o_none) {
         return collect_ex(expr, pats, true, false, opt);
     }
-    inline ex collect_c(const ex &expr, ex const &pat, int opt=0) {
+    inline ex collect_c(const ex &expr, ex const &pat, int opt=o_none) {
         return collect_ex(expr, pat, true, false, opt);
     }
 
-    inline ex collect_v(const ex &expr, std::function<bool(const ex &)> f, int opt=0) {
+    inline ex collect_v(const ex &expr, std::function<bool(const ex &)> f, int opt=o_none) {
         return collect_ex(expr, f, false, true, opt);
     }
-    inline ex collect_v(const ex &expr, lst const &pats, int opt=0) {
+    inline ex collect_v(const ex &expr, lst const &pats, int opt=o_none) {
         return collect_ex(expr, pats, false, true, opt);
     }
-    inline ex collect_v(const ex &expr, ex const &pat, int opt=0) {
+    inline ex collect_v(const ex &expr, ex const &pat, int opt=o_none) {
         return collect_ex(expr, pat, false, true, opt);
     }
     
-    inline ex collect_cv(const ex &expr, std::function<bool(const ex &)> f, int opt=0) {
+    inline ex collect_cv(const ex &expr, std::function<bool(const ex &)> f, int opt=o_none) {
         return collect_ex(expr, f, true, true, opt);
     }
-    inline ex collect_cv(const ex &expr, lst const &pats, int opt=0) {
+    inline ex collect_cv(const ex &expr, init_list const &pats, int opt=o_none) {
         return collect_ex(expr, pats, true, true, opt);
     }
-    inline ex collect_cv(const ex &expr, ex const &pat, int opt=0) {
+    inline ex collect_cv(const ex &expr, lst const &pats, int opt=o_none) {
+        return collect_ex(expr, pats, true, true, opt);
+    }
+    inline ex collect_cv(const ex &expr, ex const &pat, int opt=o_none) {
         return collect_ex(expr, pat, true, true, opt);
     }
 
-    lst collect_lst(const ex &expr, std::function<bool(const ex &)>, int opt=0);
+    lst collect_lst(const ex &expr, std::function<bool(const ex &)>, int opt=o_none);
     
-    inline lst collect_lst(const ex &expr, lst const &pats, int opt=0) {
+    inline lst collect_lst(const ex &expr, init_list const &pats, int opt=o_none) {
         return collect_lst(expr, [pats](const ex & e)->bool {
             for(auto pat : pats) { if(e.has(pat)) return true; }
             return false;
         }, opt);
     }
     
-    inline lst collect_lst(const ex &expr, ex const &pat, int opt=0) {
+    inline lst collect_lst(const ex &expr, lst const &pats, int opt=o_none) {
+        return collect_lst(expr, [pats](const ex & e)->bool {
+            for(auto pat : pats) { if(e.has(pat)) return true; }
+            return false;
+        }, opt);
+    }
+    
+    inline lst collect_lst(const ex &expr, ex const &pat, int opt=o_none) {
         return collect_lst(expr, [pat](const ex & e)->bool { return e.has(pat); }, opt);
     } 
     
@@ -469,7 +510,7 @@ namespace HepLib {
     
     extern bool using_cache;
     extern long long cache_limit;
-    extern bool fermat_using_array;
+    extern int fermat_using_array;
     ex fermat_eval(const ex & expr);
     ex numer_denom_fermat(const ex & expr, bool dfactor=false);
     ex numer_fermat(const ex & expr);
@@ -483,8 +524,8 @@ namespace HepLib {
     ex factor_form(const ex & expr, bool nd=true);
     inline ex form_factor(const ex & expr, bool nd=true) { return factor_form(expr,nd); }
     
-    ex exfactor(const ex & expr, int opt = 1);
-    ex exnormal(const ex & expr, int opt = 1);
+    ex exfactor(const ex & expr, int opt = o_factorF);
+    ex exnormal(const ex & expr, int opt = o_normalF);
     ex exnd(const ex & expr, int opt = 1);
     
     ex collect_factors(const ex & expr);
@@ -631,7 +672,7 @@ namespace HepLib {
     public:
         prototype_table FTable;
         symtab STable;
-        ex Read(string instr,bool s2S=true);
+        ex Read(const string & instr,bool s2S=true);
         ex ReadFile(string filename,bool s2S=true);
         Parser();
         Parser(symtab st);
@@ -662,6 +703,8 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     void string_replace_all(string &str, const string &from, const string &to);
     void string_trim(string &str);
+    bool string_start_with(const string & fstr, const string & sstr);
+    bool string_end_with(const string & fstr, const string & estr);
     
     void Combinations(int n, int m, std::function<void(const int*)> f);
     void CombinationsR(int n, int m, std::function<void(const int*)> f);
@@ -833,8 +876,12 @@ namespace HepLib {
     inline void garWrite(string garfn, const exvector &exv) { garWrite(exv,garfn); }
     void garRead(exvector &exv, string garfn);
     inline void garRead(string garfn, exvector &exv) { garRead(exv, garfn); }
-    ex add_collect_normal(const exvector &exv, ex const &pats);
-    ex add_collect_normal(const ex & e, ex const &pats);
+    ex add_collect_normal(const exvector &exv, ex const &pats, int opt = o_normalF);
+    ex add_collect_normal(const exvector &exv, lst const &pats, int opt = o_normalF);
+    ex add_collect_normal(const exvector &exv, init_list const &pats, int opt = o_normalF);
+    ex add_collect_normal(const ex & e, ex const &pats, int opt = o_normalF);
+    ex add_collect_normal(const ex & e, lst const &pats, int opt = o_normalF);
+    ex add_collect_normal(const ex & e, init_list const &pats, int opt = o_normalF);
     
     class Server {
     public:
@@ -856,6 +903,25 @@ namespace HepLib {
     void ReShare(const ex & e1, const ex & e2, const ex & e3);
     void ReShare(const exvector & ev);
     void ReShare(const exvector & ev1, const exvector & ev2);
+    
+    ex nextprime(const ex & n);
+    numeric RationalReconstruct(numeric a, numeric p);
+    numeric mulInv(numeric a, numeric b);
+    numeric ChineseRemainder(std::vector<numeric> a, std::vector<numeric> n);
+    numeric RationalReconstruct(vector<numeric> aa, vector<numeric> pp);
+    ex Thiele(const exvector & keys, const exvector & values, const ex & d);
+    ex Newton(const exvector & keys, const exvector & values, const ex & d, const ex factor=1);
+    
+    // fermat functions
+    matrix fermat_Redrowech(const matrix & mat);
+    ex fermat_Det(const matrix & mat);
+    matrix fermat_inv(const matrix & mat);
+    matrix fermat_mul(const matrix & m1, const matrix & m2);
+    matrix fermat_pow(const matrix & mat_in, int n);
+    
+    void fermat_mat(const matrix & mat_in, const string & name);
+    matrix fermat_mat(const string & name);
+    void fermat_eval(const string & fcmd="@[**]");
 }
 
 typedef void (*RUN)(std::string dir_id);

@@ -9,7 +9,7 @@ symbol const MB::ep("ep");
 void Replacements2(exmap &repl) {
     auto tmp = repl;
     for(auto &kv : repl) {
-        kv.second = kv.second.subs(tmp, subs_options::algebraic);
+        kv.second = kv.second.subs(tmp, algbr);
     }
 }
 
@@ -22,7 +22,7 @@ void MB::Initialize(FeynmanParameter fp) {
     
     Digits = 50;
         
-    auto sop = subs_options::algebraic;
+    auto sop = algbr;
     auto ps = fp.Propagators;
     auto ns = fp.Exponents;
     auto ls = fp.LoopMomenta;

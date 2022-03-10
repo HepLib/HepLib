@@ -117,7 +117,9 @@ namespace HepLib {
         for(auto item : iSymbol::Table) STable[item.first] = item.second;
         for(auto item : st) STable[item.first] = item.second;
     }
-    ex Parser::Read(string instr, bool s2S) {
+    ex Parser::Read(const string & in_str, bool s2S) {
+        string instr(in_str);
+        string_replace_all(instr, "==", "=");
         unsigned serial = 0;
         for (auto & it : functions_hack::get_registered_functions()) {
             prototype proto = make_pair(it.get_name(), it.get_nparams());
@@ -166,6 +168,22 @@ namespace HepLib {
         if(!ostr.empty()) {
             ostr.erase(0, ostr.find_first_not_of(WhiteSpace));
             ostr.erase(ostr.find_last_not_of(WhiteSpace)+1);
+        }
+    }
+    
+    bool string_start_with(const string &fstr, const string & sstr) {
+        if (fstr.length() >= sstr.length()) {
+            return (0 == fstr.compare (0, sstr.length(), sstr));
+        } else {
+            return false;
+        }
+    }
+    
+    bool string_end_with(const string &fstr, const string & estr) {
+        if (fstr.length() >= estr.length()) {
+            return (0 == fstr.compare (fstr.length() - estr.length(), estr.length(), estr));
+        } else {
+            return false;
         }
     }
     

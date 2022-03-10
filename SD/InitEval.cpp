@@ -21,7 +21,7 @@ namespace HepLib::SD {
     void Replacements2(exmap &repl) {
         auto tmp = repl;
         for(auto &kv : repl) {
-            kv.second = Symbol::set_all(kv.second.subs(tmp, subs_options::algebraic));
+            kv.second = Symbol::set_all(kv.second.subs(tmp, algbr));
         }
     }
 
@@ -65,7 +65,7 @@ namespace HepLib::SD {
             }
         }
         
-        auto sop = subs_options::algebraic;
+        auto sop = algbr;
         
         auto ps = Symbol::set_all(fp.Propagators);
         auto ns = Symbol::set_all(fp.Exponents);

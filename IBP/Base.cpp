@@ -10,7 +10,6 @@ namespace HepLib::IBP {
 
     namespace {
         ex_is_less less;
-        auto nopat = subs_options::no_pattern;
     }
 
     static void a_print(const ex & ex_in, const print_context & c) {
@@ -159,6 +158,26 @@ namespace HepLib::IBP {
                 fs[i]->MIntegrals = ex_to<lst>(dict[si+"-8"]);
                 fs[i]->Rules = ex_to<lst>(dict[si+"-9"]);
             }
+        }
+    }
+    
+    void Base::FindRules(bool mi) {
+        vector<Base*> ibps;
+        ibps.push_back(this);
+        auto rs_mis = IBP::FindRules(ibps, mi);
+        if(rs_mis.first.size()>0) {
+            auto nr = Rules.nops();
+            for(int i=0; i<nr; i++) {
+                auto ri = Rules.op(i);
+                Rules.let_op(i) = (ri.op(0) == ri.op(1).subs(rs_mis.first, nopat));
+            }
+            for(auto mi : MIntegrals) {
+                auto mi2 = mi.subs(rs_mis.first, nopat);
+                if(mi==mi2) continue;
+                Rules.append(mi==mi2);
+            }
+            MIntegrals = rs_mis.second;
+            sort_lst(MIntegrals);
         }
     }
         
@@ -619,7 +638,7 @@ namespace HepLib::IBP {
         return make_pair(rules,int_lst);
     }
     
-    static matrix Redrowech(matrix mat) {
+    static matrix Redrowech(const matrix & mat) {
         static map<pid_t, Fermat> fermat_map;
         static int v_max = 0;
 
@@ -781,6 +800,131 @@ namespace HepLib::IBP {
             if(!is_zero(mat2(ri,cn))) return false;
         }
         return true;
+    }
+    
+    ex GPolynomial(const Base & base) {
+        
+        auto props = base.Propagators;
+        ex ut, ft, uf;
+        lst key;
+        lst xs;
+        exmap x2ax;
+        int nxi=0;
+        int nps = props.nops();
+        ft = 0;
+        for(int i=0; i<nps; i++) {
+            xs.append(x(nxi));
+            ft -= x(nxi) * props.op(i); // only used when no cache item
+            nxi++;
+        }
+        
+        ut = 1;
+        ft = expand_ex(ft);
+        ft = subs_all(ft, base.Replacements);
+        for(int i=0; i<base.Internal.nops(); i++) {
+            auto t2 = ft.coeff(base.Internal.op(i),2);
+            auto t1 = ft.coeff(base.Internal.op(i),1);
+            auto t0 = ft.subs(base.Internal.op(i)==0,nopat);
+            ut *= t2;
+            if(is_zero(t2)) return lst{0,0,1};
+            ft = exnormal(t0-t1*t1/(4*t2));
+            ft = expand_ex(ft);
+            ft = subs_all(ft, base.Replacements);
+        }
+        ft = exnormal(ut*ft);
+        ft = exnormal(subs_all(ft, base.Replacements));
+        ut = exnormal(subs_all(ut, base.Replacements));
+        uf = exnormal(ut+ft); // ut*ft, replay with ut+ft
+            
+        uf = uf.subs(MapPreSP);
+        return uf;
+    }
+    
+    void GPermutation(const ex & uf, const lst & xs) {
+        auto expr = collect_ex(uf, xs);        
+        map<ex,vector<ex>,ex_is_less> pgrp;
+        
+        if(true) { // only for polynomials
+            auto cv_lst = collect_lst(expr, xs);
+            exvector cvs;
+            for(auto item : cv_lst) cvs.push_back(item);
+            sort_vec(cvs); // first sort by coefficient
+                    
+            int nxi = xs.nops();
+            bool first = true;
+            lst xkey[nxi];
+            lst subkey[nxi];
+            ex clast;
+            for(auto cv : cvs) {
+                ex cc = cv.op(0);
+                ex vv = cv.op(1);
+                if(is_zero(cc)) continue;
+                if(!first && !is_zero(cc-clast)) { // equal coefficient to the same key
+                    for(int i=0; i<nxi; i++) {
+                        sort_lst(subkey[i]);
+                        for(auto item : subkey[i]) xkey[i].append(item);
+                        subkey[i].remove_all();
+                    }
+                } 
+                first = false;
+                clast = cc;
+                for(int i=0; i<nxi; i++) subkey[i].append(vv.degree(xs.op(i)));
+            }
+
+            for(int i=0; i<nxi; i++) { // add last subkey
+                sort_lst(subkey[i]); // need sort due to equal coefficient
+                for(auto item : subkey[i]) xkey[i].append(item);
+                subkey[i].remove_all();
+            }
+            
+            exvector key_xi;
+            for(int i=0; i<nxi; i++) key_xi.push_back(lst{xkey[i], xs.op(i)});
+            sort_vec(key_xi); // first sort by key
+            
+            for(int i=0; i<nxi; i++) {
+                auto xi = key_xi[i].op(1);
+                auto xki = key_xi[i].op(0);
+                pgrp[xki].push_back(xi);
+            }
+        }
+ 
+        // pgrp - needs to permuation explicitly 
+        long long npt = 1;
+        for(auto pi : pgrp) {
+            int nvi = pi.second.size();
+            for(int i=1; i<=nvi; i++) npt *= i;  // nvi!
+        }
+        for(long long np=0; np<npt; np++) {
+            long long npc = np;
+            exmap xmap_tmp;
+            for(auto pi : pgrp) {
+                auto vi = pi.second;
+                int nvi = vi.size();
+                if(nvi<2) continue;
+                long long npti = 1;
+                for(int i=1; i<=nvi; i++) npti *= i; // nvi!
+                int ck = npc % npti; // kth permutation
+                npc = npc / npti;
+            
+                // https://stackoverflow.com/questions/1995328/are-there-any-better-methods-to-do-permutation-of-string
+                auto vip = vi;
+                int k = ck;
+                for(int j=1; j<nvi; ++j) { // startoverflow: j starts from 1
+                    std::swap(vip[k%(j+1)], vip[j]); 
+                    k=k/(j+1);
+                }
+                
+                for(int j=0; j<nvi; j++) if(vi[j]!=vip[j]) xmap_tmp[vi[j]] = vip[j];
+            }
+            if(xmap_tmp.size()>0) {
+                ex expr_tmp = expr.subs(xmap_tmp,nopat);
+                if(is_zero(expr-expr_tmp)) {
+                    auto xs_tmp = xs.subs(xmap_tmp,nopat);
+                    cout << xs_tmp << endl;
+                }
+            }
+        }
+
     }
 
 }

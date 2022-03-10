@@ -147,8 +147,8 @@ namespace HepLib::IBP {
         lst leqns;
         for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
             auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
-            eq = eq.subs(sp2s, subs_options::algebraic);
-            eq = eq.subs(Replacements, subs_options::algebraic);
+            eq = eq.subs(sp2s, algbr);
+            eq = eq.subs(Replacements, algbr);
             if(eq.has(iWF(w))) throw Error("Direct::Export, iWF used in eq.");
             leqns.append(eq == iWF(i));
         }
@@ -179,9 +179,9 @@ namespace HepLib::IBP {
             
             ibp = ibp * iep;
             ibp = ibp.expand();
-            ibp = ibp.subs(sp2s, subs_options::algebraic);
-            ibp = ibp.subs(Replacements, subs_options::algebraic);
-            ibp = ibp.subs(s2p, subs_options::algebraic);
+            ibp = ibp.subs(sp2s, algbr);
+            ibp = ibp.subs(Replacements, algbr);
+            ibp = ibp.subs(s2p, algbr);
             
             ex res = 0;
             for(int i=0; i<pdim; i++) {

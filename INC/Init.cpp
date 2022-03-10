@@ -10,6 +10,7 @@
 #include "QCD.h"
 #include "IBP.h"
 #include "SD.h"
+#include "DE.h"
 #include <cstdlib>
 
 namespace HepLib {
@@ -56,10 +57,13 @@ namespace HepLib {
     
     // FROM BASIC
 
-    string Version = "1.1 - 2021-01-18 12:55";
+    string Version = "1.1 - 2022-02-14";
     exmap Symbol::vmap;
     std::map<std::string, ex> Symbol::Table; // alias as symtab in parser
     std::map<std::string, ex> iSymbol::Table; // alias as symtab in parser
+    
+    unsigned nopat = GiNaC::subs_options::no_pattern;
+    unsigned algbr = subs_options::algebraic;
     
     ex w = wild();
     ex w0 = wild(0);
@@ -73,6 +77,21 @@ namespace HepLib {
     ex w8 = wild(8);
     ex w9 = wild(9);
     
+    // normal/factor options
+    int _o_ = 0;
+    const int o_none = (_o_++);
+    const int o_normal = (_o_++);
+    const int o_normalF = (_o_++);
+    const int o_normalFD = (_o_++);
+    const int o_normalNF = (_o_++);
+    const int o_factor = (_o_++);
+    const int o_factorF = (_o_++);
+    const int o_normal_normalF = (_o_++);
+    const int o_normal_factor = (_o_++);
+    const int o_normal_factorF = (_o_++);
+    const int o_normalF_factor = (_o_++);
+    const int o_normalF_factorF = (_o_++);
+    
     const Symbol ep("ep");
     const iSymbol iEpsilon("iEpsilon");
     const ex iEpsilonN = I*pow(ex(10), -50);
@@ -80,12 +99,14 @@ namespace HepLib {
     bool Debug = false;
     int GiNaC_Parallel_Process = -1;
     map<string, int> GiNaC_Parallel_NP;
+    map<string, int> GiNaC_Parallel_Verb;
     int GiNaC_Parallel_Batch = 0;
     map<string, int> GiNaC_Parallel_NB;
     map<string, bool> GiNaC_Parallel_RM;
     map<string, string> GiNaC_Parallel_PRE;
+    map<string, bool> GiNaC_Parallel_ReWR;
     const Symbol D("D");
-    bool fermat_using_array = false;
+    int fermat_using_array = 0;
     map<ex,long long,ex_is_less> fermat_weight;
     bool using_cache = true;
     long long cache_limit = -1;
@@ -165,9 +186,13 @@ namespace HepLib {
         auto lbar = Symbol("lbar");
         auto gh = Symbol("gh");
         auto ghbar = Symbol("ghbar");
-        auto Q = Symbol("Q");
         auto g = Symbol("g");
+        auto Q = Symbol("Q");
         auto Qbar = Symbol("Qbar");
+        auto C = Symbol("C");
+        auto Cbar = Symbol("Cbar");
+        auto B = Symbol("B");
+        auto Bbar = Symbol("Bbar");
         auto n = Symbol("n");
         auto nbar = Symbol("nbar");
         auto e = Symbol("e");
@@ -178,10 +203,14 @@ namespace HepLib {
         LineTeX[lbar] = "anti fermion, edge label=$l$";
         LineTeX[gh] = "ghost, edge label=$\\chi$"; 
         LineTeX[ghbar] = "ghost, edge label=$\\chi$"; 
-        LineTeX[Q] = "fermion, edge label=$Q$";
         LineTeX[g] = "gluon, edge label=$g$";
         LineTeX[A] = "photon, edge label=$\\gamma$";
+        LineTeX[Q] = "fermion, edge label=$Q$";
         LineTeX[Qbar] = "anti fermion, edge label=$Q$";
+        LineTeX[C] = "fermion, edge label=$c$";
+        LineTeX[Cbar] = "anti fermion, edge label=$c$";
+        LineTeX[B] = "fermion, edge label=$b$";
+        LineTeX[Bbar] = "anti fermion, edge label=$b$";
         LineTeX[n] = "double distance=1.5pt";
         LineTeX[nbar] = "double distance=1.5pt";    
         LineTeX[e] = "color=white";
@@ -195,13 +224,17 @@ namespace HepLib {
     
     const Symbol IBP::d("d");
     int IBP::FIRE::Version = 6;
-    int IBP::FIRE::Threads = 2;
-    int IBP::FIRE::fThreads = 4;
-    int IBP::FIRE::sThreads = 2;
+    int IBP::FIRE::Threads = 4;
+    int IBP::FIRE::fThreads = 0;
+    int IBP::FIRE::lThreads = 0;
+    int IBP::FIRE::sThreads = 0;
     exmap IBP::MapPreSP;
     
     string IBP::UKIRA::KArgs = "";
     string IBP::KIRA::KArgs = "";
+    
+    int DE::NDigits = -1;
+    Symbol DE::iet("iet");
     
     // Rationalize
     

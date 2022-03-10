@@ -529,7 +529,9 @@ namespace HepLib {
         lst ISP; // SP for IBP. optional
         bool CutFirst = true;
         bool keep0F = false; // keep 0 exponent in F
-        bool exnormal = true;
+        int NIBP = 0;
+        lst pat = { F(w1,w2), gs, nL, nH };
+        std::function<ex(const ex &, const ex &)> cv = nullptr;
         string SaveDir = ""; // save temporary result, and restart from it
         std::function<lst(const Base &, const ex &)> UF = IBP::LoopUF;
         void init_smap() { for(auto li : Internal) smap[SP(li)] = 1; }

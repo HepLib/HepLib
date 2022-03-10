@@ -5,10 +5,6 @@
 
 #include "HEP.h"
 
-namespace {
-    auto nopat = GiNaC::subs_options::no_pattern;
-}
-
 namespace HepLib {
 
     namespace {
@@ -68,6 +64,7 @@ namespace HepLib {
             
             IntFs = dict["IntFs"];
         }
+        
     }
     
     /**
@@ -118,12 +115,12 @@ namespace HepLib {
         
         ex IntFs;
         vector<IBP::Base*> ibp_vec;
-        if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/A2F.gar")) {
-            if(Verbose > 1) cout << "  \\--Read A2F.gar" << flush; 
-            A2FGet(aio.SaveDir+"/A2F.gar", air_vec, IntFs, ibp_vec, IBPmethod);
+        if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/AIR2F.gar")) {
+            if(Verbose > 1) cout << "  \\--Read AIR2F.gar" << flush; 
+            A2FGet(aio.SaveDir+"/AIR2F.gar", air_vec, IntFs, ibp_vec, IBPmethod);
             for(auto ibp : ibp_vec) ibp->WorkingDir = wdir; // update working directory
             if(Verbose > 1) cout << " @ " << now(false) << endl; 
-            goto A2F_Done;
+            goto AIR2F_Done;
         }
         
         if(aio.SaveDir != "") {
@@ -138,7 +135,7 @@ namespace HepLib {
         if(true) {
             int av_size = air_vec.size();
             air_vec = GiNaC_Parallel(av_size, [air_vec,lmom] (int idx) {
-                return collect_lst(air_vec[idx],lmom,1);
+                return collect_lst(air_vec[idx],lmom, o_normalF);
             }, "ApPre");
             
             exset vset;
@@ -164,7 +161,7 @@ namespace HepLib {
             auto ap_vec = GiNaC_Parallel(vvec.size(), [&vvec,lmom,emom,aio] (int idx) {
                 auto air = vvec[idx];
                 air = Apart(air,lmom,emom,aio.smap);
-                air = collect_lst(air, ApartIR(w1,w2), 1);
+                air = collect_lst(air, ApartIR(w1,w2), o_normalF);
                 return air;
             }, "Apart");
             vvec.clear();
@@ -195,7 +192,7 @@ namespace HepLib {
                     int idx = ex_to<numeric>(cv.op(1)).to_int();
                     res += cv.op(0) * ap_vec[idx];
                 }
-                res = collect_ex(res, ApartIR(w1,w2), false, false, 1);
+                res = collect_ex(res, ApartIR(w1,w2), false, false, o_normalF);
                 return res; // air_vec updated to ApartIR
             }, "ApPost");
             ap_vec.clear();
@@ -329,32 +326,13 @@ namespace HepLib {
                     auto air = air_vec[idx];
                     air = air.subs(AIR2F,nopat);
                     air = air.subs(int_fr.first,nopat);
-                    air = collect_ex(air, F(w1,w2), false, false, 1);
+                    air = collect_ex(air, F(w1,w2), false, false, o_normalF);
                     return air;
                 }, "AIR2F");
-                if(aio.SaveDir != "") A2FSave(aio.SaveDir+"/A2F.gar", air_vec, IntFs, ibp_vec);
+                if(aio.SaveDir != "") A2FSave(aio.SaveDir+"/AIR2F.gar", air_vec, IntFs, ibp_vec);
             }
         }
-        A2F_Done: ;
-
-        vector<IBP::Base*> ibp_vec_re;
-        if(true) {
-            map<int,lst> pn_ints_map;
-            for(auto item : IntFs) {
-                int pn = ex_to<numeric>(item.op(0)).to_int();
-                pn_ints_map[pn].append(item.op(1));
-            }
-
-            int nints = 0;
-            for(auto pi : pn_ints_map) {
-                auto ibp = ibp_vec[pi.first-1];
-                ibp->Integrals = pi.second;
-                nints += ibp->Integrals.nops();
-                ibp_vec_re.push_back(ibp);
-            }
-
-            if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << WHITE << nints << "/" << ibp_vec_re.size() << RESET << " @ " << now(false) << endl;
-        } 
+        AIR2F_Done: ;
         
         MapFunction _F2ex([&ibp_vec,aio](const ex &e, MapFunction &self)->ex {
             if(!e.has(F(w1,w2))) return e;
@@ -372,7 +350,7 @@ namespace HepLib {
             } else return e.map(self);
         });
         
-        if(IBPmethod==0) {
+        if(IBPmethod==0) { // no IBP reduction
             air_vec = GiNaC_Parallel(air_vec.size(), [&air_vec,&_F2ex](int idx)->ex {
                 auto res = air_vec[idx];
                 return _F2ex(res);
@@ -381,82 +359,140 @@ namespace HepLib {
             if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
             return;
         }
-        
-        if(IBPmethod==1) {
-            if(GiNaC_Parallel_NB.find("Expo")==GiNaC_Parallel_NB.end() || GiNaC_Parallel_NB["Expo"]>100) GiNaC_Parallel_NB["Expo"] = 100;
-            auto pRes = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
-                ibp_vec_re[idx]->Export();
-                auto ret = lst{ ibp_vec_re[idx]->IsAlwaysZero ? 1 : 0, ibp_vec_re[idx]->Rules };
-                return ret;
-            }, "Expo");
-            for(int i=0; i<ibp_vec_re.size(); i++) {
-                ibp_vec_re[i]->IsAlwaysZero = (pRes[i].op(0)==1 ? true : false);
-                ibp_vec_re[i]->Rules = ex_to<lst>(pRes[i].op(1));
-            }
-            
-            int nproc = 2*CpuCores()/FIRE::fThreads;
-            int cproc = 0;
-            if(nproc<2) nproc = 2;
-            #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
-            for(int pi=0; pi<ibp_vec_re.size(); pi++) {
-                if(Verbose>1) {
-                    #pragma omp critical
-                    cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Reduction [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
+
+        exmap ibpRules; // IBP rules for problem pn
+        if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/Rules.gar")) {
+            goto Rules_Done;
+        }
+        if(true) { 
+            vector<IBP::Base*> ibp_vec_re;
+            if(true) {
+                map<int,lst> pn_ints_map;
+                for(auto item : IntFs) {
+                    int pn = ex_to<numeric>(item.op(0)).to_int();
+                    pn_ints_map[pn].append(item.op(1));
                 }
-                ibp_vec_re[pi]->Run();
-            }
-            if(Verbose>1) cout << "@" << now(false) << endl;
+
+                int nints = 0;
+                for(auto pi : pn_ints_map) {
+                    auto ibp = ibp_vec[pi.first-1];
+                    ibp->Integrals = pi.second;
+                    nints += ibp->Integrals.nops();
+                    ibp_vec_re.push_back(ibp);
+                }
+
+                if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << WHITE << nints << "/" << ibp_vec_re.size() << RESET << " @ " << now(false) << endl;
+            } 
             
-            if(ibp_vec_re.size()>100) {
-                auto ret = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,wdir](int idx)->ex {
-                    ibp_vec_re[idx]->Import();
-                    return ibp_vec_re[idx]->TO();
-                }, "Impo");
-                for(int i=0; i<ibp_vec_re.size(); i++) ibp_vec_re[i]->FROM(ret[i]);
-            } else {
-                cproc = 0;
-                for(auto item : ibp_vec_re) {
-                    if(Verbose>1) cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Import [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
-                    item->Import();
+            if(IBPmethod==1) {
+                if(GiNaC_Parallel_NB.find("Expo")==GiNaC_Parallel_NB.end() || GiNaC_Parallel_NB["Expo"]>100) GiNaC_Parallel_NB["Expo"] = 100;
+                auto pRes = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
+                    ibp_vec_re[idx]->Export();
+                    auto ret = lst{ ibp_vec_re[idx]->IsAlwaysZero ? 1 : 0, ibp_vec_re[idx]->Rules };
+                    return ret;
+                }, "Expo");
+                for(int i=0; i<ibp_vec_re.size(); i++) {
+                    ibp_vec_re[i]->IsAlwaysZero = (pRes[i].op(0)==1 ? true : false);
+                    ibp_vec_re[i]->Rules = ex_to<lst>(pRes[i].op(1));
+                }
+                
+                int nproc = aio.NIBP;
+                if(nproc<1) nproc = CpuCores()/FIRE::Threads;
+                int cproc = 0;
+                if(nproc<2) nproc = 2;
+                #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
+                for(int pi=0; pi<ibp_vec_re.size(); pi++) {
+                    if(Verbose>1) {
+                        #pragma omp critical
+                        cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Reduction [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
+                    }
+                    ibp_vec_re[pi]->Run();
                 }
                 if(Verbose>1) cout << "@" << now(false) << endl;
+                
+                if(ibp_vec_re.size()>100) {
+                    auto ret = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,wdir](int idx)->ex {
+                        ibp_vec_re[idx]->Import();
+                        return ibp_vec_re[idx]->TO();
+                    }, "Impo");
+                    for(int i=0; i<ibp_vec_re.size(); i++) ibp_vec_re[i]->FROM(ret[i]);
+                } else {
+                    cproc = 0;
+                    for(auto item : ibp_vec_re) {
+                        if(Verbose>1) cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Import [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
+                        item->Import();
+                    }
+                    if(Verbose>1) cout << "@" << now(false) << endl;
+                }
+                //Base::ReShare(ibp_vec_re);
+                
+                if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
+            } else if(IBPmethod==2 || IBPmethod==3) {
+                for(auto ibp : ibp_vec_re) ibp->Reduce();
+                if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
             }
-            //Base::ReShare(ibp_vec_re);
             
-            if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
-        } else if(IBPmethod==2 || IBPmethod==3) {
-            for(auto ibp : ibp_vec_re) ibp->Reduce();
-            if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
-        }
-        
-        // Find Rules in MIs
-        auto mi_fr = FindRules(ibp_vec_re, true, aio.UF);
-    
-        exmap ibpRules; // rules from IBP reducton
-        if(true) { // scope for ret
-            auto ris_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&mi_fr](int idx)->ex {
-                ex rules = ibp_vec_re[idx]->Rules;
-                lst res;
-                for(auto ri : rules) res.append(lst { 
-                    ri.op(0),  
-                    collect_ex(ri.op(1).subs(mi_fr.first,nopat).subs(d==D,nopat), F(w1,w2), false, false, 1)
-                });
-                return res;
-            }, "FR2MI");
-            for(auto ris : ris_vec) {
-                for(auto ri : ris) if(ri.op(0)!=ri.op(1)) ibpRules[ri.op(0)] = ri.op(1);
+            // Find Rules in MIs
+            exmap miRules = FindRules(ibp_vec_re, true, aio.UF).first;
+            if(true) { // scope for ret
+                if(aio.SaveDir != "") system(("mkdir -p "+aio.SaveDir+"/Rules").c_str());
+                auto rules_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&miRules,&aio](int idx)->ex {
+                    lst rules = ex_to<lst>(ibp_vec_re[idx]->Rules);
+                    lst res;
+                    for(auto ri : rules) res.append(lst { 
+                        ri.op(0),  
+                        ri.op(1).subs(miRules,nopat).subs(d==D,nopat)
+                    });
+                    for(auto mi : ibp_vec_re[idx]->MIntegrals) {
+                        auto fi = miRules.find(mi);
+                        if(fi!=miRules.end()) res.append(lst{ mi, fi->second });
+                    }
+                    auto pn = ibp_vec_re[idx]->ProblemNumber;
+                    if(aio.SaveDir != "") {
+                        garWrite(aio.SaveDir+"/Rules/"+to_string(pn)+".gar", res);
+                        return 0;
+                    } else return res;
+                }, "FR2MI");
+                if(aio.SaveDir != "") {
+                    garWrite(aio.SaveDir+"/Rules.gar", 1);
+                } else {
+                    for(auto rs : rules_vec) {
+                        for(auto ri : rs) if(ri.op(0)!=ri.op(1)) ibpRules[ri.op(0)] = ri.op(1);
+                    }
+                }
             }
         }
+        Rules_Done: ;
         
         air_vec =
-        GiNaC_Parallel(air_vec.size(), [&air_vec,&ibpRules,&mi_fr,&_F2ex,&aio](int idx)->ex {
+        GiNaC_Parallel(air_vec.size(), [&air_vec,&ibpRules,&_F2ex,&aio](int idx)->ex {
             ex res = air_vec[idx];
-            res = res.subs(ibpRules,nopat);
-            res = res.subs(mi_fr.first,nopat); // still needed
-            if(aio.exnormal) res = collect_ex(res,F(w1,w2),false,false,1);
-            else res = collect_ex(res,F(w1,w2));
-            res = _F2ex(res);
-            return res;
+            exmap rules;
+            if(aio.SaveDir != "") {
+                exset fs;
+                find(res, F(w1,w2), fs);
+                for(auto fi : fs) {
+                    auto pn = fi.op(0);
+                    auto rs = garRead(aio.SaveDir+"/Rules/"+ex2str(pn)+".gar");
+                    for(auto ri : rs) if(ri.op(0)!=ri.op(1)) rules[ri.op(0)] = ri.op(1);
+                }
+            } else rules = ibpRules;
+            res = res.subs(rules,nopat);
+            if(aio.pat.nops()>0) {
+                auto cvs = collect_lst(res, aio.pat);
+                res = 0;
+                for(auto cv : cvs) {
+                    auto c = cv.op(0);
+                    auto v = cv.op(1);
+                    if(aio.cv!=nullptr) {
+                        auto _cv = aio.cv(c,v);
+                        c = _cv.op(0);
+                        v = _cv.op(1);
+                    }
+                    res += c * v;
+                }
+            }
+            return _F2ex(res);
         }, "F2MI");
                                     
         for(auto fp : ibp_vec) delete fp;

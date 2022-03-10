@@ -273,6 +273,9 @@ namespace HepLib {
         string pre = "  ";
         if(GiNaC_Parallel_PRE.find(key)!=GiNaC_Parallel_PRE.end()) pre = GiNaC_Parallel_PRE[key]; 
         
+        int verb = Verbose;
+        if(GiNaC_Parallel_Verb.find(key)!=GiNaC_Parallel_Verb.end()) verb = GiNaC_Parallel_Verb[key]; 
+        
         // nproc=0, non-parallel
         if(nproc==0) {
             exvector ovec;
@@ -317,7 +320,7 @@ namespace HepLib {
             for(int bi=0; bi<btotal; bi++) {
                 restart: ;
                 for(int i=0; i<btotal; i++) if(waitpid(-pgid,NULL,WNOHANG)>0) nactive--;
-                if(Verbose > 1 && !nst) {
+                if(verb > 1 && !nst) {
                     cout << "\r                                                                  \r" << pre;
                     cout << "\\--Evaluating ";
                     if(key != "") cout << Color_HighLight << key << RESET << " ";
@@ -371,7 +374,7 @@ namespace HepLib {
             
             if(getpid()!=pgid) exit(0); // make sure child exit
             while (waitpid(-pgid,NULL,0) != -1) { }
-            if(!nst && Verbose > 1) cout << endl;
+            if(!nst && verb > 1) cout << endl;
             if(getpid()!=ppid) exit(0); // make the forked group leader exit
             
             if(ec<2) break;
@@ -395,7 +398,7 @@ namespace HepLib {
         wait_label:
         if(npid!=0) waitpid(npid,NULL,0); // wait nest process to exit
         
-        #define use_gar_write
+        #define use_gar_write // use ReWR
         
         exvector ovec;
         if(true) {
@@ -403,7 +406,7 @@ namespace HepLib {
             exvector ovec_tmp;
             #endif
             for(int bi=0; bi<btotal; bi++) {
-                if(Verbose > 1 && !nst) {
+                if(verb > 1 && !nst) {
                     if(key == "") {
                         cout << "\r                                                   \r" << pre;
                         cout << "\\--Reading *.gar [" << (bi+1) << "/" << btotal << "] @ " << now(false) << flush;
@@ -424,7 +427,7 @@ namespace HepLib {
                         goto done;
                     } 
                 } catch(exception &p) { }
-                if(Verbose > 1 && !nst) cout << " - ReTry" << endl;
+                if(verb > 1 && !nst) cout << " - ReTry" << endl;
                 try {
                     res_lst.remove_all();
                     for(int ri=0; ri<nbatch; ri++) {
@@ -439,13 +442,17 @@ namespace HepLib {
                 }
                 done: ;
                 #ifdef use_gar_write
-                for(auto res : res_lst) ovec_tmp.push_back(res);
+                if(GiNaC_Parallel_ReWR.find(key)==GiNaC_Parallel_ReWR.end() || GiNaC_Parallel_ReWR[key]) {
+                    for(auto res : res_lst) ovec_tmp.push_back(res);
+                } else {
+                    for(auto res : res_lst) ovec.push_back(res);
+                }
                 #else 
                 for(auto res : res_lst) ovec.push_back(res);
                 #endif
             }
             
-            if(!nst && Verbose>1) {
+            if(!nst && verb>1) {
                 cout << endl;
                 if(key == "") {
                     cout << "\r                                                   \r" << pre;
@@ -456,17 +463,19 @@ namespace HepLib {
                 }
             }
             #ifdef use_gar_write
-            ostringstream garfn;
-            if(key == "") garfn << ppid << "/ReWR.gar";
-            else garfn << ppid << "/ReWR." << key << ".gar";
-            garWrite(garfn.str(), ovec_tmp);
-            ovec_tmp.clear();
-            garRead(garfn.str(), ovec);
+            if(GiNaC_Parallel_ReWR.find(key)==GiNaC_Parallel_ReWR.end() || GiNaC_Parallel_ReWR[key]) {
+                ostringstream garfn;
+                if(key == "") garfn << ppid << "/ReWR.gar";
+                else garfn << ppid << "/ReWR." << key << ".gar";
+                garWrite(garfn.str(), ovec_tmp);
+                ovec_tmp.clear();
+                garRead(garfn.str(), ovec);
+            }
             #else 
             ReShare(ovec);
             #endif
             
-            if(!nst && Verbose>1) cout << " @ " << now(false) << endl;
+            if(!nst && verb>1) cout << " @ " << now(false) << endl;
         }
         
         if(rm) {
@@ -582,7 +591,7 @@ namespace HepLib {
      */
     void garRead(const string &garfn, map<string, ex> &resMap) {
         auto oDigits = Digits;
-        Digits = NNDigits; // a fix to float overflow
+        if(Digits<NNDigits) Digits = NNDigits; // a fix to float overflow
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -603,7 +612,7 @@ namespace HepLib {
      */
     ex garRead(const string &garfn, const char* key) { // use the const char *, not string
         auto oDigits = Digits;
-        Digits = NNDigits; // a fix to float overflow
+        if(Digits<NNDigits) Digits = NNDigits; // a fix to float overflow
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -620,7 +629,7 @@ namespace HepLib {
      */
     ex garRead(const string &garfn) {
         auto oDigits = Digits;
-        Digits = NNDigits; // a fix to float overflow
+        if(Digits<NNDigits) Digits = NNDigits; // a fix to float overflow
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -730,6 +739,17 @@ namespace HepLib {
         return oss.str();
     }
     
+    matrix lst2mat(const lst & ls) {
+        int nr = ls.nops();
+        int nc = ls.op(0).nops();
+        matrix mat(nr,nc);
+        for(int r=0; r<nr; r++) {
+            auto row = ls.op(r);
+            for(int c=0; c<nc; c++) mat(r,c) = row.op(c);
+        }
+        return mat;
+    }
+    
     /**
      * @brief convert exmap to output string, the defalut printer format will be used
      * @param expr a exvec expression
@@ -762,6 +782,13 @@ namespace HepLib {
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
         ifs.close();
         return ostr;
+    }
+    
+    void str2file(const string & ostr, string filename) {
+        std::ofstream ofs;
+        ofs.open(filename, ios::out);
+        ofs << ostr << endl;
+        ofs.close();
     }
     
     /**
@@ -955,7 +982,7 @@ namespace HepLib {
      */
     ex series_ex(ex const & expr_in, symbol const &s0, int sn0) {
         ex expr = expr_in;
-        if(!expr.has(s0)) return expr;
+        if(!expr.has(s0)) return (sn0>0 ? expr : 0);
         
         exset sset;
         expr.find(pow(s0, w), sset);
@@ -1202,12 +1229,17 @@ namespace HepLib {
         auto co_epv = inner_expand_collect(expr_in, has_func);
         ex cf = co_epv.first;
         lst res_lst;
-        if(!is_zero(cf)) res_lst.append(lst{cf,1});
+        if(!is_zero(cf)) co_epv.second.push_back(make_pair(1,cf));
         for(auto ep : co_epv.second) {
             ex vv = ep.first;
             ex cc = ep.second;
-            if(opt==1) cc = exnormal(cc);
-            else if(opt==2) cc = exfactor(cc);
+            if(opt==o_normal || opt==o_normalF || opt==o_normalFD || opt==o_normalNF) cc = exnormal(cc,opt);
+            else if(opt==o_factor || opt==o_factorF) cc = exfactor(cc,opt);
+            else if(opt==o_normal_normalF) cc = exnormal(normal(cc),o_normalF);
+            else if(opt==o_normal_factor) cc = ginac_factor(normal(cc),o_normalF);
+            else if(opt==o_normal_factorF) cc = form_factor(normal(cc),o_normalF);
+            else if(opt==o_normalF_factor) cc = ginac_factor(fermat_normal(cc),o_normalF);
+            else if(opt==o_normalF_factorF) cc = form_factor(fermat_normal(cc),o_normalF);
             if(!is_zero(cc)) res_lst.append(lst{cc, vv});
         }
         return res_lst;
@@ -1791,415 +1823,7 @@ namespace HepLib {
         return omp_get_num_procs();
     }
     
-    /**
-     * @brief return the numerator and denominator after normalization
-     * @param expr the input expression
-     * @return fermat evaluated expression
-     */
-    ex fermat_eval(const ex & expr) {
-        static map<pid_t, Fermat> fermat_map;
-        static int v_max = 0;
-
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
         
-        auto expr_in = expr;
-        exmap map_rat;
-        expr_in = expr_in.to_rational(map_rat);
-        
-        lst rep_vs;
-        if(true) {
-            map<ex,long long,ex_is_less> s2c;
-            for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
-                if(is_a<symbol>(*i)) s2c[*i]++;
-            }
-            exvector sv1, sv2, sv3; // sv2:fermat_weight, sv3:map_rat
-            for(auto kv : s2c) {
-                auto fw = fermat_weight.find(kv.first);
-                if(fw!=fermat_weight.end()) sv2.push_back(lst{fw->second, fw->first});
-                else if(map_rat.find(kv.first)!=map_rat.end()) sv3.push_back(lst{kv.second, kv.first});
-                else sv1.push_back(lst{kv.second, kv.first});
-            }
-            sort_vec(sv1);
-            sort_vec(sv2);
-            sort_vec(sv3);
-            for(auto sv : sv1) rep_vs.append(sv.op(1));
-            for(auto sv : sv2) rep_vs.append(sv.op(1));
-            for(auto sv : sv3) rep_vs.append(sv.op(1));
-        }
-                
-        exmap v2f, f2v;
-        int fvi = 0;
-        for(auto vi : rep_vs) {
-            auto name = "v" + to_string(fvi);
-            Symbol s(name);
-            v2f[vi] = s;
-            f2v[s] = vi;
-            fvi++;
-        }
-        expr_in = expr_in.subs(v2f);
-        
-        stringstream ss;
-        if(fvi>111) {
-            cout << rep_vs << endl;
-            throw Error("Fermat: Too many variables.");
-        }
-        if(fvi>v_max) {
-            for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-            v_max = fvi;
-        }
-        
-        ex res;
-        ss << "res:=" << expr_in << ";" << endl;
-        fermat.Execute(ss.str());
-        ss.clear();
-        ss.str("");
-        
-        static string bstr("[-begin-]"), estr("[-end-]");
-        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
-        ss << "!('" <<bstr<< "',res,'" <<estr<< "')" << endl;
-        auto ostr = fermat.Execute(ss.str());
-        ss.clear();
-        ss.str("");
-        
-        // note the order,(normal_fermat will be called again in factor_form)
-        ss << "&(U=0);" << endl; // disable ugly printing
-        ss << "@(res);" << endl;
-        ss << "&_G;" << endl;
-        fermat.Execute(ss.str());
-        ss.clear();
-        ss.str("");
-
-        // make sure last char is 0
-        if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
-        ostr = ostr.substr(0, ostr.length()-1);
-        auto cpos = ostr.find(bstr);
-        if(cpos==string::npos) throw Error(bstr+" NOT Found.");
-        ostr = ostr.substr(cpos+bstr.length(),string::npos);
-        cpos = ostr.find(estr);
-        if(cpos==string::npos) throw Error(estr+" NOT Found.");
-        ostr = ostr.substr(0,cpos);
-        string_trim(ostr);
-
-        symtab st;
-        Parser fp(st);
-        res = fp.Read(ostr);
-        res = res.subs(f2v,subs_options::no_pattern);
-        return res.subs(map_rat,subs_options::no_pattern);
-    }
-    
-    
-    /**
-     * @brief return the numerator and denominator after normalization
-     * @param expr the input expression
-     * @param dfactor true for factorize on the denominator
-     * @return a list of { numer, denom }
-     */
-    ex numer_denom_fermat(const ex & expr, bool dfactor) {
-        bool _fermat_using_array = fermat_using_array;
-        static map<pid_t, Fermat> fermat_map;
-        static int v_max = 0;
-        bool use_ncheck = false;
-
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
-        
-        auto expr_in = expr;
-        exmap map_rat;
-        expr_in = expr_in.to_rational(map_rat);
-        
-        lst rep_vs;
-        if(true) {
-            map<ex,long long,ex_is_less> s2c;
-            for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
-                if(is_a<symbol>(*i)) s2c[*i]++;
-            }
-            exvector sv1, sv2, sv3; // sv2:fermat_weight, sv3:map_rat
-            for(auto kv : s2c) {
-                auto fw = fermat_weight.find(kv.first);
-                if(fw!=fermat_weight.end()) sv2.push_back(lst{fw->second, fw->first});
-                else if(map_rat.find(kv.first)!=map_rat.end()) sv3.push_back(lst{kv.second, kv.first});
-                else sv1.push_back(lst{kv.second, kv.first});
-            }
-            sort_vec(sv1);
-            sort_vec(sv2);
-            sort_vec(sv3);
-            for(auto sv : sv1) rep_vs.append(sv.op(1));
-            for(auto sv : sv2) rep_vs.append(sv.op(1));
-            for(auto sv : sv3) rep_vs.append(sv.op(1));
-        }
-                
-        exmap v2f, f2v;
-        exmap nn_map;
-        auto nn_pi1 = cln::nextprobprime(3);
-        auto nn_pi2 = cln::nextprobprime(3);
-        int fvi = 0;
-        for(auto vi : rep_vs) {
-            auto name = "v" + to_string(fvi);
-            Symbol s(name);
-            v2f[vi] = s;
-            f2v[s] = vi;
-            fvi++;
-            nn_pi1 = cln::nextprobprime(nn_pi2+1);
-            nn_pi2 = cln::nextprobprime(nn_pi1+1);
-            nn_map[s] = numeric(nn_pi1)/numeric(nn_pi2);
-        }
-        
-        stringstream ss;
-        if(fvi>111) {
-            cout << rep_vs << endl;
-            throw Error("Fermat: Too many variables.");
-        }
-        if(fvi>v_max) {
-            for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-            v_max = fvi;
-        }
-        
-        ex nn_chk=0, num, den;
-        lst item;
-        if(!is_a<add>(expr_in)) item = lst{ expr_in };
-        else for(auto ii : expr_in) item.append(ii);
-        //sort_lst(item); // no need
-        if(item.nops()>999999) _fermat_using_array = false;
-        else if(item.nops()>100) _fermat_using_array = true;
-        if(_fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
-        else ss << "res:=0;" << endl;
-        fermat.Execute(ss.str());
-        ss.clear();
-        ss.str("");
-        
-        for(int i=0; i<item.nops(); i++) {
-            ex tt = item.op(i).subs(v2f, subs_options::no_pattern);
-            if(use_ncheck) nn_chk += tt.subs(nn_map, subs_options::no_pattern);
-            if(_fermat_using_array) ss << "m[" << (i+1) << "]:=";
-            else ss << "item:=";
-            ss << tt << ";" << endl;
-            if(!_fermat_using_array) ss << "res:=*res+*item;" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-        }
-        if(_fermat_using_array) {
-            //ss << "res:=Sumup([m]);" << endl;
-            //ss << "res:=Sigma<i=1,"<<item.nops()<<">(*m[i]);" << endl;
-                        
-            ss << "n:=" << item.nops() << ";" << endl;
-            ss << "while n>1 do n2:=n\\2; for i=1,n2 do m[i]:=*m[i]+*m[n+1-i] od; &_G; if (n|2)=0 then n:=n2 else n:=n2+1 fi od;" << endl;
-            ss << "res:=*m[1];" << endl;
-            
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-        }
-        
-        static string bstr("[-begin-]"), estr("[-end-]");
-        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
-        ss << "!('" <<bstr<< "','{',Numer(^res),',',Denom(^res),'}','" <<estr<< "')" << endl;
-        auto ostr = fermat.Execute(ss.str());
-        ss.clear();
-        ss.str("");
-        
-        // note the order,(normal_fermat will be called again in factor_form)
-        ss << "&(U=0);" << endl; // disable ugly printing
-        if(_fermat_using_array) ss << "@(res,[m]);" << endl;
-        else ss << "@(res,item);" << endl;
-        ss << "&_G;" << endl;
-        fermat.Execute(ss.str());
-        ss.clear();
-        ss.str("");
-
-        // make sure last char is 0
-        if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
-        ostr = ostr.substr(0, ostr.length()-1);
-        auto cpos = ostr.find(bstr);
-        if(cpos==string::npos) throw Error(bstr+" NOT Found.");
-        ostr = ostr.substr(cpos+bstr.length(),string::npos);
-        cpos = ostr.find(estr);
-        if(cpos==string::npos) throw Error(estr+" NOT Found.");
-        ostr = ostr.substr(0,cpos);
-        string_trim(ostr);
-
-        symtab st;
-        Parser fp(st);
-        auto ret = fp.Read(ostr);
-        ReShare(ret,expr);
-        num = ret.op(0);
-        if(dfactor) den = factor_form(ret.op(1));
-        else den = ret.op(1);
-        //fermat.Exit();
-        
-        if(use_ncheck) {
-            auto nn_ret = subs(num/den,nn_map);
-            if(nn_chk-nn_ret!=0) {
-                cout << nn_chk << " : " << nn_ret << endl;
-                throw Error("fermat_together: N Check Failed.");
-            }
-        }
-        
-        num = num.subs(f2v,subs_options::no_pattern).subs(map_rat,subs_options::no_pattern);
-        den = den.subs(f2v,subs_options::no_pattern).subs(map_rat,subs_options::no_pattern);
-        return lst{num, den};
-        
-    }
-    
-    ex numer_fermat(const ex & expr) {
-        bool _fermat_using_array = fermat_using_array;
-        static map<pid_t, Fermat> fermat_map;
-        static int v_max = 0;
-        bool use_ncheck = false;
-
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
-        
-        auto expr_in = expr;
-        exmap map_rat;
-        expr_in = expr_in.to_polynomial(map_rat);
-        
-        lst rep_vs;
-        if(true) {
-            map<ex,long long,ex_is_less> s2c;
-            for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
-                if(is_a<symbol>(*i)) s2c[*i]++;
-            }
-            exvector sv1, sv2, sv3; // sv2:fermat_weight, sv3:map_rat
-            for(auto kv : s2c) {
-                auto fw = fermat_weight.find(kv.first);
-                if(fw!=fermat_weight.end()) sv2.push_back(lst{fw->second, fw->first});
-                else if(map_rat.find(kv.first)!=map_rat.end()) sv3.push_back(lst{kv.second, kv.first});
-                else sv1.push_back(lst{kv.second, kv.first});
-            }
-            sort_vec(sv1);
-            sort_vec(sv2);
-            sort_vec(sv3);
-            for(auto sv : sv1) rep_vs.append(sv.op(1));
-            for(auto sv : sv2) rep_vs.append(sv.op(1));
-            for(auto sv : sv3) rep_vs.append(sv.op(1));
-        }
-                
-        exmap v2f, f2v;
-        exmap nn_map;
-        auto nn_pi1 = cln::nextprobprime(3);
-        auto nn_pi2 = cln::nextprobprime(3);
-        int fvi = 0;
-        for(auto vi : rep_vs) {
-            auto name = "v" + to_string(fvi);
-            Symbol s(name);
-            v2f[vi] = s;
-            f2v[s] = vi;
-            fvi++;
-            nn_pi1 = cln::nextprobprime(nn_pi2+1);
-            nn_pi2 = cln::nextprobprime(nn_pi1+1);
-            nn_map[s] = numeric(nn_pi1)/numeric(nn_pi2);
-        }
-        
-        stringstream ss;
-        if(fvi>111) {
-            cout << rep_vs << endl;
-            throw Error("Fermat: Too many variables.");
-        }
-        if(fvi>v_max) {
-            for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-            v_max = fvi;
-        }
-        
-        ex nn_chk=0, nres;
-        lst item;
-        if(!is_a<add>(expr_in)) item = lst{ expr_in };
-        else for(auto ii : expr_in) item.append(ii);
-        //sort_lst(item); // no need
-        if(item.nops()>999999) _fermat_using_array = false;
-        else if(item.nops()>500) _fermat_using_array = true;
-        if(_fermat_using_array) ss << "Array m[" << item.nops() << "];" << endl;
-        else ss << "res:=0;" << endl;
-        fermat.Execute(ss.str());
-        ss.clear();
-        ss.str("");
-        
-        for(int i=0; i<item.nops(); i++) {
-            ex tt = item.op(i).subs(v2f, subs_options::no_pattern);
-            if(use_ncheck) nn_chk += tt.subs(nn_map, subs_options::no_pattern);
-            if(_fermat_using_array) ss << "m[" << (i+1) << "]:=";
-            else ss << "item:=";
-            ss << tt << ";" << endl;
-            if(!_fermat_using_array) ss << "res:=*res+*item;" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-        }
-        if(_fermat_using_array) {
-            //ss << "res:=Sumup([m]);" << endl;
-            ss << "res:=Sigma<i=1,"<<item.nops()<<">(*m[i]);" << endl;
-            fermat.Execute(ss.str());
-            ss.clear();
-            ss.str("");
-        }
-        
-        static string bstr("[-begin-]"), estr("[-end-]");
-        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
-        ss << "!('" <<bstr<< "',res,'" <<estr<< "')" << endl;
-        auto ostr = fermat.Execute(ss.str());
-        ss.clear();
-        ss.str("");
-        
-        // note the order,(normal_fermat will be called again in factor_form)
-        ss << "&(U=0);" << endl; // disable ugly printing
-        if(_fermat_using_array) ss << "@(res,[m]);" << endl;
-        else ss << "@(res,item);" << endl;
-        ss << "&_G;" << endl;
-        fermat.Execute(ss.str());
-        ss.clear();
-        ss.str("");
-
-        // make sure last char is 0
-        if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
-        ostr = ostr.substr(0, ostr.length()-1);
-        auto cpos = ostr.find(bstr);
-        if(cpos==string::npos) throw Error(bstr+" NOT Found.");
-        ostr = ostr.substr(cpos+bstr.length(),string::npos);
-        cpos = ostr.find(estr);
-        if(cpos==string::npos) throw Error(estr+" NOT Found.");
-        ostr = ostr.substr(0,cpos);
-        string_trim(ostr);
-
-        symtab st;
-        Parser fp(st);
-        auto ret = fp.Read(ostr);
-        //fermat.Exit();
-        
-        if(use_ncheck) {
-            auto nn_ret = subs(ret,nn_map);
-            if(nn_chk-nn_ret!=0) {
-                cout << nn_chk << " : " << nn_ret << endl;
-                throw Error("fermat_together: N Check Failed.");
-            }
-        }
-        
-        ret = ret.subs(f2v,subs_options::no_pattern).subs(map_rat,subs_options::no_pattern);
-        return ret;
-        
-    }
-    
     /**
      * @brief return the normalizatied expression, using fermat_numer_denom
      * @param expr the input expression
@@ -2230,8 +1854,10 @@ namespace HepLib {
      * @return factorized result
      */
     ex exfactor(const ex & expr, int opt) {
-        if(opt==1) return factor_form(expr);
-        else return ginac_factor(expr);
+        if(opt==o_none) return expr;
+        else if(opt==o_factorF) return factor_form(expr);
+        else if(opt==o_factor) return ginac_factor(expr);
+        else return expr;
     }
     
     /**
@@ -2281,10 +1907,11 @@ namespace HepLib {
      */
     ex exnormal(const ex & expr, int opt) {
         if(opt<0) return normal_fermat_pern(expr,-opt);
-        else if(opt==1) return normal_fermat(expr);
-        else if(opt==2) return normal_fermat(expr,true);
-        else if(opt==3) return numer_fermat(expr);
-        else return normal(expr);
+        else if(opt==o_normal) return normal(expr);
+        else if(opt==o_normalF) return normal_fermat(expr);
+        else if(opt==o_normalFD) return normal_fermat(expr,true);
+        else if(opt==o_normalNF) return numer_fermat(expr);
+        return expr;
     }
     
     /**
@@ -2304,7 +1931,7 @@ namespace HepLib {
         auto pid = getpid();
         if((form_map.find(pid)==form_map.end())) { // init section
             ostringstream ss;
-            ss << "AutoDeclare Symbols viff;" << endl;
+            ss << "AutoDeclare Symbols fv;" << endl;
             form_map[pid].Init("form");
             form_map[pid].Execute(ss.str());
         }
@@ -2314,10 +1941,10 @@ namespace HepLib {
         exmap map_rat;
         expr_in = expr_in.to_polynomial(map_rat);
         
-        exvector vs;
+        exset vs;
         for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
             auto e = (*i);
-            if(is_a<symbol>(e)) vs.push_back(e);
+            if(is_a<symbol>(e)) vs.insert(e);
         }
         
         exmap s2v;
@@ -2325,7 +1952,7 @@ namespace HepLib {
         int cid = 0;
         for(auto ss : vs) {
             cid++;
-            string cvv = "viff"+to_string(cid);
+            string cvv = "fv"+to_string(cid);
             s2v[ss] = Symbol(cvv);
             st[cvv] = ss.subs(map_rat);
         }
@@ -2346,11 +1973,16 @@ namespace HepLib {
     }
     
     ex inner_factor_form(const ex & expr) {
+        if(is_a<mul>(expr)) {
+            ex res = 1;
+            for(auto item : expr) res *= inner_factor_form(item);
+            return res;
+        }
         static map<pid_t, Form> form_map;
         auto pid = getpid();
         if((form_map.find(pid)==form_map.end())) { // init section
             ostringstream ss;
-            ss << "AutoDeclare Symbols viff;" << endl;
+            ss << "AutoDeclare Symbols fv;" << endl;
             form_map[pid].Init("form");
             form_map[pid].Execute(ss.str());
         }
@@ -2360,10 +1992,10 @@ namespace HepLib {
         exmap map_rat;
         expr_in = expr_in.to_polynomial(map_rat);
         
-        exvector vs;
+        exset vs;
         for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
             auto e = (*i);
-            if(is_a<symbol>(e)) vs.push_back(e);
+            if(is_a<symbol>(e)) vs.insert(e);
         }
         
         exmap s2v;
@@ -2371,7 +2003,7 @@ namespace HepLib {
         int cid = 0;
         for(auto ss : vs) {
             cid++;
-            string cvv = "viff"+to_string(cid);
+            string cvv = "fv"+to_string(cid);
             s2v[ss] = Symbol(cvv);
             st[cvv] = ss.subs(map_rat);
         }
@@ -2529,7 +2161,7 @@ namespace HepLib {
         for(int i=0; i<size; i++) exv[i] = dict[to_string(i)];
     } 
     
-    ex add_collect_normal(const exvector &exv, ex const &pats) {
+    ex add_collect_normal(const exvector &exv, ex const &pats, int opt) {
         auto cvs_vec = GiNaC_Parallel(exv.size(), [&exv,pats](int idx)->ex {
             return collect_lst(exv[idx], pats);
         }, "ColEx");
@@ -2537,16 +2169,56 @@ namespace HepLib {
         for(auto cvs : cvs_vec) for(auto cv : cvs) res_map[cv.op(1)] += cv.op(0);
         exvector res_vec;
         for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
-        if(GiNaC_Parallel_NB.find("NorEx")==GiNaC_Parallel_NB.end()) GiNaC_Parallel_NB["NorEx"] = 1;
-        res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec](int idx)->ex {
-            return exnormal(res_vec[idx].op(0)) * res_vec[idx].op(1);
+        res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec,opt](int idx)->ex {
+            return exnormal(res_vec[idx].op(0), opt) * res_vec[idx].op(1);
         }, "NorEx");
         return add(res_vec);
     }
-    ex add_collect_normal(const ex & e, ex const &pats) {
+    
+    ex add_collect_normal(const exvector &exv, init_list const &pats, int opt) {
+        auto cvs_vec = GiNaC_Parallel(exv.size(), [&exv,pats](int idx)->ex {
+            return collect_lst(exv[idx], pats);
+        }, "ColEx");
+        exmap res_map;
+        for(auto cvs : cvs_vec) for(auto cv : cvs) res_map[cv.op(1)] += cv.op(0);
+        exvector res_vec;
+        for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
+        res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec,opt](int idx)->ex {
+            return exnormal(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
+        }, "NorEx");
+        return add(res_vec);
+    }
+    
+    ex add_collect_normal(const exvector &exv, lst const &pats, int opt) {
+        auto cvs_vec = GiNaC_Parallel(exv.size(), [&exv,pats](int idx)->ex {
+            return collect_lst(exv[idx], pats);
+        }, "ColEx");
+        exmap res_map;
+        for(auto cvs : cvs_vec) for(auto cv : cvs) res_map[cv.op(1)] += cv.op(0);
+        exvector res_vec;
+        for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
+        res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec,opt](int idx)->ex {
+            return exnormal(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
+        }, "NorEx");
+        return add(res_vec);
+    }
+    
+    ex add_collect_normal(const ex & e, ex const &pats, int opt) {
         if(!is_a<add>(e)) throw Error("add_collect_normal: input is NOT a add class.");
         exvector exv(e.begin(), e.end());
-        return add_collect_normal(exv, pats);
+        return add_collect_normal(exv, pats, opt);
+    }
+    
+    ex add_collect_normal(const ex & e, lst const &pats, int opt) {
+        if(!is_a<add>(e)) throw Error("add_collect_normal: input is NOT a add class.");
+        exvector exv(e.begin(), e.end());
+        return add_collect_normal(exv, pats, opt);
+    }
+    
+    ex add_collect_normal(const ex & e, init_list const &pats, int opt) {
+        if(!is_a<add>(e)) throw Error("add_collect_normal: input is NOT a add class.");
+        exvector exv(e.begin(), e.end());
+        return add_collect_normal(exv, pats, opt);
     }
         
     void ReShare(const ex & e) {
@@ -2582,5 +2254,11 @@ namespace HepLib {
         for(auto & e : ev1) ar.archive_ex(e, "e");
         for(auto & e : ev2) ar.archive_ex(e, "e");
     }
+    
+    ex nextprime(const ex & n) {
+        auto v = cln::the<cln::cl_I>(ex_to<numeric>(n).to_cl_N());
+        return numeric(cln::nextprobprime(v));
+    }
         
 }
+

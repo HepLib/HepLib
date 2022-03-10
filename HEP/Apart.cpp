@@ -6,10 +6,6 @@
 #include "HEP.h"
 #include "cln/cln.h"
 
-namespace {
-    auto nopat = GiNaC::subs_options::no_pattern;
-}
-
 namespace HepLib {
 
     #ifndef DOXYGEN_SKIP

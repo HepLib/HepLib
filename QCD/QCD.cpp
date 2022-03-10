@@ -117,7 +117,7 @@ namespace HepLib::QCD {
             sp2x[p2*p2]=0;
             sp2x[p3*p3]=0;
 
-            auto ret = pow(2*Pi,3-2*d) * pow(2,-1-d) * pow(q2,1-2*ep) * V(d-1)*V(d-2) * amp.subs(sp2x,subs_options::algebraic);
+            auto ret = pow(2*Pi,3-2*d) * pow(2,-1-d) * pow(q2,1-2*ep) * V(d-1)*V(d-2) * amp.subs(sp2x,algbr);
 
             ex ss = x(si+0)*x(si+1)*x(si+2);
             ret = MapFunction([si,ss,d](const ex & e, MapFunction &self)->ex{
@@ -157,7 +157,7 @@ namespace HepLib::QCD {
             sp2x[p3*p4]=s34/2;
             
             auto ret = pow(2*Pi,4-3*d) * pow(2,1-2*d) * V(d-1)*V(d-2)*V(d-3) *
-                pow(q2,2-3*ep) * amp.subs(sp2x,subs_options::algebraic);
+                pow(q2,2-3*ep) * amp.subs(sp2x,algbr);
             
             // add λ(x16,x25,x34)^((d-5)/2) to each F
             ret = MapFunction([si,d](const ex & e, MapFunction &self)->ex{
