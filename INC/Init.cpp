@@ -222,19 +222,19 @@ namespace HepLib {
     
     // FROM IBP
     
-    const Symbol IBP::d("d");
-    int IBP::FIRE::Version = 6;
-    int IBP::FIRE::Threads = 4;
-    int IBP::FIRE::fThreads = 0;
-    int IBP::FIRE::lThreads = 0;
-    int IBP::FIRE::sThreads = 0;
-    exmap IBP::MapPreSP;
+    const Symbol d("d");
+    int FIRE::Version = 6;
+    int FIRE::Threads = 4;
+    int FIRE::fThreads = 0;
+    int FIRE::lThreads = 0;
+    int FIRE::sThreads = 0;
+    exmap MapPreSP;
     
-    string IBP::UKIRA::KArgs = "";
-    string IBP::KIRA::KArgs = "";
+    string UKIRA::KArgs = "";
+    string KIRA::KArgs = "";
     
-    int DE::NDigits = -1;
-    Symbol DE::iet("iet");
+    int NDigits = -1;
+    Symbol iet("iet");
     
     // Rationalize
     

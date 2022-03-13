@@ -341,9 +341,9 @@ int FIRE::Version = 6;
 int FIRE::Threads = 2;
 
 void FIRE::Reduce() {
-    HepLib::IBP::FIRE::Version = FIRE::Version;
-    HepLib::IBP::FIRE::Threads = FIRE::Threads;
-    HepLib::IBP::FIRE fire;
+    HepLib::FIRE::Version = FIRE::Version;
+    HepLib::FIRE::Threads = FIRE::Threads;
+    HepLib::FIRE fire;
     
     fire.Internal =  HepLib::vec2lst(Internal._g);
     fire.External =  HepLib::vec2lst(External._g);

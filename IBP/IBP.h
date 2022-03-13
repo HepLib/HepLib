@@ -10,7 +10,7 @@
 /**
  * @brief namespace for IBP reduction
  */
-namespace HepLib::IBP {
+namespace HepLib {
 
     using namespace std;
     using namespace GiNaC;
@@ -20,9 +20,9 @@ namespace HepLib::IBP {
     DECLARE_FUNCTION_1P(a)
     
     /**
-     * @brief Base class for IBP reduction
+     * @brief IBP base class for IBP reduction
      */
-    class Base {
+    class IBP {
     public:
         lst Internal;
         lst External;
@@ -52,14 +52,16 @@ namespace HepLib::IBP {
         void Import(string garfn); // Import from .gar
         ex TO(); // to single list for output
         void FROM(ex s); // from a single expression 
+        exmap SP2Pn();
+        exmap Dinv(const lst & ns);
         
-        static void ReShare(const vector<Base*> & fs);
+        static void ReShare(const vector<IBP*> & fs);
     };
 
     /**
      * @brief IBP reduction using FIRE program
      */
-    class FIRE : public Base {
+    class FIRE : public IBP {
     public:
         void Export() override;
         void Run() override;
@@ -77,7 +79,7 @@ namespace HepLib::IBP {
     /**
      * @brief IBP reduction using KIRA program
      */
-    class KIRA : public Base {
+    class KIRA : public IBP {
     public:
     
         static string KArgs;
@@ -101,7 +103,7 @@ namespace HepLib::IBP {
     /**
      * @brief IBP reduction using KIRA program with user-defined equations
      */
-    class UKIRA : public Base {
+    class UKIRA : public IBP {
     public:
     
         static string KArgs; // check kira --help
@@ -131,7 +133,7 @@ namespace HepLib::IBP {
     /**
      * @brief IBP reduction using Direc method
      */
-    class Direct : public Base {
+    class Direct : public IBP {
     public:
         class Condition {
         public:
@@ -167,7 +169,7 @@ namespace HepLib::IBP {
         vector<pair<Condition,ex>> ConSolVec; // the conditional solution vector
     };
     
-    class Laporta : public Base {
+    class Laporta : public IBP {
     
     public:
         
@@ -200,15 +202,15 @@ namespace HepLib::IBP {
     
     extern exmap MapPreSP;
     exmap SortPermutation(const ex & in_expr, const lst & xs);
-    lst LoopUF(const Base & fire, const ex & corner);
+    lst LoopUF(const IBP & fire, const ex & corner);
     lst UF(const ex & ps, const ex & ns, const ex & loops, const ex & tloops, const ex & lsubs, const ex & tsubs);
-    pair<exmap,lst> FindRules(vector<Base*> fs, bool mi=true, std::function<lst(const Base &, const ex &)> uf=LoopUF);
-    inline pair<exmap,lst> FindRules(Base& ibp, bool mi=true, std::function<lst(const Base &, const ex &)> uf=LoopUF) {
-        vector<Base*> fs;
+    pair<exmap,lst> FindRules(vector<IBP*> fs, bool mi=true, std::function<lst(const IBP &, const ex &)> uf=LoopUF);
+    inline pair<exmap,lst> FindRules(IBP& ibp, bool mi=true, std::function<lst(const IBP &, const ex &)> uf=LoopUF) {
+        vector<IBP*> fs;
         fs.push_back(&ibp);
         return FindRules(fs, mi, uf);
     }
     
-    ex GPolynomial(const Base & base);
+    ex GPolynomial(const IBP & IBP);
     void GPermutation(const ex & uf, const lst & xs);
 }

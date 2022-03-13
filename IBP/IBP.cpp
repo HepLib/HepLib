@@ -6,7 +6,7 @@
 #include "IBP.h"
 #include <cmath>
 
-namespace HepLib::IBP {
+namespace HepLib {
 
     namespace {
         ex_is_less less;
@@ -18,13 +18,13 @@ namespace HepLib::IBP {
 
     REGISTER_FUNCTION(a, do_not_evalf_params().print_func<print_dflt>(a_print))
     
-    void Base::Reduce() {
+    void IBP::Reduce() {
         Export();
         Run();
         Import();
     }
     
-    void Base::Export(string garfn) {
+    void IBP::Export(string garfn) {
         archive ar;
         ar.archive_ex(Internal, "Internal");
         ar.archive_ex(External, "External");
@@ -55,14 +55,14 @@ namespace HepLib::IBP {
         out.close();
     }
     
-    ex Base::TO() {
+    ex IBP::TO() {
         lst shift;
         for(auto kv : Shift) shift.append(lst{kv.first, kv.second});
         
         return lst{ Internal, External, Replacements, Propagators, Cuts, DSP, ISP, shift, reCut, ProblemNumber, Symbol(WorkingDir), PIntegrals, MIntegrals, Rules, IsAlwaysZero };
     }
     
-    void Base::Import(string garfn) {
+    void IBP::Import(string garfn) {
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -93,7 +93,7 @@ namespace HepLib::IBP {
     
     }
     
-    void Base::FROM(ex s) {
+    void IBP::FROM(ex s) {
         int i = 0;
         Internal = ex_to<lst>(s.op(i++));
         External = ex_to<lst>(s.op(i++));
@@ -113,7 +113,7 @@ namespace HepLib::IBP {
         for(auto item : shift) Shift[ex_to<numeric>(item.op(0)).to_int()] = item.op(1);
     }
     
-    void Base::ReShare(const vector<Base*> & fs) {
+    void IBP::ReShare(const vector<IBP*> & fs) {
         string garfn = to_string(getpid())+".ReShare.gar";
         if(true) {
             archive ar;
@@ -161,10 +161,10 @@ namespace HepLib::IBP {
         }
     }
     
-    void Base::FindRules(bool mi) {
-        vector<Base*> ibps;
+    void IBP::FindRules(bool mi) {
+        vector<IBP*> ibps;
         ibps.push_back(this);
-        auto rs_mis = IBP::FindRules(ibps, mi);
+        auto rs_mis = HepLib::FindRules(ibps, mi);
         if(rs_mis.first.size()>0) {
             auto nr = Rules.nops();
             for(int i=0; i<nr; i++) {
@@ -297,13 +297,13 @@ namespace HepLib::IBP {
     
     /**
      * @brief UF function
-     * @param base the Base object
+     * @param IBP the IBP object
      * @param idx exponent for the internal Propagator
      * @return lst of {U, F, sign}
      */
-    lst LoopUF(const Base & base, const ex & idx) {
+    lst LoopUF(const IBP & ibp, const ex & idx) {
         
-        auto props = base.Propagators;
+        auto props = ibp.Propagators;
         
         // handle sign
         ex sign = 1;
@@ -322,7 +322,7 @@ namespace HepLib::IBP {
                 } else throw Error("LoopUF: sign of iEpsilon NOT determined.");
             }
             
-            for(auto lp : base.Internal) {
+            for(auto lp : ibp.Internal) {
                 if(ipr.degree(lp)==2) {
                     auto cc = ipr.coeff(lp,2);
                     if(is_a<numeric>(cc)) {
@@ -359,24 +359,24 @@ namespace HepLib::IBP {
         
         static map<ex,exmap,ex_is_less> cache_by_prop;
         if(using_cache && cache_limit>0 && cache_by_prop.size() > cache_limit/10) cache_by_prop.clear();
-        exmap & cache = cache_by_prop[lst{props,base.Internal}];
+        exmap & cache = cache_by_prop[lst{props,ibp.Internal}];
         if(!using_cache || cache.find(key)==cache.end()) { // no cache item
             ut = 1;
             ft = expand_ex(ft);
-            ft = subs_all(ft, base.Replacements);
-            for(int i=0; i<base.Internal.nops(); i++) {
-                auto t2 = ft.coeff(base.Internal.op(i),2);
-                auto t1 = ft.coeff(base.Internal.op(i),1);
-                auto t0 = ft.subs(base.Internal.op(i)==0,nopat);
+            ft = subs_all(ft, ibp.Replacements);
+            for(int i=0; i<ibp.Internal.nops(); i++) {
+                auto t2 = ft.coeff(ibp.Internal.op(i),2);
+                auto t1 = ft.coeff(ibp.Internal.op(i),1);
+                auto t0 = ft.subs(ibp.Internal.op(i)==0,nopat);
                 ut *= t2;
                 if(is_zero(t2)) return lst{0,0,1};
                 ft = exnormal(t0-t1*t1/(4*t2));
                 ft = expand_ex(ft);
-                ft = subs_all(ft, base.Replacements);
+                ft = subs_all(ft, ibp.Replacements);
             }
             ft = exnormal(ut*ft);
-            ft = exnormal(subs_all(ft, base.Replacements));
-            ut = exnormal(subs_all(ut, base.Replacements));
+            ft = exnormal(subs_all(ft, ibp.Replacements));
+            ut = exnormal(subs_all(ut, ibp.Replacements));
             uf = exnormal(ut+ft); // ut*ft, replay with ut+ft
             
             if(using_cache) cache[key] = lst{ut,ft,uf};
@@ -549,19 +549,19 @@ namespace HepLib::IBP {
     
     /**
      * @brief Find Rules for Integrals or Master Integrals
-     * @param fs vector of Base pointer object
+     * @param fs vector of IBP pointer object
      * @param mi true for Master Integals
      * @param uf the function to compute the UF polynomial
      * @return rules replacement and left integrals or left master integrals
      */
-    pair<exmap,lst> FindRules(vector<Base*> fs, bool mi, std::function<lst(const Base &, const ex &)> uf) {
-        vector<pair<Base*,ex>> ibp_idx_vec;
+    pair<exmap,lst> FindRules(vector<IBP*> fs, bool mi, std::function<lst(const IBP &, const ex &)> uf) {
+        vector<pair<IBP*,ex>> ibp_idx_vec;
         if(mi) for(auto fi : fs) for(auto item : fi->MIntegrals) ibp_idx_vec.push_back(make_pair(fi, item));
         else for(auto fi : fs) for(auto item : fi->Integrals) ibp_idx_vec.push_back(make_pair(fi, F(fi->ProblemNumber,item)));
         
         exvector uf_smi_vec = GiNaC_Parallel(ibp_idx_vec.size(), [&ibp_idx_vec,&uf](int idx)->ex {
             auto p = ibp_idx_vec[idx];
-            const Base & fi = (*p.first);
+            const IBP & fi = (*p.first);
             auto mi = p.second;
             auto ks = uf(fi,mi.subs(F(w1,w2)==w2));
             int nk = ks.nops()-1;
@@ -737,7 +737,7 @@ namespace HepLib::IBP {
         return mr;
     }
     
-    bool Base::IsZero(ex sector) {
+    bool IBP::IsZero(ex sector) {
         auto props = Propagators;
         lst xs;
         int nxi=0;
@@ -802,9 +802,122 @@ namespace HepLib::IBP {
         return true;
     }
     
-    ex GPolynomial(const Base & base) {
+    exmap IBP::SP2Pn() { // sp -> {c0,c1,c2,...,cn} coefficient of each propagator, c0 is remaining constant
+        lst InExternal;
+        for(auto ii : Internal) InExternal.append(ii);
+        for(auto ii : External) InExternal.append(ii);
         
-        auto props = base.Propagators;
+        if(ISP.nops()<1) {
+            for(auto it : Internal) {
+                for(auto ii : InExternal) ISP.append(it*ii);
+            }
+            ISP.sort();
+            ISP.unique();
+        }
+        
+        int pdim = Propagators.nops();
+        if(ISP.nops() > pdim) {
+            cout << "ISP = " << ISP << endl;
+            cout << "Propagators = " << Propagators << endl;
+            throw Error("IBP::SP2Pn: #(ISP) > #(Propagators).");
+        }
+        
+        lst sp2s, s2sp, ss;
+        int _pic=0;
+        for(auto item : ISP) {
+            _pic++;
+            symbol si("sp"+to_string(_pic));
+            ss.append(si);
+            sp2s.append(item==si);
+            s2sp.append(si==item);
+        }
+        
+        lst eqns;
+        for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
+            auto eq = expand(Propagators.op(i)).subs(iEpsilon==0); // drop iEpsilon
+            eq = eq.subs(sp2s, algbr);
+            eq = eq.subs(Replacements, algbr);
+            if(eq.has(iWF(w))) throw Error("IBP::SP2Pn, iWF used in eq.");
+            eqns.append(eq == iWF(i));
+        }
+        auto s2p = lsolve(eqns, ss);
+        if(s2p.nops() != ISP.nops()) {
+            cout << ISP << endl << s2p << endl << eqns << endl;
+            throw Error("IBP::SP2Pn: lsolve failed.");
+        }
+    
+        exmap smap;
+        for(auto r : s2p) {
+            ex k = r.op(0).subs(s2sp, nopat);
+            ex v = r.op(1);
+            ex chk = v.subs(iWF(w)==0);
+            lst res;
+            res.append(chk);
+            for(int i=0; i<ISP.nops(); i++) {
+                ex t = v.coeff(iWF(i));
+                res.append(t);
+                chk += t*iWF(i);
+            }
+            if(!normal(chk-v).is_zero()) throw Error("IBP::SP2Pn check failed.");
+            smap[k] = res;
+        }
+        return smap;
+    }
+    
+    exmap IBP::Dinv(const lst & ns) {
+        lst InExternal;
+        for(auto ii : Internal) InExternal.append(ii);
+        for(auto ii : External) InExternal.append(ii);
+        auto & es = External;
+        int eN = es.nops();
+        int pN = Propagators.nops();
+        map<ex,int,ex_is_less> ep2n;
+        for(int i=0; i<eN; i++) ep2n[es.op(i)] = i;
+        matrix G(eN, eN);
+        for(int r=0; r<eN; r++) for(int c=0; c<eN; c++) G(r,c) = (es.op(r)*es.op(c)).subs(Replacements,algbr);
+        matrix Gi = G.inverse();
+        // partial J/partial pi^2
+        exmap spmap;
+        auto sp2pn = SP2Pn();
+        for(int p1i=0; p1i<eN; p1i++) {
+        for(int p2i=p1i; p2i<eN; p2i++) {
+            ex p1 = es.op(p1i);
+            ex p2 = es.op(p2i);
+            ex pf = 1;
+            if(p1i==p2i) pf = 1/ex(2);
+            ex res = 0;
+            for(int pi=0; pi<pN; pi++) {
+                lst ns2 = ns;
+                ns2.let_op(pi) = ns.op(pi)+1;
+                ex dpi = -ns.op(pi)*diff_ex(Propagators.op(pi), p1);
+                for(int i=0; i<eN; i++) {
+                    ex idpi = expand_ex(dpi*es.op(i)).subs(Replacements,algbr);
+                    auto cvs = collect_lst(idpi, InExternal);
+                    for(auto cv : cvs) {
+                        if(is_zero(cv.op(1)-1)) res += cv.op(0)*pf*Gi(i,p2i)*F(ProblemNumber, ns2);
+                        else {
+                            auto f = sp2pn.find(cv.op(1));
+                            if(f==sp2pn.end()) throw Error("IBP::DExt, Not found.");
+                            auto cps = f->second;
+                            res += cv.op(0)*pf*Gi(i,p2i)*cps.op(0)*F(ProblemNumber, ns2);
+                            for(int j=1; j<pN+1; j++) {
+                                if(is_zero(cps.op(j))) continue;
+                                lst ns3 = ns2;
+                                ns3.let_op(j-1) = ns2.op(j-1)-1;
+                                res += cv.op(0)*pf*Gi(i,p2i)*cps.op(j)*F(ProblemNumber, ns3);
+                            }
+                        }
+                    }
+                }
+            }
+            spmap[p1*p2] = collect_ex(res,F(w1,w2));
+        }}
+        return spmap;
+    }
+    
+    ex GPolynomial(const IBP & ibp) {
+        
+        auto props = ibp.Propagators;
         ex ut, ft, uf;
         lst key;
         lst xs;
@@ -820,20 +933,20 @@ namespace HepLib::IBP {
         
         ut = 1;
         ft = expand_ex(ft);
-        ft = subs_all(ft, base.Replacements);
-        for(int i=0; i<base.Internal.nops(); i++) {
-            auto t2 = ft.coeff(base.Internal.op(i),2);
-            auto t1 = ft.coeff(base.Internal.op(i),1);
-            auto t0 = ft.subs(base.Internal.op(i)==0,nopat);
+        ft = subs_all(ft, ibp.Replacements);
+        for(int i=0; i<ibp.Internal.nops(); i++) {
+            auto t2 = ft.coeff(ibp.Internal.op(i),2);
+            auto t1 = ft.coeff(ibp.Internal.op(i),1);
+            auto t0 = ft.subs(ibp.Internal.op(i)==0,nopat);
             ut *= t2;
             if(is_zero(t2)) return lst{0,0,1};
             ft = exnormal(t0-t1*t1/(4*t2));
             ft = expand_ex(ft);
-            ft = subs_all(ft, base.Replacements);
+            ft = subs_all(ft, ibp.Replacements);
         }
         ft = exnormal(ut*ft);
-        ft = exnormal(subs_all(ft, base.Replacements));
-        ut = exnormal(subs_all(ut, base.Replacements));
+        ft = exnormal(subs_all(ft, ibp.Replacements));
+        ut = exnormal(subs_all(ut, ibp.Replacements));
         uf = exnormal(ut+ft); // ut*ft, replay with ut+ft
             
         uf = uf.subs(MapPreSP);

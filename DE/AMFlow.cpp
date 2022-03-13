@@ -5,11 +5,9 @@
 
 #include "DE.h"
 
-namespace HepLib::DE {
-
-    using namespace IBP;
+namespace HepLib {
         
-    AMFlow::AMFlow(IBP::Base & _ibp) : ibp(_ibp), o(iet), oo(iet) { } 
+    AMFlow::AMFlow(IBP & _ibp) : ibp(_ibp), o(iet), oo(iet) { } 
     
     void AMFlow::InitDE() {
         if(ibp.MIntegrals.nops()<1) ibp.Reduce();
@@ -77,14 +75,15 @@ namespace HepLib::DE {
             for(auto ni : mi.op(1)) v += ni;
             diag.append(pow(oo.x,nloop*d/2-v));
         }
-        oo.Apply(diag);
-        oo.Mat = normal(oo.Mat);
+        //oo.Apply(diag);
         oo.x2y(1/oo.x);
         oo.xpow();
         oo.Fuchsify();
         oo.Shear();
         oo.info();
-        cout <<  oo.Series(o.x,0) << endl;
+        auto m = oo.Series(o.x,1);
+        cout << m << endl << endl;
+        cout << oo.MatT() << endl << endl;
         cout << MIntegrals << endl;
     }
         

@@ -6,7 +6,7 @@
 #include "IBP.h"
 #include <cmath>
 
-namespace HepLib::IBP {
+namespace HepLib {
 
     static matrix RowReduce(matrix mat) {
         static map<pid_t, Fermat> fermat_map;

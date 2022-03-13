@@ -6,7 +6,7 @@
 #include "IBP.h"
 #include <cmath>
 
-namespace HepLib::IBP {
+namespace HepLib {
 
     /**
      * @brief export integral to KIRA form

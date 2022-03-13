@@ -6,7 +6,7 @@
 #include "IBP.h"
 #include <cmath>
 
-namespace HepLib::IBP {
+namespace HepLib {
 
     // FROM FIRE6.m
     namespace {

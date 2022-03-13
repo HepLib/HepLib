@@ -5,7 +5,21 @@
 
 #include "DE.h"
 
-namespace HepLib::DE {
+namespace HepLib::D_E {
+
+    // DE transformation
+    matrix matrix_diff(const matrix &mat, const symbol &x, const int n) {
+        return matrix_map(mat, [&](auto &&e){ return e.diff(x,n); });
+    }
+
+    // Dx J = M.J ---> J = T.J' & Dx J' = M'.J' with M' = Ti.M.T - Ti.Dx T
+    matrix transform(const matrix &m, const matrix &t, const symbol &x) {
+        return t.inverse().mul(m.mul(t).sub(matrix_diff(t,x)));
+    }
+    
+    matrix transform(const matrix &m, const matrix &tinverse, const matrix &t, const symbol &x) {
+        return tinverse.mul(m.mul(t).sub(matrix_diff(t,x)));
+    }
 
     matrix normal(const matrix &m) {
         return matrix_map(m, [&](auto &&e) { return normal(e); });

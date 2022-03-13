@@ -12,7 +12,6 @@ namespace HepLib {
     using namespace std;
     using namespace GiNaC;
     using namespace HepLib;
-    using namespace IBP;
     
     extern const Symbol NA;
     extern const Symbol NF;
@@ -511,9 +510,9 @@ namespace HepLib {
     ex F2ex(const ex & expr_in);
     ex ApartIRC(const ex & expr_in);
     void ApartIBP(exvector &io_vec, int IBPmethod, const lst & loops, const lst & exts,
-        const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF);
+        const lst & cut_props=lst{}, std::function<lst(const IBP &, const ex &)> uf=LoopUF);
     inline void ApartIBP(int IBPmethod, exvector &io_vec, const lst & loops, const lst & exts,
-        const lst & cut_props=lst{}, std::function<lst(const Base &, const ex &)> uf=IBP::LoopUF) {
+        const lst & cut_props=lst{}, std::function<lst(const IBP &, const ex &)> uf=LoopUF) {
         return ApartIBP(io_vec, IBPmethod, loops, exts, cut_props, uf);
     }
     exmap ApartRules(const exvector &airs, bool irc=true);
@@ -533,7 +532,7 @@ namespace HepLib {
         lst pat = { F(w1,w2), gs, nL, nH };
         std::function<ex(const ex &, const ex &)> cv = nullptr;
         string SaveDir = ""; // save temporary result, and restart from it
-        std::function<lst(const Base &, const ex &)> UF = IBP::LoopUF;
+        std::function<lst(const IBP &, const ex &)> UF = LoopUF;
         void init_smap() { for(auto li : Internal) smap[SP(li)] = 1; }
     };
     void ApartIBP(exvector &io_vec, AIOption aip);

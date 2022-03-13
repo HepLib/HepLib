@@ -5,35 +5,23 @@
 
 #include "DE.h"
 
-namespace HepLib::DE {
+namespace HepLib {
 
-    // DE transformation
-    matrix matrix_diff(const matrix &mat, const symbol &x, const int n) {
-        return matrix_map(mat, [&](auto &&e){ return e.diff(x,n); });
-    }
-
-    // Dx J = M.J ---> J = T.J' & Dx J' = M'.J' with M' = Ti.M.T - Ti.Dx T
-    matrix transform(const matrix &m, const matrix &t, const symbol &x) {
-        return t.inverse().mul(m.mul(t).sub(matrix_diff(t,x)));
-    }
+    using namespace D_E;
     
-    matrix transform(const matrix &m, const matrix &tinverse, const matrix &t, const symbol &x) {
-        return tinverse.mul(m.mul(t).sub(matrix_diff(t,x)));
-    }
+    DE::DE(const symbol & _x) : x(_x) { }
     
-    Base::Base(const symbol & _x) : x(_x) { }
+    DE::DE(const matrix & _mat, const symbol & _x) : Mat(_mat), x(_x) { }
     
-    Base::Base(const matrix & _mat, const symbol & _x) : Mat(_mat), x(_x) { }
-    
-    Base::Base(const Base & b) : Mat(b.Mat), x(b.x), Ts(b.Ts) { }
+    DE::DE(const DE & b) : Mat(b.Mat), x(b.x), Ts(b.Ts) { }
     
     // Dx J = M.J ---> J = T.J' & Dx J' = M'.J' with M' = Ti.M.T - Ti.Dx T
-    void Base::Apply(const matrix & t) {
+    void DE::Apply(const matrix & t) {
         Mat = t.inverse().mul(Mat.mul(t).sub(matrix_diff(t,x)));
         Ts.push_back(t);
     }
     
-    void Base::Apply(const lst & diag) {
+    void DE::Apply(const lst & diag) {
         auto matN = diag.nops();
         matrix t(matN, matN);
         for(int i=0; i<matN; i++) t(i,i) = diag.op(i);
@@ -41,7 +29,7 @@ namespace HepLib::DE {
         Ts.push_back(t);
     }
     
-    void Base::x2y(const ex & y) {
+    void DE::x2y(const ex & y) {
         ex det = diff_ex(y,x);
         int matN = Mat.rows();
         for(int r=0; r<matN; r++) {
@@ -59,7 +47,7 @@ namespace HepLib::DE {
         }
     }
     
-    void Base::xpow() {
+    void DE::xpow() {
         int n = Mat.nops();
         for(int i=0; i<n; i++) {
             auto cvs = collect_lst(Mat.op(i),x);
@@ -79,7 +67,7 @@ namespace HepLib::DE {
         }
     }
     
-    matrix Base::MatT() {
+    matrix DE::MatT() {
         int matN = Mat.rows();
         matrix t = ex_to<matrix>(unit_matrix(matN));
         for(auto ti : Ts) t = t.mul(ti);
@@ -87,7 +75,7 @@ namespace HepLib::DE {
     }
     
     // fuchsify at x=0
-    void Base::Fuchsify() {
+    void DE::Fuchsify() {
         matrix m = Mat;
         auto a01 = a01_matrix(m, x);
         matrix a0 = a01.first;
@@ -175,7 +163,7 @@ namespace HepLib::DE {
     }
     
     // normalization at x=0
-    void Base::Normalize() {
+    void DE::Normalize() {
         if(Verbose>1) cout << "  \\--Normalize: start @ " << now() << endl;
 
         matrix m = Mat;
@@ -260,7 +248,7 @@ namespace HepLib::DE {
     }
     
     // shearing at x=0
-    void Base::Shear() {
+    void DE::Shear() {
         if(Verbose>1) cout << "  \\--Shear: start @ " << now() << endl;
 
         matrix m = Mat;
@@ -419,7 +407,7 @@ namespace HepLib::DE {
         }
     }
         
-    matrix Base::Series(const ex & x0, const int xN) {
+    matrix DE::Series(const ex & x0, const int xN) {
         auto oDigits = Digits;
         if(NDigits>0) Digits = NDigits;
         if(Verbose>1) cout << "  \\--Series: start @ " << now() << endl;
@@ -555,7 +543,7 @@ namespace HepLib::DE {
         return CMat;
     }
     
-    void Base::info() {
+    void DE::info() {
         if(Mat.nops()<1) return;
         matrix a0 = a0_matrix(Mat, x);
         auto ev_map = eigenvalues(a0);

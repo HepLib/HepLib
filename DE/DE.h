@@ -8,9 +8,9 @@
 #include "BASIC.h"
 #include "IBP.h"
 
-namespace HepLib::DE {
+namespace HepLib {
 
-    extern Symbol iet;
+namespace D_E {
 
     // https://github.com/magv/fuchsia.cpp 
     class matrix_hack : public matrix {
@@ -64,7 +64,9 @@ namespace HepLib::DE {
     
     bool is_jordan_form(const matrix & mat);
     pair<matrix, vector<pair<ex,int>>> jordan(const matrix &m);
-    
+}
+
+    extern Symbol iet;
     extern int NDigits;
     
     class BJF {
@@ -89,11 +91,11 @@ namespace HepLib::DE {
         ex b;
     };
         
-    class Base {
+    class DE {
     public:
-        Base(const Base & b);
-        Base(const symbol & x);
-        Base(const matrix & m, const symbol & x);
+        DE(const DE & b);
+        DE(const symbol & x);
+        DE(const matrix & m, const symbol & x);
         matrix Mat;
         const symbol & x;
         vector<matrix> Ts;
@@ -113,15 +115,15 @@ namespace HepLib::DE {
     
     class AMFlow {
     public:
-        Base o;
-        Base oo;
-        AMFlow(IBP::Base & ibp);
+        DE o;
+        DE oo;
+        AMFlow(IBP & ibp);
         void InitDE();
         matrix FSS(const int xn=0);
         void Scale();
         
     //private:
-        IBP::Base & ibp;
+        IBP & ibp;
         lst Rules;
         lst MIntegrals;
     };

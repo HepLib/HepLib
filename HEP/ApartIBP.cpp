@@ -9,7 +9,7 @@ namespace HepLib {
 
     namespace {
 
-        void A2FSave(string garfn, exvector air_vec, ex IntFs, vector<IBP::Base*> &ibp_vec) {
+        void A2FSave(string garfn, exvector air_vec, ex IntFs, vector<IBP*> &ibp_vec) {
             archive ar;
             
             ar.archive_ex(air_vec.size(), "air_vec_size");
@@ -29,7 +29,7 @@ namespace HepLib {
             out.close();
         }
 
-        void A2FGet(string garfn, exvector &air_vec, ex &IntFs, vector<IBP::Base*> &ibp_vec, int IBPmethod) {
+        void A2FGet(string garfn, exvector &air_vec, ex &IntFs, vector<IBP*> &ibp_vec, int IBPmethod) {
             archive ar;
             ifstream in(garfn);
             in >> ar;
@@ -52,12 +52,12 @@ namespace HepLib {
             size = ex_to<numeric>(dict["ibp_vec_size"]).to_int();
             ibp_vec.resize(size);
             for(int i=0; i<size; i++) {
-                IBP::Base* ibp;
-                if(IBPmethod==0) ibp = new Base();
+                IBP* ibp;
+                if(IBPmethod==0) ibp = new IBP();
                 else if(IBPmethod==1) ibp = new FIRE();
                 else if(IBPmethod==2) ibp = new KIRA();
                 else if(IBPmethod==3) ibp = new UKIRA();
-                else ibp = new Base();
+                else ibp = new IBP();
                 ibp->FROM(dict["ibp_"+to_string(i)]);
                 ibp_vec[i] = ibp;
             }
@@ -114,7 +114,7 @@ namespace HepLib {
         }
         
         ex IntFs;
-        vector<IBP::Base*> ibp_vec;
+        vector<IBP*> ibp_vec;
         if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/AIR2F.gar")) {
             if(Verbose > 1) cout << "  \\--Read AIR2F.gar" << flush; 
             A2FGet(aio.SaveDir+"/AIR2F.gar", air_vec, IntFs, ibp_vec, IBPmethod);
@@ -241,7 +241,7 @@ namespace HepLib {
             if(Verbose>0) cout <<  "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction @ " << now(false) << flush;
             
             exmap AIR2F;
-            std::map<ex, IBP::Base*, ex_is_less> p2IBP;
+            std::map<ex, IBP*, ex_is_less> p2IBP;
             int pn=1;
             int ntot = AIR.size();
             for(int i=0; i<ntot; i++) {
@@ -275,13 +275,13 @@ namespace HepLib {
                 }
 
                 if(p2IBP.find(props)==p2IBP.end()) {
-                    IBP::Base* ibp;
-                    if(IBPmethod==0) ibp = new Base();
+                    IBP* ibp;
+                    if(IBPmethod==0) ibp = new IBP();
                     else if(IBPmethod==1) ibp = new FIRE();
                     else if(IBPmethod==2) ibp = new KIRA();
                     else if(IBPmethod==3) ibp = new UKIRA();
                     else {
-                        ibp = new Base();
+                        ibp = new IBP();
                         IBPmethod = 0;
                     }
                     
@@ -308,7 +308,7 @@ namespace HepLib {
                     }
                     ibp_vec.push_back(ibp);
                 }
-                IBP::Base* ibp = p2IBP[props];
+                IBP* ibp = p2IBP[props];
                 ibp->Integrals.append(ns);
 
                 AIR2F[AIR[i]] = F(ibp->ProblemNumber, ns);
@@ -318,9 +318,9 @@ namespace HepLib {
             if(Verbose>0) cout << "  \\--Total Ints/Pros: " << WHITE << ntot << "/" << ibp_vec.size() << RESET << " @ " << now(false) << endl;
         
             if(true) {
-                vector<Base*> base_vec;
-                for(auto ibp : ibp_vec) base_vec.push_back(ibp);
-                auto int_fr = FindRules(base_vec, false, aio.UF);
+                vector<IBP*> ibp_vec;
+                for(auto ibp : ibp_vec) ibp_vec.push_back(ibp);
+                auto int_fr = FindRules(ibp_vec, false, aio.UF);
                 IntFs = int_fr.second;
                 air_vec = GiNaC_Parallel(air_vec.size(), [&air_vec,&AIR2F,&int_fr] (int idx) {
                     auto air = air_vec[idx];
@@ -365,7 +365,7 @@ namespace HepLib {
             goto Rules_Done;
         }
         if(true) { 
-            vector<IBP::Base*> ibp_vec_re;
+            vector<IBP*> ibp_vec_re;
             if(true) {
                 map<int,lst> pn_ints_map;
                 for(auto item : IntFs) {
@@ -424,7 +424,7 @@ namespace HepLib {
                     }
                     if(Verbose>1) cout << "@" << now(false) << endl;
                 }
-                //Base::ReShare(ibp_vec_re);
+                //IBP::ReShare(ibp_vec_re);
                 
                 if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
             } else if(IBPmethod==2 || IBPmethod==3) {
@@ -509,7 +509,7 @@ namespace HepLib {
      * @return nothing returned, the input air_vec will be updated
      */
     void ApartIBP(exvector &air_vec, int IBPmethod, const lst & loops, const lst & exts, const lst & cut_props,
-        std::function<lst(const Base &, const ex &)> uf) {
+        std::function<lst(const IBP &, const ex &)> uf) {
                 
         AIOption aio;
         aio.IBPmethod = IBPmethod;
