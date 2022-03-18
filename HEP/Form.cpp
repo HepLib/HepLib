@@ -109,7 +109,7 @@ namespace HepLib {
         string init_script = R"EOF(
 CFunction pow,sqrt,gamma,HF,Matrix,WF;
 Tensor TTR(cyclic), f(antisymmetric), T, f4, colTp;
-Symbols reX,I2R,NF,NA,D,I,Pi;
+Symbols reX,I2R,NF,NA,d,I,Pi;
 AutoDeclare Symbols gCF, trcN;
 Dimension NA;
 AutoDeclare Index colA;
@@ -207,7 +207,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         VD_lst.sort(); VD_lst.unique();
         CF_lst.sort(); CF_lst.unique();
         CA_lst.sort(); CA_lst.unique();
-        sym_lst.append(D);
+        sym_lst.append(d);
         sym_lst.sort(); sym_lst.unique();
         
         stringstream ss;
@@ -229,7 +229,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         }
         if(VD_lst.nops()>0) {
             if(form_using_dim4) ff << "Dimension 4;" << endl;
-            else ff << "Dimension D;" << endl;
+            else ff << "Dimension d;" << endl;
             ff << "Indices";
             for(auto ix : VD_lst) {
                 auto i = ex_to<Index>(ix);

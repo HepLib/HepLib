@@ -13,13 +13,6 @@ namespace HepLib {
     using namespace GiNaC;
     using namespace HepLib;
     
-    extern const Symbol NA;
-    extern const Symbol NF;
-    extern const Symbol gs;
-    extern const Symbol as;
-    extern const Symbol mu;
-    extern const Symbol nL;
-    extern const Symbol nH;
     extern exmap SP_map;
     
     extern int form_trace_mode;

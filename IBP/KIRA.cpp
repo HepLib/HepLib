@@ -40,7 +40,7 @@ namespace HepLib {
 
         if(Integrals.nops()<1) return;
         
-        if(WorkingDir.length()<1) WorkingDir = to_string(getpid());
+        if(WorkingDir.length()<1) WorkingDir = to_string(getpid())+"IBP";
         string job_dir = WorkingDir + "/" + to_string(ProblemNumber);
         system(("rm -rf "+job_dir).c_str());
         if(!dir_exists(job_dir)) system(("mkdir -p "+job_dir).c_str());

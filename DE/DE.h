@@ -10,7 +10,7 @@
 
 namespace HepLib {
 
-namespace D_E {
+namespace EoD {
 
     // https://github.com/magv/fuchsia.cpp 
     class matrix_hack : public matrix {
@@ -64,10 +64,10 @@ namespace D_E {
     
     bool is_jordan_form(const matrix & mat);
     pair<matrix, vector<pair<ex,int>>> jordan(const matrix &m);
+    
 }
 
-    extern Symbol iet;
-    extern int NDigits;
+    ex matrix_den_lcm(const matrix & mat);
     
     class BJF {
     public:
@@ -93,39 +93,68 @@ namespace D_E {
         
     class DE {
     public:
-        DE(const DE & b);
-        DE(const symbol & x);
-        DE(const matrix & m, const symbol & x);
+        static unsigned int ExDigits;
+        
+        int Precision = -1;
+        ex d0;
         matrix Mat;
         const symbol & x;
         vector<matrix> Ts;
+        
+        DE(const DE & b);
+        DE(const symbol & x);
+        DE(const matrix & m, const symbol & x);
+        DE(const symbol & x, const matrix & m);
         void Apply(const matrix & t);
         void Apply(const lst & diag); // t is diagnal matrix
         void x2y(const ex & y); // final expression still in x
         void Fuchsify();
         void Shear();
-        matrix Series(const ex & x0, const int xn=0);
+        pair<matrix,matrix> Series(const ex & x0, const int xn=0); // C & C0 matrix
+        matrix Taylor(const ex & x0, const int xn=0);
         void Normalize();
         void info();
+        ex xpow(const ex & e);
         void xpow();
+        void subs(const ex & sub, unsigned opt=0);
+        void subs(const exmap & sub, unsigned opt=0);
+        void subs(const lst & l, const lst & r, unsigned opt=0);
         matrix MatT();
     private:
         
     };
     
-    class AMFlow {
+    class DESS : public DE {
     public:
-        DE o;
-        DE oo;
-        AMFlow(IBP & ibp);
+        DESS(IBP & ibp, const symbol & x);
         void InitDE();
-        matrix FSS(const int xn=0);
-        void Scale();
         
     //private:
+        const symbol & x;
         IBP & ibp;
         lst Rules;
         lst MIntegrals;
+    };
+    
+    class AMF { // DE @ origin
+    public:
+        AMF(IBP & ibp);
+        void InitDE();
+        lst Evaluate();
+        int xN = 50;
+        ex d0 = d;
+        int Precision = -1;
+        
+        //get iet1 by expansion around regular point iet2
+        matrix RU(const ex & iet1, const ex & iet2); 
+        
+    private:
+        const symbol & x;
+        IBP & ibp;
+        lst Rules;
+        lst MIntegrals;
+        lst pts;
+        matrix Mat; // original DE matrix
     };
 
 }

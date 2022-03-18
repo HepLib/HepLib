@@ -5,7 +5,7 @@
 
 #include "DE.h"
 
-namespace HepLib::D_E {
+namespace HepLib::EoD {
 
     // DE transformation
     matrix matrix_diff(const matrix &mat, const symbol &x, const int n) {
@@ -170,7 +170,10 @@ namespace HepLib::D_E {
                 ex c0 = b.coeff(lambda, 0);
                 ex c1 = b.coeff(lambda, 1);
                 eigenvalues[ratcan(-c0/c1)] += n;
-            } else throw Error("eigenvalues: higher powers found.");
+            } else {
+                cout << charpoly << endl;
+                throw Error("eigenvalues: higher powers found.");
+            }
         }
         return eigenvalues;
     }

@@ -28,17 +28,7 @@ extern "C" {
 namespace HepLib::SD {
     
     using namespace HepLib;
-    
-    /*-----------------------------------------------------*/
-    // Global Variables
-    /*-----------------------------------------------------*/
-    
-    extern const Symbol eps;
-    extern const Symbol vs;
-    extern const Symbol vz;
-    extern const Symbol epz;
-    extern const Symbol NaN;
-    
+
     /*-----------------------------------------------------*/
     // Global Functions
     /*-----------------------------------------------------*/

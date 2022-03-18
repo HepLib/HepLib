@@ -289,6 +289,10 @@ namespace HepLib {
     string now(bool use_date = true);
     lst gather_symbols(const ex & e);
     lst gather_symbols(const exvector & ve);
+    
+    inline bool file_remove(string fn) {
+        return remove(fn.c_str())==0;
+    }
 
     inline bool file_exists(string fn) {
         return (access(fn.c_str(),F_OK)!=-1);
@@ -555,8 +559,6 @@ namespace HepLib {
     extern string LIB_FLAGS;
     extern const iSymbol iEpsilon;
     extern const ex iEpsilonN;
-    extern const Symbol ep;
-    extern const Symbol D;
     extern int Verbose;
     extern bool Debug;
 
@@ -705,6 +707,7 @@ namespace HepLib {
     void string_trim(string &str);
     bool string_start_with(const string & fstr, const string & sstr);
     bool string_end_with(const string & fstr, const string & estr);
+    bool string_contain(const string & fstr, const string & mstr);
     
     void Combinations(int n, int m, std::function<void(const int*)> f);
     void CombinationsR(int n, int m, std::function<void(const int*)> f);
@@ -719,7 +722,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Rationalize
     /*-----------------------------------------------------*/
-    extern MapFunction Rationalize;
+    ex Rationalize(const ex & e, int dn=Digits);
     
     /*-----------------------------------------------------*/
     // sort
@@ -925,3 +928,5 @@ namespace HepLib {
 }
 
 typedef void (*RUN)(std::string dir_id);
+
+#include "Symbols.h"

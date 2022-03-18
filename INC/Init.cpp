@@ -92,8 +92,24 @@ namespace HepLib {
     const int o_normalF_factor = (_o_++);
     const int o_normalF_factorF = (_o_++);
     
+    // Symbols
+    const Symbol NA("NA");
+    const Symbol NF("NF");
+    const Symbol gs("gs");
+    const Symbol as("as");
+    const Symbol mu("mu");
+    const Symbol nL("nL");
+    const Symbol nH("nH");
+    const Symbol eps("eps");
+    const Symbol vs("vs");
+    const Symbol vz("vz");
+    const Symbol epz("epz");
+    const Symbol NaN("NaN");
     const Symbol ep("ep");
+    const Symbol d("d");
+    const Symbol iet("iet");
     const iSymbol iEpsilon("iEpsilon");
+    
     const ex iEpsilonN = I*pow(ex(10), -50);
     int Verbose = 0;
     bool Debug = false;
@@ -105,12 +121,12 @@ namespace HepLib {
     map<string, bool> GiNaC_Parallel_RM;
     map<string, string> GiNaC_Parallel_PRE;
     map<string, bool> GiNaC_Parallel_ReWR;
-    const Symbol D("D");
     int fermat_using_array = 0;
     map<ex,long long,ex_is_less> fermat_weight;
     bool using_cache = true;
     long long cache_limit = -1;
     int NNDigits = 100;
+    unsigned int DE::ExDigits = 10;
     
     MMAFormat mout(cout);
     
@@ -121,12 +137,6 @@ namespace HepLib {
     int Fermat::buffer_size = 1024*128;
     int Form::buffer_size = 1024*128;
 
-    const Symbol SD::eps("eps");
-    const Symbol SD::vs("vs");
-    const Symbol SD::vz("vz");
-    const Symbol SD::epz("epz");
-    const Symbol SD::NaN("NaN");
-    
     bool SD::SecDec::use_dlclose = true;
     string SD::SecDec::cpp = "g++";
     
@@ -135,16 +145,6 @@ namespace HepLib {
     }
     SD::CppFormat::_init SD::CppFormat::CppFormat_init;
     int SD::VEO_Digits = 10;
-    
-    // FROM HEP
-    
-    const Symbol NA("NA");
-    const Symbol NF("NF");
-    const Symbol gs("gs");
-    const Symbol as("as");
-    const Symbol mu("mu");
-    const Symbol nL("nL");
-    const Symbol nH("nH");
     
     exmap SP_map;
     map<ex,string,ex_is_less> QGRAF::LineTeX; // key is the filed
@@ -222,7 +222,6 @@ namespace HepLib {
     
     // FROM IBP
     
-    const Symbol d("d");
     int FIRE::Version = 6;
     int FIRE::Threads = 4;
     int FIRE::fThreads = 0;
@@ -232,22 +231,6 @@ namespace HepLib {
     
     string UKIRA::KArgs = "";
     string KIRA::KArgs = "";
-    
-    int NDigits = -1;
-    Symbol iet("iet");
-    
-    // Rationalize
-    
-    MapFunction Rationalize([](const ex & e, MapFunction & self)->ex{
-        if(is_a<numeric>(e)) {
-            auto ne = ex_to<numeric>(e);
-            if(ne.is_crational()) return e;
-            auto zz = ne.to_cl_N();
-            auto re = cln::rationalize(cln::realpart(zz));
-            auto im = cln::rationalize(cln::imagpart(zz));
-            return numeric(cln::complex(re,im));
-        } else return e.map(self);
-    });
     
     // FROM QCD
     int QCD::FF::cur_mode = 0; // 0 - gluon, 1 - quark, 2 - anti-quark

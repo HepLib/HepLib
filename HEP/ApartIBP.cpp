@@ -441,7 +441,7 @@ namespace HepLib {
                     lst res;
                     for(auto ri : rules) res.append(lst { 
                         ri.op(0),  
-                        ri.op(1).subs(miRules,nopat).subs(d==D,nopat)
+                        ri.op(1).subs(miRules,nopat)
                     });
                     for(auto mi : ibp_vec_re[idx]->MIntegrals) {
                         auto fi = miRules.find(mi);

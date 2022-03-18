@@ -16,7 +16,6 @@ namespace HepLib {
     using namespace GiNaC;
     using namespace HepLib;
     
-    extern const Symbol d;
     DECLARE_FUNCTION_1P(a)
     
     /**
@@ -39,13 +38,13 @@ namespace HepLib {
         lst PIntegrals;
         
         lst MIntegrals;
-        lst Rules; 
+        lst Rules;
         bool IsAlwaysZero = false;
         
         virtual void Export() { throw Error("Export() not implemented!"); };
         virtual void Run() { throw Error("Run() not implemented!"); };
         virtual void Import() { throw Error("Import() not implemented!"); };
-        void FindRules(bool mi=true);
+        pair<exmap,lst> FindRules(bool mi=true);
         bool IsZero(ex sector);
         void Reduce();
         void Export(string garfn); // Export to .gar
@@ -54,6 +53,8 @@ namespace HepLib {
         void FROM(ex s); // from a single expression 
         exmap SP2Pn();
         exmap Dinv(const lst & ns);
+        ex D(const ex & x, const lst &ns);
+        void RM(bool keep_start_config=false);
         
         static void ReShare(const vector<IBP*> & fs);
     };

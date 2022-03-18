@@ -573,7 +573,6 @@ public:
     
 ep = expr("ep")
 eps = expr("eps")
-D = expr("D")
 d = expr("d")
 iEpsilon = expr("iEpsilon")
 

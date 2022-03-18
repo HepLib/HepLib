@@ -7,12 +7,11 @@
 
 namespace HepLib {
 
-    using namespace D_E;
+    using namespace EoD;
     
     DE::DE(const symbol & _x) : x(_x) { }
-    
     DE::DE(const matrix & _mat, const symbol & _x) : Mat(_mat), x(_x) { }
-    
+    DE::DE(const symbol & _x, const matrix & _mat) : Mat(_mat), x(_x) { }
     DE::DE(const DE & b) : Mat(b.Mat), x(b.x), Ts(b.Ts) { }
     
     // Dx J = M.J ---> J = T.J' & Dx J' = M'.J' with M' = Ti.M.T - Ti.Dx T
@@ -49,22 +48,24 @@ namespace HepLib {
     
     void DE::xpow() {
         int n = Mat.nops();
-        for(int i=0; i<n; i++) {
-            auto cvs = collect_lst(Mat.op(i),x);
-            ex res = 0;
-            for(auto cv : cvs) {
-                auto pat = cv.op(1);
-                if(!is_a<mul>(pat)) pat = lst{pat};
-                ex cp = 1;
-                ex xn = 0;
-                for(auto pi : pat) {
-                    if(pi.match(pow(x,w))) xn += pi.op(1);
-                    else cp *= pi;
-                }
-                res += cv.op(0) * cp * pow(x,xn);
+        for(int i=0; i<n; i++) Mat.let_op(i) = xpow(Mat.op(i));
+    }
+    
+    ex DE::xpow(const ex & e) {
+        auto cvs = collect_lst(e,x);
+        ex res = 0;
+        for(auto cv : cvs) {
+            auto pat = cv.op(1);
+            if(!is_a<mul>(pat)) pat = lst{pat};
+            ex cp = 1;
+            ex xn = 0;
+            for(auto pi : pat) {
+                if(pi.match(pow(x,w))) xn += pi.op(1);
+                else cp *= pi;
             }
-            Mat.let_op(i) = res;
+            res += cv.op(0) * cp * pow(x,xn);
         }
+        return res;
     }
     
     matrix DE::MatT() {
@@ -72,6 +73,30 @@ namespace HepLib {
         matrix t = ex_to<matrix>(unit_matrix(matN));
         for(auto ti : Ts) t = t.mul(ti);
         return t;
+    }
+    
+    void DE::subs(const ex & sub, unsigned opt) {
+        auto mN = Mat.nops();
+        for(int i=0; i<mN; i++) Mat.let_op(i) = Mat.op(i).subs(sub, opt);
+        for(auto & ti : Ts) {
+            for(int i=0; i<mN; i++) ti.let_op(i) = ti.op(i).subs(sub, opt);
+        }
+    }
+    
+    void DE::subs(const exmap & sub, unsigned opt) {
+        auto mN = Mat.nops();
+        for(int i=0; i<mN; i++) Mat.let_op(i) = Mat.op(i).subs(sub, opt);
+        for(auto & ti : Ts) {
+            for(int i=0; i<mN; i++) ti.let_op(i) = ti.op(i).subs(sub, opt);
+        }
+    }
+    
+    void DE::subs(const lst & l, const lst & r, unsigned opt) {
+        auto mN = Mat.nops();
+        for(int i=0; i<mN; i++) Mat.let_op(i) = Mat.op(i).subs(l, r, opt);
+        for(auto & ti : Ts) {
+            for(int i=0; i<mN; i++) ti.let_op(i) = ti.op(i).subs(l, r, opt);
+        }
     }
     
     // fuchsify at x=0
@@ -197,17 +222,19 @@ namespace HepLib {
             }
             
             if(Verbose>0) cout << "     \\--EigenValues of A0 summary:" << endl;
+            ostringstream ostr;
+            ostr << "        ";
             for(auto &gi : ev_groups) {
                 sort(gi.begin(),gi.end(),[&](const auto &a, const auto &b){
                     return normal(a-b).info(info_flags::positive);
                 });
-                ostringstream ostr;
-                cout << "        ";
                 for(auto &ev_i : gi) {
-                    ostr << ev_i << "[" << ev_map[ev_i] << "],  ";
+                    ostr << ev_i << "[" << ev_map[ev_i] << "], ";
                 }
+            }
+            if(Verbose>1) {
                 string str = ostr.str();
-                cout << str.substr(0,str.size()-3) << endl;
+                cout << str.substr(0,str.size()-2) << endl;
             }
             
             bool is_normalized = true;
@@ -254,7 +281,7 @@ namespace HepLib {
         matrix m = Mat;
         matrix t = imatrix(m.rows());
         matrix ti = imatrix(m.rows());
-        if(prank(m,x)!=0) throw Error("Shear: prank is NOT 0.");
+        if(prank(m,x)>0) throw Error("Shear: prank > 0.");
         
         matrix a0 = a0_matrix(m, x, 0);
         while(true) {
@@ -292,21 +319,23 @@ namespace HepLib {
             }
             
             int max_dep = -1;
+            ostringstream ostr;
+            ostr << "        ";
             for(auto &gi : ev_groups) {
                 sort(gi.begin(),gi.end(),[&](const auto &a, const auto &b){
                     return normal(a-b).info(info_flags::positive);
                 });
                 if(Verbose>1) {
-                    ostringstream ostr;
-                    ostr << "        ";
                     for(auto &ev_i : gi) {
-                        ostr << ev_i << "[" << ev_map[ev_i] << "],  ";
+                        ostr << ev_i << "[" << ev_map[ev_i] << "], ";
                     }
-                    string str = ostr.str();
-                    cout << str.substr(0,str.size()-3) << endl;
                 }
                 int tmp = ex_to<numeric>(gi[0]-gi[gi.size()-1]).to_int();
                 if(max_dep < tmp) max_dep = tmp;
+            }
+            if(Verbose>1) {
+                string str = ostr.str();
+                cout << str.substr(0,str.size()-2) << endl;
             }
             
             if(is_normalized) break;
@@ -345,11 +374,11 @@ namespace HepLib {
                 }
             }
             
-            auto tm = (qj.first.mul(smat));
-            auto tmi = (tm.inverse());
+            auto tm = qj.first.mul(smat);
+            auto tmi = tm.inverse();
             m = transform(m, tmi, tm, x);
-            t = (t.mul(tm));
-            ti = (tmi.mul(ti));
+            t = t.mul(tm);
+            ti = tmi.mul(ti);
             
             matrix_map_inplace(m, [this, &max_dep](const ex & e) { return series_ex(e, x, max_dep); });
             
@@ -359,7 +388,6 @@ namespace HepLib {
             matrix_map_inplace(m, [](const ex & e) { return normal(e); });
         }
         
-        if(Verbose>1) cout << "     \\--normal t/ti  ..." << endl;
         auto qj = jordan(a0);
         matrix qi = normal(qj.first.inverse());
         a0 = normal(qi.mul(a0).mul(qj.first));
@@ -368,7 +396,7 @@ namespace HepLib {
         matrix_map_inplace(t, [](const ex & e) { return normal(e); });
         matrix_map_inplace(ti, [](const ex & e) { return normal(e); });
         
-        if(Verbose>1) cout << "     \\--final transformation  ..." << endl;
+        if(Verbose>1) cout << "     \\--DE Transformation  ..." << endl;
         m = transform(Mat, ti, t, x);
         matrix_map_inplace(m, [](const ex & e) { return normal(e); });
         
@@ -407,18 +435,22 @@ namespace HepLib {
         }
     }
         
-    matrix DE::Series(const ex & x0, const int xN) {
+    pair<matrix,matrix> DE::Series(const ex & x0, const int xN) {
+        if(xN<0 && !is_a<numeric>(d0)) throw Error("DE::Series, xN<0 only works with numeric d0.");
+    
         auto oDigits = Digits;
-        if(NDigits>0) Digits = NDigits;
+        if(Precision>0) Digits = Precision+ExDigits;
         if(Verbose>1) cout << "  \\--Series: start @ " << now() << endl;
         
+        int matN = Mat.rows();
+        
+        if(prank(Mat,x)>0) Fuchsify();
+        matrix a0 = normal(a0_matrix(Mat, x, 0));
+        if(!is_jordan_form(a0)) {
+            Shear();
+            a0 = normal(a0_matrix(Mat, x, 0));
+        }
         auto m = Mat;
-        int matN = m.rows();
-        
-        if(prank(m,x)!=0) throw Error("Series: prank is NOT 0.");
-        matrix a0 = normal(a0_matrix(m, x, 0));
-        
-        if(!is_jordan_form(a0)) throw Error("Series: A0 is NOT in jordan form.");;
         
         lst las;
         vector<pair<ex,int>> js;
@@ -456,25 +488,34 @@ namespace HepLib {
             cur_pos += size;
         }
         
-        if(Verbose>1) cout << "     \\--Q polynormial ..." << endl;
-        
-        ex qlcm = 1;
-        for(int i=0; i<m.nops(); i++) {
-            qlcm = lcm(qlcm, m.op(i).denom());
+        // save CoMat
+        matrix CoMat(matN, matN);
+        for(auto la : las) {
+            int kla = laK[la];
+            for(int k=0; k<=kla; k++) {
+                auto mat = laC0[la][k];
+                auto xterm = pow(x,la)*pow(log(x),k)/factorial(k);
+                for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) CoMat(r,c) += mat(r,c)*xterm;
+            }
         }
         
+        if(Verbose>1) cout << "     \\--Q polynormial ..." << endl;
+        
+        matrix_map_inplace(m, [&](const ex & e){ return normal(e); });
+        ex qlcm = matrix_den_lcm(m);
         if(normal(qlcm.subs(x==0,nopat)).is_zero()) qlcm = normal(qlcm/x); //make sure check
+        matrix_map_inplace(m, [&](const ex & e){ return collect_ex(normal(qlcm*x*e),x); });
+        
         qlcm = collect_ex(qlcm, x);
         int qmax = qlcm.degree(x);
         exvector qs;
         for(int i=0; i<=qmax; i++) {
-            if(NDigits>0) qs.push_back(qlcm.coeff(x,i).evalf());
+            if(Precision>0 && i>0) qs.push_back(qlcm.coeff(x,i).evalf());
             else qs.push_back(qlcm.coeff(x,i));
         }
         
         if(Verbose>1) cout << "     \\--B Matrix ..." << endl;
         
-        matrix_map_inplace(m, [&](const ex & e){ return collect_ex(normal(qlcm*x*e),x); });
         int s = qmax; // s in DESS
         for(int i=0; i<m.nops(); i++) {
             auto tmp = m.op(i).degree(x);
@@ -486,7 +527,7 @@ namespace HepLib {
         for(int i=qmax+1; i<=s; i++) qs.push_back(0);
         vector<matrix> BMat(s+1);
         for(int i=0; i<=s; i++) {
-            if(NDigits>0)
+            if(Precision>0 && i>0)
                 BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x, i).evalf(); });
             else 
                 BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x, i); });
@@ -497,14 +538,23 @@ namespace HepLib {
         auto res = GiNaC_Parallel(las.nops(), [&](int idx)->ex {
             auto la = las.op(idx);
             int kla = laK[la];
-            vector<vector<matrix>> CMats(xN+1);
+            vector<vector<matrix>> CMats(xN>=0 ? xN+1 : 1);
             CMats[0] = laC0[la];
-            for(int cn=1; cn<=xN; cn++) {
+            
+            matrix MatF(matN, matN);
+            for(int k=0; k<=kla; k++) {
+                auto xterm = pow(x0,la)*pow(log(x0),k)/factorial(k);
+                for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) {
+                    MatF(r,c) += CMats[0][k](r,c)*xterm;
+                }
+            }
+            
+            for(int cn=1; (xN<0 || cn<=xN); cn++) {
+                if(xN<0) CMats.push_back(vector<matrix>());
                 for(int i=0; i<=kla; i++) CMats[cn].push_back(matrix(matN, matN));
                 matrix B0(matN, matN);
                 for(int i=0; i<matN*matN; i++) B0.let_op(i) = BMat[0].op(i).subs(a==la+cn,nopat);
                 BJFinv iBJF(B0, -qs[0], kla);
-                BJF oBJF(B0, -qs[0], kla);
                 for(int cm=1; (cm<=cn) && (cm<=s); cm++) {
                     matrix Bm(matN, matN);
                     for(int i=0; i<matN*matN; i++) Bm.let_op(i) = BMat[cm].op(i).subs(a==la+cn-cm,nopat);
@@ -518,34 +568,135 @@ namespace HepLib {
                         CMats[cn][k] = CMats[cn][k].sub(iBJF(k,i).mul(mBJF(i,j)).mul(CMats[cn-cm][j])); 
                     }
                 }
-                for(int k=0; k<=kla; k++)
-                    matrix_map_inplace(CMats[cn][k], [&](const ex & e) { return normal(e); });
-            }
-
-            matrix FMat(matN, matN);
-            for(int n=0; n<=xN; n++) {
+                
+                if(xN>=0) {
+                    for(int k=0; k<=kla; k++)  // normalize
+                        matrix_map_inplace(CMats[cn][k], [&](const ex & e) { return normal(e); });
+                }
+                
+                bool chk = true;
                 for(int k=0; k<=kla; k++) {
-                    auto mat = CMats[n][k];
-                    auto xterm = pow(x0,la)*pow(x0,n)*pow(log(x0),k)/factorial(k);
-                    for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) FMat(r,c) += mat(r,c)*xterm;
+                    auto xterm = pow(x0,la)*pow(x0,cn)*pow(log(x0),k)/factorial(k);
+                    for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) {
+                        auto item = CMats[cn][k](r,c)*xterm;
+                        MatF(r,c) += item;
+                        if(xN<0 && chk) {
+                            if(abs(MatF(r,c))>pow(10,Digits+3)) chk = abs(item/MatF(r,c)) < pow(10,-Precision);
+                            else chk = abs(item) < pow(10,-Precision);
+                        }
+                    }
+                }
+                if(xN<0 && chk) {
+                    if(Debug && Verbose>1) cout << "  \\--Taylor: Precision Reached after " << cn << " times." << endl;
+                    break;
                 }
             }
-            return FMat;
+            
+            return MatF;
         }, "CMat");
         matrix CMat(matN, matN);
         for(auto item : res) CMat = CMat.add(ex_to<matrix>(item));
         
-        //if(Verbose>1) cout << "  \\--Finalizing ..." << endl;
-        //matrix_map_inplace(CMat, [&](const ex & e) { return normal(e); });
-        
         if(Verbose>1) cout << "  \\--Series: fininshed @ " << now() << endl;
+        Digits = oDigits;
+        return make_pair(CMat, CoMat);
+    }
+    
+    matrix DE::Taylor(const ex & x0, const int xN) {
+        if(xN<0 && !is_a<numeric>(d0)) throw Error("DE::Series, xN<0 only works with numeric d0.");
+        
+        auto oDigits = Digits;
+        if(Precision>0) Digits = Precision+ExDigits;
+        if(Verbose>1) cout << "  \\--Taylor: start @ " << now() << endl;
+        
+        auto m = Mat;
+        int matN = m.rows();
+        if(prank(m,x)>-1) throw Error("DE::Taylor only works for non-singualr point.");
+        
+        if(Verbose>1) cout << "     \\--Q polynormial ..." << endl;
+        
+        matrix_map_inplace(m, [&](const ex & e){ return normal(e); });
+        ex qlcm = matrix_den_lcm(m);
+        if(normal(qlcm.subs(x==0,nopat)).is_zero()) //make sure check
+            throw Error("DE::Taylor only works for non-singualr point."); 
+        matrix_map_inplace(m, [&](const ex & e){ return collect_ex(normal(qlcm*x*e),x); });
+        
+        qlcm = collect_ex(qlcm, x);
+        int qmax = qlcm.degree(x);
+        exvector qs;
+        for(int i=0; i<=qmax; i++) {
+            if(Precision>0) qs.push_back(qlcm.coeff(x,i).evalf());
+            else qs.push_back(qlcm.coeff(x,i));
+        }
+        
+        if(Verbose>1) cout << "     \\--B Matrix ..." << endl;
+        
+        int s = qmax; // s in DESS
+        for(int i=0; i<m.nops(); i++) {
+            auto tmp = m.op(i).degree(x);
+            if(s<tmp) s = tmp;
+        }
+        symbol a("a"); // alpha
+        for(int i=0; i<matN; i++) m(i,i) -= a*qlcm;
+
+        for(int i=qmax+1; i<=s; i++) qs.push_back(0);
+        vector<matrix> BMat(s+1);
+        for(int i=0; i<=s; i++) {
+            if(Precision>0)
+                BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x, i).evalf(); });
+            else 
+                BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x, i); });
+        }
+        
+        if(Verbose>1) cout << "     \\--C Matrix ..." << endl;
+        
+        vector<matrix> CMats(xN>=0 ? xN+1 : 1);
+        CMats[0] = ex_to<matrix>(unit_matrix(matN));
+        
+        matrix CMat(matN, matN);
+        for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) {
+            CMat(r,c) += CMats[0](r,c);
+        }
+        for(int cn=1; (xN<0 || cn<=xN); cn++) {
+            if(xN<0) CMats.push_back(matrix());
+            CMats[cn] = matrix(matN, matN);
+            matrix B0(matN, matN);
+            for(int i=0; i<matN*matN; i++) B0.let_op(i) = BMat[0].op(i).subs(a==cn,nopat);
+            auto iB0 = B0.inverse();
+            for(int cm=1; (cm<=cn) && (cm<=s); cm++) {
+                matrix Bm(matN, matN);
+                for(int i=0; i<matN*matN; i++) Bm.let_op(i) = BMat[cm].op(i).subs(a==cn-cm,nopat);
+                CMats[cn] = CMats[cn].sub(iB0.mul(Bm).mul(CMats[cn-cm])); 
+            }
+            
+            if(xN>=0) matrix_map_inplace(CMats[cn], [&](const ex & e) { return normal(e); });
+            
+            bool chk = true;
+            auto xterm = pow(x0,cn);
+            for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) {
+                ex item = CMats[cn](r,c)*xterm;
+                CMat(r,c) += item;
+                if(xN<0 && chk) {
+                    if(abs(CMat(r,c))>pow(10,Digits+3)) chk = abs(item/CMat(r,c)) < pow(10,-Precision);
+                    else chk = abs(item) < pow(10,-Precision);
+                }
+            }
+            if(xN<0 && chk) {
+                if(Verbose>1) cout << "  \\--Taylor: Precision Reached after " << cn << " times." << endl;
+                break;
+            }
+        }
+            
+        if(Verbose>1) cout << "  \\--Taylor: fininshed @ " << now() << endl;
         Digits = oDigits;
         return CMat;
     }
     
     void DE::info() {
         if(Mat.nops()<1) return;
-        matrix a0 = a0_matrix(Mat, x);
+        
+        int pr = prank(Mat,x);
+        matrix a0 = a0_matrix(Mat, x, pr);
         auto ev_map = eigenvalues(a0);
         vector<exvector> ev_groups;
         for(auto &kv : ev_map) {
@@ -569,26 +720,19 @@ namespace HepLib {
             }
         }
         
-        cout << "---------------------------------------" << endl;
-        cout << "EigenValues of A0 summary:" << endl;
-        cout << "---------------------------------------" << endl;
+        ostringstream ostr;
         for(auto &gi : ev_groups) {
             sort(gi.begin(),gi.end(),[&](const auto &a, const auto &b){
                 return normal(a-b).info(info_flags::positive);
             });
-            ostringstream ostr;
-            cout << "    ";
             for(auto &ev_i : gi) {
-                ostr << ev_i << "[" << ev_map[ev_i] << "],  ";
+                ostr << ev_i << "[" << ev_map[ev_i] << "], ";
             }
-            string str = ostr.str();
-            cout << str.substr(0,str.size()-3) << endl;
         }
+        string eg_str = ostr.str();
+        eg_str = eg_str.substr(0,eg_str.size()-2);
         
-        ex den = 1;
-        for(int i=0; i<Mat.nops(); i++) {
-            den = lcm(den, Mat.op(i).denom());
-        }
+        ex den = matrix_den_lcm(Mat);
         exvector fvec;
         if (is_a<mul>(den)) for (const auto &f : den) fvec.push_back(f);
         else fvec.push_back(den);
@@ -608,12 +752,48 @@ namespace HepLib {
                 roots.insert(normal(-c0/c1));
             } else throw Error("Roots: higher powers found.");
         }
-        cout << "---------------------------------------" << endl;
-        cout << "Roots of Mat: " << roots << endl;
+        lst rs;
+        for(auto r : roots) rs.append(r);
+        sort_lst(rs);
+        ostr.clear();
+        ostr.str("");
+        for(auto r : rs) ostr << r << ", ";
+        string rs_str = ostr.str();
+        rs_str = rs_str.substr(0,rs_str.size()-2);
         
-        // Fianl line
+        cout << "---------------------------------------" << endl;
+        cout << "Info Summary: " << endl;
+        cout << "---------------------------------------" << endl;
+        cout << "  Poincare Rank: " << pr << endl;
+        cout << "  Roots of Mat: " << rs_str << endl;
+        cout << "  EigenValues of Ao: " << eg_str << endl;
         cout << "---------------------------------------" << endl;
     }
-            
+
+    //==============================================================================
+
+    ex matrix_den_lcm(const matrix & m) {
+        exmap pn_map;
+        for(int i=0; i<m.nops(); i++) {
+            auto den = m.op(i).denom();
+            den = exfactor(den);
+            if(!is_a<mul>(den)) den = lst{den};
+            for(auto item : den) {
+                ex p = item;
+                ex n = 1;
+                if(item.match(pow(w1,w2)) && item.op(1).info(info_flags::integer)) {
+                    p = item.op(0);
+                    n = item.op(1);
+                }
+                auto kv = pn_map.find(p);
+                if(kv==pn_map.end() || kv->second<n) pn_map[p] = n;
+            }
+        }
+        ex res = 1;
+        for(auto kv : pn_map) res *= pow(kv.first, kv.second);
+        return res;
+    }
+    
+    
 }
 

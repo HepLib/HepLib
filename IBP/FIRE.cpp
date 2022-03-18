@@ -253,377 +253,377 @@ namespace HepLib {
      * @brief Export start config intgral etc. files
      */
     void FIRE::Export() {
-        if(WorkingDir=="") WorkingDir = to_string(getpid());
-        // check already exported, used while restarting from check point
-        if(file_exists(WorkingDir+"/"+to_string(ProblemNumber)+".intg")) return;
-    
+        if(WorkingDir=="") WorkingDir = to_string(getpid())+"IBP";
         int pdim = Propagators.nops();
-        if(Integrals.nops()<1) return;
+        string spn = to_string(ProblemNumber);
         int pn = 0; // to avoid unsigned short overflow in FIRE
-        lst InExternal;
-        for(auto ii : Internal) InExternal.append(ii);
-        for(auto ii : External) InExternal.append(ii);
         
-        if(ISP.nops()<1) {
-            for(auto it : Internal) {
-                for(auto ii : InExternal) ISP.append(it*ii);
-            }
-            ISP.sort();
-            ISP.unique();
-        }
-        
-        if(ISP.nops() > pdim) {
-            cout << "ISP = " << ISP << endl;
-            cout << "Propagators = " << Propagators << endl;
-            throw Error("FIRE::Export: #(ISP) > #(Propagators).");
-        }
-        
-        lst sp2s, s2sp, ss;
-        int _pic=0;
-        for(auto item : ISP) {
-            _pic++;
-            Symbol si("P"+to_string(_pic));
-            ss.append(si);
-            sp2s.append(item==si);
-            s2sp.append(si==item);
-        }
-        
-        lst eqns;
-        for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
-            auto eq = expand(Propagators.op(i)).subs(iEpsilon==0); // drop iEpsilon
-            eq = eq.subs(sp2s, algbr);
-            eq = eq.subs(Replacements, algbr);
-            if(eq.has(iWF(w))) throw Error("FIRE::Export, iWF used in eq.");
-            eqns.append(eq == iWF(i));
-        }
-        auto s2p = lsolve(eqns, ss);
-        if(s2p.nops() != ISP.nops()) {
-            cout << ISP << endl << s2p << endl << eqns << endl;
-            throw Error("FIRE::Export: lsolve failed.");
-        }
-        
-        if(DSP.nops()<1) {
-            for(auto p1 : Internal)
-            for(auto p2 : InExternal)
-            DSP.append(lst{p1,p2});
-        }
-
-        vector<exmap> ibps;
-        exvector IBPvec;
-        lst ns0;
-        for(int i=0; i<pdim; i++) ns0.append(0);
-        for(auto sp : DSP) {
-            symbol ss;
-            auto ilp = sp.op(0);
-            auto iep = sp.op(1);
-            lst dp_lst;
-            for(int i=0; i<pdim; i++) {
-                dp_lst.append(Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp));
-            } 
+        if(!file_exists(WorkingDir+"/"+to_string(ProblemNumber)+".start") || !file_exists(WorkingDir+"/"+to_string(ProblemNumber)+".config")) {
             
-            exmap nc_map;
-            for(int i=0; i<pdim; i++) { // diff on each propagator
-                auto ns = ns0;
-                ns.let_op(i) = ns.op(i)+1; // note the covention
-                auto tmp = dp_lst.op(i) * iep;
-                tmp = expand(tmp);
-                tmp = tmp.subs(Replacements, algbr);
-                tmp = tmp.subs(sp2s, algbr);
-                tmp = tmp.subs(s2p, algbr);
-                tmp = tmp.subs(Replacements, algbr);
-                
-                tmp = ex(0) - (Shift[i+1]+a(i+1))*tmp; // note Shift here
-
-                for(int j=0; j<pdim; j++) {
-                    auto cj = tmp.coeff(iWF(j));
-                    if(is_zero(cj)) continue;
-                    lst cns = ns;
-                    cns.let_op(j) = cns.op(j)-1; // note the covention
-                    nc_map[cns] = nc_map[cns] + cj;
+            if(Integrals.nops()<1) return;
+            lst InExternal;
+            for(auto ii : Internal) InExternal.append(ii);
+            for(auto ii : External) InExternal.append(ii);
+            
+            if(ISP.nops()<1) {
+                for(auto it : Internal) {
+                    for(auto ii : InExternal) ISP.append(it*ii);
                 }
-                tmp = tmp.subs(iWF(w)==0); // constant term
-                if(!is_zero(tmp)) nc_map[ns] = nc_map[ns] + tmp;
+                ISP.sort();
+                ISP.unique();
             }
             
-            auto cilp = iep.coeff(ilp);
-            if(!is_zero(cilp)) nc_map[ns0] = nc_map[ns0] + d*cilp;
-            bool ok = false;
-            for(auto nc : nc_map) {
-                if(!is_zero(nc.second)) {
-                    ok = true;
-                    IBPvec.push_back(nc.second);
-                }
+            if(ISP.nops() > pdim) {
+                cout << "ISP = " << ISP << endl;
+                cout << "Propagators = " << Propagators << endl;
+                throw Error("FIRE::Export: #(ISP) > #(Propagators).");
             }
-            if(ok) ibps.push_back(nc_map);
-        }
+            
+            lst sp2s, s2sp, ss;
+            int _pic=0;
+            for(auto item : ISP) {
+                _pic++;
+                Symbol si("P"+to_string(_pic));
+                ss.append(si);
+                sp2s.append(item==si);
+                s2sp.append(si==item);
+            }
+            
+            lst eqns;
+            for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
+                auto eq = expand(Propagators.op(i)).subs(iEpsilon==0); // drop iEpsilon
+                eq = eq.subs(sp2s, algbr);
+                eq = eq.subs(Replacements, algbr);
+                if(eq.has(iWF(w))) throw Error("FIRE::Export, iWF used in eq.");
+                eqns.append(eq == iWF(i));
+            }
+            auto s2p = lsolve(eqns, ss);
+            if(s2p.nops() != ISP.nops()) {
+                cout << ISP << endl << s2p << endl << eqns << endl;
+                throw Error("FIRE::Export: lsolve failed.");
+            }
+            
+            if(DSP.nops()<1) {
+                for(auto p1 : Internal)
+                for(auto p2 : InExternal)
+                DSP.append(lst{p1,p2});
+            }
 
-        auto Variables = gather_symbols(IBPvec);
-        for(auto e : External) {
-            if(Variables.has(e)) {
-                cout << "IBPvec: " << IBPvec << endl;
-                cout << "Replacements: " << Replacements << endl;
-                cout << "Variables: " << Variables << endl;
-                throw Error("FIRE: Replacement NOT work!");
-            }
-        }
-        
-        ostringstream start;
-
-        start << "ExampleDimension[" << pn << "]=" << pdim << endl << endl;
-        start << "ProblemNumber=" << pn << endl << endl;
-        
-        // .start - SBasisL
-        if(Version==5) {
-            PermutationsR(2, pdim, [pdim,pn,&start](const int *ns) {
-                start << "SBasisL[" << pn << ",{";
-                for(int i=0; i<pdim; i++) start << (ns[i]<1 ? -1 : 1) << (i<pdim-1 ? "," : "");
-                start << "}]=0" << endl << endl;
-            });
-        }
-        
-        // .start - SBasis0L, SBasis0D && SBasis0C
-        start << "SBasis0L[" << pn << "]=" << ibps.size() << endl << endl;
-        ostringstream oss;
-        for(int i=0; i<ibps.size(); i++) {
-            start << "SBasis0D[" << pn << "," << (i+1) << "]=";
-            lst items;
-            for(auto kv : ibps[i]) {
-                items.append(kv.first);
-                if(Version==5) {
-                    oss << "SBasis0C[" << pn << "," << (i+1) << "," << kv.first << "]=" << 
-                    collect_common_factors(kv.second.normal()) << endl << endl;
-                } else {
-                    lst olst;
-                    auto cv_lst = collect_lst(kv.second, a(w));
-                    for(auto item : cv_lst) {
-                        auto cc = item.op(0);
-                        auto cv = item.op(1);
-                        cc = collect_common_factors(cc.normal());
-                        if(is_zero(cc)) continue;
-                        if(is_zero(cv-1)) cv=0;
-                        else cv = cv.subs(a(w)==w);
-                        olst.append(lst{cc, cv});
-                    }
-                    oss << "SBasis0C[" << pn << "," << (i+1) << "," << kv.first << "]=" << olst << endl << endl;
-                }
-            }
-            start << items << endl << endl;
-        }
-        start << oss.str();
-        
-        // .start - SBasisS
-        start << "SBasisS[" << pn << "]={{{";
-        // 1,2,3,...
-        for(int i=0; i<pdim; i++) start << (i+1) << (i<pdim-1 ? "," : "");
-        start << "},{";
-        // 1,1,1,...
-        for(int i=0; i<pdim; i++) start << 1 << (i<pdim-1 ? "," : "");
-        start << "},{";
-        // 0,0,0,...
-        for(int i=0; i<pdim; i++) start << 0 << (i<pdim-1 ? "," : "");
-        start << "}}}" << endl << endl;
-        
-        // .start - SBasisR
-        lst Rlst;
-        Rlst.append(lst{});
-        for(int i=0; i<pdim; i++) {
-            let_op_append(Rlst, 0, -1);
-        }
-        for(auto lpi : Internal) {
-            vector<int> ns_vec;
+            vector<exmap> ibps;
+            exvector IBPvec;
             lst ns0;
-            for(int i=0; i<pdim; i++) ns0.append(1);
-            for(int i=0; i<pdim; i++) {
-                if(Propagators.op(i).has(lpi)) ns0.let_op(i) = -1;
-                else ns_vec.push_back(i);
-            }
-            long long tot = std::pow(2LL,ns_vec.size());
-            for(long long n=0; n<tot; n++) {
-                int cn = n;
-                lst ns1 = ns0;
-                for(int j=0; j<ns_vec.size(); j++) {
-                    if((cn%2)==1) ns1.let_op(ns_vec[j]) = -1;
-                    cn /= 2;
-                }
-                Rlst.append(ns1);
-            } 
-        }
-        
-        // Lee Zero Sector
-        if(true) {
-            exset sectors;
-            IsAlwaysZero = true;
-            lst ns0;
-            for(int i=0; i<pdim; i++) ns0.append(1);
-            long long tot = std::pow(2LL,pdim);
-            
-            for(long long n=0; n<tot; n++) {
-                int cn = n;
-                lst sector = ns0;
-                for(int j=0; j<pdim; j++) {
-                    if((cn%2)==1) sector.let_op(j) = 0;
-                    cn /= 2;
-                }
-                sectors.insert(sector);
-            }
-            
-            while(!sectors.empty()) {
-                auto first = *(sectors.begin());
-                sectors.erase(first);
+            for(int i=0; i<pdim; i++) ns0.append(0);
+            for(auto sp : DSP) {
+                symbol ss;
+                auto ilp = sp.op(0);
+                auto iep = sp.op(1);
+                lst dp_lst;
+                for(int i=0; i<pdim; i++) {
+                    dp_lst.append(Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp));
+                } 
                 
-                auto sector = ex_to<lst>(first);
-                if(IsZero(sector)) { // from LiteRed: all subsector is zero
-                    lst ns1 = sector;
+                exmap nc_map;
+                for(int i=0; i<pdim; i++) { // diff on each propagator
+                    auto ns = ns0;
+                    ns.let_op(i) = ns.op(i)+1; // note the covention
+                    auto tmp = dp_lst.op(i) * iep;
+                    tmp = expand(tmp);
+                    tmp = tmp.subs(Replacements, algbr);
+                    tmp = tmp.subs(sp2s, algbr);
+                    tmp = tmp.subs(s2p, algbr);
+                    tmp = tmp.subs(Replacements, algbr);
+                    
+                    tmp = ex(0) - (Shift[i+1]+a(i+1))*tmp; // note Shift here
+
                     for(int j=0; j<pdim; j++) {
-                        if(sector.op(j).is_zero()) ns1.let_op(j) = -1;
+                        auto cj = tmp.coeff(iWF(j));
+                        if(is_zero(cj)) continue;
+                        lst cns = ns;
+                        cns.let_op(j) = cns.op(j)-1; // note the covention
+                        nc_map[cns] = nc_map[cns] + cj;
                     }
-                    Rlst.append(ns1);
-                    exset subsets;
-                    for(auto item : sectors) {
-                        bool ok = true;
-                        for(int j=0; j<pdim; j++) {
-                            if(sector.op(j)<item.op(j)) { ok = false; break; }
-                        }
-                        if(ok) subsets.insert(item);
+                    tmp = tmp.subs(iWF(w)==0); // constant term
+                    if(!is_zero(tmp)) nc_map[ns] = nc_map[ns] + tmp;
+                }
+                
+                auto cilp = iep.coeff(ilp);
+                if(!is_zero(cilp)) nc_map[ns0] = nc_map[ns0] + d*cilp;
+                bool ok = false;
+                for(auto nc : nc_map) {
+                    if(!is_zero(nc.second)) {
+                        ok = true;
+                        IBPvec.push_back(nc.second);
                     }
-                    for(auto item : subsets) {
-                        sectors.erase(item);
-                        lst ns1 = ex_to<lst>(item);
-                        for(int j=0; j<pdim; j++) {
-                            if(item.op(j).is_zero()) ns1.let_op(j) = -1;
-                        }
-                        Rlst.append(ns1);
-                    }
-                } else { // from LiteRed: all supersector is non-zero
-                    if(IsAlwaysZero) IsAlwaysZero = false;
-                    exset supsets;
-                    for(auto item : sectors) {
-                        bool ok = true;
-                        for(int j=0; j<pdim; j++) {
-                            if(sector.op(j)>item.op(j)) { ok = false; break; }
-                        }
-                        if(ok) supsets.insert(item);
-                    }
-                    for(auto item : supsets) sectors.erase(item);
+                }
+                if(ok) ibps.push_back(nc_map);
+            }
+
+            auto Variables = gather_symbols(IBPvec);
+            for(auto e : External) {
+                if(Variables.has(e)) {
+                    cout << "IBPvec: " << IBPvec << endl;
+                    cout << "Replacements: " << Replacements << endl;
+                    cout << "Variables: " << Variables << endl;
+                    throw Error("FIRE: Replacement NOT work!");
                 }
             }
             
-            if(IsAlwaysZero) {
-                Rules.remove_all();
-                for(auto ii : Integrals) Rules.append(F(ProblemNumber, ii)==0);
-                return;
+            ostringstream start;
+
+            start << "ExampleDimension[" << pn << "]=" << pdim << endl << endl;
+            start << "ProblemNumber=" << pn << endl << endl;
+            
+            // .start - SBasisL
+            if(Version==5) {
+                PermutationsR(2, pdim, [pdim,pn,&start](const int *ns) {
+                    start << "SBasisL[" << pn << ",{";
+                    for(int i=0; i<pdim; i++) start << (ns[i]<1 ? -1 : 1) << (i<pdim-1 ? "," : "");
+                    start << "}]=0" << endl << endl;
+                });
             }
-        }
-        
-        // handle Cut Propagators
-        if(Cuts.nops()>0) {
-            for(auto cx : Cuts) {
-                int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cuts
+            
+            // .start - SBasis0L, SBasis0D && SBasis0C
+            start << "SBasis0L[" << pn << "]=" << ibps.size() << endl << endl;
+            ostringstream oss;
+            for(int i=0; i<ibps.size(); i++) {
+                start << "SBasis0D[" << pn << "," << (i+1) << "]=";
+                lst items;
+                for(auto kv : ibps[i]) {
+                    items.append(kv.first);
+                    if(Version==5) {
+                        oss << "SBasis0C[" << pn << "," << (i+1) << "," << kv.first << "]=" << 
+                        collect_common_factors(kv.second.normal()) << endl << endl;
+                    } else {
+                        lst olst;
+                        auto cv_lst = collect_lst(kv.second, a(w));
+                        for(auto item : cv_lst) {
+                            auto cc = item.op(0);
+                            auto cv = item.op(1);
+                            cc = collect_common_factors(cc.normal());
+                            if(is_zero(cc)) continue;
+                            if(is_zero(cv-1)) cv=0;
+                            else cv = cv.subs(a(w)==w);
+                            olst.append(lst{cc, cv});
+                        }
+                        oss << "SBasis0C[" << pn << "," << (i+1) << "," << kv.first << "]=" << olst << endl << endl;
+                    }
+                }
+                start << items << endl << endl;
+            }
+            start << oss.str();
+            
+            // .start - SBasisS
+            start << "SBasisS[" << pn << "]={{{";
+            // 1,2,3,...
+            for(int i=0; i<pdim; i++) start << (i+1) << (i<pdim-1 ? "," : "");
+            start << "},{";
+            // 1,1,1,...
+            for(int i=0; i<pdim; i++) start << 1 << (i<pdim-1 ? "," : "");
+            start << "},{";
+            // 0,0,0,...
+            for(int i=0; i<pdim; i++) start << 0 << (i<pdim-1 ? "," : "");
+            start << "}}}" << endl << endl;
+            
+            // .start - SBasisR
+            lst Rlst;
+            Rlst.append(lst{});
+            for(int i=0; i<pdim; i++) {
+                let_op_append(Rlst, 0, -1);
+            }
+            for(auto lpi : Internal) {
+                vector<int> ns_vec;
                 lst ns0;
                 for(int i=0; i<pdim; i++) ns0.append(1);
-                ns0.let_op(ci) = -1;
-                for(int n=0; n<std::pow(2,pdim-1); n++) {
+                for(int i=0; i<pdim; i++) {
+                    if(Propagators.op(i).has(lpi)) ns0.let_op(i) = -1;
+                    else ns_vec.push_back(i);
+                }
+                long long tot = std::pow(2LL,ns_vec.size());
+                for(long long n=0; n<tot; n++) {
                     int cn = n;
                     lst ns1 = ns0;
-                    for(int j=0; j<pdim; j++) {
-                        if(ci==j) continue;
-                        if((cn%2)==1) ns1.let_op(j) = -1;
+                    for(int j=0; j<ns_vec.size(); j++) {
+                        if((cn%2)==1) ns1.let_op(ns_vec[j]) = -1;
                         cn /= 2;
                     }
                     Rlst.append(ns1);
                 } 
             }
-        }
-        
-        Rlst.sort();
-        Rlst.unique();
-        //sort_lst(Rlst);
-        
-        for(auto iR : Rlst) {
-            start << "SBasisR[" << pn << ",{";
-            for(int i=0; i<pdim; i++) start << iR.op(i) << (i<pdim-1 ? "," : "");
-            start << "}]=True" << endl << endl;
-        }
-        
-        // .start - Others
-        start << "SBasisRL[" << pn << "]=0" << endl << endl;
-        start << "HPI[" << pn << "]={}" << endl << endl;
-        
-        string sss = start.str();
-        string_replace_all(sss, "=", " = ");
-        string_replace_all(sss, ",", ", ");
-        
-        string spn = to_string(ProblemNumber);
-        if(!dir_exists(WorkingDir)) system(("mkdir -p " + WorkingDir).c_str());
-        
-        if(WorkingDir.length()<1) WorkingDir = to_string(getpid());
-        if(!dir_exists(WorkingDir)) system(("mkdir -p "+WorkingDir).c_str());
-        ofstream start_out(WorkingDir+"/"+spn+".start");
-        start_out << sss << endl;
-        start_out.close();
-        
-        // .config
-        int ct = 1; // 1-poly, 1-poly+prime, 2-poly+prime+mpq, since fire-config provided, we only generate poly
-        for(int ci=0; ci<ct; ci++) { // 0-poly, 1-prime, 2-mpq
-            ostringstream config;
-            if(Version>5) config << "#compressor none" << endl;
-            if(Version==5) config << "#bucket 20" << endl;
-            config << "#threads " << Threads << endl;
-            if(fThreads>0) config << "#fthreads " << fThreads << endl;
-            else if(ci==2) config << "#fthreads 1" << endl;
-            else config << "#fthreads " << Threads << endl;
-            if(Version>5) { // FIRE6 or lator
-                if(sThreads>0) config << "#sthreads " << sThreads << endl;
-                if(lThreads>1) config << "#lThreads " << lThreads << endl;
-                if(pos_pref!=1) config << "#pos_pref "<< pos_pref << endl;
-                if(ci==1) config << "#prime 1" << endl;
-            }
-            config << "#variables ";
-            bool first = true;
-            exvector ev_sort;
-            for(auto v : Variables) {
-                auto fw = fermat_weight.find(v);
-                if(fw!=fermat_weight.end()) ev_sort.push_back(lst{ fw->second, v });
-                else ev_sort.push_back(lst{ 0, v });
-            }
-            sort_vec(ev_sort);
-            for(auto nv : ev_sort) { 
-                const symbol & s = ex_to<symbol>(nv.op(1));
-                if(!islower(s.get_name()[0])) {
-                    cout << "Replacements: " << Replacements << endl;
-                    cout << "IBPvec: " << IBPvec << endl;
-                    throw Error("FIRE: Fermat requires a name must begin with a lower case letter: "+s.get_name());
-                }
-                config << (first ? "" : ",") << s; 
-                first=false; 
-            }
-            config << endl;
-            config << "#database db" << ProblemNumber << endl;
-            config << "#start" << endl;
-            config << "#problem " << pn << " " << ProblemNumber << ".start" << endl;
-            if(PIntegrals.nops()>0) {
-                ostringstream oss;
-                oss << "{";
-                int nn = PIntegrals.nops();
-                for(int i=0; i<nn; i++) {
-                    if(PIntegrals.op(i).nops()!=pdim) throw Error("FIRE::Export@1, Index dimension NOT match Propagators.");
-                    oss << "{" << pn << "," << PIntegrals.op(i) << (i<nn-1 ? "}," : "}");
-                }
-                oss << "}";
-                ofstream pref_out(WorkingDir+"/"+spn+".pref");
-                pref_out << oss.str() << endl;
-                pref_out.close();
-                config << "#preferred " << ProblemNumber << ".pref" << endl;
-            }
-            config << "#integrals " << ProblemNumber << ".intg" << endl;
-            config << "#output " << ProblemNumber << ".tables" << endl;
             
-            string cpos = "";
-            if(ci==1) cpos = "p";
-            else if(ci==2) cpos = "q";
-            ofstream config_out(WorkingDir+"/"+spn+cpos+".config");
-            config_out << config.str() << endl;
-            config_out.close();
+            // Lee Zero Sector
+            if(true) {
+                exset sectors;
+                IsAlwaysZero = true;
+                lst ns0;
+                for(int i=0; i<pdim; i++) ns0.append(1);
+                long long tot = std::pow(2LL,pdim);
+                
+                for(long long n=0; n<tot; n++) {
+                    int cn = n;
+                    lst sector = ns0;
+                    for(int j=0; j<pdim; j++) {
+                        if((cn%2)==1) sector.let_op(j) = 0;
+                        cn /= 2;
+                    }
+                    sectors.insert(sector);
+                }
+                
+                while(!sectors.empty()) {
+                    auto first = *(sectors.begin());
+                    sectors.erase(first);
+                    
+                    auto sector = ex_to<lst>(first);
+                    if(IsZero(sector)) { // from LiteRed: all subsector is zero
+                        lst ns1 = sector;
+                        for(int j=0; j<pdim; j++) {
+                            if(sector.op(j).is_zero()) ns1.let_op(j) = -1;
+                        }
+                        Rlst.append(ns1);
+                        exset subsets;
+                        for(auto item : sectors) {
+                            bool ok = true;
+                            for(int j=0; j<pdim; j++) {
+                                if(sector.op(j)<item.op(j)) { ok = false; break; }
+                            }
+                            if(ok) subsets.insert(item);
+                        }
+                        for(auto item : subsets) {
+                            sectors.erase(item);
+                            lst ns1 = ex_to<lst>(item);
+                            for(int j=0; j<pdim; j++) {
+                                if(item.op(j).is_zero()) ns1.let_op(j) = -1;
+                            }
+                            Rlst.append(ns1);
+                        }
+                    } else { // from LiteRed: all supersector is non-zero
+                        if(IsAlwaysZero) IsAlwaysZero = false;
+                        exset supsets;
+                        for(auto item : sectors) {
+                            bool ok = true;
+                            for(int j=0; j<pdim; j++) {
+                                if(sector.op(j)>item.op(j)) { ok = false; break; }
+                            }
+                            if(ok) supsets.insert(item);
+                        }
+                        for(auto item : supsets) sectors.erase(item);
+                    }
+                }
+                
+                if(IsAlwaysZero) {
+                    Rules.remove_all();
+                    for(auto ii : Integrals) Rules.append(F(ProblemNumber, ii)==0);
+                    return;
+                }
+            }
+            
+            // handle Cut Propagators
+            if(Cuts.nops()>0) {
+                for(auto cx : Cuts) {
+                    int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cuts
+                    lst ns0;
+                    for(int i=0; i<pdim; i++) ns0.append(1);
+                    ns0.let_op(ci) = -1;
+                    for(int n=0; n<std::pow(2,pdim-1); n++) {
+                        int cn = n;
+                        lst ns1 = ns0;
+                        for(int j=0; j<pdim; j++) {
+                            if(ci==j) continue;
+                            if((cn%2)==1) ns1.let_op(j) = -1;
+                            cn /= 2;
+                        }
+                        Rlst.append(ns1);
+                    } 
+                }
+            }
+
+            Rlst.sort();
+            Rlst.unique();
+            //sort_lst(Rlst);
+            
+            for(auto iR : Rlst) {
+                start << "SBasisR[" << pn << ",{";
+                for(int i=0; i<pdim; i++) start << iR.op(i) << (i<pdim-1 ? "," : "");
+                start << "}]=True" << endl << endl;
+            }
+            
+            // .start - Others
+            start << "SBasisRL[" << pn << "]=0" << endl << endl;
+            start << "HPI[" << pn << "]={}" << endl << endl;
+            
+            string sss = start.str();
+            string_replace_all(sss, "=", " = ");
+            string_replace_all(sss, ",", ", ");
+            
+            if(!dir_exists(WorkingDir)) system(("mkdir -p " + WorkingDir).c_str());
+            
+            ofstream start_out(WorkingDir+"/"+spn+".start");
+            start_out << sss << endl;
+            start_out.close();
+        
+            // .config
+            int ct = 1; // 1-poly, 1-poly+prime, 2-poly+prime+mpq, since fire-config provided, we only generate poly
+            for(int ci=0; ci<ct; ci++) { // 0-poly, 1-prime, 2-mpq
+                ostringstream config;
+                if(Version>5) config << "#compressor none" << endl;
+                if(Version==5) config << "#bucket 20" << endl;
+                config << "#threads " << Threads << endl;
+                if(fThreads>0) config << "#fthreads " << fThreads << endl;
+                else if(ci==2) config << "#fthreads 1" << endl;
+                else config << "#fthreads " << Threads << endl;
+                if(Version>5) { // FIRE6 or lator
+                    if(sThreads>0) config << "#sthreads " << sThreads << endl;
+                    if(lThreads>1) config << "#lThreads " << lThreads << endl;
+                    if(pos_pref!=1) config << "#pos_pref "<< pos_pref << endl;
+                    if(ci==1) config << "#prime 1" << endl;
+                }
+                config << "#variables ";
+                bool first = true;
+                exvector ev_sort;
+                for(auto v : Variables) {
+                    auto fw = fermat_weight.find(v);
+                    if(fw!=fermat_weight.end()) ev_sort.push_back(lst{ fw->second, v });
+                    else ev_sort.push_back(lst{ 0, v });
+                }
+                sort_vec(ev_sort);
+                for(auto nv : ev_sort) { 
+                    const symbol & s = ex_to<symbol>(nv.op(1));
+                    if(!islower(s.get_name()[0])) {
+                        cout << "Replacements: " << Replacements << endl;
+                        cout << "IBPvec: " << IBPvec << endl;
+                        throw Error("FIRE: Fermat requires a name must begin with a lower case letter: "+s.get_name());
+                    }
+                    config << (first ? "" : ",") << s; 
+                    first=false; 
+                }
+                config << endl;
+                config << "#database db" << ProblemNumber << endl;
+                config << "#start" << endl;
+                config << "#problem " << pn << " " << ProblemNumber << ".start" << endl;
+                if(PIntegrals.nops()>0) {
+                    ostringstream oss;
+                    oss << "{";
+                    int nn = PIntegrals.nops();
+                    for(int i=0; i<nn; i++) {
+                        if(PIntegrals.op(i).nops()!=pdim) throw Error("FIRE::Export@1, Index dimension NOT match Propagators.");
+                        oss << "{" << pn << "," << PIntegrals.op(i) << (i<nn-1 ? "}," : "}");
+                    }
+                    oss << "}";
+                    ofstream pref_out(WorkingDir+"/"+spn+".pref");
+                    pref_out << oss.str() << endl;
+                    pref_out.close();
+                    config << "#preferred " << ProblemNumber << ".pref" << endl;
+                }
+                config << "#integrals " << ProblemNumber << ".intg" << endl;
+                config << "#output " << ProblemNumber << ".tables" << endl;
+                
+                string cpos = "";
+                if(ci==1) cpos = "p";
+                else if(ci==2) cpos = "q";
+                ofstream config_out(WorkingDir+"/"+spn+cpos+".config");
+                config_out << config.str() << endl;
+                config_out.close();
+            }
+
         }
         
         // *.intg
@@ -646,6 +646,7 @@ namespace HepLib {
     void FIRE::Run() {
         if(IsAlwaysZero) return;
         if(file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) return;
+        if(Integrals.nops()<1) return;
         int tried = 0;
         while(tried<3) {
             tried++;
@@ -669,6 +670,7 @@ namespace HepLib {
      */
     void FIRE::Import() {
         if(IsAlwaysZero) return;
+        if(Integrals.nops()<1) return;
         string spn = to_string(ProblemNumber);
         ifstream ifs(WorkingDir+"/"+spn+".tables");
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));

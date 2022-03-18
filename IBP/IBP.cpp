@@ -161,11 +161,11 @@ namespace HepLib {
         }
     }
     
-    void IBP::FindRules(bool mi) {
+    pair<exmap,lst> IBP::FindRules(bool is_mi) {
         vector<IBP*> ibps;
         ibps.push_back(this);
-        auto rs_mis = HepLib::FindRules(ibps, mi);
-        if(rs_mis.first.size()>0) {
+        auto rs_mis = HepLib::FindRules(ibps, is_mi);
+        if(is_mi && rs_mis.first.size()>0) {
             auto nr = Rules.nops();
             for(int i=0; i<nr; i++) {
                 auto ri = Rules.op(i);
@@ -179,6 +179,7 @@ namespace HepLib {
             MIntegrals = rs_mis.second;
             sort_lst(MIntegrals);
         }
+        return rs_mis;
     }
         
     /**
@@ -308,13 +309,13 @@ namespace HepLib {
         // handle sign
         ex sign = 1;
         for(int i=0; i<props.nops(); i++) {
-            auto ipr = props.op(i);
+            auto ipr = expand_ex(props.op(i), ibp.Internal);
             
             if(ipr.has(iEpsilon)) {
                 auto cc = ipr.coeff(iEpsilon);
                 if(is_a<numeric>(cc)) {
                     if(cc<0) { // using +iEpsilon
-                        sign = pow(-1, idx.op(i));
+                        sign *= pow(-1, idx.op(i));
                         props.let_op(i) = ex(0)-props.op(i);
                     }
                     props.let_op(i) = props.op(i).subs(iEpsilon==0,nopat);
@@ -327,7 +328,7 @@ namespace HepLib {
                     auto cc = ipr.coeff(lp,2);
                     if(is_a<numeric>(cc)) {
                         if(cc<0) { // using +l^2
-                            sign = pow(-1, idx.op(i));
+                            sign *= pow(-1, idx.op(i));
                             props.let_op(i) = ex(0)-props.op(i);
                         }
                         goto sign_done;
@@ -414,13 +415,13 @@ namespace HepLib {
         // handle sign
         ex sign = 1;
         for(int i=0; i<ps.nops(); i++) {
-            auto ipr = ps.op(i);
+            auto ipr = expand_ex(ps.op(i), loops);
             
             if(ipr.has(iEpsilon)) {
                 auto cc = ipr.coeff(iEpsilon);
                 if(is_a<numeric>(cc)) {
                     if(cc<0) { // using +iEpsilon
-                        sign = pow(-1, ns.op(i));
+                        sign *= pow(-1, ns.op(i));
                         ps.let_op(i) = ex(0)-ps.op(i);
                     }
                     ps.let_op(i) = ps.op(i).subs(iEpsilon==0,nopat);
@@ -433,7 +434,7 @@ namespace HepLib {
                     auto cc = ipr.coeff(lp,2);
                     if(is_a<numeric>(cc)) {
                         if(cc<0) { // using +l^2
-                            sign = pow(-1, ns.op(i));
+                            sign *= pow(-1, ns.op(i));
                             ps.let_op(i) = ex(0)-ps.op(i);
                         }
                         goto sign_done;
@@ -447,7 +448,7 @@ namespace HepLib {
                     auto cc = ipr.coeff(lp,2);
                     if(is_a<numeric>(cc)) {
                         if(cc<0) { // using +l^2
-                            sign = pow(-1, ns.op(i));
+                            sign *= pow(-1, ns.op(i));
                             ps.let_op(i) = ex(0)-ps.op(i);
                         }
                         goto sign_done;
@@ -759,13 +760,13 @@ namespace HepLib {
             auto t0 = ft.subs(Internal.op(i)==0,nopat);
             ut *= t2;
             if(is_zero(t2)) return true;
-            ft = exnormal(t0-t1*t1/(4*t2));
+            ft = normal(t0-t1*t1/(4*t2));
             ft = expand(ft);
             ft = subs_all(ft, Replacements);
         }
-        ut = exnormal(subs_all(ut, Replacements));
-        ft = exnormal(ut*ft);
-        ft = exnormal(subs_all(ft, Replacements));
+        ut = normal(subs_all(ut, Replacements));
+        ft = normal(ut*ft);
+        ft = normal(subs_all(ft, Replacements));
     
         ex G = ut + ft;
         ex sum = 0;
@@ -871,8 +872,6 @@ namespace HepLib {
         auto & es = External;
         int eN = es.nops();
         int pN = Propagators.nops();
-        map<ex,int,ex_is_less> ep2n;
-        for(int i=0; i<eN; i++) ep2n[es.op(i)] = i;
         matrix G(eN, eN);
         for(int r=0; r<eN; r++) for(int c=0; c<eN; c++) G(r,c) = (es.op(r)*es.op(c)).subs(Replacements,algbr);
         matrix Gi = G.inverse();
@@ -913,6 +912,64 @@ namespace HepLib {
             spmap[p1*p2] = collect_ex(res,F(w1,w2));
         }}
         return spmap;
+    }
+    
+    ex IBP::D(const ex & x, const lst & ns) {
+        lst InExternal;
+        for(auto ii : Internal) InExternal.append(ii);
+        for(auto ii : External) InExternal.append(ii);
+        int pN = Propagators.nops();
+        auto sp2pn = SP2Pn();
+        
+        ex res = 0;
+        for(int pi=0; pi<pN; pi++) { // Direct Diff for each Propagator
+            lst ns2 = ns;
+            ns2.let_op(pi) = ns.op(pi)+1;
+            ex Pi = Propagators.op(pi);
+            Pi = Pi.subs(Replacements);
+            ex dpi = -ns.op(pi)*diff_ex(Pi, x);
+            auto cvs = collect_lst(dpi, InExternal);
+            for(auto cv : cvs) {
+                if(is_zero(cv.op(1)-1)) res += cv.op(0)*F(ProblemNumber, ns2);
+                else {
+                    auto f = sp2pn.find(cv.op(1));
+                    if(f==sp2pn.end()) throw Error("IBP::DExt, Not found.");
+                    auto cps = f->second;
+                    res += cv.op(0)*cps.op(0)*F(ProblemNumber, ns2);
+                    for(int j=1; j<pN+1; j++) {
+                        if(is_zero(cps.op(j))) continue;
+                        lst ns3 = ns2;
+                        ns3.let_op(j-1) = ns2.op(j-1)-1;
+                        res += cv.op(0)*cps.op(j)*F(ProblemNumber, ns3);
+                    }
+                }
+            }
+        }
+
+        // InDirect Diff from external SP
+        auto dsp = Dinv(ns);
+        auto eN = External.nops();
+        for(int i=0; i<eN; i++) {
+        for(int j=i; j<eN; j++) {
+            ex sp = External.op(i) * External.op(j);
+            auto f = dsp.find(sp);
+            if(f==dsp.end()) throw Error("DESS::InitDE, sp NOT found.");
+            auto rsp = sp.subs(Replacements, algbr);
+            if(sp==rsp) throw Error("DESS::InitDE, sp==rsp, Replacements NOT work.");
+            res += f->second * diff_ex(rsp, x);
+        }}
+
+        return res;
+    }
+    
+    void IBP::RM(bool keep_start_config) {
+        string spn = to_string(ProblemNumber);
+        if(!keep_start_config) {
+            file_remove(WorkingDir+"/"+spn+".start");
+            file_remove(WorkingDir+"/"+spn+".config");
+        }
+        file_remove(WorkingDir+"/"+spn+".intg");
+        file_remove(WorkingDir+"/"+spn+".tables");
     }
     
     ex GPolynomial(const IBP & ibp) {

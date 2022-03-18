@@ -3,7 +3,7 @@
 
 // https://github.com/magv/fuchsia.cpp 
 
-namespace HepLib::D_E {
+namespace HepLib::EoD {
 
     vspace::vspace(unsigned n) : basis(0, n) { }
 

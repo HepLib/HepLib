@@ -187,6 +187,10 @@ namespace HepLib {
         }
     }
     
+    bool string_contain(const string &fstr, const string & mstr) {
+        return (fstr.find(mstr) != std::string::npos);
+    }
+    
     void Combinations(int n, int m, std::function<void(const int*)> f) {
         if(m<1 || m>n) return;
         std::string bitmask(m,1);

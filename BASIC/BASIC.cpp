@@ -2259,6 +2259,28 @@ namespace HepLib {
         auto v = cln::the<cln::cl_I>(ex_to<numeric>(n).to_cl_N());
         return numeric(cln::nextprobprime(v));
     }
+    
+    ex Rationalize(const ex & e, int dn) {
+        
+        static MapFunction R([](const ex & e, MapFunction & self)->ex{
+            if(is_a<numeric>(e)) {
+                auto ne = ex_to<numeric>(e);
+                if(ne.is_crational()) return e;
+                auto zz = ne.to_cl_N();
+                auto re = cln::rationalize(cln::realpart(zz));
+                auto im = cln::rationalize(cln::imagpart(zz));
+                return numeric(cln::complex(re,im));
+            } else return e.map(self);
+        });
+        
+        auto oDigits = Digits;
+        if(dn!=Digits) Digits = dn;
+        ex res = R(e);
+        if(Digits!=oDigits) Digits = oDigits;
+        return res;
+    }
+    
+    
         
 }
 

@@ -147,7 +147,7 @@ namespace HepLib::QCD {
          * @return S-L with total spin 0
          */
         ex S1L1Proj(ex si, ex qi, ex p) {
-            return ITD(si,qi,p)/sqrt(D-1);
+            return ITD(si,qi,p)/sqrt(d-1);
         }
         
         /**
@@ -172,7 +172,7 @@ namespace HepLib::QCD {
          * @return S-L with total spin 2
          */
         ex S1L1Proj(ex si, ex qi, ex mu1, ex mu2, ex p) {
-            return (ITD(si,mu1,p)*ITD(qi,mu2,p)+ITD(qi,mu1,p)*ITD(si,mu2,p))/2 - ITD(si,qi,p)*ITD(mu1,mu2,p)/(D-1);
+            return (ITD(si,mu1,p)*ITD(qi,mu2,p)+ITD(qi,mu1,p)*ITD(si,mu2,p))/2 - ITD(si,qi,p)*ITD(mu1,mu2,p)/(d-1);
         }
         
         /**
@@ -185,7 +185,7 @@ namespace HepLib::QCD {
          * @return S-L with total spin 1
          */
         ex S1L2Proj(ex si, ex qi1, ex qi2, ex mu, ex p) {
-            return sqrt((D-1)/(D+1))*((ITD(si,qi1,p)*ITD(qi2,mu,p)+ITD(si,qi2,p)*ITD(qi1,mu,p))/2- ITD(si,mu,p)*ITD(qi1,qi2,p)/(D-1));
+            return sqrt((d-1)/(d+1))*((ITD(si,qi1,p)*ITD(qi2,mu,p)+ITD(si,qi2,p)*ITD(qi1,mu,p))/2- ITD(si,mu,p)*ITD(qi1,qi2,p)/(d-1));
         }
         
         /**
@@ -199,7 +199,7 @@ namespace HepLib::QCD {
          * @return S-L with total spin L
          */
         ex S1L2Proj(ex si, ex qi1, ex qi2, ex mu1, ex mu2, ex p) {
-            return -I/(sqrt(2*(D-1)*SP(p))) * (SP(mu1,qi1)*LC(qi2,si,mu2,p)+SP(mu1,qi2)*LC(qi1,si,mu2,p));
+            return -I/(sqrt(2*(d-1)*SP(p))) * (SP(mu1,qi1)*LC(qi2,si,mu2,p)+SP(mu1,qi2)*LC(qi1,si,mu2,p));
         }
         
         /**
@@ -213,9 +213,9 @@ namespace HepLib::QCD {
          * @return S-L with total spin J
          */
         ex S1L1Sum(ex si, ex siR, ex qi, ex qiR, ex p, int J) {
-            if(J==0) return ITD(si,qi,p)*ITD(siR,qiR,p)/(D-1);
+            if(J==0) return ITD(si,qi,p)*ITD(siR,qiR,p)/(d-1);
             else if(J==1) return (ITD(si,siR,p)*ITD(qi,qiR,p)-ITD(si,qiR,p)*ITD(qi,siR,p))/2;
-            else if(J==2) return (ITD(si,siR,p)*ITD(qi,qiR,p)+ITD(si,qiR,p)*ITD(qi,siR,p))/2-ITD(si,qi,p)*ITD(siR,qiR,p)/(D-1);
+            else if(J==2) return (ITD(si,siR,p)*ITD(qi,qiR,p)+ITD(si,qiR,p)*ITD(qi,siR,p))/2-ITD(si,qi,p)*ITD(siR,qiR,p)/(d-1);
             return 0;
         }
         
@@ -331,8 +331,8 @@ namespace HepLib::QCD {
                 switch (pqi.nops()) {
                     case 2: {
                         if(isn%2!=0) qproj = 0;
-                        else if(isn==2) qproj = -SP(q)/(D-1)*ITD(is[0],is[1],p);
-                        else if(isn==4) qproj = pow(SP(q),2)/((D-1)*(D+1)) * (ITD(is[0],is[1],p)*ITD(is[2],is[3],p)+ITD(is[0],is[2],p)*ITD(is[1],is[3],p)+ITD(is[0],is[3],p)*ITD(is[1],is[2],p));
+                        else if(isn==2) qproj = -SP(q)/(d-1)*ITD(is[0],is[1],p);
+                        else if(isn==4) qproj = pow(SP(q),2)/((d-1)*(d+1)) * (ITD(is[0],is[1],p)*ITD(is[2],is[3],p)+ITD(is[0],is[2],p)*ITD(is[1],is[3],p)+ITD(is[0],is[3],p)*ITD(is[1],is[2],p));
                         else throw Error("LProj not supported yet in S-wave.");
                         break;
                     } case 3: {
@@ -343,7 +343,7 @@ namespace HepLib::QCD {
                             auto m1 = is[0];
                             auto m2 = is[1];
                             auto m3 = is[2];
-                            qproj = -SP(q)*(ITD(m1,m2,p)*SP(qi,m3)+ITD(m1,m3,p)*SP(qi,m2)+ITD(m2,m3,p)*SP(qi,m1))/(D+1);
+                            qproj = -SP(q)*(ITD(m1,m2,p)*SP(qi,m3)+ITD(m1,m3,p)*SP(qi,m2)+ITD(m2,m3,p)*SP(qi,m1))/(d+1);
                         } else throw Error("LProj not supported yet in P-wave.");
                         break;
                     } case 4: {
