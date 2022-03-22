@@ -113,6 +113,7 @@ namespace HepLib {
     const ex iEpsilonN = I*pow(ex(10), -50);
     int Verbose = 0;
     bool Debug = false;
+    bool In_GiNaC_Parallel = false;
     int GiNaC_Parallel_Process = -1;
     map<string, int> GiNaC_Parallel_NP;
     map<string, int> GiNaC_Parallel_Verb;
@@ -126,7 +127,6 @@ namespace HepLib {
     bool using_cache = true;
     long long cache_limit = -1;
     int NNDigits = 100;
-    unsigned int DE::ExDigits = 10;
     
     MMAFormat mout(cout);
     
@@ -265,6 +265,10 @@ namespace HepLib {
         table.insert(std::string("DGamma"), []()->GiNaC::basic*{ return new DGamma(); });
         table.insert(std::string("Eps"), []()->GiNaC::basic*{ return new Eps(); });
         table.insert(std::string("Pair"), []()->GiNaC::basic*{ return new Pair(); });
+        
+        // CLN configurations
+        cln::cl_inhibit_floating_point_underflow = true; 
+        cln::default_float_format = cln::float_format(100);
     }
     _global_init::_init _global_init::init_object;
     

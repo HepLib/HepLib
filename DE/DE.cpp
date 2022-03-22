@@ -29,11 +29,12 @@ namespace HepLib {
     }
     
     void DE::x2y(const ex & y) {
+        static symbol xx("xx");
         ex det = diff_ex(y,x);
         int matN = Mat.rows();
         for(int r=0; r<matN; r++) {
             for(int c=0; c<matN; c++) {
-                Mat(r,c) = det * Mat(r,c).subs(x==y, nopat);
+                Mat(r,c) = det * Mat(r,c).subs(x==xx,nopat).subs(xx==y,nopat);
             }
         }
         auto n = Ts.size();
@@ -48,24 +49,7 @@ namespace HepLib {
     
     void DE::xpow() {
         int n = Mat.nops();
-        for(int i=0; i<n; i++) Mat.let_op(i) = xpow(Mat.op(i));
-    }
-    
-    ex DE::xpow(const ex & e) {
-        auto cvs = collect_lst(e,x);
-        ex res = 0;
-        for(auto cv : cvs) {
-            auto pat = cv.op(1);
-            if(!is_a<mul>(pat)) pat = lst{pat};
-            ex cp = 1;
-            ex xn = 0;
-            for(auto pi : pat) {
-                if(pi.match(pow(x,w))) xn += pi.op(1);
-                else cp *= pi;
-            }
-            res += cv.op(0) * cp * pow(x,xn);
-        }
-        return res;
+        for(int i=0; i<n; i++) Mat.let_op(i) = HepLib::xpow(Mat.op(i),x);
     }
     
     matrix DE::MatT() {
@@ -110,15 +94,15 @@ namespace HepLib {
         
         int pr = prank(m,x);
         if(pr < 1) {
-            if(Verbose>1) cout << "  \\--Fuchsify: Poincare rank is alreay " << pr << endl;
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Fuchsify: Poincare rank is alreay " << pr << endl;
             Ts.push_back(t);
             return;
         }
         
-        if(Verbose>1) cout << "  \\--Fuchsify: start @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Fuchsify: start @ " << now() << endl;
         
         while(true) {
-            if(Verbose>1) cout << "     \\--Poincare rank: " << pr << ",  A0 rank: " << a0.rank() << " @ " << now() << endl;
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--Poincare rank: " << pr << ",  A0 rank: " << a0.rank() << endl;
             
             // n = (a0 a1-l)
             //     (0  a0  )
@@ -181,7 +165,7 @@ namespace HepLib {
             a1 = a01.second;
         }
 
-        if(Verbose>1) cout << "  \\--Fuchsify: finished @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Fuchsify: finished @ " << now() << endl;
         
         Mat = m;
         Ts.push_back(t);
@@ -189,7 +173,7 @@ namespace HepLib {
     
     // normalization at x=0
     void DE::Normalize() {
-        if(Verbose>1) cout << "  \\--Normalize: start @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Normalize: start @ " << now() << endl;
 
         matrix m = Mat;
         matrix t= imatrix(m.rows());
@@ -221,7 +205,7 @@ namespace HepLib {
                 }
             }
             
-            if(Verbose>0) cout << "     \\--EigenValues of A0 summary:" << endl;
+            if(!In_GiNaC_Parallel && Verbose>0) cout << "     \\--EigenValues of A0 summary:" << endl;
             ostringstream ostr;
             ostr << "        ";
             for(auto &gi : ev_groups) {
@@ -232,7 +216,7 @@ namespace HepLib {
                     ostr << ev_i << "[" << ev_map[ev_i] << "], ";
                 }
             }
-            if(Verbose>1) {
+            if(!In_GiNaC_Parallel && Verbose>1) {
                 string str = ostr.str();
                 cout << str.substr(0,str.size()-2) << endl;
             }
@@ -244,14 +228,14 @@ namespace HepLib {
                 auto last_ev = gi[gi.size()-1];
                 for_each(gi.begin(), gi.end()-1, [&](const auto &ev) {
                     if((last_ev-ev).info(info_flags::positive)) {
-                        if(Verbose>0) cout << "     \\--Raising ev = " << ev << " ..." << endl;
+                        if(!In_GiNaC_Parallel && Verbose>0) cout << "     \\--Raising ev = " << ev << " ..." << endl;
                         matrix vec_u = eigenvectors(a0, ev)[0];
                         matrix vec_v  = dual_basis(vec_u)[0];
                         matrix p = normal(vec_u.mul(vec_v));
                         m = with_balance_t(m, p, x);
                         t = t.mul(imatrix(m.rows()).sub(p).sub(p.mul_scalar(1/x)));
                     } else {
-                        if(Verbose>0) cout << "     \\--Lowering ev = " << ev << " ..." << endl;
+                        if(!In_GiNaC_Parallel && Verbose>0) cout << "     \\--Lowering ev = " << ev << " ..." << endl;
                         matrix vec_v = eigenvectors_left(a0, ev)[0];
                         matrix vec_u  = dual_basis_left(vec_v)[0];
                         matrix p = normal(vec_u.mul(vec_v));
@@ -268,7 +252,7 @@ namespace HepLib {
             if(is_normalized) break;        
         }
         
-        if(Verbose>1) cout << "  \\--Normalize: fininshed @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Normalize: fininshed @ " << now() << endl;
 
         Mat = m;
         Ts.push_back(t);
@@ -276,7 +260,7 @@ namespace HepLib {
     
     // shearing at x=0
     void DE::Shear() {
-        if(Verbose>1) cout << "  \\--Shear: start @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Shear: start @ " << now() << endl;
 
         matrix m = Mat;
         matrix t = imatrix(m.rows());
@@ -286,7 +270,7 @@ namespace HepLib {
         matrix a0 = a0_matrix(m, x, 0);
         while(true) {
         
-            if(Verbose>1) cout << "     \\--EigenValues of A0 summary:" << endl;
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--EigenValues of A0 summary:" << endl;
             auto ev_map = eigenvalues(a0);
             vector<exvector> ev_groups;
             for(auto &kv : ev_map) {
@@ -325,7 +309,7 @@ namespace HepLib {
                 sort(gi.begin(),gi.end(),[&](const auto &a, const auto &b){
                     return normal(a-b).info(info_flags::positive);
                 });
-                if(Verbose>1) {
+                if(!In_GiNaC_Parallel && Verbose>1) {
                     for(auto &ev_i : gi) {
                         ostr << ev_i << "[" << ev_map[ev_i] << "], ";
                     }
@@ -333,18 +317,18 @@ namespace HepLib {
                 int tmp = ex_to<numeric>(gi[0]-gi[gi.size()-1]).to_int();
                 if(max_dep < tmp) max_dep = tmp;
             }
-            if(Verbose>1) {
+            if(!In_GiNaC_Parallel && Verbose>1) {
                 string str = ostr.str();
                 cout << str.substr(0,str.size()-2) << endl;
             }
             
             if(is_normalized) break;
             
-            if(Verbose>1) cout << "     \\--jordan decomposition ..." << endl;
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--jordan decomposition ..." << endl;
             auto qj = jordan(a0);
             matrix smat = imatrix(m.rows());
             
-            if(Verbose>1) cout << "     \\--shearing transformation ..." << endl;
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--shearing transformation ..." << endl;
             int cpos = 0;
             
             bool s_only_first = false;
@@ -396,11 +380,11 @@ namespace HepLib {
         matrix_map_inplace(t, [](const ex & e) { return normal(e); });
         matrix_map_inplace(ti, [](const ex & e) { return normal(e); });
         
-        if(Verbose>1) cout << "     \\--DE Transformation  ..." << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--DE Transformation  ..." << endl;
         m = transform(Mat, ti, t, x);
         matrix_map_inplace(m, [](const ex & e) { return normal(e); });
         
-        if(Verbose>1) cout << "  \\--Shear: fininshed @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Shear: fininshed @ " << now() << endl;
         Mat = m;
         Ts.push_back(t);
     }
@@ -435,12 +419,10 @@ namespace HepLib {
         }
     }
         
-    pair<matrix,matrix> DE::Series(const ex & x0, const int xN) {
-        if(xN<0 && !is_a<numeric>(d0)) throw Error("DE::Series, xN<0 only works with numeric d0.");
-    
+    pair<matrix,matrix> DE::Series(const ex & x0, const unsigned int xN) {    
         auto oDigits = Digits;
-        if(Precision>0) Digits = Precision+ExDigits;
-        if(Verbose>1) cout << "  \\--Series: start @ " << now() << endl;
+        if(WDigits>0) Digits = WDigits;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Series: start @ " << now() << endl;
         
         int matN = Mat.rows();
         
@@ -499,197 +481,222 @@ namespace HepLib {
             }
         }
         
-        if(Verbose>1) cout << "     \\--Q polynormial ..." << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--Q polynormial ..." << endl;
         
         matrix_map_inplace(m, [&](const ex & e){ return normal(e); });
         ex qlcm = matrix_den_lcm(m);
         if(normal(qlcm.subs(x==0,nopat)).is_zero()) qlcm = normal(qlcm/x); //make sure check
         matrix_map_inplace(m, [&](const ex & e){ return collect_ex(normal(qlcm*x*e),x); });
         
+        // make sure m is polynomial in x
+        for(int i=0; i<m.nops(); i++) if(!m.op(i).is_polynomial(x)) {
+            cout << m << endl;
+            throw Error("DE::Series, matrix is NOT a polynomial in x.");
+        }
+        
         qlcm = collect_ex(qlcm, x);
         int qmax = qlcm.degree(x);
         exvector qs;
         for(int i=0; i<=qmax; i++) {
-            if(Precision>0 && i>0) qs.push_back(qlcm.coeff(x,i).evalf());
-            else qs.push_back(qlcm.coeff(x,i));
+            qs.push_back(qlcm.coeff(x,i));
         }
         
-        if(Verbose>1) cout << "     \\--B Matrix ..." << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--B Matrix ..." << endl;
         
         int s = qmax; // s in DESS
         for(int i=0; i<m.nops(); i++) {
             auto tmp = m.op(i).degree(x);
             if(s<tmp) s = tmp;
         }
+        if(s>xN) s = xN;
         symbol a("a"); // alpha
         for(int i=0; i<matN; i++) m(i,i) -= a*qlcm;
 
         for(int i=qmax+1; i<=s; i++) qs.push_back(0);
         vector<matrix> BMat(s+1);
         for(int i=0; i<=s; i++) {
-            if(Precision>0 && i>0)
-                BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x, i).evalf(); });
-            else 
-                BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x, i); });
+            BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x,i); });
         }
         
-        if(Verbose>1) cout << "     \\--C Matrix ..." << endl;
+        bool CMat_Parallel = (GiNaC_Parallel_NP.find("CMat")!=GiNaC_Parallel_NP.end()) && (GiNaC_Parallel_NP["CMat"]>0);
+        if(CMat_Parallel && !In_GiNaC_Parallel && Verbose>1) cout << "     \\--C Matrix ..." << endl;
         
-        auto res = GiNaC_Parallel(las.nops(), [&](int idx)->ex {
+        matrix MatF(matN, matN);
+        for(int idx=0; idx<las.nops(); idx++) {
             auto la = las.op(idx);
             int kla = laK[la];
-            vector<vector<matrix>> CMats(xN>=0 ? xN+1 : 1);
-            CMats[0] = laC0[la];
+            matrix CMats[s][kla+1];
+            for(int k=0; k<=kla; k++) CMats[0][k] = laC0[la][k];
             
-            matrix MatF(matN, matN);
             for(int k=0; k<=kla; k++) {
                 auto xterm = pow(x0,la)*pow(log(x0),k)/factorial(k);
-                for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) {
-                    MatF(r,c) += CMats[0][k](r,c)*xterm;
-                }
+                if(WDigits>0) xterm = xterm.evalf(); // OK
+                MatF = MatF.add(CMats[0][k].mul_scalar(xterm));
             }
             
-            for(int cn=1; (xN<0 || cn<=xN); cn++) {
-                if(xN<0) CMats.push_back(vector<matrix>());
-                for(int i=0; i<=kla; i++) CMats[cn].push_back(matrix(matN, matN));
+            symbol scn("cn");
+            matrix T[s+1][kla+1][kla+1];
+            if(true) {
+                matrix zmat(matN, matN); // zero matrix
+                for(int cm=1; cm<=s; cm++) 
+                for(int i=0; i<=kla; i++) 
+                for(int j=0; j<=kla; j++) T[cm][i][j] = zmat;
+                
                 matrix B0(matN, matN);
-                for(int i=0; i<matN*matN; i++) B0.let_op(i) = BMat[0].op(i).subs(a==la+cn,nopat);
+                for(int i=0; i<matN*matN; i++) B0.let_op(i) = BMat[0].op(i).subs(a==la+scn,nopat);
                 BJFinv iBJF(B0, -qs[0], kla);
-                for(int cm=1; (cm<=cn) && (cm<=s); cm++) {
+                                
+                for(int cm=1; cm<=s; cm++) {
                     matrix Bm(matN, matN);
-                    for(int i=0; i<matN*matN; i++) Bm.let_op(i) = BMat[cm].op(i).subs(a==la+cn-cm,nopat);
+                    for(int i=0; i<matN*matN; i++) Bm.let_op(i) = BMat[cm].op(i).subs(a==la+scn-cm,nopat);
                     BJF mBJF(Bm, -qs[cm], kla);
-                    // T(n,m) . C(n-m, 0..kla) = -iBJF(B0,-q0).mBJF(Bm,-qm).CMats
-                    for(int k=0; k<=kla; k++)
-                    for(int i=0; i<=kla; i++)
-                    for(int j=0; j<=kla; j++) {
+                    
+                    for(int k=0; k<=kla; k++) 
+                    for(int j=0; j<=kla; j++) 
+                    for(int i=0; i<=kla; i++) {
                         if(k>i) continue; // iBJF(k,i)
                         if(i!=j && i+1!=j) continue; // mBJF(i,j)
-                        CMats[cn][k] = CMats[cn][k].sub(iBJF(k,i).mul(mBJF(i,j)).mul(CMats[cn-cm][j])); 
+                        T[cm][k][j] = T[cm][k][j].sub(iBJF(k,i).mul(mBJF(i,j))); // T(n,m) = -iBJF(B0,-q0).mBJF(Bm,-qm)
                     }
-                }
-                
-                if(xN>=0) {
-                    for(int k=0; k<=kla; k++)  // normalize
-                        matrix_map_inplace(CMats[cn][k], [&](const ex & e) { return normal(e); });
-                }
-                
-                bool chk = true;
-                for(int k=0; k<=kla; k++) {
-                    auto xterm = pow(x0,la)*pow(x0,cn)*pow(log(x0),k)/factorial(k);
-                    for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) {
-                        auto item = CMats[cn][k](r,c)*xterm;
-                        MatF(r,c) += item;
-                        if(xN<0 && chk) {
-                            if(abs(MatF(r,c))>pow(10,Digits+3)) chk = abs(item/MatF(r,c)) < pow(10,-Precision);
-                            else chk = abs(item) < pow(10,-Precision);
-                        }
-                    }
-                }
-                if(xN<0 && chk) {
-                    if(Debug && Verbose>1) cout << "  \\--Taylor: Precision Reached after " << cn << " times." << endl;
-                    break;
                 }
             }
             
-            return MatF;
-        }, "CMat");
-        matrix CMat(matN, matN);
-        for(auto item : res) CMat = CMat.add(ex_to<matrix>(item));
+            ex last_norm = -1;
+            int nidx = 0;
+            for(int cn=1; cn<=xN; cn++) {
+                if(!CMat_Parallel && !In_GiNaC_Parallel && Verbose>1) {
+                    cout << "\r                                  \r" << flush;
+                    cout << "     \\--C Matrix [" << idx+1 << "/" << las.nops() << "][" << cn << "/" << xN << "]" << flush;
+                }
+                exmap smap;
+                smap[scn] = cn;
+                if(WDigits>0) smap[scn] = smap[scn].evalf();
+                nidx = (nidx+1)%s;
+                for(int k=0; k<=kla; k++) {
+                    matrix cmat(matN, matN);
+                    for(int cm=1; (cm<=cn) && (cm<=s); cm++) {
+                        for(int j=0; j<=kla; j++) {
+                            matrix Tkj = T[cm][k][j];
+                            for(int i=0; i<Tkj.nops(); i++) Tkj.let_op(i) = Tkj.op(i).subs(smap,nopat);
+                            cmat = cmat.add(Tkj.mul(CMats[(nidx-cm+s)%s][j])); 
+                        }
+                    }
+                    if(WDigits<0) matrix_map_inplace(cmat, [&](const ex & e) { return normal(e); });
+                    CMats[nidx][k] = cmat;
+                    auto xterm = pow(x0,la)*pow(x0,cn)*pow(log(x0),k)/factorial(k);
+                    if(WDigits>0) xterm = xterm.evalf(); // OK
+                    MatF = MatF.add(cmat.mul_scalar(xterm));
+                }
+
+            }
+            if(!CMat_Parallel && !In_GiNaC_Parallel && Verbose>1) cout << endl;
+        }
         
-        if(Verbose>1) cout << "  \\--Series: fininshed @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Series: fininshed @ " << now() << endl;
         Digits = oDigits;
-        return make_pair(CMat, CoMat);
+        return make_pair(MatF, CoMat);
     }
     
-    matrix DE::Taylor(const ex & x0, const int xN) {
-        if(xN<0 && !is_a<numeric>(d0)) throw Error("DE::Series, xN<0 only works with numeric d0.");
-        
+    matrix DE::Taylor(const ex & x0, const ex & dx, const unsigned int xN) {        
         auto oDigits = Digits;
-        if(Precision>0) Digits = Precision+ExDigits;
-        if(Verbose>1) cout << "  \\--Taylor: start @ " << now() << endl;
+        if(WDigits>0) Digits = WDigits;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Taylor @ " << x0 << endl;
         
         auto m = Mat;
         int matN = m.rows();
-        if(prank(m,x)>-1) throw Error("DE::Taylor only works for non-singualr point.");
         
-        if(Verbose>1) cout << "     \\--Q polynormial ..." << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--Q polynormial ..." << endl;
         
         matrix_map_inplace(m, [&](const ex & e){ return normal(e); });
         ex qlcm = matrix_den_lcm(m);
-        if(normal(qlcm.subs(x==0,nopat)).is_zero()) //make sure check
+        if(normal(qlcm.subs(x==x0,nopat)).is_zero()) //make sure check
             throw Error("DE::Taylor only works for non-singualr point."); 
-        matrix_map_inplace(m, [&](const ex & e){ return collect_ex(normal(qlcm*x*e),x); });
+            
+        matrix_map_inplace(m, [&](const ex & e) {
+            ex res = normal(qlcm*e);
+            res = res.subs(x==x+x0);
+            res = collect_ex(x*res,x);
+            return res; 
+        });
         
-        qlcm = collect_ex(qlcm, x);
-        int qmax = qlcm.degree(x);
-        exvector qs;
-        for(int i=0; i<=qmax; i++) {
-            if(Precision>0) qs.push_back(qlcm.coeff(x,i).evalf());
-            else qs.push_back(qlcm.coeff(x,i));
+        // make sure m is polynomial in x
+        for(int i=0; i<m.nops(); i++) if(!m.op(i).is_polynomial(x)) {
+            cout << m.op(i) << endl;
+            throw Error("DE::Taylor, matrix is NOT a polynomial in x.");
         }
+        qlcm = qlcm.subs(x==x+x0,nopat);
+        qlcm = collect_ex(qlcm, x);
+        if(!qlcm.is_polynomial(x)) throw Error("DE::Taylor, qlcm is NOT a polynomial in x.");
+        int qmax = qlcm.degree(x);
         
-        if(Verbose>1) cout << "     \\--B Matrix ..." << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--B Matrix ..." << endl;
         
         int s = qmax; // s in DESS
         for(int i=0; i<m.nops(); i++) {
             auto tmp = m.op(i).degree(x);
             if(s<tmp) s = tmp;
         }
+        if(s>xN) s = xN;
         symbol a("a"); // alpha
         for(int i=0; i<matN; i++) m(i,i) -= a*qlcm;
 
-        for(int i=qmax+1; i<=s; i++) qs.push_back(0);
         vector<matrix> BMat(s+1);
         for(int i=0; i<=s; i++) {
-            if(Precision>0)
-                BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x, i).evalf(); });
-            else 
-                BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x, i); });
+            BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x,i); });
         }
         
-        if(Verbose>1) cout << "     \\--C Matrix ..." << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--T Matrix ..." << endl;
         
-        vector<matrix> CMats(xN>=0 ? xN+1 : 1);
+        matrix CMats[s]; // only keep last s CMats
         CMats[0] = ex_to<matrix>(unit_matrix(matN));
+        matrix MatF = CMats[0];
         
-        matrix CMat(matN, matN);
-        for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) {
-            CMat(r,c) += CMats[0](r,c);
-        }
-        for(int cn=1; (xN<0 || cn<=xN); cn++) {
-            if(xN<0) CMats.push_back(matrix());
-            CMats[cn] = matrix(matN, matN);
+        symbol scn("cn");
+        matrix T[s+1];
+        if(true) {
+            matrix zmat(matN, matN); // zero matrix
+            for(int cm=1; cm<=s; cm++) T[cm] = zmat;
+            
             matrix B0(matN, matN);
-            for(int i=0; i<matN*matN; i++) B0.let_op(i) = BMat[0].op(i).subs(a==cn,nopat);
-            auto iB0 = B0.inverse();
-            for(int cm=1; (cm<=cn) && (cm<=s); cm++) {
+            for(int i=0; i<matN*matN; i++) B0.let_op(i) = BMat[0].op(i).subs(a==scn,nopat);
+            B0 = B0.inverse();
+                            
+            for(int cm=1; cm<=s; cm++) {
                 matrix Bm(matN, matN);
-                for(int i=0; i<matN*matN; i++) Bm.let_op(i) = BMat[cm].op(i).subs(a==cn-cm,nopat);
-                CMats[cn] = CMats[cn].sub(iB0.mul(Bm).mul(CMats[cn-cm])); 
-            }
-            
-            if(xN>=0) matrix_map_inplace(CMats[cn], [&](const ex & e) { return normal(e); });
-            
-            bool chk = true;
-            auto xterm = pow(x0,cn);
-            for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) {
-                ex item = CMats[cn](r,c)*xterm;
-                CMat(r,c) += item;
-                if(xN<0 && chk) {
-                    if(abs(CMat(r,c))>pow(10,Digits+3)) chk = abs(item/CMat(r,c)) < pow(10,-Precision);
-                    else chk = abs(item) < pow(10,-Precision);
-                }
-            }
-            if(xN<0 && chk) {
-                if(Verbose>1) cout << "  \\--Taylor: Precision Reached after " << cn << " times." << endl;
-                break;
+                for(int i=0; i<matN*matN; i++) Bm.let_op(i) = BMat[cm].op(i).subs(a==scn-cm,nopat);
+                T[cm] = T[cm].sub(B0.mul(Bm)); // T(n,m) = -(B0^-1).Bm
             }
         }
+        
+        ex last_norm = -1;
+        int nidx = 0; 
+        for(int cn=1; cn<=xN; cn++) {
+            if(!In_GiNaC_Parallel && Verbose>1) {
+                cout << "\r                                  \r" << flush;
+                cout << "     \\--C Matrix [" << cn << "/" << xN << "]" << flush;
+            }
+            exmap smap;
+            smap[scn] = cn;
+            if(WDigits>0) smap[scn] = smap[scn].evalf();
+            matrix cmat(matN, matN);
+            nidx = (nidx+1)%s;
+            for(int cm=1; (cm<=cn) && (cm<=s); cm++) {
+                matrix Tm = T[cm];
+                for(int i=0; i<Tm.nops(); i++) Tm.let_op(i) = Tm.op(i).subs(smap,nopat);
+                cmat = cmat.add(Tm.mul(CMats[(nidx-cm+s)%s])); 
+            }
+            if(WDigits<0) matrix_map_inplace(cmat, [&](const ex & e) { return normal(e); });
+            CMats[nidx] = cmat;
             
-        if(Verbose>1) cout << "  \\--Taylor: fininshed @ " << now() << endl;
+            auto xterm = pow(dx,cn);
+            if(WDigits>0) xterm = xterm.evalf();
+            MatF = MatF.add(cmat.mul_scalar(xterm));
+        }
+        if(!In_GiNaC_Parallel && Verbose>1) cout << endl;
+            
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Taylor @ " << now() << endl;
         Digits = oDigits;
-        return CMat;
+        return MatF;
     }
     
     void DE::info() {
@@ -747,8 +754,8 @@ namespace HepLib {
             int deg = b.degree(x);
             if (deg == 0) { }
             else if (deg == 1) {
-                ex c0 = b.coeff(x, 0);
-                ex c1 = b.coeff(x, 1);
+                ex c0 = b.coeff(x,0);
+                ex c1 = b.coeff(x,1);
                 roots.insert(normal(-c0/c1));
             } else throw Error("Roots: higher powers found.");
         }
@@ -771,6 +778,19 @@ namespace HepLib {
     }
 
     //==============================================================================
+    
+    ex matrix_norm(const matrix & mat, unsigned opt) {
+        if(opt==0) {
+            ex res;
+            for(int i=0; i<mat.nops(); i++) {
+                ex t = abs(mat.op(i));
+                res += t*t;
+            }
+            return sqrt(res);
+        }
+        throw Error("matrix_norm: option NOT supported yet.");
+        return 0;
+    }
 
     ex matrix_den_lcm(const matrix & m) {
         exmap pn_map;
@@ -794,6 +814,32 @@ namespace HepLib {
         return res;
     }
     
+    ex xpow(const ex & e, const ex & x) {
+        auto cvs = collect_lst(e,x);
+        ex res = 0;
+        for(auto cv : cvs) {
+            auto pat = cv.op(1);
+            if(!is_a<mul>(pat)) pat = lst{pat};
+            ex cp = 1;
+            ex xn = 0;
+            for(auto pi : pat) {
+                if(pi.match(pow(x,w))) xn += pi.op(1);
+                else cp *= pi;
+            }
+            res += cv.op(0) * cp * pow(x,xn);
+        }
+        return res;
+    }
+    
+    void xpow(matrix & mat, const ex & x) {
+        auto n = mat.nops();
+        for(int i=0; i<n; i++) mat.let_op(i) = xpow(mat.op(i),x);
+    }
+    
+    void subs(matrix & mat, const ex & s, unsigned opt) {
+        auto n = mat.nops();
+        for(int i=0; i<n; i++) mat.let_op(i) = mat.op(i).subs(s, opt);
+    }
     
 }
 

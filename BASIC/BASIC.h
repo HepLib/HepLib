@@ -317,6 +317,7 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // vector : GiNaC_Parallel
     /*-----------------------------------------------------*/
+    extern bool In_GiNaC_Parallel;
     extern int GiNaC_Parallel_Process;
     extern map<string, int> GiNaC_Parallel_Verb;
     extern map<string, int> GiNaC_Parallel_NP;

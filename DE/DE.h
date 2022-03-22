@@ -67,7 +67,11 @@ namespace EoD {
     
 }
 
+    ex matrix_norm(const matrix & mat, unsigned opt=0);
     ex matrix_den_lcm(const matrix & mat);
+    ex xpow(const ex & e, const ex & x);
+    void xpow(matrix & mat, const ex & x);
+    void subs(matrix & mat, const ex & s, unsigned opt);
     
     class BJF {
     public:
@@ -93,9 +97,7 @@ namespace EoD {
         
     class DE {
     public:
-        static unsigned int ExDigits;
-        
-        int Precision = -1;
+        int WDigits = -1;
         ex d0;
         matrix Mat;
         const symbol & x;
@@ -110,11 +112,10 @@ namespace EoD {
         void x2y(const ex & y); // final expression still in x
         void Fuchsify();
         void Shear();
-        pair<matrix,matrix> Series(const ex & x0, const int xn=0); // C & C0 matrix
-        matrix Taylor(const ex & x0, const int xn=0);
+        pair<matrix,matrix> Series(const ex & x0, const unsigned int xn=0); // C & C0 matrix
+        matrix Taylor(const ex & x0, const ex & dx, const unsigned int xn=0);
         void Normalize();
         void info();
-        ex xpow(const ex & e);
         void xpow();
         void subs(const ex & sub, unsigned opt=0);
         void subs(const exmap & sub, unsigned opt=0);
@@ -138,23 +139,25 @@ namespace EoD {
     
     class AMF { // DE @ origin
     public:
+        unsigned int xN = 100;
+        ex d0 = d;
+        int WDigits = -1;
+        
         AMF(IBP & ibp);
         void InitDE();
         lst Evaluate();
-        int xN = 50;
-        ex d0 = d;
-        int Precision = -1;
+        lst Evaluate(const lst & d0s, bool parallel=true);
         
-        //get iet1 by expansion around regular point iet2
-        matrix RU(const ex & iet1, const ex & iet2); 
-        
-    private:
+    //private:
         const symbol & x;
         IBP & ibp;
         lst Rules;
         lst MIntegrals;
         lst pts;
         matrix Mat; // original DE matrix
+        
+        //get iet1 by expansion around regular point iet2
+        matrix RU(const ex & iet1, const ex & iet2); 
     };
 
 }

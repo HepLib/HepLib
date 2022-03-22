@@ -10,7 +10,7 @@ namespace HepLib {
     AMF::AMF(IBP & _ibp) : ibp(_ibp), x(iet) { } 
     
     void AMF::InitDE() {
-        if(Verbose>1) cout << "  \\--Generating DE @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Generating DE @ " << now() << endl;
         
         if(ibp.MIntegrals.nops()<1) {
             ibp.Reduce();
@@ -57,14 +57,14 @@ namespace HepLib {
                     }
                     if(!is_zero(normal(chk-dmi))) throw Error("AMFlow::InitDE, Check failed");
                 }
-                Mat = ex_to<matrix>(subs(mat,d==d0,nopat));
+                Mat = mat;
                 break;
             }
         }
         system(("rm -rf "+ibp.WorkingDir).c_str());
-        if(Verbose>1) cout << "  \\--Generated DE @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Generated DE @ " << now() << endl;
         
-        if(Verbose>10) cout << "  \\--DE Poles starting @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>10) cout << "  \\--DE Poles starting @ " << now() << endl;
         if(true) { // get poles of Mat
             ex den = matrix_den_lcm(Mat);
             exvector fvec;
@@ -79,14 +79,23 @@ namespace HepLib {
                     n = ex_to<numeric>(f.op(1)).to_int();
                 } 
                 int deg = b.degree(x);
-                if (deg == 0) { }
-                else if (deg == 1) {
+                if (deg==0) { }
+                else if (deg==1) {
                     ex c0 = b.coeff(x, 0);
                     ex c1 = b.coeff(x, 1);
                     roots.insert(normal(-c0/c1));
-                } else throw Error("AMF::InitDE, higher powers found.");
+                } else if(deg==2) {
+                    ex c0 = b.coeff(x, 0);
+                    ex c1 = b.coeff(x, 1);
+                    ex c2 = b.coeff(x, 2);
+                    roots.insert(Rationalize(evalf((-c1+sqrt(c1*c1-4*c2*c0))/(2*c2)),10));
+                    roots.insert(Rationalize(evalf((-c1-sqrt(c1*c1-4*c2*c0))/(2*c2)),10));
+                } else {
+                    cout << "current factor: " << f << endl;
+                    throw Error("AMF::InitDE, higher powers found.");
+                }
             }
-            if(Verbose>1) cout << "  \\--DE Poles: " << roots << endl;
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--DE Poles: " << roots << endl;
             pts.remove_all();
             if(roots.size()>0) {
                 ex max = -1, min = -1;
@@ -115,7 +124,7 @@ namespace HepLib {
                 }
             } else throw Error("AMF::InitDE, NO root found.");
         }
-        if(Verbose>10) {
+        if(!In_GiNaC_Parallel && Verbose>10) {
             cout << "  \\--AMF Points: " << NN(pts,2) << endl;
             cout << "  \\--DE Poles finished @ " << now() << endl;
         }
@@ -124,18 +133,26 @@ namespace HepLib {
     matrix AMF::RU(const ex & x1, const ex & x2) {
         ex dis = x1-x2;
         DE de(x, Mat);
-        de.Precision = Precision;
-        de.x2y(x+x2); // transform x2 to 0
-        auto mat = de.Taylor(dis,xN);
+        de.d0 = d0;
+        if(d!=d0) de.subs(d==d0, nopat);
+        de.WDigits = WDigits;
+        auto mat = de.Taylor(x2,dis,xN);
         return mat;
     }
     
     lst AMF::Evaluate() {
+        auto oDigits = Digits;
+        if(WDigits>0) Digits = WDigits;
+        
         int matN = Mat.rows();
+        
+        // DE at infinity
+        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ infinity ..." << RESET << endl;
         DE oo(Mat,x);
-        oo.x2y(1/x); // infinity to origin
-        oo.Precision = Precision;
+        if(d!=d0) oo.subs(d==d0, nopat);
         oo.d0 = d0;
+        oo.WDigits = WDigits;
+        oo.x2y(1/x); // infinity to origin
         lst dlst;
         if(true) { // rescale MI
             int dim = ibp.Propagators.nops();
@@ -155,50 +172,44 @@ namespace HepLib {
         auto ooT = oo.MatT();
         auto ooU0 = ooMM.second;
         
-        // make sure U0 is diagonal
-        for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) if(r!=c && !is_zero(ooU0(r,c))) 
-            throw Error("AMF::oo2o, U0 at infinity is NOT diagonal");
-            
-        auto Ti = ooT.inverse();
-        matrix ooC(matN, 1); 
-        for(int i=0; i<matN; i++) {
-            if(true) { // check ooU0
-                if(!ooU0(i,i).is_equal(1)) {
-                    if(!ooU0(i,i).match(pow(x,w))) {
-                        cout << endl << "ooU0 = " << ooU0 << endl;
-                        throw Error("AMF::oo2o, wrong pattern found.");
-                    }
-                    if(ooU0(i,i).op(1)>0) {
-                        cout << endl << "ooU0 = " << ooU0 << endl;
-                        throw Error("AMF::oo2o, wrong pattern found.");
-                    }
-                }
-            }
-            ex ci = 0;
-            for(int j=0; j<matN; j++) ci += Ti(i,j) * dlst.op(j) * MIntegrals.op(j);
-            ci = oo.xpow(ci/ooU0(i,i)).subs(x==0, nopat);
-            ooC(i,0) = ci; // F in ooC should be treated as Bubble type
+        // ooC
+        matrix ooC; // F in ooC should be treated as Bubble type
+        if(true) {
+            matrix MIs(matN,1);
+            for(int i=0; i<matN; i++) MIs(i,0) = dlst.op(i) * MIntegrals.op(i);
+            if(is_a<numeric>(d0)) ooC = ooT.mul(ooU0).inverse().mul(MIs);
+            else ooC = fermat_inv(ooT.mul(ooU0)).mul(MIs);
+            xpow(ooC,x);
+            HepLib::subs(ooC,x==0,nopat);
         }
-        
+    
         // J(xoo)
-        matrix ooTUC = ex_to<matrix>(subs(ooT, x==xoo)).mul(ooMM.first).mul(ooC);
+        matrix ooTUC = ooMM.first.mul(ooC);
+        if(WDigits>0) ooTUC = ex_to<matrix>(subs(ooT, x==xoo.evalf())).mul(ooTUC);
+        else ooTUC = ex_to<matrix>(subs(ooT, x==xoo)).mul(ooTUC);
         
         // Middle U matrix
+        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ regular points ..." << RESET << endl;
         matrix MatU = ex_to<matrix>(unit_matrix(matN));
         for(int i=0; i<npts-1; i++) MatU = MatU.mul(RU(pts.op(i),pts.op(i+1)));
-        
+                
+        // DE at origin
+        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ origin ..." << RESET << endl;
         DE o(Mat,x);
-        o.Precision = Precision;
+        if(d!=d0) o.subs(d==d0, nopat);
+        o.d0 = d0;
+        o.WDigits = WDigits;
         ex xo = pts.op(0);
         auto oMM = o.Series(xo, xN);
-        auto oT = o.MatT();
-        auto oU0 = oMM.second;
-        auto oTU = ex_to<matrix>(subs(oT, x==xo)).mul(oMM.first);
-        if(Precision>0) oTU = oTU.inverse();
-        else oTU = fermat_inv(oTU);
+        matrix oT = o.MatT();
+        matrix oU0 = oMM.second;
+        matrix ioT = oT.inverse();
+        if(WDigits>0) ioT = ex_to<matrix>(subs(ioT,x==xo.evalf()));
+        else ioT = ex_to<matrix>(subs(ioT,x==xo));
+        matrix ioTU = oMM.first.inverse().mul(ioT);
 
         // BC at origin
-        matrix oC = oTU.mul(MatU).mul(ooTUC);
+        matrix oC = ioTU.mul(MatU.mul(ooTUC));
         
         // only pick up x^integer parts
         for(int i=0; i<oU0.nops(); i++) {
@@ -212,10 +223,36 @@ namespace HepLib {
             }
             next_U0: ;
         }
+        auto oTU = oT.mul(oU0);
+        xpow(oTU,x);
+        if(WDigits>0) oTU = ex_to<matrix>(oTU.evalf());
+        HepLib::subs(oTU,x==0,nopat);
         
         lst res; // result for master integrals
-        oC = ex_to<matrix>(oT.mul(oU0)).mul(oC);
+        oC = oTU.mul(oC);
         for(int i=0; i<matN; i++) res.append(oC(i,0));
+        Digits = oDigits;
+        return res;
+    }
+    
+    lst AMF::Evaluate(const lst & d0s, bool parallel) {
+        lst res;
+        if(parallel && d0s.nops()>1) {
+            auto od0 = d0;
+            auto res_vec = GiNaC_Parallel(d0s.nops(), [&](int idx)->ex {
+                d0 = d0s.op(idx);
+                return Evaluate();
+            }, "AMF");
+            d0 = od0;
+            res = vec2lst(res_vec);
+        } else {
+            auto od0 = d0;
+            for(auto di : d0s) {
+                d0 = di;
+                res.append(Evaluate());
+            }
+            d0 = od0;
+        }
         return res;
     }
         

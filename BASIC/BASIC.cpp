@@ -353,6 +353,7 @@ namespace HepLib {
                 }
                 
                 // pid = 0, child process
+                In_GiNaC_Parallel = true;
                 GiNaC_Parallel_Level++;
                 try {
                     lst res_lst;
@@ -591,7 +592,7 @@ namespace HepLib {
      */
     void garRead(const string &garfn, map<string, ex> &resMap) {
         auto oDigits = Digits;
-        if(Digits<NNDigits) Digits = NNDigits; // a fix to float overflow
+        Digits = Digits + 5;
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -612,7 +613,7 @@ namespace HepLib {
      */
     ex garRead(const string &garfn, const char* key) { // use the const char *, not string
         auto oDigits = Digits;
-        if(Digits<NNDigits) Digits = NNDigits; // a fix to float overflow
+        Digits = Digits + 5;
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -629,7 +630,7 @@ namespace HepLib {
      */
     ex garRead(const string &garfn) {
         auto oDigits = Digits;
-        if(Digits<NNDigits) Digits = NNDigits; // a fix to float overflow
+        Digits = Digits + 5;
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -2143,6 +2144,8 @@ namespace HepLib {
     }
         
     void garRead(exvector &exv, string garfn) {
+        auto oDigits = Digits;
+        Digits = Digits + 5;
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -2159,6 +2162,7 @@ namespace HepLib {
         if(exv.size()>0 && size != exv.size()) throw Error("garRead: exvector size>0 & not match!");
         if(exv.size()<1) exv.resize(size);
         for(int i=0; i<size; i++) exv[i] = dict[to_string(i)];
+        Digits = oDigits;
     } 
     
     ex add_collect_normal(const exvector &exv, ex const &pats, int opt) {
