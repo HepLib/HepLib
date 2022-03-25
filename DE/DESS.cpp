@@ -19,7 +19,7 @@ namespace HepLib {
         ibp.FindRules(true);
         Rules = ibp.Rules;
         lst ns;
-        for(int i=0; i<ibp.Propagators.nops(); i++) ns.append(a(i));
+        for(int i=0; i<ibp.Propagators.nops(); i++) ns.append(HepLib::a(i));
         auto ibpD = ibp.D(x, ns);
         while(true) {
             ibp.Rules.remove_all();

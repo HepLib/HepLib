@@ -4,8 +4,11 @@
  */
 
 #include "DE.h"
+#include <cmath>
 
 namespace HepLib {
+    
+    using namespace EoD;
         
     AMF::AMF(IBP & _ibp) : ibp(_ibp), x(iet) { } 
     
@@ -14,8 +17,9 @@ namespace HepLib {
         
         if(ibp.MIntegrals.nops()<1) {
             ibp.Reduce();
-            ibp.RM(false); // since Propagators wiil be changed
+            ibp.RM(false); // since Propagators will be changed
         }
+        if(ibp.MIntegrals.nops()<1) throw Error("No MI Found, maybe No need DE!");
         ibp.FindRules(true);
         Rules = ibp.Rules;
         for(int i=0; i<ibp.Propagators.nops(); i++) {
@@ -44,6 +48,7 @@ namespace HepLib {
             ibp.RM(true); // keep .start & .config
             ibp.FindRules(true);
             sort_lst(ibp.MIntegrals);
+
             if(ibp.MIntegrals==MIntegrals) {
                 int matN = MIntegrals.nops();
                 matrix mat(matN,matN);
@@ -58,6 +63,7 @@ namespace HepLib {
                     if(!is_zero(normal(chk-dmi))) throw Error("AMFlow::InitDE, Check failed");
                 }
                 Mat = mat;
+                matrix_map_inplace(Mat, [](const ex & e) { return normal(e); });
                 break;
             }
         }
@@ -95,7 +101,10 @@ namespace HepLib {
                     throw Error("AMF::InitDE, higher powers found.");
                 }
             }
-            if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--DE Poles: " << roots << endl;
+            lst rs;
+            for(auto ri : roots) rs.append(ri);
+            sort_lst(rs);
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--DE Poles: " << NN(rs,2) << endl;
             pts.remove_all();
             if(roots.size()>0) {
                 ex max = -1, min = -1;
@@ -132,8 +141,7 @@ namespace HepLib {
     
     matrix AMF::RU(const ex & x1, const ex & x2) {
         ex dis = x1-x2;
-        DE de(x, Mat);
-        de.d0 = d0;
+        DE de(Mat,x);
         if(d!=d0) de.subs(d==d0, nopat);
         de.WDigits = WDigits;
         auto mat = de.Taylor(x2,dis,xN);
@@ -143,14 +151,12 @@ namespace HepLib {
     lst AMF::Evaluate() {
         auto oDigits = Digits;
         if(WDigits>0) Digits = WDigits;
-        
         int matN = Mat.rows();
         
         // DE at infinity
         if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ infinity ..." << RESET << endl;
         DE oo(Mat,x);
         if(d!=d0) oo.subs(d==d0, nopat);
-        oo.d0 = d0;
         oo.WDigits = WDigits;
         oo.x2y(1/x); // infinity to origin
         lst dlst;
@@ -168,13 +174,40 @@ namespace HepLib {
         oo.xpow();
         int npts = pts.nops();
         ex xoo = 1/pts.op(npts-1);
-        auto ooMM = oo.Series(xoo, xN);
+        auto ooU = oo.Series(xoo, xN);
         auto ooT = oo.MatT();
-        auto ooU0 = ooMM.second;
-        
-        // ooC
+        auto ooU0 = oo.Series(x,0);       
+
+        // ooC 
         matrix ooC; // F in ooC should be treated as Bubble type
-        if(true) {
+        int ooCver = 2;
+        // make sure U0 is diagonal
+        if(false)
+        for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) if(r!=c && !is_zero(ooU0(r,c))) 
+            throw Error("AMF::oo2o, U0 at infinity is NOT diagonal");
+            
+        if(ooCver==1) {
+            auto Ti = ooT.inverse();
+            ooC = matrix(matN, 1); 
+            for(int i=0; i<matN; i++) {
+                if(true) { // check ooU0
+                    if(!ooU0(i,i).is_equal(1)) {
+                        if(!ooU0(i,i).match(pow(x,w))) {
+                            cout << endl << "ooU0 = " << ooU0 << endl;
+                            throw Error("AMF::oo2o, wrong pattern found.");
+                        }
+                        if(ooU0(i,i).op(1)>0) {
+                            cout << endl << "ooU0 = " << ooU0 << endl;
+                            throw Error("AMF::oo2o, wrong pattern found.");
+                        }
+                    }
+                }
+                ex ci = 0;
+                for(int j=0; j<matN; j++) ci += Ti(i,j) * dlst.op(j) * MIntegrals.op(j);
+                ci = xpow(ci/ooU0(i,i),x).subs(x==0, nopat);
+                ooC(i,0) = ci; // F in ooC should be treated as Bubble type
+            }
+        } else if(ooCver==2) {
             matrix MIs(matN,1);
             for(int i=0; i<matN; i++) MIs(i,0) = dlst.op(i) * MIntegrals.op(i);
             if(is_a<numeric>(d0)) ooC = ooT.mul(ooU0).inverse().mul(MIs);
@@ -184,7 +217,7 @@ namespace HepLib {
         }
     
         // J(xoo)
-        matrix ooTUC = ooMM.first.mul(ooC);
+        matrix ooTUC = ooU.mul(ooC);
         if(WDigits>0) ooTUC = ex_to<matrix>(subs(ooT, x==xoo.evalf())).mul(ooTUC);
         else ooTUC = ex_to<matrix>(subs(ooT, x==xoo)).mul(ooTUC);
         
@@ -197,32 +230,28 @@ namespace HepLib {
         if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ origin ..." << RESET << endl;
         DE o(Mat,x);
         if(d!=d0) o.subs(d==d0, nopat);
-        o.d0 = d0;
         o.WDigits = WDigits;
         ex xo = pts.op(0);
-        auto oMM = o.Series(xo, xN);
+        auto oU = o.Series(xo, xN);
         matrix oT = o.MatT();
-        matrix oU0 = oMM.second;
         matrix ioT = oT.inverse();
         if(WDigits>0) ioT = ex_to<matrix>(subs(ioT,x==xo.evalf()));
         else ioT = ex_to<matrix>(subs(ioT,x==xo));
-        matrix ioTU = oMM.first.inverse().mul(ioT);
-
-        // BC at origin
+        matrix ioTU = oU.inverse().mul(ioT);
+        
+        // Final C at origin
         matrix oC = ioTU.mul(MatU.mul(ooTUC));
         
-        // only pick up x^integer parts
-        for(int i=0; i<oU0.nops(); i++) {
-            ex item = oU0.op(i);
-            if(!is_a<mul>(item)) item = lst{item};
-            for(auto it : item) {
-                if(it.match(pow(x,w1)) && !it.op(1).info(info_flags::integer)) {
-                    oU0.let_op(i) = 0;
-                    goto next_U0;
-                }
-            }
-            next_U0: ;
+        // take x->0 limit at origin
+        auto pr = prank(oT,x);
+        pr++;
+        if(pr<0) pr = 0;
+        for(auto ev : o.EigenValues()) {
+            if(!ev.info(info_flags::integer)) continue;
+            pr -= ex_to<numeric>(ev).to_int();
+            break;
         }
+        matrix oU0 = o.Series(x,pr,lst{0}); // only pick up x^integer
         auto oTU = oT.mul(oU0);
         xpow(oTU,x);
         if(WDigits>0) oTU = ex_to<matrix>(oTU.evalf());
@@ -235,26 +264,68 @@ namespace HepLib {
         return res;
     }
     
-    lst AMF::Evaluate(const lst & d0s, bool parallel) {
-        lst res;
-        if(parallel && d0s.nops()>1) {
+    lst AMF::FitEps(const lst & eps, int lp, bool parallel) {
+        auto oDigits = Digits;
+        if(WDigits>0) Digits = WDigits;
+        exvector eps_vec(eps.begin(), eps.end());
+        int nmi = MIntegrals.nops();
+        exvector mis_vec[nmi];
+        if(parallel && eps.nops()>1) {
             auto od0 = d0;
-            auto res_vec = GiNaC_Parallel(d0s.nops(), [&](int idx)->ex {
-                d0 = d0s.op(idx);
+            auto res_vec = GiNaC_Parallel(eps.nops(), [&](int idx)->ex {
+                d0 = 4-2*eps.op(idx);
                 return Evaluate();
             }, "AMF");
             d0 = od0;
-            res = vec2lst(res_vec);
+            for(auto mis : res_vec) {
+                for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
+            }
         } else {
             auto od0 = d0;
-            for(auto di : d0s) {
-                d0 = di;
-                res.append(Evaluate());
+            for(auto epi : eps) {
+                d0 = 4-2*epi;
+                if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "ep = " << epi << RESET << endl;
+                auto mis = Evaluate();
+                for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
             }
             d0 = od0;
         }
-        return res;
+        
+        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--Final PolynomialFit ..." << endl;
+        if(WDigits>0) Digits = WDigits;
+        lst mis_lst;
+        for(int i=0; i<nmi; i++) {
+            int tn = eps.nops()-1;
+            auto cs = PolynomialFit(eps_vec, mis_vec[i], tn, lp);
+            ex mi = 0;
+            for(int i=0; i<tn; i++) mi += pow(ep,lp+i) * cs.op(i);
+            mis_lst.append(mi);
+        }
+        Digits = oDigits;
+        return mis_lst;
     }
+    
+    lst AMF::FitEps(int goal, int order, bool parallel) { // form AMFlow
+        auto oDigits = Digits;
+        if(WDigits>0) Digits = WDigits;
+        int nloop = ibp.Internal.nops();
+        numeric nn = 5*order/numeric(2)+2*nloop;
+        int n = ceil(nn.to_double());
+        if(n>100) throw Error("FitEps: too large order.");
+        ex eps0 = pow(10, -nloop/numeric(2)-goal/numeric(order+1));
+        eps0 = Rationalize(evalf(eps0));
+        int lp = -2*nloop;
+        lst eps;
+        for(int i=0; i<n; i++) eps.append(eps0 + eps0*ex(i+1)/100);
+        numeric nsp = (n+2*nloop)*(nloop/numeric(2)+goal/numeric(order+1));
+        int sp = ceil(nsp.to_double());
+        if(sp<30) sp = 30;
+        WDigits = 2*sp;
+        xN = 4*sp;
+        auto res = FitEps(eps,lp,parallel);
+        Digits = oDigits;
+        return res;
+    }  
         
 }
 

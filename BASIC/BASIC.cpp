@@ -2278,13 +2278,11 @@ namespace HepLib {
         });
         
         auto oDigits = Digits;
-        if(dn!=Digits) Digits = dn;
+        if(dn>0 && dn!=Digits) Digits = dn;
         ex res = R(e);
         if(Digits!=oDigits) Digits = oDigits;
         return res;
     }
-    
-    
         
 }
 

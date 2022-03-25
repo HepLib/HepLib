@@ -98,21 +98,19 @@ namespace EoD {
     class DE {
     public:
         int WDigits = -1;
-        ex d0;
-        matrix Mat;
         const symbol & x;
-        vector<matrix> Ts;
         
         DE(const DE & b);
         DE(const symbol & x);
         DE(const matrix & m, const symbol & x);
         DE(const symbol & x, const matrix & m);
-        void Apply(const matrix & t);
-        void Apply(const lst & diag); // t is diagnal matrix
+        
+        void Apply(const matrix & t, bool st=true); // st=true to save t to Ts
+        void Apply(const lst & diag, bool st=true); // T is diagnal matrix
         void x2y(const ex & y); // final expression still in x
         void Fuchsify();
         void Shear();
-        pair<matrix,matrix> Series(const ex & x0, const unsigned int xn=0); // C & C0 matrix
+        matrix Series(const ex & x0=0, const unsigned int xn=0, const lst & las={}); // C & C0 matrix
         matrix Taylor(const ex & x0, const ex & dx, const unsigned int xn=0);
         void Normalize();
         void info();
@@ -121,8 +119,26 @@ namespace EoD {
         void subs(const exmap & sub, unsigned opt=0);
         void subs(const lst & l, const lst & r, unsigned opt=0);
         matrix MatT();
-    private:
+        void Reset();
+        lst EigenValues();
         
+    private:
+        symbol scn; // cn
+        symbol a; // alpha
+        // used in Taylor function
+        bool taylor_inited = false;
+        vector<matrix> tT;
+        int ts;
+        // used in Series function
+        bool series_inited = false;
+        vector<vector<vector<vector<matrix>>>> sT; // sT[la][cm][i][j]
+        int ss;
+        lst las;
+        map<ex, unsigned, ex_is_less> laK;
+        map<ex, vector<matrix>, ex_is_less> laC0;
+    protected:
+        vector<matrix> Ts;
+        matrix Mat;
     };
     
     class DESS : public DE {
@@ -139,14 +155,15 @@ namespace EoD {
     
     class AMF { // DE @ origin
     public:
-        unsigned int xN = 100;
+        unsigned int xN = 150;
         ex d0 = d;
         int WDigits = -1;
         
         AMF(IBP & ibp);
         void InitDE();
         lst Evaluate();
-        lst Evaluate(const lst & d0s, bool parallel=true);
+        lst FitEps(const lst & eps, int lp=0, bool parallel=true);
+        lst FitEps(int goal, int order, bool parallel=true);
         
     //private:
         const symbol & x;
@@ -159,5 +176,7 @@ namespace EoD {
         //get iet1 by expansion around regular point iet2
         matrix RU(const ex & iet1, const ex & iet2); 
     };
+    
+    matrix PolynomialFit(const exvector & xs, const exvector & ys, unsigned int k, int k0=0);
 
 }

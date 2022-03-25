@@ -269,6 +269,7 @@ namespace HepLib {
         // CLN configurations
         cln::cl_inhibit_floating_point_underflow = true; 
         cln::default_float_format = cln::float_format(100);
+        Digits = 100;
     }
     _global_init::_init _global_init::init_object;
     

@@ -9,26 +9,34 @@ namespace HepLib {
 
     using namespace EoD;
     
-    DE::DE(const symbol & _x) : x(_x) { }
-    DE::DE(const matrix & _mat, const symbol & _x) : Mat(_mat), x(_x) { }
-    DE::DE(const symbol & _x, const matrix & _mat) : Mat(_mat), x(_x) { }
-    DE::DE(const DE & b) : Mat(b.Mat), x(b.x), Ts(b.Ts) { }
+    DE::DE(const symbol & _x) : x(_x), scn("cn"), a("a") { }
+    DE::DE(const matrix & _mat, const symbol & _x) : Mat(_mat), x(_x), scn("cn"), a("a") { }
+    DE::DE(const symbol & _x, const matrix & _mat) : Mat(_mat), x(_x), scn("cn"), a("a") { }
+    DE::DE(const DE & b) : Mat(b.Mat), x(b.x), Ts(b.Ts), scn("cn"), a("a") { }
     
     // Dx J = M.J ---> J = T.J' & Dx J' = M'.J' with M' = Ti.M.T - Ti.Dx T
-    void DE::Apply(const matrix & t) {
+    void DE::Apply(const matrix & t, bool st) {
+        auto oDigits = Digits;
+        if(WDigits>0) Digits = WDigits;
         Mat = t.inverse().mul(Mat.mul(t).sub(matrix_diff(t,x)));
-        Ts.push_back(t);
+        if(st) Ts.push_back(t);
+        Digits = oDigits;
     }
     
-    void DE::Apply(const lst & diag) {
+    void DE::Apply(const lst & diag, bool st) {
+        auto oDigits = Digits;
+        if(WDigits>0) Digits = WDigits;
         auto matN = diag.nops();
         matrix t(matN, matN);
         for(int i=0; i<matN; i++) t(i,i) = diag.op(i);
         Mat = t.inverse().mul(Mat.mul(t).sub(matrix_diff(t,x)));
-        Ts.push_back(t);
+        if(st) Ts.push_back(t);
+        Digits = oDigits;
     }
     
     void DE::x2y(const ex & y) {
+        auto oDigits = Digits;
+        if(WDigits>0) Digits = WDigits;
         static symbol xx("xx");
         ex det = diff_ex(y,x);
         int matN = Mat.rows();
@@ -41,46 +49,66 @@ namespace HepLib {
         for(int i=0; i<n; i++) {
             for(int r=0; r<matN; r++) {
                 for(int c=0; c<matN; c++) {
-                    Ts[i](r,c) = Ts[i](r,c).subs(x==y, nopat);
+                    Ts[i](r,c) = Ts[i](r,c).subs(x==xx,nopat).subs(xx==y,nopat);
                 }
             }
         }
+        Digits = oDigits;
     }
     
     void DE::xpow() {
+        auto oDigits = Digits;
+        if(WDigits>0) Digits = WDigits;
         int n = Mat.nops();
         for(int i=0; i<n; i++) Mat.let_op(i) = HepLib::xpow(Mat.op(i),x);
+        Digits = oDigits;
     }
     
     matrix DE::MatT() {
+        auto oDigits = Digits;
+        if(WDigits>0) Digits = WDigits;
         int matN = Mat.rows();
         matrix t = ex_to<matrix>(unit_matrix(matN));
         for(auto ti : Ts) t = t.mul(ti);
+        Digits = oDigits;
         return t;
     }
     
+    lst DE::EigenValues() {
+        return las;
+    }
+    
     void DE::subs(const ex & sub, unsigned opt) {
+        auto oDigits = Digits;
+        if(WDigits>0) Digits = WDigits;
         auto mN = Mat.nops();
         for(int i=0; i<mN; i++) Mat.let_op(i) = Mat.op(i).subs(sub, opt);
         for(auto & ti : Ts) {
             for(int i=0; i<mN; i++) ti.let_op(i) = ti.op(i).subs(sub, opt);
         }
+        Digits = oDigits;
     }
     
     void DE::subs(const exmap & sub, unsigned opt) {
+        auto oDigits = Digits;
+        if(WDigits>0) Digits = WDigits;
         auto mN = Mat.nops();
         for(int i=0; i<mN; i++) Mat.let_op(i) = Mat.op(i).subs(sub, opt);
         for(auto & ti : Ts) {
             for(int i=0; i<mN; i++) ti.let_op(i) = ti.op(i).subs(sub, opt);
         }
+        Digits = oDigits;
     }
     
     void DE::subs(const lst & l, const lst & r, unsigned opt) {
+        auto oDigits = Digits;
+        if(WDigits>0) Digits = WDigits;
         auto mN = Mat.nops();
         for(int i=0; i<mN; i++) Mat.let_op(i) = Mat.op(i).subs(l, r, opt);
         for(auto & ti : Ts) {
             for(int i=0; i<mN; i++) ti.let_op(i) = ti.op(i).subs(l, r, opt);
         }
+        Digits = oDigits;
     }
     
     // fuchsify at x=0
@@ -171,7 +199,7 @@ namespace HepLib {
         Ts.push_back(t);
     }
     
-    // normalization at x=0
+    // normalization at x=0 // TODO: still under developement
     void DE::Normalize() {
         if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Normalize: start @ " << now() << endl;
 
@@ -258,7 +286,7 @@ namespace HepLib {
         Ts.push_back(t);
     }
     
-    // shearing at x=0
+    // shearing transformation at x=0
     void DE::Shear() {
         if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Shear: start @ " << now() << endl;
 
@@ -418,112 +446,160 @@ namespace HepLib {
             return cache[key] = U.mul_scalar(pow(-b,ij)).mul(Ain[ij+1]);
         }
     }
-        
-    pair<matrix,matrix> DE::Series(const ex & x0, const unsigned int xN) {    
+    
+    matrix DE::Series(const ex & x0, const unsigned int xN, const lst & _las) { 
         auto oDigits = Digits;
         if(WDigits>0) Digits = WDigits;
-        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Series: start @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Series @ " << NN(x0,2) << endl;
         
         int matN = Mat.rows();
         
-        if(prank(Mat,x)>0) Fuchsify();
-        matrix a0 = normal(a0_matrix(Mat, x, 0));
-        if(!is_jordan_form(a0)) {
-            Shear();
-            a0 = normal(a0_matrix(Mat, x, 0));
-        }
-        auto m = Mat;
-        
-        lst las;
-        vector<pair<ex,int>> js;
-        map<ex, unsigned, ex_is_less> laK;
-        map<ex, vector<matrix>, ex_is_less> laC0;
-        
-        int lastN = 0;
-        for(int r=0; r<a0.rows(); r++) {
-            lastN++;
-            if(r==a0.rows()-1 || a0(r,r+1)==0) { // the last row
-                auto la = a0(r,r);
-                las.append(la);
-                js.push_back(make_pair(la, lastN));
-                if(lastN-1 > laK[la]) laK[la] = lastN-1;
-                lastN = 0;
+        if(!series_inited) { // for cache
+            if(prank(Mat,x)>0) Fuchsify();
+            matrix a0 = normal(a0_matrix(Mat, x, 0));
+            if(!is_jordan_form(a0)) {
+                Shear();
+                a0 = normal(a0_matrix(Mat, x, 0));
             }
-        }
-        las.sort().unique();
-        
-        for(auto la : las) {
-            int kla = laK[la];
-            vector<matrix> vm;
-            for(int li=0; li<=kla; li++) vm.push_back(matrix(matN, matN));
-            laC0[la] = vm;
-        }
-        
-        //init Cla0[la]
-        int cur_pos = 0;
-        for(int ji=0; ji<js.size(); ji++) {
-            auto la = js[ji].first;
-            int size = js[ji].second;
-            for(int ir=0;ir<size;ir++) 
-                for(int ic=0;ic<size;ic++)
-                    if(ic-ir>=0) laC0[la][ic-ir](cur_pos+ir, cur_pos+ic) = 1; 
-            cur_pos += size;
-        }
-        
-        // save CoMat
-        matrix CoMat(matN, matN);
-        for(auto la : las) {
-            int kla = laK[la];
-            for(int k=0; k<=kla; k++) {
-                auto mat = laC0[la][k];
-                auto xterm = pow(x,la)*pow(log(x),k)/factorial(k);
-                for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) CoMat(r,c) += mat(r,c)*xterm;
+            auto m = Mat;
+            
+            las.remove_all();
+            laK.clear();
+            laC0.clear();
+            vector<pair<ex,int>> js;            
+            int lastN = 0;
+            for(int r=0; r<a0.rows(); r++) {
+                lastN++;
+                if(r==a0.rows()-1 || a0(r,r+1)==0) { // the last row
+                    auto la = a0(r,r);
+                    las.append(la);
+                    js.push_back(make_pair(la, lastN));
+                    if(lastN-1 > laK[la]) laK[la] = lastN-1;
+                    lastN = 0;
+                }
             }
-        }
-        
-        if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--Q polynormial ..." << endl;
-        
-        matrix_map_inplace(m, [&](const ex & e){ return normal(e); });
-        ex qlcm = matrix_den_lcm(m);
-        if(normal(qlcm.subs(x==0,nopat)).is_zero()) qlcm = normal(qlcm/x); //make sure check
-        matrix_map_inplace(m, [&](const ex & e){ return collect_ex(normal(qlcm*x*e),x); });
-        
-        // make sure m is polynomial in x
-        for(int i=0; i<m.nops(); i++) if(!m.op(i).is_polynomial(x)) {
-            cout << m << endl;
-            throw Error("DE::Series, matrix is NOT a polynomial in x.");
-        }
-        
-        qlcm = collect_ex(qlcm, x);
-        int qmax = qlcm.degree(x);
-        exvector qs;
-        for(int i=0; i<=qmax; i++) {
-            qs.push_back(qlcm.coeff(x,i));
-        }
-        
-        if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--B Matrix ..." << endl;
-        
-        int s = qmax; // s in DESS
-        for(int i=0; i<m.nops(); i++) {
-            auto tmp = m.op(i).degree(x);
-            if(s<tmp) s = tmp;
-        }
-        if(s>xN) s = xN;
-        symbol a("a"); // alpha
-        for(int i=0; i<matN; i++) m(i,i) -= a*qlcm;
+            las.sort().unique();
+            
+            for(auto la : las) {
+                int kla = laK[la];
+                vector<matrix> vm;
+                for(int li=0; li<=kla; li++) vm.push_back(matrix(matN, matN));
+                laC0[la] = vm;
+            }
+            
+            //init laC0[la]
+            int cur_pos = 0;
+            for(int ji=0; ji<js.size(); ji++) {
+                auto la = js[ji].first;
+                int size = js[ji].second;
+                for(int ir=0;ir<size;ir++) 
+                    for(int ic=0;ic<size;ic++)
+                        if(ic-ir>=0) laC0[la][ic-ir](cur_pos+ir, cur_pos+ic) = 1; 
+                cur_pos += size;
+            }
+            
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--Q polynormial ..." << endl;
+            
+            matrix_map_inplace(m, [&](const ex & e){ return normal(e); });
+            ex qlcm = matrix_den_lcm(m);
+            if(normal(qlcm.subs(x==0,nopat)).is_zero()) qlcm = normal(qlcm/x); //make sure check
+            matrix_map_inplace(m, [&](const ex & e){ return collect_ex(normal(qlcm*x*e),x); });
+            
+            // make sure m is polynomial in x
+            for(int i=0; i<m.nops(); i++) if(!m.op(i).is_polynomial(x)) {
+                cout << m << endl;
+                throw Error("DE::Series, matrix is NOT a polynomial in x.");
+            }
+            
+            qlcm = collect_ex(qlcm, x);
+            int qmax = qlcm.degree(x);
+            exvector qs;
+            for(int i=0; i<=qmax; i++) {
+                qs.push_back(qlcm.coeff(x,i));
+            }
+            
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--B Matrix ..." << endl;
+            
+            ss = qmax; // s in DESS
+            for(int i=0; i<m.nops(); i++) {
+                auto tmp = m.op(i).degree(x);
+                if(ss<tmp) ss = tmp;
+            }
+            for(int i=0; i<matN; i++) m(i,i) -= a*qlcm;
 
-        for(int i=qmax+1; i<=s; i++) qs.push_back(0);
-        vector<matrix> BMat(s+1);
-        for(int i=0; i<=s; i++) {
-            BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x,i); });
-        }
+            for(int i=qmax+1; i<=ss; i++) qs.push_back(0);
+            vector<matrix> BMat(ss+1);
+            for(int i=0; i<=ss; i++) {
+                BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x,i); });
+            }
+            
+            // initialize sT, sT[la][cm][i][j]
+            sT.clear();
+            sT.resize(las.nops());
+            for(int idx=0; idx<las.nops(); idx++) {
+                auto la = las.op(idx);
+                int kla = laK[la];
+                vector<vector<vector<matrix>>> vcm(ss+1);
+                for(int cm=0; cm<=ss; cm++) {
+                    vector<vector<matrix>> vi(kla+1);
+                    for(int i=0; i<=kla; i++) {
+                        vector<matrix> vj(kla+1);
+                        vi[i] = vj;
+                    }
+                    vcm[cm] = vi;
+                }
+                sT[idx] = vcm;
+            }
+            
+            for(int idx=0; idx<las.nops(); idx++) {
+                auto la = las.op(idx);
+                int kla = laK[la];
+                matrix zmat(matN, matN); // zero matrix
+                for(int cm=1; cm<=ss; cm++) 
+                for(int i=0; i<=kla; i++) 
+                for(int j=0; j<=kla; j++) sT[idx][cm][i][j] = zmat;
+                
+                matrix B0(matN, matN);
+                for(int i=0; i<matN*matN; i++) B0.let_op(i) = BMat[0].op(i).subs(a==la+scn,nopat);
+                BJFinv iBJF(B0, -qs[0], kla);
+                                
+                for(int cm=1; cm<=ss; cm++) {
+                    matrix Bm(matN, matN);
+                    for(int i=0; i<matN*matN; i++) Bm.let_op(i) = BMat[cm].op(i).subs(a==la+scn-cm,nopat);
+                    BJF mBJF(Bm, -qs[cm], kla);
+                    
+                    for(int k=0; k<=kla; k++) 
+                    for(int j=0; j<=kla; j++) 
+                    for(int i=0; i<=kla; i++) {
+                        if(k>i) continue; // iBJF(k,i)
+                        if(i!=j && i+1!=j) continue; // mBJF(i,j)
+                        sT[idx][cm][k][j] = sT[idx][cm][k][j].sub(iBJF(k,i).mul(mBJF(i,j))); // T(n,m) = -iBJF(B0,-q0).mBJF(Bm,-qm)
+                    }
+                }
+            }
+            series_inited = true;
+        } 
         
         bool CMat_Parallel = (GiNaC_Parallel_NP.find("CMat")!=GiNaC_Parallel_NP.end()) && (GiNaC_Parallel_NP["CMat"]>0);
         if(CMat_Parallel && !In_GiNaC_Parallel && Verbose>1) cout << "     \\--C Matrix ..." << endl;
         
+        int s = ss;
+        if(s>xN) s = xN;
+        if(s<1) s = 1;
         matrix MatF(matN, matN);
         for(int idx=0; idx<las.nops(); idx++) {
             auto la = las.op(idx);
+            if(_las.nops()>0) { // pick up the seleted la
+                bool ok = false;
+                for(auto _la : _las) {
+                    ex diff = la-_la;
+                    if(diff.info(info_flags::integer)) {
+                        ok = true;
+                        break;
+                    }
+                }
+                if(!ok) continue;
+            }
             int kla = laK[la];
             matrix CMats[s][kla+1];
             for(int k=0; k<=kla; k++) CMats[0][k] = laC0[la][k];
@@ -534,34 +610,6 @@ namespace HepLib {
                 MatF = MatF.add(CMats[0][k].mul_scalar(xterm));
             }
             
-            symbol scn("cn");
-            matrix T[s+1][kla+1][kla+1];
-            if(true) {
-                matrix zmat(matN, matN); // zero matrix
-                for(int cm=1; cm<=s; cm++) 
-                for(int i=0; i<=kla; i++) 
-                for(int j=0; j<=kla; j++) T[cm][i][j] = zmat;
-                
-                matrix B0(matN, matN);
-                for(int i=0; i<matN*matN; i++) B0.let_op(i) = BMat[0].op(i).subs(a==la+scn,nopat);
-                BJFinv iBJF(B0, -qs[0], kla);
-                                
-                for(int cm=1; cm<=s; cm++) {
-                    matrix Bm(matN, matN);
-                    for(int i=0; i<matN*matN; i++) Bm.let_op(i) = BMat[cm].op(i).subs(a==la+scn-cm,nopat);
-                    BJF mBJF(Bm, -qs[cm], kla);
-                    
-                    for(int k=0; k<=kla; k++) 
-                    for(int j=0; j<=kla; j++) 
-                    for(int i=0; i<=kla; i++) {
-                        if(k>i) continue; // iBJF(k,i)
-                        if(i!=j && i+1!=j) continue; // mBJF(i,j)
-                        T[cm][k][j] = T[cm][k][j].sub(iBJF(k,i).mul(mBJF(i,j))); // T(n,m) = -iBJF(B0,-q0).mBJF(Bm,-qm)
-                    }
-                }
-            }
-            
-            ex last_norm = -1;
             int nidx = 0;
             for(int cn=1; cn<=xN; cn++) {
                 if(!CMat_Parallel && !In_GiNaC_Parallel && Verbose>1) {
@@ -576,7 +624,7 @@ namespace HepLib {
                     matrix cmat(matN, matN);
                     for(int cm=1; (cm<=cn) && (cm<=s); cm++) {
                         for(int j=0; j<=kla; j++) {
-                            matrix Tkj = T[cm][k][j];
+                            matrix Tkj = sT[idx][cm][k][j];
                             for(int i=0; i<Tkj.nops(); i++) Tkj.let_op(i) = Tkj.op(i).subs(smap,nopat);
                             cmat = cmat.add(Tkj.mul(CMats[(nidx-cm+s)%s][j])); 
                         }
@@ -589,86 +637,91 @@ namespace HepLib {
                 }
 
             }
-            if(!CMat_Parallel && !In_GiNaC_Parallel && Verbose>1) cout << endl;
+            if(!CMat_Parallel && !In_GiNaC_Parallel && Verbose>1 && xN>0) cout << endl;
         }
         
-        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Series: fininshed @ " << now() << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Series @ " << now() << endl;
         Digits = oDigits;
-        return make_pair(MatF, CoMat);
+        return MatF;
     }
     
     matrix DE::Taylor(const ex & x0, const ex & dx, const unsigned int xN) {        
         auto oDigits = Digits;
         if(WDigits>0) Digits = WDigits;
-        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Taylor @ " << x0 << endl;
+        if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Taylor @ " << NN(x0,2) << endl;
         
         auto m = Mat;
         int matN = m.rows();
         
-        if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--Q polynormial ..." << endl;
-        
-        matrix_map_inplace(m, [&](const ex & e){ return normal(e); });
-        ex qlcm = matrix_den_lcm(m);
-        if(normal(qlcm.subs(x==x0,nopat)).is_zero()) //make sure check
-            throw Error("DE::Taylor only works for non-singualr point."); 
+        if(!taylor_inited) {
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--Q polynormial ..." << endl;
             
-        matrix_map_inplace(m, [&](const ex & e) {
-            ex res = normal(qlcm*e);
-            res = res.subs(x==x+x0);
-            res = collect_ex(x*res,x);
-            return res; 
-        });
-        
-        // make sure m is polynomial in x
-        for(int i=0; i<m.nops(); i++) if(!m.op(i).is_polynomial(x)) {
-            cout << m.op(i) << endl;
-            throw Error("DE::Taylor, matrix is NOT a polynomial in x.");
-        }
-        qlcm = qlcm.subs(x==x+x0,nopat);
-        qlcm = collect_ex(qlcm, x);
-        if(!qlcm.is_polynomial(x)) throw Error("DE::Taylor, qlcm is NOT a polynomial in x.");
-        int qmax = qlcm.degree(x);
-        
-        if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--B Matrix ..." << endl;
-        
-        int s = qmax; // s in DESS
-        for(int i=0; i<m.nops(); i++) {
-            auto tmp = m.op(i).degree(x);
-            if(s<tmp) s = tmp;
-        }
-        if(s>xN) s = xN;
-        symbol a("a"); // alpha
-        for(int i=0; i<matN; i++) m(i,i) -= a*qlcm;
+            matrix_map_inplace(m, [&](const ex & e){ return normal(e); });
+            ex qlcm = matrix_den_lcm(m);
+            if(normal(qlcm.subs(x==x0,nopat)).is_zero()) //make sure check
+                throw Error("DE::Taylor only works for non-singualr point."); 
+                
+            matrix_map_inplace(m, [&](const ex & e) {
+                ex res = normal(qlcm*e);
+                res = res.subs(x==x+x0);
+                res = collect_ex(x*res,x);
+                return res; 
+            });
+            
+            // make sure m is polynomial in x
+            for(int i=0; i<m.nops(); i++) if(!m.op(i).is_polynomial(x)) {
+                cout << m.op(i) << endl;
+                throw Error("DE::Taylor, matrix is NOT a polynomial in x.");
+            }
+            qlcm = qlcm.subs(x==x+x0,nopat);
+            qlcm = collect_ex(qlcm, x);
+            if(!qlcm.is_polynomial(x)) throw Error("DE::Taylor, qlcm is NOT a polynomial in x.");
+            int qmax = qlcm.degree(x);
+            
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--B Matrix ..." << endl;
+            
+            ts = qmax; // s in DESS
+            for(int i=0; i<m.nops(); i++) {
+                auto tmp = m.op(i).degree(x);
+                if(ts<tmp) ts = tmp;
+            }
+            for(int i=0; i<matN; i++) m(i,i) -= a*qlcm;
 
-        vector<matrix> BMat(s+1);
-        for(int i=0; i<=s; i++) {
-            BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x,i); });
+            vector<matrix> BMat(ts+1);
+            for(int i=0; i<=ts; i++) {
+                BMat[i] = matrix_map(m, [&](const ex & e){ return e.coeff(x,i); });
+            }
+            
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--T Matrix ..." << endl;
+            
+            tT.clear();
+            tT.resize(ts+1);
+            if(true) {
+                matrix zmat(matN, matN); // zero matrix
+                for(int cm=1; cm<=ts; cm++) tT[cm] = zmat;
+                
+                matrix B0(matN, matN);
+                for(int i=0; i<matN*matN; i++) B0.let_op(i) = BMat[0].op(i).subs(a==scn,nopat);
+                B0 = B0.inverse();
+                                
+                for(int cm=1; cm<=ts; cm++) {
+                    matrix Bm(matN, matN);
+                    for(int i=0; i<matN*matN; i++) Bm.let_op(i) = BMat[cm].op(i).subs(a==scn-cm,nopat);
+                    tT[cm] = tT[cm].sub(B0.mul(Bm)); // T(n,m) = -(B0^-1).Bm
+                }
+            }
+            taylor_inited = true;
+        } else {
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--Taylor already initized." << endl;
         }
         
-        if(!In_GiNaC_Parallel && Verbose>1) cout << "     \\--T Matrix ..." << endl;
-        
+        int s = ts;
+        if(s>xN) s = xN;
+        if(s<1) s = 1;
         matrix CMats[s]; // only keep last s CMats
         CMats[0] = ex_to<matrix>(unit_matrix(matN));
         matrix MatF = CMats[0];
-        
-        symbol scn("cn");
-        matrix T[s+1];
-        if(true) {
-            matrix zmat(matN, matN); // zero matrix
-            for(int cm=1; cm<=s; cm++) T[cm] = zmat;
             
-            matrix B0(matN, matN);
-            for(int i=0; i<matN*matN; i++) B0.let_op(i) = BMat[0].op(i).subs(a==scn,nopat);
-            B0 = B0.inverse();
-                            
-            for(int cm=1; cm<=s; cm++) {
-                matrix Bm(matN, matN);
-                for(int i=0; i<matN*matN; i++) Bm.let_op(i) = BMat[cm].op(i).subs(a==scn-cm,nopat);
-                T[cm] = T[cm].sub(B0.mul(Bm)); // T(n,m) = -(B0^-1).Bm
-            }
-        }
-        
-        ex last_norm = -1;
         int nidx = 0; 
         for(int cn=1; cn<=xN; cn++) {
             if(!In_GiNaC_Parallel && Verbose>1) {
@@ -681,7 +734,7 @@ namespace HepLib {
             matrix cmat(matN, matN);
             nidx = (nidx+1)%s;
             for(int cm=1; (cm<=cn) && (cm<=s); cm++) {
-                matrix Tm = T[cm];
+                matrix Tm = tT[cm];
                 for(int i=0; i<Tm.nops(); i++) Tm.let_op(i) = Tm.op(i).subs(smap,nopat);
                 cmat = cmat.add(Tm.mul(CMats[(nidx-cm+s)%s])); 
             }
@@ -776,6 +829,16 @@ namespace HepLib {
         cout << "  EigenValues of Ao: " << eg_str << endl;
         cout << "---------------------------------------" << endl;
     }
+    
+    void DE::Reset() {
+        series_inited = false;
+        taylor_inited = false;
+        tT.clear();
+        sT.clear();
+        las.remove_all();
+        laK.clear();
+        laC0.clear();
+    }
 
     //==============================================================================
     
@@ -839,6 +902,25 @@ namespace HepLib {
     void subs(matrix & mat, const ex & s, unsigned opt) {
         auto n = mat.nops();
         for(int i=0; i<n; i++) mat.let_op(i) = mat.op(i).subs(s, opt);
+    }
+    
+    matrix PolynomialFit(const exvector & xs, const exvector & ys, unsigned int k, int k0) {
+        unsigned int n = xs.size();
+        if(ys.size() != n) throw Error("PolynomialFit: the size of xs is not the same as ys.");
+        matrix X(k+1,n);
+        for(int c=0; c<n; c++) {
+            ex xp = 1;
+            for(int r=0; r<=k; r++) {
+                X(r,c) = xp;
+                xp *= xs[c];
+            }
+        }
+        matrix Y(n,1);
+        for(int r=0; r<n; r++) {
+            if(k0==0) Y(r,0) = ys[r];
+            else Y(r,0) = ys[r]/pow(xs[r], k0);
+        }
+        return X.mul(X.transpose()).inverse().mul(X).mul(Y);
     }
     
 }
