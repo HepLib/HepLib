@@ -95,6 +95,28 @@ namespace EoD {
         ex b;
     };
         
+    class SeriesT { // Series T-Matrix
+    public:
+        vector<vector<vector<vector<matrix>>>> T; // T[la][cm][i][j]
+        int s; // s in DESS
+        exvector las; // lambda list
+        map<ex, unsigned, ex_is_less> K; // K_lambda: K[la] 
+        map<ex, vector<matrix>, ex_is_less> C0; // C0[la] C_0 matrix for la
+        bool inited = false;
+        void Resize();
+        void Reset();
+    };
+    
+    class TaylorT { // Taylor T-Matrix
+    public:
+        bool inited = false;
+        vector<matrix> T; // T[cm] the single T in Taylor expsion
+        int s; // s in DESS
+    };
+    
+    typedef map<ex,vector<vector<matrix>>,ex_is_less> CMatrix; // C[la][k][n] : coefficient of x^la*log(x)^k/k!
+    matrix C2Mat(const CMatrix & cmat, const ex & x0);
+        
     class DE {
     public:
         int WDigits = -1;
@@ -110,7 +132,10 @@ namespace EoD {
         void x2y(const ex & y); // final expression still in x
         void Fuchsify();
         void Shear();
-        matrix Series(const ex & x0=0, const unsigned int xn=0, const lst & las={}); // C & C0 matrix
+        
+        exvector EigenValues();
+        CMatrix Series(const unsigned int xn=0); 
+        matrix Series(const ex & x0=0, const unsigned int xn=0, const lst & las={}); // C matrix
         matrix Taylor(const ex & x0, const ex & dx, const unsigned int xn=0);
         void Normalize();
         void info();
@@ -120,25 +145,15 @@ namespace EoD {
         void subs(const lst & l, const lst & r, unsigned opt=0);
         matrix MatT();
         void Reset();
-        lst EigenValues();
         
     private:
-        symbol scn; // cn
-        symbol a; // alpha
-        // used in Taylor function
-        bool taylor_inited = false;
-        vector<matrix> tT;
-        int ts;
-        // used in Series function
-        bool series_inited = false;
-        vector<vector<vector<vector<matrix>>>> sT; // sT[la][cm][i][j]
-        int ss;
-        lst las;
-        map<ex, unsigned, ex_is_less> laK;
-        map<ex, vector<matrix>, ex_is_less> laC0;
+        TaylorT TT;
+        SeriesT ST;
     protected:
         vector<matrix> Ts;
         matrix Mat;
+        symbol scn; // cn
+        symbol a; // alpha
     };
     
     class DESS : public DE {

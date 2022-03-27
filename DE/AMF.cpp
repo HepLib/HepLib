@@ -152,6 +152,7 @@ namespace HepLib {
         auto oDigits = Digits;
         if(WDigits>0) Digits = WDigits;
         int matN = Mat.rows();
+        int nloop = ibp.Internal.nops();
         
         // DE at infinity
         if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ infinity ..." << RESET << endl;
@@ -159,63 +160,65 @@ namespace HepLib {
         if(d!=d0) oo.subs(d==d0, nopat);
         oo.WDigits = WDigits;
         oo.x2y(1/x); // infinity to origin
-        lst dlst;
-        if(true) { // rescale MI
-            int dim = ibp.Propagators.nops();
-            int nloop = ibp.Internal.nops();
-            for(int i=0; i<matN; i++) {
-                ex v = -nloop * d0 / 2;
-                ex ns = MIntegrals.op(i).op(1);
-                for(int j=0; j<dim; j++) v += ns.op(j);
-                dlst.append(pow(x,v));
-            }
-            oo.Apply(dlst);
-        }
         oo.xpow();
         int npts = pts.nops();
         ex xoo = 1/pts.op(npts-1);
-        auto ooU = oo.Series(xoo, xN);
+        auto ooU = oo.Series(xoo,xN);
         auto ooT = oo.MatT();
-        auto ooU0 = oo.Series(x,0);       
-
+              
         // ooC 
-        matrix ooC; // F in ooC should be treated as Bubble type
-        int ooCver = 2;
-        // make sure U0 is diagonal
-        if(false)
-        for(int r=0; r<matN; r++) for(int c=0; c<matN; c++) if(r!=c && !is_zero(ooU0(r,c))) 
-            throw Error("AMF::oo2o, U0 at infinity is NOT diagonal");
-            
-        if(ooCver==1) {
-            auto Ti = ooT.inverse();
-            ooC = matrix(matN, 1); 
-            for(int i=0; i<matN; i++) {
-                if(true) { // check ooU0
-                    if(!ooU0(i,i).is_equal(1)) {
-                        if(!ooU0(i,i).match(pow(x,w))) {
-                            cout << endl << "ooU0 = " << ooU0 << endl;
-                            throw Error("AMF::oo2o, wrong pattern found.");
+        matrix ooC(matN,1); // F in ooC should be treated as Bubble type
+        for(int i=0; i<matN; i++) ooC(i,0) = iWF(i);
+        if(true) {
+            auto ooCMat = oo.Series(6);
+            for(const auto & kv : ooCMat) {
+                ex la = kv.first;
+                if(!normal(la+nloop*d0/2).info(info_flags::integer)) {
+                    matrix C00 = kv.second[0][0]; // k=0, n=0;
+                    for(int i=0; i<matN; i++) {
+                        if(!is_zero(C00(i,i))) ooC(i,0) = 0;
+                    }
+                } else {
+                    lst dlst;
+                    int dim = ibp.Propagators.nops();
+                    for(int i=0; i<matN; i++) {
+                        ex v = -nloop*d0/2-la;
+                        ex ns = MIntegrals.op(i).op(1);
+                        for(int j=0; j<dim; j++) v += ns.op(j);
+                        dlst.append(pow(x,v));
+                    }
+                    auto mat = ex_to<matrix>(diag_matrix(dlst)).inverse().mul(ooT);
+                    auto pr = prank(mat,x);
+                    pr++;
+                    matrix cmat = kv.second[0][0];
+                    if(kv.second.size()!=1) throw Error("kv.second[0].size()!=1"); // log term exist, not consider yet
+                    for(int n=1; n<=pr; n++) cmat = cmat.add(kv.second[0][n].mul_scalar(pow(x,n)));
+                    mat = mat.mul(cmat);
+                    for(int i=0; i<mat.nops(); i++) mat.let_op(i) = series_ex(mat.op(i),x,0);
+                    matrix fmat(matN, matN+1);
+                    for(int r=0; r<matN; r++) {
+                        for(int c=0; c<matN; c++) fmat(r,c) = mat(r,c);
+                        fmat(r,matN) = MIntegrals.op(r);
+                    }
+                    fmat = fermat_Redrowech(fmat);
+                    for(int r=0; r<matN; r++) {
+                        int idx = -1;
+                        for(int c=0; c<matN; c++) {
+                            if(!is_zero(fmat(r,c)) && !is_zero(fmat(r,c)-1)) {
+                                cout << matN << endl;
+                                throw Error("something may be wrong here.");
+                            }
+                            if(is_zero(fmat(r,c)-1)) {
+                                if(idx!=-1) throw Error("something may be wrong here.");
+                                idx = c;
+                            }
                         }
-                        if(ooU0(i,i).op(1)>0) {
-                            cout << endl << "ooU0 = " << ooU0 << endl;
-                            throw Error("AMF::oo2o, wrong pattern found.");
-                        }
+                        if(idx!=-1) ooC(idx,0) = fmat(r,matN);
                     }
                 }
-                ex ci = 0;
-                for(int j=0; j<matN; j++) ci += Ti(i,j) * dlst.op(j) * MIntegrals.op(j);
-                ci = xpow(ci/ooU0(i,i),x).subs(x==0, nopat);
-                ooC(i,0) = ci; // F in ooC should be treated as Bubble type
             }
-        } else if(ooCver==2) {
-            matrix MIs(matN,1);
-            for(int i=0; i<matN; i++) MIs(i,0) = dlst.op(i) * MIntegrals.op(i);
-            if(is_a<numeric>(d0)) ooC = ooT.mul(ooU0).inverse().mul(MIs);
-            else ooC = fermat_inv(ooT.mul(ooU0)).mul(MIs);
-            xpow(ooC,x);
-            HepLib::subs(ooC,x==0,nopat);
         }
-    
+            
         // J(xoo)
         matrix ooTUC = ooU.mul(ooC);
         if(WDigits>0) ooTUC = ex_to<matrix>(subs(ooT, x==xoo.evalf())).mul(ooTUC);
@@ -232,7 +235,7 @@ namespace HepLib {
         if(d!=d0) o.subs(d==d0, nopat);
         o.WDigits = WDigits;
         ex xo = pts.op(0);
-        auto oU = o.Series(xo, xN);
+        auto oU = o.Series(xo,xN);
         matrix oT = o.MatT();
         matrix ioT = oT.inverse();
         if(WDigits>0) ioT = ex_to<matrix>(subs(ioT,x==xo.evalf()));
@@ -245,7 +248,7 @@ namespace HepLib {
         // take x->0 limit at origin
         auto pr = prank(oT,x);
         pr++;
-        if(pr<0) pr = 0;
+        if(pr<0) pr = 0; // TODO: here
         for(auto ev : o.EigenValues()) {
             if(!ev.info(info_flags::integer)) continue;
             pr -= ex_to<numeric>(ev).to_int();
