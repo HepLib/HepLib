@@ -983,7 +983,7 @@ namespace HepLib {
      */
     ex series_ex(ex const & expr_in, symbol const &s0, int sn0) {
         ex expr = expr_in;
-        if(!expr.has(s0)) return (sn0>0 ? expr : 0);
+        if(!expr.has(s0)) return (sn0>=0 ? expr : 0);
         
         exset sset;
         expr.find(pow(s0, w), sset);

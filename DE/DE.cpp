@@ -37,11 +37,7 @@ namespace HepLib {
     DE::DE(const matrix & _mat, const symbol & _x) : Mat(_mat), x(_x), scn("cn"), a("a") { }
     DE::DE(const symbol & _x, const matrix & _mat) : Mat(_mat), x(_x), scn("cn"), a("a") { }
     DE::DE(const DE & b) : Mat(b.Mat), x(b.x), Ts(b.Ts), scn("cn"), a("a") { }
-    
-    exvector DE::EigenValues() {
-        return ST.las;
-    }
-    
+        
     // Dx J = M.J ---> J = T.J' & Dx J' = M'.J' with M' = Ti.M.T - Ti.Dx T
     void DE::Apply(const matrix & t, bool st) {
         auto oDigits = Digits;
@@ -487,22 +483,25 @@ namespace HepLib {
             }
             auto m = Mat;
             
-            lst las;
+            lst _las;
             vector<pair<ex,int>> js;            
             int lastN = 0;
             for(int r=0; r<a0.rows(); r++) {
                 lastN++;
                 if(r==a0.rows()-1 || a0(r,r+1)==0) { // the last row
                     auto la = a0(r,r);
-                    las.append(la);
+                    _las.append(la);
                     js.push_back(make_pair(la, lastN));
                     if(lastN-1 > ST.K[la]) ST.K[la] = lastN-1;
                     lastN = 0;
                 }
             }
-            las.sort().unique();
-            sort_lst(las);
-            for(auto la : las) ST.las.push_back(la);
+            _las.sort().unique();
+            sort_lst(_las);
+            for(auto la : _las) {
+                las.push_back(la);
+                ST.las.push_back(la);
+            }
             
             ST.C0.clear();
             for(int idx=0; idx<ST.las.size(); idx++) {
@@ -656,24 +655,37 @@ namespace HepLib {
             if(!is_jordan_form(a0)) {
                 Shear();
                 a0 = normal(a0_matrix(Mat, x, 0));
+            } else {
+                for(int i=0; i<matN; i++) for(int j=i+1; j<matN; j++) {
+                    ex diff = normal(a0(i,i)-a0(j,j));
+                    if(!is_zero(diff) && diff.info(info_flags::integer)) {
+                        Shear();
+                        a0 = normal(a0_matrix(Mat, x, 0));
+                    }
+                }
             }
+            
             auto m = Mat;
             
-            lst las;
+            lst _las;
             vector<pair<ex,int>> js;            
             int lastN = 0;
             for(int r=0; r<a0.rows(); r++) {
                 lastN++;
                 if(r==a0.rows()-1 || a0(r,r+1)==0) { // the last row
                     auto la = a0(r,r);
-                    las.append(la);
+                    _las.append(la);
                     js.push_back(make_pair(la, lastN));
                     if(lastN-1 > ST.K[la]) ST.K[la] = lastN-1;
                     lastN = 0;
                 }
             }
-            las.sort().unique();
-            for(auto la : las) ST.las.push_back(la);
+            _las.sort().unique();
+            sort_lst(_las);
+            for(auto la : _las) {
+                las.push_back(la);
+                ST.las.push_back(la);
+            }
             
             ST.C0.clear();
             for(int idx=0; idx<ST.las.size(); idx++) {
@@ -736,6 +748,7 @@ namespace HepLib {
             // init ST.T
             for(int idx=0; idx<ST.las.size(); idx++) {
                 auto la = ST.las[idx];
+cout << la << endl;
                 int kla = ST.K[la];
                 matrix zmat(matN, matN); // zero matrix
                 for(int cm=1; cm<=ST.s; cm++) 
@@ -745,6 +758,7 @@ namespace HepLib {
                 matrix B0(matN, matN);
                 for(int i=0; i<matN*matN; i++) B0.let_op(i) = BMat[0].op(i).subs(a==la+scn,nopat);
                 BJFinv iBJF(B0, -qs[0], kla);
+cout << B0 << endl;
                                 
                 for(int cm=1; cm<=ST.s; cm++) {
                     matrix Bm(matN, matN);
@@ -756,6 +770,7 @@ namespace HepLib {
                     for(int i=0; i<=kla; i++) {
                         if(k>i) continue; // iBJF(k,i)
                         if(i!=j && i+1!=j) continue; // mBJF(i,j)
+cout << iBJF(k,i) << endl << endl;
                         ST.T[idx][cm][k][j] = ST.T[idx][cm][k][j].sub(iBJF(k,i).mul(mBJF(i,j))); 
                         // T(n,m) = -iBJF(B0,-q0).mBJF(Bm,-qm)
                     }
@@ -974,7 +989,7 @@ namespace HepLib {
         
         ex den = matrix_den_lcm(Mat);
         exvector fvec;
-        if (is_a<mul>(den)) for (const auto &f : den) fvec.push_back(f);
+        if(is_a<mul>(den)) for (const auto &f : den) fvec.push_back(f);
         else fvec.push_back(den);
         exset roots;
         for (const auto &f : fvec) {
@@ -1095,7 +1110,8 @@ namespace HepLib {
             if(k0==0) Y(r,0) = ys[r];
             else Y(r,0) = ys[r]/pow(xs[r], k0);
         }
-        return X.mul(X.transpose()).inverse().mul(X).mul(Y);
+        auto mat = X.mul(X.transpose()).inverse().mul(X).mul(Y);
+        return mat;
     }
     
     matrix C2Mat(const CMatrix & cmat, const ex & x0) {

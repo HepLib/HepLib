@@ -133,7 +133,7 @@ namespace EoD {
         void Fuchsify();
         void Shear();
         
-        exvector EigenValues();
+        exvector las;
         CMatrix Series(const unsigned int xn=0); 
         matrix Series(const ex & x0=0, const unsigned int xn=0, const lst & las={}); // C matrix
         matrix Taylor(const ex & x0, const ex & dx, const unsigned int xn=0);
@@ -187,6 +187,7 @@ namespace EoD {
         lst MIntegrals;
         lst pts;
         matrix Mat; // original DE matrix
+        lst _MIntegrals; // MI @ BC
         
         //get iet1 by expansion around regular point iet2
         matrix RU(const ex & iet1, const ex & iet2); 
