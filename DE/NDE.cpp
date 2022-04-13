@@ -388,8 +388,12 @@ namespace HepLib {
             acb_mat_t B0, Bm;
             acb_mat_init(B0,matN,matN); mat_to_clear.push_back(B0);
             acb_mat_init(Bm,matN,matN); mat_to_clear.push_back(Bm);
-            acb_t z;
-            acb_init(z);
+            acb_t z,z0,z0n,lz0,lz0k,z0la,la_;
+            acb_init(z); acb_init(z0); acb_init(z0n); acb_init(lz0); acb_init(lz0k); acb_init(z0la); acb_init(la_);
+            ex_to_acb(z0,x0,dp); 
+            ex_to_acb(lz0,log(x0),dp);
+            ex_to_acb(la_,la,dp);
+            acb_pow(z0la,z0,la_,fp);
             
             // setup the inverse of B0
             acb_mat_t iB0[kla+1]; 
@@ -400,39 +404,50 @@ namespace HepLib {
             
             // setup CMats & init CMats[0][k]
             acb_mat_t CMats[s][kla+1];
+            acb_one(lz0k);
+            fmpz_t nk;
+            fmpz_init(nk);
+            fmpz_one(nk);
             for(int k=0; k<=kla; k++) {
+                if(k>1) fmpz_mul_si(nk,nk,k); // for k!
                 for(int i=0; i<s; i++) {
                     acb_mat_init(CMats[i][k],matN,matN);
                     mat_to_clear.push_back(CMats[i][k]);
                 }
                 mat_to_acb(CMats[0][k],ST.C0[la][k],dp);
-                auto xterm = pow(x0,la)*pow(log(x0),k)/factorial(k);
-                ex_to_acb(z, xterm, dp); // z = xterm;
+                acb_mul(z,z0la,lz0k,fp);
+                acb_div_fmpz(z,z,nk,fp);
                 acb_mat_scalar_addmul_acb(MatF, CMats[0][k], z, fp);
+                acb_mul(lz0k,lz0k,lz0,fp);
             }
             
             acb_mat_t CMat, T;
             acb_mat_init(CMat,matN,matN); // k-th row of C in DESS
-            acb_mat_init(T,matN,matN);
             mat_to_clear.push_back(CMat);
+            acb_mat_init(T,matN,matN);
             mat_to_clear.push_back(T);
             
+            acb_one(z0n);
             for(int cn=1; cn<=xN; cn++) {
+                acb_mul(z0n,z0n,z0,fp);
                 if(!CMat_Parallel && !In_GiNaC_Parallel && Verbose>1) {
                     cout << "\r                                  \r" << flush;
                     cout << "     \\--C Matrix [" << idx+1 << "/" << ST.las.size() << "][" << cn << "/" << xN << "]" << flush;
                 }
                 
                 // initialize iB0, depend only on la+n
-                ex_to_acb(z,la+cn,dp); // z=la+n, alpha in B
+                acb_add_si(z,la_,cn,fp); // z=la+n, alpha in B
                 mx.B(B0,0,z,dp); // B0(la+n)
                 if(!acb_mat_inv(iB0[0],B0,fp)) throw Error("acb_mat_inv gets wrong.");
                 for(int i=1; i<=kla; i++) acb_mat_mul(iB0[i], iB0[i-1], iB0[0], fp);
                 
+                fmpz_one(nk);
+                acb_one(lz0k);
                 for(int k=0; k<=kla; k++) { // k-th row
+                    if(k>1) fmpz_mul_si(nk,nk,k); // for k!
                     acb_mat_zero(CMat);
                     for(int cm=1; (cm<=cn) && (cm<=s); cm++) { // sum m from 1 to s in DESS
-                        ex_to_acb(z,la+cn-cm,dp); // z = la+n-m
+                        acb_add_si(z,la_,cn-cm,fp); // z = la+n-m
                         mx.B(Bm,cm,z,dp); // Bm(la+n-m)
                         mx.Q(z,cm,dp); // z = Qm
                         for(int j=0; j<=kla; j++) { // T is T[k,j] in DESS
@@ -447,15 +462,18 @@ namespace HepLib {
                         }
                     } 
                     acb_mat_set(CMats[cn%s][k],CMat); // before here, CMats should not be modified
-                    auto xterm = pow(x0,la)*pow(x0,cn)*pow(log(x0),k)/factorial(k);
-                    ex_to_acb(z,xterm,dp); // z=xterm
+                    acb_mul(z,z0la,z0n,fp);
+                    acb_mul(z,z,lz0k,fp);
+                    acb_div_fmpz(z,z,nk,fp);
                     acb_mat_scalar_addmul_acb(MatF,CMat,z,fp);
+                    acb_mul(lz0k,lz0k,lz0,fp);
                 }
             }
             
             for(auto m : mat_to_clear) acb_mat_clear(m);
             mat_to_clear.clear();
-            acb_clear(z);
+            acb_clear(z); acb_clear(z0); acb_clear(z0n); acb_clear(lz0); acb_clear(lz0k); acb_clear(z0la); acb_clear(la_); 
+            fmpz_clear(nk);
             if(!CMat_Parallel && !In_GiNaC_Parallel && Verbose>1 && xN>0) cout << endl;
         }
         
@@ -511,8 +529,9 @@ namespace HepLib {
             fmpq_mat_t B0, Bm;
             fmpq_mat_init(B0,matN,matN); mat_to_clear.push_back(B0);
             fmpq_mat_init(Bm,matN,matN); mat_to_clear.push_back(Bm);
-            fmpq_t q;
-            fmpq_init(q);
+            fmpq_t q, la_;
+            fmpq_init(q); fmpq_init(la_);
+            ex_to_fmpq(la_,la);
             
             // setup the inverse of BJF
             fmpq_mat_t iB0[kla+1];
@@ -523,10 +542,10 @@ namespace HepLib {
             
             fmpq_mat_t CMat, T, m;
             fmpq_mat_init(CMat,matN,matN); // k-th row of C in DESS
-            fmpq_mat_init(T,matN,matN);
-            fmpq_mat_init(m,matN,matN);
             mat_to_clear.push_back(CMat);
+            fmpq_mat_init(T,matN,matN);
             mat_to_clear.push_back(T);
+            fmpq_mat_init(m,matN,matN);
             mat_to_clear.push_back(m);
             
             // setup CMats & init CMats[0][k]
@@ -547,7 +566,7 @@ namespace HepLib {
                 }
                 
                 // initialize iBJF, depend only on la+n
-                ex_to_fmpq(q,la+cn); // q=la+n, alpha in B
+                fmpq_add_si(q,la_,cn); // q=la+n, alpha in B
                 mx.B(B0,0,q); // B0(la+n)
                 mx.Q(q,0);
                 if(!fmpq_mat_inv(iB0[0],B0)) throw Error("fmpq_mat_inv gets wrong.");;
@@ -557,7 +576,7 @@ namespace HepLib {
                 for(int k=0; k<=kla; k++) { // k-th row
                     fmpq_mat_zero(CMat);
                     for(int cm=1; (cm<=cn) && (cm<=s); cm++) { // sum m from 1 to s in DESS
-                        ex_to_fmpq(q,la+cn-cm); // q = la+n-m
+                        fmpq_add_si(q,la_,cn-cm); // q = la+n-m
                         mx.B(Bm,cm,q); // Bm(la+n-m)
                         mx.Q(q,cm); // q = Qm
                         for(int j=0; j<=kla; j++) { // T is T[k,j] in DESS
@@ -580,6 +599,7 @@ namespace HepLib {
             }
 
             for(auto m : mat_to_clear) fmpq_mat_clear(m);
+            fmpq_clear(q); fmpq_clear(la_);
             if(!CMat_Parallel && !In_GiNaC_Parallel && Verbose>1 && xN>0) cout << endl;
         }
         
