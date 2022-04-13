@@ -153,7 +153,7 @@ namespace HepLib::EoD {
         map<ex, unsigned, ex_is_less> eigenvalues;
         symbol lambda("L");
         ex charpoly = fermat_Det(imatrix(m.rows()).mul_scalar(lambda).sub(m));
-        ex num = exfactor(normal(charpoly).numer());
+        ex num = factor_flint(normal(charpoly).numer());
         exvector fvec;
         if (is_a<mul>(num)) for (const auto &f : num) fvec.push_back(f);
         else fvec.push_back(num);
@@ -199,6 +199,7 @@ namespace HepLib::EoD {
         int p = (pr == 19790923 ? prank(mat, x) : pr);
         int nr=mat.rows(), nc=mat.cols();
         matrix a0(nr,nc), a1(nr,nc);
+        GiNaC_Parallel_Verb["a01"] = 0;
         auto res = GiNaC_Parallel(mat.nops(), [&mat,&p,&x](int idx) {
             auto item = mat.op(idx);
             item = series_ex(item, x, -p);
@@ -298,7 +299,7 @@ namespace HepLib::EoD {
         return m;
     }
     
-    bool is_jordan_form(const matrix & mat) {
+    bool is_sheared_form(const matrix & mat) {
         for(int r=0; r<mat.rows(); r++) {
             for(int c=0; c<mat.cols(); c++) {
                 if(r==c) continue;
@@ -313,6 +314,10 @@ namespace HepLib::EoD {
                         return false;
                 }
             }
+        }
+        for(int r=0; r<mat.rows(); r++) for(int c=r+1; c<mat.cols(); c++) {
+            ex diff = normal(mat(r,r)-mat(c,c));
+            if(!is_zero(diff) && diff.info(info_flags::integer)) return false;
         }
         return true;
     }

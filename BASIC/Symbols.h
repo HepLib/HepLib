@@ -9,6 +9,8 @@ namespace HepLib {
 
     extern const Symbol NA;
     extern const Symbol NF;
+    extern const Symbol TF;
+    extern const Symbol CF;
     extern const Symbol gs;
     extern const Symbol as;
     extern const Symbol mu;

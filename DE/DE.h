@@ -7,6 +7,7 @@
 
 #include "BASIC.h"
 #include "IBP.h"
+#include "FLINT.h"
 
 namespace HepLib {
 
@@ -62,17 +63,11 @@ namespace EoD {
     matrix transform(const matrix &m, const matrix &t, const symbol &x);
     matrix transform(const matrix &m, const matrix &tinverse, const matrix &t, const symbol &x);
     
-    bool is_jordan_form(const matrix & mat);
+    bool is_sheared_form(const matrix & mat);
     pair<matrix, vector<pair<ex,int>>> jordan(const matrix &m);
-    
+    pair<matrix, vector<pair<ex,int>>> jordan(const matrix &m, const map<ex, unsigned, ex_is_less> & eval2almul);
 }
 
-    ex matrix_norm(const matrix & mat, unsigned opt=0);
-    ex matrix_den_lcm(const matrix & mat);
-    ex xpow(const ex & e, const ex & x);
-    void xpow(matrix & mat, const ex & x);
-    void subs(matrix & mat, const ex & s, unsigned opt);
-    
     class BJF {
     public:
         BJF(matrix _A, ex _b, int K);
@@ -83,9 +78,9 @@ namespace EoD {
         ex b;
     };
 
-    class BJFinv {
+    class invBJF {
     public:
-        BJFinv(matrix _A, ex _b, int K);
+        invBJF(matrix _A, ex _b, int K);
         matrix operator()(int i, int j);
     private:
         matrix A;
@@ -97,8 +92,9 @@ namespace EoD {
         
     class SeriesT { // Series T-Matrix
     public:
-        vector<vector<vector<vector<matrix>>>> T; // T[la][cm][i][j]
+        vector<vector<vector<matrix>>> T; // T[cm][i][j] with a = lambda+cn
         int s; // s in DESS
+        int kmax;
         exvector las; // lambda list
         map<ex, unsigned, ex_is_less> K; // K_lambda: K[la] 
         map<ex, vector<matrix>, ex_is_less> C0; // C0[la] C_0 matrix for la
@@ -134,10 +130,52 @@ namespace EoD {
         void Shear();
         
         exvector las;
-        CMatrix Series(const unsigned int xn=0); 
-        matrix Series(const ex & x0=0, const unsigned int xn=0, const lst & las={}); // C matrix
-        matrix Taylor(const ex & x0, const ex & dx, const unsigned int xn=0);
+        CMatrix Series(const int xN=0); 
+        matrix Series(const ex & x0=0, const int xN=0, const lst & las={}); // C matrix
+        matrix Taylor(const ex & x0, const ex & dx, const int xN=0);
         void Normalize();
+        void info();
+        void xpow();
+        void subs(const ex & sub, unsigned opt=0);
+        void subs(const exmap & sub, unsigned opt=0);
+        void subs(const lst & l, const lst & r, unsigned opt=0);
+        matrix MatT();
+        void Reset();
+        
+    private:
+        TaylorT TT;
+        SeriesT ST;
+        void STInit();
+    protected:
+        vector<matrix> Ts;
+        matrix Mat;
+        symbol a; // alpha
+        matrix a0;
+        bool fuchsified = false;
+        bool sheared = false;
+    };
+    
+    class NDE {
+    public:
+    
+        int WDigits = -1;
+        const symbol & x;
+        
+        NDE(const NDE & b);
+        NDE(const symbol & x);
+        NDE(const matrix & m, const symbol & x);
+        NDE(const symbol & x, const matrix & m);
+        
+        void Apply(const matrix & t, bool st=true); // st=true to save t to Ts
+        void Apply(const lst & diag, bool st=true); // T is diagnal matrix
+        void x2y(const ex & y); // final expression still in x
+        void Fuchsify();
+        void Shear();
+        
+        exvector las;
+        CMatrix Series(const int xN=0, const lst & las={}); 
+        matrix Series(const ex & x0=0, const int xN=0, const lst & las={}); // C matrix
+        matrix Taylor(const ex & x0, const ex & dx, const int xN=0);
         void info();
         void xpow();
         void subs(const ex & sub, unsigned opt=0);
@@ -152,8 +190,11 @@ namespace EoD {
     protected:
         vector<matrix> Ts;
         matrix Mat;
-        symbol scn; // cn
         symbol a; // alpha
+        matrix a0;
+        MX mx;
+        bool fuchsified = false;
+        bool sheared = false;
     };
     
     class DESS : public DE {
@@ -177,8 +218,13 @@ namespace EoD {
         AMF(IBP & ibp);
         void InitDE();
         lst Evaluate();
+        lst NEvaluate();
         lst FitEps(const lst & eps, int lp=0, bool parallel=true);
         lst FitEps(int goal, int order, bool parallel=true);
+        static ex Vacuum(int nl, int np);
+        
+        void ExportDE(const string fn);
+        void ImportDE(const string fn);
         
     //private:
         const symbol & x;
@@ -190,9 +236,15 @@ namespace EoD {
         lst _MIntegrals; // MI @ BC
         
         //get iet1 by expansion around regular point iet2
+        matrix RU(const ex & iet1, const ex & iet2, NDE & de); 
         matrix RU(const ex & iet1, const ex & iet2); 
     };
     
     matrix PolynomialFit(const exvector & xs, const exvector & ys, unsigned int k, int k0=0);
+    ex matrix_norm(const matrix & mat, unsigned opt=0);
+    ex matrix_den_lcm(const matrix & mat);
+    ex xpow(const ex & e, const ex & x);
+    void xpow(matrix & mat, const ex & x);
+    void subs(matrix & mat, const ex & s, unsigned opt);
 
 }

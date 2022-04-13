@@ -567,14 +567,24 @@ namespace HepLib {
                 if(Version>5) config << "#compressor none" << endl;
                 if(Version==5) config << "#bucket 20" << endl;
                 config << "#threads " << Threads << endl;
-                if(fThreads>0) config << "#fthreads " << fThreads << endl;
-                else if(ci==2) config << "#fthreads 1" << endl;
-                else config << "#fthreads " << Threads << endl;
                 if(Version>5) { // FIRE6 or lator
+                    if(lThreads>1) {
+                        config << "#lthreads " << lThreads << endl;
+                        if(fThreads>0) config << "#fthreads s" << fThreads << endl;
+                        else if(ci==2) config << "#fthreads s1" << endl;
+                        else config << "#fthreads s" << Threads << endl;
+                    } else {
+                        if(fThreads>0) config << "#fthreads " << fThreads << endl;
+                        else if(ci==2) config << "#fthreads 1" << endl;
+                        else config << "#fthreads " << Threads << endl;
+                    }
                     if(sThreads>0) config << "#sthreads " << sThreads << endl;
-                    if(lThreads>1) config << "#lThreads " << lThreads << endl;
                     if(pos_pref!=1) config << "#pos_pref "<< pos_pref << endl;
                     if(ci==1) config << "#prime 1" << endl;
+                } else {
+                    if(fThreads>0) config << "#fthreads " << fThreads << endl;
+                    else if(ci==2) config << "#fthreads 1" << endl;
+                    else config << "#fthreads " << Threads << endl;
                 }
                 config << "#variables ";
                 bool first = true;

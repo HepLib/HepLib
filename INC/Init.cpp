@@ -95,6 +95,8 @@ namespace HepLib {
     // Symbols
     const Symbol NA("NA");
     const Symbol NF("NF");
+    const Symbol TF("TF");
+    const Symbol CF("CF");
     const Symbol gs("gs");
     const Symbol as("as");
     const Symbol mu("mu");
@@ -235,8 +237,12 @@ namespace HepLib {
     // FROM QCD
     int QCD::FF::cur_mode = 0; // 0 - gluon, 1 - quark, 2 - anti-quark
     
-    // global init
+    // FROM DE
+    slong error_check_dp = 50;
     
+    // global init
+    std::stack<cln::float_format_t> cln_prec_stack;
+    std::stack<long> digits_stack;
     _global_init::_init::_init() {
         ostringstream oss;
         string path = InstallPrefix + "/bin";
@@ -268,8 +274,8 @@ namespace HepLib {
         
         // CLN configurations
         cln::cl_inhibit_floating_point_underflow = true; 
-        cln::default_float_format = cln::float_format(100);
         Digits = 100;
+        set_precision(100);
     }
     _global_init::_init _global_init::init_object;
     

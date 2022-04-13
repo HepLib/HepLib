@@ -318,8 +318,8 @@ namespace HepLib {
             if(Verbose>0) cout << "  \\--Total Ints/Pros: " << WHITE << ntot << "/" << ibp_vec.size() << RESET << " @ " << now(false) << endl;
         
             if(true) {
-                vector<IBP*> ibp_vec;
-                for(auto ibp : ibp_vec) ibp_vec.push_back(ibp);
+                //vector<IBP*> ibp_vec2;
+                //for(auto ibp : ibp_vec) ibp_vec2.push_back(ibp);
                 auto int_fr = FindRules(ibp_vec, false, aio.UF);
                 IntFs = int_fr.second;
                 air_vec = GiNaC_Parallel(air_vec.size(), [&air_vec,&AIR2F,&int_fr] (int idx) {

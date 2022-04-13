@@ -157,8 +157,12 @@ namespace HepLib::EoD {
 
     pair<matrix, vector<pair<ex,int>>> jordan(const matrix &m) {
         if(m.cols() != m.rows()) throw Error("jordan");
-        unsigned n = m.rows();
         map<ex, unsigned, ex_is_less> eval2almul = eigenvalues(m);
+        return jordan(m, eval2almul);
+    }
+        
+    pair<matrix, vector<pair<ex,int>>> jordan(const matrix &m, const map<ex, unsigned, ex_is_less> & eval2almul) {
+        unsigned n = m.rows();
         matrix q(n, n);
         vector<pair<ex,int>> jcs;
         int idxq = 0;

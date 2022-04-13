@@ -5,6 +5,7 @@
  
 #pragma once
 
+#include "BASIC.h"
 #include "IBP.h"
 
 namespace HepLib {
@@ -548,9 +549,9 @@ namespace HepLib {
     
     #endif
     
-    
+    ex ToCF(const ex & e);
     ex A0(const ex m2, int n=1, const ex d=4-2*ep);
-        
+    
         
 }
 

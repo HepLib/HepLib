@@ -723,6 +723,9 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Rationalize
     /*-----------------------------------------------------*/
+    void set_precision(long prec,bool push=true);
+    void reset_precision();
+    long get_precision();
     ex Rationalize(const ex & e, int dn=Digits);
     
     /*-----------------------------------------------------*/
@@ -926,6 +929,7 @@ namespace HepLib {
     void fermat_mat(const matrix & mat_in, const string & name);
     matrix fermat_mat(const string & name);
     void fermat_eval(const string & fcmd="@[**]");
+    
 }
 
 typedef void (*RUN)(std::string dir_id);

@@ -19,8 +19,7 @@ namespace HepLib::SD {
         if(Minimizer==NULL) Minimizer = new MinUit();
 
         if(key != "") {
-            auto oDigits = Digits;
-            Digits = NNDigits; // a fix to float overflow
+            set_precision(NNDigits);
             ostringstream garfn;
             garfn << key << ".ci.gar";
             archive ar;
@@ -30,7 +29,7 @@ namespace HepLib::SD {
             auto c = ar.unarchive_ex("c");
             if(c!=19790923) throw Error("Contours: *.ci.gar error!");
             FT_N_XN = ex_to<lst>(ar.unarchive_ex("ftnxn"));
-            Digits = oDigits;
+            reset_precision();
         }
         
         //change 2->1 from GiNaC 1.7.7

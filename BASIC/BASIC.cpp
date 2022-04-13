@@ -591,8 +591,6 @@ namespace HepLib {
      * @param resMap will be update, a string key map
      */
     void garRead(const string &garfn, map<string, ex> &resMap) {
-        auto oDigits = Digits;
-        Digits = Digits + 5;
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -602,7 +600,6 @@ namespace HepLib {
             ex res = ar.unarchive_ex(name, i);
             resMap[name] = res;
         }
-        Digits = oDigits;
     }
     
     /**
@@ -612,14 +609,11 @@ namespace HepLib {
      * @return the expression w.r.t. key
      */
     ex garRead(const string &garfn, const char* key) { // use the const char *, not string
-        auto oDigits = Digits;
-        Digits = Digits + 5;
         archive ar;
         ifstream in(garfn);
         in >> ar;
         in.close();
         auto res = ar.unarchive_ex(key);
-        Digits = oDigits;
         return res;
     }
 
@@ -629,8 +623,6 @@ namespace HepLib {
      * @return the expression w.r.t. key "res"
      */
     ex garRead(const string &garfn) {
-        auto oDigits = Digits;
-        Digits = Digits + 5;
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -638,7 +630,6 @@ namespace HepLib {
         auto c = ar.unarchive_ex("c");
         auto res = ar.unarchive_ex("res");
         if(c!=19790923) throw Error("garRead: check faild for file: " + garfn);
-        Digits = oDigits;
         return res;
     }
     
@@ -865,11 +856,10 @@ namespace HepLib {
      */
     __float128 ex2q(ex num) {
         ostringstream nss;
-        auto oDigits = Digits;
-        Digits = 40;
+        set_precision(40);
         nss << num.evalf() << endl;
         __float128 ret = strtoflt128(nss.str().c_str(), NULL);
-        Digits = oDigits;
+        reset_precision();
         return ret;
     }
 #else
@@ -892,11 +882,10 @@ namespace HepLib {
      */
     long double ex2q(ex num) {
         ostringstream nss;
-        auto oDigits = Digits;
-        Digits = 40;
+        set_precision(40);
         nss << num.evalf() << endl;
         long double ret = strtold(nss.str().c_str(), NULL);
-        Digits = oDigits;
+        reset_precision();
         return ret;
     }
 #endif
@@ -1278,10 +1267,9 @@ namespace HepLib {
         return EvalF(expr.subs(repl));
     }
     ex NN(ex expr, int digits) {
-        auto oDigits = Digits;
-        Digits = digits;
+        set_precision(digits);
         auto nexpr = evalf(expr);
-        Digits = oDigits;
+        reset_precision();
         return nexpr;
     }
 
@@ -2144,8 +2132,6 @@ namespace HepLib {
     }
         
     void garRead(exvector &exv, string garfn) {
-        auto oDigits = Digits;
-        Digits = Digits + 5;
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -2162,7 +2148,6 @@ namespace HepLib {
         if(exv.size()>0 && size != exv.size()) throw Error("garRead: exvector size>0 & not match!");
         if(exv.size()<1) exv.resize(size);
         for(int i=0; i<size; i++) exv[i] = dict[to_string(i)];
-        Digits = oDigits;
     } 
     
     ex add_collect_normal(const exvector &exv, ex const &pats, int opt) {
@@ -2277,11 +2262,35 @@ namespace HepLib {
             } else return e.map(self);
         });
         
-        auto oDigits = Digits;
-        if(dn>0 && dn!=Digits) Digits = dn;
+        if(dn>0) set_precision(dn);
         ex res = R(e);
-        if(Digits!=oDigits) Digits = oDigits;
+        if(dn>0) reset_precision();
         return res;
+    }
+    
+    extern std::stack<cln::float_format_t> cln_prec_stack;
+    extern std::stack<long> digits_stack;
+    void set_precision(long prec, bool push) {
+        if(push) {
+            cln_prec_stack.push(cln::default_float_format);
+            digits_stack.push(Digits);
+        }
+        Digits = prec;
+        cln::default_float_format = cln::float_format(prec);
+    }
+    
+    void reset_precision() {
+        if(cln_prec_stack.empty()) return;
+        auto digits = digits_stack.top();
+        auto prec = cln_prec_stack.top();
+        Digits = digits;
+        cln::default_float_format = prec;
+        cln_prec_stack.pop();
+        digits_stack.pop();
+    }
+    
+    long get_precision() {
+        return cln::default_float_format;
     }
         
 }

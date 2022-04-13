@@ -123,8 +123,7 @@ namespace HepLib::SD {
             sofn << pid << ".so";
             fsofn << pid << "F.so";
         } else {
-            auto oDigits = Digits;
-            Digits = NNDigits; // a fix to float overflow
+            set_precision(NNDigits);
             sofn << key << ".so";
             ostringstream garfn;
             garfn << key << ".ci.gar";
@@ -180,7 +179,7 @@ namespace HepLib::SD {
                 if(res_c!=19790923) throw Error("*.res.gar error with kid!");
                 lstRE = ex_to<lst>(relst);
             }
-            Digits = oDigits;
+            reset_precision();
         }
         
         void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW);
@@ -706,8 +705,7 @@ namespace HepLib::SD {
         auto pid = getpid();
         ostringstream fsofn, sofn, cmd;
         if(true) {
-            auto oDigits = Digits;
-            Digits = NNDigits; // a fix to float overflow
+            set_precision(NNDigits);
             sofn << key << ".so";
             ostringstream garfn;
             garfn << key << ".ci.gar";
@@ -763,7 +761,7 @@ namespace HepLib::SD {
                 if(res_c!=19790923) throw Error("*.res.gar error with ReIntegrates!");
                 lstRE = ex_to<lst>(relst);
             }
-            Digits = oDigits;
+            reset_precision();
         }
         
         void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW);

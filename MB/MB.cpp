@@ -19,9 +19,7 @@ void MB::Initialize(FeynmanParameter fp) {
         cerr << ErrColor << "the length of Propagators and Exponents are NOT equal." << RESET << endl;
         exit(1);
     }
-    
-    Digits = 50;
-        
+            
     auto sop = algbr;
     auto ps = fp.Propagators;
     auto ns = fp.Exponents;

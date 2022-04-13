@@ -493,7 +493,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         string_replace_all(ostr, "gi_(", "GI(");
         string_replace_all(ostr, "TTR(", "TTRX(");
         
-        st["I2R"] = ex(1)/2;
+        st["I2R"] = TF;
         st["NA"] = NA;
         st["NF"] = NF;
         st["I"] = I;
