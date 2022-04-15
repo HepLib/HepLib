@@ -181,11 +181,9 @@ namespace HepLib {
             cout << endl << "ne = " << ne << endl;
             throw Error("ne is NOT numeric");
         }
-        auto exfp = n2exp(ne);
-        if(exfp<0) exfp = 1;
         auto fp = dp2fp(dp);
         auto str = ex2str(ne);
-        arb_set_str(r, str.c_str(), fp+exfp);
+        arb_set_str(r, str.c_str(), fp);
         reset_precision();
     }
     
@@ -250,15 +248,11 @@ namespace HepLib {
         arb_init(ib);
         auto nre = ne.real_part();
         auto nie = ne.imag_part();
-        auto exfp = n2exp(nre);
-        if(exfp<0) exfp = 1;
         auto fp = dp2fp(dp);
         auto rstr = ex2str(nre);
-        arb_set_str(rb, rstr.c_str(), fp+exfp);
-        exfp = n2exp(nie);
-        if(exfp<0) exfp = 1;
+        arb_set_str(rb, rstr.c_str(), fp);
         auto istr = ex2str(nie);
-        arb_set_str(ib, istr.c_str(), fp+exfp);
+        arb_set_str(ib, istr.c_str(), fp);
         acb_set_arb_arb(z, rb, ib);
         arb_clear(rb);
         arb_clear(ib);
@@ -290,7 +284,7 @@ namespace HepLib {
     
     void mat_to_acb(acb_mat_t m, const matrix & mat, slong dp) {
         auto nr = mat.rows();
-        auto nc = mat.rows();
+        auto nc = mat.cols();
         acb_t z;
         acb_init(z);
         for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
@@ -526,7 +520,6 @@ namespace HepLib {
     }
 
     MX & MX::transform(const matrix & t, const matrix & ti) {
-        static symbol x("x");
         MX tX(t), tiX(ti);
         return mul(tX).sub(tX.dx()).mul_left(tiX);
     }
@@ -610,6 +603,7 @@ namespace HepLib {
     int MX::prank() {
         int pr;
         for(int r=0; r<n; r++) for(int c=0; c<n; c++) {
+            fmpz_poly_q_canonicalise(M[r][c]);
             auto ipr = ldegree(fmpz_poly_q_numref(M[r][c]));
             if(ipr==0) ipr = -ldegree(fmpz_poly_q_denref(M[r][c]));
             if(r==0 && c==0) pr = ipr;
@@ -731,7 +725,7 @@ namespace HepLib {
         fmpz_poly_t x;
         fmpz_poly_init(x);
         vector<fmpz_poly_t> lcms(n);
-        //#pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
         for(int r=0; r<n; r++) {
             auto lcm = lcms[r];
             fmpz_poly_init(lcm);
@@ -764,6 +758,7 @@ namespace HepLib {
         if(deg>s) s = deg;
         
         if(!init_QxM) return;
+        
         _s_ = 1;
         Qs = vector<fmpz_t>(s+1);
         for(slong i=0; i<=s; i++) {
@@ -800,74 +795,47 @@ namespace HepLib {
     }
     
     // note that we rescale with q0
-    void MX::Q(arb_t Qm, slong m, slong dp) {
-        slong exfp;
-        fmpz_abs_ubound_ui_2exp(&exfp,Qs[0],1);
-        if(exfp<0) exfp = 0;
-        auto fp = dp2fp(dp);
+    void MX::Q(arb_t Qm, slong m, slong fp) {
         arb_set_fmpz(Qm, Qs[m]);
-        arb_div_fmpz(Qm, Qm, Qs[0], fp+exfp);
+        arb_div_fmpz(Qm, Qm, Qs[0], fp);
     }
     
     // QxM[m] - a*Q[m], note QxM/Q can be scaled by a factor, we choose q0
-    void MX::B(arb_mat_t Bm, slong m, arb_t a, slong dp) {
-        slong exfp0;
-        fmpz_abs_ubound_ui_2exp(&exfp0,Qs[0],1);
-        if(exfp0<0) exfp0 = 0;
-        auto fp = dp2fp(dp);
+    void MX::B(arb_mat_t Bm, slong m, arb_t a, slong fp) {
         #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
         for(int r=0; r<n; r++) {
-            slong exfp;
             for(int c=0; c<n; c++) {   
-                fmpz_abs_ubound_ui_2exp(&exfp, Qs[m],1);
-                if(exfp<0) exfp = 0;
                 arb_set_fmpz(arb_mat_entry(Bm,r,c), fmpz_mat_entry(QxM[m],r,c));
-                arb_div_fmpz(arb_mat_entry(Bm,r,c),arb_mat_entry(Bm,r,c),Qs[0],fp+exfp0);
+                arb_div_fmpz(arb_mat_entry(Bm,r,c),arb_mat_entry(Bm,r,c),Qs[0],fp);
             }
             arb_t b;
             arb_init(b);
-            fmpz_abs_ubound_ui_2exp(&exfp, Qs[m],1);
-            if(exfp<0) exfp = 0;
-            arb_mul_fmpz(b,a,Qs[m],fp+exfp);
-            arb_div_fmpz(b,b,Qs[0],fp+exfp0);
+            arb_mul_fmpz(b,a,Qs[m],fp);
+            arb_div_fmpz(b,b,Qs[0],fp);
             arb_sub(arb_mat_entry(Bm,r,r),arb_mat_entry(Bm,r,r),b,fp);
             arb_clear(b);
         }
     }
     
     // note that we rescale with q0
-    void MX::Q(acb_t Qm, slong m, slong dp) {
-        slong exfp;
-        fmpz_abs_ubound_ui_2exp(&exfp, Qs[0],1);
-        if(exfp<0) exfp = 0;
-        auto fp = dp2fp(dp);
+    void MX::Q(acb_t Qm, slong m, slong fp) {
         acb_set_fmpz(Qm, Qs[m]);
-        acb_div_fmpz(Qm, Qm, Qs[0], fp+exfp);
+        acb_div_fmpz(Qm, Qm, Qs[0], fp);
     }
     
     // QxM[m] - a*Q[m], note QxM/Q can be scaled by a factor, we choose q0
-    void MX::B(acb_mat_t Bm, slong m, acb_t a, slong dp) {
-        slong exfp0;
-        fmpz_abs_ubound_ui_2exp(&exfp0,Qs[0],1);
-        if(exfp0<0) exfp0 = 0;
-        auto fp = dp2fp(dp);
+    void MX::B(acb_mat_t Bm, slong m, acb_t a, slong fp) {
         if(fmpz_is_zero(Qs[0])) throw Error("Qs[0] is zero!");
         #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
         for(int r=0; r<n; r++) {
-            slong exfp;
             for(int c=0; c<n; c++) {
-                fmpz_abs_ubound_ui_2exp(&exfp,Qs[m],1);
-                if(exfp<0) exfp = 0;
                 acb_set_fmpz(acb_mat_entry(Bm,r,c), fmpz_mat_entry(QxM[m],r,c));
-                acb_div_fmpz(arb_mat_entry(Bm,r,c),arb_mat_entry(Bm,r,c),Qs[0],fp+exfp0);
+                acb_div_fmpz(arb_mat_entry(Bm,r,c),arb_mat_entry(Bm,r,c),Qs[0],fp);
             }
-            auto fp = dp2fp(dp);
             acb_t b;
             acb_init(b);
-            fmpz_abs_ubound_ui_2exp(&exfp, Qs[m],1);
-            if(exfp<0) exfp = 0;
-            acb_mul_fmpz(b,a,Qs[m],fp+exfp);
-            acb_div_fmpz(b,b,Qs[0],fp+exfp0);
+            acb_mul_fmpz(b,a,Qs[m],fp);
+            acb_div_fmpz(b,b,Qs[0],fp);
             acb_sub(acb_mat_entry(Bm,r,r),acb_mat_entry(Bm,r,r),b,fp);
             acb_clear(b);
         }

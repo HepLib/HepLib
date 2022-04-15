@@ -5,6 +5,7 @@
 
 #include "DE.h"
 
+static int oo_ratio = 8;
 
 namespace HepLib {
     
@@ -215,7 +216,7 @@ namespace HepLib {
             lst rs;
             for(auto ri : roots) rs.append(ri);
             sort_lst(rs);
-            if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--DE Poles: " << NN(rs,2) << endl;
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Total DE Poles: " << rs.nops() << endl;
             pts.remove_all();
             if(roots.size()>0) {
                 ex max = -1, min = -1;
@@ -226,12 +227,11 @@ namespace HepLib {
                     if(min<0 || ar<min) min = ar;
                 }
                 pts.remove_all();
-                min /= 2;
-                max *= 2;
+                min /= 2*oo_ratio;
+                max *= 2*oo_ratio;
                 ex x0 = I*max; // the last point
                 x0 = Rationalize(x0, 20);
                 pts.append(x0);
-                
                 while(true) {
                     ex mm = -1;
                     for(auto r : roots) {
@@ -241,15 +241,13 @@ namespace HepLib {
                     x0 -= I*mm/2;
                     x0 = Rationalize(x0, 20);
                     pts.prepend(x0);
-                    if(x0/I<0) throw Error("AMF::InitDE, et<0 FOUND.");
+                    if(x0/I<0) x0 = min/2;;
                     if(abs(x0)<min) break;
                 }
             } else throw Error("AMF::InitDE, NO root found.");
         }
         if(!In_GiNaC_Parallel && Verbose>10) {
-            lst npts;
-            for(auto pi : pts) npts.append(NN(pi/I,2));
-            cout << "  \\--AMF Points: I*" << npts << endl;
+            cout << "  \\--Total AMF Points: " << pts.nops() << endl;
             cout << "  \\--DE Poles finished @ " << now() << endl;
         }
     }
@@ -280,6 +278,12 @@ namespace HepLib {
     matrix AMF::RU(const ex & x1, const ex & x2, NDE & de) {
         ex dis = x1-x2;
         auto mat = de.Taylor(x2,dis,xN);
+        return mat;
+    }
+    
+    matrix AMF::RU(matrix C,const ex & x1, const ex & x2, NDE & de) {
+        ex dis = x1-x2;
+        auto mat = de.Taylor(C,x2,dis,xN);
         return mat;
     }
     
@@ -326,7 +330,11 @@ namespace HepLib {
             pr++; if(pr<0) pr = 0;
             
             auto ooCMat = oo.Series(pr);
-            if(ooCMat[ila].size()!=1) throw Error("ooCMat[ila].size()!=1"); // log term exist, not consider yet
+            if(ooCMat[ila].size()!=1) {
+                cout << endl;
+                for(auto mat : ooCMat[ila]) cout << mat[0] << endl << endl;
+                throw Error("ooCMat[ila].size()!=1"); // log term exist, not consider yet
+            }
             
             for(const auto & kv : ooCMat) {
                 ex la = kv.first;
@@ -347,7 +355,10 @@ namespace HepLib {
                 for(int c=0; c<matN; c++) fmat(r,c) = mat(r,c);
                 fmat(r,matN) = _MIntegrals.op(r).subs(d==d0);
             }
+cout << fmat << endl;
             fmat = fermat_Redrowech(fmat);
+cout << fmat << endl;
+exit(0);
 
             lst feqns;
             for(int r=0; r<matN; r++) {
@@ -372,7 +383,7 @@ namespace HepLib {
                 }
             }
 
-            if(false && feqns.nops()>0) { // false to disable
+            if(feqns.nops()>0) { // false to disable
                 exset fset;
                 find(feqns, F(w1,w2), fset);
                 lst fs;
@@ -450,8 +461,7 @@ namespace HepLib {
         auto oTU = oT.mul(oU0);
         xpow(oTU,x);
         if(WDigits>0) oTU = ex_to<matrix>(oTU.evalf());
-        HepLib::subs(oTU,x==0,nopat);
-        
+        HepLib::subs(oTU,x==0,nopat);        
         lst res; // result for master integrals
         oC = oTU.mul(oC);
         for(int i=0; i<matN; i++) res.append(oC(i,0));
@@ -463,9 +473,10 @@ namespace HepLib {
         if(WDigits>0) set_precision(WDigits);
         int matN = Mat.rows();
         int nloop = ibp.Internal.nops();
-        
+                
         //--------------------------------------------------------------------------------------
         // DE at infinity
+        //--------------------------------------------------------------------------------------
         if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ infinity ..." << RESET << endl;
         NDE oo(Mat,x);
         if(d!=d0) oo.subs(d==d0, nopat);
@@ -474,11 +485,11 @@ namespace HepLib {
         oo.xpow();
         int npts = pts.nops();
         ex xoo = 1/pts.op(npts-1);
-        auto ooU = oo.Series(xoo,xN);
-        auto ooT = oo.MatT();              
-        // ooC 
+        matrix ooT;              
         matrix ooC(matN,1); // F in ooC should be treated as Bubble type
         if(true) {
+            auto ooCMat = oo.Series(0); // xN=0 for all las 
+            ooT = oo.MatT();
             for(int i=0; i<matN; i++) ooC(i,0) = iWF(i);
             
             ex ila; // select the lambda of type n-L*d/2 
@@ -489,20 +500,7 @@ namespace HepLib {
                 ila = la;
                 first = false;
             }
-            lst dlst;
-            int dim = MIntegrals.op(0).op(1).nops();
-            for(int i=0; i<matN; i++) {
-                ex v = -nloop*d0/2-ila;
-                ex ns = MIntegrals.op(i).op(1);
-                for(int j=0; j<dim; j++) v += ns.op(j);
-                dlst.append(pow(x,v));
-            }
-            auto mat = ex_to<matrix>(diag_matrix(dlst)).inverse().mul(ooT);
-            auto pr = prank(mat,x);
-            pr++; if(pr<0) pr = 0;
-
-            auto ooCMat = oo.Series(pr);
-            if(ooCMat[ila].size()!=1) throw Error("ooCMat[ila].size()!=1"); // log term exist, not consider yet
+            if(first) throw Error("something may be wrong here.");
             
             for(const auto & kv : ooCMat) {
                 ex la = kv.first;
@@ -513,18 +511,47 @@ namespace HepLib {
                     }
                 } 
             }
-            
-            matrix cmat = ooCMat[ila][0][0];
-            for(int n=1; n<=pr; n++) cmat = cmat.add(ooCMat[ila][0][n].mul_scalar(pow(x,n)));
-            mat = mat.mul(cmat);
-            for(int i=0; i<mat.nops(); i++) mat.let_op(i) = series_ex(mat.op(i),x,0);
-            matrix fmat(matN, matN+1);
-            for(int r=0; r<matN; r++) {
-                for(int c=0; c<matN; c++) fmat(r,c) = mat(r,c);
-                fmat(r,matN) = _MIntegrals.op(r).subs(d==d0);
+                        
+            lst dlst;
+            int dim = MIntegrals.op(0).op(1).nops();
+            for(int i=0; i<matN; i++) {
+                ex v = -nloop*d0/2-ila;
+                ex ns = MIntegrals.op(i).op(1);
+                for(int j=0; j<dim; j++) v += ns.op(j);
+                dlst.append(pow(x,v));
+            }
+            auto mat = ex_to<matrix>(diag_matrix(dlst)).inverse().mul(ooT);
+            auto pr = prank(mat,x);
+            pr++; 
+            if(pr<0) pr = 0;
+            ooCMat = oo.Series(pr,{ila});
+            vector<matrix> fmat_vec;
+            auto ks = ooCMat[ila].size();
+            for(int k=0; k<ks; k++) {
+                matrix cmat = ooCMat[ila][k][0];
+                for(int n=1; n<=pr; n++) cmat = cmat.add(ooCMat[ila][k][n].mul_scalar(pow(x,n)));
+                mat = mat.mul(cmat);
+                int ldeg = 1;
+                for(int i=0; i<mat.nops(); i++) {
+                    mat.let_op(i) = series_ex(mat.op(i),x,0);
+                    if(ldeg>mat.op(i).ldegree(x)) ldeg = mat.op(i).ldegree(x);
+                }
+                for(int l=ldeg; l<=0; l++) {
+                    matrix fmat(matN, matN+1);
+                    for(int r=0; r<matN; r++) {
+                        for(int c=0; c<matN; c++) fmat(r,c) = mat(r,c).coeff(x,l);
+                        if(k==0 && l==0) fmat(r,matN) = _MIntegrals.op(r).subs(d==d0);
+                        else fmat(r,matN) = 0;
+                    }
+                    fmat_vec.push_back(fmat);
+                }
+            }
+                
+            matrix fmat(matN*fmat_vec.size(),matN+1); 
+            for(int n=0; n<fmat_vec.size(); n++) {
+                for(int r=0; r<matN; r++) for(int c=0; c<=matN; c++) fmat(n*matN+r,c) = fmat_vec[n](r,c);
             }
             fmat = fermat_Redrowech(fmat);
-
             lst feqns;
             for(int r=0; r<matN; r++) {
                 int idx = -1;
@@ -582,29 +609,39 @@ namespace HepLib {
                 throw Error("ooC is not determined completely.");
             }
         }
-            
-        // J(xoo)
-        matrix ooTUC = ooU.mul(ooC);
-        if(WDigits>0) ooTUC = ex_to<matrix>(subs(ooT, x==xoo.evalf())).mul(ooTUC);
-        else ooTUC = ex_to<matrix>(subs(ooT, x==xoo)).mul(ooTUC);
         
         //--------------------------------------------------------------------------------------
-        // Middle U matrix
-        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ regular points ..." << RESET << endl;
-        NDE de(Mat,x);
-        if(d!=d0) de.subs(d==d0, nopat);
-        de.WDigits = WDigits;
-        matrix MatU = ex_to<matrix>(unit_matrix(matN));
-        for(int i=0; i<npts-1; i++) MatU = MatU.mul(RU(pts.op(i),pts.op(i+1),de));
+        // from infinity to origin
+        //--------------------------------------------------------------------------------------
+        matrix oTUC(matN,1);
+        if(true) {
+            NDE de(Mat,x);
+            if(d!=d0) de.subs(d==d0, nopat);
+            de.WDigits = WDigits;
+            exset fs;
+            find(ooC,F(w1,w2),fs);
+            if(fs.size()<1) throw Error("only zero solution?!");
+            for(auto f : fs) {
+                if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ infinity to origin : " << f << RESET << endl;
+                matrix cmat(matN,1);
+                for(int i=0; i<matN; i++) cmat(i,0) = ooC(i,0).coeff(f);
+                cmat = oo.Series(cmat,xoo,xN/oo_ratio+(xN%oo_ratio)); // TODO: check
+                if(WDigits>0) cmat = ex_to<matrix>(subs(ooT, x==xoo.evalf())).mul(cmat);
+                else cmat = ex_to<matrix>(subs(ooT, x==xoo)).mul(cmat);
+                for(int i=npts-2; i>=0; i--) cmat = RU(cmat,pts.op(i),pts.op(i+1),de);
+                oTUC = oTUC.add(cmat.mul_scalar(f));
+            }
+        }
 
         //--------------------------------------------------------------------------------------
         // DE at origin
+        //--------------------------------------------------------------------------------------
         if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ origin ..." << RESET << endl;
         NDE o(Mat,x);
         if(d!=d0) o.subs(d==d0, nopat);
         o.WDigits = WDigits;
         ex xo = pts.op(0);
-        auto oU = o.Series(xo,xN);
+        auto oU = o.Series(xo,xN/oo_ratio+(xN%oo_ratio)); // TODO: check
         matrix oT = o.MatT();
         matrix ioT = fermat_inv(oT); // oT.inverse();
         if(WDigits>0) ioT = ex_to<matrix>(subs(ioT,x==xo.evalf()));
@@ -614,10 +651,9 @@ namespace HepLib {
         else ioTU = fermat_inv(oU).mul(ioT);
         
         // Final C at origin
-        matrix oC = ioTU.mul(MatU.mul(ooTUC));
+        matrix oC = ioTU.mul(oTUC);
         
         // take x->0 limit at origin
-        o.WDigits = -1;
         auto pr = prank(oT,x);
         pr++;
         if(pr<0) pr = 0;
@@ -627,14 +663,9 @@ namespace HepLib {
             break;
         }
         
-        //auto cmat = o.Series(pr,lst{0}); // only pick up x^integer
-        //matrix oU0 = cmat.begin()->second[0][0];
-        
-        matrix oU0 = o.Series(x,pr,lst{0});
-        
+        matrix oU0 = o.Series(x,pr,{0});
         auto oTU = oT.mul(oU0);
         xpow(oTU,x);
-        //if(WDigits>0) oTU = ex_to<matrix>(oTU.evalf());
         HepLib::subs(oTU,x==0,nopat);
         
         lst res; // result for master integrals

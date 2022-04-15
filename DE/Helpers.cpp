@@ -73,7 +73,7 @@ namespace HepLib {
     ex matrix_den_lcm(const matrix & m) {
         auto den_vec = GiNaC_Parallel(m.nops(), [&m](int idx) {
             auto den = m.op(idx).denom();
-            return factor_flint(den);
+            return exfactor(den);
         });
         
         exmap pn_map;

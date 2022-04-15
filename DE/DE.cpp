@@ -560,7 +560,6 @@ namespace HepLib {
                 CMatF[la][k][0] = t;
             }
                         
-            int nidx = 0;
             for(int cn=1; cn<=xN; cn++) {
                 if(!CMat_Parallel && !In_GiNaC_Parallel && Verbose>1) {
                     cout << "\r                                  \r" << flush;
@@ -569,18 +568,17 @@ namespace HepLib {
                 exmap smap;
                 smap[a] = la+cn;
                 //if(WDigits>0) smap[a] = smap[a].evalf();
-                nidx = (nidx+1)%s;
                 for(int k=0; k<=kla; k++) {
                     matrix cmat(matN, matN);
                     for(int cm=1; (cm<=cn) && (cm<=s); cm++) {
                         for(int j=0; j<=kla; j++) {
                             matrix Tkj = ST.T[cm][k][j];
                             for(int i=0; i<Tkj.nops(); i++) Tkj.let_op(i) = Tkj.op(i).subs(smap,nopat);
-                            cmat = cmat.add(Tkj.mul(CMats[(nidx-cm+s)%s][j])); 
+                            cmat = cmat.add(Tkj.mul(CMats[(cn-cm)%s][j])); 
                         }
                     }
                     if(WDigits<0) matrix_map_inplace(cmat, [&](const ex & e) { return normal(e); });
-                    CMats[nidx][k] = cmat;
+                    CMats[cn%s][k] = cmat;
                     CMatF[la][k][cn] = cmat;
                 }
             }
@@ -737,7 +735,6 @@ namespace HepLib {
         CMats[0] = ex_to<matrix>(unit_matrix(matN));
         matrix MatF = CMats[0];
             
-        int nidx = 0; 
         for(int cn=1; cn<=xN; cn++) {
             if(!In_GiNaC_Parallel && Verbose>1) {
                 cout << "\r                                  \r" << flush;
@@ -747,14 +744,13 @@ namespace HepLib {
             smap[a] = cn;
             if(WDigits>0) smap[a] = smap[a].evalf();
             matrix cmat(matN, matN);
-            nidx = (nidx+1)%s;
             for(int cm=1; (cm<=cn) && (cm<=s); cm++) {
                 matrix Tm = TT.T[cm];
                 for(int i=0; i<Tm.nops(); i++) Tm.let_op(i) = Tm.op(i).subs(smap,nopat);
-                cmat = cmat.add(Tm.mul(CMats[(nidx-cm+s)%s])); 
+                cmat = cmat.add(Tm.mul(CMats[(cn-cm)%s])); 
             }
             if(WDigits<0) matrix_map_inplace(cmat, [&](const ex & e) { return normal(e); });
-            CMats[nidx] = cmat;
+            CMats[cn%s] = cmat;
             
             auto xterm = pow(dx,cn);
             if(WDigits>0) xterm = xterm.evalf();

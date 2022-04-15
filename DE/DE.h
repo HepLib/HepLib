@@ -175,7 +175,9 @@ namespace EoD {
         exvector las;
         CMatrix Series(const int xN=0, const lst & las={}); 
         matrix Series(const ex & x0=0, const int xN=0, const lst & las={}); // C matrix
+        matrix Series(matrix C, const ex & x0, const int xN, const lst & las={}); // with bondary C
         matrix Taylor(const ex & x0, const ex & dx, const int xN=0);
+        matrix Taylor(matrix C, const ex & x0, const ex & dx, const int xN=0); // with bondary C
         void info();
         void xpow();
         void subs(const ex & sub, unsigned opt=0);
@@ -238,6 +240,7 @@ namespace EoD {
         //get iet1 by expansion around regular point iet2
         matrix RU(const ex & iet1, const ex & iet2, NDE & de); 
         matrix RU(const ex & iet1, const ex & iet2); 
+        matrix RU(matrix C, const ex & iet1, const ex & iet2, NDE & de);
     };
     
     matrix PolynomialFit(const exvector & xs, const exvector & ys, unsigned int k, int k0=0);
