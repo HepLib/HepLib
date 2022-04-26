@@ -238,7 +238,7 @@ namespace HepLib {
     int QCD::FF::cur_mode = 0; // 0 - gluon, 1 - quark, 2 - anti-quark
     
     // FROM DE
-    slong error_check_dp = 50;
+    slong error_pass_dp = 100;
     
     // global init
     std::stack<cln::float_format_t> cln_prec_stack;

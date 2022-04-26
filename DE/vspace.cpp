@@ -1,9 +1,16 @@
 
-#include "DE.h"
+#include "vspace.h"
 
 // https://github.com/magv/fuchsia.cpp 
 
-namespace HepLib::EoD {
+namespace HepLib::ED {
+
+    namespace {
+        ex ratcan(const ex &e) {
+            ex nd = e.normal().numer_denom();
+            return nd.op(0).expand()/nd.op(1).expand();
+        }
+    }
 
     vspace::vspace(unsigned n) : basis(0, n) { }
 
@@ -123,7 +130,6 @@ namespace HepLib::EoD {
         return vspace(coeff);
     }
 
-
     vspace eigenspace(const matrix &m, const ex &eval) {
         matrix mm = m;
         for (unsigned i = 0; i < m.rows(); i++) {
@@ -145,7 +151,6 @@ namespace HepLib::EoD {
         return evectors;
     }
 
-
     vector<matrix> eigenvectors_left(const matrix &m, const ex &eval) {
         vspace es = eigenspace_left(m, eval);
         vector<matrix> evectors(es.dim());
@@ -154,19 +159,219 @@ namespace HepLib::EoD {
         }
         return evectors;
     }
+    
+    matrix matrix_cut(const matrix &m, unsigned r, unsigned nr, unsigned c, unsigned nc) {
+        matrix res(nr, nc);
+        for (unsigned i = 0; i < nr; i++) {
+            for (unsigned j = 0; j < nc; j++) {
+                res(i, j) = m(r + i, c + j);
+            }
+        }
+        return res;
+    }
+    
+    void rescale_submatrix(matrix &m, unsigned r, unsigned nr, unsigned c, unsigned nc) {
+        // added by Feng
+        for (unsigned i = r; i < r + nr; i++) {
+            for (unsigned j = c; j < c + nc; j++) {
+                if(!m(i, j).info(info_flags::numeric)) goto done;
+            }
+        }
+        return; 
+        done: ;
+        // added END
+        
+        exvector n(nr*nc), d(nr*nc);
+        ex mul = 0;
+        ex div = 0;
+        auto it_n = n.begin();
+        auto it_d = d.begin();
+        for (unsigned i = r; i < r + nr; i++) {
+            for (unsigned j = c; j < c + nc; j++) {
+                ex nd = m(i, j).normal().numer_denom();
+                ex numer = nd.op(0);
+                ex denom = nd.op(1);
+                *it_n++ = numer;
+                *it_d++ = denom;
+                div = div.is_zero() ? numer : gcd(div, numer);
+                mul = mul.is_zero() ? denom : lcm(mul, denom);
+            }
+        }
+        if (div.is_zero()) return;
+        if (mul.is_zero()) return;
+        // It would be tempting to exit here if div=mul=1, but we'd
+        // then discard the normal() call results.
+        it_n = n.begin();
+        it_d = d.begin();
+        for (unsigned i = r; i < r + nr; i++) {
+            for (unsigned j = c; j < c + nc; j++) {
+                ex nn, dd;
+                bool ok1 = divide(*it_n++, div, nn);
+                bool ok2 = divide(mul, *it_d++, dd);
+                if(!ok1 || !ok2) throw Error("Error");
+                m(i, j) = nn*dd;
+            }
+        }
+    }
+    
+    void echelon_form_gauss(matrix &m) {
+        unsigned nr = m.rows();
+        unsigned nc = m.cols();
+        exvector &mv = ((matrix_hack*)&m)->mvec();
+        for (unsigned i = 0; i < nr*nc; i++) {
+            mv[i] = mv[i].normal();
+        }
+        unsigned r0 = 0;
+        unsigned c0 = 0;
+        for (; (c0 < nc) && (r0 < nr - 1); c0++) {
+            for (unsigned r = r0; r < nr; r++) {
+                mv[r*nc + c0] = mv[r*nc + c0].normal();
+            }
+            // No normalization before is_zero() here, because
+            // we maintain the matrix normalized throughout the
+            // algorithm.
+            unsigned pivot = r0;
+            while ((pivot < nr) && mv[pivot*nc + c0].is_zero()) {
+                pivot++;
+            }
+            if (pivot == nr) {
+                // The whole column below r0:c0 is zero, let's skip
+                // it.
+                continue;
+            }
+            if (pivot > r0) {
+                // Found a non-zero row somewhere below r0; let's
+                // swap it in.
+                for (unsigned c = c0; c < nc; c++) {
+                    mv[pivot*nc + c].swap(mv[r0*nc + c]);
+                }
+            }
+            ex a = mv[r0*nc + c0];
+            for (unsigned r = r0 + 1; r < nr; r++) {
+                ex b = mv[r*nc + c0];
+                if (!b.is_zero()) {
+                    ex k = b/a;
+                    mv[r*nc + c0] = 0;
+                    for (unsigned c = c0 + 1; c < nc; c++) {
+                        mv[r*nc + c] = normal(mv[r*nc + c] - k*mv[r0*nc + c]);
+                    }
+                }
+            }
+            r0++;
+        }
+        // Zero out the remaining rows (just in case).
+        for (unsigned r = r0 + 1; r < nr; r++) {
+            for (unsigned c = 0; c < nc; c++) {
+                mv[r*nc + c] = 0;
+            }
+        }
+    }
 
-    pair<matrix, vector<pair<ex,int>>> jordan(const matrix &m) {
+    void matrix_hack::append_rows(const matrix &src) {
+        if(col != src.cols()) throw Error("error");
+        row += src.rows();
+        m.insert(m.end(), ((const matrix_hack*)&src)->m.begin(), ((const matrix_hack*)&src)->m.end());
+    }
+
+    exvector & matrix_hack::mvec() {
+        ensure_if_modifiable();
+        return m;
+    }
+
+    void matrix_hack::resize(unsigned nrows) {
+        row = nrows;
+        m.resize(row*col);
+    }
+    
+    // dual basis matrix for u with x*u=1
+    vector<matrix> dual_basis(const matrix &u) {
+        matrix identity = ex_to<matrix>(unit_matrix(u.cols()));
+        vector<matrix> results;
+        
+        matrix tmp(u.cols(), u.rows());
+        exmap tmpz;
+        for (unsigned i = 0; i < tmp.nops(); i++) {
+            symbol t;
+            tmp.let_op(i) = t;
+            tmpz[t] = 0;
+        }
+        
+        try {
+            // Solve x*u=1.
+            matrix x = matrix_solve_left(normal(u), tmp, identity);
+            for(int i=0; i<x.nops(); i++) x.let_op(i) = x.op(i).subs(tmpz);
+            results.push_back(x);
+        } catch (const std::runtime_error &e) {
+            if (e.what() != std::string("matrix::solve(): inconsistent linear system")) {
+                throw;
+            }
+        }
+        return results;
+    }
+    
+    vector<matrix> dual_basis_left(const matrix &v) {
+        vector<matrix> results;
+        for(auto item : dual_basis(v.transpose())) {
+            results.push_back(item.transpose());
+        }
+        return results;
+    }
+    
+    matrix matrix_solve_left(const matrix &m, const matrix &vars, const matrix &rhs) {
+        return m.transpose().solve(vars.transpose(), rhs.transpose()).transpose();
+    }
+
+    matrix normal(const matrix & m0) {
+        matrix m = m0;
+        for(unsigned i=0; i<m.nops(); i++) m.let_op(i) = normal(m.op(i));
+        return m;
+    }    
+    
+    //=*********************************************************************=
+    
+    ev_am_t ev_am(const matrix &mat) { // eigenvalue_algebric_multiplicity
+        ev_am_t ev2am;
+        symbol lambda("L");
+        matrix m = ex_to<matrix>(unit_matrix(mat.rows()));
+        m = m.mul_scalar(lambda).sub(mat); // lambda I - M
+        ex charpoly = fermat_Det(m);
+        ex num = factor_flint(normal(charpoly).numer());
+        exvector fvec;
+        if (is_a<mul>(num)) for (const auto &f : num) fvec.push_back(f);
+        else fvec.push_back(num);
+        for (const auto &f : fvec) {
+            ex b = f; 
+            int n = 1;
+            if (is_a<power>(f)) {
+                b = f.op(0);
+                n = ex_to<numeric>(f.op(1)).to_int();
+            } 
+            int deg = b.degree(lambda);
+            if (deg == 0) { }
+            else if (deg == 1) {
+                ex c0 = b.coeff(lambda, 0);
+                ex c1 = b.coeff(lambda, 1);
+                ev2am[ratcan(-c0/c1)] += n;
+            } else {
+                cout << charpoly << " : " << f << endl;
+                throw Error("ev_am: higher powers found.");
+            }
+        }
+        return ev2am;
+    }
+
+    pair<matrix, jcf_t> jordan(const matrix &m) {
         if(m.cols() != m.rows()) throw Error("jordan");
-        map<ex, unsigned, ex_is_less> eval2almul = eigenvalues(m);
-        return jordan(m, eval2almul);
+        auto ev2am = ev_am(m);
+        return jordan(m, ev2am);
     }
         
-    pair<matrix, vector<pair<ex,int>>> jordan(const matrix &m, const map<ex, unsigned, ex_is_less> & eval2almul) {
+    pair<matrix, jcf_t> jordan(const matrix &m, ev_am_t & ev2am) {
         unsigned n = m.rows();
         matrix q(n, n);
         vector<pair<ex,int>> jcs;
         int idxq = 0;
-        for (const auto &kv : eval2almul) {
+        for (const auto &kv : ev2am) {
             const auto &eval = kv.first;
             const auto &almul = kv.second;
             matrix mm = m;
@@ -232,6 +437,59 @@ namespace HepLib::EoD {
             }
         }
         return make_pair(q, jcs);
+    }
+    
+    matrix proj_mat(const matrix & a0, const matrix & a1) {
+        symbol lambda("L");
+        // n = (a0 a1-l)
+        //     (0  a0  )
+        matrix n(2*a0.rows(), 2*a0.cols());
+        for (unsigned i = 0; i < a0.rows(); i++) {
+            for (unsigned j = 0; j < a0.cols(); j++) {
+                n(i, j) = a0(i, j);
+                n(i + a0.rows(), j + a0.cols()) = a0(i, j);
+            }
+        }
+        for (unsigned i = 0; i < a1.rows(); i++) {
+            for (unsigned j = 0; j < a1.cols(); j++) {
+                n(i, j + a0.cols()) = (i == j) ? a1(i, j) - lambda : a1(i, j);
+            }
+        }
+        
+        vspace ns = nullspace(n);
+        vspace ws(a0.cols());
+        
+        // Find the span of coefficients of the second half of ns as a poly in lambda.
+        for (unsigned i = 0; i < ns.dim(); i++) {
+            int maxdeg = 0;
+            for (unsigned j = 0; j < a0.cols(); j++) {
+                auto &&e = ns.basis_rows()(i, j + a0.cols());
+                maxdeg = max(maxdeg, e.degree(lambda));
+            }
+            matrix s(maxdeg + 1, a0.cols());
+            for (unsigned j = 0; j < a0.cols(); j++) {
+                // It would be great to only expand by lambda here.
+                ex e = expand(ns.basis_rows()(i, j + a0.cols()));
+                for (int deg = 0; deg <= maxdeg; deg++) {
+                    s(deg, j) = exfactor(normal(e.coeff(lambda, deg)));
+                }
+            }
+            ws.add_rows(s);
+        }
+        
+        if(ws.basis_rows().has(lambda)) throw Error("Error: ws.basis_rows().has(lambda)");
+        
+        ws.normalize();
+        matrix wscols = ws.basis_cols();
+        if (ws.dim() == 0) throw Error("Error: matrix is Moser-irreducible");
+        
+        auto dualbs = dual_basis(wscols);
+        
+        if(dualbs.size()<=0) throw Error("Error: dualbs.size()<=0");
+        
+        auto dualb = dualbs[0];
+        matrix p = normal(wscols.mul(dualb));
+        return p;
     }
 
 }

@@ -736,20 +736,27 @@ namespace HepLib {
     }
     
     ex ToCF(const ex & e) {
-        auto cvs = collect_lst(e, lst{NF,TF});
-        ex res = 0;
-        for(auto cv : cvs) {
-            int degTF = cv.op(1).degree(TF);
-            int degNF = cv.op(1).ldegree(NF);
-            if(degTF>0 && degNF<0) {
-                int n = degTF;
-                if(degTF+degNF>0) n = -degNF;
-                res += cv.op(0) * cv.op(1) * pow(TF/NF,-n) * pow(TF*NF-CF,n);
-            } else if(degTF>0 && degNF>1) {
-                int n = degTF;
-                if(degTF>degNF/2) n = degNF/2;
-                res += cv.op(0) * cv.op(1) * pow(TF*NF*NF,-n) * pow(CF*NF+TF,n);
-            } else res += cv.op(0) * cv.op(1);
+        ex res = e;
+        bool todo = true;
+        while(todo) {
+            todo = false;
+            auto cvs = collect_lst(res, lst{NF,TF});
+            res = 0;
+            for(auto cv : cvs) {
+                int degTF = cv.op(1).degree(TF);
+                int degNF = cv.op(1).ldegree(NF);
+                if(degTF>0 && degNF<0) {
+                    todo = true;
+                    int n = degTF;
+                    if(degTF+degNF>0) n = -degNF;
+                    res += cv.op(0) * cv.op(1) * pow(TF/NF,-n) * pow(TF*NF-CF,n);
+                } else if(degTF>0 && degNF>1) {
+                    todo = true;
+                    int n = degTF;
+                    if(degTF>degNF/2) n = degNF/2;
+                    res += cv.op(0) * cv.op(1) * pow(TF*NF*NF,-n) * pow(CF*NF+TF,n);
+                } else res += cv.op(0) * cv.op(1);
+            }
         }
         return res;
     }
