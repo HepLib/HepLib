@@ -10,6 +10,7 @@ using namespace HepLib;
 using namespace std;
 
 int main(int argc, char **argv) {
+    auto verb = Verbose;
     if (argc < 2) {
         cerr << "Usage: " << argv[0] << " [-d]/[-k]/[key] file ..." << endl;
         exit(1);

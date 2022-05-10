@@ -26,6 +26,8 @@ namespace HepLib {
             fmpz_clear(z);
             return res;
         }
+        
+        inline int degree(fmpz_poly_t f) { return fmpz_poly_degree(f); }
     }
     
     //=*********************************************************************=
@@ -42,7 +44,7 @@ namespace HepLib {
     
     void _to_(fmpz_poly_mat_t m, const matrix & mat) {
         auto nr = mat.rows();
-        auto nc = mat.rows();
+        auto nc = mat.cols();
         fmpz_poly_t p;
         fmpz_poly_init(p);
         for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
@@ -53,6 +55,7 @@ namespace HepLib {
     }
     
     void _to_(fmpz_poly_q_t f, const ex & e) {
+        if(syms(e).nops()>1) throw Error(">=2 variables found.");
         if(is_a<symbol>(e)) {
             fmpz_poly_q_set_str(f, "2  0 1/1  1");
             return;
@@ -106,6 +109,7 @@ namespace HepLib {
     }
     
     void _to_(fmpz_poly_t f, const ex & e) {
+        if(syms(e).nops()>1) throw Error(">=2 variables found.");
         if(is_a<symbol>(e)) {
             fmpz_poly_set_str(f, "2  0 1");
             return;
@@ -160,7 +164,7 @@ namespace HepLib {
     
     void _to_(fmpz_mat_t m, const matrix & mat) {
         auto nr = mat.rows();
-        auto nc = mat.rows();
+        auto nc = mat.cols();
         fmpz_t z;
         fmpz_init(z);
         for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
@@ -172,7 +176,7 @@ namespace HepLib {
     
     void _to_(fmpq_mat_t m, const matrix & mat) {
         auto nr = mat.rows();
-        auto nc = mat.rows();
+        auto nc = mat.cols();
         fmpq_t q;
         fmpq_init(q);
         for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
@@ -196,7 +200,7 @@ namespace HepLib {
     
     void _to_(arb_mat_t m, const matrix & mat, slong fp) {
         auto nr = mat.rows();
-        auto nc = mat.rows();
+        auto nc = mat.cols();
         arb_t z;
         arb_init(z);
         for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
@@ -427,7 +431,487 @@ namespace HepLib {
         flint_free(cstr);
         return str2ex(str,x2x); 
     }
+    
+    //=*********************************************************************=
         
+    MX::MX() { }
+    MX::MX(const matrix & m) { init(m); }
+    MX::MX(const MX & mx) { init(mx); }
+    MX::MX(const vector<vector<fmpz_poly_q_t>> & m) { init(m); }
+    
+    MX::~MX() { clear(); nr=-1; nc=-1; }
+        
+    void MX::clear() {
+        if(nr<1||nc<1) return;
+        for(int r=0; r<nr; r++) {
+            for(int c=0; c<nc; c++) fmpz_poly_q_clear(M[r][c]);
+        }
+        nr=-1; nc=-1;
+    }
+    
+    void MX::init(const matrix & m) {
+        clear();
+        nr = m.rows();
+        nc = m.cols();
+        if(nr<1||nc<1) return;
+        M.resize(nr);
+        for(int r=0; r<nr; r++) {
+            M[r] = vector<fmpz_poly_q_t>(nc);
+            for(int c=0; c<nc; c++) {
+                fmpz_poly_q_init(M[r][c]);
+                _to_(M[r][c],m(r,c));
+            }
+        }
+    }
+    
+    void MX::init(const MX & mx) {
+        clear();
+        if(mx.nr<1||mx.nc<1) return;
+        nr = mx.nr;
+        nc = mx.nc;
+        M.resize(nr);
+        for(int r=0; r<nr; r++) {
+            M[r] = vector<fmpz_poly_q_t>(nc);
+            for(int c=0; c<nc; c++) {
+                fmpz_poly_q_init(M[r][c]);
+                fmpz_poly_q_set(M[r][c],mx.M[r][c]);
+            }
+        }
+    }
+    
+    void MX::init(const vector<vector<fmpz_poly_q_t>> & m) {
+        clear();
+        nr = m.size();
+        if(nr<1) return;
+        nc = m[0].size();
+        if(nc<1) return;
+        M.resize(nr);
+        for(int r=0; r<nr; r++) {
+            M[r] = vector<fmpz_poly_q_t>(nc);
+            for(int c=0; c<nc; c++) {
+                fmpz_poly_q_init(M[r][c]);
+                fmpz_poly_q_set(M[r][c],m[r][c]);
+            }
+        }
+    }
+    
+    MX & MX::add(const MX & mx) {
+        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        for(int r=0; r<nr; r++) {
+            for(int c=0; c<nc; c++) fmpz_poly_q_add(M[r][c],M[r][c],mx.M[r][c]);
+            flint_cleanup();
+        }
+        return *this;
+    }
+    
+    MX & MX::sub(const MX & mx) {
+        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        for(int r=0; r<nr; r++) {
+            for(int c=0; c<nc; c++) fmpz_poly_q_sub(M[r][c],M[r][c],mx.M[r][c]);
+            flint_cleanup();
+        }
+        return *this;
+    }
+    
+    MX & MX::mul(const MX & mx) { 
+        if(this!=&mx && mx.nc==nc) {
+            vector<fmpz_poly_q_t> row(nc); // keep a row
+            for(int c=0; c<nc; c++) fmpz_poly_q_init(row[c]);
+            for(int r=0; r<nr; r++) {
+                for(int c=0; c<nc; c++) fmpz_poly_q_set(row[c], M[r][c]);
+                #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                for(int c=0; c<nc; c++) {
+                    fmpz_poly_q_zero(M[r][c]);
+                    for(int i=0; i<nc; i++) fmpz_poly_q_addmul(M[r][c],row[i],mx.M[i][c]);
+                    flint_cleanup();
+                }
+            }
+            for(int c=0; c<nc; c++) fmpz_poly_q_clear(row[c]);
+        } else {
+            vector<vector<fmpz_poly_q_t>> mat(nr);
+            int nc2 = mx.nc;
+            #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+            for(int r=0; r<nr; r++) {
+                mat[r] = vector<fmpz_poly_q_t>(nc2);
+                for(int c=0; c<nc2; c++) {
+                    fmpz_poly_q_init(mat[r][c]);
+                    fmpz_poly_q_zero(mat[r][c]);
+                    for(int i=0; i<nc; i++) fmpz_poly_q_addmul(mat[r][c],M[r][i],mx.M[i][c]);
+                }
+                flint_cleanup();
+            }
+            clear();
+            init(mat);
+            for(int r=0; r<nr; r++) for(int c=0; c<nc2; c++) fmpz_poly_q_clear(mat[r][c]);
+        }
+        return *this;
+    }
+    
+    MX & MX::mul_left(const MX & mx) {
+        if(this!=&mx && mx.nr==nr) {
+            vector<fmpz_poly_q_t> col(nr);
+            for(int r=0; r<nr; r++) fmpz_poly_q_init(col[r]);
+            for(int c=0; c<nc; c++) {
+                for(int r=0; r<nr; r++) fmpz_poly_q_set(col[r], M[r][c]);
+                #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                for(int r=0; r<nr; r++) {
+                    fmpz_poly_q_zero(M[r][c]);
+                    for(int i=0; i<nr; i++) fmpz_poly_q_addmul(M[r][c],mx.M[r][i],col[i]);
+                    flint_cleanup();
+                }
+            }
+            for(int r=0; r<nr; r++) fmpz_poly_q_clear(col[r]);
+        } else {
+            int nr2 = mx.nr;
+            vector<vector<fmpz_poly_q_t>> mat(nr2);
+            #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+            for(int r=0; r<nr2; r++) {
+                mat[r] = vector<fmpz_poly_q_t>(nc);
+                for(int c=0; c<nc; c++) {
+                    fmpz_poly_q_init(mat[r][c]);
+                    fmpz_poly_q_zero(mat[r][c]);
+                    for(int i=0; i<nr; i++) fmpz_poly_q_addmul(mat[r][c],mx.M[r][i],M[i][c]);
+                }
+                flint_cleanup();
+            }
+            clear();
+            init(mat);
+            for(int r=0; r<nr2; r++) for(int c=0; c<nc; c++) fmpz_poly_q_clear(mat[r][c]);
+        }
+        return *this;
+    }
+    
+    MX & MX::add(const matrix & m) { MX mx(m); return add(mx); }
+    MX & MX::sub(const matrix & m) { MX mx(m); return sub(mx); }
+    MX & MX::mul(const matrix & m) { MX mx(m); return mul(mx); }
+    MX & MX::mul_left(const matrix & m) { MX mx(m); return mul_left(mx); }
+    
+    MX & MX::scale(const ex & s) {
+        fmpz_poly_q_t f;
+        fmpz_poly_q_init(f);
+        _to_(f,s);
+        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        for(int r=0; r<nr; r++) {
+            for(int c=0; c<nc; c++) fmpz_poly_q_mul(M[r][c],M[r][c],f);
+            flint_cleanup();
+        }
+        fmpz_poly_q_clear(f);
+        return *this;
+    }
+    
+    MX & MX::dx() {
+        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        for(int r=0; r<nr; r++) {
+            for(int c=0; c<nc; c++) fmpz_poly_q_derivative(M[r][c],M[r][c]);
+            flint_cleanup();
+        }
+        return *this;
+    }
+        
+    MX & MX::balance(const matrix & P) {
+        if(nr!=nc) throw Error("nr!=nc");
+        static symbol x("x");
+        MX mx1(P);
+        MX mx2(mx1);
+        mx1.scale(x);
+        mx2.scale(1/x);
+        auto coP = ex_to<matrix>(unit_matrix(nr)).sub(P);
+        MX mx3(coP);
+        auto mx4(mx3);
+        mx3.sub(mx1);
+        mx4.sub(mx2);
+        return mul_left(mx3).mul(mx4).add(mx2);
+    }
+
+    MX & MX::transform(const matrix & t, const matrix & ti) {
+        if(nr!=nc) throw Error("nr!=nc");
+        MX tX(t), tiX(ti);
+        return mul(tX).sub(tX.dx()).mul_left(tiX);
+    }
+    
+    MX & MX::shift(const ex & x0) {
+        if(!x0.info(info_flags::rational)) {
+            cout << endl << "x0 = " << x0 << endl;
+            throw Error("x0 is not rational.");
+        }
+        auto nd = normal(-x0).numer_denom();
+        fmpz_t qn, qd;
+        fmpz_init(qn); 
+        fmpz_init(qd);
+        _to_(qn,nd.op(0));
+        _to_(qd,nd.op(1));
+        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        for(int r=0; r<nr; r++) {
+            fmpz_t z;
+            fmpz_init(z);
+            for(int c=0; c<nc; c++) {
+                auto num = fmpz_poly_q_numref(M[r][c]);
+                auto nn = fmpz_poly_length(num);
+                auto den = fmpz_poly_q_denref(M[r][c]);
+                auto dn = fmpz_poly_length(den);
+                slong nr = nn;
+                if(nn>dn) {
+                    nr = nn;
+                    fmpz_pow_ui(z,qd,nn-dn);
+                    fmpz_poly_scalar_mul_fmpz(den,den,z);
+                } else if(dn>nn) {
+                    nr = dn;
+                    fmpz_pow_ui(z,qd,dn-nn);
+                    fmpz_poly_scalar_mul_fmpz(num,num,z);
+                }
+                for(int i=0; i<nn; i++) {
+                    auto ci = fmpz_poly_get_coeff_ptr(num, i);
+                    if(ci==NULL) throw Error("ci == NULL");
+                    fmpz_pow_ui(z,qd,nn-i);
+                    fmpz_mul(ci, ci, z);
+                }
+                for(int i=0; i<dn; i++) {
+                    auto ci = fmpz_poly_get_coeff_ptr(den, i);
+                    fmpz_pow_ui(z,qd,dn-i);
+                    fmpz_mul(ci, ci, z);
+                }
+                fmpz* rs;
+                rs = _fmpz_vec_init(nr);
+                for(int i=0; i<nr; i++) fmpz_set(rs+i,qn);
+                _fmpz_poly_newton_to_monomial(num->coeffs, rs, nn);
+                _fmpz_poly_newton_to_monomial(den->coeffs, rs, dn);
+                for(int i=0; i<nn; i++) {
+                    auto ci = fmpz_poly_get_coeff_ptr(num, i);
+                    fmpz_pow_ui(z,qd,i);
+                    fmpz_mul(ci, ci, z);
+                }
+                for(int i=0; i<dn; i++) {
+                    auto ci = fmpz_poly_get_coeff_ptr(den, i);
+                    fmpz_pow_ui(z,qd,i);
+                    fmpz_mul(ci, ci, z);
+                }
+                _fmpz_vec_clear(rs,nr);
+                fmpz_poly_q_canonicalise(M[r][c]);
+            }
+            fmpz_clear(z);
+            flint_cleanup();
+        }
+        fmpz_clear(qn); 
+        fmpz_clear(qd);
+        return *this;
+    }
+    
+    matrix MX::operator()(const ex & x) {
+        if(nr<1||nc<1) return matrix();
+        matrix rmat(nr,nc);
+        symtab st;
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            rmat(r,c) = _to_(x,M[r][c]);
+        }
+        return rmat;
+    }
+    
+    void MX::operator()(vector<vector<fmpz_poly_q_t>> & m) {
+        int nr_m = m.size();
+        int nc_m = m[0].size();
+        if(nr!=nr_m || nc!=nc_m) throw Error("matrix dimension not match.");
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            fmpz_poly_q_set(m[r][c],M[r][c]);
+        }
+    }
+    
+    int MX::prank() {
+        int pr;
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            fmpz_poly_q_canonicalise(M[r][c]);
+            auto ipr = ldegree(fmpz_poly_q_numref(M[r][c]));
+            if(ipr==0) ipr = -ldegree(fmpz_poly_q_denref(M[r][c]));
+            if(r==0 && c==0) pr = ipr;
+            else if(ipr<pr) pr = ipr;
+        }
+        return -1-pr;
+    }
+    
+    matrix MX::a0() {
+        fmpz_t z;
+        fmpz_init(z);
+        auto pr = prank();
+        matrix m(nr,nc);
+        if(pr<0) return m;
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            auto num = fmpz_poly_q_numref(M[r][c]);
+            auto den = fmpz_poly_q_denref(M[r][c]);
+            auto ipr_num = ldegree(num);
+            auto ipr_den = ldegree(den);
+            if(ipr_den-ipr_num<pr+1) m(r,c)=0;
+            else if(ipr_num>0) {
+                if(ipr_den!=0) throw Error("something is wrong here.");
+                fmpz_poly_get_coeff_fmpz(z,num,ipr_num);
+                m(r,c) = _to_(z);
+                fmpz_poly_get_coeff_fmpz(z,den,0);
+                m(r,c) /= _to_(z);
+            } else {
+                if(ipr_num!=0) throw Error("something is wrong here.");
+                fmpz_poly_get_coeff_fmpz(z,num,0);
+                m(r,c) = _to_(z);
+                fmpz_poly_get_coeff_fmpz(z,den,ipr_den);
+                m(r,c) /= _to_(z);
+            }
+        }
+        fmpz_clear(z);
+        return m;
+    }
+    
+    pair<matrix,matrix> MX::a01() {
+        fmpz_t z;
+        fmpz_init(z);
+        auto pr = prank();
+        if(pr<0) pr = 0;
+        matrix m0(nr,nc), m1(nr,nc);
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            auto num = fmpz_poly_q_numref(M[r][c]);
+            auto den = fmpz_poly_q_denref(M[r][c]);
+            auto ipr_num = ldegree(num);
+            auto ipr_den = ldegree(den);
+            if(ipr_den-ipr_num<pr) { m0(r,c)=0; m1(r,c)=0; continue; }
+            ex n0, n1, d0, d1;
+            if(ipr_num>0) {
+                if(ipr_den!=0) throw Error("1: something is wrong here.");
+                fmpz_poly_get_coeff_fmpz(z,num,ipr_num);
+                n0 = _to_(z);
+                fmpz_poly_get_coeff_fmpz(z,num,ipr_num+1);
+                n1 = _to_(z);
+                fmpz_poly_get_coeff_fmpz(z,den,0);
+                d0 = _to_(z);
+                fmpz_poly_get_coeff_fmpz(z,den,1);
+                d1 = _to_(z);
+            } else {
+                if(ipr_num!=0) throw Error("2: something is wrong here.");
+                fmpz_poly_get_coeff_fmpz(z,num,0);
+                n0 = _to_(z);
+                fmpz_poly_get_coeff_fmpz(z,num,1);
+                n1 = _to_(z);
+                fmpz_poly_get_coeff_fmpz(z,den,ipr_den);
+                d0 = _to_(z);
+                fmpz_poly_get_coeff_fmpz(z,den,ipr_den+1);
+                d1 = _to_(z);
+            }
+            if(ipr_den-ipr_num==pr) { 
+                m0(r,c)=0; 
+                m1(r,c)=n0/d0; 
+                continue; 
+            } else {
+                if(ipr_den-ipr_num!=pr+1) throw Error("3: something is wrong here.");
+                m0(r,c)=n0/d0; 
+                m1(r,c)=(d0*n1-d1*n0)/(d0*d0); 
+            }
+        }
+        fmpz_clear(z);
+        return make_pair(m0,m1);
+    }
+    
+    int MX::degree() {
+        int deg;
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            auto den = fmpz_poly_q_denref(M[r][c]);
+            auto num = fmpz_poly_q_numref(M[r][c]);
+            if(fmpz_poly_length(den)!=1) throw Error("degree: denominator is NOT constant");
+            auto cdeg = fmpz_poly_degree(num);
+            if(r==0 && c==0) deg = cdeg;
+            else if(deg<cdeg) deg = cdeg;
+        }
+        return deg;
+    }
+    
+    void MX::series(int xn) {
+        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            auto den = fmpz_poly_q_denref(M[r][c]);
+            auto num = fmpz_poly_q_numref(M[r][c]);
+            fmpq_poly_t den_q, num_q;
+            fmpq_poly_init(den_q);
+            fmpq_poly_init(num_q);
+            fmpq_poly_set_fmpz_poly(den_q,den);
+            fmpq_poly_set_fmpz_poly(num_q,num);
+            auto dn = ldegree(den);
+            if(dn>0) fmpq_poly_shift_right(den_q,den_q,dn);
+            fmpq_poly_div_series(num_q,num_q,den_q,xn+dn+1);
+            fmpq_poly_get_numerator(num,num_q);
+            fmpz_t z;
+            fmpz_init(z);
+            fmpq_poly_get_denominator(z,num_q);
+            fmpz_poly_set_fmpz(den,z);
+            if(dn>0) fmpz_poly_shift_left(den,den,dn);
+            fmpz_clear(z);
+            fmpq_poly_clear(den_q);
+            fmpq_poly_clear(num_q);
+            fmpz_poly_q_canonicalise(M[r][c]);
+            flint_cleanup();
+        }
+    }
+    
+    matrix MX::coeff(int i) {
+        fmpz_t z;
+        fmpz_init(z);
+        matrix rmat(nr,nc);
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            auto den = fmpz_poly_q_denref(M[r][c]);
+            auto num = fmpz_poly_q_numref(M[r][c]);
+            slong ldeg = ldegree(den);
+            if(fmpz_poly_degree(den)!=ldeg) throw Error("coeff: not a monomial in denominator.");
+            fmpz_poly_get_coeff_fmpz(z,den,ldeg);
+            ex _den = _to_(z);
+            if(i+ldeg>=0) {
+                fmpz_poly_get_coeff_fmpz(z,num,(slong)(i+ldeg));
+                ex _num = _to_(z);
+                rmat(r,c) = _num/_den;
+            } else rmat(r,c) = 0;
+        }
+        fmpz_clear(z);
+        return rmat;
+    }
+    
+    void MX::coeff(fmpq_mat_t m, int i) {
+        fmpz_t zn,zd;
+        fmpz_init(zn);
+        fmpz_init(zd);
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            auto item = fmpq_mat_entry(m,r,c);
+            auto den = fmpz_poly_q_denref(M[r][c]);
+            auto num = fmpz_poly_q_numref(M[r][c]);
+            slong ldeg = ldegree(den);
+            if(fmpz_poly_degree(den)!=ldeg) throw Error("coeff: not a monomial in denominator.");
+            fmpz_poly_get_coeff_fmpz(zd,den,ldeg);
+            if(fmpz_is_zero(zd)) throw Error("denominator is zero.");
+            if(i+ldeg>=0) {
+                fmpz_poly_get_coeff_fmpz(zn,num,(slong)(i+ldeg));
+                fmpq_set_fmpz_frac(item,zn,zd);
+            } else fmpq_zero(item);
+        }
+        fmpz_clear(zn);
+        fmpz_clear(zd);
+    }
+    
+    void MX::coeff(acb_mat_t m, int i, slong fp) {
+        fmpz_t zn,zd;
+        fmpz_init(zn);
+        fmpz_init(zd);
+        fmpq_t q;
+        fmpq_init(q);
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            auto item = acb_mat_entry(m,r,c);
+            auto den = fmpz_poly_q_denref(M[r][c]);
+            auto num = fmpz_poly_q_numref(M[r][c]);
+            slong ldeg = ldegree(den);
+            if(fmpz_poly_degree(den)!=ldeg) throw Error("coeff: not a monomial in denominator.");
+            fmpz_poly_get_coeff_fmpz(zd,den,ldeg);
+            if(fmpz_is_zero(zd)) throw Error("denominator is zero.");
+            if(i+ldeg>=0) {
+                fmpz_poly_get_coeff_fmpz(zn,num,(slong)(i+ldeg));
+                fmpq_set_fmpz_frac(q,zn,zd);
+                acb_set_fmpq(item,q,fp);
+            } else acb_zero(item);
+        }
+        fmpz_clear(zn);
+        fmpz_clear(zd);
+        fmpq_clear(q);
+    }
+    
     //=*********************************************************************=
     
     ex factor_flint(const ex & expr) {
@@ -557,6 +1041,12 @@ namespace HepLib {
         fmpz_poly_q_clear(f);
         return res;
     }
+    
+    matrix normal_flint(const matrix & mat) {
+        matrix m = mat;
+        for(int i=0; i<m.nops(); i++) m.let_op(i) = normal_flint(m.op(i));
+        return m;
+    }   
     
     ex den_lcm(const ex & expr) {
         auto xs = syms(expr);
