@@ -64,6 +64,7 @@ namespace HepLib {
         MX & mul_left(const matrix & m);
         MX & dx();
         MX & scale(const ex & s);
+        MX & scale(fmpz_poly_q_t f);
         MX & balance(const matrix & P);
         MX & transform(const matrix & t, const matrix & ti);
         MX & shift(const ex & x0);
@@ -72,6 +73,7 @@ namespace HepLib {
         int prank();
         int degree();
         void series(int xn);
+        int denlcm(fmpz_poly_t dl); // return degree of dl and M got updated
         matrix coeff(int i);
         void coeff(fmpq_mat_t m, int i);
         void coeff(acb_mat_t m, int i, slong fp);

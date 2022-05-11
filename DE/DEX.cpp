@@ -281,7 +281,7 @@ namespace HepLib {
             mxti[bi].init(ti.inverse());
         }
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
-        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
         for(int br=0; br<nbs; br++) for(int bc=0; bc<br; bc++) {
             MX mx(Mat[br][bc]);
             mx.mul_left(mxti[br]).mul(mxt[bc])(Mat[br][bc]);
@@ -455,21 +455,26 @@ namespace HepLib {
     }
     
     block_umat_t DEX::series(int xn) { // RU[a][b][la][k][n]
+        omp_set_nested(1);
+        omp_set_max_active_levels(3);
+        
         if(!fuchsified) fuchsify();
         auto nbs = bs.size();
         block_umat_fmpq_mat_t U(nbs);
-        vector<vector<MX>> A(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
             int nr = bs[br].second;
             U[br].resize(br+1);
-            A[br].resize(br+1); // M=A/x
+            vector<MX> A(br+1); // M=A/x
+            fmpz_poly_t lcm;
+            fmpz_poly_init(lcm);
+            fmpz_poly_set_str(lcm, "1  1");
             for(int bc=br; bc>=0; bc--) { // cycle columns
                 int nc = bs[bc].second;
 
-                // rational series for each block A[br][bc] 
-                A[br][bc].init(Mat[br][bc]);
-                A[br][bc].scale(x); // A=x*M
-                A[br][bc].series(xn);
+                // rational series for each block A[br][bc] -> A[bc]
+                A[bc].init(Mat[br][bc]);
+                A[bc].scale(x); // A=x*M
+                A[bc].series(xn);
                 
                 // now we use a=br, b=bc, note that M=A/x
                 // (la+n-A0aa).Uab(ila,k,n) = -Uab(ila,k+1,n)
@@ -477,7 +482,7 @@ namespace HepLib {
                 int a = br, b = bc;
                 fmpq_mat_t A0aa;
                 fmpq_mat_init(A0aa,nr,nr);
-                A[a][a].coeff(A0aa,0);
+                A[a].coeff(A0aa,0);
                 
                 int nla = UK[a][b].size();
                 if(!In_GiNaC_Parallel && Verbose>5) {
@@ -487,7 +492,7 @@ namespace HepLib {
                     cout << " \u03BB" << nla << " n" << xn << flush;
                 }
                 for(auto kv : UK[a][b]) U[a][b][kv.first].resize(kv.second); // insert kv first and make sure thread-safe
-                #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                //#pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
                 for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
                     fmpq_mat_t invA;
                     fmpq_mat_init(invA,nr,nr);
@@ -523,11 +528,11 @@ namespace HepLib {
                             if(abk_chk) { // sum_{1<=m<=n} Amaa(ila,k,m).Uab(ila,k,n-m)
                                 vector<fmpq_mat_t> mat_vec(n+1);
                                 for(int m=1; m<=n; m++) fmpq_mat_init(mat_vec[m],nr,nc);
-                                #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                                #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
                                 for(int m=1; m<=n; m++) {
                                     fmpq_mat_t Amaa;
                                     fmpq_mat_init(Amaa,nr,nr);
-                                    A[a][a].coeff(Amaa,m);
+                                    A[a].coeff(Amaa,m);
                                     fmpq_mat_mul(mat_vec[m],Amaa,U[a][b][ila][k][n-m]);
                                     fmpq_mat_clear(Amaa);
                                     flint_cleanup();
@@ -541,17 +546,17 @@ namespace HepLib {
                             if(true) { // sum_{b<=c<a,0<=m<=n} Amac.Ucb(ila,k,n-m)
                                 vector<fmpq_mat_t> smat_vec(a-b);
                                 for(int i=0; i<a-b; i++) fmpq_mat_init(smat_vec[i],nr,nc);
-                                #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                                #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
                                 for(int c=b; c<a; c++) {
                                     if(U[c][b].find(ila)!=U[c][b].end() && U[c][b][ila].size()>k) {
                                         vector<fmpq_mat_t> mat_vec(n+1);
                                         for(int i=0; i<=n; i++) fmpq_mat_init(mat_vec[i],nr,nc);
-                                        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                                        //#pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
                                         for(int m=0; m<=n; m++) {
                                             int nc2 = bs[c].second;
                                             fmpq_mat_t Amac;
                                             fmpq_mat_init(Amac,nr,nc2);
-                                            A[a][c].coeff(Amac,m);
+                                            A[c].coeff(Amac,m);
                                             fmpq_mat_mul(mat_vec[m],Amac,U[c][b][ila][k][n-m]);
                                             fmpq_mat_clear(Amac);
                                             flint_cleanup();
@@ -585,8 +590,10 @@ namespace HepLib {
                     fmpq_mat_clear(smat);
                     flint_cleanup();
                 }
+                for(int bc=br; bc>=0; bc--) A[bc].clear();
                 fmpq_mat_clear(A0aa);
             }
+            fmpz_poly_clear(lcm);
         }
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
         
@@ -594,7 +601,6 @@ namespace HepLib {
         for(int br=0; br<nbs; br++) { // cycle rows
             RU[br].resize(br+1);
             for(int bc=br; bc>=0; bc--) { // cycle columns
-                A[br][bc].clear();
                 for(auto & kv : U[br][bc]) {
                     auto ila = kv.first;
                     auto la = las[ila];
@@ -702,15 +708,14 @@ namespace HepLib {
     block_imat_t DEX::series(int xn, block_imat_fmpq_mat_t & In0, int nc) { // RI[a][la][k][n] & & In0[a][ila][k]
         auto nbs = bs.size();
         block_imat_fmpq_mat_t I(nbs);
-        vector<vector<MX>> A(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
             int nr = bs[br].second;
-            A[br].resize(br+1); // M=A/x
+            vector<MX> A(br+1); // M=A/x
             for(int bc=br; bc>=0; bc--) { 
-                // rational series for each block A[br][bc] 
-                A[br][bc].init(Mat[br][bc]);
-                A[br][bc].scale(x); // A=x*M
-                A[br][bc].series(xn);
+                // rational series for each block A[br][bc] -> A[bc] 
+                A[bc].init(Mat[br][bc]);
+                A[bc].scale(x); // A=x*M
+                A[bc].series(xn);
             }
             
             // now we use a=br
@@ -719,7 +724,7 @@ namespace HepLib {
             int a = br;
             fmpq_mat_t A0aa;
             fmpq_mat_init(A0aa,nr,nr);
-            A[a][a].coeff(A0aa,0);
+            A[a].coeff(A0aa,0);
             
             int nla = IK[a].size();
             if(!In_GiNaC_Parallel && Verbose>5) {
@@ -729,7 +734,7 @@ namespace HepLib {
                 cout << " \u03BB" << nla << " n" << xn << flush;
             }
             for(auto kv : IK[a]) I[a][kv.first].resize(kv.second); // insert kv first and make sure thread-safe
-            #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+            //#pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
             for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
                 fmpq_mat_t invA;
                 fmpq_mat_init(invA,nr,nr);
@@ -765,11 +770,11 @@ namespace HepLib {
                         if(abk_chk) { // sum_{1<=m<=n} Amaa(la,k,m).Ia(la,k,n-m)
                             vector<fmpq_mat_t> mat_vec(n+1);
                             for(int m=1; m<=n; m++) fmpq_mat_init(mat_vec[m],nr,nc);
-                            #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                            #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
                             for(int m=1; m<=n; m++) {
                                 fmpq_mat_t Amaa;
                                 fmpq_mat_init(Amaa,nr,nr);
-                                A[a][a].coeff(Amaa,m);
+                                A[a].coeff(Amaa,m);
                                 fmpq_mat_mul(mat_vec[m],Amaa,I[a][ila][k][n-m]);
                                 fmpq_mat_clear(Amaa);
                                 flint_cleanup();
@@ -783,17 +788,17 @@ namespace HepLib {
                         if(true) { // sum_{b<a,0<=m<=n} Amab.Ib(la,k,n-m)
                             vector<fmpq_mat_t> smat_vec(a);
                             for(int i=0; i<a; i++) fmpq_mat_init(smat_vec[i],nr,nc);
-                            #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                            #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic,1)
                             for(int b=0; b<a; b++) {
                                 if(I[b].find(ila)!=I[b].end() && I[b][ila].size()>k) {
                                     vector<fmpq_mat_t> mat_vec(n+1);
                                     for(int i=0; i<=n; i++) fmpq_mat_init(mat_vec[i],nr,nc);
-                                    #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                                    //#pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
                                     for(int m=0; m<=n; m++) {
                                         int nc2 = bs[b].second;
                                         fmpq_mat_t Amab;
                                         fmpq_mat_init(Amab,nr,nc2);
-                                        A[a][b].coeff(Amab,m);
+                                        A[b].coeff(Amab,m);
                                         fmpq_mat_mul(mat_vec[m],Amab,I[b][ila][k][n-m]);
                                         fmpq_mat_clear(Amab);
                                         flint_cleanup();
@@ -830,12 +835,12 @@ namespace HepLib {
                 flint_cleanup();
             }
             fmpq_mat_clear(A0aa);
+            for(int bc=br; bc>=0; bc--) A[bc].clear();
         }
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
         
         block_imat_t RI(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
-            for(int bc=br; bc>=0; bc--) A[br][bc].clear();
             for(auto & kv : I[br]) {
                 auto ila = kv.first;
                 auto la = las[ila];
@@ -855,18 +860,20 @@ namespace HepLib {
     }
     
     block_imat_t DEX::series(int xn, block_imat_acb_mat_t & In0, int nc, slong dp) { // RI[a][la][k][n] & & In0[a][la][k]
+        //omp_set_nested(1);
+        //omp_set_max_active_levels(3);
+        
         auto fp = dp2fp(dp);
         auto nbs = bs.size();
         block_imat_acb_mat_t I(nbs);
-        vector<vector<MX>> A(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
             int nr = bs[br].second;
-            A[br].resize(br+1); // M=A/x
+            vector<MX> A(br+1); // M=A/x
             for(int bc=br; bc>=0; bc--) { 
-                // rational series for each block A[br][bc] 
-                A[br][bc].init(Mat[br][bc]);
-                A[br][bc].scale(x); // A=x*M
-                A[br][bc].series(xn);
+                // rational series for each block A[br][bc] -> A[bc] 
+                A[bc].init(Mat[br][bc]);
+                A[bc].scale(x); // A=x*M
+                A[bc].series(xn);
             }
             
             // now we use a=br
@@ -875,17 +882,17 @@ namespace HepLib {
             int a = br;
             acb_mat_t A0aa;
             acb_mat_init(A0aa,nr,nr);
-            A[a][a].coeff(A0aa,0,fp);
+            A[a].coeff(A0aa,0,fp);
             
             int nla = IK[a].size();
             if(!In_GiNaC_Parallel && Verbose>5) {
                 cout << "\r                                                              \r" << flush;
-                cout << "  \\--series: " << nbs << "|" << br+1;
+                cout << "  \\--nseries: " << nbs << "|" << br+1;
                 cout << " [" << nr << "\u2A09" << nc << "]";
                 cout << " \u03BB" << nla << " n" << xn << flush;
             }
             for(auto kv : IK[a]) I[a][kv.first].resize(kv.second); // insert kv first and make sure thread-safe
-            #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+            //#pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1) if(not_mac_os)
             for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
                 acb_mat_t invA;
                 acb_mat_init(invA,nr,nr);
@@ -908,7 +915,7 @@ namespace HepLib {
                     
                         if(omp_get_num_threads()==1 && !In_GiNaC_Parallel && Verbose>5) {
                             cout << "\r                                                              \r" << flush;
-                            cout << "  \\--series: " << nbs << "|" << br+1;
+                            cout << "  \\--nseries: " << nbs << "|" << br+1;
                             cout << " [" << nr << "\u2A09" << nc << "]";
                             cout << " \u03BB" << nla << "|" << cla;
                             cout << " k" << kmax << "|" << (kmax-k);
@@ -921,11 +928,11 @@ namespace HepLib {
                         if(abk_chk) { // sum_{1<=m<=n} Amaa(ila,k,m).Ia(ila,k,n-m)
                             vector<acb_mat_t> mat_vec(n+1);
                             for(int m=1; m<=n; m++) acb_mat_init(mat_vec[m],nr,nc);
-                            #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                            #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
                             for(int m=1; m<=n; m++) {
                                 acb_mat_t Amaa;
                                 acb_mat_init(Amaa,nr,nr);
-                                A[a][a].coeff(Amaa,m,fp);
+                                A[a].coeff(Amaa,m,fp);
                                 acb_mat_mul(mat_vec[m],Amaa,I[a][ila][k][n-m],fp);
                                 acb_mat_clear(Amaa);
                                 flint_cleanup();
@@ -939,17 +946,17 @@ namespace HepLib {
                         if(true) { // sum_{b<a,0<=m<=n} Amab.Ib(ila,k,n-m)
                             vector<acb_mat_t> smat_vec(a);
                             for(int i=0; i<a; i++) acb_mat_init(smat_vec[i],nr,nc);
-                            #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                            #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
                             for(int b=0; b<a; b++) {
                                 if(I[b].find(ila)!=I[b].end() && I[b][ila].size()>k) {
                                     vector<acb_mat_t> mat_vec(n+1);
                                     for(int i=0; i<=n; i++) acb_mat_init(mat_vec[i],nr,nc);
-                                    #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                                    //#pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
                                     for(int m=0; m<=n; m++) {
                                         int nc2 = bs[b].second;
                                         acb_mat_t Amab;
                                         acb_mat_init(Amab,nr,nc2);
-                                        A[a][b].coeff(Amab,m,fp);
+                                        A[b].coeff(Amab,m,fp);
                                         acb_mat_mul(mat_vec[m],Amab,I[b][ila][k][n-m],fp);
                                         acb_mat_clear(Amab);
                                         flint_cleanup();
@@ -986,18 +993,18 @@ namespace HepLib {
                 acb_mat_clear(smat);
                 flint_cleanup();
             }
+            for(int bc=br; bc>=0; bc--) A[bc].clear();
             acb_mat_clear(A0aa);
         }
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
         
         mag_t mag;
         mag_init(mag);
-        slong rel_fp = 10000;
-        slong abs_fp = 50000;
-        
+        slong rel_fp = 100;
+        slong abs_fp = 333;
+    
         block_imat_t RI(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
-            for(int bc=br; bc>=0; bc--) A[br][bc].clear();
             for(auto & kv : I[br]) {
                 auto ila = kv.first;
                 auto la = las[ila];

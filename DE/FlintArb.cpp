@@ -496,7 +496,7 @@ namespace HepLib {
     }
     
     MX & MX::add(const MX & mx) {
-        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
         for(int r=0; r<nr; r++) {
             for(int c=0; c<nc; c++) fmpz_poly_q_add(M[r][c],M[r][c],mx.M[r][c]);
             flint_cleanup();
@@ -505,7 +505,7 @@ namespace HepLib {
     }
     
     MX & MX::sub(const MX & mx) {
-        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
         for(int r=0; r<nr; r++) {
             for(int c=0; c<nc; c++) fmpz_poly_q_sub(M[r][c],M[r][c],mx.M[r][c]);
             flint_cleanup();
@@ -519,7 +519,7 @@ namespace HepLib {
             for(int c=0; c<nc; c++) fmpz_poly_q_init(row[c]);
             for(int r=0; r<nr; r++) {
                 for(int c=0; c<nc; c++) fmpz_poly_q_set(row[c], M[r][c]);
-                #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
                 for(int c=0; c<nc; c++) {
                     fmpz_poly_q_zero(M[r][c]);
                     for(int i=0; i<nc; i++) fmpz_poly_q_addmul(M[r][c],row[i],mx.M[i][c]);
@@ -530,7 +530,7 @@ namespace HepLib {
         } else {
             vector<vector<fmpz_poly_q_t>> mat(nr);
             int nc2 = mx.nc;
-            #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+            #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
             for(int r=0; r<nr; r++) {
                 mat[r] = vector<fmpz_poly_q_t>(nc2);
                 for(int c=0; c<nc2; c++) {
@@ -553,7 +553,7 @@ namespace HepLib {
             for(int r=0; r<nr; r++) fmpz_poly_q_init(col[r]);
             for(int c=0; c<nc; c++) {
                 for(int r=0; r<nr; r++) fmpz_poly_q_set(col[r], M[r][c]);
-                #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+                #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
                 for(int r=0; r<nr; r++) {
                     fmpz_poly_q_zero(M[r][c]);
                     for(int i=0; i<nr; i++) fmpz_poly_q_addmul(M[r][c],mx.M[r][i],col[i]);
@@ -564,7 +564,7 @@ namespace HepLib {
         } else {
             int nr2 = mx.nr;
             vector<vector<fmpz_poly_q_t>> mat(nr2);
-            #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+            #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
             for(int r=0; r<nr2; r++) {
                 mat[r] = vector<fmpz_poly_q_t>(nc);
                 for(int c=0; c<nc; c++) {
@@ -590,7 +590,7 @@ namespace HepLib {
         fmpz_poly_q_t f;
         fmpz_poly_q_init(f);
         _to_(f,s);
-        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
         for(int r=0; r<nr; r++) {
             for(int c=0; c<nc; c++) fmpz_poly_q_mul(M[r][c],M[r][c],f);
             flint_cleanup();
@@ -599,8 +599,17 @@ namespace HepLib {
         return *this;
     }
     
+    MX & MX::scale(fmpz_poly_q_t f) {
+        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
+        for(int r=0; r<nr; r++) {
+            for(int c=0; c<nc; c++) fmpz_poly_q_mul(M[r][c],M[r][c],f);
+            flint_cleanup();
+        }
+        return *this;
+    }
+    
     MX & MX::dx() {
-        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
         for(int r=0; r<nr; r++) {
             for(int c=0; c<nc; c++) fmpz_poly_q_derivative(M[r][c],M[r][c]);
             flint_cleanup();
@@ -640,7 +649,7 @@ namespace HepLib {
         fmpz_init(qd);
         _to_(qn,nd.op(0));
         _to_(qd,nd.op(1));
-        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
         for(int r=0; r<nr; r++) {
             fmpz_t z;
             fmpz_init(z);
@@ -819,7 +828,7 @@ namespace HepLib {
     }
     
     void MX::series(int xn) {
-        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
         for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
             auto den = fmpz_poly_q_denref(M[r][c]);
             auto num = fmpz_poly_q_numref(M[r][c]);
@@ -843,6 +852,41 @@ namespace HepLib {
             fmpz_poly_q_canonicalise(M[r][c]);
             flint_cleanup();
         }
+    }
+    
+    int MX::denlcm(fmpz_poly_t dl) { // M will be updated
+        fmpz_poly_t x;
+        fmpz_poly_init(x);
+        vector<fmpz_poly_t> lcms(nr);
+        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
+        for(int r=0; r<nr; r++) {
+            auto lcm = lcms[r];
+            fmpz_poly_init(lcm);
+            fmpz_poly_set_str(lcm, "1  1");
+            for(int c=0; c<nc; c++) {
+                auto num = fmpz_poly_q_numref(M[r][c]);
+                fmpz_poly_shift_left(num,num,1); // x*M
+                fmpz_poly_q_canonicalise(M[r][c]);
+                auto den = fmpz_poly_q_denref(M[r][c]);
+                fmpz_poly_lcm(lcm, lcm, den);
+            }
+            flint_cleanup();
+        }
+        fmpz_poly_set_str(dl, "1  1");
+        for(int r=0; r<nr; r++) {
+            fmpz_poly_lcm(dl,dl,lcms[r]);
+            fmpz_poly_clear(lcms[r]);
+        }
+        #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
+        for(int r=0; r<nr; r++) {
+            for(int c=0; c<nc; c++) {
+                auto num = fmpz_poly_q_numref(M[r][c]);
+                fmpz_poly_mul(num, num, dl);
+                fmpz_poly_q_canonicalise(M[r][c]);
+            }
+            flint_cleanup();
+        }
+        return fmpz_poly_degree(dl);
     }
     
     matrix MX::coeff(int i) {
