@@ -65,6 +65,7 @@ namespace HepLib {
         MX & dx();
         MX & scale(const ex & s);
         MX & scale(fmpz_poly_q_t f);
+        MX & scale(fmpz_poly_t f);
         MX & balance(const matrix & P);
         MX & transform(const matrix & t, const matrix & ti);
         MX & shift(const ex & x0);

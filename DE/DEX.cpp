@@ -374,10 +374,12 @@ namespace HepLib {
         exmap la2s; // la 2 symbol
         matrix m(N,N);
         int cur_pos = 0;
+        exmap s2x;
         for(auto kv : qj.second) {
             if(la2s.find(kv.first)==la2s.end()) {
                 symbol s;
                 la2s[kv.first] = s;
+                s2x[s] = pow(x,kv.first);
             }
             for(int ir=0;ir<kv.second;ir++) {
                 for(int ic=0;ic<kv.second;ic++) {
@@ -389,6 +391,7 @@ namespace HepLib {
             cur_pos += kv.second;
         }
         m = qj.first.mul(m).mul(qj.first.inverse());
+        //cout << subs(m,s2x) << endl;
         
         // initialize UK[a][b][ila] & U0[a][b][ila][k]
         UK.resize(nbs);
@@ -455,9 +458,6 @@ namespace HepLib {
     }
     
     block_umat_t DEX::series(int xn) { // RU[a][b][la][k][n]
-        omp_set_nested(1);
-        omp_set_max_active_levels(3);
-        
         if(!fuchsified) fuchsify();
         auto nbs = bs.size();
         block_umat_fmpq_mat_t U(nbs);
@@ -465,24 +465,38 @@ namespace HepLib {
             int nr = bs[br].second;
             U[br].resize(br+1);
             vector<MX> A(br+1); // M=A/x
-            fmpz_poly_t lcm;
+            fmpz_poly_t lcm, ilcm, olcm, rlcm; // D=lcm
             fmpz_poly_init(lcm);
+            fmpz_poly_init(ilcm);
+            fmpz_poly_init(olcm);
+            fmpz_poly_init(rlcm);
             fmpz_poly_set_str(lcm, "1  1");
             for(int bc=br; bc>=0; bc--) { // cycle columns
                 int nc = bs[bc].second;
 
-                // rational series for each block A[br][bc] -> A[bc]
+                // lcm each block A[br][bc] -> A[bc]
                 A[bc].init(Mat[br][bc]);
                 A[bc].scale(x); // A=x*M
-                A[bc].series(xn);
+
+                A[bc].denlcm(ilcm);
+                fmpz_poly_set(olcm,lcm);
+                fmpz_poly_lcm(lcm, olcm, ilcm);
+                fmpz_poly_div(rlcm, lcm, olcm);
+                for(int bc2=br; bc2>bc; bc2--) A[bc2].scale(rlcm);
+                fmpz_poly_div(rlcm, lcm, ilcm);
+                A[bc].scale(rlcm);
                 
                 // now we use a=br, b=bc, note that M=A/x
-                // (la+n-A0aa).Uab(ila,k,n) = -Uab(ila,k+1,n)
-                //   + sum_{1<=m<=n} Amaa(ila,k,m).Uab(ila,k,n-m) + sum_{b<=c<a,0<=m<=n} Amac.Ucb(ila,k,n-m)
+                // [(ila+n)D0-A0aa].Uab(ila,k,n) = -Uab(ila,k+1,n)D0
+                //   - sum_{0<m<=n} [(ila+n)Uab(ila,k,n-m)+Uab(ila,k+1,n-m)]Dm 
+                //   + sum_{b<=c<=a,0<=m<=n,NO(a=b,m=0)} Amac.Ucb(ila,k,n-m)
                 int a = br, b = bc;
                 fmpq_mat_t A0aa;
                 fmpq_mat_init(A0aa,nr,nr);
                 A[a].coeff(A0aa,0);
+                fmpz_t D0;
+                fmpz_init(D0);
+                fmpz_poly_get_coeff_fmpz(D0,lcm,0);
                 
                 int nla = UK[a][b].size();
                 if(!In_GiNaC_Parallel && Verbose>5) {
@@ -510,7 +524,6 @@ namespace HepLib {
                         fmpq_mat_init(U[a][b][ila][k][0],nr,nc);
                         fmpq_mat_set(U[a][b][ila][k][0],U0[a][b][ila][k][0]);
                         
-                        bool abk_chk = (U[a][b].find(ila)!=U[a][b].end() && U[a][b][ila].size()>k);
                         for(int n=1; n<=xn; n++) { // 3-cycle over n
                         
                             if(omp_get_num_threads()==1 && !In_GiNaC_Parallel && Verbose>5) {
@@ -523,59 +536,79 @@ namespace HepLib {
                             }
                             
                             fmpq_mat_zero(smat);
-                            if(k+1<kmax) fmpq_mat_sub(smat,smat,U[a][b][ila][k+1][n]);
-                            
-                            if(abk_chk) { // sum_{1<=m<=n} Amaa(ila,k,m).Uab(ila,k,n-m)
-                                vector<fmpq_mat_t> mat_vec(n+1);
-                                for(int m=1; m<=n; m++) fmpq_mat_init(mat_vec[m],nr,nc);
+                            fmpq_add_si(q,qlas[ila][0],n); // q = la+n
+
+                            if(true) { 
+                                slong s = fmpz_poly_degree(lcm);
+                                if(s>n) s=n;
+                                vector<fmpq_mat_t> mat_vec(s+1);
+                                for(int m=0; m<=s; m++) fmpq_mat_init(mat_vec[m],nr,nc);
                                 #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
-                                for(int m=1; m<=n; m++) {
-                                    fmpq_mat_t Amaa;
-                                    fmpq_mat_init(Amaa,nr,nr);
-                                    A[a].coeff(Amaa,m);
-                                    fmpq_mat_mul(mat_vec[m],Amaa,U[a][b][ila][k][n-m]);
-                                    fmpq_mat_clear(Amaa);
+                                for(int m=0; m<=s; m++) {
+                                    auto mat = mat_vec[m];
+                                    fmpz_t Dm;
+                                    fmpz_init(Dm);
+                                    fmpq_t qm;
+                                    fmpq_init(qm);
+                                    if(m==0 && k+1<kmax) {
+                                        fmpz_neg(Dm,D0);
+                                        fmpq_mat_scalar_mul_fmpz(mat,U[a][b][ila][k+1][n],Dm);
+                                    } else if(m>0) {
+                                        fmpq_sub_si(qm,q,m);
+                                        fmpq_mat_scalar_mul_fmpq(mat,U[a][b][ila][k][n-m],qm);
+                                        if(k+1<kmax) fmpq_mat_add(mat,mat,U[a][b][ila][k+1][n-m]);
+                                        fmpz_poly_get_coeff_fmpz(Dm,lcm,m);
+                                        fmpz_neg(Dm,Dm);
+                                        fmpq_mat_scalar_mul_fmpz(mat,mat,Dm);
+                                    }
+                                    fmpz_clear(Dm);
+                                    fmpq_clear(qm);
                                     flint_cleanup();
                                 }
-                                for(int m=1; m<=n; m++) {
+                                for(int m=0; m<=s; m++) {
                                     fmpq_mat_add(smat,smat,mat_vec[m]);
                                     fmpq_mat_clear(mat_vec[m]);
                                 }
                             }
-                            
-                            if(true) { // sum_{b<=c<a,0<=m<=n} Amac.Ucb(ila,k,n-m)
-                                vector<fmpq_mat_t> smat_vec(a-b);
-                                for(int i=0; i<a-b; i++) fmpq_mat_init(smat_vec[i],nr,nc);
+
+                            if(true) {
+                                int ab1 = a-b+1;
+                                vector<fmpq_mat_t> smat_vec(ab1);
+                                for(int i=0; i<ab1; i++) fmpq_mat_init(smat_vec[i],nr,nc);
                                 #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
-                                for(int c=b; c<a; c++) {
+                                for(int c=b; c<=a; c++) {
                                     if(U[c][b].find(ila)!=U[c][b].end() && U[c][b][ila].size()>k) {
-                                        vector<fmpq_mat_t> mat_vec(n+1);
-                                        for(int i=0; i<=n; i++) fmpq_mat_init(mat_vec[i],nr,nc);
+                                        slong s = A[c].degree();
+                                        if(s>n) s = n;
+                                        vector<fmpq_mat_t> mat_vec(s+1);
+                                        for(int i=0; i<=s; i++) fmpq_mat_init(mat_vec[i],nr,nc);
                                         //#pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
-                                        for(int m=0; m<=n; m++) {
-                                            int nc2 = bs[c].second;
-                                            fmpq_mat_t Amac;
-                                            fmpq_mat_init(Amac,nr,nc2);
-                                            A[c].coeff(Amac,m);
-                                            fmpq_mat_mul(mat_vec[m],Amac,U[c][b][ila][k][n-m]);
-                                            fmpq_mat_clear(Amac);
+                                        for(int m=0; m<=s; m++) {
+                                            if(c!=a || m!=0) {
+                                                int nc2 = bs[c].second;
+                                                fmpq_mat_t Amac;
+                                                fmpq_mat_init(Amac,nr,nc2);
+                                                A[c].coeff(Amac,m);
+                                                fmpq_mat_mul(mat_vec[m],Amac,U[c][b][ila][k][n-m]);
+                                                fmpq_mat_clear(Amac);
+                                            }
                                             flint_cleanup();
                                         }
                                         fmpq_mat_zero(smat_vec[c-b]);
-                                        for(int i=0; i<=n; i++) {
+                                        for(int i=0; i<=s; i++) {
                                             fmpq_mat_add(smat_vec[c-b],smat_vec[c-b],mat_vec[i]);
                                             fmpq_mat_clear(mat_vec[i]);
                                         }
                                     }
                                     flint_cleanup();
                                 }
-                                for(int i=0; i<a-b; i++) {
+                                for(int i=0; i<ab1; i++) {
                                     fmpq_mat_add(smat,smat,smat_vec[i]);
                                     fmpq_mat_clear(smat_vec[i]);
                                 }
                             }
                             
-                            fmpq_add_si(q,qlas[ila][0],n);
+                            fmpq_mul_fmpz(q,q,D0); // q = (la+n)D0
                             fmpq_mat_one(invA);
                             fmpq_mat_scalar_mul_fmpq(invA,invA,q);
                             fmpq_mat_sub(invA,invA,A0aa);
@@ -590,10 +623,15 @@ namespace HepLib {
                     fmpq_mat_clear(smat);
                     flint_cleanup();
                 }
-                for(int bc=br; bc>=0; bc--) A[bc].clear();
                 fmpq_mat_clear(A0aa);
+                fmpz_clear(D0);
             }
+
+            for(int bc=br; bc>=0; bc--) A[bc].clear();
             fmpz_poly_clear(lcm);
+            fmpz_poly_clear(ilcm);
+            fmpz_poly_clear(olcm);
+            fmpz_poly_clear(rlcm);
         }
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
         
@@ -706,25 +744,43 @@ namespace HepLib {
     }
     
     block_imat_t DEX::series(int xn, block_imat_fmpq_mat_t & In0, int nc) { // RI[a][la][k][n] & & In0[a][ila][k]
+        if(!fuchsified) fuchsify();
         auto nbs = bs.size();
         block_imat_fmpq_mat_t I(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
             int nr = bs[br].second;
             vector<MX> A(br+1); // M=A/x
+            fmpz_poly_t lcm, rlcm; // D=lcm
+            vector<fmpz_poly_t> lcm_vec(br+1);
+            fmpz_poly_init(lcm);
+            fmpz_poly_init(rlcm);
+            fmpz_poly_set_str(lcm, "1  1");
             for(int bc=br; bc>=0; bc--) { 
-                // rational series for each block A[br][bc] -> A[bc] 
+                // lcm for each block A[br][bc] -> A[bc] 
                 A[bc].init(Mat[br][bc]);
                 A[bc].scale(x); // A=x*M
-                A[bc].series(xn);
+                fmpz_poly_init(lcm_vec[bc]);
+                A[bc].denlcm(lcm_vec[bc]);
+                fmpz_poly_lcm(lcm, lcm, lcm_vec[bc]);
             }
+            for(int bc=br; bc>=0; bc--) {
+                fmpz_poly_div(rlcm, lcm, lcm_vec[bc]);
+                A[bc].scale(rlcm);
+                fmpz_poly_clear(lcm_vec[bc]);
+            }
+            fmpz_poly_clear(rlcm);
             
             // now we use a=br
-            // (la+n-A0aa).Ia(la,k,n) = -Ia(la,k+1,n)
-            //   + sum_{1<=m<=n} Amaa(la,k,m).Ia(la,k,n-m) + sum_{b<a,0<=m<=n} Amab.Ib(la,k,n-m)
+            // [(la+n)D0-A0aa].Ia(la,k,n) = -D0 Ia(la,k+1,n)
+            //   - sum_{0<m<=n} Dm [(la+n-m).Ia(la,k,n-m)+Ia(la,k+1,n-m)] 
+            //   + sum_{not(b=a|m=0)} Amab.Ib(la,k,n-m)
             int a = br;
             fmpq_mat_t A0aa;
             fmpq_mat_init(A0aa,nr,nr);
             A[a].coeff(A0aa,0);
+            fmpz_t D0;
+            fmpz_init(D0);
+            fmpz_poly_get_coeff_fmpz(D0,lcm,0);
             
             int nla = IK[a].size();
             if(!In_GiNaC_Parallel && Verbose>5) {
@@ -752,7 +808,6 @@ namespace HepLib {
                     fmpq_mat_init(I[a][ila][k][0],nr,nc);
                     fmpq_mat_set(I[a][ila][k][0],In0[a][ila][k][0]);
                     
-                    bool abk_chk = (I[a].find(ila)!=I[a].end() && I[a][ila].size()>k);
                     for(int n=1; n<=xn; n++) { // 3-cycle over n
                     
                         if(omp_get_num_threads()==1 && !In_GiNaC_Parallel && Verbose>5) {
@@ -765,47 +820,65 @@ namespace HepLib {
                         }
                   
                         fmpq_mat_zero(smat);
-                        if(k+1<kmax) fmpq_mat_sub(smat,smat,I[a][ila][k+1][n]);
+                        fmpq_add_si(q,qlas[ila][0],n); // q = la+n
 
-                        if(abk_chk) { // sum_{1<=m<=n} Amaa(la,k,m).Ia(la,k,n-m)
-                            vector<fmpq_mat_t> mat_vec(n+1);
-                            for(int m=1; m<=n; m++) fmpq_mat_init(mat_vec[m],nr,nc);
+                        if(true) { 
+                            slong s = fmpz_poly_degree(lcm);
+                            if(s>n) s=n;
+                            vector<fmpq_mat_t> mat_vec(s+1);
+                            for(int m=0; m<=s; m++) fmpq_mat_init(mat_vec[m],nr,nc);
                             #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
-                            for(int m=1; m<=n; m++) {
-                                fmpq_mat_t Amaa;
-                                fmpq_mat_init(Amaa,nr,nr);
-                                A[a].coeff(Amaa,m);
-                                fmpq_mat_mul(mat_vec[m],Amaa,I[a][ila][k][n-m]);
-                                fmpq_mat_clear(Amaa);
+                            for(int m=0; m<=s; m++) {
+                                auto mat = mat_vec[m];
+                                fmpz_t Dm;
+                                fmpz_init(Dm);
+                                fmpq_t qm;
+                                fmpq_init(qm);
+                                if(m==0 && k+1<kmax) {
+                                    fmpz_neg(Dm,D0);
+                                    fmpq_mat_scalar_mul_fmpz(mat,I[a][ila][k+1][n],Dm);
+                                } else if(m>0) {
+                                    fmpq_sub_si(qm,q,m);
+                                    fmpq_mat_scalar_mul_fmpq(mat,I[a][ila][k][n-m],qm);
+                                    if(k+1<kmax) fmpq_mat_add(mat,mat,I[a][ila][k+1][n-m]);
+                                    fmpz_poly_get_coeff_fmpz(Dm,lcm,m);
+                                    fmpz_neg(Dm,Dm);
+                                    fmpq_mat_scalar_mul_fmpz(mat,mat,Dm);
+                                }
+                                fmpz_clear(Dm);
+                                fmpq_clear(qm);
                                 flint_cleanup();
                             }
-                            for(int m=1; m<=n; m++) {
+                            for(int m=0; m<=s; m++) {
                                 fmpq_mat_add(smat,smat,mat_vec[m]);
                                 fmpq_mat_clear(mat_vec[m]);
                             }
                         }
                         
-                        if(true) { // sum_{b<a,0<=m<=n} Amab.Ib(la,k,n-m)
-                            vector<fmpq_mat_t> smat_vec(a);
-                            for(int i=0; i<a; i++) fmpq_mat_init(smat_vec[i],nr,nc);
+                        if(true) {
+                            vector<fmpq_mat_t> smat_vec(a+1);
+                            for(int i=0; i<=a; i++) fmpq_mat_init(smat_vec[i],nr,nc);
                             #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic,1)
-                            for(int b=0; b<a; b++) {
+                            for(int b=0; b<=a; b++) {
                                 if(I[b].find(ila)!=I[b].end() && I[b][ila].size()>k) {
-                                    vector<fmpq_mat_t> mat_vec(n+1);
-                                    for(int i=0; i<=n; i++) fmpq_mat_init(mat_vec[i],nr,nc);
+                                    slong s = A[b].degree();
+                                    if(s>n) s = n;
+                                    vector<fmpq_mat_t> mat_vec(s+1);
+                                    for(int i=0; i<=s; i++) fmpq_mat_init(mat_vec[i],nr,nc);
                                     //#pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
-                                    for(int m=0; m<=n; m++) {
-                                        int nc2 = bs[b].second;
-                                        fmpq_mat_t Amab;
-                                        fmpq_mat_init(Amab,nr,nc2);
-                                        A[b].coeff(Amab,m);
-                                        fmpq_mat_mul(mat_vec[m],Amab,I[b][ila][k][n-m]);
-                                        fmpq_mat_clear(Amab);
+                                    for(int m=0; m<=s; m++) {
+                                        if(b!=a || m!=0) {
+                                            int nc2 = bs[b].second;
+                                            fmpq_mat_t Amab;
+                                            fmpq_mat_init(Amab,nr,nc2);
+                                            A[b].coeff(Amab,m);
+                                            fmpq_mat_mul(mat_vec[m],Amab,I[b][ila][k][n-m]);
+                                            fmpq_mat_clear(Amab);
+                                        }
                                         flint_cleanup();
                                     }
-
                                     fmpq_mat_zero(smat_vec[b]);
-                                    for(int i=0; i<=n; i++) {
+                                    for(int i=0; i<=s; i++) {
                                         fmpq_mat_add(smat_vec[b],smat_vec[b],mat_vec[i]);
                                         fmpq_mat_clear(mat_vec[i]);
                                     }
@@ -813,18 +886,18 @@ namespace HepLib {
                                 flint_cleanup();
                             }
 
-                            for(int i=0; i<a; i++) {
+                            for(int i=0; i<=a; i++) {
                                 fmpq_mat_add(smat,smat,smat_vec[i]);
                                 fmpq_mat_clear(smat_vec[i]);
                             }
                         }
                         
-                        fmpq_add_si(q,qlas[ila][0],n);
+                        fmpq_mul_fmpz(q,q,D0); // q = (la+n)D0
                         fmpq_mat_one(invA);
                         fmpq_mat_scalar_mul_fmpq(invA,invA,q);
                         fmpq_mat_sub(invA,invA,A0aa);
-
                         fmpq_mat_inv(invA,invA);
+                        
                         fmpq_mat_init(I[a][ila][k][n],nr,nc);
                         fmpq_mat_mul(I[a][ila][k][n],invA,smat);
                     }
@@ -834,8 +907,10 @@ namespace HepLib {
                 fmpq_mat_clear(smat);
                 flint_cleanup();
             }
-            fmpq_mat_clear(A0aa);
             for(int bc=br; bc>=0; bc--) A[bc].clear();
+            fmpz_poly_clear(lcm);
+            fmpq_mat_clear(A0aa);
+            fmpz_clear(D0);
         }
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
         
@@ -859,30 +934,49 @@ namespace HepLib {
         return RI;
     }
     
-    block_imat_t DEX::series(int xn, block_imat_acb_mat_t & In0, int nc, slong dp) { // RI[a][la][k][n] & & In0[a][la][k]
-        //omp_set_nested(1);
-        //omp_set_max_active_levels(3);
-        
+    block_imat_t DEX::series(int xn, block_imat_acb_mat_t & In0, int nc, slong dp) { // RI[a][la][k][n] & & In0[a][la][k]  
+        if(!fuchsified) fuchsify();
         auto fp = dp2fp(dp);
         auto nbs = bs.size();
         block_imat_acb_mat_t I(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
             int nr = bs[br].second;
             vector<MX> A(br+1); // M=A/x
+            fmpz_poly_t zlcm, rlcm; // D=lcm
+            vector<fmpz_poly_t> lcm_vec(br+1);
+            fmpz_poly_init(zlcm);
+            fmpz_poly_init(rlcm);
+            fmpz_poly_set_str(zlcm, "1  1");
             for(int bc=br; bc>=0; bc--) { 
-                // rational series for each block A[br][bc] -> A[bc] 
+                // lcm for each block A[br][bc] -> A[bc] 
                 A[bc].init(Mat[br][bc]);
                 A[bc].scale(x); // A=x*M
-                A[bc].series(xn);
+                fmpz_poly_init(lcm_vec[bc]);
+                A[bc].denlcm(lcm_vec[bc]);
+                fmpz_poly_lcm(zlcm, zlcm, lcm_vec[bc]);
             }
+            for(int bc=br; bc>=0; bc--) {
+                fmpz_poly_div(rlcm, zlcm, lcm_vec[bc]);
+                A[bc].scale(rlcm);
+                fmpz_poly_clear(lcm_vec[bc]);
+            }
+            acb_poly_t lcm;
+            acb_poly_init(lcm);
+            acb_poly_set_fmpz_poly(lcm,zlcm,fp);
+            fmpz_poly_clear(zlcm);
+            fmpz_poly_clear(rlcm);
             
             // now we use a=br
-            // (la+n-A0aa).Ia(la,k,n) = -Ia(la,k+1,n)
-            //   + sum_{1<=m<=n} Amaa(la,k,m).Ia(la,k,n-m) + sum_{b<a,0<=m<=n} Amab.Ib(la,k,n-m)
+            // [(la+n)D0-A0aa].Ia(la,k,n) = -D0 Ia(la,k+1,n)
+            //   - sum_{0<m<=n} Dm [(la+n-m).Ia(la,k,n-m)+Ia(la,k+1,n-m)] 
+            //   + sum_{not(b=a|m=0)} Amab.Ib(la,k,n-m)
             int a = br;
             acb_mat_t A0aa;
             acb_mat_init(A0aa,nr,nr);
             A[a].coeff(A0aa,0,fp);
+            acb_t D0;
+            acb_init(D0);
+            acb_poly_get_coeff_acb(D0,lcm,0);
             
             int nla = IK[a].size();
             if(!In_GiNaC_Parallel && Verbose>5) {
@@ -910,7 +1004,6 @@ namespace HepLib {
                     acb_mat_init(I[a][ila][k][0],nr,nc);
                     acb_mat_set(I[a][ila][k][0],In0[a][ila][k][0]);
                     
-                    bool abk_chk = (I[a].find(ila)!=I[a].end() && I[a][ila].size()>k);
                     for(int n=1; n<=xn; n++) { // 3-cycle over n
                     
                         if(omp_get_num_threads()==1 && !In_GiNaC_Parallel && Verbose>5) {
@@ -923,47 +1016,66 @@ namespace HepLib {
                         }
                   
                         acb_mat_zero(smat);
-                        if(k+1<kmax) acb_mat_sub(smat,smat,I[a][ila][k+1][n],fp);
+                        acb_set_fmpq(q,qlas[ila][0],fp);
+                        acb_add_si(q,q,n,fp); // q = la+n
 
-                        if(abk_chk) { // sum_{1<=m<=n} Amaa(ila,k,m).Ia(ila,k,n-m)
-                            vector<acb_mat_t> mat_vec(n+1);
-                            for(int m=1; m<=n; m++) acb_mat_init(mat_vec[m],nr,nc);
+                        if(true) {
+                            slong s = acb_poly_degree(lcm);
+                            if(s>n) s=n;
+                            vector<acb_mat_t> mat_vec(s+1);
+                            for(int m=0; m<=s; m++) acb_mat_init(mat_vec[m],nr,nc);
                             #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
-                            for(int m=1; m<=n; m++) {
-                                acb_mat_t Amaa;
-                                acb_mat_init(Amaa,nr,nr);
-                                A[a].coeff(Amaa,m,fp);
-                                acb_mat_mul(mat_vec[m],Amaa,I[a][ila][k][n-m],fp);
-                                acb_mat_clear(Amaa);
+                            for(int m=0; m<=s; m++) {
+                                auto mat = mat_vec[m];
+                                acb_t Dm;
+                                acb_init(Dm);
+                                acb_t qm;
+                                acb_init(qm);
+                                if(m==0 && k+1<kmax) {
+                                    acb_neg(Dm,D0);
+                                    acb_mat_scalar_mul_acb(mat,I[a][ila][k+1][n],Dm,fp);
+                                } else if(m>0) {
+                                    acb_sub_si(qm,q,m,fp);
+                                    acb_mat_scalar_mul_acb(mat,I[a][ila][k][n-m],qm,fp);
+                                    if(k+1<kmax) acb_mat_add(mat,mat,I[a][ila][k+1][n-m],fp);
+                                    acb_poly_get_coeff_acb(Dm,lcm,m);
+                                    acb_neg(Dm,Dm);
+                                    acb_mat_scalar_mul_acb(mat,mat,Dm,fp);
+                                }
+                                acb_clear(Dm);
+                                acb_clear(qm);
                                 flint_cleanup();
                             }
-                            for(int m=1; m<=n; m++) {
+                            for(int m=0; m<=s; m++) {
                                 acb_mat_add(smat,smat,mat_vec[m],fp);
                                 acb_mat_clear(mat_vec[m]);
                             }
                         }
                         
-                        if(true) { // sum_{b<a,0<=m<=n} Amab.Ib(ila,k,n-m)
-                            vector<acb_mat_t> smat_vec(a);
-                            for(int i=0; i<a; i++) acb_mat_init(smat_vec[i],nr,nc);
+                        if(true) {
+                            vector<acb_mat_t> smat_vec(a+1);
+                            for(int i=0; i<=a; i++) acb_mat_init(smat_vec[i],nr,nc);
                             #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
-                            for(int b=0; b<a; b++) {
+                            for(int b=0; b<=a; b++) {
                                 if(I[b].find(ila)!=I[b].end() && I[b][ila].size()>k) {
-                                    vector<acb_mat_t> mat_vec(n+1);
-                                    for(int i=0; i<=n; i++) acb_mat_init(mat_vec[i],nr,nc);
+                                    slong s = A[b].degree();
+                                    if(s>n) s = n;
+                                    vector<acb_mat_t> mat_vec(s+1);
+                                    for(int i=0; i<=s; i++) acb_mat_init(mat_vec[i],nr,nc);
                                     //#pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
-                                    for(int m=0; m<=n; m++) {
-                                        int nc2 = bs[b].second;
-                                        acb_mat_t Amab;
-                                        acb_mat_init(Amab,nr,nc2);
-                                        A[b].coeff(Amab,m,fp);
-                                        acb_mat_mul(mat_vec[m],Amab,I[b][ila][k][n-m],fp);
-                                        acb_mat_clear(Amab);
+                                    for(int m=0; m<=s; m++) {
+                                        if(b!=a || m!=0) {
+                                            int nc2 = bs[b].second;                                            
+                                            acb_mat_t Amab;
+                                            acb_mat_init(Amab,nr,nc2);
+                                            A[b].coeff(Amab,m,fp);
+                                            acb_mat_mul(mat_vec[m],Amab,I[b][ila][k][n-m],fp);
+                                            acb_mat_clear(Amab);
+                                        }
                                         flint_cleanup();
                                     }
-
                                     acb_mat_zero(smat_vec[b]);
-                                    for(int i=0; i<=n; i++) {
+                                    for(int i=0; i<=s; i++) {
                                         acb_mat_add(smat_vec[b],smat_vec[b],mat_vec[i],fp);
                                         acb_mat_clear(mat_vec[i]);
                                     }
@@ -971,19 +1083,18 @@ namespace HepLib {
                                 flint_cleanup();
                             }
 
-                            for(int i=0; i<a; i++) {
+                            for(int i=0; i<=a; i++) {
                                 acb_mat_add(smat,smat,smat_vec[i],fp);
                                 acb_mat_clear(smat_vec[i]);
                             }
                         }
                         
-                        acb_set_fmpq(q,qlas[ila][0],fp);
-                        acb_add_si(q,q,n,fp);
+                        acb_mul(q,q,D0,fp); // q = (la+n)D0
                         acb_mat_one(invA);
                         acb_mat_scalar_mul_acb(invA,invA,q,fp);
                         acb_mat_sub(invA,invA,A0aa,fp);
-
                         acb_mat_inv(invA,invA,fp);
+                        
                         acb_mat_init(I[a][ila][k][n],nr,nc);
                         acb_mat_mul(I[a][ila][k][n],invA,smat,fp);
                     }
@@ -994,7 +1105,9 @@ namespace HepLib {
                 flint_cleanup();
             }
             for(int bc=br; bc>=0; bc--) A[bc].clear();
+            acb_poly_clear(lcm);
             acb_mat_clear(A0aa);
+            acb_clear(D0);
         }
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
         
