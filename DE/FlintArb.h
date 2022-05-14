@@ -71,6 +71,7 @@ namespace HepLib {
         MX & shift(const ex & x0);
         matrix operator()(const ex & x);
         void operator()(vector<vector<fmpz_poly_q_t>> & M);
+        void operator()(vector<vector<acb_poly_t>> & M, slong fp);
         int prank();
         int degree();
         void series(int xn);

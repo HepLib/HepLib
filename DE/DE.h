@@ -61,6 +61,7 @@ namespace HepLib {
     };
         
     typedef vector<vector<vector<vector<fmpz_poly_q_t>>>> block_mat_fmpz_poly_q_t; // M[a][b][r][c]
+    typedef vector<vector<vector<vector<acb_poly_t>>>> block_mat_acb_poly_t; // M[a][b][r][c]
     typedef vector<vector<map<int,vector<vector<fmpq_mat_t>>>>> block_umat_fmpq_mat_t; // U[a][b][ila][k][n]
     typedef vector<map<int,vector<vector<fmpq_mat_t>>>> block_imat_fmpq_mat_t; // I[a][ila][k][n]
     typedef vector<map<int,vector<vector<acb_mat_t>>>> block_imat_acb_mat_t; // I[a][ila][k][n]
@@ -77,6 +78,7 @@ namespace HepLib {
         virtual matrix b2c(vector<matrix> &);
         virtual matrix u2mat(block_umat_t & bu, const ex & x);
         virtual matrix i2mat(block_imat_t & bi, const ex & x);
+        virtual matrix i2mat(const vector<vector<matrix>> & bi, const ex & x);
         virtual matrix T();
         virtual matrix M();
         virtual void fuchsify();
@@ -85,10 +87,15 @@ namespace HepLib {
         virtual block_imat_t series(int xn, const vector<matrix> & bc, slong dp=-1);
         virtual block_imat_t series(int xn, block_imat_fmpq_mat_t & In0, int nc); // I[a][la][k][n] & In0[a][la][k][0]
         virtual block_imat_t series(int xn, block_imat_acb_mat_t & In0, int nc, slong dp); // I[a][la][k][n] & In0[a][la][k][0]
+        virtual vector<vector<matrix>> taylor(int xn, const matrix I0, const ex & x0); // I[a][n]
+        virtual vector<vector<matrix>> taylor(int xn, const matrix I0, const ex & x0, slong dp); // I[a][n]
         void clear();
     //protected:
         bool fuchsified = false;
+        bool taylor_inited = false;
         int N; // DE dimension
+        slong rel_fp = 100;
+        slong abs_fp = 333;
         const symbol & x;
         vector<matrix> Ts; // sequence of T matrix
         vector<pair<int,int>> bs; // each block start_index,size
@@ -101,6 +108,9 @@ namespace HepLib {
         vector<vector<map<int,int>>> UK; // UK[a][b][ila]: K+1 for each block U matrix
         vector<map<int,int>> IK; // IK[a][ila]: K+1 for each block I matrix
         block_umat_fmpq_mat_t U0; // U0[a][b][ila][k][0]
+        
+        block_mat_acb_poly_t TMat; // Mat for Taylor
+        vector<vector<acb_poly_t>> TD; // TD[br][0] : denominator
     };
 
     

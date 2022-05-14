@@ -33,12 +33,20 @@ namespace HepLib {
         for(int br=0; br<nbs; br++) for(int bc=0; bc<=br; bc++) {
             for(auto & row : Mat[br][bc]) for(auto & item : row) fmpz_poly_q_clear(item);
             for(auto & kv : U0[br][bc]) for(auto & item : kv.second) fmpq_mat_clear(item[0]);
+            if(taylor_inited) {
+                for(auto & row : TMat[br][bc]) for(auto & item : row) acb_poly_clear(item);
+                acb_poly_clear(TD[br][0]);
+            }
         }
         bs.clear();
         Mat.clear();
         U0.clear();
+        TMat.clear();
+        TD.clear();
         for(auto & item : qlas) fmpq_clear(item[0]);
         qlas.clear();
+        fuchsified = false;
+        taylor_inited = false;
     }
     
     // init to lower triangle block matrix
@@ -196,6 +204,23 @@ namespace HepLib {
                             mat(r0+r,c) += kv.second[k][n](r,c) * pow(x,la+n) * pow(log(x),k)/factorial(k);
                         }
                     }
+                }
+            }
+        }
+        return mat;
+    }
+    
+    matrix DEX::i2mat(const vector<vector<matrix>> & bi, const ex & x) {
+        int nbs = bs.size();
+        int nc = bi[0][0].cols();
+        matrix mat(N, nc);
+        for(int br=0; br<nbs; br++) {
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            int nmax = bi[br].size();
+            for(int n=0; n<nmax; n++) {
+                for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                    mat(r0+r,c) += bi[br][n](r,c) * pow(x,n);
                 }
             }
         }
@@ -1113,8 +1138,6 @@ namespace HepLib {
         
         mag_t mag;
         mag_init(mag);
-        slong rel_fp = 100;
-        slong abs_fp = 333;
     
         block_imat_t RI(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
@@ -1155,6 +1178,348 @@ namespace HepLib {
             }
         }
         mag_clear(mag);
+        return RI;
+    }
+    
+    vector<vector<matrix>> DEX::taylor(int xn, const matrix I0, const ex & x0) {  
+        auto nbs = bs.size();
+        int nc = I0.cols();
+ 
+        vector<vector<fmpq_mat_t>> I(nbs); // I[a][n]
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            
+            vector<MX> A(br+1);
+            vector<fmpz_poly_t> lcm_vec(br+1);
+            fmpz_poly_t lcm, rlcm;
+            fmpz_poly_init(lcm);
+            fmpz_poly_init(rlcm);
+            fmpz_poly_set_str(lcm, "1  1");
+            for(int bc=br; bc>=0; bc--) { 
+                // lcm for each block A[br][bc] -> A[bc] 
+                A[bc].init(Mat[br][bc]);
+                A[bc].shift(x0); // x -> x+x0
+                fmpz_poly_init(lcm_vec[bc]);
+                A[bc].denlcm(lcm_vec[bc]);
+                fmpz_poly_lcm(lcm, lcm, lcm_vec[bc]);
+            }
+            for(int bc=br; bc>=0; bc--) {
+                fmpz_poly_div(rlcm, lcm, lcm_vec[bc]);
+                A[bc].scale(rlcm);
+                fmpz_poly_clear(lcm_vec[bc]);
+            }
+            
+            // now we use a=br
+            // n D0 Ia(n) = - sum_{0<m<n} (n-m) Dm Ia(n-m) + sum_{b<=a} sum_{0<=m<n} Amab.Ib(n-1-m)
+            int a = br;
+            fmpz_t D0;
+            fmpz_init(D0);
+            fmpz_poly_get_coeff_fmpz(D0,lcm,0);
+            if(fmpz_is_zero(D0)) throw Error("taylor: D0 is zero.");
+            
+            I[a] = vector<fmpq_mat_t>(xn+1);
+            fmpq_mat_init(I[a][0],nr,nc);
+            _to_(I[a][0],ex_to<matrix>(sub_matrix(I0, r0, nr, 0, nc)));
+            
+            fmpq_t q;
+            fmpq_init(q);
+            fmpq_mat_t smat;
+            fmpq_mat_init(smat,nr,nc);
+                
+            for(int n=1; n<=xn; n++) { // 3-cycle over n
+            
+                if(omp_get_num_threads()==1 && !In_GiNaC_Parallel && Verbose>5) {
+                    cout << "\r                                                              \r" << flush;
+                    cout << "  \\--taylor: " << nbs << "|" << br+1;
+                    cout << " [" << nr << "\u2A09" << nc << "] n" << xn << "|" << n << flush;
+                }
+                
+                fmpq_mat_zero(smat);
+                
+                if(true) {
+                    slong s = fmpz_poly_degree(lcm);
+                    if(s>n-1) s=n-1;
+                    vector<fmpq_mat_t> mat_vec(s+1);
+                    for(int m=1; m<=s; m++) fmpq_mat_init(mat_vec[m],nr,nc);
+                    #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
+                    for(int m=0; m<=s; m++) {
+                        auto mat = mat_vec[m];
+                        fmpz_t Dm;
+                        fmpz_init(Dm);
+                        fmpz_poly_get_coeff_fmpz(Dm,lcm,m);
+                        fmpz_mul_si(Dm,Dm,n-m);
+                        fmpz_neg(Dm,Dm);
+                        fmpq_mat_scalar_mul_fmpz(mat,I[a][n-m],Dm);
+                        fmpz_clear(Dm);
+                        flint_cleanup();
+                    }
+                    for(int m=1; m<=s; m++) {
+                        fmpq_mat_add(smat,smat,mat_vec[m]);
+                        fmpq_mat_clear(mat_vec[m]);
+                    }
+                }
+          
+                if(true) {
+                    vector<fmpq_mat_t> smat_vec(a+1);
+                    for(int i=0; i<=a; i++) fmpq_mat_init(smat_vec[i],nr,nc);
+                    #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1) if(a>omp_get_num_procs())
+                    for(int b=0; b<=a; b++) {
+                        slong s = A[b].degree();
+                        if(s>n-1) s = n-1;
+                        int nc2 = bs[b].second;
+                        
+                        vector<fmpq_mat_t> mat_vec(s+1);
+                        for(int i=0; i<=s; i++) fmpq_mat_init(mat_vec[i],nr,nc);
+                        //#pragma omp parallel for num_threads(omp_get_num_procs())
+                        for(int m=0; m<=s; m++) {
+                            fmpq_mat_t Amab;
+                            fmpq_mat_init(Amab,nr,nc2); 
+                            A[b].coeff(Amab,m);
+                            fmpq_mat_mul(mat_vec[m],Amab,I[b][n-1-m]);
+                            fmpq_mat_clear(Amab);
+                            flint_cleanup();
+                        }
+                        fmpq_mat_zero(smat_vec[b]);
+                        for(int i=0; i<=s; i++) {
+                            fmpq_mat_add(smat_vec[b],smat_vec[b],mat_vec[i]);
+                            fmpq_mat_clear(mat_vec[i]);
+                        }                        
+                        flint_cleanup();
+                    }
+
+                    for(int i=0; i<=a; i++) {
+                        fmpq_mat_add(smat,smat,smat_vec[i]);
+                        fmpq_mat_clear(smat_vec[i]);
+                    }
+                }
+
+                fmpq_set_si(q,n,1); 
+                fmpq_mul_fmpz(q,q,D0); // q = n D0
+                fmpq_inv(q,q); // q = 1 / (n D0)
+                fmpq_mat_init(I[a][n],nr,nc);
+                fmpq_mat_scalar_mul_fmpq(I[a][n],smat,q);
+            }
+            
+            for(int bc=br; bc>=0; bc--) A[bc].clear();
+            fmpz_poly_clear(lcm);
+            fmpq_clear(q);
+            fmpz_clear(D0);
+            fmpq_mat_clear(smat);
+        }
+        if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
+        
+        vector<vector<matrix>> RI(nbs);
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int nr = bs[br].second;
+            RI[br].resize(xn+1);
+            for(int n=0; n<=xn; n++) {
+                RI[br][n] = _to_(I[br][n]);
+                fmpq_mat_clear(I[br][n]);
+            }
+        }
+        
+        return RI;
+    }
+    
+    vector<vector<matrix>> DEX::taylor(int xn, const matrix I0, const ex & x0, slong dp) {  
+        auto nbs = bs.size();
+        auto fp = dp2fp(dp);
+        int nc = I0.cols();
+        
+        if(!taylor_inited) {
+            TMat.resize(nbs);
+            TD.resize(nbs);
+            fmpz_poly_t zlcm, rlcm; // D=lcm
+            for(int br=0; br<nbs; br++) { // cycle rows
+                TMat[br].resize(br+1);
+                TD[br] = vector<acb_poly_t>(1);
+                int nr = bs[br].second;
+                vector<MX> AX(br+1);
+                vector<fmpz_poly_t> lcm_vec(br+1);
+                fmpz_poly_init(zlcm);
+                fmpz_poly_init(rlcm);
+                fmpz_poly_set_str(zlcm, "1  1");
+                for(int bc=br; bc>=0; bc--) { 
+                    // lcm for each block A[br][bc] -> A[bc] 
+                    AX[bc].init(Mat[br][bc]);
+                    fmpz_poly_init(lcm_vec[bc]);
+                    AX[bc].denlcm(lcm_vec[bc]);
+                    fmpz_poly_lcm(zlcm, zlcm, lcm_vec[bc]);
+                }
+                for(int bc=br; bc>=0; bc--) {
+                    int nc2 = bs[bc].second;
+                    TMat[br][bc].resize(nr);
+                    for(int r=0; r<nr; r++) TMat[br][bc][r] = vector<acb_poly_t>(nc2);
+                    fmpz_poly_div(rlcm, zlcm, lcm_vec[bc]);
+                    AX[bc].scale(rlcm);
+                    fmpz_poly_clear(lcm_vec[bc]);
+                    AX[bc](TMat[br][bc],fp); // back to TMat
+                    AX[bc].clear();
+                }
+                acb_poly_init(TD[br][0]);
+                acb_poly_set_fmpz_poly(TD[br][0],zlcm,fp);
+            }
+            fmpz_poly_clear(zlcm);
+            fmpz_poly_clear(rlcm);
+            taylor_inited = true;
+        }
+        
+        acb_t z0;
+        acb_init(z0); 
+        _to_(z0,x0,fp);
+        vector<vector<acb_mat_t>> I(nbs); // I[a][n]
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            
+            acb_poly_t lcm;
+            acb_poly_init(lcm);
+            acb_poly_set(lcm,TD[br][0]);
+            acb_poly_taylor_shift(lcm,lcm,z0,fp); // shift: x -> x+x0
+            
+            // now we use a=br
+            // n D0 Ia(n) = - sum_{0<m<n} (n-m) Dm Ia(n-m) + sum_{b<=a} sum_{0<=m<n} Amab.Ib(n-1-m)
+            int a = br;
+            acb_t q,D0;
+            acb_init(q);
+            acb_init(D0);
+            acb_poly_get_coeff_acb(D0,lcm,0);
+            if(acb_is_zero(D0)) throw Error("taylor: D0 is zero.");
+            
+            I[a] = vector<acb_mat_t>(xn+1);
+            acb_mat_init(I[a][0],nr,nc);
+            _to_(I[a][0],ex_to<matrix>(sub_matrix(I0, r0, nr, 0, nc)),fp);
+            
+            acb_mat_t smat;
+            acb_mat_init(smat,nr,nc);
+                
+            for(int n=1; n<=xn; n++) { // 3-cycle over n
+            
+                if(omp_get_num_threads()==1 && !In_GiNaC_Parallel && Verbose>5) {
+                    cout << "\r                                                              \r" << flush;
+                    cout << "  \\--ntaylor: " << nbs << "|" << br+1;
+                    cout << " [" << nr << "\u2A09" << nc << "] n" << xn << "|" << n << flush;
+                }
+                
+                acb_mat_zero(smat);
+                
+                if(true) {
+                    slong s = acb_poly_degree(lcm);
+                    if(s>n-1) s=n-1;
+                    vector<acb_mat_t> mat_vec(s+1);
+                    for(int m=1; m<=s; m++) acb_mat_init(mat_vec[m],nr,nc);
+                    #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1)
+                    for(int m=0; m<=s; m++) {
+                        auto mat = mat_vec[m];
+                        acb_t Dm;
+                        acb_init(Dm);
+                        acb_poly_get_coeff_acb(Dm,lcm,m);
+                        acb_mul_si(Dm,Dm,n-m,fp);
+                        acb_neg(Dm,Dm);
+                        acb_mat_scalar_mul_acb(mat,I[a][n-m],Dm,fp);
+                        acb_clear(Dm);
+                        flint_cleanup();
+                    }
+                    for(int m=1; m<=s; m++) {
+                        acb_mat_add(smat,smat,mat_vec[m],fp);
+                        acb_mat_clear(mat_vec[m]);
+                    }
+                }
+          
+                if(true) {
+                    vector<acb_mat_t> smat_vec(a+1);
+                    for(int i=0; i<=a; i++) acb_mat_init(smat_vec[i],nr,nc);
+                    #pragma omp parallel for num_threads(omp_get_num_procs()) schedule(dynamic, 1) if(a>omp_get_num_procs())
+                    for(int b=0; b<=a; b++) {
+                        int nc2 = bs[b].second; 
+                        acb_poly_t TM[nr][nc2];
+                        slong s = 0;
+                        for(int r=0; r<nr; r++) for(int c=0; c<nc2; c++) { // shift
+                            acb_poly_init(TM[r][c]);
+                            acb_poly_set(TM[r][c],TMat[a][b][r][c]);
+                            acb_poly_taylor_shift(TM[r][c],TM[r][c],z0,fp); // shift: x -> x+x0
+                            int ss = acb_poly_degree(TM[r][c]);
+                            if(ss>s) s = ss;
+                        }
+                        if(s>n-1) s = n-1;
+                        
+                        vector<acb_mat_t> mat_vec(s+1);
+                        for(int i=0; i<=s; i++) acb_mat_init(mat_vec[i],nr,nc);
+                        //#pragma omp parallel for num_threads(omp_get_num_procs())
+                        for(int m=0; m<=s; m++) {
+                            acb_mat_t Amab;
+                            acb_mat_init(Amab,nr,nc2); // coefficients
+                            for(int r=0; r<nr; r++) for(int c=0; c<nc2; c++) { 
+                                acb_poly_get_coeff_acb(acb_mat_entry(Amab,r,c),TM[r][c],m);
+                            }
+                            acb_mat_mul(mat_vec[m],Amab,I[b][n-1-m],fp);
+                            acb_mat_clear(Amab);
+                            flint_cleanup();
+                        }
+                        acb_mat_zero(smat_vec[b]);
+                        for(int i=0; i<=s; i++) {
+                            acb_mat_add(smat_vec[b],smat_vec[b],mat_vec[i],fp);
+                            acb_mat_clear(mat_vec[i]);
+                        }
+                        
+                        for(int r=0; r<nr; r++) for(int c=0; c<nc2; c++) acb_poly_clear(TM[r][c]);
+                        flint_cleanup();
+                    }
+
+                    for(int i=0; i<=a; i++) {
+                        acb_mat_add(smat,smat,smat_vec[i],fp);
+                        acb_mat_clear(smat_vec[i]);
+                    }
+                }
+
+                acb_mul_si(q,D0,n,fp); // q = n D0
+                acb_inv(q,q,fp); // q = 1 / (n D0)
+                acb_mat_init(I[a][n],nr,nc);
+                acb_mat_scalar_mul_acb(I[a][n],smat,q,fp);
+            }
+                
+            acb_poly_clear(lcm);
+            acb_clear(q);
+            acb_clear(D0);
+            acb_mat_clear(smat);
+        }
+        acb_clear(z0); 
+        if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
+        
+        vector<vector<matrix>> RI(nbs);
+        mag_t mag;
+        mag_init(mag);
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int nr = bs[br].second;
+            RI[br].resize(xn+1);
+            for(int n=0; n<=xn; n++) {
+                
+                // - error check
+                for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                    auto item = acb_mat_entry(I[br][n],r,c);
+                    auto ri = acb_realref(item);
+                    if(arb_rel_error_bits(ri)>-rel_fp) {
+                        arb_get_mag(mag,ri);
+                        if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                            cout << endl; arb_printd(ri,5); cout << endl;
+                        }
+                    }
+                    ri = acb_imagref(item);
+                    if(arb_rel_error_bits(ri)>-rel_fp) {
+                        if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                            cout << endl; arb_printd(ri,5); cout << endl;  
+                        }
+                    }
+                }
+                // - error check end
+                    
+                RI[br][n] = _to_(I[br][n],fp);
+                acb_mat_clear(I[br][n]);
+            }
+        }
+        mag_clear(mag);
+        
         return RI;
     }
     

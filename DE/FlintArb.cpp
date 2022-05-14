@@ -392,12 +392,12 @@ namespace HepLib {
         return n;
     }
     
-    matrix _to_(acb_mat_t m, slong dp) {
+    matrix _to_(acb_mat_t m, slong fp) {
         auto nr = acb_mat_nrows(m);
         auto nc = acb_mat_ncols(m);
         matrix mat(nr,nc);
         for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
-            mat(r,c) = _to_(acb_mat_entry(m,r,c), dp);
+            mat(r,c) = _to_(acb_mat_entry(m,r,c), fp);
         }
         return mat;
     }
@@ -734,6 +734,16 @@ namespace HepLib {
         if(nr!=nr_m || nc!=nc_m) throw Error("matrix dimension not match.");
         for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
             fmpz_poly_q_set(m[r][c],M[r][c]);
+        }
+    }
+    
+    void MX::operator()(vector<vector<acb_poly_t>> & m, slong fp) {
+        int nr_m = m.size();
+        int nc_m = m[0].size();
+        if(nr!=nr_m || nc!=nc_m) throw Error("matrix dimension not match.");
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            if(!fmpz_poly_is_one(fmpz_poly_q_denref(M[r][c]))) throw Error("the denominator is not 1.");
+            acb_poly_set_fmpz_poly(m[r][c],fmpz_poly_q_numref(M[r][c]),fp);
         }
     }
     
