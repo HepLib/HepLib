@@ -77,16 +77,23 @@ namespace HepLib {
         virtual vector<matrix> c2b(const matrix &);
         virtual matrix b2c(vector<matrix> &);
         virtual matrix u2mat(block_umat_t & bu, const ex & x);
-        virtual matrix i2mat(block_imat_t & bi, const ex & x);
-        virtual matrix i2mat(const vector<vector<matrix>> & bi, const ex & x);
+        virtual matrix i2mat(block_imat_t & bi, const ex & x, const int nc);
+        virtual matrix i2mat(const vector<vector<matrix>> & bi, const ex & x, const int nc);
         virtual matrix T();
         virtual matrix M();
         virtual void fuchsify();
-        virtual block_umat_t series(int xn); // U[a][b][la][k][n]
-        virtual block_imat_t series(int xn, const matrix & m, slong dp=-1);
-        virtual block_imat_t series(int xn, const vector<matrix> & bc, slong dp=-1);
-        virtual block_imat_t series(int xn, block_imat_fmpq_mat_t & In0, int nc); // I[a][la][k][n] & In0[a][la][k][0]
-        virtual block_imat_t series(int xn, block_imat_acb_mat_t & In0, int nc, slong dp); // I[a][la][k][n] & In0[a][la][k][0]
+        // u-Series expansion
+        virtual block_umat_t series(int xn, const lst & slas={}); // U[a][b][la][k][n]
+        virtual block_umat_t series(int xn, const vector<fmpq_t> & qslas={}); // U[a][b][la][k][n]
+        // u-Series expansion - rational
+        virtual block_imat_t series(int xn, const matrix & m, const lst & slas={});
+        virtual block_imat_t series(int xn, const vector<matrix> & bc, const lst & slas={});
+        virtual block_imat_t series(int xn, block_imat_fmpq_mat_t & In0, int nc, const vector<fmpq_t> & qslas={}); // I[a][la][k][n] & In0[a][la][k][0]
+        // u-Series expansion - acb
+        virtual block_imat_t series(int xn, const matrix & m, slong dp, const lst & slas={});
+        virtual block_imat_t series(int xn, const vector<matrix> & bc, slong dp, const lst & slas={});
+        virtual block_imat_t series(int xn, block_imat_acb_mat_t & In0, int nc, slong dp, const vector<fmpq_t> & qslas={}); // I[a][la][k][n] & In0[a][la][k][0]
+        // Taylor expansion
         virtual vector<vector<matrix>> taylor(int xn, const matrix I0, const ex & x0); // I[a][n]
         virtual vector<vector<matrix>> taylor(int xn, const matrix I0, const ex & x0, slong dp); // I[a][n]
         void clear();
@@ -125,6 +132,8 @@ namespace HepLib {
         lst MIntegrals;
         matrix Mat; // original DE matrix
         lst _MIntegrals; // MI @ BC
+        
+        lst NEvaluate();
     };
 
 
