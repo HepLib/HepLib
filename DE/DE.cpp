@@ -34,6 +34,33 @@ namespace HepLib {
         return pr;
     }
     
+    ex xpow(const ex & e, const ex & x) {
+        auto cvs = collect_lst(e,x);
+        ex res = 0;
+        for(auto cv : cvs) {
+            auto pat = cv.op(1);
+            if(!is_a<mul>(pat)) pat = lst{pat};
+            ex cp = 1;
+            ex xn = 0;
+            for(auto pi : pat) {
+                if(pi.match(pow(x,w))) xn += pi.op(1);
+                else cp *= pi;
+            }
+            res += cv.op(0) * cp * pow(x,xn);
+        }
+        return res;
+    }
+    
+    void xpow(matrix & mat, const ex & x) {
+        auto n = mat.nops();
+        for(int i=0; i<n; i++) mat.let_op(i) = xpow(mat.op(i),x);
+    }
+    
+    void subs(matrix & mat, const ex & s, unsigned opt) {
+        auto n = mat.nops();
+        for(int i=0; i<n; i++) mat.let_op(i) = mat.op(i).subs(s, opt);
+    }
+    
     matrix a0_mat(const matrix &mat, const symbol &x, int pr) {
         int p = (pr == 19790923 ? prank(mat, x) : pr);
         int nr=mat.rows(), nc=mat.cols();
@@ -160,17 +187,6 @@ namespace HepLib {
         return m;
     }
     
-    matrix DE::d2m(vector<vector<matrix>> & bm) {
-        int nbs = bs.size();
-        matrix m(N,N);
-        for(int brc=0; brc<nbs; brc++) {
-            int rc0 = bs[brc].first;
-            int nrc = bs[brc].second;
-            for(int r=0; r<nrc; r++) for(int c=0; c<nrc; c++) m(rc0+r,rc0+c) = bm[brc][brc](r,c);
-        }
-        return m;
-    }
-    
     vector<matrix> DE::c2b(const matrix & m) {
         int nbs = bs.size();
         int nc = m.cols();
@@ -195,7 +211,37 @@ namespace HepLib {
         return m;
     }
     
-    matrix DE::u2mat(block_umat_t & bu, const ex & x) {
+    map<ex,vector<vector<matrix>>,ex_is_less> DE::b2m(const block_umat_t & bu) { // U[la][k][n]
+        map<ex,vector<vector<matrix>>,ex_is_less> umat;
+        int nbs = bs.size();
+        for(int br=0; br<nbs; br++) for(int bc=0; bc<=br; bc++) {
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            int c0 = bs[bc].first;
+            int nc = bs[bc].second;
+            for(auto kv : bu[br][bc]) {
+                auto la = kv.first;
+                auto kmax = kv.second.size();
+                if(umat.find(la)==umat.end()) umat[la].resize(kmax);
+                for(int k=0; k<kmax; k++) {
+                    auto nmax = kv.second[k].size();
+                    if(umat[la][k].size()==0) {
+                        umat[la][k].resize(nmax);
+                        for(int n=0; n<nmax; n++) umat[la][k][n] = matrix(N,N);
+                    }
+                    for(int n=0; n<nmax; n++) {
+                        auto & mat = umat[la][k][n];
+                        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                            mat(r0+r,c0+c) += kv.second[k][n](r,c);
+                        }
+                    }
+                }
+            }
+        }
+        return umat;
+    }
+    
+    matrix DE::b2m(block_umat_t & bu, const ex & x) {
         int nbs = bs.size();
         matrix mat(N, N);
         for(int br=0; br<nbs; br++) for(int bc=0; bc<=br; bc++) {
@@ -219,7 +265,7 @@ namespace HepLib {
         return mat;
     }
     
-    matrix DE::i2mat(block_imat_t & bi, const ex & x) {
+    matrix DE::b2m(block_imat_t & bi, const ex & x) {
         int nbs = bs.size();
         int nc = bi[0].begin()->second[0][0].cols();
         matrix mat(N, nc);

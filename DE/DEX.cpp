@@ -32,21 +32,20 @@ namespace HepLib {
         if(nbs<1) return;
         for(int br=0; br<nbs; br++) for(int bc=0; bc<=br; bc++) {
             for(auto & row : Mat[br][bc]) for(auto & item : row) fmpz_poly_q_clear(item);
-            for(auto & kv : U0[br][bc]) for(auto & item : kv.second) fmpq_mat_clear(item[0]);
-            if(taylor_inited) {
-                for(auto & row : TMat[br][bc]) for(auto & item : row) acb_poly_clear(item);
-                acb_poly_clear(TD[br][0]);
-            }
+            if(fuchsified) for(auto & kv : U0[br][bc]) for(auto & item : kv.second) fmpq_mat_clear(item[0]);
+            if(ntaylor_inited) for(auto & row : TMat[br][bc]) for(auto & item : row) acb_poly_clear(item);
         }
         bs.clear();
         Mat.clear();
-        U0.clear();
-        TMat.clear();
-        TD.clear();
-        for(auto & item : qlas) fmpq_clear(item[0]);
-        qlas.clear();
+        if(ntaylor_inited) for(int br=0; br<nbs; br++) acb_poly_clear(TD[br][0]);
+        if(fuchsified) { 
+            U0.clear(); 
+            for(auto & item : qlas) fmpq_clear(item[0]);
+            qlas.clear();
+        }
+        if(ntaylor_inited) { TMat.clear(); TD.clear(); }
         fuchsified = false;
-        taylor_inited = false;
+        ntaylor_inited = false;
     }
     
     // init to lower triangle block matrix
@@ -128,17 +127,6 @@ namespace HepLib {
         return m;
     }
     
-    matrix DEX::d2m(vector<vector<matrix>> & bm) {
-        int nbs = bs.size();
-        matrix m(N,N);
-        for(int brc=0; brc<nbs; brc++) {
-            int rc0 = bs[brc].first;
-            int nrc = bs[brc].second;
-            for(int r=0; r<nrc; r++) for(int c=0; c<nrc; c++) m(rc0+r,rc0+c) = bm[brc][brc](r,c);
-        }
-        return m;
-    }
-    
     vector<matrix> DEX::c2b(const matrix & m) {
         int nbs = bs.size();
         int nc = m.cols();
@@ -163,7 +151,37 @@ namespace HepLib {
         return m;
     }
     
-    matrix DEX::u2mat(block_umat_t & bu, const ex & x) {
+    map<ex,vector<vector<matrix>>,ex_is_less> DEX::b2m(const block_umat_t & bu) { // U[la][k][n]
+        map<ex,vector<vector<matrix>>,ex_is_less> umat;
+        int nbs = bs.size();
+        for(int br=nbs-1; br>=0; br--) for(int bc=0; bc<=br; bc++) {
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            int c0 = bs[bc].first;
+            int nc = bs[bc].second;
+            for(auto kv : bu[br][bc]) {
+                auto la = kv.first;
+                auto kmax = kv.second.size();
+                if(umat.find(la)==umat.end()) umat[la].resize(kmax);
+                for(int k=0; k<kmax; k++) {
+                    auto nmax = kv.second[k].size();
+                    if(umat[la][k].size()==0) {
+                        umat[la][k].resize(nmax);
+                        for(int n=0; n<nmax; n++) umat[la][k][n] = matrix(N,N);
+                    }
+                    for(int n=0; n<nmax; n++) {
+                        auto & mat = umat[la][k][n];
+                        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                            mat(r0+r,c0+c) += kv.second[k][n](r,c);
+                        }
+                    }
+                }
+            }
+        }
+        return umat;
+    }
+    
+    matrix DEX::b2m(const block_umat_t & bu, const ex & x0) {
         int nbs = bs.size();
         matrix mat(N, N);
         for(int br=0; br<nbs; br++) for(int bc=0; bc<=br; bc++) {
@@ -178,7 +196,8 @@ namespace HepLib {
                     auto nmax = kv.second[k].size();
                     for(int n=0; n<nmax; n++) {
                         for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
-                            mat(r0+r,c0+c) += kv.second[k][n](r,c) * pow(x,la+n) * pow(log(x),k)/factorial(k);
+                            if(is_zero(x0-1)) { if(k==0) mat(r0+r,c0+c) += kv.second[k][n](r,c); }
+                            else mat(r0+r,c0+c) += kv.second[k][n](r,c) * pow(x0,la+n) * pow(log(x0),k)/factorial(k);
                         }
                     }
                 }
@@ -187,7 +206,7 @@ namespace HepLib {
         return mat;
     }
     
-    matrix DEX::i2mat(block_imat_t & bi, const ex & x, const int nc) {
+    matrix DEX::b2m(const block_imat_t & bi, const ex & x0, const int nc) {
         int nbs = bs.size();
         matrix mat(N, nc);
         for(int br=0; br<nbs; br++) {
@@ -200,7 +219,7 @@ namespace HepLib {
                     auto nmax = kv.second[k].size();
                     for(int n=0; n<nmax; n++) {
                         for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
-                            mat(r0+r,c) += kv.second[k][n](r,c) * pow(x,la+n) * pow(log(x),k)/factorial(k);
+                            mat(r0+r,c) += kv.second[k][n](r,c) * pow(x0,la+n) * pow(log(x0),k)/factorial(k);
                         }
                     }
                 }
@@ -209,7 +228,7 @@ namespace HepLib {
         return mat;
     }
     
-    matrix DEX::i2mat(const vector<vector<matrix>> & bi, const ex & x, const int nc) {
+    matrix DEX::b2m(const vector<vector<matrix>> & bi, const ex & x0, const int nc) {
         int nbs = bs.size();
         matrix mat(N, nc);
         for(int br=0; br<nbs; br++) {
@@ -218,7 +237,7 @@ namespace HepLib {
             int nmax = bi[br].size();
             for(int n=0; n<nmax; n++) {
                 for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
-                    mat(r0+r,c) += bi[br][n](r,c) * pow(x,n);
+                    mat(r0+r,c) += bi[br][n](r,c) * pow(x0,n);
                 }
             }
         }
@@ -421,6 +440,8 @@ namespace HepLib {
         U0.resize(nbs);
         la2i.clear();
         las.clear();
+        kmmax = -1;
+        nlas = -1;
         int la_i = 0;
         for(int br=0; br<nbs; br++) {
             UK[br].resize(br+1);
@@ -451,6 +472,7 @@ namespace HepLib {
                         }
                     }
                     if(kmax>0) {
+                        if(kmmax<kmax) kmmax = kmax;
                         UK[br][bc][ila] = kmax;
                         U0[br][bc][ila].resize(kmax);
                         for(int k=0; k<kmax; k++) {
@@ -467,7 +489,7 @@ namespace HepLib {
             }
             for(auto kv : UK[br][0]) IK[br][kv.first] = kv.second;
         }
-        int nlas = las.size();
+        nlas = las.size();
         qlas.clear();
         qlas.resize(nlas);
         for(int i=0; i<nlas; i++) {
@@ -501,31 +523,65 @@ namespace HepLib {
             fmpq_clear(dq);
             mpz_clear(nz);
             mpz_clear(dz);
-            fmpz_init(fdz);
+            fmpz_clear(fdz);
             return res;
         }
     }
     
     //=*********************************************************************=
-    // Series expansion
+    // U-Series - rational
     //=*********************************************************************=
     
-    block_umat_t DEX::series(int xn, const lst & slas) { // RU[a][b][la][k][n]
+    umat_t DEX::series(int xn, const lst & slas) { // RU[a][b][la][k][n]
         if(!fuchsified) fuchsify();
         vector<fmpq_t> qslas(slas.nops());
         for(int i=0; i<qslas.size(); i++) {
             fmpq_init(qslas[i]);
             _to_(qslas[i], slas.op(i));
         }
-        auto umat = series(xn,qslas);
+        
+        block_umat_fmpq_mat_t U;
+        series(U,xn,qslas);
         for(int i=0; i<qslas.size(); i++) fmpq_clear(qslas[i]);
-        return umat;
+    
+        int nbs = bs.size();
+        umat_t RU;
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            for(int bc=0; bc<=br; bc++) { // cycle columns
+                int c0 = bs[bc].first;
+                int nc = bs[bc].second;
+                for(auto & kv : U[br][bc]) {
+                    auto ila = kv.first;
+                    auto la = las[ila];
+                    int kmax = kv.second.size();
+                    if(RU.find(la)==RU.end()) {
+                        int kmax = IK[nbs-1][ila];
+                        RU[la].resize(kmax);
+                        for(int k=0; k<kmax; k++) {
+                            RU[la][k].resize(xn+1);
+                            for(int n=0; n<=xn; n++) RU[la][k][n] = matrix(N,N);
+                        }
+                    }
+                    for(int k=0; k<kmax; k++) {
+                        for(int n=0; n<=xn; n++) {
+                            auto mat = _to_(U[br][bc][ila][k][n]);
+                            fmpq_mat_clear(U[br][bc][ila][k][n]);
+                            for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) RU[la][k][n](r0+r,c0+c) = mat(r,c);
+                        }
+                    }
+                }
+            }
+        }
+        return RU;
     }
     
-    block_umat_t DEX::series(int xn, const vector<fmpq_t> & qslas) { // RU[a][b][la][k][n]
+    // U[a][b][la][k][n], block_umat_fmpq_mat_t U; no need to initialize U
+    void DEX::series(block_umat_fmpq_mat_t & U, int xn, const vector<fmpq_t> & qslas) {
         if(!fuchsified) fuchsify();
         auto nbs = bs.size();
-        block_umat_fmpq_mat_t U(nbs);
+        U.resize(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
             int nr = bs[br].second;
             U[br].resize(br+1);
@@ -709,40 +765,355 @@ namespace HepLib {
             fmpz_poly_clear(rlcm);
         }
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
+    }    
+    
+    //=*********************************************************************=
+    // U-Series - acb
+    //=*********************************************************************=
+    
+    umat_t DEX::series(int xn, slong dp, const lst & slas) { // RU[a][b][la][k][n]
+        if(!fuchsified) fuchsify();
+        vector<fmpq_t> qslas(slas.nops());
+        for(int i=0; i<qslas.size(); i++) {
+            fmpq_init(qslas[i]);
+            _to_(qslas[i], slas.op(i));
+        }
+        block_umat_acb_mat_t U;
+        series(U, xn,dp,qslas);
+        for(int i=0; i<qslas.size(); i++) fmpq_clear(qslas[i]);
         
-        block_umat_t RU(nbs);
+        int nbs = bs.size();
+        auto fp = dp2fp(dp);
+        umat_t RU;
         for(int br=0; br<nbs; br++) { // cycle rows
-            RU[br].resize(br+1);
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
             for(int bc=br; bc>=0; bc--) { // cycle columns
+                int c0 = bs[bc].first;
+                int nc = bs[bc].second;
                 for(auto & kv : U[br][bc]) {
                     auto ila = kv.first;
                     auto la = las[ila];
                     int kmax = kv.second.size();
-                    RU[br][bc][la].resize(kmax);
+                    if(RU.find(la)==RU.end()) {
+                        int kmax = IK[nbs-1][ila];
+                        RU[la].resize(kmax);
+                        for(int k=0; k<kmax; k++) {
+                            RU[la][k].resize(xn+1);
+                            for(int n=0; n<=xn; n++) RU[la][k][n] = matrix(N,N);
+                        }
+                    }
                     for(int k=0; k<kmax; k++) {
-                        int nt = kv.second[k].size();
-                        RU[br][bc][la][k].resize(nt);
-                        for(int n=0; n<nt; n++) {
-                            RU[br][bc][la][k][n] = _to_(U[br][bc][ila][k][n]);
-                            fmpq_mat_clear(U[br][bc][ila][k][n]);
+                        for(int n=0; n<=xn; n++) {
+                            auto mat = _to_(U[br][bc][ila][k][n],fp);
+                            acb_mat_clear(U[br][bc][ila][k][n]);
+                            for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) RU[la][k][n](r0+r,c0+c) = mat(r,c);
                         }
                     }
                 }
             }
         }
         return RU;
-    }    
+    }
     
-    //=*********************************************************************=
-    // Series - expansion - rational
-    //=*********************************************************************=
+    matrix DEX::series(int xn, slong dp, const ex & x0, const lst & slas) { // RU[a][b][la][k][n]
+        if(!fuchsified) fuchsify();
+        vector<fmpq_t> qslas(slas.nops());
+        for(int i=0; i<qslas.size(); i++) {
+            fmpq_init(qslas[i]);
+            _to_(qslas[i], slas.op(i));
+        }
+        block_umat_acb_mat_t U;
+        series(U,xn,dp,qslas);
+        for(int i=0; i<qslas.size(); i++) fmpq_clear(qslas[i]);
+        
+        int nbs = bs.size();
+        auto fp = dp2fp(dp);
+        acb_t z0, lz0, z;
+        acb_init(z0);
+        acb_init(lz0);
+        acb_init(z);
+        _to_(z0,x0,fp);
+        acb_log(lz0,z0,fp);
+        vector<vector<acb_t>> zln(nlas); // cache z0^(la+n) zln[ila][n]
+        for(int ila=0; ila<nlas; ila++) {
+            zln[ila] = vector<acb_t>(xn+1);
+            arb_t r;
+            arb_init(r);
+            auto qla = qlas[ila][0];
+            arb_set_fmpq(r,qla,fp);
+            acb_pow_arb(z,z0,r,fp); // z^la
+            for(int n=0; n<=xn; n++) {
+                acb_init(zln[ila][n]);
+                acb_set(zln[ila][n],z);
+                acb_mul(z,z,z0,fp); // next z^(la+n)
+            }
+            arb_clear(r);
+        }
+        vector<acb_t> lzk(kmmax); // cache ln^k z/k!
+        acb_one(z);
+        for(int k=0; k<kmmax; k++) {
+            if(k>1) acb_div_si(z,z,k,fp); // div k!
+            acb_init(lzk[k]);
+            acb_set(lzk[k],z);
+            acb_mul(z,z,lz0,fp); // next ln^k z
+        }
+
+        acb_mat_t cmat;
+        acb_mat_init(cmat,N,N);
+        acb_mat_zero(cmat);
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            for(int bc=0; bc<=br; bc++) { // cycle columns
+                int c0 = bs[bc].first;
+                int nc = bs[bc].second;
+                for(auto & kv : U[br][bc]) {
+                    auto ila = kv.first;
+                    int kmax = kv.second.size();
+                    for(int k=0; k<kmax; k++) {
+                        auto nmax = kv.second[k].size();
+                        for(int n=0; n<nmax; n++) {
+                            for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                                auto item = acb_mat_entry(cmat,r0+r,c0+c);
+                                acb_t tz;
+                                acb_init(tz);
+                                acb_mul(tz,acb_mat_entry(kv.second[k][n],r,c),zln[ila][n],fp);
+                                acb_mul(tz,tz,lzk[k],fp);
+                                acb_add(item,item,tz,fp); 
+                                acb_clear(tz);
+                            }
+                            acb_mat_clear(U[br][bc][ila][k][n]);
+                        }
+                    }
+                }
+            }
+        }
+        
+        acb_clear(z0);
+        acb_clear(lz0);
+        acb_clear(z);
+        for(int ila=0; ila<nlas; ila++) for(int n=0; n<=xn; n++) acb_clear(zln[ila][n]);
+        for(int k=0; k<kmmax; k++) acb_clear(lzk[k]);
+        auto mat =  _to_(cmat,fp);
+        acb_mat_clear(cmat);
+        return mat;
+    }
     
-    block_imat_t DEX::series(int xn, const matrix & m, const lst & slas) { return series(xn,c2b(m),slas); }
-    
-    block_imat_t DEX::series(int xn, const vector<matrix> & cb, const lst & slas) {
+    // U[a][b][la][k][n], block_umat_acb_mat_t U; no need to initialize U
+    void DEX::series(block_umat_acb_mat_t & U, int xn, slong dp, const vector<fmpq_t> & qslas) {
         if(!fuchsified) fuchsify();
         auto nbs = bs.size();
-        int nc = cb[0].cols();
+        auto fp = dp2fp(dp);
+        U.resize(nbs);
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int nr = bs[br].second;
+            U[br].resize(br+1);
+            vector<MX> A(br+1); // M=A/x
+            fmpz_poly_t lcm, ilcm, olcm, rlcm; // D=lcm
+            fmpz_poly_init(lcm);
+            fmpz_poly_init(ilcm);
+            fmpz_poly_init(olcm);
+            fmpz_poly_init(rlcm);
+            fmpz_poly_set_str(lcm, "1  1");
+            for(int bc=br; bc>=0; bc--) { // cycle columns
+                int nc = bs[bc].second;
+
+                // lcm each block A[br][bc] -> A[bc]
+                A[bc].init(Mat[br][bc]);
+                A[bc].scale(x); // A=x*M
+
+                A[bc].denlcm(ilcm);
+                fmpz_poly_set(olcm,lcm);
+                fmpz_poly_lcm(lcm, olcm, ilcm);
+                fmpz_poly_div(rlcm, lcm, olcm);
+                for(int bc2=br; bc2>bc; bc2--) A[bc2].scale(rlcm);
+                fmpz_poly_div(rlcm, lcm, ilcm);
+                A[bc].scale(rlcm);
+                
+                // now we use a=br, b=bc, note that M=A/x
+                // [(ila+n)D0-A0aa].Uab(ila,k,n) = -Uab(ila,k+1,n)D0
+                //   - sum_{0<m<=n} [(ila+n)Uab(ila,k,n-m)+Uab(ila,k+1,n-m)]Dm 
+                //   + sum_{b<=c<=a,0<=m<=n,NO(a=b,m=0)} Amac.Ucb(ila,k,n-m)
+                int a = br, b = bc;
+                fmpq_mat_t A0aa;
+                fmpq_mat_init(A0aa,nr,nr);
+                A[a].coeff(A0aa,0);
+                fmpz_t D0;
+                fmpz_init(D0);
+                fmpz_poly_get_coeff_fmpz(D0,lcm,0);
+                
+                int nla = UK[a][b].size();
+                if(!In_GiNaC_Parallel && Verbose>5) {
+                    cout << "\r                                                              \r" << flush;
+                    cout << "  \\--nseries: " << nbs << "|" << br+1 << "|" << (br-bc+1);
+                    cout << " [" << nr << "\u2A09" << nc << "]";
+                    cout << " \u03BB" << nla << " n" << xn << flush;
+                }
+                for(auto kv : UK[a][b]) U[a][b][kv.first].resize(kv.second); // insert kv first and make sure thread-safe
+                bool la_parallel = (qslas.size()>0 ? qslas.size() : nla) >= omp_get_max_threads();
+                #pragma omp parallel for schedule(runtime) if(la_parallel)
+                for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
+                    fmpq_mat_t invA;
+                    fmpq_mat_init(invA,nr,nr);
+                    acb_mat_t invAf;
+                    acb_mat_init(invAf,nr,nr);
+                    fmpq_t q;
+                    fmpq_init(q);
+                    acb_mat_t smat;
+                    acb_mat_init(smat,nr,nc);
+                
+                    auto kv = UK[a][b].begin();
+                    advance(kv,cla);
+                    auto ila = kv->first;
+                    if(qslas.size()>0 && !is_resonant(qslas,qlas[ila][0])) {
+                        if(!In_GiNaC_Parallel && Verbose>5) {
+                            cout << "\r                                                              \r" << flush;
+                            cout << "  \\--nseries: " << nbs << "|" << br+1 << "|" << (br-bc+1);
+                            cout << " [" << nr << "\u2A09" << nc << "]";
+                            cout << " \u03BB" << nla << " n" << xn << flush;
+                        }
+                        continue;
+                    }
+                    auto kmax = kv->second;
+                    for(int k=kmax-1; k>=0; k--) { // 2-cycle over k
+                        U[a][b][ila][k] = vector<acb_mat_t>(xn+1);
+                        acb_mat_init(U[a][b][ila][k][0],nr,nc);
+                        acb_mat_set_fmpq_mat(U[a][b][ila][k][0],U0[a][b][ila][k][0],fp);
+                        
+                        for(int n=1; n<=xn; n++) { // 3-cycle over n
+                        
+                            if(omp_get_num_threads()==1 && !In_GiNaC_Parallel && Verbose>5) {
+                                cout << "\r                                                              \r" << flush;
+                                cout << "  \\--nseries: " << nbs << "|" << br+1 << "|" << (br-bc+1);
+                                cout << " [" << nr << "\u2A09" << nc << "]";
+                                cout << " \u03BB" << nla << "|" << cla+1;
+                                cout << " k" << kmax << "|" << (kmax-k);
+                                cout << " n" << xn << "|" << n << flush;
+                            }
+                            
+                            acb_mat_zero(smat);
+                            fmpq_add_si(q,qlas[ila][0],n); // q = la+n
+
+                            if(true) { 
+                                slong s = fmpz_poly_degree(lcm);
+                                if(s>n) s=n;
+                                vector<acb_mat_t> mat_vec(s+1);
+                                for(int m=0; m<=s; m++) acb_mat_init(mat_vec[m],nr,nc);
+                                #pragma omp parallel for schedule(runtime)
+                                for(int m=0; m<=s; m++) {
+                                    auto mat = mat_vec[m];
+                                    fmpz_t Dm;
+                                    fmpz_init(Dm);
+                                    fmpq_t qm;
+                                    fmpq_init(qm);
+                                    if(m==0 && k+1<kmax) {
+                                        fmpz_neg(Dm,D0);
+                                        acb_mat_scalar_mul_fmpz(mat,U[a][b][ila][k+1][n],Dm,fp);
+                                    } else if(m>0) {
+                                        fmpq_sub_si(qm,q,m);
+                                        acb_t fqm; acb_init(fqm);
+                                        acb_set_fmpq(fqm,qm,fp);
+                                        acb_mat_scalar_mul_acb(mat,U[a][b][ila][k][n-m],fqm,fp);
+                                        acb_clear(fqm);
+                                        if(k+1<kmax) acb_mat_add(mat,mat,U[a][b][ila][k+1][n-m],fp);
+                                        fmpz_poly_get_coeff_fmpz(Dm,lcm,m);
+                                        fmpz_neg(Dm,Dm);
+                                        acb_mat_scalar_mul_fmpz(mat,mat,Dm,fp);
+                                    }
+                                    fmpz_clear(Dm);
+                                    fmpq_clear(qm);
+                                    flint_cleanup();
+                                }
+                                for(int m=0; m<=s; m++) {
+                                    acb_mat_add(smat,smat,mat_vec[m],fp);
+                                    acb_mat_clear(mat_vec[m]);
+                                }
+                            }
+
+                            if(true) {
+                                int ab1 = a-b+1;
+                                vector<acb_mat_t> smat_vec(ab1);
+                                for(int i=0; i<ab1; i++) acb_mat_init(smat_vec[i],nr,nc);
+                                #pragma omp parallel for schedule(runtime) if(a>omp_get_max_threads())
+                                for(int c=b; c<=a; c++) {
+                                    if(U[c][b].find(ila)!=U[c][b].end() && U[c][b][ila].size()>k) {
+                                        slong s = A[c].degree();
+                                        if(s>n) s = n;
+                                        vector<acb_mat_t> mat_vec(s+1);
+                                        for(int i=0; i<=s; i++) acb_mat_init(mat_vec[i],nr,nc);
+                                        #pragma omp parallel for schedule(runtime)
+                                        for(int m=0; m<=s; m++) {
+                                            if(c!=a || m!=0) {
+                                                int nc2 = bs[c].second;
+                                                acb_mat_t Amac;
+                                                acb_mat_init(Amac,nr,nc2);
+                                                A[c].coeff(Amac,m,fp);
+                                                acb_mat_mul(mat_vec[m],Amac,U[c][b][ila][k][n-m],fp);
+                                                acb_mat_clear(Amac);
+                                            }
+                                            flint_cleanup();
+                                        }
+                                        acb_mat_zero(smat_vec[c-b]);
+                                        for(int i=0; i<=s; i++) {
+                                            acb_mat_add(smat_vec[c-b],smat_vec[c-b],mat_vec[i],fp);
+                                            acb_mat_clear(mat_vec[i]);
+                                        }
+                                    }
+                                    flint_cleanup();
+                                }
+                                for(int i=0; i<ab1; i++) {
+                                    acb_mat_add(smat,smat,smat_vec[i],fp);
+                                    acb_mat_clear(smat_vec[i]);
+                                }
+                            }
+                            
+                            fmpq_mul_fmpz(q,q,D0); // q = (la+n)D0
+                            fmpq_mat_one(invA);
+                            fmpq_mat_scalar_mul_fmpq(invA,invA,q);
+                            fmpq_mat_sub(invA,invA,A0aa);
+                            fmpq_mat_inv(invA,invA);
+                            acb_mat_set_fmpq_mat(invAf,invA,fp);
+
+                            acb_mat_init(U[a][b][ila][k][n],nr,nc);
+                            acb_mat_mul(U[a][b][ila][k][n],invAf,smat,fp);
+                        }
+                    }
+                    fmpq_mat_clear(invA);
+                    acb_mat_clear(invAf);
+                    fmpq_clear(q);
+                    acb_mat_clear(smat);
+                    flint_cleanup();
+                }
+                fmpq_mat_clear(A0aa);
+                fmpz_clear(D0);
+            }
+
+            for(int bc=br; bc>=0; bc--) A[bc].clear();
+            fmpz_poly_clear(lcm);
+            fmpz_poly_clear(ilcm);
+            fmpz_poly_clear(olcm);
+            fmpz_poly_clear(rlcm);
+        }
+        if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
+    }
+    
+    //=*********************************************************************=
+    // I-Series - expansion - rational
+    //=*********************************************************************=
+    
+    imat_t DEX::series(int xn, const matrix & m, const lst & slas) {
+        if(!fuchsified) fuchsify();
+        auto nbs = bs.size();
+        int nc = m.cols();
+        
+        vector<fmpq_mat_t> qmat0(nbs);
+        for(int br=0; br<nbs; br++) {
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            fmpq_mat_init(qmat0[br],nr,nc);
+            _to_(qmat0[br],ex_to<matrix>(sub_matrix(m, r0, nr, 0, nc)));
+        }
         
         block_imat_fmpq_mat_t In0(nbs);
         for(int br=0; br<nbs; br++) {
@@ -751,9 +1122,6 @@ namespace HepLib {
             fmpq_mat_t qmat;
             fmpq_mat_init(qmat,nr,nc);
             for(int bc=0; bc<=br; bc++) {
-                int nr2 = bs[bc].second;
-                fmpq_mat_t qmat2;
-                fmpq_mat_init(qmat2,nr2,nc);
                 int b = bc;
                 for(auto & kv : U0[a][b]) {
                     auto ila = kv.first;
@@ -767,15 +1135,14 @@ namespace HepLib {
                         }
                     }
                     for(int k=0; k<kmax; k++) {
-                        _to_(qmat2,cb[bc]);
-                        fmpq_mat_mul(qmat,kv.second[k][0],qmat2);
+                        fmpq_mat_mul(qmat,kv.second[k][0],qmat0[bc]);
                         fmpq_mat_add(In0[a][ila][k][0],In0[a][ila][k][0],qmat);
                     }
                 }
-                fmpq_mat_clear(qmat2);
             }
             fmpq_mat_clear(qmat);
         }
+        for(int br=0; br<nbs; br++) fmpq_mat_clear(qmat0[br]);
         
         vector<fmpq_t> qslas(slas.nops());
         for(int i=0; i<qslas.size(); i++) {
@@ -783,19 +1150,46 @@ namespace HepLib {
             _to_(qslas[i], slas.op(i));
         }
         
-        auto imat = series(xn,In0,nc,qslas);
-        
+        block_imat_fmpq_mat_t I;
+        series(I,xn,In0,nc,qslas);
         for(int a=0; a<nbs; a++) for(auto & kv : In0[a]) for(auto & item : kv.second) fmpq_mat_clear(item[0]);
         for(int i=0; i<qslas.size(); i++) fmpq_clear(qslas[i]);
         
-        return imat;
-
+        imat_t RI;
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            for(auto & kv : I[br]) {
+                auto ila = kv.first;
+                auto la = las[ila];
+                int kmax = kv.second.size();
+                if(RI.find(la)==RI.end()) {
+                    int kmax = IK[nbs-1][ila];
+                    RI[la].resize(kmax);
+                    for(int k=0; k<kmax; k++) {
+                        RI[la][k].resize(xn+1);
+                        for(int n=0; n<=xn; n++) RI[la][k][n] = matrix(N,nc);
+                    }
+                }
+                for(int k=0; k<kmax; k++) {
+                    for(int n=0; n<=xn; n++) {
+                        auto mat = _to_(I[br][ila][k][n]);
+                        fmpq_mat_clear(I[br][ila][k][n]);
+                        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) RI[la][k][n](r0+r,c) = mat(r,c);
+                    }
+                }
+            }
+        }
+        return RI;
+        
     }
     
-    block_imat_t DEX::series(int xn, block_imat_fmpq_mat_t & In0, int nc, const vector<fmpq_t> & qslas) { // RI[a][la][k][n] & & In0[a][ila][k]
+    // I[a][la][k][n] & In0[a][ila][k], no need to initialize I
+    void DEX::series(block_imat_fmpq_mat_t & I, int xn, block_imat_fmpq_mat_t & In0, int nc, const vector<fmpq_t> & qslas) { 
+        
         if(!fuchsified) fuchsify();
         auto nbs = bs.size();
-        block_imat_fmpq_mat_t I(nbs);
+        I.resize(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
             int nr = bs[br].second;
             vector<MX> A(br+1); // M=A/x
@@ -973,39 +1367,128 @@ namespace HepLib {
         }
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
         
-        block_imat_t RI(nbs);
+    }
+    
+    //=*********************************************************************=
+    // I-Series - acb
+    //=*********************************************************************=
+    
+    imat_t DEX::series(int xn, const matrix & m, slong dp, const lst & slas) {
+        if(!fuchsified) fuchsify();
+        auto nbs = bs.size();
+        auto fp = dp2fp(dp);
+        int nc = m.cols();
+        vector<acb_mat_t> qmat0(nbs);
+        for(int br=0; br<nbs; br++) {
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            acb_mat_init(qmat0[br],nr,nc);
+            _to_(qmat0[br],ex_to<matrix>(sub_matrix(m, r0, nr, 0, nc)),fp);
+        }
+        
+        block_imat_acb_mat_t In0(nbs);
+        for(int br=0; br<nbs; br++) {
+            int a = br;
+            int nr = bs[br].second;
+            acb_mat_t qmat;
+            acb_mat_init(qmat,nr,nc);
+            for(int bc=0; bc<=br; bc++) {
+                int nr2 = bs[bc].second;
+                acb_mat_t umat;
+                acb_mat_init(umat,nr,nr2);
+                int b = bc;
+                for(auto & kv : U0[a][b]) {
+                    auto ila = kv.first;
+                    int kmax = kv.second.size();
+                    if(In0[a].find(ila)==In0[a].end()) {
+                        auto kmax2 = IK[a][ila];
+                        In0[a][ila].resize(kmax2);
+                        for(int k=0; k<kmax2; k++) {
+                            In0[a][ila][k] = vector<acb_mat_t>(1);
+                            acb_mat_init(In0[a][ila][k][0],nr,nc);
+                        }
+                    }
+                    for(int k=0; k<kmax; k++) {
+                        acb_mat_set_fmpq_mat(umat,kv.second[k][0],fp);
+                        acb_mat_mul(qmat,umat,qmat0[bc],fp);
+                        acb_mat_add(In0[a][ila][k][0],In0[a][ila][k][0],qmat,fp);
+                    }
+                }
+                acb_mat_clear(umat);
+            }
+            acb_mat_clear(qmat);
+        }
+        for(int br=0; br<nbs; br++) acb_mat_clear(qmat0[br]);
+        
+        vector<fmpq_t> qslas(slas.nops());
+        for(int i=0; i<qslas.size(); i++) {
+            fmpq_init(qslas[i]);
+            _to_(qslas[i], slas.op(i));
+        }
+        
+        block_imat_acb_mat_t I;
+        series(I,xn,In0,nc,dp,qslas);
+        for(int a=0; a<nbs; a++) for(auto & kv : In0[a]) for(auto & item : kv.second) acb_mat_clear(item[0]);
+        for(int i=0; i<qslas.size(); i++) fmpq_clear(qslas[i]);
+        
+        mag_t mag;
+        mag_init(mag);
+        imat_t RI;
         for(int br=0; br<nbs; br++) { // cycle rows
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
             for(auto & kv : I[br]) {
                 auto ila = kv.first;
                 auto la = las[ila];
                 int kmax = kv.second.size();
-                RI[br][la].resize(kmax);
+                if(RI.find(la)==RI.end()) {
+                    int kmax = IK[nbs-1][ila];
+                    RI[la].resize(kmax);
+                    for(int k=0; k<kmax; k++) {
+                        RI[la][k].resize(xn+1);
+                        for(int n=0; n<=xn; n++) RI[la][k][n] = matrix(N,nc);
+                    }
+                }
                 for(int k=0; k<kmax; k++) {
-                    int nt = kv.second[k].size();
-                    RI[br][la][k].resize(nt);
-                    for(int n=0; n<nt; n++) {
-                        RI[br][la][k][n] = _to_(I[br][ila][k][n]);
-                        fmpq_mat_clear(I[br][ila][k][n]);
+                    for(int n=0; n<=xn; n++) {
+                        // - error check
+                        int nr = acb_mat_nrows(I[br][ila][k][n]);
+                        int nc = acb_mat_ncols(I[br][ila][k][n]);
+                        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                            auto item = acb_mat_entry(I[br][ila][k][n],r,c);
+                            auto ri = acb_realref(item);
+                            if(arb_rel_error_bits(ri)>-rel_fp) {
+                                arb_get_mag(mag,ri);
+                                if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                                    cout << endl; arb_printd(ri,5); cout << endl;
+                                }
+                            }
+                            ri = acb_imagref(item);
+                            if(arb_rel_error_bits(ri)>-rel_fp) {
+                                if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                                    cout << endl; arb_printd(ri,5); cout << endl;  
+                                }
+                            }
+                        }
+                        // - error check end
+                            
+                        auto mat = _to_(I[br][ila][k][n],fp);
+                        acb_mat_clear(I[br][ila][k][n]);
+                        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) RI[la][k][n](r0+r,c) = mat(r,c);
                     }
                 }
             }
         }
+        mag_clear(mag);
         return RI;
+        
     }
     
-    //=*********************************************************************=
-    // i-Series - acb
-    //=*********************************************************************=
-    
-    block_imat_t DEX::series(int xn, const matrix & m, slong dp, const lst & slas) { 
-        auto imat = series(xn,c2b(m),dp,slas); 
-        return imat;
-    }
-    
-    block_imat_t DEX::series(int xn, const vector<matrix> & cb, slong dp, const lst & slas) {
+    matrix DEX::series(int xn, const matrix & m, slong dp, const ex & x0, const lst & slas) {
         if(!fuchsified) fuchsify();
         auto nbs = bs.size();
-        int nc = cb[0].cols();
+        int nc = m.cols();
+        auto cb = c2b(m);
         
         auto fp = dp2fp(dp);
         block_imat_acb_mat_t In0(nbs);
@@ -1050,20 +1533,107 @@ namespace HepLib {
             _to_(qslas[i], slas.op(i));
         }
         
-        auto imat = series(xn,In0,nc,dp,qslas);
-        
+        block_imat_acb_mat_t I;
+        series(I,xn,In0,nc,dp,qslas);
         for(int a=0; a<nbs; a++) for(auto & kv : In0[a]) for(auto & item : kv.second) acb_mat_clear(item[0]);
         for(int i=0; i<qslas.size(); i++) fmpq_clear(qslas[i]);
         
-        return imat;
+        acb_t z0, lz0, z;
+        acb_init(z0);
+        acb_init(lz0);
+        acb_init(z);
+        _to_(z0,x0,fp);
+        acb_log(lz0,z0,fp);
+        vector<vector<acb_t>> zln(nlas); // cache z0^(la+n) zln[ila][n]
+        for(int ila=0; ila<nlas; ila++) {
+            zln[ila] = vector<acb_t>(xn+1);
+            arb_t r;
+            arb_init(r);
+            auto qla = qlas[ila][0];
+            arb_set_fmpq(r,qla,fp);
+            acb_pow_arb(z,z0,r,fp); // z^la
+            for(int n=0; n<=xn; n++) {
+                acb_init(zln[ila][n]);
+                acb_set(zln[ila][n],z);
+                acb_mul(z,z,z0,fp); // next z^(la+n)
+            }
+            arb_clear(r);
+        }
+        vector<acb_t> lzk(kmmax); // cache ln^k z/k!
+        acb_one(z);
+        for(int k=0; k<kmmax; k++) {
+            if(k>1) acb_div_si(z,z,k,fp); // div k!
+            acb_init(lzk[k]);
+            acb_set(lzk[k],z);
+            acb_mul(z,z,lz0,fp); // next ln^k z
+        }
         
+        mag_t mag;
+        mag_init(mag);
+        acb_mat_t imat;
+        acb_mat_init(imat,N,nc);
+        acb_mat_zero(imat);
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            for(auto & kv : I[br]) {
+                auto ila = kv.first;
+                int kmax = kv.second.size();
+                for(int k=0; k<kmax; k++) {
+                    for(int n=0; n<=xn; n++) {
+                        // - error check
+                        int nr = acb_mat_nrows(I[br][ila][k][n]);
+                        int nc = acb_mat_ncols(I[br][ila][k][n]);
+                        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                            auto item = acb_mat_entry(I[br][ila][k][n],r,c);
+                            auto ri = acb_realref(item);
+                            if(arb_rel_error_bits(ri)>-rel_fp) {
+                                arb_get_mag(mag,ri);
+                                if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                                    cout << endl; arb_printd(ri,5); cout << endl;
+                                }
+                            }
+                            ri = acb_imagref(item);
+                            if(arb_rel_error_bits(ri)>-rel_fp) {
+                                if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                                    cout << endl; arb_printd(ri,5); cout << endl;  
+                                }
+                            }
+                        }
+                        // - error check end
+                            
+                        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                            auto item = acb_mat_entry(imat,r0+r,c);
+                            acb_t tz;
+                            acb_init(tz);
+                            acb_mul(tz,acb_mat_entry(kv.second[k][n],r,c),zln[ila][n],fp);
+                            acb_mul(tz,tz,lzk[k],fp);
+                            acb_add(item,item,tz,fp); 
+                            acb_clear(tz);
+                        }
+                        acb_mat_clear(I[br][ila][k][n]);
+                    }
+                }
+            }
+        }
+        mag_clear(mag);
+        acb_clear(z0);
+        acb_clear(lz0);
+        acb_clear(z);
+        for(int ila=0; ila<nlas; ila++) for(int n=0; n<=xn; n++) acb_clear(zln[ila][n]);
+        for(int k=0; k<kmmax; k++) acb_clear(lzk[k]);
+        auto mat =  _to_(imat,fp);
+        acb_mat_clear(imat);
+        return mat;
     }
     
-    block_imat_t DEX::series(int xn, block_imat_acb_mat_t & In0, int nc, slong dp, const vector<fmpq_t> & qslas) { // RI[a][la][k][n] & & In0[a][la][k]  
+    // I[a][la][k][n] & In0[a][la][k], no need to initialize I
+    void DEX::series(block_imat_acb_mat_t & I, int xn, block_imat_acb_mat_t & In0, int nc, slong dp, const vector<fmpq_t> & qslas) {  
+    
         if(!fuchsified) fuchsify();
         auto fp = dp2fp(dp);
         auto nbs = bs.size();
-        block_imat_acb_mat_t I(nbs);
+        I.resize(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
             int nr = bs[br].second;
             vector<MX> A(br+1); // M=A/x
@@ -1186,7 +1756,7 @@ namespace HepLib {
                                 acb_mat_clear(mat_vec[m]);
                             }
                         }
-                        
+
                         if(true) {
                             vector<acb_mat_t> smat_vec(a+1);
                             for(int i=0; i<=a; i++) acb_mat_init(smat_vec[i],nr,nc);
@@ -1223,7 +1793,7 @@ namespace HepLib {
                                 acb_mat_clear(smat_vec[i]);
                             }
                         }
-                        
+
                         acb_mul(q,q,D0,fp); // q = (la+n)D0
                         acb_mat_one(invA);
                         acb_mat_scalar_mul_acb(invA,invA,q,fp);
@@ -1246,60 +1816,37 @@ namespace HepLib {
         }
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
         
-        mag_t mag;
-        mag_init(mag);
-    
-        block_imat_t RI(nbs);
-        for(int br=0; br<nbs; br++) { // cycle rows
-            for(auto & kv : I[br]) {
-                auto ila = kv.first;
-                auto la = las[ila];
-                int kmax = kv.second.size();
-                RI[br][la].resize(kmax);
-                for(int k=0; k<kmax; k++) {
-                    int nt = kv.second[k].size();
-                    RI[br][la][k].resize(nt);
-                    for(int n=0; n<nt; n++) {
-                        // - error check
-                        int nr = acb_mat_nrows(I[br][ila][k][n]);
-                        int nc = acb_mat_ncols(I[br][ila][k][n]);
-                        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
-                            auto item = acb_mat_entry(I[br][ila][k][n],r,c);
-                            auto ri = acb_realref(item);
-                            if(arb_rel_error_bits(ri)>-rel_fp) {
-                                arb_get_mag(mag,ri);
-                                if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
-                                    cout << endl; arb_printd(ri,5); cout << endl;
-                                }
-                            }
-                            ri = acb_imagref(item);
-                            if(arb_rel_error_bits(ri)>-rel_fp) {
-                                if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
-                                    cout << endl; arb_printd(ri,5); cout << endl;  
-                                }
-                            }
-                        }
-                        // - error check end
-                            
-                        RI[br][la][k][n] = _to_(I[br][ila][k][n],fp);
-                        acb_mat_clear(I[br][ila][k][n]);
-                    }
-                }
-            }
-        }
-        mag_clear(mag);
-        return RI;
     }
     
     //=*********************************************************************=
     // Taylor expansion
     //=*********************************************************************=
     
-    vector<vector<matrix>> DEX::taylor(int xn, const matrix I0, const ex & x0) {  
+    vector<matrix> DEX::taylor(int xn, const matrix I0, const ex & x0) {  
         auto nbs = bs.size();
         int nc = I0.cols();
  
-        vector<vector<fmpq_mat_t>> I(nbs); // I[a][n]
+        vector<vector<fmpq_mat_t>> I; // I[a][n]
+        taylor(I,xn,I0,x0);
+        
+        vector<matrix> RI(xn+1);
+        for(int n=0; n<=xn; n++) RI[n] = matrix(N,nc);
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            for(int n=0; n<=xn; n++) {
+                auto mat = _to_(I[br][n]);
+                fmpq_mat_clear(I[br][n]);
+                for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) RI[n](r0+r,c) = mat(r,c);
+            }
+        }
+        return RI;
+    }
+    
+    void DEX::taylor(vector<vector<fmpq_mat_t>> & I, int xn, const matrix I0, const ex & x0) {  
+        auto nbs = bs.size();
+        int nc = I0.cols();
+ 
         for(int br=0; br<nbs; br++) { // cycle rows
             int r0 = bs[br].first;
             int nr = bs[br].second;
@@ -1422,26 +1969,129 @@ namespace HepLib {
             fmpq_mat_clear(smat);
         }
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
-        
-        vector<vector<matrix>> RI(nbs);
-        for(int br=0; br<nbs; br++) { // cycle rows
-            int nr = bs[br].second;
-            RI[br].resize(xn+1);
-            for(int n=0; n<=xn; n++) {
-                RI[br][n] = _to_(I[br][n]);
-                fmpq_mat_clear(I[br][n]);
-            }
-        }
-        
-        return RI;
     }
     
-    vector<vector<matrix>> DEX::taylor(int xn, const matrix I0, const ex & x0, slong dp) {  
+    vector<matrix> DEX::taylor(int xn, const matrix I0, const ex & x0, slong dp) {  
         auto nbs = bs.size();
         auto fp = dp2fp(dp);
         int nc = I0.cols();
         
-        if(!taylor_inited) {
+        vector<vector<acb_mat_t>> I; // I[a][n]
+        taylor(I,xn,I0,x0,dp);
+        
+        mag_t mag;
+        mag_init(mag);
+        vector<matrix> RI(xn+1);
+        for(int n=0; n<=xn; n++) RI[n] = matrix(N,nc);
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            for(int n=0; n<=xn; n++) {
+                
+                // - error check
+                for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                    auto item = acb_mat_entry(I[br][n],r,c);
+                    auto ri = acb_realref(item);
+                    if(arb_rel_error_bits(ri)>-rel_fp) {
+                        arb_get_mag(mag,ri);
+                        if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                            cout << endl; arb_printd(ri,5); cout << endl;
+                        }
+                    }
+                    ri = acb_imagref(item);
+                    if(arb_rel_error_bits(ri)>-rel_fp) {
+                        if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                            cout << endl; arb_printd(ri,5); cout << endl;  
+                        }
+                    }
+                }
+                // - error check end
+                    
+                auto mat = _to_(I[br][n],fp);
+                acb_mat_clear(I[br][n]);
+                for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) RI[n](r0+r,c) = mat(r,c);
+            }
+        }
+        mag_clear(mag);
+        
+        return RI;
+    }
+    
+    matrix DEX::taylor(int xn, const matrix I0, const ex & x0, slong dp, const ex & dx) {  
+        auto nbs = bs.size();
+        auto fp = dp2fp(dp);
+        int nc = I0.cols();
+        
+        vector<vector<acb_mat_t>> I; // I[a][n]
+        taylor(I,xn,I0,x0,dp);
+        
+        acb_t z0, z;
+        acb_init(z0);
+        acb_init(z);
+        _to_(z0,dx,fp);
+        vector<acb_t> zn(xn+1);
+        acb_one(z);
+        for(int n=0; n<=xn; n++) {
+            acb_init(zn[n]);
+            acb_set(zn[n],z);
+            acb_mul(z,z,z0,fp); // next z^n
+        }
+        
+        mag_t mag;
+        mag_init(mag);
+        acb_mat_t imat;
+        acb_mat_init(imat,N,nc);
+        acb_mat_zero(imat);
+        for(int br=0; br<nbs; br++) { // cycle rows
+            int r0 = bs[br].first;
+            int nr = bs[br].second;
+            for(int n=0; n<=xn; n++) {
+                
+                // - error check
+                for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                    auto item = acb_mat_entry(I[br][n],r,c);
+                    auto ri = acb_realref(item);
+                    if(arb_rel_error_bits(ri)>-rel_fp) {
+                        arb_get_mag(mag,ri);
+                        if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                            cout << endl; arb_printd(ri,5); cout << endl;
+                        }
+                    }
+                    ri = acb_imagref(item);
+                    if(arb_rel_error_bits(ri)>-rel_fp) {
+                        if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                            cout << endl; arb_printd(ri,5); cout << endl;  
+                        }
+                    }
+                }
+                // - error check end
+                    
+                for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                    auto item = acb_mat_entry(imat,r0+r,c);
+                    acb_t tz;
+                    acb_init(tz);
+                    acb_mul(tz,acb_mat_entry(I[br][n],r,c),zn[n],fp);
+                    acb_add(item,item,tz,fp); 
+                    acb_clear(tz);
+                }
+                acb_mat_clear(I[br][n]);
+            }
+        }
+        mag_clear(mag);
+        acb_clear(z0);
+        acb_clear(z);
+        for(int n=0; n<=xn; n++) acb_clear(zn[n]);
+        auto mat =  _to_(imat,fp);
+        acb_mat_clear(imat);
+        return mat;
+    }
+    
+    void DEX::taylor(vector<vector<acb_mat_t>> & I, int xn, const matrix I0, const ex & x0, slong dp) {  
+        auto nbs = bs.size();
+        auto fp = dp2fp(dp);
+        int nc = I0.cols();
+        
+        if(!ntaylor_inited) {
             TMat.resize(nbs);
             TD.resize(nbs);
             fmpz_poly_t zlcm, rlcm; // D=lcm
@@ -1476,13 +2126,13 @@ namespace HepLib {
             }
             fmpz_poly_clear(zlcm);
             fmpz_poly_clear(rlcm);
-            taylor_inited = true;
+            ntaylor_inited = true;
         }
         
         acb_t z0;
         acb_init(z0); 
         _to_(z0,x0,fp);
-        vector<vector<acb_mat_t>> I(nbs); // I[a][n]
+        I.resize(nbs);
         for(int br=0; br<nbs; br++) { // cycle rows
             int r0 = bs[br].first;
             int nr = bs[br].second;
@@ -1600,43 +2250,33 @@ namespace HepLib {
         }
         acb_clear(z0); 
         if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
-        
-        vector<vector<matrix>> RI(nbs);
-        mag_t mag;
-        mag_init(mag);
-        for(int br=0; br<nbs; br++) { // cycle rows
-            int nr = bs[br].second;
-            RI[br].resize(xn+1);
-            for(int n=0; n<=xn; n++) {
-                
-                // - error check
-                for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
-                    auto item = acb_mat_entry(I[br][n],r,c);
-                    auto ri = acb_realref(item);
-                    if(arb_rel_error_bits(ri)>-rel_fp) {
-                        arb_get_mag(mag,ri);
-                        if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
-                            cout << endl; arb_printd(ri,5); cout << endl;
-                        }
-                    }
-                    ri = acb_imagref(item);
-                    if(arb_rel_error_bits(ri)>-rel_fp) {
-                        if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
-                            cout << endl; arb_printd(ri,5); cout << endl;  
-                        }
-                    }
-                }
-                // - error check end
-                    
-                RI[br][n] = _to_(I[br][n],fp);
-                acb_mat_clear(I[br][n]);
-            }
-        }
-        mag_clear(mag);
-        
-        return RI;
     }
     
     //=*********************************************************************=
+    
+    matrix u2m(const umat_t & umat, const ex & x) {
+        matrix mat;
+        bool first = true;
+        for(auto kv : umat) {
+            auto item = kv.second;
+            int kmax = item.size();
+            ex lxk = 1;
+            for(int k=0; k<kmax; k++) {
+                int nmax = item[k].size();
+                ex xln = pow(x,kv.first);
+                for(int n=0; n<nmax; n++) {
+                    auto m = item[k][n].mul_scalar(xln*lxk);
+                    if(first) { first=false; mat = m; }
+                    else mat = mat.add(m);
+                    xln *= x;
+                }
+                lxk *= log(x)/(k+1);
+            }
+        }
+        return mat;
+    }
+    
+    matrix i2m(const imat_t & imat, const ex & x) { return u2m(imat,x); }
+        
 }
 
