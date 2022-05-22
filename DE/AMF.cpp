@@ -302,7 +302,7 @@ namespace HepLib {
         // DE at origin
         //--------------------------------------------------------------------------------------
         if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ origin ..." << RESET << endl;
-        matrix oTU, ioTU;
+        matrix oTUi;
         if(true) {
             DEX de(x);
             de.init(nmat);
@@ -322,14 +322,15 @@ namespace HepLib {
             auto C00 = CMat[0][0]; // also drop ln^k x
             matrix U(N,N);
             for(int n=0; n<C00.size(); n++) U = U.add(C00[n].mul_scalar(pow(x,n)));
-            oTU = T.mul(U);
-            xpow(oTU,x);
-//            subs(oTU,x==0,nopat);
+            auto TU = T.mul(U);
+            xpow(TU,x);
+            for(int i=0; i<TU.nops(); i++) TU.let_op(i) = series_ex(TU.op(i),x,0);
 
             ex x0 = pts.op(0);
             matrix iT = ex_to<matrix>(subs(T,x==x0)).inverse();
             U = de.series(xn,dp,x0);
-            ioTU = U.inverse().mul(iT);
+            auto iTU = U.inverse().mul(iT);
+            oTUi = TU.mul(iTU);
         }
         
         //--------------------------------------------------------------------------------------
@@ -342,7 +343,7 @@ namespace HepLib {
             DEX de(x);
             auto mat = nmat;
             mat = x2y(mat,1/x,x); // infinity to origin
-            //xpow(mat,x);
+            xpow(mat,x);
             de.init(mat);
             
             ex x0 = 1/pts.op(npts-1);
@@ -363,12 +364,16 @@ namespace HepLib {
                 }
                 if(first) throw Error("first: something may be wrong here.");
                 
+                vector<matrix> fmat_vec; // boundar equations
                 for(const auto & kv : CMat) {
                     ex la = kv.first;
                     if(!is_zero(la-ila)) {
-                        matrix C00 = kv.second[0][0]; // k=0, n=0;
-                        for(int i=0; i<N; i++) {
-                            if(!is_zero(C00(i,i))) C(i,0) = 0;
+                        int kmax = kv.second.size();
+                        for(int k=0; k<kmax; k++) {
+                            auto mat = kv.second[k][0];
+                            matrix fmat(N, N+1);
+                            for(int r=0; r<N; r++) for(int c=0; c<N; c++) fmat(r,c) = mat(r,c);
+                            fmat_vec.push_back(fmat);
                         }
                     } 
                 }
@@ -387,7 +392,7 @@ namespace HepLib {
                 if(pr<0) pr = 0;
                 if(pr>xn) throw Error("pr>xn");
                 CMat = de.series(pr, lst{ila});
-                vector<matrix> fmat_vec;
+                
                 auto ks = CMat[ila].size();
                 for(int k=0; k<ks; k++) {
                     matrix cmat = CMat[ila][k][0];
@@ -414,7 +419,6 @@ namespace HepLib {
                     for(int r=0; r<N; r++) for(int c=0; c<=N; c++) fmat(n*N+r,c) = fmat_vec[n](r,c);
                 }
                 fmat = fermat_Redrowech(fmat);
-cout << endl << fmat << endl << endl;
                 lst feqns;
                 for(int r=0; r<N; r++) {
                     int idx = -1;
@@ -484,7 +488,7 @@ cout << endl << fmat << endl << endl;
                 fBC(c,0) = fs[c];
                 for(int r=0; r<N; r++) iBC(r,c) = C(r,0).coeff(fs[c]);                
             }
-            iBC = de.series(xn,iBC,dp,x0); // TODO: add x0
+            iBC = de.series(xn,iBC,dp,x0);
             T = ex_to<matrix>(subs(T,x==x0));
             iBC = T.mul(iBC);
         }
@@ -497,92 +501,87 @@ cout << endl << fmat << endl << endl;
         }
         if(true) {
             DEX de(x);
-            de.init(nmat);
-            auto nc = iBC.cols();
+            de.init(nmat); // note T matrix - permutation to triangular block 
+            auto T = de.T();
+            iBC = T.inverse().mul(iBC);
             for(int i=npts-2; i>=0; i--) {
                 auto x1 = pts.op(i);
                 auto x2 = pts.op(i+1);
                 auto dx = x1-x2;
                 iBC = de.taylor(xn,iBC,x2,dp,dx);
             }
+            iBC = T.mul(iBC);
         }
 
         // Final C at origin
-        matrix oC = ioTU.mul(iBC).mul(fBC);
-cout << oC << endl;
+        matrix oC = oTUi.mul(iBC).mul(fBC);
         lst res; // result for master integrals
-        oC = oTU.mul(oC);
         for(int i=0; i<N; i++) res.append(oC(i,0));
         reset_precision();
-cout << NN(res,20) << endl;
         return res;
     }
     
-//    lst AMF::FitEps(const lst & eps, int lp, bool parallel) {
-//        if(WDigits>0) set_precision(WDigits);
-//        exvector eps_vec(eps.begin(), eps.end());
-//        int nmi = MIntegrals.nops();
-//        exvector mis_vec[nmi];
-//        if(parallel && eps.nops()>1) {
-//            auto od0 = d0;
-//            auto res_vec = GiNaC_Parallel(eps.nops(), [&](int idx)->ex {
-//                d0 = 4-2*eps.op(idx);
-//                return Evaluate();
-//            }, "AMF");
-//            for(auto mis : res_vec) {
-//                for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
-//            }
-//            d0 = od0;
-//        } else {
-//            auto od0 = d0;
-//            for(auto epi : eps) {
-//                d0 = 4-2*epi;
-//                if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "ep = " << epi << RESET << endl;
-//                auto mis = Evaluate();
-//                for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
-//            }
-//            d0 = od0;
-//        }
-//        if(WDigits>0) reset_precision();
-//        set_precision(100*WDigits);
-//        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--Final PolynomialFit ..." << endl;
-//        lst mis_lst;
-//        for(int i=0; i<nmi; i++) {
-//            int tn = eps.nops()-3;
-//            if(tn<1) tn = 1;
-//            auto cs = PolynomialFit(eps_vec, mis_vec[i], tn, lp);
-//            ex mi = 0;
-//            for(int i=0; i<tn; i++) mi += pow(ep,lp+i) * cs.op(i);
-//            mis_lst.append(mi);
-//        }
-//        reset_precision();
-//        return mis_lst;
-//    }
+    lst AMF::FitEps(const lst & eps, int xn, int dp, int lp, bool parallel) {
+        if(dp>0) set_precision(dp);
+        exvector eps_vec(eps.begin(), eps.end());
+        int nmi = MIntegrals.nops();
+        exvector mis_vec[nmi];
+        if(parallel && eps.nops()>1) {
+            auto res_vec = GiNaC_Parallel(eps.nops(), [&](int idx)->ex {
+                ex d0 = 4-2*eps.op(idx);
+                return Evaluate(d0,xn,dp);
+            }, "AMF");
+            for(auto mis : res_vec) {
+                for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
+            }
+        } else {
+            for(auto epi : eps) {
+                ex d0 = 4-2*epi;
+                if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "ep = " << epi << RESET << endl;
+                auto mis = Evaluate(d0,xn,dp);
+                for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
+            }
+        }
+        if(dp>0) reset_precision();
+        if(dp>0) set_precision(100*dp);
+        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--Final PolynomialFit ..." << endl;
+        lst mis_lst;
+        for(int i=0; i<nmi; i++) {
+            int tn = eps.nops()-3;
+            if(tn<1) tn = 1;
+            auto cs = PolynomialFit(eps_vec, mis_vec[i], tn, lp);
+            ex mi = 0;
+            for(int i=0; i<tn; i++) mi += pow(ep,lp+i) * cs.op(i);
+            mis_lst.append(mi);
+        }
+        if(dp>0) reset_precision();
+        return mis_lst;
+    }
     
-//    lst AMF::FitEps(int goal, int order, bool parallel) { // form AMFlow
-//        if(WDigits>0) set_precision(WDigits);
-//        int nloop = ibp.Internal.nops();
-//        ex nn = 5*order/numeric(2)+2*nloop;
-//        int n = cln_ceiling(nn);
-//        if(n>100) throw Error("FitEps: too large order.");
-//        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ " << n << " eps points ..." << RESET << endl;
-//        
-//        nn = nloop/numeric(2)+goal/numeric(order+1);
-//        auto tn = cln_ceiling(nn);        
-//        ex eps0 = GiNaC::pow(10,-tn);
-//        
-//        int lp = -2*nloop;
-//        lst eps;
-//        for(int i=0; i<n; i++) eps.append(eps0 + eps0*i/ex(100));
-//        auto sp = (n+2*nloop)*tn;
-//        if(sp<30) sp = 30;
-//        if(WDigits<2*sp) WDigits = 2*sp;
-//        if(dp<WDigits) dp = WDigits;
-//        xN = 4*sp;
-//        auto res = FitEps(eps,lp,parallel);
-//        if(WDigits>0) reset_precision();
-//        return res;
-//    }  
+    lst AMF::FitEps(int goal, int order, int dp, bool parallel) { // form AMFlow
+        if(dp>0) set_precision(dp);
+        int nloop = ibp.Internal.nops();
+        ex nn = 5*order/numeric(2)+2*nloop;
+        int n = cln_ceiling(nn);
+        if(n>100) throw Error("FitEps: too large order.");
+        
+        nn = nloop/numeric(2)+goal/numeric(order+1);
+        auto tn = cln_ceiling(nn);        
+        ex eps0 = GiNaC::pow(10,-tn);
+        
+        int lp = -2*nloop;
+        lst eps;
+        for(int i=0; i<n; i++) eps.append(eps0 + eps0*i/ex(100));
+        auto sp = (n+2*nloop)*tn;
+        if(sp<30) sp = 30;
+        if(dp<2*sp) dp = 2*sp;
+        int xn = 4*sp;
+        
+        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF \u224B x^" << xn << " " << n << "\u2A09\u03B5 ..." << RESET << endl;
+        auto res = FitEps(eps,xn,dp,lp,parallel); // FitEps(eps, xn, dp, lp, parallel) 
+        if(dp>0) reset_precision();
+        return res;
+    }  
         
     //=*********************************************************************=
     
@@ -610,5 +609,27 @@ cout << NN(res,20) << endl;
     }
     
     //=*********************************************************************=
+    
+    
+    matrix PolynomialFit(const exvector & xs, const exvector & ys, unsigned int k, int k0) {
+        unsigned int n = xs.size();
+        if(ys.size() != n) throw Error("PolynomialFit: the size of xs is not the same as ys.");
+        matrix X(k+1,n);
+        for(int c=0; c<n; c++) {
+            ex xp = 1;
+            for(int r=0; r<=k; r++) {
+                X(r,c) = xp;
+                xp *= xs[c];
+            }
+        }
+        matrix Y(n,1);
+        for(int r=0; r<n; r++) {
+            if(k0==0) Y(r,0) = ys[r];
+            else Y(r,0) = ys[r]/pow(xs[r], k0);
+        }
+        auto mat = X.mul(X.transpose()).inverse().mul(X).mul(Y);
+        return mat;
+    }
+    
 }
 

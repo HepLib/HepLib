@@ -77,14 +77,6 @@ namespace HepLib {
         DEX(const symbol & x);
         ~DEX();
         void init(const matrix & m);
-        vector<vector<matrix>> m2b(const matrix &);
-        matrix b2m(vector<vector<matrix>> &);
-        vector<matrix> c2b(const matrix &);
-        matrix b2c(vector<matrix> &);
-        map<ex,vector<vector<matrix>>,ex_is_less> b2m(const block_umat_t & bu);
-        matrix b2m(const block_umat_t & bu, const ex & x);
-        matrix b2m(const block_imat_t & bi, const ex & x, const int nc);
-        matrix b2m(const vector<vector<matrix>> & bi, const ex & x, const int nc);
         matrix T();
         matrix M();
         void fuchsify();
@@ -111,6 +103,8 @@ namespace HepLib {
         //matrix taylor(xn, I0, x0, dx); // non-exist due to log(x0)
         vector<matrix> taylor(int xn, const matrix I0, const ex & x0, slong dp); // I[n]
         matrix taylor(int xn, const matrix I0, const ex & x0, slong dp, const ex & dx);
+        
+        /* for Taylor expansion, one should note the inital I0 in which the T matrix has to be taken into considerrations, since there may be a permutation even without calling fuchsify */
         
     private:
         void series(block_umat_fmpq_mat_t & U, int xn, const vector<fmpq_t> & qslas); 
@@ -165,10 +159,11 @@ namespace HepLib {
         lst pts;
         
         lst Evaluate(const ex & d0, int xn, int dp=500);
-//        lst FitEps(const lst & eps, int lp=0, bool parallel=true);
-//        lst FitEps(int goal, int order, bool parallel=true);
+        lst FitEps(const lst & eps, int xn, int dp=500, int lp=-1, bool parallel=false);
+        lst FitEps(int goal, int order, int dp=500, bool parallel=false);
         static ex Vacuum(int nl, int np);
     };
+    matrix PolynomialFit(const exvector & xs, const exvector & ys, unsigned int k, int k0);
 
 
 }

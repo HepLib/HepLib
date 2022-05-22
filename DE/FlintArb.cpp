@@ -42,6 +42,11 @@ namespace HepLib {
         return cln::cl_I_to_long(cln::ceiling1(r*dp));
     }
     
+    slong cln_ceiling(const ex & e) {
+        auto n = ex_to<numeric>(e).to_cl_N();
+        return cln::cl_I_to_long(cln::ceiling1(cln::realpart(n))); 
+    }
+    
     void _to_(fmpz_poly_mat_t m, const matrix & mat) {
         auto nr = mat.rows();
         auto nc = mat.cols();
@@ -852,7 +857,12 @@ namespace HepLib {
         for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
             auto den = fmpz_poly_q_denref(M[r][c]);
             auto num = fmpz_poly_q_numref(M[r][c]);
-            if(fmpz_poly_length(den)!=1) throw Error("degree: denominator is NOT constant");
+            if(fmpz_poly_length(den)!=1) {
+                cout << endl;
+                fmpz_poly_q_print_pretty(M[r][c],"x"); 
+                cout << endl;
+                throw Error("degree: denominator is NOT constant");
+            }
             auto cdeg = fmpz_poly_degree(num);
             if(r==0 && c==0) deg = cdeg;
             else if(deg<cdeg) deg = cdeg;
@@ -958,6 +968,140 @@ namespace HepLib {
     }
     
     void MX::coeff(acb_mat_t m, int i, slong fp) {
+        fmpz_t zn,zd;
+        fmpz_init(zn);
+        fmpz_init(zd);
+        fmpq_t q;
+        fmpq_init(q);
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            auto item = acb_mat_entry(m,r,c);
+            auto den = fmpz_poly_q_denref(M[r][c]);
+            auto num = fmpz_poly_q_numref(M[r][c]);
+            slong ldeg = ldegree(den);
+            if(fmpz_poly_degree(den)!=ldeg) throw Error("coeff: not a monomial in denominator.");
+            fmpz_poly_get_coeff_fmpz(zd,den,ldeg);
+            if(fmpz_is_zero(zd)) throw Error("denominator is zero.");
+            if(i+ldeg>=0) {
+                fmpz_poly_get_coeff_fmpz(zn,num,(slong)(i+ldeg));
+                fmpq_set_fmpz_frac(q,zn,zd);
+                acb_set_fmpq(item,q,fp);
+            } else acb_zero(item);
+        }
+        fmpz_clear(zn);
+        fmpz_clear(zd);
+        fmpq_clear(q);
+    }
+    
+    //=*********************************************************************=
+    
+    MQ::MQ() { }    
+    MQ::~MQ() { clear(); }
+        
+    void MQ::clear() {
+        for(int r=0; r<nr; r++) {
+            for(int c=0; c<nc; c++) fmpz_poly_q_clear(M[r][c]);
+        }
+        nr=-1; nc=-1;
+    }
+        
+    void MQ::init(const vector<vector<fmpz_poly_q_t>> & m) {
+        clear();
+        nr = m.size();
+        if(nr<1) throw Error("MQ::init, nr<1");
+        nc = m[0].size();
+        if(nc<1) throw Error("MQ::init, nc<1");
+        M.resize(nr);
+        for(int r=0; r<nr; r++) {
+            M[r] = vector<fmpz_poly_q_t>(nc);
+            for(int c=0; c<nc; c++) {
+                fmpz_poly_q_init(M[r][c]);
+                fmpz_poly_q_set(M[r][c],m[r][c]);
+            }
+        }
+    }
+    
+    void MQ::scale(fmpz_poly_q_t f) {
+        for(int r=0; r<nr; r++) {
+            for(int c=0; c<nc; c++) {
+                fmpz_poly_q_mul(M[r][c],M[r][c],f);
+            }
+        }
+    }
+    
+    void MQ::scale(fmpz_poly_t f) {
+        for(int r=0; r<nr; r++) {
+            for(int c=0; c<nc; c++) {
+                auto nr = fmpz_poly_q_numref(M[r][c]);
+                fmpz_poly_mul(nr,nr,f);
+                fmpz_poly_q_canonicalise(M[r][c]);
+            }
+        }
+    }
+    
+    int MQ::degree() {
+        int deg;
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            auto den = fmpz_poly_q_denref(M[r][c]);
+            auto num = fmpz_poly_q_numref(M[r][c]);
+            if(fmpz_poly_length(den)!=1) {
+                cout << endl;
+                fmpz_poly_q_print_pretty(M[r][c],"x"); 
+                cout << endl;
+                throw Error("degree: denominator is NOT constant");
+            }
+            auto cdeg = fmpz_poly_degree(num);
+            if(r==0 && c==0) deg = cdeg;
+            else if(deg<cdeg) deg = cdeg;
+        }
+        return deg;
+    }
+    
+    int MQ::denlcm(fmpz_poly_t dl) { // M will be updated
+        vector<fmpz_poly_t> lcms(nr);
+        for(int r=0; r<nr; r++) {
+            fmpz_poly_init(lcms[r]);
+            fmpz_poly_set_str(lcms[r], "1  1");
+            for(int c=0; c<nc; c++) {
+                fmpz_poly_lcm(lcms[r], lcms[r], fmpz_poly_q_denref(M[r][c]));
+            }
+        }
+        fmpz_poly_set_str(dl, "1  1");
+        for(int r=0; r<nr; r++) {
+            fmpz_poly_lcm(dl,dl,lcms[r]);
+            fmpz_poly_clear(lcms[r]);
+        }
+        for(int r=0; r<nr; r++) {
+            for(int c=0; c<nc; c++) {
+                auto num = fmpz_poly_q_numref(M[r][c]);
+                fmpz_poly_mul(num, num, dl);
+                fmpz_poly_q_canonicalise(M[r][c]);
+            }
+        }
+        return fmpz_poly_degree(dl);
+    }
+    
+    void MQ::coeff(fmpq_mat_t m, int i) {
+        fmpz_t zn,zd;
+        fmpz_init(zn);
+        fmpz_init(zd);
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            auto item = fmpq_mat_entry(m,r,c);
+            auto den = fmpz_poly_q_denref(M[r][c]);
+            auto num = fmpz_poly_q_numref(M[r][c]);
+            slong ldeg = ldegree(den);
+            if(fmpz_poly_degree(den)!=ldeg) throw Error("coeff: not a monomial in denominator.");
+            fmpz_poly_get_coeff_fmpz(zd,den,ldeg);
+            if(fmpz_is_zero(zd)) throw Error("denominator is zero.");
+            if(i+ldeg>=0) {
+                fmpz_poly_get_coeff_fmpz(zn,num,(slong)(i+ldeg));
+                fmpq_set_fmpz_frac(item,zn,zd);
+            } else fmpq_zero(item);
+        }
+        fmpz_clear(zn);
+        fmpz_clear(zd);
+    }
+    
+    void MQ::coeff(acb_mat_t m, int i, slong fp) {
         fmpz_t zn,zd;
         fmpz_init(zn);
         fmpz_init(zd);

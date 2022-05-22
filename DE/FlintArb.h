@@ -14,6 +14,7 @@ namespace HepLib {
     
     slong fp2dp(slong fp);
     slong dp2fp(slong dp);
+    slong cln_ceiling(const ex & e);
     //=*********************************************************************=
     void _to_(fmpz_poly_mat_t m, const matrix & mat);
     void _to_(fmpz_poly_q_t f, const ex & e);
@@ -82,6 +83,24 @@ namespace HepLib {
         matrix a0(); // if pr<0, we use pr=0
         pair<matrix,matrix> a01(); // if pr<0, we use pr=0
         
+        int nr=-1; // rows
+        int nc=-1; // cols
+        vector<vector<fmpz_poly_q_t>> M;
+    };
+    //=*********************************************************************=
+    class MQ { 
+    public:
+        MQ();
+        ~MQ();
+        void init(const vector<vector<fmpz_poly_q_t>> & M);
+        void clear();
+        void scale(fmpz_poly_q_t f);
+        void scale(fmpz_poly_t f);
+        int degree();
+        int denlcm(fmpz_poly_t dl); // return degree of dl and M got updated
+        void coeff(fmpq_mat_t m, int i);
+        void coeff(acb_mat_t m, int i, slong fp);
+    private:
         int nr=-1; // rows
         int nc=-1; // cols
         vector<vector<fmpz_poly_q_t>> M;
