@@ -777,281 +777,142 @@ namespace HepLib {
             
             int nla = IK[a].size();
             bool la_parallel = (qslas.size()>0 ? qslas.size() : nla) >= omp_get_max_threads();
-            if(la_parallel) { // to ultilize the thread_pool, we use following trick
-                if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                    cout << "\r                                                              \r" << flush;
-                    cout << "  \\--series: " << nbs << "|" << a+1;
-                    cout << " [" << nr << "\u2A09" << nc << "]";
-                    cout << " \u03BB" << nla << " n" << xn << flush;
+            la_parallel = true; // we set la_parallel always TURE
+            if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
+                cout << "\r                                                              \r" << flush;
+                cout << "  \\--series: " << nbs << "|" << a+1;
+                cout << " [" << nr << "\u2A09" << nc << "]";
+                cout << " \u03BB" << nla << " n" << xn << flush;
+            }    
+            #pragma omp parallel for schedule(runtime) if(la_parallel)
+            for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
+                fmpq_mat_t invA;
+                fmpq_mat_init(invA,nr,nr);
+                fmpq_t q;
+                fmpq_init(q);
+                fmpq_mat_t smat;
+                fmpq_mat_init(smat,nr,nc);
+                
+                auto kv = IK[a].begin();
+                advance(kv,cla);
+                auto ila = kv->first;
+                if(qslas.size()>0 && !is_resonant(qslas,qlas[ila][0])) { // seleted lambda set
+                    if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
+                        cout << "\r                                                              \r" << flush;
+                        cout << "  \\--series: " << nbs << "|" << a+1;
+                        cout << " [" << nr << "\u2A09" << nc << "]";
+                        cout << " \u03BB" << nla << "|" << cla+1 << " n" << xn << flush;
+                    }
+                    continue;
                 }
-                //-------------------------------------------------//
-                // THE SAME AS BELOW, EXCEPT OpenMP 
-                //-------------------------------------------------//
-                #pragma omp parallel for schedule(runtime)
-                for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
-                    fmpq_mat_t invA;
-                    fmpq_mat_init(invA,nr,nr);
-                    fmpq_t q;
-                    fmpq_init(q);
-                    fmpq_mat_t smat;
-                    fmpq_mat_init(smat,nr,nc);
+                auto kmax = kv->second;  
+                for(int k=kmax-1; k>=0; k--) { // 2-cycle over k
+                    I[a][ila][k] = vector<fmpq_mat_t>(xn+1);
+                    fmpq_mat_init(I[a][ila][k][0],nr,nc);
+                    fmpq_mat_set(I[a][ila][k][0],In0[a][ila][k][0]);
                     
-                    auto kv = IK[a].begin();
-                    advance(kv,cla);
-                    auto ila = kv->first;
-                    if(qslas.size()>0 && !is_resonant(qslas,qlas[ila][0])) { // seleted lambda set
+                    for(int n=1; n<=xn; n++) { // 3-cycle over n
+                    
                         if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
                             cout << "\r                                                              \r" << flush;
                             cout << "  \\--series: " << nbs << "|" << a+1;
                             cout << " [" << nr << "\u2A09" << nc << "]";
-                            cout << " \u03BB" << nla << "|" << cla+1 << " n" << xn << flush;
+                            cout << " \u03BB" << nla << "|" << cla+1;
+                            cout << " k" << kmax << "|" << (kmax-k);
+                            cout << " n" << xn << "|" << n << flush;
                         }
-                        continue;
-                    }
-                    auto kmax = kv->second;  
-                    for(int k=kmax-1; k>=0; k--) { // 2-cycle over k
-                        I[a][ila][k] = vector<fmpq_mat_t>(xn+1);
-                        fmpq_mat_init(I[a][ila][k][0],nr,nc);
-                        fmpq_mat_set(I[a][ila][k][0],In0[a][ila][k][0]);
-                        
-                        for(int n=1; n<=xn; n++) { // 3-cycle over n
-                        
-                            if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                                cout << "\r                                                              \r" << flush;
-                                cout << "  \\--series: " << nbs << "|" << a+1;
-                                cout << " [" << nr << "\u2A09" << nc << "]";
-                                cout << " \u03BB" << nla << "|" << cla+1;
-                                cout << " k" << kmax << "|" << (kmax-k);
-                                cout << " n" << xn << "|" << n << flush;
-                            }
-                      
-                            fmpq_mat_zero(smat);
-                            fmpq_add_si(q,qlas[ila][0],n); // q = la+n
+                  
+                        fmpq_mat_zero(smat);
+                        fmpq_add_si(q,qlas[ila][0],n); // q = la+n
 
-                            if(true) { 
-                                slong s = fmpz_poly_degree(lcm);
-                                if(s>n) s=n;
-                                int tmax = omp_get_max_threads();
-                                vector<fmpq_mat_t> mat_sum(tmax), mat_tmp(tmax);
-                                for(int i=0; i<tmax; i++) {
-                                    fmpq_mat_init(mat_sum[i],nr,nc);
-                                    fmpq_mat_init(mat_tmp[i],nr,nc); 
-                                }
-                                #pragma omp parallel for schedule(runtime) num_threads(tmax)
-                                for(int m=0; m<=s; m++) {
-                                    auto tid = omp_get_thread_num();
-                                    auto & mat = mat_tmp[tid];
-                                    fmpz_t Dm;
-                                    fmpz_init(Dm);
-                                    fmpq_t qm;
-                                    fmpq_init(qm);
-                                    if(m==0 && k+1<kmax) {
-                                        fmpz_neg(Dm,D0);
-                                        fmpq_mat_scalar_mul_fmpz(mat,I[a][ila][k+1][n],Dm);
-                                        fmpq_mat_add(mat_sum[tid],mat_sum[tid],mat);
-                                    } else if(m>0) {
-                                        fmpq_sub_si(qm,q,m);
-                                        fmpq_mat_scalar_mul_fmpq(mat,I[a][ila][k][n-m],qm);
-                                        if(k+1<kmax) fmpq_mat_add(mat,mat,I[a][ila][k+1][n-m]);
-                                        fmpz_poly_get_coeff_fmpz(Dm,lcm,m);
-                                        fmpz_neg(Dm,Dm);
-                                        fmpq_mat_scalar_mul_fmpz(mat,mat,Dm);
-                                        fmpq_mat_add(mat_sum[tid],mat_sum[tid],mat);
-                                    }
-                                    fmpz_clear(Dm);
-                                    fmpq_clear(qm);
-                                    flint_cleanup();
-                                }
-                                for(int i=0; i<tmax; i++) {
-                                    fmpq_mat_add(smat,smat,mat_sum[i]);
-                                    fmpq_mat_clear(mat_sum[i]);
-                                    fmpq_mat_clear(mat_tmp[i]);
-                                }
+                        if(true) { 
+                            slong s = fmpz_poly_degree(lcm);
+                            if(s>n) s=n;
+                            int tmax = omp_get_max_threads();
+                            vector<fmpq_mat_t> mat_sum(tmax), mat_tmp(tmax);
+                            for(int i=0; i<tmax; i++) {
+                                fmpq_mat_init(mat_sum[i],nr,nc);
+                                fmpq_mat_init(mat_tmp[i],nr,nc); 
                             }
-                            
-                            if(true) {
-                                int tmax = omp_get_max_threads();
-                                vector<fmpq_mat_t> mat_sum(tmax), mat_tmp(tmax);
-                                for(int i=0; i<tmax; i++) {
-                                    fmpq_mat_init(mat_sum[i],nr,nc);
-                                    fmpq_mat_init(mat_tmp[i],nr,nc); 
+                            #pragma omp parallel for schedule(runtime) num_threads(tmax)
+                            for(int m=0; m<=s; m++) {
+                                auto tid = omp_get_thread_num();
+                                auto & mat = mat_tmp[tid];
+                                fmpz_t Dm;
+                                fmpz_init(Dm);
+                                fmpq_t qm;
+                                fmpq_init(qm);
+                                if(m==0 && k+1<kmax) {
+                                    fmpz_neg(Dm,D0);
+                                    fmpq_mat_scalar_mul_fmpz(mat,I[a][ila][k+1][n],Dm);
+                                    fmpq_mat_add(mat_sum[tid],mat_sum[tid],mat);
+                                } else if(m>0) {
+                                    fmpq_sub_si(qm,q,m);
+                                    fmpq_mat_scalar_mul_fmpq(mat,I[a][ila][k][n-m],qm);
+                                    if(k+1<kmax) fmpq_mat_add(mat,mat,I[a][ila][k+1][n-m]);
+                                    fmpz_poly_get_coeff_fmpz(Dm,lcm,m);
+                                    fmpz_neg(Dm,Dm);
+                                    fmpq_mat_scalar_mul_fmpz(mat,mat,Dm);
+                                    fmpq_mat_add(mat_sum[tid],mat_sum[tid],mat);
                                 }
-                                #pragma omp parallel for schedule(runtime) num_threads(tmax)
-                                for(int b=0; b<=a; b++) {
-                                    auto tid = omp_get_thread_num();
-                                    int nc2 = bs[b].second;
-                                    fmpq_mat_t Amab;
-                                    fmpq_mat_init(Amab,nr,nc2);
-                                    slong s = sdeg[b];
-                                    if(s>n) s=n;
-                                    for(int m=0; m<=s; m++) {
-                                        auto kv = I[b].find(ila);
-                                        if(kv!=I[b].end() && kv->second.size()>k) {
-                                            if(b==a && m==0) continue;
-                                            A[b].coeff(Amab,m);
-                                            fmpq_mat_mul(mat_tmp[tid],Amab,kv->second[k][n-m]);
-                                            fmpq_mat_add(mat_sum[tid],mat_sum[tid],mat_tmp[tid]);
-                                        }
-                                    }
-                                    fmpq_mat_clear(Amab);
-                                    flint_cleanup();
-                                }
-                                for(int i=0; i<tmax; i++) {
-                                    fmpq_mat_add(smat,smat,mat_sum[i]);
-                                    fmpq_mat_clear(mat_sum[i]);
-                                    fmpq_mat_clear(mat_tmp[i]);
-                                }
+                                fmpz_clear(Dm);
+                                fmpq_clear(qm);
+                                flint_cleanup();
                             }
-                            
-                            fmpq_mul_fmpz(q,q,D0); // q = (la+n)D0
-                            fmpq_mat_one(invA);
-                            fmpq_mat_scalar_mul_fmpq(invA,invA,q);
-                            fmpq_mat_sub(invA,invA,A0aa);
-                            fmpq_mat_inv(invA,invA);
-                            
-                            fmpq_mat_init(I[a][ila][k][n],nr,nc);
-                            fmpq_mat_mul(I[a][ila][k][n],invA,smat);
+                            for(int i=0; i<tmax; i++) {
+                                fmpq_mat_add(smat,smat,mat_sum[i]);
+                                fmpq_mat_clear(mat_sum[i]);
+                                fmpq_mat_clear(mat_tmp[i]);
+                            }
                         }
-                    }
-                    fmpq_mat_clear(invA);
-                    fmpq_clear(q);
-                    fmpq_mat_clear(smat);
-                }
-                //-------------------------------------------------//
-            } else {
-                //-------------------------------------------------//
-                // THE SAME AS ABOVE, EXCEPT OpenMP 
-                //-------------------------------------------------//
-                for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
-                    fmpq_mat_t invA;
-                    fmpq_mat_init(invA,nr,nr);
-                    fmpq_t q;
-                    fmpq_init(q);
-                    fmpq_mat_t smat;
-                    fmpq_mat_init(smat,nr,nc);
-                    
-                    auto kv = IK[a].begin();
-                    advance(kv,cla);
-                    auto ila = kv->first;
-                    if(qslas.size()>0 && !is_resonant(qslas,qlas[ila][0])) { // seleted lambda set
-                        if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                            cout << "\r                                                              \r" << flush;
-                            cout << "  \\--series: " << nbs << "|" << a+1;
-                            cout << " [" << nr << "\u2A09" << nc << "]";
-                            cout << " \u03BB" << nla << "|" << cla+1 << " n" << xn << flush;
-                        }
-                        continue;
-                    }
-                    auto kmax = kv->second;  
-                    for(int k=kmax-1; k>=0; k--) { // 2-cycle over k
-                        I[a][ila][k] = vector<fmpq_mat_t>(xn+1);
-                        fmpq_mat_init(I[a][ila][k][0],nr,nc);
-                        fmpq_mat_set(I[a][ila][k][0],In0[a][ila][k][0]);
                         
-                        for(int n=1; n<=xn; n++) { // 3-cycle over n
-                        
-                            if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                                cout << "\r                                                              \r" << flush;
-                                cout << "  \\--series: " << nbs << "|" << a+1;
-                                cout << " [" << nr << "\u2A09" << nc << "]";
-                                cout << " \u03BB" << nla << "|" << cla+1;
-                                cout << " k" << kmax << "|" << (kmax-k);
-                                cout << " n" << xn << "|" << n << flush;
+                        if(true) {
+                            int tmax = omp_get_max_threads();
+                            vector<fmpq_mat_t> mat_sum(tmax), mat_tmp(tmax);
+                            for(int i=0; i<tmax; i++) {
+                                fmpq_mat_init(mat_sum[i],nr,nc);
+                                fmpq_mat_init(mat_tmp[i],nr,nc); 
                             }
-                      
-                            fmpq_mat_zero(smat);
-                            fmpq_add_si(q,qlas[ila][0],n); // q = la+n
-
-                            if(true) { 
-                                slong s = fmpz_poly_degree(lcm);
+                            #pragma omp parallel for schedule(runtime) num_threads(tmax)
+                            for(int b=0; b<=a; b++) {
+                                auto tid = omp_get_thread_num();
+                                int nc2 = bs[b].second;
+                                fmpq_mat_t Amab;
+                                fmpq_mat_init(Amab,nr,nc2);
+                                slong s = sdeg[b];
                                 if(s>n) s=n;
-                                int tmax = omp_get_max_threads();
-                                vector<fmpq_mat_t> mat_sum(tmax), mat_tmp(tmax);
-                                for(int i=0; i<tmax; i++) {
-                                    fmpq_mat_init(mat_sum[i],nr,nc);
-                                    fmpq_mat_init(mat_tmp[i],nr,nc); 
-                                }
-                                #pragma omp parallel for schedule(runtime) num_threads(tmax)
                                 for(int m=0; m<=s; m++) {
-                                    auto tid = omp_get_thread_num();
-                                    auto & mat = mat_tmp[tid];
-                                    fmpz_t Dm;
-                                    fmpz_init(Dm);
-                                    fmpq_t qm;
-                                    fmpq_init(qm);
-                                    if(m==0 && k+1<kmax) {
-                                        fmpz_neg(Dm,D0);
-                                        fmpq_mat_scalar_mul_fmpz(mat,I[a][ila][k+1][n],Dm);
-                                        fmpq_mat_add(mat_sum[tid],mat_sum[tid],mat);
-                                    } else if(m>0) {
-                                        fmpq_sub_si(qm,q,m);
-                                        fmpq_mat_scalar_mul_fmpq(mat,I[a][ila][k][n-m],qm);
-                                        if(k+1<kmax) fmpq_mat_add(mat,mat,I[a][ila][k+1][n-m]);
-                                        fmpz_poly_get_coeff_fmpz(Dm,lcm,m);
-                                        fmpz_neg(Dm,Dm);
-                                        fmpq_mat_scalar_mul_fmpz(mat,mat,Dm);
-                                        fmpq_mat_add(mat_sum[tid],mat_sum[tid],mat);
+                                    auto kv = I[b].find(ila);
+                                    if(kv!=I[b].end() && kv->second.size()>k) {
+                                        if(b==a && m==0) continue;
+                                        A[b].coeff(Amab,m);
+                                        fmpq_mat_mul(mat_tmp[tid],Amab,kv->second[k][n-m]);
+                                        fmpq_mat_add(mat_sum[tid],mat_sum[tid],mat_tmp[tid]);
                                     }
-                                    fmpz_clear(Dm);
-                                    fmpq_clear(qm);
-                                    flint_cleanup();
                                 }
-                                for(int i=0; i<tmax; i++) {
-                                    fmpq_mat_add(smat,smat,mat_sum[i]);
-                                    fmpq_mat_clear(mat_sum[i]);
-                                    fmpq_mat_clear(mat_tmp[i]);
-                                }
+                                fmpq_mat_clear(Amab);
+                                flint_cleanup();
                             }
-                            
-                            if(true) {
-                                int tmax = omp_get_max_threads();
-                                vector<fmpq_mat_t> mat_sum(tmax), mat_tmp(tmax);
-                                for(int i=0; i<tmax; i++) {
-                                    fmpq_mat_init(mat_sum[i],nr,nc);
-                                    fmpq_mat_init(mat_tmp[i],nr,nc); 
-                                }
-                                #pragma omp parallel for schedule(runtime) num_threads(tmax)
-                                for(int b=0; b<=a; b++) {
-                                    auto tid = omp_get_thread_num();
-                                    int nc2 = bs[b].second;
-                                    fmpq_mat_t Amab;
-                                    fmpq_mat_init(Amab,nr,nc2);
-                                    slong s = sdeg[b];
-                                    if(s>n) s=n;
-                                    for(int m=0; m<=s; m++) {
-                                        auto kv = I[b].find(ila);
-                                        if(kv!=I[b].end() && kv->second.size()>k) {
-                                            if(b==a && m==0) continue;
-                                            A[b].coeff(Amab,m);
-                                            fmpq_mat_mul(mat_tmp[tid],Amab,kv->second[k][n-m]);
-                                            fmpq_mat_add(mat_sum[tid],mat_sum[tid],mat_tmp[tid]);
-                                        }
-                                    }
-                                    fmpq_mat_clear(Amab);
-                                    flint_cleanup();
-                                }
-                                for(int i=0; i<tmax; i++) {
-                                    fmpq_mat_add(smat,smat,mat_sum[i]);
-                                    fmpq_mat_clear(mat_sum[i]);
-                                    fmpq_mat_clear(mat_tmp[i]);
-                                }
+                            for(int i=0; i<tmax; i++) {
+                                fmpq_mat_add(smat,smat,mat_sum[i]);
+                                fmpq_mat_clear(mat_sum[i]);
+                                fmpq_mat_clear(mat_tmp[i]);
                             }
-                            
-                            fmpq_mul_fmpz(q,q,D0); // q = (la+n)D0
-                            fmpq_mat_one(invA);
-                            fmpq_mat_scalar_mul_fmpq(invA,invA,q);
-                            fmpq_mat_sub(invA,invA,A0aa);
-                            fmpq_mat_inv(invA,invA);
-                            
-                            fmpq_mat_init(I[a][ila][k][n],nr,nc);
-                            fmpq_mat_mul(I[a][ila][k][n],invA,smat);
                         }
+                        
+                        fmpq_mul_fmpz(q,q,D0); // q = (la+n)D0
+                        fmpq_mat_one(invA);
+                        fmpq_mat_scalar_mul_fmpq(invA,invA,q);
+                        fmpq_mat_sub(invA,invA,A0aa);
+                        fmpq_mat_inv(invA,invA);
+                        
+                        fmpq_mat_init(I[a][ila][k][n],nr,nc);
+                        fmpq_mat_mul(I[a][ila][k][n],invA,smat);
                     }
-                    fmpq_mat_clear(invA);
-                    fmpq_clear(q);
-                    fmpq_mat_clear(smat);
                 }
-                //-------------------------------------------------//
+                fmpq_mat_clear(invA);
+                fmpq_clear(q);
+                fmpq_mat_clear(smat);
             }
             for(int b=0; b<=a; b++) A[b].clear();
             fmpz_poly_clear(lcm);
@@ -1128,6 +989,7 @@ namespace HepLib {
             
             int nla = IK[a].size();
             bool la_parallel = (qslas.size()>0 ? qslas.size() : nla) >= omp_get_max_threads();
+            la_parallel = true; // we set la_parallel always TRUE
             if(la_parallel) { // to ultilize the thread_pool, we use following trick
                 if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
                     cout << "\r                                                              \r" << flush;
@@ -1135,276 +997,137 @@ namespace HepLib {
                     cout << " [" << nr << "\u2A09" << nc << "]";
                     cout << " \u03BB" << nla << " n" << xn << flush;
                 }
-                //-------------------------------------------------//
-                // THE SAME AS BELOW, EXCEPT OpenMP 
-                //-------------------------------------------------//
-                #pragma omp parallel for schedule(runtime)
-                for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
-                    acb_mat_t invA;
-                    acb_mat_init(invA,nr,nr);
-                    acb_t q;
-                    acb_init(q);
-                    acb_mat_t smat;
-                    acb_mat_init(smat,nr,nc);
-                
-                    auto kv = IK[a].begin();
-                    advance(kv,cla);
-                    auto ila = kv->first;
-                    if(qslas.size()>0 && !is_resonant(qslas,qlas[ila][0])) { // selected lambda set
+            }
+            #pragma omp parallel for schedule(runtime) if(la_parallel)
+            for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
+                acb_mat_t invA;
+                acb_mat_init(invA,nr,nr);
+                acb_t q;
+                acb_init(q);
+                acb_mat_t smat;
+                acb_mat_init(smat,nr,nc);
+            
+                auto kv = IK[a].begin();
+                advance(kv,cla);
+                auto ila = kv->first;
+                if(qslas.size()>0 && !is_resonant(qslas,qlas[ila][0])) { // selected lambda set
+                    if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
+                        cout << "\r                                                              \r" << flush;
+                        cout << "  \\--nseries: " << nbs << "|" << a+1;
+                        cout << " [" << nr << "\u2A09" << nc << "]";
+                        cout << " \u03BB" << nla << "|" << cla+1 << " n" << xn << flush;
+                    }
+                    continue;
+                }
+                auto kmax = kv->second;
+                for(int k=kmax-1; k>=0; k--) { // 2-cycle over k
+                    I[a][ila][k] = vector<acb_mat_t>(xn+1);
+                    acb_mat_init(I[a][ila][k][0],nr,nc);
+                    acb_mat_set(I[a][ila][k][0],In0[a][ila][k][0]);
+                    
+                    for(int n=1; n<=xn; n++) { // 3-cycle over n
+                    
                         if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
                             cout << "\r                                                              \r" << flush;
                             cout << "  \\--nseries: " << nbs << "|" << a+1;
                             cout << " [" << nr << "\u2A09" << nc << "]";
-                            cout << " \u03BB" << nla << "|" << cla+1 << " n" << xn << flush;
+                            cout << " \u03BB" << nla << "|" << cla+1;
+                            cout << " k" << kmax << "|" << (kmax-k);
+                            cout << " n" << xn << "|" << n << flush;
                         }
-                        continue;
-                    }
-                    auto kmax = kv->second;
-                    for(int k=kmax-1; k>=0; k--) { // 2-cycle over k
-                        I[a][ila][k] = vector<acb_mat_t>(xn+1);
-                        acb_mat_init(I[a][ila][k][0],nr,nc);
-                        acb_mat_set(I[a][ila][k][0],In0[a][ila][k][0]);
-                        
-                        for(int n=1; n<=xn; n++) { // 3-cycle over n
-                        
-                            if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                                cout << "\r                                                              \r" << flush;
-                                cout << "  \\--nseries: " << nbs << "|" << a+1;
-                                cout << " [" << nr << "\u2A09" << nc << "]";
-                                cout << " \u03BB" << nla << "|" << cla+1;
-                                cout << " k" << kmax << "|" << (kmax-k);
-                                cout << " n" << xn << "|" << n << flush;
-                            }
-                      
-                            acb_mat_zero(smat);
-                            acb_set_fmpq(q,qlas[ila][0],fp);
-                            acb_add_si(q,q,n,fp); // q = la+n
+                  
+                        acb_mat_zero(smat);
+                        acb_set_fmpq(q,qlas[ila][0],fp);
+                        acb_add_si(q,q,n,fp); // q = la+n
 
-                            if(true) {
-                                slong s = acb_poly_degree(lcm);
+                        if(true) {
+                            slong s = acb_poly_degree(lcm);
+                            if(s>n) s=n;
+                            int tmax = omp_get_max_threads();
+                            vector<acb_mat_t> mat_sum(tmax), mat_tmp(tmax);
+                            for(int i=0; i<tmax; i++) {
+                                acb_mat_init(mat_sum[i],nr,nc);
+                                acb_mat_init(mat_tmp[i],nr,nc); 
+                            }
+                            #pragma omp parallel for schedule(runtime) num_threads(tmax)
+                            for(int m=0; m<=s; m++) {
+                                auto tid = omp_get_thread_num();
+                                auto & mat = mat_tmp[tid];
+                                acb_t Dm;
+                                acb_init(Dm);
+                                acb_t qm;
+                                acb_init(qm);
+                                if(m==0 && k+1<kmax) {
+                                    acb_neg(Dm,D0);
+                                    acb_mat_scalar_mul_acb(mat,I[a][ila][k+1][n],Dm,fp);
+                                    acb_mat_add(mat_sum[tid],mat_sum[tid],mat,fp);
+                                } else if(m>0) {
+                                    acb_sub_si(qm,q,m,fp);
+                                    acb_mat_scalar_mul_acb(mat,I[a][ila][k][n-m],qm,fp);
+                                    if(k+1<kmax) acb_mat_add(mat,mat,I[a][ila][k+1][n-m],fp);
+                                    acb_poly_get_coeff_acb(Dm,lcm,m);
+                                    acb_neg(Dm,Dm);
+                                    acb_mat_scalar_mul_acb(mat,mat,Dm,fp);
+                                    acb_mat_add(mat_sum[tid],mat_sum[tid],mat,fp);
+                                }
+                                acb_clear(Dm);
+                                acb_clear(qm);
+                                flint_cleanup();
+                            }
+                            for(int i=0; i<tmax; i++) {
+                                acb_mat_add(smat,smat,mat_sum[i],fp);
+                                acb_mat_clear(mat_sum[i]);
+                                acb_mat_clear(mat_tmp[i]);
+                            }
+                        }
+
+                        if(true) {
+                            int tmax = omp_get_max_threads();
+                            vector<acb_mat_t> mat_sum(tmax), mat_tmp(tmax);
+                            for(int i=0; i<tmax; i++) {
+                                acb_mat_init(mat_sum[i],nr,nc);
+                                acb_mat_init(mat_tmp[i],nr,nc); 
+                            }
+                            #pragma omp parallel for schedule(runtime) num_threads(tmax) 
+                            for(int b=0; b<=a; b++) {
+                                auto tid = omp_get_thread_num();
+                                int nc2 = bs[b].second;                                            
+                                acb_mat_t Amab;
+                                acb_mat_init(Amab,nr,nc2);
+                                slong s = sdeg[b];
                                 if(s>n) s=n;
-                                int tmax = omp_get_max_threads();
-                                vector<acb_mat_t> mat_sum(tmax), mat_tmp(tmax);
-                                for(int i=0; i<tmax; i++) {
-                                    acb_mat_init(mat_sum[i],nr,nc);
-                                    acb_mat_init(mat_tmp[i],nr,nc); 
-                                }
-                                #pragma omp parallel for schedule(runtime) num_threads(tmax)
                                 for(int m=0; m<=s; m++) {
-                                    auto tid = omp_get_thread_num();
-                                    auto & mat = mat_tmp[tid];
-                                    acb_t Dm;
-                                    acb_init(Dm);
-                                    acb_t qm;
-                                    acb_init(qm);
-                                    if(m==0 && k+1<kmax) {
-                                        acb_neg(Dm,D0);
-                                        acb_mat_scalar_mul_acb(mat,I[a][ila][k+1][n],Dm,fp);
-                                        acb_mat_add(mat_sum[tid],mat_sum[tid],mat,fp);
-                                    } else if(m>0) {
-                                        acb_sub_si(qm,q,m,fp);
-                                        acb_mat_scalar_mul_acb(mat,I[a][ila][k][n-m],qm,fp);
-                                        if(k+1<kmax) acb_mat_add(mat,mat,I[a][ila][k+1][n-m],fp);
-                                        acb_poly_get_coeff_acb(Dm,lcm,m);
-                                        acb_neg(Dm,Dm);
-                                        acb_mat_scalar_mul_acb(mat,mat,Dm,fp);
-                                        acb_mat_add(mat_sum[tid],mat_sum[tid],mat,fp);
+                                    if(b==a && m==0) continue;
+                                    auto kv = I[b].find(ila);
+                                    if(kv!=I[b].end() && kv->second.size()>k) {
+                                        A[b].coeff(Amab,m,fp);
+                                        acb_mat_mul(mat_tmp[tid],Amab,kv->second[k][n-m],fp);
+                                        acb_mat_add(mat_sum[tid],mat_sum[tid],mat_tmp[tid],fp);
                                     }
-                                    acb_clear(Dm);
-                                    acb_clear(qm);
-                                    flint_cleanup();
                                 }
-                                for(int i=0; i<tmax; i++) {
-                                    acb_mat_add(smat,smat,mat_sum[i],fp);
-                                    acb_mat_clear(mat_sum[i]);
-                                    acb_mat_clear(mat_tmp[i]);
-                                }
+                                acb_mat_clear(Amab);
+                                flint_cleanup();
                             }
-
-                            if(true) {
-                                int tmax = omp_get_max_threads();
-                                vector<acb_mat_t> mat_sum(tmax), mat_tmp(tmax);
-                                for(int i=0; i<tmax; i++) {
-                                    acb_mat_init(mat_sum[i],nr,nc);
-                                    acb_mat_init(mat_tmp[i],nr,nc); 
-                                }
-                                #pragma omp parallel for schedule(runtime) num_threads(tmax) 
-                                for(int b=0; b<=a; b++) {
-                                    auto tid = omp_get_thread_num();
-                                    int nc2 = bs[b].second;                                            
-                                    acb_mat_t Amab;
-                                    acb_mat_init(Amab,nr,nc2);
-                                    slong s = sdeg[b];
-                                    if(s>n) s=n;
-                                    for(int m=0; m<=s; m++) {
-                                        if(b==a && m==0) continue;
-                                        auto kv = I[b].find(ila);
-                                        if(kv!=I[b].end() && kv->second.size()>k) {
-                                            A[b].coeff(Amab,m,fp);
-                                            acb_mat_mul(mat_tmp[tid],Amab,kv->second[k][n-m],fp);
-                                            acb_mat_add(mat_sum[tid],mat_sum[tid],mat_tmp[tid],fp);
-                                        }
-                                    }
-                                    acb_mat_clear(Amab);
-                                    flint_cleanup();
-                                }
-                                for(int i=0; i<tmax; i++) {
-                                    acb_mat_add(smat,smat,mat_sum[i],fp);
-                                    acb_mat_clear(mat_sum[i]);
-                                    acb_mat_clear(mat_tmp[i]);
-                                }
+                            for(int i=0; i<tmax; i++) {
+                                acb_mat_add(smat,smat,mat_sum[i],fp);
+                                acb_mat_clear(mat_sum[i]);
+                                acb_mat_clear(mat_tmp[i]);
                             }
+                        }
 
-                            acb_mul(q,q,D0,fp); // q = (la+n)D0
-                            acb_mat_one(invA);
-                            acb_mat_scalar_mul_acb(invA,invA,q,fp);
-                            acb_mat_sub(invA,invA,A0aa,fp);
-                            acb_mat_inv(invA,invA,fp);
-                            
-                            acb_mat_init(I[a][ila][k][n],nr,nc);
-                            acb_mat_mul(I[a][ila][k][n],invA,smat,fp);
-                        }
-                    }
-                    acb_mat_clear(invA);
-                    acb_clear(q);
-                    acb_mat_clear(smat);
-                }
-                //-------------------------------------------------//
-            } else {
-                //-------------------------------------------------//
-                // THE SAME AS ABOVE, EXCEPT OpenMP 
-                //-------------------------------------------------//
-                for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
-                    acb_mat_t invA;
-                    acb_mat_init(invA,nr,nr);
-                    acb_t q;
-                    acb_init(q);
-                    acb_mat_t smat;
-                    acb_mat_init(smat,nr,nc);
-                
-                    auto kv = IK[a].begin();
-                    advance(kv,cla);
-                    auto ila = kv->first;
-                    if(qslas.size()>0 && !is_resonant(qslas,qlas[ila][0])) { // selected lambda set
-                        if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                            cout << "\r                                                              \r" << flush;
-                            cout << "  \\--nseries: " << nbs << "|" << a+1;
-                            cout << " [" << nr << "\u2A09" << nc << "]";
-                            cout << " \u03BB" << nla << "|" << cla+1 << " n" << xn << flush;
-                        }
-                        continue;
-                    }
-                    auto kmax = kv->second;
-                    for(int k=kmax-1; k>=0; k--) { // 2-cycle over k
-                        I[a][ila][k] = vector<acb_mat_t>(xn+1);
-                        acb_mat_init(I[a][ila][k][0],nr,nc);
-                        acb_mat_set(I[a][ila][k][0],In0[a][ila][k][0]);
+                        acb_mul(q,q,D0,fp); // q = (la+n)D0
+                        acb_mat_one(invA);
+                        acb_mat_scalar_mul_acb(invA,invA,q,fp);
+                        acb_mat_sub(invA,invA,A0aa,fp);
+                        acb_mat_inv(invA,invA,fp);
                         
-                        for(int n=1; n<=xn; n++) { // 3-cycle over n
-                        
-                            if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                                cout << "\r                                                              \r" << flush;
-                                cout << "  \\--nseries: " << nbs << "|" << a+1;
-                                cout << " [" << nr << "\u2A09" << nc << "]";
-                                cout << " \u03BB" << nla << "|" << cla+1;
-                                cout << " k" << kmax << "|" << (kmax-k);
-                                cout << " n" << xn << "|" << n << flush;
-                            }
-                      
-                            acb_mat_zero(smat);
-                            acb_set_fmpq(q,qlas[ila][0],fp);
-                            acb_add_si(q,q,n,fp); // q = la+n
-
-                            if(true) {
-                                slong s = acb_poly_degree(lcm);
-                                if(s>n) s=n;
-                                int tmax = omp_get_max_threads();
-                                vector<acb_mat_t> mat_sum(tmax), mat_tmp(tmax);
-                                for(int i=0; i<tmax; i++) {
-                                    acb_mat_init(mat_sum[i],nr,nc);
-                                    acb_mat_init(mat_tmp[i],nr,nc); 
-                                }
-                                #pragma omp parallel for schedule(runtime) num_threads(tmax)
-                                for(int m=0; m<=s; m++) {
-                                    auto tid = omp_get_thread_num();
-                                    auto & mat = mat_tmp[tid];
-                                    acb_t Dm;
-                                    acb_init(Dm);
-                                    acb_t qm;
-                                    acb_init(qm);
-                                    if(m==0 && k+1<kmax) {
-                                        acb_neg(Dm,D0);
-                                        acb_mat_scalar_mul_acb(mat,I[a][ila][k+1][n],Dm,fp);
-                                        acb_mat_add(mat_sum[tid],mat_sum[tid],mat,fp);
-                                    } else if(m>0) {
-                                        acb_sub_si(qm,q,m,fp);
-                                        acb_mat_scalar_mul_acb(mat,I[a][ila][k][n-m],qm,fp);
-                                        if(k+1<kmax) acb_mat_add(mat,mat,I[a][ila][k+1][n-m],fp);
-                                        acb_poly_get_coeff_acb(Dm,lcm,m);
-                                        acb_neg(Dm,Dm);
-                                        acb_mat_scalar_mul_acb(mat,mat,Dm,fp);
-                                        acb_mat_add(mat_sum[tid],mat_sum[tid],mat,fp);
-                                    }
-                                    acb_clear(Dm);
-                                    acb_clear(qm);
-                                    flint_cleanup();
-                                }
-                                for(int i=0; i<tmax; i++) {
-                                    acb_mat_add(smat,smat,mat_sum[i],fp);
-                                    acb_mat_clear(mat_sum[i]);
-                                    acb_mat_clear(mat_tmp[i]);
-                                }
-                            }
-
-                            if(true) {
-                                int tmax = omp_get_max_threads();
-                                vector<acb_mat_t> mat_sum(tmax), mat_tmp(tmax);
-                                for(int i=0; i<tmax; i++) {
-                                    acb_mat_init(mat_sum[i],nr,nc);
-                                    acb_mat_init(mat_tmp[i],nr,nc); 
-                                }
-                                #pragma omp parallel for schedule(runtime) num_threads(tmax) 
-                                for(int b=0; b<=a; b++) {
-                                    auto tid = omp_get_thread_num();
-                                    int nc2 = bs[b].second;                                            
-                                    acb_mat_t Amab;
-                                    acb_mat_init(Amab,nr,nc2);
-                                    slong s = sdeg[b];
-                                    if(s>n) s=n;
-                                    for(int m=0; m<=s; m++) {
-                                        if(b==a && m==0) continue;
-                                        auto kv = I[b].find(ila);
-                                        if(kv!=I[b].end() && kv->second.size()>k) {
-                                            A[b].coeff(Amab,m,fp);
-                                            acb_mat_mul(mat_tmp[tid],Amab,kv->second[k][n-m],fp);
-                                            acb_mat_add(mat_sum[tid],mat_sum[tid],mat_tmp[tid],fp);
-                                        }
-                                    }
-                                    acb_mat_clear(Amab);
-                                    flint_cleanup();
-                                }
-                                for(int i=0; i<tmax; i++) {
-                                    acb_mat_add(smat,smat,mat_sum[i],fp);
-                                    acb_mat_clear(mat_sum[i]);
-                                    acb_mat_clear(mat_tmp[i]);
-                                }
-                            }
-
-                            acb_mul(q,q,D0,fp); // q = (la+n)D0
-                            acb_mat_one(invA);
-                            acb_mat_scalar_mul_acb(invA,invA,q,fp);
-                            acb_mat_sub(invA,invA,A0aa,fp);
-                            acb_mat_inv(invA,invA,fp);
-                            
-                            acb_mat_init(I[a][ila][k][n],nr,nc);
-                            acb_mat_mul(I[a][ila][k][n],invA,smat,fp);
-                        }
+                        acb_mat_init(I[a][ila][k][n],nr,nc);
+                        acb_mat_mul(I[a][ila][k][n],invA,smat,fp);
                     }
-                    acb_mat_clear(invA);
-                    acb_clear(q);
-                    acb_mat_clear(smat);
                 }
-                //-------------------------------------------------//
+                acb_mat_clear(invA);
+                acb_clear(q);
+                acb_mat_clear(smat);
             }
             for(int b=0; b<=a; b++) A[b].clear();
             acb_poly_clear(lcm);
