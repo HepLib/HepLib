@@ -743,6 +743,16 @@ namespace HepLib {
         return rmat;
     }
     
+    void MX::operator()(vector<vector<fmpz_poly_t>> & m) {
+        int nr_m = m.size();
+        int nc_m = m[0].size();
+        if(nr!=nr_m || nc!=nc_m) throw Error("matrix dimension not match.");
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            if(!fmpz_poly_is_one(fmpz_poly_q_denref(M[r][c]))) throw Error("the denominator is not 1.");
+            fmpz_poly_set(m[r][c],fmpz_poly_q_numref(M[r][c]));
+        }
+    }
+    
     void MX::operator()(vector<vector<fmpz_poly_q_t>> & m) {
         int nr_m = m.size();
         int nc_m = m[0].size();
@@ -1124,6 +1134,35 @@ namespace HepLib {
         fmpz_clear(zn);
         fmpz_clear(zd);
         fmpq_clear(q);
+    }
+    
+    void MQ::operator()(vector<vector<fmpz_poly_t>> & m) {
+        int nr_m = m.size();
+        int nc_m = m[0].size();
+        if(nr!=nr_m || nc!=nc_m) throw Error("matrix dimension not match.");
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            if(!fmpz_poly_is_one(fmpz_poly_q_denref(M[r][c]))) throw Error("the denominator is not 1.");
+            fmpz_poly_set(m[r][c],fmpz_poly_q_numref(M[r][c]));
+        }
+    }
+    
+    void MQ::operator()(vector<vector<fmpz_poly_q_t>> & m) {
+        int nr_m = m.size();
+        int nc_m = m[0].size();
+        if(nr!=nr_m || nc!=nc_m) throw Error("matrix dimension not match.");
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            fmpz_poly_q_set(m[r][c],M[r][c]);
+        }
+    }
+    
+    void MQ::operator()(vector<vector<acb_poly_t>> & m, slong fp) {
+        int nr_m = m.size();
+        int nc_m = m[0].size();
+        if(nr!=nr_m || nc!=nc_m) throw Error("matrix dimension not match.");
+        for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+            if(!fmpz_poly_is_one(fmpz_poly_q_denref(M[r][c]))) throw Error("the denominator is not 1.");
+            acb_poly_set_fmpz_poly(m[r][c],fmpz_poly_q_numref(M[r][c]),fp);
+        }
     }
     
     //=*********************************************************************=

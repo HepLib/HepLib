@@ -71,6 +71,7 @@ namespace HepLib {
         MX & transform(const matrix & t, const matrix & ti);
         MX & shift(const ex & x0);
         matrix operator()(const ex & x);
+        void operator()(vector<vector<fmpz_poly_t>> & M);
         void operator()(vector<vector<fmpz_poly_q_t>> & M);
         void operator()(vector<vector<acb_poly_t>> & M, slong fp);
         int prank();
@@ -100,6 +101,9 @@ namespace HepLib {
         int denlcm(fmpz_poly_t dl); // return degree of dl and M got updated
         void coeff(fmpq_mat_t m, int i);
         void coeff(acb_mat_t m, int i, slong fp);
+        void operator()(vector<vector<fmpz_poly_t>> & M);
+        void operator()(vector<vector<fmpz_poly_q_t>> & M);
+        void operator()(vector<vector<acb_poly_t>> & M, slong fp);
     private:
         int nr=-1; // rows
         int nc=-1; // cols

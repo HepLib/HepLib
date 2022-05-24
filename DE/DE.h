@@ -66,6 +66,7 @@ namespace HepLib {
     };
         
     typedef vector<vector<vector<vector<fmpz_poly_q_t>>>> block_mat_fmpz_poly_q_t; // M[a][b][r][c]
+    typedef vector<vector<vector<vector<fmpz_poly_t>>>> block_mat_fmpz_poly_t; // M[a][b][r][c]
     typedef vector<vector<vector<vector<acb_poly_t>>>> block_mat_acb_poly_t; // M[a][b][r][c]
     typedef vector<vector<map<int,vector<vector<fmpq_mat_t>>>>> block_umat_fmpq_mat_t; // U[a][b][ila][k][n]
     typedef vector<vector<map<int,vector<vector<acb_mat_t>>>>> block_umat_acb_mat_t; // U[a][b][ila][k][n]
@@ -117,7 +118,9 @@ namespace HepLib {
         
     //protected:
         bool fuchsified = false;
+        bool taylor_inited = false;
         bool ntaylor_inited = false;
+        bool taylor_clearq = true; // only save Q/MatTMat, rational Mat will be cleared
         int N; // DE dimension
         slong rel_fp = 100;
         slong abs_fp = 333;
@@ -136,11 +139,14 @@ namespace HepLib {
         int nlas = -1;
         int kmmax = -1;
         
-        block_mat_acb_poly_t TMat; // Mat for Taylor
+        block_mat_fmpz_poly_t QMat; // Mat for taylor
+        vector<vector<fmpz_poly_t>> QD; // QD[br][0] : denominator
+        block_mat_acb_poly_t TMat; // Mat for ntaylor
         vector<vector<acb_poly_t>> TD; // TD[br][0] : denominator
     };
     matrix u2m(const umat_t & umat, const ex & x);
     matrix i2m(const imat_t & imat, const ex & x);
+    matrix i2m(const vector<matrix> & tmat, const ex & x);
 
     
     class AMF {
