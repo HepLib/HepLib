@@ -73,6 +73,7 @@ namespace HepLib {
         static int fThreads;
         static int lThreads;
         static int sThreads;
+        static string suffix;
         static void RRTables(const string & filename, int pnum);
         static void ThieleTables(const string & filename, int si, int ei);
     };

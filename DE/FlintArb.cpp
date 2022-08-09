@@ -1,6 +1,7 @@
 
 #include "FlintArb.h"
 #include "cln/cln.h"
+#include "fmpz_mpoly_q.h"
 
 namespace HepLib {
     
@@ -263,7 +264,7 @@ namespace HepLib {
         if(fmpq_mpoly_set_str_pretty(f, ex2str(e.subs(x2x,nopat)).c_str(), NULL, ctx))
             throw Error("ex_to_fmpq_mpoly_t failed.");
     }
-    
+        
     //=*********************************************************************=
     
     matrix _to_(const ex & x, fmpz_poly_mat_t m) {
@@ -1279,19 +1280,140 @@ namespace HepLib {
         return res;
     }
     
-    ex normal_flint(const ex & expr) {
+    inline void _to_q_(const lst & xs, fmpz_mpoly_q_t f, fmpz_mpoly_ctx_t ctx, const ex & e) {
+        if(is_a<add>(e)) {
+            fmpz_mpoly_q_zero(f,ctx);
+            fmpz_mpoly_q_t fi;
+            fmpz_mpoly_q_init(fi,ctx);
+            for(auto item : e) {
+                _to_q_(xs,fi,ctx,item);
+                fmpz_mpoly_q_add(f, f, fi, ctx);
+            }
+            fmpz_mpoly_q_clear(fi,ctx);
+            return;
+        } else if(is_a<mul>(e)) {
+            fmpz_mpoly_q_one(f,ctx);
+            fmpz_mpoly_q_t fi;
+            fmpz_mpoly_q_init(fi,ctx);
+            for(auto item : e) {
+                _to_q_(xs,fi,ctx,item);
+                fmpz_mpoly_q_mul(f, f, fi, ctx);
+            }
+            fmpz_mpoly_q_clear(fi,ctx);
+            return;
+        } else if(is_a<power>(e) && e.op(1).info(info_flags::posint)) {
+            ulong n = ex_to<numeric>(e.op(1)).to_int();
+            fmpz_mpoly_q_t fi;
+            fmpz_mpoly_q_init(fi,ctx);
+            _to_q_(xs, fi, ctx, e.op(0));
+            fmpz_mpoly_pow_ui(fmpz_mpoly_q_numref(f), fmpz_mpoly_q_numref(fi), n, ctx);
+            fmpz_mpoly_pow_ui(fmpz_mpoly_q_denref(f), fmpz_mpoly_q_denref(fi), n, ctx);
+            fmpz_mpoly_q_clear(fi,ctx);
+            return;
+        } else if(is_a<power>(e) && e.op(1).info(info_flags::negint)) {
+            ulong n = -ex_to<numeric>(e.op(1)).to_int();
+            fmpz_mpoly_q_t fi;
+            fmpz_mpoly_q_init(fi,ctx);
+            _to_q_(xs, fi, ctx, e.op(0));
+            fmpz_mpoly_pow_ui(fmpz_mpoly_q_numref(f), fmpz_mpoly_q_numref(fi), n, ctx);
+            fmpz_mpoly_pow_ui(fmpz_mpoly_q_denref(f), fmpz_mpoly_q_denref(fi), n, ctx);
+            fmpz_mpoly_q_inv(f,f,ctx);
+            fmpz_mpoly_q_clear(fi,ctx);
+            return;
+        } else if(e.info(info_flags::rational)) {
+            fmpq_t fq;
+            fmpq_init(fq);
+            _to_(fq,e);
+            fmpz_mpoly_q_set_fmpq(f,fq,ctx);
+            fmpq_clear(fq);
+            return;
+        } else if(e.is_polynomial(xs)) {
+            fmpz_mpoly_q_one(f,ctx);
+            if(fmpz_mpoly_set_str_pretty(fmpz_mpoly_q_numref(f), ex2str(e).c_str(), NULL, ctx)) {
+                cout << e << endl;
+                cout << xs << endl;
+                throw Error("_to_q_ failed.");
+            }
+            return;
+        } else {
+            cout << "expr = " << e << endl;
+            throw Error("_to_q_ Not supported region");
+        }
+    }
+    
+    ex normal_flint(const ex & expr_in, int opt) {
+        exmap map_rat;
+        ex res;
+        auto expr = expr_in.to_rational(map_rat);
         auto xs = syms(expr);
         if(xs.nops()<1) return expr;
-        if(xs.nops()>1) throw Error(">=2 variables found.");
-        auto x = xs.op(0);
-        auto sx = ex2str(x).c_str();
-        symtab st;
-        st[sx] = x;
-        fmpz_poly_q_t f;
-        fmpz_poly_q_init(f);
-        _to_(f, expr);
-        auto res = _to_(x,f);
-        fmpz_poly_q_clear(f);
+        if(xs.nops()==1) {
+            auto x = xs.op(0);
+            auto sx = ex2str(x).c_str();
+            symtab st;
+            st[sx] = x;
+            fmpz_poly_q_t f;
+            fmpz_poly_q_init(f);
+            _to_(f, expr);
+            res = _to_(x,f);
+            fmpz_poly_q_clear(f);
+        } else {
+            exmap x2x, x2x_inv;
+            symtab st;
+            lst xis;
+            for(int i=0; i<xs.nops(); i++) {
+                Symbol ss("x"+to_string(i+1));
+                x2x[xs.op(i)] = ss;
+                st["x"+to_string(i+1)] = xs.op(i);
+                xis.append(Symbol("x"+to_string(i+1)));
+                x2x_inv[ss] = xs.op(i);
+            }
+            auto e = expr.subs(x2x,nopat);
+            if(opt==o_normal) {
+                fmpz_mpoly_q_t f;
+                fmpz_mpoly_ctx_t ctx;
+                fmpz_mpoly_ctx_init(ctx, xis.nops(), ORD_LEX);
+                fmpz_mpoly_q_init(f, ctx);
+                _to_q_(xis,f,ctx,e);
+                auto cstr = fmpz_mpoly_get_str_pretty(fmpz_mpoly_q_numref(f), NULL, ctx);
+                string nstr(cstr);
+                flint_free(cstr);
+                cstr = fmpz_mpoly_get_str_pretty(fmpz_mpoly_q_denref(f), NULL, ctx);
+                string dstr(cstr);
+                flint_free(cstr);
+                fmpz_mpoly_q_clear(f, ctx);
+                fmpz_mpoly_ctx_clear(ctx);
+                res = str2ex(nstr,st)/str2ex(dstr,st);
+            } else if(opt==o_normalF) {
+                fmpz_mpoly_q_t f;
+                fmpz_mpoly_ctx_t ctx;
+                fmpz_mpoly_ctx_init(ctx, xis.nops(), ORD_LEX);
+                fmpz_mpoly_q_init(f, ctx);
+                _to_q_(xis,f,ctx,e);
+                auto num = _factor_(xis, fmpz_mpoly_q_numref(f), ctx);
+                auto den = _factor_(xis, fmpz_mpoly_q_denref(f), ctx);
+                fmpz_mpoly_q_clear(f, ctx);
+                fmpz_mpoly_ctx_clear(ctx);
+                res = num/den;
+                res = res.subs(x2x_inv,nopat);
+            } else if(opt==o_normalFD) {
+                fmpz_mpoly_q_t f;
+                fmpz_mpoly_ctx_t ctx;
+                fmpz_mpoly_ctx_init(ctx, xis.nops(), ORD_LEX);
+                fmpz_mpoly_q_init(f, ctx);
+                _to_q_(xis,f,ctx,e);
+                auto cstr = fmpz_mpoly_get_str_pretty(fmpz_mpoly_q_numref(f), NULL, ctx);
+                string nstr(cstr);
+                flint_free(cstr);
+                auto num = str2ex(nstr,st);
+                auto den = _factor_(xis, fmpz_mpoly_q_denref(f), ctx);
+                fmpz_mpoly_q_clear(f, ctx);
+                fmpz_mpoly_ctx_clear(ctx);
+                res = num/den;
+                res = res.subs(x2x_inv,nopat);
+            } else throw Error("normal_flint: unsupported option.");
+        }
+        res = res.subs(map_rat,nopat);
         return res;
     }
     
@@ -1327,5 +1449,24 @@ namespace HepLib {
         return res;
     }
     
+    lst poly_roots(const ex & pex, slong fp) {
+        lst root_lst;
+        fmpz_poly_t poly;
+        fmpz_poly_init(poly);
+        _to_(poly,pex);
+        fmpz_poly_factor_t fac;
+        fmpz_poly_factor_init(fac);
+        fmpz_poly_factor_squarefree(fac, poly);
+        for(int i=0; i<fac->num; i++) {
+            auto deg = fmpz_poly_degree(fac->p + i);
+            auto roots = _acb_vec_init(deg);
+            arb_fmpz_poly_complex_roots(roots, fac->p + i, 0, fp);
+            for(int j = 0; j < deg; j++) root_lst.append(_to_(roots+j,fp));
+            _acb_vec_clear(roots, deg);
+        }
+        fmpz_poly_factor_clear(fac);
+        fmpz_poly_clear(poly);
+        return root_lst;
+    }
     
 }

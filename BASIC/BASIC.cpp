@@ -27,6 +27,8 @@ namespace HepLib {
         return msg.c_str();
     }
     
+    ex normal_flint(const ex & expr, int opt=1);
+    
     /*-----------------------------------------------------*/
     // Symbol
     /*-----------------------------------------------------*/
@@ -781,6 +783,15 @@ namespace HepLib {
         ofs.open(filename, ios::out);
         ofs << ostr << endl;
         ofs.close();
+    }
+    
+    // not finished, just for memo
+    void str2file(char * buff, FILE* fh) {
+        string nstr;
+        int n = nstr.length();
+        char nbuff[n+1];
+        strcpy(nbuff, nstr.c_str());
+        FILE * f = fmemopen(nbuff, n, "r");
     }
     
     /**
@@ -2159,7 +2170,8 @@ namespace HepLib {
         exvector res_vec;
         for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
         res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec,opt](int idx)->ex {
-            return exnormal(res_vec[idx].op(0), opt) * res_vec[idx].op(1);
+            //return exnormal(res_vec[idx].op(0), opt) * res_vec[idx].op(1);
+            return normal_flint(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
         }, "NorEx");
         return add(res_vec);
     }
@@ -2173,7 +2185,8 @@ namespace HepLib {
         exvector res_vec;
         for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
         res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec,opt](int idx)->ex {
-            return exnormal(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
+            //return exnormal(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
+            return normal_flint(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
         }, "NorEx");
         return add(res_vec);
     }
@@ -2187,7 +2200,8 @@ namespace HepLib {
         exvector res_vec;
         for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
         res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec,opt](int idx)->ex {
-            return exnormal(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
+            //return exnormal(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
+            return normal_flint(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
         }, "NorEx");
         return add(res_vec);
     }

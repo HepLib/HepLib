@@ -153,6 +153,7 @@ namespace HepLib {
     public:
         AMF(IBP & ibp);
         void InitDE();
+        void Poles(const ex & rr);
         void ExportDE(const string fn);
         void ImportDE(const string fn);
         
@@ -165,8 +166,9 @@ namespace HepLib {
         lst pts;
         
         lst Evaluate(const ex & d0, int xn, int dp=500);
-        lst FitEps(const lst & eps, int xn, int dp=500, int lp=-1, bool parallel=false);
-        lst FitEps(int goal, int order, int dp=500, bool parallel=false);
+        lst FitEps(const lst & eps, int xn, int dp=500, int lp=-1, int nproc=1);
+        lst FitEps(int epn, int xn, int dp, int nproc=1);
+        
         static ex Vacuum(int nl, int np);
     };
     matrix PolynomialFit(const exvector & xs, const exvector & ys, unsigned int k, int k0);

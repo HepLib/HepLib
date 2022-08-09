@@ -15,14 +15,14 @@ namespace HepLib {
     void DEX::clear() {
         int nbs = bs.size();
         if(nbs<1) return;
+        for(auto & i1 : Mat) for(auto & i2 : i1) for(auto & i3 : i2) for(auto & i4 : i3) fmpz_poly_q_clear(i4);
+        Mat.clear();
         for(int br=0; br<nbs; br++) for(int bc=0; bc<=br; bc++) {
-            for(auto & row : Mat[br][bc]) for(auto & item : row) fmpz_poly_q_clear(item);
             if(fuchsified) for(auto & kv : U0[br][bc]) for(auto & item : kv.second) fmpq_mat_clear(item[0]);
             if(taylor_inited) for(auto & row : QMat[br][bc]) for(auto & item : row) fmpz_poly_clear(item);
             if(ntaylor_inited) for(auto & row : TMat[br][bc]) for(auto & item : row) acb_poly_clear(item);
         }
         bs.clear();
-        Mat.clear();
         if(taylor_inited) for(int br=0; br<nbs; br++) fmpz_poly_clear(QD[br][0]);
         if(ntaylor_inited) for(int br=0; br<nbs; br++) acb_poly_clear(TD[br][0]);
         if(fuchsified) { 
@@ -125,6 +125,8 @@ namespace HepLib {
         series(U, xn,dp,qslas);
         for(int i=0; i<qslas.size(); i++) fmpq_clear(qslas[i]);
         
+        mag_t mag;
+        mag_init(mag);
         int nbs = bs.size();
         auto fp = dp2fp(dp);
         umat_t RU;
@@ -146,8 +148,31 @@ namespace HepLib {
                             for(int n=0; n<=xn; n++) RU[la][k][n] = matrix(N,N);
                         }
                     }
+                    
                     for(int k=0; k<kmax; k++) {
                         for(int n=0; n<=xn; n++) {
+                        
+                            // - error check
+                            int nr = acb_mat_nrows(U[br][bc][ila][k][n]);
+                            int nc = acb_mat_ncols(U[br][bc][ila][k][n]);
+                            for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                                auto item = acb_mat_entry(U[br][bc][ila][k][n],r,c);
+                                auto ri = acb_realref(item);
+                                if(arb_rel_error_bits(ri)>-rel_fp) {
+                                    arb_get_mag(mag,ri);
+                                    if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                                        cout << endl; arb_printd(ri,5); cout << endl;
+                                    }
+                                }
+                                ri = acb_imagref(item);
+                                if(arb_rel_error_bits(ri)>-rel_fp) {
+                                    if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                                        cout << endl; arb_printd(ri,5); cout << endl;  
+                                    }
+                                }
+                            }
+                            // - error check end
+                            
                             auto mat = _to_(U[br][bc][ila][k][n],fp);
                             acb_mat_clear(U[br][bc][ila][k][n]);
                             for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) RU[la][k][n](r0+r,c0+c) = mat(r,c);
@@ -156,6 +181,7 @@ namespace HepLib {
                 }
             }
         }
+        mag_clear(mag);
         return RU;
     }
     
@@ -202,6 +228,8 @@ namespace HepLib {
             acb_mul(z,z,lz0,fp); // next ln^k z
         }
 
+        mag_t mag;
+        mag_init(mag);
         acb_mat_t cmat;
         acb_mat_init(cmat,N,N);
         acb_mat_zero(cmat);
@@ -217,6 +245,26 @@ namespace HepLib {
                     for(int k=0; k<kmax; k++) {
                         auto nmax = kv.second[k].size();
                         for(int n=0; n<nmax; n++) {
+                            
+                            // - error check
+                            for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
+                                auto item = acb_mat_entry(kv.second[k][n],r,c);
+                                auto ri = acb_realref(item);
+                                if(arb_rel_error_bits(ri)>-rel_fp) {
+                                    arb_get_mag(mag,ri);
+                                    if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                                        cout << endl; arb_printd(ri,5); cout << endl;
+                                    }
+                                }
+                                ri = acb_imagref(item);
+                                if(arb_rel_error_bits(ri)>-rel_fp) {
+                                    if(mag_cmp_2exp_si(mag,-abs_fp)>0) { 
+                                        cout << endl; arb_printd(ri,5); cout << endl;  
+                                    }
+                                }
+                            }
+                            // - error check end
+                        
                             for(int r=0; r<nr; r++) for(int c=0; c<nc; c++) {
                                 auto item = acb_mat_entry(cmat,r0+r,c0+c);
                                 acb_t tz;
@@ -232,7 +280,7 @@ namespace HepLib {
                 }
             }
         }
-        
+        mag_clear(mag);
         acb_clear(z0);
         acb_clear(lz0);
         acb_clear(z);

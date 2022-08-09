@@ -776,15 +776,13 @@ namespace HepLib {
             }
             
             int nla = IK[a].size();
-            bool la_parallel = (qslas.size()>0 ? qslas.size() : nla) >= omp_get_max_threads();
-            la_parallel = true; // we set la_parallel always TURE
             if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
                 cout << "\r                                                              \r" << flush;
                 cout << "  \\--series: " << nbs << "|" << a+1;
                 cout << " [" << nr << "\u2A09" << nc << "]";
-                cout << " \u03BB" << nla << " n" << xn << flush;
+                cout << " \u03BB" << nla << " x^" << xn << flush;
             }    
-            #pragma omp parallel for schedule(runtime) if(la_parallel)
+            #pragma omp parallel for schedule(dynamic,1)
             for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
                 fmpq_mat_t invA;
                 fmpq_mat_init(invA,nr,nr);
@@ -796,15 +794,7 @@ namespace HepLib {
                 auto kv = IK[a].begin();
                 advance(kv,cla);
                 auto ila = kv->first;
-                if(qslas.size()>0 && !is_resonant(qslas,qlas[ila][0])) { // seleted lambda set
-                    if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                        cout << "\r                                                              \r" << flush;
-                        cout << "  \\--series: " << nbs << "|" << a+1;
-                        cout << " [" << nr << "\u2A09" << nc << "]";
-                        cout << " \u03BB" << nla << "|" << cla+1 << " n" << xn << flush;
-                    }
-                    continue;
-                }
+                if(qslas.size()>0 && !is_resonant(qslas,qlas[ila][0])) continue; // seleted lambda set
                 auto kmax = kv->second;  
                 for(int k=kmax-1; k>=0; k--) { // 2-cycle over k
                     I[a][ila][k] = vector<fmpq_mat_t>(xn+1);
@@ -812,15 +802,6 @@ namespace HepLib {
                     fmpq_mat_set(I[a][ila][k][0],In0[a][ila][k][0]);
                     
                     for(int n=1; n<=xn; n++) { // 3-cycle over n
-                    
-                        if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                            cout << "\r                                                              \r" << flush;
-                            cout << "  \\--series: " << nbs << "|" << a+1;
-                            cout << " [" << nr << "\u2A09" << nc << "]";
-                            cout << " \u03BB" << nla << "|" << cla+1;
-                            cout << " k" << kmax << "|" << (kmax-k);
-                            cout << " n" << xn << "|" << n << flush;
-                        }
                   
                         fmpq_mat_zero(smat);
                         fmpq_add_si(q,qlas[ila][0],n); // q = la+n
@@ -834,7 +815,7 @@ namespace HepLib {
                                 fmpq_mat_init(mat_sum[i],nr,nc);
                                 fmpq_mat_init(mat_tmp[i],nr,nc); 
                             }
-                            #pragma omp parallel for schedule(runtime) num_threads(tmax)
+                            #pragma omp parallel for schedule(runtime)
                             for(int m=0; m<=s; m++) {
                                 auto tid = omp_get_thread_num();
                                 auto & mat = mat_tmp[tid];
@@ -873,7 +854,7 @@ namespace HepLib {
                                 fmpq_mat_init(mat_sum[i],nr,nc);
                                 fmpq_mat_init(mat_tmp[i],nr,nc); 
                             }
-                            #pragma omp parallel for schedule(runtime) num_threads(tmax)
+                            #pragma omp parallel for schedule(runtime) 
                             for(int b=0; b<=a; b++) {
                                 auto tid = omp_get_thread_num();
                                 int nc2 = bs[b].second;
@@ -921,7 +902,7 @@ namespace HepLib {
         }
         fmpz_poly_clear(x1);
         fmpz_poly_clear(x0);
-        if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
+        if(!In_GiNaC_Parallel && Verbose>5) cout << " @ " << now(false) << endl;
     }
     
     
@@ -988,17 +969,13 @@ namespace HepLib {
             }
             
             int nla = IK[a].size();
-            bool la_parallel = (qslas.size()>0 ? qslas.size() : nla) >= omp_get_max_threads();
-            la_parallel = true; // we set la_parallel always TRUE
-            if(la_parallel) { // to ultilize the thread_pool, we use following trick
-                if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                    cout << "\r                                                              \r" << flush;
-                    cout << "  \\--nseries: " << nbs << "|" << a+1;
-                    cout << " [" << nr << "\u2A09" << nc << "]";
-                    cout << " \u03BB" << nla << " n" << xn << flush;
-                }
+            if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
+                cout << "\r                                                              \r" << flush;
+                cout << "  \\--nseries: " << nbs << "|" << a+1;
+                cout << " [" << nr << "\u2A09" << nc << "]";
+                cout << " \u03BB" << nla << " x^" << xn << flush;
             }
-            #pragma omp parallel for schedule(runtime) if(la_parallel)
+            #pragma omp parallel for schedule(dynamic,1)
             for(int cla=0; cla<nla; cla++) { // 1-cycle over lambda
                 acb_mat_t invA;
                 acb_mat_init(invA,nr,nr);
@@ -1010,15 +987,7 @@ namespace HepLib {
                 auto kv = IK[a].begin();
                 advance(kv,cla);
                 auto ila = kv->first;
-                if(qslas.size()>0 && !is_resonant(qslas,qlas[ila][0])) { // selected lambda set
-                    if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                        cout << "\r                                                              \r" << flush;
-                        cout << "  \\--nseries: " << nbs << "|" << a+1;
-                        cout << " [" << nr << "\u2A09" << nc << "]";
-                        cout << " \u03BB" << nla << "|" << cla+1 << " n" << xn << flush;
-                    }
-                    continue;
-                }
+                if(qslas.size()>0 && !is_resonant(qslas,qlas[ila][0])) continue; // selected lambda set
                 auto kmax = kv->second;
                 for(int k=kmax-1; k>=0; k--) { // 2-cycle over k
                     I[a][ila][k] = vector<acb_mat_t>(xn+1);
@@ -1049,7 +1018,7 @@ namespace HepLib {
                                 acb_mat_init(mat_sum[i],nr,nc);
                                 acb_mat_init(mat_tmp[i],nr,nc); 
                             }
-                            #pragma omp parallel for schedule(runtime) num_threads(tmax)
+                            #pragma omp parallel for schedule(runtime)
                             for(int m=0; m<=s; m++) {
                                 auto tid = omp_get_thread_num();
                                 auto & mat = mat_tmp[tid];
@@ -1088,7 +1057,7 @@ namespace HepLib {
                                 acb_mat_init(mat_sum[i],nr,nc);
                                 acb_mat_init(mat_tmp[i],nr,nc); 
                             }
-                            #pragma omp parallel for schedule(runtime) num_threads(tmax) 
+                            #pragma omp parallel for schedule(runtime)
                             for(int b=0; b<=a; b++) {
                                 auto tid = omp_get_thread_num();
                                 int nc2 = bs[b].second;                                            
@@ -1136,7 +1105,7 @@ namespace HepLib {
         }
         fmpz_poly_clear(x1);
         fmpz_poly_clear(x0);
-        if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
+        if(!In_GiNaC_Parallel && Verbose>5) cout << " @ " << now(false) << endl;
     }
     
     //=*********************************************************************=
@@ -1249,15 +1218,15 @@ namespace HepLib {
             
             fmpq_mat_t smat;
             fmpq_mat_init(smat,nr,nc);
+            
+            if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
+                cout << "\r                                                              \r" << flush;
+                cout << "  \\--taylor: " << nbs << "|" << a+1;
+                cout << " [" << nr << "\u2A09" << nc << "] x^" << xn << flush;
+            }
                 
             for(int n=1; n<=xn; n++) { // 3-cycle over n
             
-                if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                    cout << "\r                                                              \r" << flush;
-                    cout << "  \\--taylor: " << nbs << "|" << a+1;
-                    cout << " [" << nr << "\u2A09" << nc << "] n" << xn << "|" << n << flush;
-                }
-                
                 fmpq_mat_zero(smat);
                 
                 if(true) {
@@ -1338,7 +1307,7 @@ namespace HepLib {
             }
         }
         fmpq_clear(q0); 
-        if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
+        if(!In_GiNaC_Parallel && Verbose>5) cout << " @ " << now(false) << endl;
     }
     
     //=*********************************************************************=
@@ -1451,15 +1420,15 @@ namespace HepLib {
             
             acb_mat_t smat;
             acb_mat_init(smat,nr,nc);
+            
+            if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
+                cout << "\r                                                              \r" << flush;
+                cout << "  \\--ntaylor: " << nbs << "|" << a+1;
+                cout << " [" << nr << "\u2A09" << nc << "] x^" << xn << flush;
+            }
                 
             for(int n=1; n<=xn; n++) { // 3-cycle over n
             
-                if(omp_get_active_level()==0 && !In_GiNaC_Parallel && Verbose>5) {
-                    cout << "\r                                                              \r" << flush;
-                    cout << "  \\--ntaylor: " << nbs << "|" << a+1;
-                    cout << " [" << nr << "\u2A09" << nc << "] n" << xn << "|" << n << flush;
-                }
-                
                 acb_mat_zero(smat);
                 
                 if(true) {
@@ -1540,7 +1509,7 @@ namespace HepLib {
             }
         }
         acb_clear(z0); 
-        if(!In_GiNaC_Parallel && Verbose>5) cout << endl;
+        if(!In_GiNaC_Parallel && Verbose>5) cout << " @ " << now(false) << endl;
     }
     
     //=*********************************************************************=

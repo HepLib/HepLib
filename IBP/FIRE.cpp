@@ -157,22 +157,26 @@ namespace HepLib {
         map<int,ex> _tables;
         int nd;
         unsigned int nmin = 0;
-        for(int i=si; i<ei; i++) {
+        for(int i=si; i<=ei; i++) {
+            cout << "\r                               \r" << flush;
+            cout << "Reading tables: " << ei << "|" << i << flush;
             string fn = filename;
             string_replace_all(fn, ".tables", "-"+to_string(i)+".tables");
             ifstream ifs(fn);
             string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
             ifs.close();
-            string_replace_all(ostr, "\"", "");
+            for(auto & c : ostr) if(c=='\"') c = ' ';
             Parser tp;
             _tables[i] = tp.Read(ostr);
             auto nn = _tables[i].op(1).nops();
             if(i==si || nmin>nn) nmin = nn;
         }
+        cout << endl;
+        
         exvector tables;
         exvector keys;
         ex convs = 0;
-        for(int i=si; i<ei; i++) {
+        for(int i=si; i<=ei; i++) {
             auto nn = _tables[i].op(1).nops();
             if(nmin<nn) {
                 cout << "ThieleTables: current table will be dropped." << endl;
@@ -220,6 +224,8 @@ namespace HepLib {
         ofs << "{" << endl;
         ofs << "    {" << endl;
         for(int i=0; i<int_mi_cs_vec.size(); i++) {
+            cout << "\r                               \r" << flush;
+            cout << "Thiele " << int_mi_cs_vec.size() << "|" << i+1 << flush;
             auto imc = int_mi_cs_vec[i];
             ofs << "        {" << imc.first << "," << endl;
             ofs << "            {" << endl;
@@ -237,6 +243,7 @@ namespace HepLib {
             if(i+1<int_mi_cs_vec.size()) ofs << ",";
             ofs << endl;
         }
+        cout << endl;
         ofs << "    }," << endl << "    {" << endl;
         for(int i=0; i<convs.nops(); i++) {
             auto item = convs.op(i);
@@ -299,7 +306,9 @@ namespace HepLib {
             }
             auto s2p = lsolve(eqns, ss);
             if(s2p.nops() != ISP.nops()) {
-                cout << ISP << endl << s2p << endl << eqns << endl;
+                cout << "ISP=" << ISP << endl;
+                cout << "Propagators=" << Propagators << endl;
+                cout << "eqns=" << eqns << endl;
                 throw Error("FIRE::Export: lsolve failed.");
             }
             
@@ -313,6 +322,7 @@ namespace HepLib {
             exvector IBPvec;
             lst ns0;
             for(int i=0; i<pdim; i++) ns0.append(0);
+            
             for(auto sp : DSP) {
                 symbol ss;
                 auto ilp = sp.op(0);
@@ -661,7 +671,7 @@ namespace HepLib {
         while(tried<3) {
             tried++;
             ostringstream cmd;
-            cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << ")";
+            cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << suffix << ")";
             if(Version>5) cmd << " -silent -parallel";
             cmd << " -c " << ProblemNumber << " >/dev/null";
             system(cmd.str().c_str());
@@ -686,7 +696,8 @@ namespace HepLib {
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
         ifs.close();
         
-        string_replace_all(ostr, "\"", "");
+        //string_replace_all(ostr, "\"", "");
+        for(auto & c : ostr) if(c=='"') c = ' '; 
         
         Parser tp;
         auto tp_lst = tp.Read(ostr);

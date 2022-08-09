@@ -4,6 +4,7 @@
  */
  
 #include "IBP.h"
+#include "FlintArb.h"
 #include <cmath>
 
 namespace HepLib {
@@ -371,14 +372,14 @@ namespace HepLib {
                 auto t0 = ft.subs(ibp.Internal.op(i)==0,nopat);
                 ut *= t2;
                 if(is_zero(t2)) return lst{0,0,1};
-                ft = exnormal(t0-t1*t1/(4*t2));
-                ft = expand_ex(ft);
+                ft = normal_flint(t0-t1*t1/(4*t2));
+                //ft = expand_ex(ft);
                 ft = subs_all(ft, ibp.Replacements);
             }
-            ft = exnormal(ut*ft);
-            ft = exnormal(subs_all(ft, ibp.Replacements));
-            ut = exnormal(subs_all(ut, ibp.Replacements));
-            uf = exnormal(ut+ft); // ut*ft, replay with ut+ft
+            ft = normal_flint(ut*ft);
+            ft = normal_flint(subs_all(ft, ibp.Replacements));
+            ut = normal_flint(subs_all(ut, ibp.Replacements));
+            uf = normal_flint(ut+ft); // ut*ft, replay with ut+ft
             
             if(using_cache) cache[key] = lst{ut,ft,uf};
         } else {
@@ -752,7 +753,7 @@ namespace HepLib {
         }
         
         ex ut = 1;
-        ft = expand(ft);
+        ft = normal_flint(ft);
         ft = subs_all(ft, Replacements);
         for(int i=0; i<Internal.nops(); i++) {
             auto t2 = ft.coeff(Internal.op(i),2);
@@ -760,13 +761,13 @@ namespace HepLib {
             auto t0 = ft.subs(Internal.op(i)==0,nopat);
             ut *= t2;
             if(is_zero(t2)) return true;
-            ft = normal(t0-t1*t1/(4*t2));
-            ft = expand(ft);
+            ft = normal_flint(t0-t1*t1/(4*t2));
+            //ft = expand(ft);
             ft = subs_all(ft, Replacements);
         }
-        ut = normal(subs_all(ut, Replacements));
-        ft = normal(ut*ft);
-        ft = normal(subs_all(ft, Replacements));
+        ut = normal_flint(subs_all(ut, Replacements));
+        ft = normal_flint(ut*ft);
+        ft = normal_flint(subs_all(ft, Replacements));
     
         ex G = ut + ft;
         ex sum = 0;

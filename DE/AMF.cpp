@@ -118,7 +118,9 @@ namespace HepLib {
             lmap[x] = y*y;
             lst props;
             for(int i=0; i<ibp.Propagators.nops(); i++) {
-                props.append(ibp.Propagators.op(i).subs(lmap).expand().coeff(y,2));
+                auto e = ibp.Propagators.op(i).subs(lmap).expand().coeff(y,2);
+                if(e.is_equal(1)) cout << ibp.Propagators.op(i) << endl;
+                props.append(e);
             }
             
             FIRE bc;
@@ -140,154 +142,54 @@ namespace HepLib {
             system(("rm -rf "+bc.WorkingDir).c_str());
             if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Generated BC @ " << now() << endl;
         }
-        
-        if(!In_GiNaC_Parallel && Verbose>10) cout << "  \\--DE Poles starting @ " << now() << endl;
+    }
+    
+    void AMF::Poles(const ex & rr) {
+        if(!In_GiNaC_Parallel && Verbose>10) cout << "  \\--Poles(" << rr << ") starting @ " << now() << endl;
         if(true) { // get poles of Mat
             ex den = matrix_den_lcm(Mat);
-            exvector fvec;
-            if (is_a<mul>(den)) for(const auto &f : den) fvec.push_back(f);
-            else fvec.push_back(den);
-            exset roots;
-            for (const auto &f : fvec) {
-                ex base = f; 
-                int n = 1;
-                if (is_a<power>(f)) {
-                    base = f.op(0);
-                    n = ex_to<numeric>(f.op(1)).to_int();
-                } 
-                int deg = base.degree(x);
-                if (deg==0) { }
-                else if (deg==1) {
-                    ex c0 = base.coeff(x, 0);
-                    ex c1 = base.coeff(x, 1);
-                    ex x1 = normal(-c0/c1);
-                    x1 = Rationalize(x1.evalf(), 10);
-                    roots.insert(x1);
-                } else if(deg==2) {
-                    ex c = base.coeff(x, 0);
-                    ex b = base.coeff(x, 1);
-                    ex a = base.coeff(x, 2);
-                    ex x1 = (-b+sqrt(b*b-4*a*c))/(2*a);
-                    ex x2 = (-b-sqrt(b*b-4*a*c))/(2*a);
-                    x1 = Rationalize(x1.evalf(), 10);
-                    x2 = Rationalize(x2.evalf(), 10);
-                    roots.insert(x1);
-                    roots.insert(x2);
-                } else if(deg==3) { // 卡丹公式
-                    ex d = base.coeff(x, 0);
-                    ex c = base.coeff(x, 1);
-                    ex b = base.coeff(x, 2);
-                    ex a = base.coeff(x, 3);
-                    
-                    ex u = (9*a*b*c-27*a*a*d-2*b*b*b)/(54*a*a*a);
-                    ex v = sqrt(3*(4*a*c*c*c-b*b*c*c-18*a*b*c*d+27*a*a*d*d+4*b*b*b*d))/(18*a*a);
-                    ex m;
-                    if(abs(u+v)>=abs(u-v)) m = pow(u+v,1/ex(3));
-                    else m = pow(u-v,1/ex(3));
-                    ex n = 0;
-                    if(!is_zero(m)) n = (b*b-3*a*c)/(9*a*a*m);
-                    ex w1 = -1/ex(2)+sqrt(ex(3))/2*I;
-                    ex w2 = -1/ex(2)-sqrt(ex(3))/2*I;
-                    ex x1 = m+n-b/(3*a);
-                    ex x2 = w1*m+w2*n-b/(3*a);
-                    ex x3 = w2*m+w1*n-b/(3*a);
-                    
-                    x1 = Rationalize(x1.evalf(), 10);
-                    x2 = Rationalize(x2.evalf(), 10);
-                    x3 = Rationalize(x3.evalf(), 10);
-    
-                    roots.insert(x1);
-                    roots.insert(x2);
-                    roots.insert(x3);
-                } else if(deg==4) { 
-                    ex e = base.coeff(x, 0);
-                    ex d = base.coeff(x, 1);
-                    ex c = base.coeff(x, 2);
-                    ex b = base.coeff(x, 3);
-                    ex a = base.coeff(x, 4);
-                    
-                    ex P = (c*c+12*a*e-3*b*d)/9;
-                    ex Q = (27*a*d*d+2*c*c*c+27*b*b*e-72*a*c*e-9*b*c*d)/54;
-                    ex D = sqrt(Q*Q-P*P*P);
-                    ex u;
-                    if(abs(Q+D)>=abs(Q-D)) u = pow(Q+D, 1/ex(3));
-                    else u = pow(Q-D, 1/ex(3));
-                    ex v = 0;
-                    if(!is_zero(u)) v = P/u;
-                    ex w = -1/ex(2)+sqrt(ex(3))/2*I;
-                    
-                    ex m=0, S=0;
-                    for(int k=1; k<4; k++) {
-                        ex wk = pow(w,k-1);
-                        ex w4k = pow(w,4-k);
-                        ex mk = sqrt(b*b-8*a*c/3+4*a*(wk*u+w4k*v));
-                        ex Sk = 2*b*b-16*a*c/3-4*a*(wk*u+w4k*v);
-                        if(abs(mk).evalf()>abs(m).evalf()) { m = mk; S = Sk; }
-                    }
-                    
-                    ex T;
-                    if(!is_zero(m)) T = (8*a*b*c-16*a*a*d-2*b*b*b)/m;
-                    else {
-                        m = 0;
-                        S = b*b-8*a*c/3;
-                        T = 0;
-                    }
-                    
-                    ex x1 = (-b-m+sqrt(S-T))/(4*a);
-                    ex x2 = (-b-m-sqrt(S-T))/(4*a);
-                    ex x3 = (-b+m+sqrt(S+T))/(4*a);
-                    ex x4 = (-b+m-sqrt(S+T))/(4*a);
-                    
-                    x1 = Rationalize(x1.evalf(), 10);
-                    x2 = Rationalize(x2.evalf(), 10);
-                    x3 = Rationalize(x3.evalf(), 10);
-                    x4 = Rationalize(x4.evalf(), 10);
-                    
-                    roots.insert(x1);
-                    roots.insert(x2);
-                    roots.insert(x3);
-                    roots.insert(x4);
-                } else {
-                    cout << "current factor: " << f << endl;
-                    throw Error("AMF::InitDE, higher powers found.");
-                }
+            ex pex = 1;
+            if(!is_a<mul>(den)) den = lst{den};
+            for(auto di : den) {
+                if(!di.has(x)) continue;
+                if(di.match(pow(w1,w2))) di = di.op(0);
+                pex *= di;
             }
-            lst rs;
-            for(auto ri : roots) rs.append(ri);
+            lst rs = poly_roots(pex,30);
             sort_lst(rs);
-            if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Total DE Poles: " << rs.nops() << endl;
+            if(!In_GiNaC_Parallel && Verbose>1) cout << "  \\--Total Poles: " << rs.nops() << endl;
             pts.remove_all();
-            if(roots.size()>0) {
+            if(rs.nops()>0) {
                 ex max = -1, min = -1;
-                for(auto r : roots) {
+                for(auto r : rs) {
                     if(is_zero(r)) continue;
                     ex ar = abs(r);
                     if(max<0 || ar>max) max = ar;
                     if(min<0 || ar<min) min = ar;
                 }
                 pts.remove_all();
-                min /= 2;
-                max *= 2;
+                min /= rr;
+                max *= rr;
                 ex x0 = I*max; // the last point
                 x0 = Rationalize(x0, 20);
                 pts.append(x0);
                 while(true) {
                     ex mm = -1;
-                    for(auto r : roots) {
+                    for(auto r : rs) {
                         ex ar = abs(r-x0);
                         if(mm<0 || ar<mm) mm = ar;
                     }
-                    x0 -= I*mm/2;
+                    x0 -= I*mm/rr;
                     x0 = Rationalize(x0, 20);
                     pts.prepend(x0);
-                    if(x0/I<0) x0 = min/2;;
+                    if(x0/I<0) x0 = min/rr;
                     if(abs(x0)<min) break;
                 }
             } else throw Error("AMF::InitDE, NO root found.");
         }
         if(!In_GiNaC_Parallel && Verbose>10) {
             cout << "  \\--Total AMF Points: " << pts.nops() << endl;
-            cout << "  \\--DE Poles finished @ " << now() << endl;
+            cout << "  \\--Poles(" << rr << ") finished @ " << now() << endl;
         }
     }
     
@@ -496,20 +398,26 @@ namespace HepLib {
         //--------------------------------------------------------------------------------------
         // from infinity to origin
         //--------------------------------------------------------------------------------------
-        if(!In_GiNaC_Parallel && Verbose>0) {
-            cout << "  \\--" << WHITE << "AMF @ middle " << npts-1 << " points ... " << RESET << endl;
-        }
+        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF @ middle " << npts-1 << " points ... " << RESET << endl;
         if(true) {
             DEX de(x);
             de.init(nmat); // note T matrix - permutation to triangular block 
             auto T = de.T();
             iBC = T.inverse().mul(iBC);
+            int verb = Verbose;
+            if(npts>30) Verbose = 0;
             for(int i=npts-2; i>=0; i--) {
+                if(npts>30 && !In_GiNaC_Parallel && verb>0) {
+                    cout << "\r                                          \r" << flush;
+                    cout << "  \\--" << "AMF @ middle points: " << npts-1 << "|" << npts-1-i << flush;
+                }
                 auto x1 = pts.op(i);
                 auto x2 = pts.op(i+1);
                 auto dx = x1-x2;
                 iBC = de.taylor(xn,iBC,x2,dp,dx);
             }
+            if(npts>30 && !In_GiNaC_Parallel && verb>0) cout << " @ " << now(false) << endl;
+            if(npts>30) Verbose = verb;
             iBC = T.mul(iBC);
         }
 
@@ -521,13 +429,15 @@ namespace HepLib {
         return res;
     }
     
-    lst AMF::FitEps(const lst & eps, int xn, int dp, int lp, bool parallel) {
+    lst AMF::FitEps(const lst & eps, int xn, int dp, int lp, int nproc) {
         if(dp>0) set_precision(dp);
         exvector eps_vec(eps.begin(), eps.end());
         int nmi = MIntegrals.nops();
         exvector mis_vec[nmi];
-        if(parallel && eps.nops()>1) {
-            auto res_vec = GiNaC_Parallel(eps.nops(), [&](int idx)->ex {
+        int nep = eps.nops();
+        if(nproc>1 && nep>1) {
+            GiNaC_Parallel_NP["AMF"] = nproc;
+            auto res_vec = GiNaC_Parallel(nep, [&](int idx)->ex {
                 ex d0 = 4-2*eps.op(idx);
                 return Evaluate(d0,xn,dp);
             }, "AMF");
@@ -535,9 +445,10 @@ namespace HepLib {
                 for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
             }
         } else {
-            for(auto epi : eps) {
+            for(int i=0; i<nep; i++) {
+                auto epi = eps.op(i);
                 ex d0 = 4-2*epi;
-                if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "ep = " << epi << RESET << endl;
+                if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF: " << nep << "|" << (i+1) << " @ ep = " << epi << RESET << endl;
                 auto mis = Evaluate(d0,xn,dp);
                 for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
             }
@@ -558,30 +469,65 @@ namespace HepLib {
         return mis_lst;
     }
     
-    lst AMF::FitEps(int goal, int order, int dp, bool parallel) { // form AMFlow
+    lst AMF::FitEps(int epn, int xn, int dp, int nproc) { // form AMFlow
         if(dp>0) set_precision(dp);
-        int nloop = ibp.Internal.nops();
-        ex nn = 5*order/numeric(2)+2*nloop;
-        int n = cln_ceiling(nn);
-        if(n>100) throw Error("FitEps: too large order.");
+        int nl = ibp.Internal.nops();
+        int n0 = 10;
+        int p0 = 10;
         
-        nn = nloop/numeric(2)+goal/numeric(order+1);
-        auto tn = cln_ceiling(nn);        
-        ex eps0 = GiNaC::pow(10,-tn);
+        ex eps0 = GiNaC::pow(10,-p0);
         
-        int lp = -2*nloop;
+        int lp = -nl;
         lst eps;
-        for(int i=0; i<n; i++) eps.append(eps0 + eps0*i/ex(100));
-        auto sp = (n+2*nloop)*tn;
-        if(sp<30) sp = 30;
-        if(dp<2*sp) dp = 2*sp;
-        int xn = 4*sp;
+        for(int i=1; i<=epn+n0; i++) eps.append(eps0*(111+i)/111);
         
-        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF \u224B x^" << xn << " " << n << "\u2A09\u03B5 ..." << RESET << endl;
-        auto res = FitEps(eps,xn,dp,lp,parallel); // FitEps(eps, xn, dp, lp, parallel) 
+        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF \u224B x^" << xn << " " << (epn+n0) << "\u2A09\u03B5 ..." << RESET << endl;
+        auto res = FitEps(eps,xn,dp,lp,nproc); // FitEps(eps, xn, dp, lp, nproc) 
         if(dp>0) reset_precision();
         return res;
-    }  
+    }
+    
+//    lst AMF::FitEps(int epn, int xn, int dp, int nproc) { // form AMFlow
+//        if(dp>0) set_precision(dp);
+//        int nl = ibp.Internal.nops();
+//        int nep = cln_ceiling(5*epn/numeric(2)+2*nl);
+//        if(nep>100) throw Error("FitEps: too large order.");
+//        
+//        int goal = 20;
+//        auto tn = cln_ceiling(nl/numeric(2)+goal/numeric(epn+1));        
+//        ex eps0 = GiNaC::pow(10,-tn);
+//        
+//        int lp = -2*nl;
+//        lst eps;
+//        for(int i=1; i<=nep; i++) eps.append(eps0*ex(100+i)/100);
+//        
+//        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF \u224B x^" << xn << " " << nep << "\u2A09\u03B5 ..." << RESET << endl;
+//        auto res = FitEps(eps,xn,dp,lp,nproc); // FitEps(eps, xn, dp, lp, nproc) 
+//        if(dp>0) reset_precision();
+//        return res;
+//    }
+    
+//    lst AMF::FitEps(int goal, int order, int dp, int nproc) { // form AMFlow
+//        if(dp>0) set_precision(dp);
+//        int nloop = ibp.Internal.nops();
+//        int epn = cln_ceiling(5*order/numeric(2)+2*nloop);
+//        if(epn>100) throw Error("FitEps: too large order.");
+//        
+//        auto tn = cln_ceiling(nloop/numeric(2)+goal/numeric(order+1));        
+//        ex eps0 = GiNaC::pow(10,-tn);
+//        
+//        int lp = -2*nloop;
+//        lst eps;
+//        for(int i=1; i<=epn; i++) eps.append(eps0 + eps0*i/ex(100));
+//        auto sp = cln_ceiling((epn+2*nloop)*(nloop/ex(2)+goal/ex(order+1)));
+//        if(sp<30) sp = 30;
+//        int xn = 50;//4*sp;
+//        
+//        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF \u224B x^" << xn << " " << epn << "\u2A09\u03B5 ..." << RESET << endl;
+//        auto res = FitEps(eps,xn,dp,lp,nproc); // FitEps(eps, xn, dp, lp, nproc) 
+//        if(dp>0) reset_precision();
+//        return res;
+//    }  
         
     //=*********************************************************************=
     
@@ -593,14 +539,14 @@ namespace HepLib {
         else if(nl==2 && np==2) res = 1;
         else if(nl==2 && np==3) {
             res = str2ex("-1.500000000000000000000000000000000000000000000000 -1.500000000000000000000000000000000000000000000000*ep +0.515860858034188335902343433308415603643104514453*ep^2 -8.540503339614544671799894997792116772367413851777*ep^3 +1.039200541451345629937997428402437565814452745044*ep^4 -34.02412109418437876206777042875976448646874597234*ep^5");
-        } else if(nl==3 && np==4) {
+        } else if(nl==3 && np==3) res = 1;
+        else if(nl==3 && np==4) {
             res = str2ex("-2.000000000000000000000000000000000000000000000000 -1.666666666666666666666666666666666666666666666666*ep -0.499999999999999999999999999999999999999999999999*ep^2 +8.583333333333333333333333333333333333333333333333*ep^3 +2.664875615375146678409775303572533678107178419288*ep^4 +196.7353782591730433858563053732030434664159925326*ep^5");
         } else if(nl==3 && np==5) {
             res = str2ex("1.000000000000000000000000000000000000000000000000 +2.666666666666666666666666666666666666666666666666*ep +1.301611617264956661528646466716502126047124304425*ep^2 +16.17027687753648029273000749323203572619203425393*ep^3 +50.36368751002766464712459970887058692375220280352*ep^4 +72.00897461295336034290529765044698186018294035915*ep^5");
         } else if(nl==3 && np==6) {
             res = str2ex("-2.404113806319188570799476323022899981529972584680*ep^2 +17.24761989872635488431312965422760018324025125004*ep^3 -73.26296589040362104788617737106101541072605775907*ep^4 +259.4946671222559246930353806588203939311375233114*ep^5 -855.0640324263683182684972461824631640925159683337*ep^6 +2715.946776452544387893443991909756653155929639372*ep^7");
         } else throw Error("Not Supported Yet.");
-        
         
         res *= pow(J,nl) * exp(-I*Pi*(2-ep)*nl);
         res = series_ex(res, ep, 5-nl).evalf();

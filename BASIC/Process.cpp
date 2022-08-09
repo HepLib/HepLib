@@ -126,6 +126,7 @@ namespace HepLib {
                 break;
             }
         }
+        string_replace_all(ostr, "`", "");
         string_trim(ostr);
 
         if(ostr.find("***")!=string::npos) {
@@ -267,7 +268,7 @@ namespace HepLib {
         }
     }
     
-    string Form::Execute(string script, const string & out_var) {
+    string Form::Execute(const string & script, const string & out_var) {
         if(exited) throw Error("Form has already exited.");
         if(getpid() != pid) throw Error("Form: can not Execute on child process.");
         string istr = script;

@@ -7,6 +7,7 @@
 #include "flint/fmpq_mpoly_factor.h"
 #include "acb_mat.h"
 #include "bool_mat.h"
+#include "arb_fmpz_poly.h"
 
 #include "BASIC.h"
 
@@ -115,8 +116,9 @@ namespace HepLib {
     ex _factor_(const lst & xs,fmpq_mpoly_t f,fmpq_mpoly_ctx_t ctx);
     ex factor_flint(const ex & e);
     ex factor_fpq(const ex & e);
-    ex normal_flint(const ex & expr);
+    ex normal_flint(const ex & expr, int opt=o_normal);
     matrix normal_flint(const matrix & mat);
+    lst poly_roots(const ex & poly, slong fp);
     
     ex den_lcm(const ex & e);
     

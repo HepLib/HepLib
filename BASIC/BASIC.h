@@ -347,6 +347,7 @@ namespace HepLib {
     matrix lst2mat(const lst & ls);
     string file2str(string filename);
     void str2file(const string & ostr, string filename);
+    void str2file(char * buff, FILE* f);
     vector<string> file2strvec(string filename, bool skip_empty=false);
     ex file2ex(string filename);
     ex file2ex(string filename, symtab st);
@@ -842,7 +843,7 @@ namespace HepLib {
         string Sentinel = "---EOF---";
         string Prompt = "***EOF***";
         void Init(string form_path="form");
-        string Execute(string script, const string & out_var="[o]");
+        string Execute(const string & script, const string & out_var="[o]");
         void Exit();
         ~Form();
     

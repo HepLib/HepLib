@@ -217,6 +217,7 @@ namespace HepLib {
                     v = ii;
                 } else c *= ii;
             }
+cout << "a=" << a << ", b=" << b << endl;
             if(is_zero(v-1)) throw Error("Error Found in SP @4");
             blst.let_op(i) = lst{c,v};
         }
