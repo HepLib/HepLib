@@ -116,6 +116,7 @@ namespace HepLib::QGRAF {
     
     ex QuarkPropagator(ex e, ex m=0, bool color=true);
     ex GluonPropagator(ex e, bool color=true);
+    ex GluonPropagatorXi(ex e, ex xi, bool color=true);
     ex GhostPropagator(ex e, bool color=true);
     ex q2gVertex(ex e, bool color=true);
     ex g3Vertex(ex e);

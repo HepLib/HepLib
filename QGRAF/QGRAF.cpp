@@ -430,6 +430,20 @@ namespace HepLib::QGRAF {
     }
     
     /**
+     * @brief Propagator for gluon
+     * @param e expression with head of Propagator
+     * @param color true for QCD, false for QED
+     * @return the gloun propagator under Feynman gauge, with dirac/color index
+     */
+    ex GluonPropagatorXi(ex e, ex xi, bool color) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto mom = e.op(2);
+        if(color) return (-I) * SP(CI(fi1),CI(fi2)) * ( SP(LI(fi1),LI(fi2)) / SP(mom) - (1-xi)*SP(mom,LI(fi1))*SP(mom,LI(fi2))/pow(SP(mom),2) ); // Xi Gauge
+        else return (-I) * ( SP(LI(fi1),LI(fi2)) / SP(mom) - (1-xi)*SP(mom,LI(fi1))*SP(mom,LI(fi2))/pow(SP(mom),2) ); // Xi Gauge
+    }
+    
+    /**
      * @brief Propagator for ghost
      * @param e expression with head of Propagator
      * @param color true for QCD, false for QED

@@ -449,7 +449,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                 auto otmp = fprc.Execute(script);
                 if(verb>2) {
                     cout << "--------------------------------------" << endl;
-                    cout << "Form Output @" << c << " / " << total << endl;
+                    cout << "Form Output @ " << c << " / " << total << endl;
                     cout << "--------------------------------------" << endl;
                     cout << otmp << endl;
                 }
@@ -519,7 +519,24 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
      * @param verb for verb output
      * @return result with index contract, trace performed, etc.
      */
-    ex form(const ex &expr, int verb) {
+    ex form(const ex & iexpr, int verb) {
+        ex expr = iexpr;
+        if(!is_a<lst>(expr)) {
+            static MapFunction mf([](const ex & e, MapFunction & self)->ex{
+                if(!e.has(TR(w))) return e;
+                else if(e.match(TR(w))) {
+                    if(is_a<mul>(e.op(0))) {
+                        ex c = 1, v = 1;
+                        for(auto const & ei : e.op(0)) {
+                            if(DGamma::has(ei)) v *= ei;
+                            else c *= ei;
+                        }
+                        return c*TR(v);
+                    } else return e;
+                } else return e.map(self);
+            });
+            expr = mf(expr);
+        }
         if(form_expand_mode==form_expand_none || is_a<lst>(expr)) return runform(expr, verb);
         else if(form_expand_mode==form_expand_tr) {
             auto cv_lst = collect_lst(expr.subs(SP_map), TR(w));

@@ -198,34 +198,6 @@ namespace HepLib::SD {
         int LastState = 0;
     };
 
-    /**
-     * @brief numerical integrator using CUBA
-     */
-    class CUBA : public IntegratorBase {
-    public:
-        
-        enum METHOD { VEGAS, CUHRE };
-        METHOD Method = CUHRE;
-        int VERBOSE = 0;
-        
-        // CUHRE Parameters
-        int CUHRE_KEY = 0;
-        
-        // VEGAS Parameters
-        int VEGAS_SEED = 0;
-        long long VEGAS_NSTART = 1000;
-        long long VEGAS_NINCREASE = 1000;
-        long long VEGAS_NBATCH = 1000;
-        
-        static int Wrapper(const int *xdim, const qREAL *x, const int *ydim, qREAL *y, void *fdata);
-        long long MaxPTS;
-        virtual ex Integrate() override;
-        
-    private:
-        qREAL LastResult[2];
-        qREAL LastAbsErr[2];
-    };
-
     #ifdef _USE_FLOAT128
     typedef long double dREAL;
     #else
@@ -262,16 +234,6 @@ namespace HepLib::SD {
         dREAL LowerBound[50];
         dREAL *PL;
         dREAL *LAS;
-    };
-
-    /**
-     * @brief class to minimize a function using MinUit
-     */
-    class MinUit : public MinimizeBase {
-    public:
-        virtual dREAL FindMinimum(int nvars, FunctionType func, dREAL *PL = NULL, dREAL *las = NULL, dREAL *UB = NULL, dREAL *LB = NULL, dREAL *IP = NULL, bool compare0 = false, int TryPTS=0, int SavePTS=0) override;
-        virtual void Minimize(int nvars, FunctionType func, dREAL *IP) override;
-        virtual void ForceStop() override;
     };
 
     /**

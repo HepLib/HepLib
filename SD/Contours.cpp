@@ -16,7 +16,7 @@ namespace HepLib::SD {
      */
     void SecDec::Contours(const string & key, const string & pkey) {
         if(IsZero) return;
-        if(Minimizer==NULL) Minimizer = new MinUit();
+        if(Minimizer==NULL) Minimizer = new HookeJeeves();
 
         if(key != "") {
             set_precision(NNDigits);

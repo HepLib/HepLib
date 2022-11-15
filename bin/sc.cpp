@@ -167,7 +167,8 @@ int main(int argc, char** argv) {
             
             std::string cmd = arg_c;
             string_replace_all(cmd, "[i]", data);
-            system(cmd.c_str());
+            auto ret = system(cmd.c_str());
+            if(ret == -1) break;
         }
         exit(0); 
     }

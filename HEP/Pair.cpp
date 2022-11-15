@@ -111,13 +111,13 @@ namespace HepLib {
      * @param level level in print function
      */
     void Pair::fc_print(const FCFormat &c, unsigned level) const {
-        if(is_a<Vector>(lr[0]) && is_a<Vector>(lr[1])) c << "SPD(" << lr[0] << "," << lr[1] << ")";
-        else if(is_a<Vector>(lr[0]) && is_a<Index>(lr[1])) c << "FVD(" << lr[0] << "," << lr[1] << ")";
+        if(is_a<Vector>(lr[0]) && is_a<Vector>(lr[1])) c << "SPD[" << lr[0] << "," << lr[1] << "]";
+        else if(is_a<Vector>(lr[0]) && is_a<Index>(lr[1])) c << "FVD[" << lr[0] << "," << lr[1] << "]";
         else if(is_a<Index>(lr[0]) && is_a<Index>(lr[1])) {
             auto ii = ex_to<Index>(lr[0]);
-            if(ii.type == Index::Type::VD) c << "MTD(" << lr[0] << "," << lr[1] << ")";
-            else if(ii.type == Index::Type::CF) c << "Delta(" << lr[0] << "," << lr[1] << ")";
-            else if(ii.type == Index::Type::CA) c << "SUNDelta(" << lr[0] << "," << lr[1] << ")";
+            if(ii.type == Index::Type::VD) c << "MTD[" << lr[0] << "," << lr[1] << "]";
+            else if(ii.type == Index::Type::CF) c << "SUNFDelta[" << lr[0] << "," << lr[1] << "]";
+            else if(ii.type == Index::Type::CA) c << "SUNDelta[" << lr[0] << "," << lr[1] << "]";
             else throw Error("Pair::fc_print unexpected.");
         }
     }
@@ -217,7 +217,6 @@ namespace HepLib {
                     v = ii;
                 } else c *= ii;
             }
-cout << "a=" << a << ", b=" << b << endl;
             if(is_zero(v-1)) throw Error("Error Found in SP @4");
             blst.let_op(i) = lst{c,v};
         }

@@ -67,7 +67,7 @@ namespace HepLib {
         void Export() override;
         void Run() override;
         void Import() override;
-        int pos_pref = 2;
+        static int PosPref;
         static int Version;
         static int Threads;
         static int fThreads;

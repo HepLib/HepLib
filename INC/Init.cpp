@@ -81,16 +81,19 @@ namespace HepLib {
     int _o_ = 0;
     const int o_none = (_o_++);
     const int o_normal = (_o_++);
-    const int o_normalF = (_o_++);
-    const int o_normalFD = (_o_++);
-    const int o_normalNF = (_o_++);
+    const int o_fermat = (_o_++);
+    const int o_fermatfD = (_o_++);
+    const int o_fermatN = (_o_++);
     const int o_factor = (_o_++);
-    const int o_factorF = (_o_++);
-    const int o_normal_normalF = (_o_++);
+    const int o_form = (_o_++);
+    const int o_flint = (_o_++);
+    const int o_flintf = (_o_++);
+    const int o_flintfD = (_o_++);
+    const int o_normal_fermat = (_o_++);
     const int o_normal_factor = (_o_++);
-    const int o_normal_factorF = (_o_++);
-    const int o_normalF_factor = (_o_++);
-    const int o_normalF_factorF = (_o_++);
+    const int o_normal_form = (_o_++);
+    const int o_fermat_factor = (_o_++);
+    const int o_fermat_form = (_o_++);
     
     // Symbols
     const Symbol NA("NA");
@@ -224,11 +227,13 @@ namespace HepLib {
     
     // FROM IBP
     
+    int FIRE::PosPref = 1;
     int FIRE::Version = 6;
     int FIRE::Threads = 4;
-    int FIRE::fThreads = 0;
+    int FIRE::fThreads = 1;
     int FIRE::lThreads = 0;
     int FIRE::sThreads = 0;
+    string FIRE::suffix = "m";
     exmap MapPreSP;
     
     string UKIRA::KArgs = "";

@@ -251,8 +251,10 @@ namespace HepLib {
         // all sectors
         auto ibps_o = ibps;
         ibps.remove_all();
+cout << ibps_o << endl;
+exit(0);
         for(auto ibp : ibps_o) {
-            for(int s=-1; s<=1; s++) {
+            for(int s=-3; s<=3; s++) {
                 ibps.append(ibp.subs(a(w)==a(w)+s));
             }
         }
@@ -311,6 +313,7 @@ namespace HepLib {
             }
 
             auto mr = RowReduce(mat);
+            
             for(int r=0; r<mat.rows(); r++) {
                 int c1 = -1, c = -1;
                 for(auto ti : sum_tot) {

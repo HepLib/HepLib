@@ -53,17 +53,14 @@ IF(APPLE)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
     IF(OSX_UNAME_M STREQUAL "arm64")
-        SET(CUBA_QUADMATH "-lcubal")
-        LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic_r gomp cubal dl flint arb gmp)
+        LINK_LIBRARIES(ginac cln mpfr qhullstatic_r gomp dl flint arb gmp)
     ELSE()
-        SET(CUBA_QUADMATH "-D_USE_FLOAT128 -lcubaq -lquadmath")
-        LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic_r quadmath gomp cubaq dl flint arb gmp)
+        LINK_LIBRARIES(ginac cln mpfr qhullstatic_r quadmath gomp dl flint arb gmp)
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_USE_FLOAT128")
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_FLOAT128")
     ENDIF()
 ELSE()
-    SET(CUBA_QUADMATH "-D_USE_FLOAT128 -lcubaq -lquadmath")
-    LINK_LIBRARIES(ginac cln Minuit2 mpfr qhullstatic_r quadmath gomp cubaq dl flint arb gmp)
+    LINK_LIBRARIES(ginac cln mpfr qhullstatic_r quadmath gomp dl flint arb gmp)
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_USE_FLOAT128")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_FLOAT128")
 ENDIF()
@@ -81,6 +78,7 @@ INCLUDE_DIRECTORIES(BEFORE QCD)
 INCLUDE_DIRECTORIES(BEFORE EX)
 INCLUDE_DIRECTORIES(BEFORE BASIC)
 INCLUDE_DIRECTORIES(BEFORE INC)
+INCLUDE_DIRECTORIES(BEFORE fmpz_mpoly_q)
 
 CONFIGURE_FILE(INC/Init.cpp "${CMAKE_CURRENT_BINARY_DIR}/OINC/Init.cpp" @ONLY)
 CONFIGURE_FILE(INC/HepLib.pc "${CMAKE_CURRENT_BINARY_DIR}/OINC/HepLib.pc" @ONLY)
@@ -97,12 +95,13 @@ AUX_SOURCE_DIRECTORY(QGRAF QGRAF_SRCS)
 AUX_SOURCE_DIRECTORY(QCD QCD_SRCS)
 AUX_SOURCE_DIRECTORY(IBP IBP_SRCS)
 AUX_SOURCE_DIRECTORY(EX EX_SRCS)
+AUX_SOURCE_DIRECTORY(fmpz_mpoly_q MPQ_SRCS)
 AUX_SOURCE_DIRECTORY("${CMAKE_CURRENT_BINARY_DIR}/OINC" OINC_SRCS)
 
 #-----------------------------------------------
 # install library HepLib
 #-----------------------------------------------
-ADD_LIBRARY(HepLib SHARED ${BASIC_SRCS} ${HEP_SRCS} ${QGRAF_SRCS} ${QCD_SRCS} ${IBP_SRCS} ${SD_SRCS} ${DE_SRCS} ${EX_SRCS} ${OINC_SRCS})
+ADD_LIBRARY(HepLib SHARED ${BASIC_SRCS} ${HEP_SRCS} ${QGRAF_SRCS} ${QCD_SRCS} ${IBP_SRCS} ${SD_SRCS} ${DE_SRCS} ${EX_SRCS} ${OINC_SRCS} ${MPQ_SRCS})
 SET_TARGET_PROPERTIES(HepLib PROPERTIES INSTALL_RPATH "${LIB_PATH}")
 INSTALL(TARGETS HepLib DESTINATION lib)
 
@@ -147,5 +146,5 @@ INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/OINC/update" DESTINATION "bin"
 #-----------------------------------------------
 # OpenMP support
 #-----------------------------------------------
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -Wno-deprecated-declarations")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Wno-deprecated-declarations")

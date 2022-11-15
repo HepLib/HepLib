@@ -512,6 +512,8 @@ namespace HepLib {
     exmap ApartRules(const exvector &airs, bool irc=true);
         
     struct AIOption {
+        bool pn_sector = true; // each sector as a problem
+        bool ap_rules = false; // minimize the total number of ibp problems
         int IBPmethod = 1; // 0
         lst Internal; // Internal for Apart/IBP
         lst External; // External for Apart/IBP

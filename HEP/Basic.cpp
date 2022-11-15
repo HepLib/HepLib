@@ -337,14 +337,7 @@ namespace HepLib {
     }
     
     void SUNT::fc_print(const FCFormat &c, unsigned level) const {
-        if(is_a<lst>(aij[0])) {
-            bool first = true;
-            for(auto item : aij[0]) {
-                if(first) { first=false; c << "SUNT(" << item; }
-                else c << "," << item;
-            }
-        } else c << "SUNT(" << aij[0];
-        c << ",{" << aij[1] << "," << aij[2] << "})";
+        c << "SUNTF[" << aij[0] << "," << aij[1] << "," << aij[2] << "]";
     }
     
     void SUNT::print(const print_dflt &c, unsigned level) const {
@@ -444,7 +437,7 @@ namespace HepLib {
     }
     
     void SUNF::fc_print(const FCFormat &c, unsigned) const {
-        c << "SUNF(" << ijk[0] << "," << ijk[1] << "," << ijk[2] << ")";
+        c << "SUNF[" << ijk[0] << "," << ijk[1] << "," << ijk[2] << "]";
     }
     
     size_t SUNF::nops() const { return 3; }
@@ -539,7 +532,7 @@ namespace HepLib {
     }
     
     void SUNF4::fc_print(const FCFormat &c, unsigned o) const {
-        c << "SUNF(" << ijkl[0] << "," << ijkl[1] << "," << ijkl[2] << "," << ijkl[3] << ")";
+        c << "SUNF[" << ijkl[0] << "," << ijkl[1] << "," << ijkl[2] << "," << ijkl[3] << "]";
     }
     
     /**
@@ -712,7 +705,14 @@ namespace HepLib {
         return expr;
     }
     
-    REGISTER_FUNCTION(Matrix, do_not_evalf_params().conjugate_func(mat_conj).set_return_type(return_types::commutative))
+    namespace {
+        void Matrix_fc_print(const ex &arg1, const ex &arg2, const ex &arg3, const print_context &c0) {
+            auto c = static_cast<const FCFormat &>(c0);
+            c << "Matrix[" << arg1 << "," << arg2 << "," << arg3 << "]";
+        }
+    }
+    
+    REGISTER_FUNCTION(Matrix, do_not_evalf_params().print_func<FCFormat>(&Matrix_fc_print).conjugate_func(mat_conj).set_return_type(return_types::commutative))
     
     bool IsZero(const ex & e) {
         exset vs;

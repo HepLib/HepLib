@@ -1369,7 +1369,7 @@ namespace HepLib {
                 x2x_inv[ss] = xs.op(i);
             }
             auto e = expr.subs(x2x,nopat);
-            if(opt==o_normal) {
+            if(opt==o_flint) {
                 fmpz_mpoly_q_t f;
                 fmpz_mpoly_ctx_t ctx;
                 fmpz_mpoly_ctx_init(ctx, xis.nops(), ORD_LEX);
@@ -1384,7 +1384,7 @@ namespace HepLib {
                 fmpz_mpoly_q_clear(f, ctx);
                 fmpz_mpoly_ctx_clear(ctx);
                 res = str2ex(nstr,st)/str2ex(dstr,st);
-            } else if(opt==o_normalF) {
+            } else if(opt==o_flintf) {
                 fmpz_mpoly_q_t f;
                 fmpz_mpoly_ctx_t ctx;
                 fmpz_mpoly_ctx_init(ctx, xis.nops(), ORD_LEX);
@@ -1396,7 +1396,7 @@ namespace HepLib {
                 fmpz_mpoly_ctx_clear(ctx);
                 res = num/den;
                 res = res.subs(x2x_inv,nopat);
-            } else if(opt==o_normalFD) {
+            } else if(opt==o_flintfD) {
                 fmpz_mpoly_q_t f;
                 fmpz_mpoly_ctx_t ctx;
                 fmpz_mpoly_ctx_init(ctx, xis.nops(), ORD_LEX);

@@ -107,7 +107,8 @@ namespace HepLib::SD {
         ex all_lcm = 1;
         for(int r=0; r<mdc.rows(); r++) {
             for(int c=0; c<mdc.cols(); c++) {
-                all_lcm = lcm(all_lcm, numer_denom_fermat(mdc(r,c)).op(1));
+                all_lcm = lcm(all_lcm, normal(mdc(r,c)).numer_denom().op(1));
+                //all_lcm = lcm(all_lcm, fermat_numer_denom(mdc(r,c)).op(1));
             }
         }
         mdc = mdc.mul_scalar(all_lcm);

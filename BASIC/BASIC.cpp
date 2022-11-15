@@ -27,7 +27,7 @@ namespace HepLib {
         return msg.c_str();
     }
     
-    ex normal_flint(const ex & expr, int opt=1);
+    ex normal_flint(const ex & expr, int opt=o_flint);
     
     /*-----------------------------------------------------*/
     // Symbol
@@ -401,7 +401,7 @@ namespace HepLib {
         wait_label:
         if(npid!=0) waitpid(npid,NULL,0); // wait nest process to exit
         
-        #define use_gar_write // use ReWR
+        //#define use_gar_write // use ReWR
         
         exvector ovec;
         if(true) {
@@ -455,6 +455,7 @@ namespace HepLib {
                 #endif
             }
             
+            #ifdef use_gar_write
             if(!nst && verb>1) {
                 cout << endl;
                 if(key == "") {
@@ -465,7 +466,7 @@ namespace HepLib {
                     cout << "\\--ReWR " << Color_HighLight << key << RESET << flush;
                 }
             }
-            #ifdef use_gar_write
+            
             if(GiNaC_Parallel_ReWR.find(key)==GiNaC_Parallel_ReWR.end() || GiNaC_Parallel_ReWR[key]) {
                 ostringstream garfn;
                 if(key == "") garfn << ppid << "/ReWR.gar";
@@ -474,8 +475,6 @@ namespace HepLib {
                 ovec_tmp.clear();
                 garRead(garfn.str(), ovec);
             }
-            #else 
-            ReShare(ovec);
             #endif
             
             if(!nst && verb>1) cout << " @ " << now(false) << endl;
@@ -1234,13 +1233,13 @@ namespace HepLib {
         for(auto ep : co_epv.second) {
             ex vv = ep.first;
             ex cc = ep.second;
-            if(opt==o_normal || opt==o_normalF || opt==o_normalFD || opt==o_normalNF) cc = exnormal(cc,opt);
-            else if(opt==o_factor || opt==o_factorF) cc = exfactor(cc,opt);
-            else if(opt==o_normal_normalF) cc = exnormal(normal(cc),o_normalF);
-            else if(opt==o_normal_factor) cc = ginac_factor(normal(cc),o_normalF);
-            else if(opt==o_normal_factorF) cc = form_factor(normal(cc),o_normalF);
-            else if(opt==o_normalF_factor) cc = ginac_factor(fermat_normal(cc),o_normalF);
-            else if(opt==o_normalF_factorF) cc = form_factor(fermat_normal(cc),o_normalF);
+            if(opt==o_normal || opt==o_fermat || opt==o_fermatfD || opt==o_fermatN || opt==o_flint || opt==o_flintf || opt==o_flintfD) cc = exnormal(cc,opt);
+            else if(opt==o_factor || opt==o_form) cc = exfactor(cc,opt);
+            else if(opt==o_normal_fermat) cc = exnormal(normal(cc),o_fermat);
+            else if(opt==o_normal_factor) cc = ginac_factor(normal(cc),o_fermat);
+            else if(opt==o_normal_form) cc = form_factor(normal(cc),o_fermat);
+            else if(opt==o_fermat_factor) cc = ginac_factor(fermat_normal(cc),o_fermat);
+            else if(opt==o_fermat_form) cc = form_factor(fermat_normal(cc),o_fermat);
             if(!is_zero(cc)) res_lst.append(lst{cc, vv});
         }
         return res_lst;
@@ -1855,7 +1854,7 @@ namespace HepLib {
      */
     ex exfactor(const ex & expr, int opt) {
         if(opt==o_none) return expr;
-        else if(opt==o_factorF) return factor_form(expr);
+        else if(opt==o_form) return factor_form(expr);
         else if(opt==o_factor) return ginac_factor(expr);
         else return expr;
     }
@@ -1908,9 +1907,10 @@ namespace HepLib {
     ex exnormal(const ex & expr, int opt) {
         if(opt<0) return normal_fermat_pern(expr,-opt);
         else if(opt==o_normal) return normal(expr);
-        else if(opt==o_normalF) return normal_fermat(expr);
-        else if(opt==o_normalFD) return normal_fermat(expr,true);
-        else if(opt==o_normalNF) return numer_fermat(expr);
+        else if(opt==o_fermat) return normal_fermat(expr);
+        else if(opt==o_flint || opt==o_flintf || opt==o_flintfD) return normal_flint(expr, opt);
+        else if(opt==o_fermatfD) return normal_fermat(expr,true);
+        else if(opt==o_fermatN) return numer_fermat(expr);
         return expr;
     }
     
@@ -2170,8 +2170,7 @@ namespace HepLib {
         exvector res_vec;
         for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
         res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec,opt](int idx)->ex {
-            //return exnormal(res_vec[idx].op(0), opt) * res_vec[idx].op(1);
-            return normal_flint(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
+            return exnormal(res_vec[idx].op(0), opt) * res_vec[idx].op(1);
         }, "NorEx");
         return add(res_vec);
     }
@@ -2185,8 +2184,7 @@ namespace HepLib {
         exvector res_vec;
         for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
         res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec,opt](int idx)->ex {
-            //return exnormal(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
-            return normal_flint(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
+            return exnormal(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
         }, "NorEx");
         return add(res_vec);
     }
@@ -2200,8 +2198,7 @@ namespace HepLib {
         exvector res_vec;
         for(auto kv : res_map) res_vec.push_back(lst{kv.second, kv.first});
         res_vec = GiNaC_Parallel(res_vec.size(), [&res_vec,opt](int idx)->ex {
-            //return exnormal(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
-            return normal_flint(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
+            return exnormal(res_vec[idx].op(0),opt) * res_vec[idx].op(1);
         }, "NorEx");
         return add(res_vec);
     }

@@ -589,7 +589,7 @@ namespace HepLib {
                         else config << "#fthreads " << Threads << endl;
                     }
                     if(sThreads>0) config << "#sthreads " << sThreads << endl;
-                    if(pos_pref!=1) config << "#pos_pref "<< pos_pref << endl;
+                    if(PosPref!=1) config << "#pos_pref "<< PosPref << endl;
                     if(ci==1) config << "#prime 1" << endl;
                 } else {
                     if(fThreads>0) config << "#fthreads " << fThreads << endl;

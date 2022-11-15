@@ -104,16 +104,19 @@ namespace HepLib {
     
     extern const int o_none;
     extern const int o_normal;
-    extern const int o_normalF;
-    extern const int o_normalFD;
-    extern const int o_normalNF;
+    extern const int o_fermat;
+    extern const int o_fermatfD;
+    extern const int o_fermatN;
     extern const int o_factor;
-    extern const int o_factorF;
-    extern const int o_normal_normalF;
+    extern const int o_form;
+    extern const int o_flint;
+    extern const int o_flintf;
+    extern const int o_flintfD;
+    extern const int o_normal_fermat;
     extern const int o_normal_factor;
-    extern const int o_normal_factorF;
-    extern const int o_normalF_factor;
-    extern const int o_normalF_factorF;
+    extern const int o_normal_form;
+    extern const int o_fermat_factor;
+    extern const int o_fermat_form;
     
     /**
      * @brief class extended to GiNaC symbol class, represent a positive symbol
@@ -530,8 +533,8 @@ namespace HepLib {
     ex factor_form(const ex & expr, bool nd=true);
     inline ex form_factor(const ex & expr, bool nd=true) { return factor_form(expr,nd); }
     
-    ex exfactor(const ex & expr, int opt = o_factorF);
-    ex exnormal(const ex & expr, int opt = o_normalF);
+    ex exfactor(const ex & expr, int opt = o_form);
+    ex exnormal(const ex & expr, int opt = o_fermat);
     ex exnd(const ex & expr, int opt = 1);
     
     ex collect_factors(const ex & expr);
@@ -884,12 +887,12 @@ namespace HepLib {
     inline void garWrite(string garfn, const exvector &exv) { garWrite(exv,garfn); }
     void garRead(exvector &exv, string garfn);
     inline void garRead(string garfn, exvector &exv) { garRead(exv, garfn); }
-    ex add_collect_normal(const exvector &exv, ex const &pats, int opt = o_normalF);
-    ex add_collect_normal(const exvector &exv, lst const &pats, int opt = o_normalF);
-    ex add_collect_normal(const exvector &exv, init_list const &pats, int opt = o_normalF);
-    ex add_collect_normal(const ex & e, ex const &pats, int opt = o_normalF);
-    ex add_collect_normal(const ex & e, lst const &pats, int opt = o_normalF);
-    ex add_collect_normal(const ex & e, init_list const &pats, int opt = o_normalF);
+    ex add_collect_normal(const exvector &exv, ex const &pats, int opt = o_fermat);
+    ex add_collect_normal(const exvector &exv, lst const &pats, int opt = o_fermat);
+    ex add_collect_normal(const exvector &exv, init_list const &pats, int opt = o_fermat);
+    ex add_collect_normal(const ex & e, ex const &pats, int opt = o_fermat);
+    ex add_collect_normal(const ex & e, lst const &pats, int opt = o_fermat);
+    ex add_collect_normal(const ex & e, init_list const &pats, int opt = o_fermat);
     
     class Server {
     public:

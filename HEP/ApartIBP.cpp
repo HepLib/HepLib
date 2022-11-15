@@ -135,7 +135,7 @@ namespace HepLib {
         if(true) {
             int av_size = air_vec.size();
             air_vec = GiNaC_Parallel(av_size, [air_vec,lmom] (int idx) {
-                return collect_lst(air_vec[idx],lmom, o_normalF);
+                return collect_lst(air_vec[idx], lmom, o_fermat);
             }, "ApPre");
             
             exset vset;
@@ -161,7 +161,7 @@ namespace HepLib {
             auto ap_vec = GiNaC_Parallel(vvec.size(), [&vvec,lmom,emom,aio] (int idx) {
                 auto air = vvec[idx];
                 air = Apart(air,lmom,emom,aio.smap);
-                air = collect_lst(air, ApartIR(w1,w2), o_normalF);
+                air = collect_lst(air, ApartIR(w1,w2), o_fermat);
                 return air;
             }, "Apart");
             vvec.clear();
@@ -170,19 +170,42 @@ namespace HepLib {
             for(auto cvs : ap_vec) for(auto cv : cvs) ap_set.insert(cv.op(1));
             exvector ap_ir_vec(ap_set.begin(), ap_set.end());
             ap_set.clear();
-            auto ap_rules = ApartRules(ap_ir_vec); // including ApartIRC
+            exmap ap_rules;
+            if(aio.ap_rules) ap_rules = ApartRules(ap_ir_vec); // including ApartIRC
             ap_ir_vec.clear();
             
-            ap_vec = GiNaC_Parallel(ap_vec.size(), [&ap_vec,&ap_rules] (int idx) {
-                auto cvs = ap_vec[idx];
-                ex res = 0;
-                for(auto cv : cvs) {
-                    auto fi = ap_rules.find(cv.op(1));
-                    if(fi==ap_rules.end()) res += cv.op(0) * cv.op(1);
-                    else res += cv.op(0) * fi->second;
+            if(false) {
+                ap_vec = GiNaC_Parallel(ap_vec.size(), [&aio,&ap_vec,&ap_rules] (int idx) {
+                    auto const & cvs = ap_vec[idx];
+                    ex res = 0;
+                    if(aio.ap_rules) {
+                        for(auto const & cv : cvs) {
+                            auto fi = ap_rules.find(cv.op(1));
+                            if(fi==ap_rules.end()) res += cv.op(0) * cv.op(1);
+                            else res += cv.op(0) * fi->second;
+                        }
+                    } else {
+                        for(auto cv : cvs) res += cv.op(0) * ApartIRC(cv.op(1));
+                    }
+                    return res;
+                }, "ApRule");
+            } else {
+                int vn = ap_vec.size();
+                for(int idx=0; idx<vn; idx++) {
+                    auto const & cvs = ap_vec[idx];
+                    ex res = 0;
+                    if(aio.ap_rules) {
+                        for(auto const & cv : cvs) {
+                            auto fi = ap_rules.find(cv.op(1));
+                            if(fi==ap_rules.end()) res += cv.op(0) * cv.op(1);
+                            else res += cv.op(0) * fi->second;
+                        }
+                    } else {
+                        for(auto cv : cvs) res += cv.op(0) * ApartIRC(cv.op(1));
+                    }
+                    ap_vec[idx] = res;
                 }
-                return res;
-            }, "ApRule");
+            }
             ap_rules.clear();
             
             air_vec = GiNaC_Parallel(av_size, [&air_vec,&ap_vec] (int idx) {
@@ -192,7 +215,7 @@ namespace HepLib {
                     int idx = ex_to<numeric>(cv.op(1)).to_int();
                     res += cv.op(0) * ap_vec[idx];
                 }
-                res = collect_ex(res, ApartIR(w1,w2), false, false, o_normalF);
+                res = collect_ex(res, ApartIR(w1,w2), false, false, o_fermat);
                 return res; // air_vec updated to ApartIR
             }, "ApPost");
             ap_vec.clear();
@@ -274,7 +297,15 @@ namespace HepLib {
                     ns.append(item.op(1));
                 }
 
-                if(p2IBP.find(props)==p2IBP.end()) {
+                ex key = props;
+                if(aio.pn_sector) {
+                    lst nss;
+                    for(int i=0; i<ns.nops(); i++) nss.append(ns.op(i)>0 ? 1 : 0);
+                    key = lst{props,nss};
+                }
+
+                auto kv = p2IBP.find(key);
+                if(kv==p2IBP.end()) {
                     IBP* ibp;
                     if(IBPmethod==0) ibp = new IBP();
                     else if(IBPmethod==1) ibp = new FIRE();
@@ -285,7 +316,7 @@ namespace HepLib {
                         IBPmethod = 0;
                     }
                     
-                    p2IBP[props] = ibp;
+                    p2IBP.insert(make_pair(key,ibp));
                     ibp->Propagators = props;
                     ibp->Internal = loops;
                     ibp->External = exts;
@@ -307,11 +338,13 @@ namespace HepLib {
                         else for(int i=0; i<nCuts; i++) ibp->Cuts.append(nCuts-i);
                     }
                     ibp_vec.push_back(ibp);
+                    ibp->Integrals.append(ns);
+                    AIR2F[AIR[i]] = F(ibp->ProblemNumber, ns);
+                } else {
+                    IBP* ibp = kv->second;
+                    ibp->Integrals.append(ns);
+                    AIR2F[AIR[i]] = F(ibp->ProblemNumber, ns);
                 }
-                IBP* ibp = p2IBP[props];
-                ibp->Integrals.append(ns);
-
-                AIR2F[AIR[i]] = F(ibp->ProblemNumber, ns);
             }
             if(Verbose>0) cout << endl;
 
@@ -326,7 +359,7 @@ namespace HepLib {
                     auto air = air_vec[idx];
                     air = air.subs(AIR2F,nopat);
                     air = air.subs(int_fr.first,nopat);
-                    air = collect_ex(air, F(w1,w2), false, false, o_normalF);
+                    air = collect_ex(air, F(w1,w2), false, false, o_fermat);
                     return air;
                 }, "AIR2F");
                 if(aio.SaveDir != "") A2FSave(aio.SaveDir+"/AIR2F.gar", air_vec, IntFs, ibp_vec);
@@ -399,16 +432,37 @@ namespace HepLib {
                 int nproc = aio.NIBP;
                 if(nproc<1) nproc = CpuCores()/FIRE::Threads;
                 int cproc = 0;
-                if(nproc<2) nproc = 2;
+                if(nproc<1) nproc = 1;
+                size_t nibp = ibp_vec_re.size();
+                
+                //#define using_openMP
+                #ifdef using_openMP
                 #pragma omp parallel for num_threads(nproc) schedule(dynamic, 1)
-                for(int pi=0; pi<ibp_vec_re.size(); pi++) {
+                for(int pi=0; pi<nibp; pi++) {
                     if(Verbose>1) {
                         #pragma omp critical
-                        cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Reduction [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
+                        {
+                        cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Reduction [" << (++cproc) << "/" << nibp << "] " << flush;
+                        }
                     }
                     ibp_vec_re[pi]->Run();
                 }
                 if(Verbose>1) cout << "@" << now(false) << endl;
+                #else
+                if(nproc>1) {
+                    GiNaC_Parallel_NP["FIRE"] = nproc;
+                    GiNaC_Parallel(nibp, [&ibp_vec_re](int idx)->ex {
+                        ibp_vec_re[idx]->Run();
+                        return 0;
+                    }, "FIRE");
+                } else {
+                    for(int pi=0; pi<nibp; pi++) {
+                        if(Verbose>1) cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Reduction [" << (++cproc) << "/" << nibp << "] " << flush;
+                        ibp_vec_re[pi]->Run();
+                    }
+                    if(Verbose>1) cout << "@" << now(false) << endl;
+                }
+                #endif
                 
                 if(ibp_vec_re.size()>100) {
                     auto ret = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,wdir](int idx)->ex {

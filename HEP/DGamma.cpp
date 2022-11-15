@@ -138,7 +138,7 @@ namespace HepLib {
         }
         if(is_a<Vector>(pi)) c << "GSD";
         else c << "GAD";
-        c << "(" << pi << ")";
+        c << "[" << pi << "]";
     }
     
     void DGamma::archive(archive_node & n) const {
@@ -176,7 +176,7 @@ namespace HepLib {
         }
         void TR_fc_print(const ex &arg, const print_context &c0) {
             auto c = static_cast<const FCFormat &>(c0);
-            c << "DiracTrace(" << arg << ")";
+            c << "DiracTrace[" << arg << "]";
         }
         ex tr_conj(const ex & e) {
             return TR(e.conjugate());
@@ -196,14 +196,14 @@ namespace HepLib {
         }
         void TTR_fc_print(const ex &arg, const print_context &c0) {
             auto c = static_cast<const FCFormat &>(c0);
-            if(!is_a<lst>(arg)) c << "SUNTrace(SUNT(" << arg << "))";
+            if(!is_a<lst>(arg)) c << "SUNTrace[SUNT[" << arg << "]]";
             else {
                 bool first = true;
                 for(auto item : arg) {
-                    if(first) { first=false; c << "SUNTrace(SUNT(" << item; }
+                    if(first) { first=false; c << "SUNTrace[SUNT[" << item; }
                     else c << "," << item;
                 }
-                c << "))";
+                c << "]]";
             }
         }
         ex ttr_conj(const ex & e) {
