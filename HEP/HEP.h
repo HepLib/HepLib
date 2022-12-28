@@ -513,7 +513,7 @@ namespace HepLib {
         
     struct AIOption {
         bool pn_sector = true; // each sector as a problem
-        bool ap_rules = false; // minimize the total number of ibp problems
+        bool ap_rules = true; // minimize the total number of ibp problems
         int IBPmethod = 1; // 0
         lst Internal; // Internal for Apart/IBP
         lst External; // External for Apart/IBP
@@ -525,6 +525,7 @@ namespace HepLib {
         bool CutFirst = true;
         bool keep0F = false; // keep 0 exponent in F
         int NIBP = 0;
+        ex apart1 = 0; // set Apart(1,{x,y,...}) to apart1
         lst pat = { F(w1,w2), gs, nL, nH };
         std::function<ex(const ex &, const ex &)> cv = nullptr;
         string SaveDir = ""; // save temporary result, and restart from it

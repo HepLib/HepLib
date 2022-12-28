@@ -25,7 +25,7 @@ namespace HepLib {
         Import();
     }
     
-    void IBP::Export(string garfn) {
+    void IBP::garExport(string garfn) {
         archive ar;
         ar.archive_ex(Internal, "Internal");
         ar.archive_ex(External, "External");
@@ -34,6 +34,7 @@ namespace HepLib {
         ar.archive_ex(Cuts, "Cuts");
         ar.archive_ex(DSP, "DSP");
         ar.archive_ex(ISP, "ISP");
+        ar.archive_ex(SECTOR, "SECTOR");
         
         ar.archive_ex(Shift.size(), "NShift");
         int i = 0;
@@ -60,10 +61,10 @@ namespace HepLib {
         lst shift;
         for(auto kv : Shift) shift.append(lst{kv.first, kv.second});
         
-        return lst{ Internal, External, Replacements, Propagators, Cuts, DSP, ISP, shift, reCut, ProblemNumber, Symbol(WorkingDir), PIntegrals, MIntegrals, Rules, IsAlwaysZero };
+        return lst{ Internal, External, Replacements, Propagators, Cuts, DSP, ISP, SECTOR, shift, reCut, ProblemNumber, Symbol(WorkingDir), PIntegrals, MIntegrals, Rules, IsAlwaysZero };
     }
     
-    void IBP::Import(string garfn) {
+    void IBP::garImport(string garfn) {
         archive ar;
         ifstream in(garfn);
         in >> ar;
@@ -76,6 +77,7 @@ namespace HepLib {
         Cuts = ex_to<lst>(ar.unarchive_ex("Cuts"));
         DSP = ex_to<lst>(ar.unarchive_ex("DSP"));
         ISP = ex_to<lst>(ar.unarchive_ex("ISP"));
+        SECTOR = ex_to<lst>(ar.unarchive_ex("SECTOR"));
         
         int n = ex_to<numeric>(ar.unarchive_ex("NShift")).to_int();
         for(int i=0; i<n; i++) {
@@ -91,7 +93,6 @@ namespace HepLib {
         MIntegrals = ex_to<lst>(ar.unarchive_ex("MIntegrals"));
         Rules = ex_to<lst>(ar.unarchive_ex("Rules"));
         IsAlwaysZero = !(ar.unarchive_ex("IsAlwaysZero").is_zero()); // bool
-    
     }
     
     void IBP::FROM(ex s) {
@@ -103,6 +104,7 @@ namespace HepLib {
         Cuts = ex_to<lst>(s.op(i++));
         DSP = ex_to<lst>(s.op(i++));
         ISP = ex_to<lst>(s.op(i++));
+        SECTOR = ex_to<lst>(s.op(i++));
         lst shift = ex_to<lst>(s.op(i++));
         reCut = s.op(i++).is_equal(1);
         ProblemNumber = ex_to<numeric>(s.op(i++)).to_int();
@@ -126,9 +128,10 @@ namespace HepLib {
                 ar.archive_ex(fs[i]->Propagators, (si+"-4").c_str());
                 ar.archive_ex(fs[i]->DSP, (si+"-5").c_str());
                 ar.archive_ex(fs[i]->ISP, (si+"-6").c_str());
-                ar.archive_ex(fs[i]->PIntegrals, (si+"-7").c_str());
-                ar.archive_ex(fs[i]->MIntegrals, (si+"-8").c_str());
-                ar.archive_ex(fs[i]->Rules, (si+"-9").c_str());
+                ar.archive_ex(fs[i]->SECTOR,(si+"-7").c_str());
+                ar.archive_ex(fs[i]->PIntegrals, (si+"-8").c_str());
+                ar.archive_ex(fs[i]->MIntegrals, (si+"-9").c_str());
+                ar.archive_ex(fs[i]->Rules, (si+"-10").c_str());
             }
             ofstream out(garfn);
             out << ar;
@@ -155,9 +158,10 @@ namespace HepLib {
                 fs[i]->Propagators = ex_to<lst>(dict[si+"-4"]);
                 fs[i]->DSP = ex_to<lst>(dict[si+"-5"]);
                 fs[i]->ISP = ex_to<lst>(dict[si+"-6"]);
-                fs[i]->PIntegrals = ex_to<lst>(dict[si+"-7"]);
-                fs[i]->MIntegrals = ex_to<lst>(dict[si+"-8"]);
-                fs[i]->Rules = ex_to<lst>(dict[si+"-9"]);
+                fs[i]->SECTOR = ex_to<lst>(dict[si+"-7"]);
+                fs[i]->PIntegrals = ex_to<lst>(dict[si+"-8"]);
+                fs[i]->MIntegrals = ex_to<lst>(dict[si+"-9"]);
+                fs[i]->Rules = ex_to<lst>(dict[si+"-10"]);
             }
         }
     }

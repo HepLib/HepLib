@@ -27,8 +27,6 @@ namespace HepLib {
         return msg.c_str();
     }
     
-    ex normal_flint(const ex & expr, int opt=o_flint);
-    
     /*-----------------------------------------------------*/
     // Symbol
     /*-----------------------------------------------------*/
@@ -477,7 +475,7 @@ namespace HepLib {
             }
             #endif
             
-            if(!nst && verb>1) cout << " @ " << now(false) << endl;
+            if(!nst && verb>1) cout << endl;
         }
         
         if(rm) {
@@ -2302,6 +2300,12 @@ namespace HepLib {
     
     long get_precision() {
         return cln::default_float_format;
+    }
+    
+    void get_opt(int & argc, char** & argv, const string & o, map<char,string> & kv) {
+        for (int opt; (opt = getopt(argc, argv, o.c_str())) != -1;) kv[opt] = optarg;
+        argc -= optind;
+        argv += optind;
     }
         
 }

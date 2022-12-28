@@ -289,14 +289,14 @@ namespace HepLib {
             for(int i=0; i<n+1; i++) buffer[i] = '\0';
             nio = read(stdo[0], buffer, n);
             if(nio>0) estr += buffer;
-            auto cpos = estr.find(Sentinel);
-            if(cpos!=string::npos) break;
-            cpos = estr.find("-->");
+            auto cpos = estr.find("-->");
             if(cpos!=string::npos) {
                 inited = false;
                 exited = true;
                 throw Error(estr);
             }
+            cpos = estr.find(Sentinel);
+            if(cpos!=string::npos) break;
         }
         
         while(true) {

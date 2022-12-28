@@ -475,7 +475,11 @@ namespace HepLib {
                         if((cn%2)==1) sector.let_op(j) = 0;
                         cn /= 2;
                     }
+                    if(SECTOR.nops()==pdim) {
+                        for(int j=0; j<pdim; j++) if(sector.op(j)>SECTOR.op(j)) goto add_sector_done;
+                    }
                     sectors.insert(sector);
+                    add_sector_done: ;
                 }
                 
                 while(!sectors.empty()) {
@@ -618,7 +622,26 @@ namespace HepLib {
                 config << endl;
                 config << "#database db" << ProblemNumber << endl;
                 config << "#start" << endl;
-                config << "#problem " << pn << " " << ProblemNumber << ".start" << endl;
+                if(SECTOR.nops()==pdim) {
+                    int pmax = pdim;
+                    for(int i=pdim-1; i>=0; i--) {
+                        if(SECTOR.op(i)!=0) {
+                            pmax = i+1;
+                            break;
+                        }
+                    }
+                    int pmin = -1;
+                    for(int i=0; i<pdim; i++) {
+                        if(SECTOR.op(i)!=0) {
+                            pmin = i+1;
+                            break;
+                        }
+                    }
+                    config << "#problem " << pn << " ";
+                    if(pmin>1) config << "|" << pmin << "," << pmax << "|";
+                    else if(pmax!=pdim) config << "|" << pmax << "|";
+                    config << ProblemNumber << ".start" << endl;
+                } else config << "#problem " << pn << " " << ProblemNumber << ".start" << endl;
                 if(PIntegrals.nops()>0) {
                     ostringstream oss;
                     oss << "{";
@@ -658,6 +681,9 @@ namespace HepLib {
         ofstream intg_out(WorkingDir+"/"+spn+".intg");
         intg_out << intg.str() << endl;
         intg_out.close();
+        
+        // export .gar here
+        garWrite(TO(), WorkingDir+"/"+spn+".gar");
     }
     
     /**

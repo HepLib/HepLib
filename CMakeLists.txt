@@ -45,6 +45,7 @@ ENDIF()
 #-----------------------------------------------
 # External Libraries
 #-----------------------------------------------
+SET(USE_FLOAT128 "")
 IF(APPLE)
     EXECUTE_PROCESS(
         COMMAND uname -m
@@ -58,11 +59,13 @@ IF(APPLE)
         LINK_LIBRARIES(ginac cln mpfr qhullstatic_r quadmath gomp dl flint arb gmp)
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_USE_FLOAT128")
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_FLOAT128")
+        SET(USE_FLOAT128 "-D_USE_FLOAT128")
     ENDIF()
 ELSE()
     LINK_LIBRARIES(ginac cln mpfr qhullstatic_r quadmath gomp dl flint arb gmp)
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_USE_FLOAT128")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_FLOAT128")
+    SET(USE_FLOAT128 "-D_USE_FLOAT128")
 ENDIF()
 
 #-----------------------------------------------

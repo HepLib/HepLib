@@ -79,15 +79,15 @@ namespace HepLib {
         public:
             ex operator()(const ex &e) {
                 if (e.match(TR(w))) {
-                    ex gs = e.op(0);
+                    ex trs = e.op(0);
                     gline++;
-                    gs = mapGamma(gline)(gs);
-                    gs = DGamma(1, gline) * gs;
+                    trs = mapGamma(gline)(trs);
+                    trs = DGamma(1, gline) * trs;
                     if(glmax<gline) {
                         glmax = gline;
                         if(glmax>128) throw Error("too large index with glmax>128.");
                     }
-                    return TR(gs);
+                    return TR(trs);
                 } else if(is_a<add>(e)) {
                     ex res = 0;
                     unsigned gl = gline;

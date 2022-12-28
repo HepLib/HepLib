@@ -5,13 +5,13 @@ using namespace HepLib;
 
 int main(int argc,char *argv[]) {
     if(argc<3) {
-        cout << "usage: " << argv[0] << " <host> <port>" << endl;
+        cout << "usage: " << argv[0] << " <host> <port> [suffix]" << endl;
         return 0;
     }
     
     string sip = argv[1];
     string sport = argv[2];
-    string suffix = "6";
+    string suffix = "6m";
     if(argc>3) suffix = argv[3];
         
     while(true) {
@@ -21,7 +21,7 @@ int main(int argc,char *argv[]) {
         if(file_exists(si+".log")) continue;
         if(file_exists(si+".tables")) continue;
         system(("touch "+si+".log").c_str());
-        cout << "running si = " << si << endl;
+        system(("echo $HOSTNAME >> "+si+".log").c_str());
         
         string ostr = RunOS("which FIRE" + suffix);
         if(ostr.find("which: no FIRE") != std::string::npos) {

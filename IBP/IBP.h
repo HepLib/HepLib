@@ -31,6 +31,7 @@ namespace HepLib {
         lst Cuts; // index start from 1
         lst DSP; // { {q1,q1}, {q1,p}, ... } Diff SP
         lst ISP; // { q1*q1, q1*p } Independent SP
+        lst SECTOR; // highest sector
         map<int,ex> Shift; // index start from 1
         bool reCut = false;
         string WorkingDir;
@@ -47,8 +48,8 @@ namespace HepLib {
         pair<exmap,lst> FindRules(bool mi=true);
         bool IsZero(ex sector);
         void Reduce();
-        void Export(string garfn); // Export to .gar
-        void Import(string garfn); // Import from .gar
+        void garExport(string garfn); // Export to .gar
+        void garImport(string garfn); // Import from .gar
         ex TO(); // to single list for output
         void FROM(ex s); // from a single expression 
         exmap SP2Pn();
@@ -201,6 +202,21 @@ namespace HepLib {
         map<long long,ex> w2i;
         
      };
+     
+     /**
+     * @brief IBP reduction using Solver method
+     */
+    class Solver : public IBP {
+    public:
+        void Export() override;
+        void Run() override;
+        void Import() override;
+        void IBP();
+        void Solve(const ex & sector, const map<int,int> & a2n={});
+        void SolveSparse(const ex & sector, const map<int,int> & a2n={});
+    private:
+        lst IBPs;
+    };
     
     extern exmap MapPreSP;
     exmap SortPermutation(const ex & in_expr, const lst & xs);

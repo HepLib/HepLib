@@ -73,8 +73,8 @@ namespace HepLib::QCD {
         ex eikonalPropagatorR(ex e, ex n, int mode=cur_mode); // right side from cut
         ex eikonalVertex(ex e, ex n, int mode=cur_mode); // 0 for gluon, 1 for quark, 2 for anti-quark
         ex eikonalVertexR(ex e, ex n, int mode=cur_mode); // right side from cut
-        ex FeynRules(const ex & amp, int mode=cur_mode);
-        lst FeynRules(const lst & amps, int mode=cur_mode);
+        ex FeynRules(const ex & amp, const ex & m0=Symbol("m0"), int mode=cur_mode);
+        lst FeynRules(const lst & amps, const ex & m0=Symbol("m0"), int mode=cur_mode);
         ex eSUM(int mode=cur_mode);
         
         ex zIntFactor(int tls, const ex SF=1, int mode=cur_mode);

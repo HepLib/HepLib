@@ -140,26 +140,25 @@ namespace HepLib::QCD {
         }
     
         // mode = 0 for gluon
-        lst FeynRules(const lst & amps, int mode) {
+        lst FeynRules(const lst & amps, const ex & m0, int mode) {
             lst ret;
-            for(auto item : amps) ret.append(FeynRules(item,mode));
+            for(auto item : amps) ret.append(FeynRules(item,m0,mode));
             return ret;
         }
     
         // mode = 0 for gluon
-        ex FeynRules(const ex & amp, int mode) {
-            if(is_a<lst>(amp)) return FeynRules(ex_to<lst>(amp),mode);
+        ex FeynRules(const ex & amp, const ex & m0, int mode) {
+            if(is_a<lst>(amp)) return FeynRules(ex_to<lst>(amp),m0,mode);
             static Symbol ep("e"), n("n"), nbar("nbar");
             static Symbol Q("Q"), Qbar("Qbar"), q("q"), qbar("qbar"), g("g"), gh("gh"), ghbar("ghbar");
             static Vector vn("n"), q1("q1"), q2("q2"), q3("q3");
-            static Symbol m("m");
-            auto fr = MapFunction([mode](const ex &e, MapFunction &self)->ex {
+            auto fr = MapFunction([mode,m0](const ex &e, MapFunction &self)->ex {
                 if(isFunction(e,"OutField") || isFunction(e,"InField")) return 1;
                 else if(isFunction(e, "Propagator")) {
                     if(e.op(0).op(0)==q) {
                         return QuarkPropagator(e, 0);
                     } else if(e.op(0).op(0)==Q) {
-                        return QuarkPropagator(e, m);
+                        return QuarkPropagator(e, m0);
                     } else if(e.op(0).op(0)==g) {
                         return GluonPropagator(e);
                     } else if(e.op(0).op(0)==gh) {

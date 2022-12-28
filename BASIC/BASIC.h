@@ -19,7 +19,7 @@
 #include <sys/stat.h>
 
 #define DEFAULT_CTOR(classname) \
-classname::classname() { setflag(status_flags::evaluated | status_flags::expanded | status_flags::hf_expanded); }
+classname::classname() { setflag(status_flags::evaluated | status_flags::expanded); }
 
 #define IMPLEMENT_HAS(classname) \
 bool classname::has(const ex &e) { \
@@ -529,6 +529,9 @@ namespace HepLib {
     ex normal_fermat(const ex & expr, bool dfactor=false);
     inline ex fermat_normal(const ex & expr, bool dfactor=false) { return normal_fermat(expr,dfactor); }
     
+    ex normal_flint(const ex & expr, int opt=o_flint);
+    ex factor_flint(const ex & e);
+    
     ex form_eval(const ex & expr);
     ex factor_form(const ex & expr, bool nd=true);
     inline ex form_factor(const ex & expr, bool nd=true) { return factor_form(expr,nd); }
@@ -937,5 +940,7 @@ namespace HepLib {
 }
 
 typedef void (*RUN)(std::string dir_id);
+
+void get_opt(int argc, char** argv, const std::string & o, std::map<char,std::string> & kv);
 
 #include "Symbols.h"

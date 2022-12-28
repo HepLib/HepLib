@@ -161,13 +161,14 @@ namespace HepLib {
             auto ap_vec = GiNaC_Parallel(vvec.size(), [&vvec,lmom,emom,aio] (int idx) {
                 auto air = vvec[idx];
                 air = Apart(air,lmom,emom,aio.smap);
+                air = air.subs(ApartIR(1,w)==aio.apart1);
                 air = collect_lst(air, ApartIR(w1,w2), o_fermat);
                 return air;
             }, "Apart");
             vvec.clear();
             
             exset ap_set;
-            for(auto cvs : ap_vec) for(auto cv : cvs) ap_set.insert(cv.op(1));
+            for(auto cvs : ap_vec) for(auto cv : cvs) if(is_a<matrix>(cv.op(1).op(0))) ap_set.insert(cv.op(1));
             exvector ap_ir_vec(ap_set.begin(), ap_set.end());
             ap_set.clear();
             exmap ap_rules;
@@ -279,9 +280,18 @@ namespace HepLib {
                     for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
                     pc += mat(nrow-2,c);
                     pc = SP2sp(pc);
-                    pns.append(lst{ pc, ex(0)-mat(nrow-1,c) }); // note the convension
+                    ex nc = ex(0)-mat(nrow-1,c);
+                    if(aio.pn_sector) {
+                        ex ncn = nc;
+                        if(ncn>0) ncn = -1;
+                        else ncn = 1;
+                        pns.append(lst{ ncn, pc, nc }); // note the convension
+                    } else pns.append(lst{ pc, nc }); // note the convension
                 }
                 sort_lst(pns); // use sort_lst
+                if(aio.pn_sector) {
+                    for(int i=0; i<pns.nops(); i++) pns.let_op(i) = lst{ pns.op(i).op(1), pns.op(i).op(2) };
+                }
                 
                 int nCuts = aio.Cuts.nops();
                 if(nCuts>0) {
@@ -329,6 +339,14 @@ namespace HepLib {
                             if(is_a<Vector>(sp.op(1))) sp.let_op(1) = (ex_to<Vector>(sp.op(1)).name);
                             ibp->DSP.append(sp);
                         }
+                    }
+                    if(aio.pn_sector) {
+                        lst sector;
+                        for(auto const & item : ns) {
+                            if(item>0) sector.append(1);
+                            else sector.append(0);
+                        }
+                        ibp->SECTOR = sector;
                     }
                     ibp->WorkingDir = wdir;
                     ibp->ProblemNumber = pn;
@@ -418,7 +436,7 @@ namespace HepLib {
             } 
             
             if(IBPmethod==1) {
-                if(GiNaC_Parallel_NB.find("Expo")==GiNaC_Parallel_NB.end() || GiNaC_Parallel_NB["Expo"]>100) GiNaC_Parallel_NB["Expo"] = 100;
+                GiNaC_Parallel_NB["Expo"] = 1;
                 auto pRes = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
                     ibp_vec_re[idx]->Export();
                     auto ret = lst{ ibp_vec_re[idx]->IsAlwaysZero ? 1 : 0, ibp_vec_re[idx]->Rules };
@@ -451,6 +469,7 @@ namespace HepLib {
                 #else
                 if(nproc>1) {
                     GiNaC_Parallel_NP["FIRE"] = nproc;
+                    GiNaC_Parallel_NB["FIRE"] = 1;
                     GiNaC_Parallel(nibp, [&ibp_vec_re](int idx)->ex {
                         ibp_vec_re[idx]->Run();
                         return 0;
