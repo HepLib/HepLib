@@ -17,11 +17,9 @@
 #include <ios>
 #include <regex>
 
-#ifdef _USE_FLOAT128
 extern "C" {
     #include <quadmath.h>
 }
-#endif
 
 namespace HepLib {
 

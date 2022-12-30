@@ -14,7 +14,7 @@ ADD_EXECUTABLE(qgraf "QGRAF/qgraf-3.1.4.f")
 #-----------------------------------------------
 # INC_PATH & LIB_PATH
 #-----------------------------------------------
-SET(INC_PATH "${INC_PATH};${CMAKE_INSTALL_PREFIX}/include")
+SET(INC_PATH "${CMAKE_INSTALL_PREFIX}/include;${INC_PATH}")
 LIST(REMOVE_DUPLICATES INC_PATH)
 SET(INC_FLAGS "")
 FOREACH(dir ${INC_PATH})
@@ -28,7 +28,7 @@ IF( "${INC_POS}" STREQUAL "-1" )
     SET(INC_FLAGS "${INC_FLAGS} -I'${CMAKE_INSTALL_PREFIX}/include'")
 ENDIF()
 
-SET(LIB_PATH "${LIB_PATH};${CMAKE_INSTALL_PREFIX}/lib")
+SET(LIB_PATH "${CMAKE_INSTALL_PREFIX}/lib;${LIB_PATH}")
 LIST(REMOVE_DUPLICATES LIB_PATH)
 SET(LIB_FLAGS "-Wl,-rpath,.")
 FOREACH(dir ${LIB_PATH})
@@ -45,28 +45,7 @@ ENDIF()
 #-----------------------------------------------
 # External Libraries
 #-----------------------------------------------
-SET(USE_FLOAT128 "")
-IF(APPLE)
-    EXECUTE_PROCESS(
-        COMMAND uname -m
-        RESULT_VARIABLE result
-        OUTPUT_VARIABLE OSX_UNAME_M
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    IF(OSX_UNAME_M STREQUAL "arm64")
-        LINK_LIBRARIES(ginac cln mpfr qhullstatic_r gomp dl flint arb gmp)
-    ELSE()
-        LINK_LIBRARIES(ginac cln mpfr qhullstatic_r quadmath gomp dl flint arb gmp)
-        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_USE_FLOAT128")
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_FLOAT128")
-        SET(USE_FLOAT128 "-D_USE_FLOAT128")
-    ENDIF()
-ELSE()
-    LINK_LIBRARIES(ginac cln mpfr qhullstatic_r quadmath gomp dl flint arb gmp)
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_USE_FLOAT128")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_FLOAT128")
-    SET(USE_FLOAT128 "-D_USE_FLOAT128")
-ENDIF()
+LINK_LIBRARIES(ginac cln mpfr qhullstatic_r quadmath gomp dl flint arb gmp)
 
 #-----------------------------------------------
 # HepLib - Include & Configure

@@ -10,11 +10,9 @@ inline unsigned golden_ratio_hash(uintptr_t n) {
 	return n * UINT64_C(0x4f1bbcdd);
 }
 
-#ifdef _USE_FLOAT128
 extern "C" {
     #include <quadmath.h>
 }
-#endif
 
 namespace HepLib {
 
@@ -844,7 +842,6 @@ namespace HepLib {
         ex2file(expr, filename);
     }
     
-#ifdef _USE_FLOAT128
     /**
      * @brief __float128 to ex
      * @param num a __float128 number
@@ -870,33 +867,6 @@ namespace HepLib {
         reset_precision();
         return ret;
     }
-#else
-    /**
-     * @brief long double to ex
-     * @param num a long double number
-     * @return a ex object for the number
-     */
-    ex q2ex(long double num) {
-        char buffer[128];
-        sprintf(buffer, "%.20LG", num);
-        numeric ret(buffer);
-        return ret;
-    }
-
-    /**
-     * @brief ex of numeric to long double
-     * @param num a ex number
-     * @return a __float128 object for the number
-     */
-    long double ex2q(ex num) {
-        ostringstream nss;
-        set_precision(40);
-        nss << num.evalf() << endl;
-        long double ret = strtold(nss.str().c_str(), NULL);
-        reset_precision();
-        return ret;
-    }
-#endif
     
     /**
      * @brief ex to integer

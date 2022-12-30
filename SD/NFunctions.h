@@ -10,26 +10,17 @@
 #include <math.h>
 #include <complex>
 #include <iostream>
-#ifdef _USE_FLOAT128
 extern "C" {
 #include <quadmath.h>
 }
-#endif
 #include "mpreal.h"
 
 using namespace std;
 
-#ifdef _USE_FLOAT128
 typedef __float128 qREAL;
 typedef __complex128 qCOMPLEX;
 typedef long double dREAL;
 typedef complex<dREAL> dCOMPLEX;
-#else
-typedef long double qREAL;
-typedef complex<qREAL> qCOMPLEX;
-typedef double dREAL;
-typedef complex<dREAL> dCOMPLEX;
-#endif
 typedef mpfr::mpreal mpREAL;
 typedef complex<mpREAL> mpCOMPLEX;
 
@@ -67,7 +58,6 @@ dCOMPLEX RCLog(dCOMPLEX xs[], int n);
 qCOMPLEX RCLog(qCOMPLEX xs[], int n);
 mpCOMPLEX RCLog(mpCOMPLEX xs[], int n);
 
-#ifdef _USE_FLOAT128
 inline dREAL expt(dREAL a, dREAL b) { return pow(a,b); }
 inline dCOMPLEX expt(dCOMPLEX a, dREAL b) { return pow(a,b); }
 inline dREAL recip(dREAL a) { return 1.L/a; }
@@ -77,28 +67,15 @@ inline qREAL expt(qREAL a, qREAL b) { return powq(a,b); }
 inline qCOMPLEX expt(qCOMPLEX a, qREAL b) { return cpowq(a,b); }
 inline qREAL recip(qREAL a) { return 1.Q/a; }
 inline qCOMPLEX recip(qCOMPLEX a) { return 1.Q/a; }
-#else
-inline dREAL expt(dREAL a, dREAL b) { return pow(a,b); }
-inline dCOMPLEX expt(dCOMPLEX a, dREAL b) { return pow(a,b); }
-inline dREAL recip(dREAL a) { return 1.D/a; }
-inline dCOMPLEX recip(dCOMPLEX a) { return 1.D/a; }
-
-inline qREAL expt(qREAL a, qREAL b) { return pow(a,b); }
-inline qCOMPLEX expt(qCOMPLEX a, qREAL b) { return pow(a,b); }
-inline qREAL recip(qREAL a) { return 1.L/a; }
-inline qCOMPLEX recip(qCOMPLEX a) { return 1.L/a; }
-#endif
 
 inline mpREAL expt(mpREAL a, mpREAL b) { return pow(a,b); }
 inline mpCOMPLEX expt(mpCOMPLEX a, mpREAL b) { return pow(a,b); }
 inline mpREAL recip(mpREAL a) { return mpREAL(1)/a; }
 inline mpCOMPLEX recip(mpCOMPLEX a) { return mpREAL(1)/a; }
 
-#ifdef _USE_FLOAT128
 inline qREAL pow(qREAL x, qREAL y) { return powq(x, y); }
 inline qREAL log(qREAL x) { return logq(x); }
 inline qREAL exp(qREAL x) { return expq(x); }
 inline qCOMPLEX pow(qCOMPLEX x, qREAL y) { return cpowq(x, y); }
 inline qCOMPLEX log(qCOMPLEX x) { return clogq(x); }
 inline qCOMPLEX exp(qCOMPLEX x) { return cexpq(x); }
-#endif
