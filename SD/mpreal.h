@@ -114,7 +114,7 @@
 
 #define MPFR_USE_INTMAX_T   // Enable 64-bit integer types - should be defined before mpfr.h
 #define MPFR_WANT_FLOAT128  // Enable 128-bit float types - should be defined before mpfr.h
-#define _Float128 __float128 // we need this line if _Float128 not defined
+typedef __float128 _Float128; // we need this if _Float128 not defined
 
 #if defined(MPREAL_HAVE_MSVC_DEBUGVIEW) && defined(_MSC_VER) && defined(_DEBUG)
     #define MPREAL_MSVC_DEBUGVIEW_CODE     DebugView = toString();
