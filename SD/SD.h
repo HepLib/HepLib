@@ -336,6 +336,7 @@ namespace HepLib::SD {
         bool use_las = false;
         bool save_las = false;
         bool use_IBF = false;
+        bool use_Normalizes = true;
         bool use_XReOrders = false;
         int MPDigits = 0; // digits in mpREAL for MP
         lst BisectionPoints = lst { ex(1)/13, ex(1)/19, ex(1)/29, ex(1)/59, ex(1)/41, ex(1)/37, ex(1)/43, ex(1)/53  };

@@ -22,7 +22,6 @@ void Prepare(int idx) {
     work.Initialize(xint);
 
     work.Normalizes();
-    work.Normalizes();
     work.Scalelesses();
     work.ChengWu();
     work.RemoveDeltas();

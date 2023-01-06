@@ -527,7 +527,7 @@ namespace HepLib::SD {
             
             if(!pi.is_polynomial(vars)) {
                 if(ni.info(info_flags::integer)) {
-                    auto nd = numer_denom(exfactor(pi));
+                    auto nd = numer_denom(exfactor(pi,o_flintf));
                     if(nd.op(0).is_polynomial(vars) && nd.op(1).is_polynomial(vars)) {
                         in_plst.append(nd.op(1));
                         in_nlst.append(ex(0)-ni);
@@ -535,7 +535,7 @@ namespace HepLib::SD {
                         goto ok;
                     }
                 } else {
-                    auto nd = numer_denom(exfactor(pi));
+                    auto nd = numer_denom(exfactor(pi,o_flintf));
                     if(nd.op(0).is_polynomial(vars) && nd.op(1).is_polynomial(vars)) {
                         if(xPositive(nd.op(1))) {
                             in_plst.append(nd.op(1));
@@ -566,7 +566,7 @@ namespace HepLib::SD {
                                 in_plst.append(pp);
                                 in_nlst.append(nn*ni);
                             } else {
-                                auto nd = numer_denom(exfactor(pp));
+                                auto nd = numer_denom(exfactor(pp,o_flintf));
                                 if(nd.op(0).is_polynomial(vars) && nd.op(1).is_polynomial(vars)) {
                                     if(xPositive(nd.op(0)) && xPositive(nd.op(1))) {
                                         in_plst.append(nd.op(0));
@@ -716,8 +716,10 @@ namespace HepLib::SD {
         for(int ri=0; ri<2; ri++) { // run twice, needs to check in more details
             if(IsZero) return;
             exvector funexp;
-            for(auto fe : FunExp) {
-                funexp.push_back(Normalize(fe));
+            if(FunExp.size()<10) {
+                for(auto fe : FunExp) funexp.push_back(Normalize(fe));
+            } else {
+                funexp = GiNaC_Parallel(FunExp.size(), [&](int idx)->ex { return Normalize(FunExp[idx]); }, "Normalize");
             }
             FunExp.clear();
             FunExp.shrink_to_fit();
@@ -990,7 +992,7 @@ namespace HepLib::SD {
             if(exit) break;
         }
         XReOrders();
-        Normalizes();
+        if(use_Normalizes) Normalizes();
     }
 
     void SecDec::XEnd() {

@@ -1824,6 +1824,7 @@ namespace HepLib {
         if(opt==o_none) return expr;
         else if(opt==o_form) return factor_form(expr);
         else if(opt==o_factor) return ginac_factor(expr);
+        else if(opt==o_flint || opt==o_flintf) return factor_flint(expr);
         else return expr;
     }
     
