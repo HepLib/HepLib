@@ -6,6 +6,6 @@ includedir=${prefix}/include
 Name: HepLib
 Description: Library for HighEnergyPhysics
 Version: 1.0
-Libs: @LIB_FLAGS@ -lHepLib -lcln -lginac -lqhullcpp -lquadmath
-Libs.private:  -lcln -lginac -lqhullcpp -lquadmath
+Libs: @LIB_FLAGS@ -lHepLib -lcln -lginac -lqhullstatic_r -lquadmath
+Libs.private:  -lcln -lginac -lqhullstatic_r -lquadmath
 Cflags: @INC_FLAGS@

@@ -2278,6 +2278,11 @@ namespace HepLib {
         argc -= optind;
         argv += optind;
     }
+    
+    bool has_symbol(const ex & e) {
+        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) if(is_a<symbol>(*i)) return true;
+        return false;
+    }
         
 }
 

@@ -429,7 +429,7 @@ namespace HepLib::SD {
                 int ctryR = 0, ctry = 0, ctryL = 0;
                 int smin = -1;
                 ex min_err, min_res;
-                long long min_eval;
+                size_t min_eval;
                 qREAL log_lamax = log10q(lamax);
                 qREAL log_lamin = log_lamax-1.Q;
                 
@@ -973,7 +973,7 @@ namespace HepLib::SD {
                 int ctryR = 0, ctry = 0, ctryL = 0;
                 int smin = -1;
                 ex min_err, min_res;
-                long long min_eval;
+                size_t min_eval;
                 qREAL log_lamax = log10q(lamax);
                 qREAL log_lamin = log_lamax-1.Q;
                 

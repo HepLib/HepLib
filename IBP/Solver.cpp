@@ -94,9 +94,9 @@ namespace HepLib {
             string_trim(ostr);
             
             ostr.erase(0, ostr.find(":=")+2);
-            long long sn = ostr.length();
+            size_t sn = ostr.length();
             char lc;
-            for(long long i=0; i<sn; i++) {
+            for(size_t i=0; i<sn; i++) {
                 char & c = ostr[i];
                 if(c=='[') {
                     c = '{';
@@ -140,9 +140,9 @@ namespace HepLib {
             string_trim(ostr);
             
             ostr.erase(0, ostr.find(":=")+2);
-            long long sn = ostr.length();
+            size_t sn = ostr.length();
             char lc;
-            for(long long i=0; i<sn; i++) {
+            for(size_t i=0; i<sn; i++) {
                 char & c = ostr[i];
                 if(c=='[') {
                     c = '{';
@@ -280,9 +280,9 @@ namespace HepLib {
             string_trim(ostr);
             
             ostr.erase(0, ostr.find(":=")+2);
-            long long sn = ostr.length();
+            size_t sn = ostr.length();
             char lc;
-            for(long long i=0; i<sn; i++) {
+            for(size_t i=0; i<sn; i++) {
                 char & c = ostr[i];
                 if(c=='[') {
                     c = '{';

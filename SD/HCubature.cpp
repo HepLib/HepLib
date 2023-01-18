@@ -31,7 +31,7 @@ namespace HepLib::SD {
 /*-----------------------------------------------------*/
 #include "Lib3_HCubature.h"
 
-int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y) {
+int HCubature::Wrapper(unsigned int xdim, size_t npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y) {
     auto self = (HCubature*)fdata;
     bool NaNQ = false;
 
@@ -150,7 +150,7 @@ int HCubature::Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *
     return NaNQ ? 1 : 0;
 }
 
-void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, long long int* nrun, void *fdata) {
+void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, size_t * nrun, void *fdata) {
     auto self = (HCubature*)fdata;
     if(*nrun == self->MaxPTS + 1979) return;
     if(self->RunTime>0 && self->RunMAX>0) {

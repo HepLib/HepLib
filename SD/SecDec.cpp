@@ -367,11 +367,12 @@ namespace HepLib::SD {
                     need_contour_deformation = false;
                     auto first = tmp.op(0).subs(y(w)==1);
                     for(auto item : tmp) {
-                        auto chk = NN(item.subs(y(w)==1)*first);
-                        if(!is_a<numeric>(chk)) {
-                            throw Error("DS: Not a number: " + ex2str(item.subs(y(w)==1)*first));
+                        auto chk = item.subs(y(w)==1)*first;
+                        auto nchk = NN(chk,30);
+                        if(!is_a<numeric>(nchk)) {
+                            throw Error("DS: Not a number: " + ex2str(chk));
                         }
-                        if(chk<0) {
+                        if(nchk<0) {
                             need_contour_deformation = true;
                             break;
                         }
@@ -382,7 +383,7 @@ namespace HepLib::SD {
             if(disable_Contour || !need_contour_deformation) {
                 auto tmp = NN(ft.subs(y(w)==1).subs(nReplacements).subs(lst{
                     CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }));
+                }),30);
                 
                 if(!is_a<numeric>(tmp)) throw Error("DS: NOT a numeric with " + ex2str(tmp));
                 if(tmp<0) {
@@ -463,7 +464,7 @@ namespace HepLib::SD {
                         } else if(!item.has(PL(w)) && !item.has(WRA(w))) {
                             auto tr = NN(item.subs(nReplacements).subs(lst{
                                 CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                            }));
+                            }),30);
                             if(!is_a<numeric>(tr)) {
                                 throw Error("DS: not numeric - item: " + ex2str(tr) + " ; " + ex2str(item));
                             }
@@ -880,7 +881,7 @@ namespace HepLib::SD {
                     if(!is_s || !normal(n_s+delta.nops()).is_zero()) continue;
                 }
                 
-                for(long long i=1; i<ex_to<numeric>(GiNaC::pow(2,delta.nops())).to_long()-1; i++) {
+                for(size_t i=1; i<ex_to<numeric>(GiNaC::pow(2,delta.nops())).to_long()-1; i++) {
                     lst sRepl;
                     auto ci = i;
                     ex n_s = 0;
@@ -1571,7 +1572,7 @@ namespace HepLib::SD {
         
         if(Verbose > 1) cout << "  \\--Collecting: ";
         map<ex, ex, ex_is_less> int_pref;
-        long long ncollect = 0;
+        size_t ncollect = 0;
         ex expr_nox = 0;
         for(auto &item : res) {
             ncollect += item.nops();

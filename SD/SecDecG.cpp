@@ -199,6 +199,7 @@ namespace HepLib::SD {
         FILE* dev_null = fopen("/dev/null", "w");
         int curlong, totlong;
         boolT ismalloc = false;
+        QHULL_LIB_CHECK
         qh_zero(qh, dev_null);
         int exit_code = qh_new_qhull(qh, dim, npts, cpts, ismalloc, opts, NULL, dev_null);
         if(exit_code!=0) {

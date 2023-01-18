@@ -53,7 +53,7 @@ typedef int (*integrand) (unsigned ndim, const REAL *x, void *, unsigned fdim, R
    j-th coordinate of the i-th point, and the k-th function evaluation
    for the i-th point is returned in fval[i*fdim + k].  Return 0 on success
    or nonzero to terminate the integration. */
-typedef int (*integrand_v) (unsigned ndim, long long npt, const REAL *x, void *, unsigned fdim, REAL *fval);
+typedef int (*integrand_v) (unsigned ndim, size_t npt, const REAL *x, void *, unsigned fdim, REAL *fval);
 
 /* Integrate the function f from xmin[dim] to xmax[dim], with at most
    maxEval function evaluations (0 for no limit), until the given
@@ -66,12 +66,12 @@ typedef int (*integrand_v) (unsigned ndim, long long npt, const REAL *x, void *,
 /* adapative integration by partitioning the integration domain ("h-adaptive")
    and using the same fixed-degree quadrature in each subdomain, recursively,
    until convergence is achieved. */
-int hcubature(unsigned fdim, integrand f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, long long minEval, long long runEval, long long maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err);
+int hcubature(unsigned fdim, integrand f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err);
 
-typedef void (* PrintHookerType) (REAL*, REAL*, long long int*, void *);
+typedef void (* PrintHookerType) (REAL*, REAL*, size_t *, void *);
 
 /* as hcubature, but vectorized integrand */
-int hcubature_v(unsigned fdim, integrand_v f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, long long minEval, long long runEval, long long maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err, PrintHookerType PrintHooker);
+int hcubature_v(unsigned fdim, integrand_v f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err, PrintHookerType PrintHooker);
 
 #ifdef __cplusplus
 }  /* extern "C" */

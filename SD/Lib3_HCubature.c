@@ -13,7 +13,7 @@
 /***************************************************************************/
 /* Basic datatypes */
 
-typedef void (* PrintHookerType) (REAL*, REAL*, long long int*, void *);
+typedef void (* PrintHookerType) (REAL*, REAL*, size_t *, void *);
 
 typedef struct {
     REAL val, err;
@@ -151,7 +151,7 @@ static int alloc_rule_pts(rule *r, unsigned num_regions) {
     return SUCCESS;
 }
 
-static rule *make_rule(long long sz, /* >= sizeof(rule) */
+static rule *make_rule(size_t sz, /* >= sizeof(rule) */
                         unsigned dim, unsigned fdim, unsigned num_points,
                         evalError_func evalError, destroy_func destroy) {
     rule *r;
@@ -323,7 +323,7 @@ static int rule75genzmalik_evalError(rule *r_, unsigned fdim, integrand_v f, voi
 
     rule75genzmalik *r = (rule75genzmalik *) r_;
     unsigned i, j, iR, dim = r_->dim;
-    long long npts = 0;
+    size_t npts = 0;
     REAL *diff, *pts, *vals;
 
     if (alloc_rule_pts(r_, nR)) return FAILURE;
@@ -497,7 +497,7 @@ static int rule15gauss_evalError(rule *r,
         0.209482141084727828012999174891714Q
     };
     unsigned j, k, iR;
-    long long npts = 0;
+    size_t npts = 0;
     REAL *pts, *vals;
 
     if (alloc_rule_pts(r, nR)) return FAILURE;
@@ -609,13 +609,13 @@ typedef region heap_item;
 #define KEY(hi) ((hi).errmax)
 
 typedef struct {
-    long long n, nalloc;
+    size_t n, nalloc;
     heap_item *items;
     unsigned fdim;
     esterr *ee; /* array of length fdim of the total integrand & error */
 } heap;
 
-static void heap_resize(heap *h, long long nalloc) {
+static void heap_resize(heap *h, size_t nalloc) {
     h->nalloc = nalloc;
     if (nalloc) h->items = (heap_item *) realloc(h->items, sizeof(heap_item)*nalloc);
     else {
@@ -625,7 +625,7 @@ static void heap_resize(heap *h, long long nalloc) {
     }
 }
 
-static heap heap_alloc(long long nalloc, unsigned fdim) {
+static heap heap_alloc(size_t nalloc, unsigned fdim) {
     heap h;
     unsigned i;
     h.n = 0;
@@ -672,8 +672,8 @@ static int heap_push(heap *h, heap_item hi) {
     return SUCCESS;
 }
 
-static int heap_push_many(heap *h, long long ni, heap_item *hi) {
-    long long i;
+static int heap_push_many(heap *h, size_t ni, heap_item *hi) {
+    size_t i;
     for (i = 0; i < ni; ++i)
         if (heap_push(h, hi[i])) return FAILURE;
     return SUCCESS;
@@ -717,16 +717,16 @@ static heap_item heap_pop(heap *h) {
 static int rulecubature(rule *r, unsigned fdim, 
 			integrand_v f, void *fdata, 
 			const hypercube *h, 
-			long long minEval,
-            long long runEval,
-            long long maxEval,
+			size_t minEval,
+            size_t runEval,
+            size_t maxEval,
 			REAL reqAbsError, REAL reqRelError,
 			REAL *val, REAL *err, int parallel, PrintHookerType PrintHooker) {
-    long long numEval = 0;
+    size_t numEval = 0;
     heap regions;
     unsigned i, j;
     region *R = NULL; /* array of regions to evaluate */
-    long long nR_alloc = 0;
+    size_t nR_alloc = 0;
     esterr *ee = NULL;
 
     regions = heap_alloc(1, fdim);
@@ -743,17 +743,17 @@ static int rulecubature(rule *r, unsigned fdim,
     numEval += r->num_points;
     
     {
-    long long runs = 0;
+    size_t runs = 0;
     REAL lastRES[fdim];
     REAL lastERR[fdim];
     while (numEval < maxEval) {
         if (parallel) {
             REAL xmin = 10;
-            long long nR = 0;
+            size_t nR = 0;
             REAL err_sum = 0;
             for (j = 0; j < fdim; ++j) ee[j] = regions.ee[j];
             for (j = 0; j < fdim; ++j) err_sum += ee[j].err;
-            long long numEval2 = 0;
+            size_t numEval2 = 0;
             while(1) {
                 if (nR + 2 > nR_alloc) {
                     nR_alloc = (nR + 2) * 2;
@@ -879,7 +879,7 @@ bad:
 
 static int cubature(unsigned fdim, integrand_v f, void *fdata, 
 		    unsigned dim, const REAL *xmin, const REAL *xmax,
-		    long long minEval, long long runEval, long long maxEval, REAL reqAbsError, REAL reqRelError,
+		    size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError,
 		    REAL *val, REAL *err, int parallel, PrintHookerType PrintHooker) {
     rule *r;
     hypercube h;
@@ -912,7 +912,7 @@ static int cubature(unsigned fdim, integrand_v f, void *fdata,
 
 int hcubature_v(unsigned fdim, integrand_v f, void *fdata, 
                 unsigned dim, const REAL *xmin, const REAL *xmax,
-                long long minEval, long long runEval, long long maxEval, REAL reqAbsError, REAL reqRelError,
+                size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError,
                 REAL *val, REAL *err, PrintHookerType PrintHooker) {
     return cubature(fdim, f, fdata, dim, xmin, xmax, minEval, runEval, maxEval, reqAbsError, reqRelError, val, err, 1, PrintHooker);
 }
@@ -921,7 +921,7 @@ int hcubature_v(unsigned fdim, integrand_v f, void *fdata,
 /***************************************************************************/
 
 typedef struct fv_data_s { integrand f; void *fdata; } fv_data;
-static int fv(unsigned ndim, long long npt, const REAL *x, void *d_, unsigned fdim, REAL *fval) {
+static int fv(unsigned ndim, size_t npt, const REAL *x, void *d_, unsigned fdim, REAL *fval) {
     fv_data *d = (fv_data *) d_;
     integrand f = d->f;
     void *fdata = d->fdata;
@@ -934,7 +934,7 @@ static int fv(unsigned ndim, long long npt, const REAL *x, void *d_, unsigned fd
 
 int hcubature(unsigned fdim, integrand f, void *fdata, 
 	      unsigned dim, const REAL *xmin, const REAL *xmax,
-	      long long minEval, long long runEval, long long maxEval, REAL reqAbsError, REAL reqRelError,
+	      size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError,
 	      REAL *val, REAL *err) {
     int ret;
     fv_data d;

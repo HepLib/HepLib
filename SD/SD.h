@@ -5,7 +5,10 @@
  
 #pragma once
 
-#include "BASIC.h"
+extern "C" {
+    #include <quadmath.h>
+}
+
 #include <dlfcn.h>
 #include <string>
 #include <signal.h>
@@ -16,9 +19,7 @@
 #include <regex>
 #include <complex>
 
-extern "C" {
-    #include <quadmath.h>
-}
+#include "BASIC.h"
 
 /**
  * @brief namespace for Numerical integration with Sector Decomposition method
@@ -142,10 +143,10 @@ namespace HepLib::SD {
         
         time_t StartTimer; // used internally
         
-        long long RunMAX = 100;
-        long long RunPTS = 100000;
-        long long MinPTS = 100000;
-        long long RunTime = 0;
+        size_t RunMAX = 100;
+        size_t RunPTS = 100000;
+        size_t MinPTS = 100000;
+        size_t RunTime = 0;
         qREAL EpsAbs = 1E-5;
         qREAL EpsRel = 0;
         int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
@@ -161,7 +162,7 @@ namespace HepLib::SD {
         qREAL MPFLimit = -1;
         
         bool UseCpp = true;
-        long long NEval = 0;
+        size_t NEval = 0;
         int MPDigits = 64;
     };
 
@@ -170,16 +171,16 @@ namespace HepLib::SD {
      */
     class HCubature : public IntegratorBase {
     public:
-        static int Wrapper(unsigned int xdim, long long npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y);
+        static int Wrapper(unsigned int xdim, size_t npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y);
         
-        typedef void (*PrintHookerType) (qREAL*, qREAL*, long long int*, void *);
+        typedef void (*PrintHookerType) (qREAL*, qREAL*, size_t *, void *);
         
         virtual ex Integrate() override;
-        static void DefaultPrintHooker(qREAL*, qREAL*, long long int*, void*);
+        static void DefaultPrintHooker(qREAL*, qREAL*, size_t *, void*);
         PrintHookerType PrintHooker = DefaultPrintHooker;
-        long long MaxPTS;
+        size_t MaxPTS;
         bool use_last = false;
-        long long lastNRUN = 0;
+        size_t lastNRUN = 0;
         qREAL LastResult[2];
         qREAL LastAbsErr[2];
         int lastnNAN = 0;
@@ -270,8 +271,8 @@ namespace HepLib::SD {
         static qREAL *paras;
         static dREAL err_max;
         static dREAL err_min;
-        static long long MaxRND;
-        static long long RunRND;
+        static size_t MaxRND;
+        static size_t RunRND;
         static MinimizeBase *miner;
         static dREAL *lambda;
         static dREAL hjRHO;
@@ -335,7 +336,7 @@ namespace HepLib::SD {
         bool use_ErrMin = false;
         bool use_las = false;
         bool save_las = false;
-        bool use_IBF = false;
+        int IBF = 0; // 0 - not use IBF
         bool use_Normalizes = true;
         bool use_XReOrders = false;
         int MPDigits = 0; // digits in mpREAL for MP
@@ -349,8 +350,8 @@ namespace HepLib::SD {
         int CTTryPTS = 3;
         int CTSavePTS = 3;
         
-        long long TryPTS = 500000;
-        long long LambdaSplit = 5;
+        size_t TryPTS = 500000;
+        size_t LambdaSplit = 5;
         qREAL IntLaMax = 50;
         int CTry = 1;
         int CTryLeft = 1;
@@ -358,9 +359,9 @@ namespace HepLib::SD {
         dREAL CTryRightRatio = 1.5;
         int soLimit = 10000;
         
-        long long RunMAX = 20;
-        long long RunPTS = 500000;
-        map<int, long long> MinPTS;
+        size_t RunMAX = 20;
+        size_t RunPTS = 500000;
+        map<int, size_t> MinPTS;
         qREAL EpsAbs = 1E-4;
         int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
         

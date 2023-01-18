@@ -116,7 +116,7 @@ dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *l
     
     dREAL RhoParameter = 0.95;
     dREAL EpsParameter = 1E-4;
-    long long MaxParameter = 100000;
+    size_t MaxParameter = 100000;
     
     if(SavePTS<=0) SavePTS = 1;
     if(TryPTS<=0) TryPTS= 1;
@@ -127,7 +127,7 @@ dREAL HookeJeeves::FindMinimum(int nvars, FunctionType func, dREAL *pl, dREAL *l
     pts[0] = 1E-4;
     pts[TryPTS] = 1-1E-4;
     for(int i=1; i<TryPTS; i++) pts[i] = i*1.0/TryPTS;
-    for(long long ii=0; ii<std::pow(TryPTS+1, nvars); ii++) {
+    for(size_t ii=0; ii<std::pow(TryPTS+1, nvars); ii++) {
         dREAL iPoints[nvars];
         int li = ii;
         for(int i=0; i<nvars; i++) {
@@ -171,7 +171,7 @@ void HookeJeeves::Minimize(int nvars, FunctionType func, dREAL *ip) {
     for(int i=0; i<nvars; i++) LowerBound[i] = 0;
     
     dREAL EpsParameter = 1E-3;
-    long long MaxParameter = 100000;
+    size_t MaxParameter = 100000;
     
     dREAL iPoints[nvars], oPoints[nvars];
     for(int i=0; i<nvars; i++) {

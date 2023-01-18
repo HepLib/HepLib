@@ -931,7 +931,7 @@ namespace HepLib {
     void fermat_mat(const matrix & mat_in, const string & name);
     matrix fermat_mat(const string & name);
     void fermat_eval(const string & fcmd="@[**]");
-    
+    bool has_symbol(const ex & e);
 }
 
 typedef void (*RUN)(std::string dir_id);

@@ -227,8 +227,8 @@ namespace HepLib {
             //IsAlwaysZero = true;
             lst ns0;
             for(int i=0; i<pdim; i++) ns0.append(1);
-            long long tot = std::pow(2LL,pdim);
-            for(long long n=0; n<tot; n++) {
+            size_t tot = std::pow(2LL,pdim);
+            for(size_t n=0; n<tot; n++) {
                 int cn = n;
                 lst ns1 = ns0;
                 lst sector = ns0;
@@ -259,7 +259,7 @@ exit(0);
             }
         }
         
-        long long ltot = std::pow(3L,pdim); // see below
+        size_t ltot = std::pow(3L,pdim); // see below
         auto ret = GiNaC_Parallel(ltot, [&](int idx)->ex {
             lst res;
             auto li = idx;

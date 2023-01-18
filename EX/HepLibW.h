@@ -494,8 +494,8 @@ public:
     int CTTryPTS = 3;
     int CTSavePTS = 3;
     
-    long long TryPTS = 500000;
-    long long LambdaSplit = 5;
+    size_t TryPTS = 500000;
+    size_t LambdaSplit = 5;
     expr IntLaMax = expr(50);
     int CTry = 1;
     int CTryLeft = 1;
@@ -503,9 +503,9 @@ public:
     expr CTryRightRatio = expr("1.5");
     int soLimit = 10000;
     
-    long long RunMAX = 20;
-    long long RunPTS = 500000;
-    std::map<int, long long> MinPTS;
+    size_t RunMAX = 20;
+    size_t RunPTS = 500000;
+    std::map<int, size_t> MinPTS;
     expr EpsAbs = expr("1E-4");
     int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
     

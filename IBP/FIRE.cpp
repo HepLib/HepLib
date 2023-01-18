@@ -448,8 +448,8 @@ namespace HepLib {
                     if(Propagators.op(i).has(lpi)) ns0.let_op(i) = -1;
                     else ns_vec.push_back(i);
                 }
-                long long tot = std::pow(2LL,ns_vec.size());
-                for(long long n=0; n<tot; n++) {
+                size_t tot = std::pow(2LL,ns_vec.size());
+                for(size_t n=0; n<tot; n++) {
                     int cn = n;
                     lst ns1 = ns0;
                     for(int j=0; j<ns_vec.size(); j++) {
@@ -466,9 +466,9 @@ namespace HepLib {
                 IsAlwaysZero = true;
                 lst ns0;
                 for(int i=0; i<pdim; i++) ns0.append(1);
-                long long tot = std::pow(2LL,pdim);
+                size_t tot = std::pow(2LL,pdim);
                 
-                for(long long n=0; n<tot; n++) {
+                for(size_t n=0; n<tot; n++) {
                     int cn = n;
                     lst sector = ns0;
                     for(int j=0; j<pdim; j++) {

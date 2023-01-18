@@ -104,7 +104,7 @@ namespace HepLib {
         Cuts = ex_to<lst>(s.op(i++));
         DSP = ex_to<lst>(s.op(i++));
         ISP = ex_to<lst>(s.op(i++));
-        SECTOR = ex_to<lst>(s.op(i++));
+        if(s.nops()>15) SECTOR = ex_to<lst>(s.op(i++)); // if to work with old version
         lst shift = ex_to<lst>(s.op(i++));
         reCut = s.op(i++).is_equal(1);
         ProblemNumber = ex_to<numeric>(s.op(i++)).to_int();
