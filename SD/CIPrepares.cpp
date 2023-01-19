@@ -115,11 +115,9 @@ namespace HepLib::SD {
             if(ii.op(0).is_zero() || ii.op(1).subs(FTX(w1,w2)==1).is_zero()) continue;
             if(IBF==0) res_vec.push_back(ii);
             else if(IBF==1) { // by coefficient and F-term
-                for(auto kv : cf_int) {
-                    lst ii = ex_to<lst>(kv.first);
-                    ii.let_op(1) = kv.second;
-                    res_vec.push_back(ii);
-                }
+                ex key = ii;
+                key.let_op(1) = 1;
+                cf_int[key] += ii.op(1);
             } else { // by F-term
                 auto cvs = collect_lst(ii.op(0), [](const ex & e)->bool { return has_symbol(e); });
                 for(auto const & cv : cvs) {
