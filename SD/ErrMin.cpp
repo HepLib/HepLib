@@ -5,6 +5,7 @@
 
 #include "SD.h"
 
+
 namespace HepLib::SD {
 
 IntegratorBase *ErrMin::Integrator = NULL;
@@ -20,9 +21,17 @@ ex ErrMin::lastResErr;
 
 dREAL ErrMin::IntError(int nvars, dREAL *las, dREAL *n1, dREAL *n2) {
     RunRND++;
+    dREAL dlas[nvars];
     qREAL qlas[nvars];
-    for(int i=0; i<nvars; i++) qlas[i] = las[i];
-    Integrator->Lambda = qlas;
+    mpREAL mplas[nvars];
+    for(int i=0; i<nvars; i++) {
+        dlas[i] = las[i];
+        qlas[i] = las[i];
+        mplas[i] = las[i];
+    }
+    Integrator->qLambda = qlas;
+    Integrator->dLambda = dlas;
+    Integrator->mpLambda = mplas;
     auto res = Integrator->Integrate();
     if(res.has(NaN)) return 1.E100L;
 

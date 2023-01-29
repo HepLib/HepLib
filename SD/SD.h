@@ -18,7 +18,7 @@ extern "C" {
 #include <ios>
 #include <regex>
 #include <complex>
-
+#include "mpreal.h"
 #include "BASIC.h"
 
 /**
@@ -120,25 +120,35 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     
     
+    typedef long double dREAL;
+    typedef complex<dREAL> dCOMPLEX;
     typedef __float128 qREAL;
     typedef __complex128 qCOMPLEX;
+    typedef mpfr::mpreal mpREAL;
+    typedef complex<mpREAL> mpCOMPLEX;
 
     /**
      * @brief base for numerical integrator
      */
     class IntegratorBase {
     public:
-        typedef int (*SD_Type) (const unsigned int xn, const qREAL xx[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
+        typedef int (*SDD_Type) (const unsigned int xn, const dREAL x[], const unsigned int yn, dREAL y[], const dREAL pl[], const dREAL las[]);
+        typedef int (*SDQ_Type) (const unsigned int xn, const qREAL x[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
+        typedef int (*SDMP_Type) (const unsigned int xn, const mpREAL x[], const unsigned int yn, mpREAL y[], const mpREAL pl[], const mpREAL las[]);
         typedef qREAL (*FT_Type) (const qREAL xx[], const qREAL pl[]);
         virtual ex Integrate() =0;
         virtual int inDQMP(qREAL const *x);
         
         FT_Type FT = NULL;
-        SD_Type Integrand = NULL;
-        SD_Type IntegrandQ = NULL;
-        SD_Type IntegrandMP = NULL;
-        const qREAL* Lambda;
-        const qREAL* Parameter;
+        SDD_Type IntegrandD = NULL;
+        SDQ_Type IntegrandQ = NULL;
+        SDMP_Type IntegrandMP = NULL;
+        const dREAL* dLambda;
+        const dREAL* dParameter;
+        const qREAL* qLambda;
+        const qREAL* qParameter;
+        const mpREAL* mpLambda;
+        const mpREAL* mpParameter;
         int XDim;
         
         time_t StartTimer; // used internally
@@ -161,7 +171,6 @@ namespace HepLib::SD {
         qREAL QFLimit = -1;
         qREAL MPFLimit = -1;
         
-        bool UseCpp = true;
         size_t NEval = 0;
         int MPDigits = 64;
     };

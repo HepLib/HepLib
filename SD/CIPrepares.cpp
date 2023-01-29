@@ -521,12 +521,7 @@ namespace HepLib::SD {
             // alwasy export non-complex function
             if(true) {
                 ofs << "extern \"C\" " << endl;
-                ofs << "int SDD_"<<idx<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
-                ofs << "dREAL x[xn];" << endl;
-                ofs << "for(int i=0; i<xn; i++) x[i] = qx[i];" << endl;
-                ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
-                ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
-                
+                ofs << "int SDD_"<<idx<<"(const unsigned int xn, const dREAL x[], const unsigned int yn, dREAL y[], const dREAL pl[], const dREAL las[]) {" << endl;
                 if(Debug) {
                     auto tmp = expr.subs(FTX(w1,w2)==1).subs(cxRepl).subs(plRepl);
                     ofs << "//for debug, intg: " << endl << "//" << tmp << endl;
@@ -622,18 +617,12 @@ namespace HepLib::SD {
             
             if(hasF) {
                 ofs << "extern \"C\" " << endl;
-                ofs << "int CSDD_"<<idx<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
-                ofs << "dREAL x[xn], x0[xn];" << endl;
-                ofs << "for(int i=0; i<xn; i++) x[i] = qx[i];" << endl;
-                ofs << "dREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
-                ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = qpl[i];" << endl;
-                
+                ofs << "int CSDD_"<<idx<<"(const unsigned int xn, const dREAL x[], const unsigned int yn, dREAL y[], const dREAL pl[], const dREAL las[]) {" << endl;
+                ofs << "dREAL x0[xn];" << endl;
                 ofs << "dCOMPLEX z[xn],zz[xn],r[xn];" << endl;
                 ofs << "dREAL dff[xn+1];" << endl;
                 ofs << "dCOMPLEX yy=0, ytmp, det;" << endl;
                 ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
-                ofs << "dREAL las[nfxs];" << endl;
-                ofs << "for(int i=0; i<nfxs; i++) las[i] = qlas[i];" << endl;
                 ofs << "dCOMPLEX mat[nfxs*nfxs];" << endl;
                 for(auto &kv : ft_expr) {
                     ofs << "{" << endl;
@@ -834,11 +823,10 @@ namespace HepLib::SD {
             if(hasF) {
                 ofs << "extern \"C\" " << endl;
                 ofs << "int CSDQ_"<<idx<<"(const unsigned int xn, const qREAL x[], const int unsigned yn, qREAL y[], const qREAL pl[], const qREAL las[]) {" << endl;
-                
                 ofs << "qREAL x0[xn];" << endl;
                 ofs << "qCOMPLEX z[xn],zz[xn],r[xn];" << endl;
                 ofs << "qREAL dff[xn+1];" << endl;
-                ofs << "qCOMPLEX yy=0, ytmp, det;;" << endl;
+                ofs << "qCOMPLEX yy=0, ytmp, det;" << endl;
                 ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
                 ofs << "qCOMPLEX mat[nfxs*nfxs];" << endl;
                 for(auto &kv : ft_expr) {
@@ -954,12 +942,7 @@ namespace HepLib::SD {
             // always export non-complex function
             if(true) {
                 ofs << "extern \"C\" " << endl;
-                ofs << "int SDMP_"<<idx<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
-                ofs << "mpREAL x[xn];" << endl;
-                ofs << "for(int i=0; i<xn; i++) x[i] = mpREAL(qx[i]);" << endl;
-                ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
-                ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
-                
+                ofs << "int SDMP_"<<idx<<"(const unsigned int xn, const mpREAL x[], const unsigned int yn, mpREAL y[], const mpREAL pl[], const mpREAL las[]) {" << endl;
                 auto intg = expr.subs(FTX(w1,w2)==1);
                 intg = xyz_pow_simplify(intg);
                 bool hasF2 = intg.has(iEpsilon) || intg.has(I);
@@ -1040,8 +1023,8 @@ namespace HepLib::SD {
                 ofs << "mpCOMPLEX yy = ";
                 EvalMP(intg.subs(cxRepl).subs(plRepl)).print(cppMP);
                 ofs << ";" << endl;
-                ofs << "y[0] = yy.real().toFloat128();" << endl;
-                ofs << "y[1] = yy.imag().toFloat128();" << endl;
+                ofs << "y[0] = yy.real();" << endl;
+                ofs << "y[1] = yy.imag();" << endl;
                 ofs << "return 0;" << endl;
                 ofs << "}" << endl;
                 ofs << endl;
@@ -1049,18 +1032,12 @@ namespace HepLib::SD {
             
             if(hasF) {
                 ofs << "extern \"C\" " << endl;
-                ofs << "int CSDMP_"<<idx<<"(const unsigned int xn, const qREAL qx[], const unsigned int yn, qREAL y[], const qREAL qpl[], const qREAL qlas[]) {" << endl;
-                ofs << "mpREAL x[xn], x0[xn];" << endl;
-                ofs << "for(int i=0; i<xn; i++) x[i] = mpREAL(qx[i]);" << endl;
-                ofs << "mpREAL pl["<<(npls<0 ? 1 : npls+1)<<"];" << endl;
-                ofs << "for(int i=0; i<"<<(npls+1)<<"; i++) pl[i] = mpREAL(qpl[i]);" << endl;
-                
+                ofs << "int CSDMP_"<<idx<<"(const unsigned int xn, const mpREAL x[], const unsigned int yn, mpREAL y[], const mpREAL pl[], const mpREAL las[]) {" << endl;
+                ofs << "mpREAL x0[xn];" << endl;
                 ofs << "mpCOMPLEX z[xn],zz[xn],r[xn];" << endl;
                 ofs << "mpREAL dff[xn+1];" << endl;
                 ofs << "mpCOMPLEX yy=mpREAL(0), ytmp, det;" << endl;
                 ofs << "int ii, nfxs="<<fxs.size()<<";" << endl;
-                ofs << "mpREAL las[nfxs];" << endl;
-                ofs << "for(int i=0; i<nfxs; i++) las[i] = mpREAL(qlas[i]);" << endl;
                 ofs << "mpCOMPLEX mat[nfxs*nfxs];" << endl;
                 for(auto &kv : ft_expr) {
                     ofs << "{" << endl;
@@ -1152,8 +1129,8 @@ namespace HepLib::SD {
                     ofs << "}" << endl;
                 }
                 
-                ofs << "y[0] = yy.real().toFloat128();" << endl;
-                ofs << "y[1] = yy.imag().toFloat128();" << endl;
+                ofs << "y[0] = yy.real();" << endl;
+                ofs << "y[1] = yy.imag();" << endl;
                 ofs << "return 0;" << endl;
                 ofs << "}" << endl;
                 ofs << endl;

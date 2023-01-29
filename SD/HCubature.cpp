@@ -35,117 +35,85 @@ int HCubature::Wrapper(unsigned int xdim, size_t npts, const qREAL *x, void *fda
     auto self = (HCubature*)fdata;
     bool NaNQ = false;
 
-    if(self->UseCpp) {
-        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
-        for(int i=0; i<npts; i++) {
-            mpfr_free_cache();
-            mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
-            int iDQMP = self->inDQMP(x+i*xdim);
-            if( (self->IntegrandMP!=NULL) && (self->DQMP>2 || iDQMP>2) ) {
-                self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-            } else if(self->DQMP>1 || iDQMP>1) {
-                self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-                bool ok = true;
-                for(int j=0; j<ydim; j++) {
-                    qREAL ytmp = y[i*ydim+j];
-                    if(isnanq(ytmp) || isinfq(ytmp)) {
-                        ok = false;
-                        break;
-                    }
-                }
-
-                if(!ok && (self->IntegrandMP!=NULL)) {
-                    self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-                }
-            } else {
-                self->Integrand(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-                bool ok = true;
-                for(int j=0; j<ydim; j++) {
-                    qREAL ytmp = y[i*ydim+j];
-                    if(isnanq(ytmp) || isinfq(ytmp)) {
-                        ok = false;
-                        break;
-                    }
-                }
-                
-                if(!ok) {
-                    self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-                }
-                
-                ok = true;
-                for(int j=0; j<ydim; j++) {
-                    qREAL ytmp = y[i*ydim+j];
-                    if(isnanq(ytmp) || isinfq(ytmp)) {
-                        ok = false;
-                        break;
-                    }
-                }
-                if(!ok && (self->IntegrandMP!=NULL)) {
-                    self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->Parameter, self->Lambda);
-                }
-            }
-            
-            // Final Check NaN/Inf
+    #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+    for(int i=0; i<npts; i++) {
+        mpfr_free_cache();
+        mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
+        int iDQMP = self->inDQMP(x+i*xdim);
+        if( (self->IntegrandMP!=NULL) && (self->DQMP>2 || iDQMP>2) ) {
+            mpREAL mpx[xdim], mpy[ydim];
+            for(int j=0; j<xdim; j++) mpx[j] = x[i*xdim+j];
+            self->IntegrandMP(xdim, mpx, ydim, mpy, self->mpParameter, self->mpLambda);
+            for(int j=0; j<ydim; j++) y[i*ydim+j] = mpy[j].toFloat128();
+        } else if(self->DQMP>1 || iDQMP>1) {
+            self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->qParameter, self->qLambda);
             bool ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
-                if(isnanq(ytmp) || isinfq(ytmp)) {
-                    ok = false;
-                    break;
-                }
+                if(isnanq(ytmp) || isinfq(ytmp)) { ok = false; break; }
             }
+
             if(!ok && (self->IntegrandMP!=NULL)) {
-                mpfr_free_cache();
-                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*10));
-                qREAL xx[xdim];
-                for(int ii=0; ii<xdim; ii++) xx[ii] = x[i*xdim+ii] < 1.E-30Q ? 1.E-30Q  : x[i*xdim+ii] * 0.95Q;
-                self->IntegrandMP(xdim, xx, ydim, y+i*ydim, self->Parameter, self->Lambda);
+                mpREAL mpx[xdim], mpy[ydim];
+                for(int j=0; j<xdim; j++) mpx[j] = x[i*xdim+j];
+                self->IntegrandMP(xdim, mpx, ydim, mpy, self->mpParameter, self->mpLambda);
+                for(int j=0; j<ydim; j++) y[i*ydim+j] = mpy[j].toFloat128();
+            }
+        } else {
+            dREAL dx[xdim], dy[ydim];
+            for(int j=0; j<xdim; j++) dx[j] = x[i*xdim+j];
+            self->IntegrandD(xdim, dx, ydim, dy, self->dParameter, self->dLambda);
+            for(int j=0; j<ydim; j++) y[i*ydim+j] = dy[j];
+            bool ok = true;
+            for(int j=0; j<ydim; j++) {
+                qREAL ytmp = y[i*ydim+j];
+                if(isnanq(ytmp) || isinfq(ytmp)) { ok = false; break; }
             }
             
-            // final check
+            if(!ok) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->qParameter, self->qLambda);
+            
+            ok = true;
             for(int j=0; j<ydim; j++) {
                 qREAL ytmp = y[i*ydim+j];
-                if(isnanq(ytmp) || isinfq(ytmp)) {
-                    #pragma omp atomic
-                    self->nNAN++;
-                    if(self->nNAN > self->NANMax) {
-                        NaNQ = true;
-                        break;
-                    } else {
-                        y[i*ydim+j] = 0;
-                    }
-                }
+                if(isnanq(ytmp) || isinfq(ytmp)) { ok = false; break; }
             }
-            if(self->ReIm == 1) {
-                y[i*ydim+1] = 0;
-            } else if(self->ReIm == 2) {
-                y[i*ydim+0] = 0;
+            if(!ok && (self->IntegrandMP!=NULL)) {
+                mpREAL mpx[xdim], mpy[ydim];
+                for(int j=0; j<xdim; j++) mpx[j] = x[i*xdim+j];
+                self->IntegrandMP(xdim, mpx, ydim, mpy, self->mpParameter, self->mpLambda);
+                for(int j=0; j<ydim; j++) y[i*ydim+j] = mpy[j].toFloat128();
             }
+        }
+        
+        // Final Check NaN/Inf
+        bool ok = true;
+        for(int j=0; j<ydim; j++) {
+            qREAL ytmp = y[i*ydim+j];
+            if(isnanq(ytmp) || isinfq(ytmp)) { ok = false; break; }
+        }
+        if(!ok && (self->IntegrandMP!=NULL)) {
             mpfr_free_cache();
+            mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*100));
+            mpREAL mpx[xdim], mpy[ydim];
+            for(int j=0; j<xdim; j++) mpx[j] = x[i*xdim+j];
+            self->IntegrandMP(xdim, mpx, ydim, mpy, self->mpParameter, self->mpLambda);
+            for(int j=0; j<ydim; j++) y[i*ydim+j] = mpy[j].toFloat128();
         }
-    } else {
-        self->Integrand(xdim+npts*100, x, ydim+npts*100, y, self->Parameter, self->Lambda);
+        
         // final check
-        for(int i=0; i<npts; i++) {
-            for(int j=0; j<ydim; j++) {
-                qREAL ytmp = y[i*ydim+j];
-                if(isnanq(ytmp) || isinfq(ytmp)) {
-                    self->nNAN++;
-                    if(self->nNAN > self->NANMax) {
-                        NaNQ = true;
-                        break;
-                    } else {
-                        y[i*ydim+j] = 0;
-                    }
-                }
-            }
-            if(self->ReIm == 1) {
-                y[i*ydim+1] = 0;
-            } else if(self->ReIm == 2) {
-                y[i*ydim+0] = 0;
+        for(int j=0; j<ydim; j++) {
+            qREAL ytmp = y[i*ydim+j];
+            if(isnanq(ytmp) || isinfq(ytmp)) {
+                #pragma omp atomic
+                self->nNAN++;
+                if(self->nNAN > self->NANMax) { NaNQ = true; break; }
+                else y[i*ydim+j] = 0;
             }
         }
-    } 
+        if(self->ReIm == 1) y[i*ydim+1] = 0;
+        else if(self->ReIm == 2) y[i*ydim+0] = 0;
+        mpfr_free_cache();
+    }
 
     return NaNQ ? 1 : 0;
 }

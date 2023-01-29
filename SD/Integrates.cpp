@@ -356,7 +356,9 @@ namespace HepLib::SD {
                 }
             }
             
-            IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr, fpMP = nullptr;
+            IntegratorBase::SDD_Type fpD = nullptr;
+            IntegratorBase::SDQ_Type fpQ = nullptr;
+            IntegratorBase::SDMP_Type fpMP = nullptr;
             IntegratorBase::FT_Type ftp = nullptr;
             int idx = ex_to<numeric>(intid).to_int();
             auto module = main_module;
@@ -364,18 +366,18 @@ namespace HepLib::SD {
             ostringstream fname;
             if(hasF) fname << "C";
             fname << "SDD_" << idx;
-            fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+            fpD = (IntegratorBase::SDD_Type)dlsym(module, fname.str().c_str());
 
-            if(fp==NULL) {
+            if(fpD==NULL) {
                 cout << "dlerror(): " << dlerror() << endl;
-                throw Error("Integrates: fp==NULL");
+                throw Error("Integrates: fpD==NULL");
             }
 
             fname.clear();
             fname.str("");
             if(hasF) fname << "C";
             fname << "SDQ_" << idx;
-            fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+            fpQ = (IntegratorBase::SDQ_Type)dlsym(module, fname.str().c_str());
             if(fpQ==NULL) {
                 cout << "dlerror(): " << dlerror() << endl;
                 throw Error("Integrates: fpQ==NULL");
@@ -385,7 +387,7 @@ namespace HepLib::SD {
             fname.str("");
             if(hasF) fname << "C";
             fname << "SDMP_" << idx;
-            fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+            fpMP = (IntegratorBase::SDMP_Type)dlsym(module, fname.str().c_str());
                          
             if(is_a<lst>(las)) {
                 fname.clear();
@@ -398,18 +400,27 @@ namespace HepLib::SD {
                 }
             }
 
-            qREAL lambda[las.nops()];
-            qREAL paras[npara+1];
-            for(auto kv : Parameter) paras[kv.first] = ex2q(kv.second);
+            dREAL dlas[las.nops()], dpl[npara];
+            qREAL qlas[las.nops()], qpl[npara];
+            mpREAL mplas[las.nops()], mppl[npara];
+            for(auto kv : Parameter) {
+                qpl[kv.first] = ex2q(kv.second);
+                dpl[kv.first] = qpl[kv.first];
+                mppl[kv.first] = qpl[kv.first];
+            }
             
             Integrator->ReIm = reim;
             if(MPDigits>0) Integrator->MPDigits = MPDigits;
-            Integrator->Integrand = fp;
+            Integrator->IntegrandD = fpD;
             Integrator->IntegrandQ = fpQ;
             Integrator->IntegrandMP = fpMP;
             Integrator->FT = ftp;
-            Integrator->Parameter = paras;
-            Integrator->Lambda = lambda;
+            Integrator->dParameter = dpl;
+            Integrator->dLambda = dlas;
+            Integrator->qParameter = qpl;
+            Integrator->qLambda = qlas;
+            Integrator->mpParameter = mppl;
+            Integrator->mpLambda = mplas;
             Integrator->XDim = xsize;
         
             if(hasF) {
@@ -444,7 +455,9 @@ namespace HepLib::SD {
                     for(int i=0; i<las.nops()-1; i++) {
                         dREAL la_tmp;
                         las_ifs >> la_tmp;
-                        lambda[i] = la_tmp;
+                        dlas[i] = la_tmp;
+                        qlas[i] = la_tmp;
+                        mplas[i] = la_tmp;
                     }
                     las_ifs.close();
                     auto res = Integrator->Integrate();
@@ -468,7 +481,11 @@ namespace HepLib::SD {
                         auto log_cla = (log_lamin + s * (log_lamax-log_lamin) / LambdaSplit);
                         auto cla = powq(10.Q, log_cla);
                         if(cla < 1E-10) throw Error("NIntegrate: too small lambda.");
-                        for(int i=0; i<las.nops()-1; i++) lambda[i] = ex2q(las.op(i)) * cla;
+                        for(int i=0; i<las.nops()-1; i++) {
+                            qlas[i] = ex2q(las.op(i)) * cla;
+                            mplas[i] = qlas[i];
+                            dlas[i] = qlas[i];
+                        }
      
                         auto res = Integrator->Integrate();
                         if(Verbose>10) {
@@ -554,7 +571,9 @@ namespace HepLib::SD {
                 auto cla = powq(10.Q, log_cla);
                 if(Verbose>5) cout << Color_HighLight << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
                 for(int i=0; i<las.nops()-1; i++) {
-                    lambda[i] = ex2q(las.op(i)) * cla;
+                    qlas[i] = ex2q(las.op(i)) * cla;
+                    dlas[i] = qlas[i];
+                    mplas[i] = qlas[i];
                 }
                 // ---------------------------------------
                 }
@@ -568,7 +587,7 @@ namespace HepLib::SD {
                     ErrMin::miner = miner;
                     ErrMin::Integrator = Integrator;
                     dREAL oo[las.nops()-1], ip[las.nops()-1];
-                    for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = lambda[i];
+                    for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = qlas[i];
                     ErrMin::lambda = oo;
                     ErrMin::err_max = 1E100;
                     auto oerrmin = ErrMin::err_min;
@@ -578,15 +597,19 @@ namespace HepLib::SD {
                     delete miner;
                     ErrMin::err_min = oerrmin;
                     for(int i=0; i<las.nops()-1; i++) {
-                        lambda[i] = ErrMin::lambda[i];
+                        qlas[i] = ErrMin::lambda[i];
+                        dlas[i] = qlas[i];
+                        mplas[i] = qlas[i];
                     }
                     
-                    Integrator->Lambda = lambda; // Integrator->Lambda changed in ErrMin
+                    Integrator->dLambda = dlas;
+                    Integrator->qLambda = qlas; // Integrator->Lambda changed in ErrMin
+                    Integrator->mpLambda = mplas;
                     if(Verbose>5) {
                         cout << Color_HighLight << "     Final λs: " << RESET;
                         for(int i=0; i<xsize; i++) {
                             char buffer[128];
-                            quadmath_snprintf(buffer, sizeof buffer, "%.6QG", lambda[i]);
+                            quadmath_snprintf(buffer, sizeof buffer, "%.6QG", qlas[i]);
                             cout << buffer << " ";
                         }
                         cout << endl << "     ------------------------------" << endl;
@@ -599,7 +622,7 @@ namespace HepLib::SD {
                     las_ofs.open(las_fn.str(), ios::out);
                     if (las_ofs) {
                         for(int i=0; i<las.nops()-1; i++) {
-                            dREAL la_tmp = lambda[i];
+                            dREAL la_tmp = qlas[i];
                             las_ofs << la_tmp << " ";
                         }
                         las_ofs << endl;
@@ -901,7 +924,9 @@ namespace HepLib::SD {
                 }
             }
 
-            IntegratorBase::SD_Type fp = nullptr, fpQ = nullptr, fpMP = nullptr;
+            IntegratorBase::SDD_Type fpD = nullptr;
+            IntegratorBase::SDQ_Type fpQ = nullptr;
+            IntegratorBase::SDMP_Type fpMP = nullptr;
             IntegratorBase::FT_Type ftp = nullptr;
             int idx = ex_to<numeric>(intid).to_int();
             auto module = main_module;
@@ -909,17 +934,17 @@ namespace HepLib::SD {
             ostringstream fname;
             if(hasF) fname << "C";
             fname << "SDD_" << idx;
-            fp = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
-            if(fp==NULL) {
+            fpD = (IntegratorBase::SDD_Type)dlsym(module, fname.str().c_str());
+            if(fpD==NULL) {
                 cout << "dlerror(): " << dlerror() << endl;
-                throw Error("Integrates: fp==NULL");
+                throw Error("Integrates: fpD==NULL");
             }
             
             fname.clear();
             fname.str("");
             if(hasF) fname << "C";
             fname << "SDQ_" << idx;
-            fpQ = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+            fpQ = (IntegratorBase::SDQ_Type)dlsym(module, fname.str().c_str());
             if(fpQ==NULL) {
                 cout << "dlerror(): " << dlerror() << endl;
                 throw Error("Integrates: fpQ==NULL");
@@ -929,7 +954,7 @@ namespace HepLib::SD {
             fname.str("");
             if(hasF) fname << "C";
             fname << "SDMP_" << idx;
-            fpMP = (IntegratorBase::SD_Type)dlsym(module, fname.str().c_str());
+            fpMP = (IntegratorBase::SDMP_Type)dlsym(module, fname.str().c_str());
                             
             if(is_a<lst>(las)) {
                 fname.clear();
@@ -942,18 +967,27 @@ namespace HepLib::SD {
                 }
             }
             
-            qREAL lambda[las.nops()];
-            qREAL paras[npara+1];
-            for(auto kv : Parameter) paras[kv.first] = ex2q(kv.second);
+            dREAL dlas[las.nops()], dpl[npara];
+            qREAL qlas[las.nops()], qpl[npara];
+            mpREAL mplas[las.nops()], mppl[npara];
+            for(auto kv : Parameter) {
+                qpl[kv.first] = ex2q(kv.second);
+                dpl[kv.first] = qpl[kv.first];
+                mppl[kv.first] = qpl[kv.first];
+            }
             
             Integrator->ReIm = reim;
             if(MPDigits>0) Integrator->MPDigits = MPDigits;
-            Integrator->Integrand = fp;
+            Integrator->IntegrandD = fpD;
             Integrator->IntegrandQ = fpQ;
             Integrator->IntegrandMP = fpMP;
             Integrator->FT = ftp;
-            Integrator->Parameter = paras;
-            Integrator->Lambda = lambda;
+            Integrator->dParameter = dpl;
+            Integrator->dLambda = dlas;
+            Integrator->qParameter = qpl;
+            Integrator->qLambda = qlas;
+            Integrator->mpParameter = mppl;
+            Integrator->mpLambda = mplas;
             Integrator->XDim = xsize;
             
             if(hasF) {
@@ -988,7 +1022,9 @@ namespace HepLib::SD {
                     for(int i=0; i<las.nops()-1; i++) {
                         dREAL la_tmp;
                         las_ifs >> la_tmp;
-                        lambda[i] = la_tmp;
+                        qlas[i] = la_tmp;
+                        dlas[i] = qlas[i];
+                        mplas[i] = qlas[i];
                     }
                     las_ifs.close();
                     auto res = Integrator->Integrate();
@@ -1012,7 +1048,11 @@ namespace HepLib::SD {
                         auto log_cla = (log_lamin + s * (log_lamax-log_lamin) / LambdaSplit);
                         auto cla = powq(10.Q, log_cla);
                         if(cla < 1E-10) throw Error("NIntegrate: too small lambda.");
-                        for(int i=0; i<las.nops()-1; i++) lambda[i] = ex2q(las.op(i)) * cla;
+                        for(int i=0; i<las.nops()-1; i++) {
+                            qlas[i] = ex2q(las.op(i)) * cla;
+                            dlas[i] = qlas[i];
+                            mplas[i] = qlas[i];
+                        }
      
                         auto res = Integrator->Integrate();
                         if(Verbose>10) {
@@ -1094,7 +1134,9 @@ namespace HepLib::SD {
                 auto cla = powq(10.Q, log_cla);
                 if(Verbose>5) cout << Color_HighLight << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
                 for(int i=0; i<las.nops()-1; i++) {
-                    lambda[i] = ex2q(las.op(i)) * cla;
+                    qlas[i] = ex2q(las.op(i)) * cla;
+                    dlas[i] = qlas[i];
+                    mplas[i] = qlas[i];
                 }
                 // ---------------------------------------
                 }
@@ -1108,7 +1150,7 @@ namespace HepLib::SD {
                     ErrMin::miner = miner;
                     ErrMin::Integrator = Integrator;
                     dREAL oo[las.nops()-1], ip[las.nops()-1];
-                    for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = lambda[i];
+                    for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = qlas[i];
                     ErrMin::lambda = oo;
                     ErrMin::err_max = 1E100;
                     auto oerrmin = ErrMin::err_min;
@@ -1118,15 +1160,19 @@ namespace HepLib::SD {
                     delete miner;
                     ErrMin::err_min = oerrmin;
                     for(int i=0; i<las.nops()-1; i++) {
-                        lambda[i] = ErrMin::lambda[i];
+                        qlas[i] = ErrMin::lambda[i];
+                        dlas[i] = qlas[i];
+                        mplas[i] = qlas[i];
                     }
                     
-                    Integrator->Lambda = lambda; // Integrator->Lambda changed in ErrMin
+                    Integrator->dLambda = dlas;
+                    Integrator->qLambda = qlas; // Integrator->Lambda changed in ErrMin
+                    Integrator->mpLambda = mplas;
                     if(Verbose>5) {
                         cout << Color_HighLight << "     Final λs: " << RESET;
                         for(int i=0; i<xsize; i++) {
                             char buffer[128];
-                            quadmath_snprintf(buffer, sizeof buffer, "%.6QG", lambda[i]);
+                            quadmath_snprintf(buffer, sizeof buffer, "%.6QG", qlas[i]);
                             cout << buffer << " ";
                         }
                         cout << endl << "     ------------------------------" << endl;
@@ -1139,7 +1185,7 @@ namespace HepLib::SD {
                     las_ofs.open(las_fn.str(), ios::out);
                     if (las_ofs) {
                         for(int i=0; i<las.nops()-1; i++) {
-                            dREAL la_tmp = lambda[i];
+                            dREAL la_tmp = qlas[i];
                             las_ofs << la_tmp << " ";
                         }
                         las_ofs << endl;
