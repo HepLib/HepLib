@@ -12,98 +12,54 @@ extern "C" {
 #include "mpreal.h"
 
 using namespace std;
-typedef __float128 qREAL;
-typedef __complex128 qCOMPLEX;
-typedef long double dREAL;
-typedef complex<dREAL> dCOMPLEX;
 typedef mpfr::mpreal mpREAL;
 typedef complex<mpREAL> mpCOMPLEX;
 
-extern const qCOMPLEX qiEpsilon;
 extern mpREAL mpPi;
 extern mpREAL mpEuler;
 extern mpCOMPLEX mpiEpsilon;
 
-#include "Lib3_HCubature.h"
+#include "Lib3_HCubatureMP.h"
 namespace HepLib::SD {
 
 /*-----------------------------------------------------*/
-// HCubature Classes
+// HCubatureMP Classes
 /*-----------------------------------------------------*/
 
-int HCubature::Wrapper(unsigned int xdim, size_t npts, const qREAL *x, void *fdata, unsigned int ydim, qREAL *y) {
-    auto self = (HCubature*)fdata;
+ex HCubatureMP::mp2ex(const mpREAL & num) {
+    ostringstream oss;
+    oss.precision(MPDigits);
+    oss << num;
+    string sn = oss.str();
+    numeric ret(sn.c_str());
+    return ret;
+}
+
+int HCubatureMP::Wrapper(unsigned int xdim, size_t npts, const mpREAL *x, void *fdata, unsigned int ydim, mpREAL *y) {
+    auto self = (HCubatureMP*)fdata;
     bool NaNQ = false;
 
     #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
     for(int i=0; i<npts; i++) {
         mpfr_free_cache();
         mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
-        int iDQMP = self->inDQMP(x+i*xdim);
-        if( (self->IntegrandMP!=NULL) && (self->DQMP>2 || iDQMP>2) ) {
-            mpREAL mpx[xdim], mpy[ydim];
-            for(int j=0; j<xdim; j++) mpx[j] = x[i*xdim+j];
-            self->IntegrandMP(xdim, mpx, ydim, mpy, self->mpParameter, self->mpLambda);
-            for(int j=0; j<ydim; j++) y[i*ydim+j] = mpy[j].toFloat128();
-        } else if(self->DQMP>1 || iDQMP>1) {
-            self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->qParameter, self->qLambda);
-            bool ok = true;
-            for(int j=0; j<ydim; j++) {
-                qREAL ytmp = y[i*ydim+j];
-                if(isnanq(ytmp) || isinfq(ytmp)) { ok = false; break; }
-            }
-
-            if(!ok && (self->IntegrandMP!=NULL)) {
-                mpREAL mpx[xdim], mpy[ydim];
-                for(int j=0; j<xdim; j++) mpx[j] = x[i*xdim+j];
-                self->IntegrandMP(xdim, mpx, ydim, mpy, self->mpParameter, self->mpLambda);
-                for(int j=0; j<ydim; j++) y[i*ydim+j] = mpy[j].toFloat128();
-            }
-        } else {
-            dREAL dx[xdim], dy[ydim];
-            for(int j=0; j<xdim; j++) dx[j] = x[i*xdim+j];
-            self->IntegrandD(xdim, dx, ydim, dy, self->dParameter, self->dLambda);
-            for(int j=0; j<ydim; j++) y[i*ydim+j] = dy[j];
-            bool ok = true;
-            for(int j=0; j<ydim; j++) {
-                qREAL ytmp = y[i*ydim+j];
-                if(isnanq(ytmp) || isinfq(ytmp)) { ok = false; break; }
-            }
-            
-            if(!ok) self->IntegrandQ(xdim, x+i*xdim, ydim, y+i*ydim, self->qParameter, self->qLambda);
-            
-            ok = true;
-            for(int j=0; j<ydim; j++) {
-                qREAL ytmp = y[i*ydim+j];
-                if(isnanq(ytmp) || isinfq(ytmp)) { ok = false; break; }
-            }
-            if(!ok && (self->IntegrandMP!=NULL)) {
-                mpREAL mpx[xdim], mpy[ydim];
-                for(int j=0; j<xdim; j++) mpx[j] = x[i*xdim+j];
-                self->IntegrandMP(xdim, mpx, ydim, mpy, self->mpParameter, self->mpLambda);
-                for(int j=0; j<ydim; j++) y[i*ydim+j] = mpy[j].toFloat128();
-            }
-        }
-        
+        self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->mpParameter, self->mpLambda);
         // Final Check NaN/Inf
         bool ok = true;
         for(int j=0; j<ydim; j++) {
-            qREAL ytmp = y[i*ydim+j];
-            if(isnanq(ytmp) || isinfq(ytmp)) { ok = false; break; }
+            mpREAL ytmp = y[i*ydim+j];
+            if(isnan(ytmp) || isinf(ytmp)) { ok = false; break; }
         }
         if(!ok && (self->IntegrandMP!=NULL)) {
             mpfr_free_cache();
             mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*100));
-            mpREAL mpx[xdim], mpy[ydim];
-            for(int j=0; j<xdim; j++) mpx[j] = x[i*xdim+j];
-            self->IntegrandMP(xdim, mpx, ydim, mpy, self->mpParameter, self->mpLambda);
-            for(int j=0; j<ydim; j++) y[i*ydim+j] = mpy[j].toFloat128();
+            self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->mpParameter, self->mpLambda);
         }
         
         // final check
         for(int j=0; j<ydim; j++) {
-            qREAL ytmp = y[i*ydim+j];
-            if(isnanq(ytmp) || isinfq(ytmp)) {
+            mpREAL ytmp = y[i*ydim+j];
+            if(isnan(ytmp) || isinf(ytmp)) {
                 #pragma omp atomic
                 self->nNAN++;
                 if(self->nNAN > self->NANMax) { NaNQ = true; break; }
@@ -118,8 +74,8 @@ int HCubature::Wrapper(unsigned int xdim, size_t npts, const qREAL *x, void *fda
     return NaNQ ? 1 : 0;
 }
 
-void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, size_t * nrun, void *fdata) {
-    auto self = (HCubature*)fdata;
+void HCubatureMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nrun, void *fdata) {
+    auto self = (HCubatureMP*)fdata;
     if(*nrun == self->MaxPTS + 1979) return;
     if(self->RunTime>0 && self->RunMAX>0) {
         auto cur_timer = time(NULL);
@@ -132,11 +88,10 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, size_t * nrun, 
         }
     }
     if(Verbose>10 && self->RunMAX>0 && (*nrun-self->NEval) >= self->RunPTS) {
-        char r0[64], r1[64], e0[32], e1[32];
-        quadmath_snprintf(r0, sizeof r0, "%.10QG", result[0]);
-        quadmath_snprintf(r1, sizeof r1, "%.10QG", result[1]);
-        quadmath_snprintf(e0, sizeof e0, "%.5QG", epsabs[0]);
-        quadmath_snprintf(e1, sizeof e1, "%.5QG", epsabs[1]);
+        auto r0 = result[0];
+        auto r1 = result[1];
+        auto e0 = epsabs[0].toString(3);
+        auto e1 = epsabs[1].toString(3);
         cout << "     N: " << (*nrun) << ", ";
         if(self->ReIm==3 || self->ReIm==1) cout << "[" << r0 << ", " << e0 << "]";
         if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";
@@ -144,7 +99,7 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, size_t * nrun, 
     }
     if((*nrun-self->NEval) >= self->RunPTS || self->RunMAX<0) self->NEval = *nrun;
     
-    if((isnanq(result[0]) || isnanq(result[1]) || isnanq(epsabs[0]) || isnanq(epsabs[1])) || (isinfq(result[0]) || isinfq(result[1]) || isinfq(epsabs[0]) || isinfq(epsabs[1]))) {
+    if((isnan(result[0]) || isnan(result[1]) || isnan(epsabs[0]) || isnan(epsabs[1])) || (isinf(result[0]) || isinf(result[1]) || isinf(epsabs[0]) || isinf(epsabs[1]))) {
         self->NEval = *nrun;
         *nrun = self->MaxPTS + 1979;
         if(self->LastState>0) self->LastState = -1;
@@ -170,8 +125,8 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, size_t * nrun, 
         self->lastnNAN = self->nNAN;
     }
 
-    bool rExit = (epsabs[0] < self->EpsAbs+1E-50Q) || (epsabs[0] < fabsq(result[0])*self->EpsRel+1E-50Q);
-    bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabsq(result[1])*self->EpsRel+1E-50Q);
+    bool rExit = (epsabs[0] < self->EpsAbs+1E-50Q) || (epsabs[0] < fabs(result[0])*self->EpsRel+1E-50Q);
+    bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabs(result[1])*self->EpsRel+1E-50Q);
     if(rExit && iExit && (*nrun)>self->MinPTS) {
         self->NEval = *nrun;
         *nrun = self->MaxPTS + 1979;
@@ -191,22 +146,22 @@ void HCubature::DefaultPrintHooker(qREAL* result, qREAL* epsabs, size_t * nrun, 
     }
 }
 
-ex HCubature::Integrate() {
+ex HCubatureMP::Integrate() {
     if(mpfr_buildopt_tls_p()<=0) throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
     mpfr_free_cache();
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     mpPi = mpfr::const_pi();
     mpEuler = mpfr::const_euler();
-    mpiEpsilon = complex<mpREAL>(0,cimagq(qiEpsilon));
+    mpiEpsilon = complex<mpREAL>(0,mpiEpsilon.imag());
     
     unsigned int xdim = XDim;
     unsigned int ydim = 2;
-    qREAL result[ydim], estabs[ydim];
+    mpREAL result[ydim], estabs[ydim];
 
-    qREAL xmin[xdim], xmax[xdim];
+    mpREAL xmin[xdim], xmax[xdim];
     for(int i=0; i<xdim; i++) {
-        xmin[i] = 0.0Q;
-        xmax[i] = 1.0Q;
+        xmin[i] = 0;
+        xmax[i] = 1;
     }
     LastState = 0;
     NEval = 0;
@@ -220,8 +175,11 @@ ex HCubature::Integrate() {
     int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, MinPTS, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
 
     if(nok) {
-        if( (cabsq(result[0]+result[1]*1.Qi) < FLT128_EPSILON) && (cabsq(estabs[0]+estabs[1]*1.Qi) < FLT128_EPSILON) ) {
-            cout << ErrColor << "HCubature Failed with 0 result returned!" << RESET << endl;
+        mpREAL abs_res = sqrt(result[0]*result[0]+result[1]*result[1]);
+        mpREAL abs_est = sqrt(estabs[0]*estabs[0]+estabs[1]*estabs[1]);
+        mpREAL mpfr_eps = 10*mpfr::machine_epsilon();
+        if( (abs_res < mpfr_eps) && (abs_est < mpfr_eps) ) {
+            cout << ErrColor << "HCubatureMP Failed with 0 result returned!" << RESET << endl;
             return NaN;
         }
     }
@@ -236,11 +194,11 @@ ex HCubature::Integrate() {
     }
     
     ex FResult = 0;
-    if(isnanq(result[0]) || isnanq(result[1])) FResult += NaN;
+    if(isnan(result[0]) || isnan(result[1])) FResult += NaN;
     else {
         try{
-            FResult += VE(q2ex(result[0]), q2ex(estabs[0]));
-            FResult += VE(q2ex(result[1]), q2ex(estabs[1])) * I;
+            FResult += VE(mp2ex(result[0]), mp2ex(estabs[0]));
+            FResult += VE(mp2ex(result[1]), mp2ex(estabs[1])) * I;
         } catch(...) {
             FResult += NaN;
         }

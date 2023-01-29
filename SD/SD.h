@@ -195,6 +195,29 @@ namespace HepLib::SD {
         int lastnNAN = 0;
         int LastState = 0;
     };
+    
+    /**
+     * @brief numerical integrator using HCubatureMP
+     */
+    class HCubatureMP : public IntegratorBase {
+    public:
+        static int Wrapper(unsigned int xdim, size_t npts, const mpREAL *x, void *fdata, unsigned int ydim, mpREAL *y);
+        
+        typedef void (*PrintHookerType) (mpREAL*, mpREAL*, size_t *, void *);
+        
+        virtual ex Integrate() override;
+        static void DefaultPrintHooker(mpREAL*, mpREAL*, size_t *, void*);
+        PrintHookerType PrintHooker = DefaultPrintHooker;
+        size_t MaxPTS;
+        bool use_last = false;
+        size_t lastNRUN = 0;
+        mpREAL LastResult[2];
+        mpREAL LastAbsErr[2];
+        int lastnNAN = 0;
+        int LastState = 0;
+    private:
+        ex mp2ex(const mpREAL & num);
+    };
 
     typedef long double dREAL;
     /**
