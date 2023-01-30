@@ -172,7 +172,7 @@ ex HCubatureMP::Integrate() {
     
     StartTimer = time(NULL);
 
-    int nok = hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, MinPTS, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
+    int nok = Lib3_HCubatureMP::hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, MinPTS, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
 
     if(nok) {
         mpREAL abs_res = sqrt(result[0]*result[0]+result[1]*result[1]);

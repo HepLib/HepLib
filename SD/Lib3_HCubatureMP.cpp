@@ -11,40 +11,40 @@
 #define SUCCESS 0
 #define FAILURE 1
 
+namespace Lib3_HCubatureMP {
+
 /* Basic datatypes */
 
-typedef void (* PrintHookerType) (REAL*, REAL*, size_t*, void *);
+struct esterr {
+    mpREAL val, err;
+};
 
-typedef struct {
-    REAL val, err;
-} esterr;
-
-static REAL errMax(unsigned fdim, const esterr *ee) {
-    REAL errmax = 0;
+static mpREAL errMax(unsigned fdim, const esterr *ee) {
+    mpREAL errmax = 0;
     unsigned k;
     for (k = 0; k < fdim; ++k)
         if (ee[k].err > errmax) errmax = ee[k].err;
     return errmax;
 }
 
-typedef struct {
+struct hypercube {
     unsigned dim;
-    REAL *data;	/* length 2*dim = center followed by half-widths */
-    REAL vol;	/* cache volume = product of widths */
-} hypercube;
+    mpREAL *data;	/* length 2*dim = center followed by half-widths */
+    mpREAL vol;	/* cache volume = product of widths */
+};
 
-static REAL compute_vol(const hypercube *h) {
+static mpREAL compute_vol(const hypercube *h) {
     unsigned i;
-    REAL vol = 1;
+    mpREAL vol = 1;
     for (i = 0; i < h->dim; ++i) vol *= 2 * h->data[i + h->dim];
     return vol;
 }
 
-static hypercube make_hypercube(unsigned dim, const REAL *center, const REAL *halfwidth) {
+static hypercube make_hypercube(unsigned dim, const mpREAL *center, const mpREAL *halfwidth) {
     unsigned i;
     hypercube h;
     h.dim = dim;
-    h.data = new REAL[dim * 2];
+    h.data = new mpREAL[dim * 2];
     h.vol = 0;
     if (h.data) {
         for (i = 0; i < dim; ++i) {
@@ -56,13 +56,13 @@ static hypercube make_hypercube(unsigned dim, const REAL *center, const REAL *ha
     return h;
 }
 
-static hypercube make_hypercube_range(unsigned dim, const REAL *xmin, const REAL *xmax) {
+static hypercube make_hypercube_range(unsigned dim, const mpREAL *xmin, const mpREAL *xmax) {
     hypercube h = make_hypercube(dim, xmin, xmax);
     unsigned i;
     if (h.data) {
         for (i = 0; i < dim; ++i) {
-            h.data[i] = REAL(1)/REAL(2) * (xmin[i] + xmax[i]);
-            h.data[i + dim] = REAL(1)/REAL(2) * (xmax[i] - xmin[i]);
+            h.data[i] = mpREAL(1)/mpREAL(2) * (xmin[i] + xmax[i]);
+            h.data[i + dim] = mpREAL(1)/mpREAL(2) * (xmax[i] - xmin[i]);
         }
         h.vol = compute_vol(&h);
     }
@@ -74,13 +74,13 @@ static void destroy_hypercube(hypercube *h) {
     h->dim = 0;
 }
 
-typedef struct {
+struct region {
     hypercube h;
     unsigned splitDim;
     unsigned fdim; /* dimensionality of vector integrand */
     esterr *ee; /* array of length fdim */
-    REAL errmax; /* max ee[k].err */
-} region;
+    mpREAL errmax; /* max ee[k].err */
+};
 
 static region make_region(const hypercube *h, unsigned fdim) {
     region R;
@@ -101,8 +101,8 @@ static void destroy_region(region *R) {
 static int cut_region(region *R, region *R2) {
     unsigned d = R->splitDim, dim = R->h.dim;
     *R2 = *R;
-    R->h.data[d + dim] *= REAL(1)/REAL(2);
-    R->h.vol *= REAL(1)/REAL(2);
+    R->h.data[d + dim] *= mpREAL(1)/mpREAL(2);
+    R->h.vol *= mpREAL(1)/mpREAL(2);
     R2->h = make_hypercube(dim, R->h.data, R->h.data + dim);
     if (!R2->h.data) return FAILURE;
     R->h.data[d] -= R->h.data[d + dim];
@@ -116,21 +116,22 @@ struct rule_s; /* forward declaration */
 typedef int (*evalError_func)(struct rule_s *r, unsigned fdim, integrand_v f, void *fdata, unsigned nR, region *R);
 typedef void (*destroy_func)(struct rule_s *r);
 
-typedef struct rule_s {
+struct rule_s {
     unsigned dim, fdim;   /* the dimensionality & number of functions */
     unsigned num_points;  /* number of evaluation points */
     unsigned num_regions;  /* max number of regions evaluated at once */
-    REAL *pts;  /* points to eval: num_regions * num_points * dim */
-    REAL *vals;  /* num_regions * num_points * fdim */
+    mpREAL *pts;  /* points to eval: num_regions * num_points * dim */
+    mpREAL *vals;  /* num_regions * num_points * fdim */
     evalError_func evalError;
     destroy_func destroy;
-} rule;
+};
+typedef rule_s rule;
 
 static void destroy_rule(rule *r) {
     if (r) {
         if (r->destroy) r->destroy(r);
         delete [] r->pts;
-        free(r);
+        delete r;
     }
 }
 
@@ -143,7 +144,7 @@ static int alloc_rule_pts(rule *r, unsigned num_regions) {
   			              repeatedly calling alloc_rule_pts with
                           growing num_regions only needs
 			              a logarithmic number of allocations */
-        r->pts = new REAL[(num_regions * r->num_points * (r->dim + r->fdim))];
+        r->pts = new mpREAL[(num_regions * r->num_points * (r->dim + r->fdim))];
         if (r->fdim + r->dim > 0 && !r->pts) return FAILURE;
         r->vals = r->pts + num_regions * r->num_points * r->dim;
         r->num_regions = num_regions;
@@ -151,12 +152,9 @@ static int alloc_rule_pts(rule *r, unsigned num_regions) {
     return SUCCESS;
 }
 
-static rule *make_rule(size_t sz, /* >= sizeof(rule) */
+static rule *make_rule(rule *r, /* >= sizeof(rule) */
                         unsigned dim, unsigned fdim, unsigned num_points,
                         evalError_func evalError, destroy_func destroy) {
-    rule *r;
-    if (sz < sizeof(rule)) return NULL;
-    r = (rule *) malloc(sz); // note malloc here
     if (!r) return NULL;
     r->pts = r->vals = NULL;
     r->num_regions = 0;
@@ -213,7 +211,7 @@ static unsigned ls0(unsigned n) {
  *  A Gray-code ordering is used to minimize the number of coordinate updates
  *  in p, although this doesn't matter as much now that we are saving all pts.
  */
-static void evalR_Rfs(REAL *pts, unsigned dim, REAL *p, const REAL *c, const REAL *r) {
+static void evalR_Rfs(mpREAL *pts, unsigned dim, mpREAL *p, const mpREAL *c, const mpREAL *r) {
     unsigned i;
     unsigned signs = 0; /* 0/1 bit = +/- for corresponding element of r[] */
     /* We start with the point where r is ADDed in every coordinate (this implies signs=0). */
@@ -221,7 +219,7 @@ static void evalR_Rfs(REAL *pts, unsigned dim, REAL *p, const REAL *c, const REA
     /* Loop through the points in Gray-code ordering */
     for (i = 0;; ++i) {
         unsigned mask, d;
-        //memcpy(pts, p, sizeof(REAL) * dim); pts += dim;
+        //memcpy(pts, p, sizeof(mpREAL) * dim); pts += dim;
         for(int k=0; k<dim; k++) pts[k] = p[k];
         pts += dim;
         d = ls0(i);	/* which coordinate to flip */
@@ -233,25 +231,25 @@ static void evalR_Rfs(REAL *pts, unsigned dim, REAL *p, const REAL *c, const REA
     }
 }
 
-static void evalRR0_0fs(REAL *pts, unsigned dim, REAL *p, const REAL *c, const REAL *r) {
+static void evalRR0_0fs(mpREAL *pts, unsigned dim, mpREAL *p, const mpREAL *c, const mpREAL *r) {
     unsigned i, j;
     for (i = 0; i < dim - 1; ++i) {
         p[i] = c[i] - r[i];
         for (j = i + 1; j < dim; ++j) {
             p[j] = c[j] - r[j];
-            //memcpy(pts, p, sizeof(REAL) * dim);
+            //memcpy(pts, p, sizeof(mpREAL) * dim);
             for(int k=0; k<dim; k++) pts[k] = p[k];
             pts += dim;
             p[i] = c[i] + r[i];
-            //memcpy(pts, p, sizeof(REAL) * dim);
+            //memcpy(pts, p, sizeof(mpREAL) * dim);
             for(int k=0; k<dim; k++) pts[k] = p[k];
             pts += dim;
             p[j] = c[j] + r[j];
-            //memcpy(pts, p, sizeof(REAL) * dim);
+            //memcpy(pts, p, sizeof(mpREAL) * dim);
             for(int k=0; k<dim; k++) pts[k] = p[k];
             pts += dim;
             p[i] = c[i] - r[i];
-            //memcpy(pts, p, sizeof(REAL) * dim);
+            //memcpy(pts, p, sizeof(mpREAL) * dim);
             for(int k=0; k<dim; k++) pts[k] = p[k];
             pts += dim;
             p[j] = c[j];	/* Done with j -> Restore p[j] */
@@ -260,26 +258,26 @@ static void evalRR0_0fs(REAL *pts, unsigned dim, REAL *p, const REAL *c, const R
     }
 }
 
-static void evalR0_0fs4d(REAL *pts, unsigned dim, REAL *p, const REAL *c, const REAL *r1, const REAL *r2) {
+static void evalR0_0fs4d(mpREAL *pts, unsigned dim, mpREAL *p, const mpREAL *c, const mpREAL *r1, const mpREAL *r2) {
     unsigned i;
-    //memcpy(pts, p, sizeof(REAL) * dim); pts += dim;
+    //memcpy(pts, p, sizeof(mpREAL) * dim); pts += dim;
     for(int k=0; k<dim; k++) pts[k] = p[k];
     pts += dim;
     for (i = 0; i < dim; i++) {
         p[i] = c[i] - r1[i];
-        //memcpy(pts, p, sizeof(REAL) * dim);
+        //memcpy(pts, p, sizeof(mpREAL) * dim);
         for(int k=0; k<dim; k++) pts[k] = p[k];
         pts += dim;
         p[i] = c[i] + r1[i];
-        //memcpy(pts, p, sizeof(REAL) * dim);
+        //memcpy(pts, p, sizeof(mpREAL) * dim);
         for(int k=0; k<dim; k++) pts[k] = p[k];
         pts += dim;
         p[i] = c[i] - r2[i];
-        //memcpy(pts, p, sizeof(REAL) * dim);
+        //memcpy(pts, p, sizeof(mpREAL) * dim);
         for(int k=0; k<dim; k++) pts[k] = p[k];
         pts += dim;
         p[i] = c[i] + r2[i];
-        //memcpy(pts, p, sizeof(REAL) * dim);
+        //memcpy(pts, p, sizeof(mpREAL) * dim);
         for(int k=0; k<dim; k++) pts[k] = p[k];
         pts += dim;
         p[i] = c[i];
@@ -300,17 +298,16 @@ static void evalR0_0fs4d(REAL *pts, unsigned dim, REAL *p, const REAL *c, const 
          J. Numer. Anal. 20 (3), 580-588 (1983).
 */
 
-typedef struct {
-    rule parent;
+struct rule75genzmalik : rule {
     /* temporary arrays of length dim */
-    REAL *widthLambda, *widthLambda2, *p;
+    mpREAL *widthLambda, *widthLambda2, *p;
     /* dimension-dependent constants */
-    REAL weight1, weight3, weight5;
-    REAL weightE1, weightE3;
-    REAL df_scale;
-} rule75genzmalik;
+    mpREAL weight1, weight3, weight5;
+    mpREAL weightE1, weightE3;
+    mpREAL df_scale;
+};
 
-#define real(x) (REAL(x))
+#define real(x) (mpREAL(x))
 #define to_int(n) ((int)(n))
 
 static int isqr(int x) {
@@ -324,27 +321,27 @@ static void destroy_rule75genzmalik(rule *r_) {
 
 static int rule75genzmalik_evalError(rule *r_, unsigned fdim, integrand_v f, void *fdata, unsigned nR, region *R) {
     /* lambda2 = sqrt(9/70), lambda4 = sqrt(9/10), lambda5 = sqrt(9/19) */
-    const REAL lambda2 = sqrt(REAL(9)/REAL(70));
-    const REAL lambda4 = sqrt(REAL(9)/REAL(10));
-    const REAL lambda5 = sqrt(REAL(9)/REAL(19));
-    const REAL weight2 = REAL(980) / REAL(6561);
-    const REAL weight4 = REAL(200) / REAL(19683);
-    const REAL weightE2 = REAL(245) / REAL(486);
-    const REAL weightE4 = REAL(25) / REAL(729);
-    const REAL ratio = (lambda2 * lambda2) / (lambda4 * lambda4);
+    const mpREAL lambda2 = sqrt(mpREAL(9)/mpREAL(70));
+    const mpREAL lambda4 = sqrt(mpREAL(9)/mpREAL(10));
+    const mpREAL lambda5 = sqrt(mpREAL(9)/mpREAL(19));
+    const mpREAL weight2 = mpREAL(980) / mpREAL(6561);
+    const mpREAL weight4 = mpREAL(200) / mpREAL(19683);
+    const mpREAL weightE2 = mpREAL(245) / mpREAL(486);
+    const mpREAL weightE4 = mpREAL(25) / mpREAL(729);
+    const mpREAL ratio = (lambda2 * lambda2) / (lambda4 * lambda4);
 
     rule75genzmalik *r = (rule75genzmalik *) r_;
     unsigned i, j, iR, dim = r_->dim;
     size_t npts = 0;
-    REAL *diff, *pts, *vals;
+    mpREAL *diff, *pts, *vals;
 
     if (alloc_rule_pts(r_, nR)) return FAILURE;
     pts = r_->pts;
     vals = r_->vals;
 
     for (iR = 0; iR < nR; ++iR) {
-        const REAL *center = R[iR].h.data;
-        const REAL *halfwidth = R[iR].h.data + dim;
+        const mpREAL *center = R[iR].h.data;
+        const mpREAL *halfwidth = R[iR].h.data + dim;
 
         for (i = 0; i < dim; ++i) r->p[i] = center[i];
         for (i = 0; i < dim; ++i) r->widthLambda2[i] = halfwidth[i] * lambda2;
@@ -375,11 +372,11 @@ static int rule75genzmalik_evalError(rule *r_, unsigned fdim, integrand_v f, voi
     for (i = 0; i < dim * nR; ++i) diff[i] = 0;
 
     for (j = 0; j < fdim; ++j) {
-        const REAL *v = vals + j;
+        const mpREAL *v = vals + j;
 #define VALS(i) v[fdim*(i)]
         for (iR = 0; iR < nR; ++iR) {
-            REAL result, res5th;
-            REAL val0, sum2=0, sum3=0, sum4=0, sum5=0;
+            mpREAL result, res5th;
+            mpREAL val0, sum2=0, sum3=0, sum4=0, sum5=0;
             unsigned k, k0 = 0;
             /* accumulate j-th function values into j-th integrals
             NOTE: this relies on the ordering of the eval functions
@@ -390,10 +387,10 @@ static int rule75genzmalik_evalError(rule *r_, unsigned fdim, integrand_v f, voi
             k0 += 1;
 
             for (k = 0; k < dim; ++k) {
-                REAL v0 = VALS(k0 + 4*k);
-                REAL v1 = VALS((k0 + 4*k) + 1);
-                REAL v2 = VALS((k0 + 4*k) + 2);
-                REAL v3 = VALS((k0 + 4*k) + 3);
+                mpREAL v0 = VALS(k0 + 4*k);
+                mpREAL v1 = VALS((k0 + 4*k) + 1);
+                mpREAL v2 = VALS((k0 + 4*k) + 2);
+                mpREAL v3 = VALS((k0 + 4*k) + 3);
 
                 sum2 += v0 + v1;
                 sum3 += v2 + v3;
@@ -421,7 +418,7 @@ static int rule75genzmalik_evalError(rule *r_, unsigned fdim, integrand_v f, voi
 
      /* figure out dimension to split: */
      for (iR = 0; iR < nR; ++iR) {
-	  REAL maxdiff = 0, df = 0;
+	  mpREAL maxdiff = 0, df = 0;
 	  unsigned dimDiffMax = 0;
 
 	  for (j = 0; j < fdim; ++j)
@@ -429,7 +426,7 @@ static int rule75genzmalik_evalError(rule *r_, unsigned fdim, integrand_v f, voi
 	  df /= R[iR].h.vol * r->df_scale;
 
 	  for (i = 0; i < dim; ++i) {
-		REAL delta = diff[iR*dim + i] - maxdiff;
+		mpREAL delta = diff[iR*dim + i] - maxdiff;
 		if (delta > df) {
 			maxdiff = diff[iR*dim + i];
 			dimDiffMax = i;
@@ -454,7 +451,7 @@ static rule *make_rule75genzmalik(unsigned dim, unsigned fdim) {
     slow and is superseded by other methods (e.g. Monte-Carlo). */
     if (dim >= sizeof(unsigned) * 8) return NULL;
 
-    r = (rule75genzmalik *) make_rule(sizeof(rule75genzmalik),
+    r = (rule75genzmalik *) make_rule(new rule75genzmalik(),
                 dim, fdim,
                 num0_0(dim) + 2 * numR0_0fs(dim) + numRR0_0fs(dim) + numR_Rfs(dim),
                 rule75genzmalik_evalError,
@@ -466,9 +463,9 @@ static rule *make_rule75genzmalik(unsigned dim, unsigned fdim) {
     r->weight5 = real(6859) / real(19683) / real(1U << dim);
     r->weightE1 = (real(729 - 950 * to_int(dim) + 50 * isqr(to_int(dim))) / real(729));
     r->weightE3 = real(265 - 100 * to_int(dim)) / real(1458);
-    r->df_scale = pow(REAL(10), dim); /* 10^dim */
+    r->df_scale = pow(mpREAL(10), dim); /* 10^dim */
 
-    r->p = new REAL[dim * 3];
+    r->p = new mpREAL[dim * 3];
     if (!r->p) {
         destroy_rule((rule *) r);
         return NULL;
@@ -520,35 +517,35 @@ static int rule15gauss_evalError(rule *r,
 //    };
     size_t m = 7;
     GaussKronrod GK(m);
-    REAL xgk[8];
+    mpREAL xgk[8];
     for (int k = 0; k < 8; ++k) xgk[k] = GK.xgk(k);
-    REAL wg[4];
+    mpREAL wg[4];
     for (int k = 0; k < (m+1)/2; ++k) wg[k] = GK.wg(k);
-    REAL wgk[8];
+    mpREAL wgk[8];
     for (int k = 0; k < m+1; ++k) wgk[k] = GK.wgk(k);
         
     unsigned j, k, iR;
     size_t npts = 0;
-    REAL *pts, *vals;
+    mpREAL *pts, *vals;
 
     if (alloc_rule_pts(r, nR)) return FAILURE;
     pts = r->pts; vals = r->vals;
 
     for (iR = 0; iR < nR; ++iR) {
-        const REAL center = R[iR].h.data[0];
-        const REAL halfwidth = R[iR].h.data[1];
+        const mpREAL center = R[iR].h.data[0];
+        const mpREAL halfwidth = R[iR].h.data[1];
 
         pts[npts++] = center;
 
         for (j = 0; j < (n - 1) / 2; ++j) {
             int j2 = 2*j + 1;
-            REAL w = halfwidth * xgk[j2];
+            mpREAL w = halfwidth * xgk[j2];
             pts[npts++] = center - w;
             pts[npts++] = center + w;
         }
         for (j = 0; j < n/2; ++j) {
             int j2 = 2*j;
-            REAL w = halfwidth * xgk[j2];
+            mpREAL w = halfwidth * xgk[j2];
             pts[npts++] = center - w;
             pts[npts++] = center + w;
         }
@@ -559,19 +556,19 @@ static int rule15gauss_evalError(rule *r,
     if (f(1, npts, pts, fdata, fdim, vals)) return FAILURE;
 
     for (k = 0; k < fdim; ++k) {
-        const REAL *vk = vals + k;
+        const mpREAL *vk = vals + k;
         for (iR = 0; iR < nR; ++iR) {
-            const REAL halfwidth = R[iR].h.data[1];
-            REAL result_gauss = vk[0] * wg[n/2 - 1];
-            REAL result_kronrod = vk[0] * wgk[n - 1];
-            REAL result_abs = fabs(result_kronrod);
-            REAL result_asc, mean, err;
+            const mpREAL halfwidth = R[iR].h.data[1];
+            mpREAL result_gauss = vk[0] * wg[n/2 - 1];
+            mpREAL result_kronrod = vk[0] * wgk[n - 1];
+            mpREAL result_abs = fabs(result_kronrod);
+            mpREAL result_asc, mean, err;
 
             /* accumulate integrals */
             npts = 1;
             for (j = 0; j < (n - 1) / 2; ++j) {
                 int j2 = 2*j + 1;
-                REAL v = vk[fdim*npts] + vk[fdim*npts+fdim];
+                mpREAL v = vk[fdim*npts] + vk[fdim*npts+fdim];
                 result_gauss += wg[j] * v;
                 result_kronrod += wgk[j2] * v;
                 result_abs += wgk[j2] * (fabs(vk[fdim*npts]) + fabs(vk[fdim*npts+fdim]));
@@ -591,7 +588,7 @@ static int rule15gauss_evalError(rule *r,
             (from GSL, probably dates back to QUADPACK
             ... not completely clear to me why we don't just use
             fabs(result_kronrod - result_gauss) * halfwidth */
-            mean = result_kronrod * REAL(1)/REAL(2);
+            mean = result_kronrod * mpREAL(1)/mpREAL(2);
             result_asc = wgk[n - 1] * fabs(vk[0] - mean);
             npts = 1;
             for (j = 0; j < (n - 1) / 2; ++j) {
@@ -608,12 +605,12 @@ static int rule15gauss_evalError(rule *r,
             result_abs *= halfwidth;
             result_asc *= halfwidth;
             if (result_asc != 0 && err != 0) {
-                REAL scale = pow((200 * err / result_asc), REAL(3)/REAL(2));
+                mpREAL scale = pow((200 * err / result_asc), mpREAL(3)/mpREAL(2));
                 err = (scale < 1) ? result_asc * scale : result_asc;
             }
             
             //if (result_abs > DBL_MIN / (50 * DBL_EPSILON)) {
-            // REAL min_err = 50 * DBL_EPSILON * result_abs;
+            // mpREAL min_err = 50 * DBL_EPSILON * result_abs;
             // if (min_err > err) err = min_err;
             //}
             
@@ -628,7 +625,7 @@ static int rule15gauss_evalError(rule *r,
 
 static rule *make_rule15gauss(unsigned dim, unsigned fdim) {
     if (dim != 1) return NULL; /* this rule is only for 1d integrals */
-    return make_rule(sizeof(rule), dim, fdim, 15, rule15gauss_evalError, 0);
+    return make_rule(new rule(), dim, fdim, 15, rule15gauss_evalError, 0);
 }
 
 /***************************************************************************/
@@ -639,12 +636,12 @@ static rule *make_rule15gauss(unsigned dim, unsigned fdim) {
 typedef region heap_item;
 #define KEY(hi) ((hi).errmax)
 
-typedef struct {
+struct heap {
     size_t n, nalloc;
     heap_item *items;
     unsigned fdim;
     esterr *ee; /* array of length fdim of the total integrand & error */
-} heap;
+};
 
 static void heap_resize(heap *h, size_t nalloc) {
     auto nalloc_o = h->nalloc;
@@ -757,8 +754,8 @@ static int rulecubature(rule *r, unsigned fdim,
 			size_t minEval,
             size_t runEval,
             size_t maxEval,
-			REAL reqAbsError, REAL reqRelError,
-			REAL *val, REAL *err, int parallel, PrintHookerType PrintHooker) {
+			mpREAL reqAbsError, mpREAL reqRelError,
+			mpREAL *val, mpREAL *err, int parallel, PrintHookerType PrintHooker) {
     size_t numEval = 0;
     heap regions;
     unsigned i, j;
@@ -780,12 +777,12 @@ static int rulecubature(rule *r, unsigned fdim,
     
     {
     size_t runs = 0;
-    REAL lastRES[fdim];
-    REAL lastERR[fdim];
+    mpREAL lastRES[fdim];
+    mpREAL lastERR[fdim];
     while (numEval < maxEval) {
         if (parallel) {
             size_t nR = 0;
-            REAL err_sum = 0;
+            mpREAL err_sum = 0;
             for (j = 0; j < fdim; ++j) ee[j] = regions.ee[j];
             for (j = 0; j < fdim; ++j) err_sum += ee[j].err;
             size_t numEval2 = 0;
@@ -810,9 +807,9 @@ static int rulecubature(rule *r, unsigned fdim,
                 // Feng : check break
                 int ok = (regions.n<=0) || (numEval2 >= runEval/10 && numEval2 > 100) || (numEval >= maxEval);
                 if(ok) break;
-                REAL err_left = 0;
+                mpREAL err_left = 0;
                 for (j = 0; j < fdim; ++j) err_left += ee[j].err;
-                ok = (err_left <= REAL(1)/REAL(2) * err_sum);
+                ok = (err_left <= mpREAL(1)/mpREAL(2) * err_sum);
                 if(ok && nR > 10) break;
             }
             
@@ -906,9 +903,9 @@ bad:
 }
 
 static int cubature(unsigned fdim, integrand_v f, void *fdata, 
-		    unsigned dim, const REAL *xmin, const REAL *xmax,
-		    size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError,
-		    REAL *val, REAL *err, int parallel, PrintHookerType PrintHooker) {
+		    unsigned dim, const mpREAL *xmin, const mpREAL *xmax,
+		    size_t minEval, size_t runEval, size_t maxEval, mpREAL reqAbsError, mpREAL reqRelError,
+		    mpREAL *val, mpREAL *err, int parallel, PrintHookerType PrintHooker) {
     rule *r;
     hypercube h;
     int status;
@@ -937,20 +934,21 @@ static int cubature(unsigned fdim, integrand_v f, void *fdata,
 }
 
 int hcubature_v(unsigned fdim, integrand_v f, void *fdata, 
-                unsigned dim, const REAL *xmin, const REAL *xmax,
-                size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError,
-                REAL *val, REAL *err, PrintHookerType PrintHooker) {
+                unsigned dim, const mpREAL *xmin, const mpREAL *xmax,
+                size_t minEval, size_t runEval, size_t maxEval, mpREAL reqAbsError, mpREAL reqRelError,
+                mpREAL *val, mpREAL *err, PrintHookerType PrintHooker) {
     return cubature(fdim, f, fdata, dim, xmin, xmax, minEval, runEval, maxEval, reqAbsError, reqRelError, val, err, 1, PrintHooker);
 }
 
 /* vectorized wrapper around non-vectorized integrands */
 /***************************************************************************/
 
-typedef struct fv_data_s {
+struct fv_data {
     integrand f;
     void *fdata;
-} fv_data;
-static int fv(unsigned ndim, size_t npt, const REAL *x, void *d_, unsigned fdim, REAL *fval) {
+};
+
+static int fv(unsigned ndim, size_t npt, const mpREAL *x, void *d_, unsigned fdim, mpREAL *fval) {
     fv_data *d = (fv_data *) d_;
     integrand f = d->f;
     void *fdata = d->fdata;
@@ -962,9 +960,9 @@ static int fv(unsigned ndim, size_t npt, const REAL *x, void *d_, unsigned fdim,
 }
 
 int hcubature(unsigned fdim, integrand f, void *fdata, 
-	      unsigned dim, const REAL *xmin, const REAL *xmax,
-	      size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError,
-	      REAL *val, REAL *err, PrintHookerType PrintHooker) {
+	      unsigned dim, const mpREAL *xmin, const mpREAL *xmax,
+	      size_t minEval, size_t runEval, size_t maxEval, mpREAL reqAbsError, mpREAL reqRelError,
+	      mpREAL *val, mpREAL *err, PrintHookerType PrintHooker) {
     int ret;
     fv_data d;
 
@@ -974,4 +972,6 @@ int hcubature(unsigned fdim, integrand f, void *fdata,
     d.fdata = fdata;
     ret = cubature(fdim, fv, &d, dim, xmin, xmax, minEval, runEval, maxEval, reqAbsError, reqRelError, val, err, 0, PrintHooker);
     return ret;
+}
+
 }

@@ -28,9 +28,11 @@
 
 #pragma once
 #include "mpreal.h"
-//typedef long double cubareal;
-typedef mpfr::mpreal REAL;
-typedef void (* PrintHookerType) (REAL*, REAL*, size_t *, void *);
+
+namespace Lib3_HCubatureMP {
+
+typedef mpfr::mpreal mpREAL;
+typedef void (* PrintHookerType) (mpREAL*, mpREAL*, size_t *, void *);
 
 /* a vector integrand - evaluates the function at the given point x
    (an array of length ndim) and returns the result in fval (an array
@@ -38,13 +40,13 @@ typedef void (* PrintHookerType) (REAL*, REAL*, size_t *, void *);
    to pass any additional data through to your function (it corresponds
    to the fdata parameter you pass to cubature).  Return 0 on
    success or nonzero to terminate the integration. */
-typedef int (*integrand) (unsigned ndim, const REAL *x, void *, unsigned fdim, REAL *fval);
+typedef int (*integrand) (unsigned ndim, const mpREAL *x, void *, unsigned fdim, mpREAL *fval);
 
 /* a vector integrand of a vector of npt points: x[i*ndim + j] is the
    j-th coordinate of the i-th point, and the k-th function evaluation
    for the i-th point is returned in fval[i*fdim + k].  Return 0 on success
    or nonzero to terminate the integration. */
-typedef int (*integrand_v) (unsigned ndim, size_t npt, const REAL *x, void *, unsigned fdim, REAL *fval);
+typedef int (*integrand_v) (unsigned ndim, size_t npt, const mpREAL *x, void *, unsigned fdim, mpREAL *fval);
 
 /* Integrate the function f from xmin[dim] to xmax[dim], with at most
    maxEval function evaluations (0 for no limit), until the given
@@ -57,8 +59,9 @@ typedef int (*integrand_v) (unsigned ndim, size_t npt, const REAL *x, void *, un
 /* adapative integration by partitioning the integration domain ("h-adaptive")
    and using the same fixed-degree quadrature in each subdomain, recursively,
    until convergence is achieved. */
-int hcubature(unsigned fdim, integrand f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err, PrintHookerType PrintHooker);
+int hcubature(unsigned fdim, integrand f, void *fdata, unsigned dim, const mpREAL *xmin, const mpREAL *xmax, size_t minEval, size_t runEval, size_t maxEval, mpREAL reqAbsError, mpREAL reqRelError, mpREAL *val, mpREAL *err, PrintHookerType PrintHooker);
 
 /* as hcubature, but vectorized integrand */
-int hcubature_v(unsigned fdim, integrand_v f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err, PrintHookerType PrintHooker);
+int hcubature_v(unsigned fdim, integrand_v f, void *fdata, unsigned dim, const mpREAL *xmin, const mpREAL *xmax, size_t minEval, size_t runEval, size_t maxEval, mpREAL reqAbsError, mpREAL reqRelError, mpREAL *val, mpREAL *err, PrintHookerType PrintHooker);
 
+}
