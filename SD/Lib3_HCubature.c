@@ -935,7 +935,7 @@ static int fv(unsigned ndim, size_t npt, const REAL *x, void *d_, unsigned fdim,
 int hcubature(unsigned fdim, integrand f, void *fdata, 
 	      unsigned dim, const REAL *xmin, const REAL *xmax,
 	      size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError,
-	      REAL *val, REAL *err) {
+	      REAL *val, REAL *err, PrintHookerType PrintHooker) {
     int ret;
     fv_data d;
 
@@ -943,7 +943,7 @@ int hcubature(unsigned fdim, integrand f, void *fdata,
      
     d.f = f;
     d.fdata = fdata;
-    ret = cubature(fdim, fv, &d, dim, xmin, xmax, minEval, runEval, maxEval, reqAbsError, reqRelError, val, err, 0, NULL);
+    ret = cubature(fdim, fv, &d, dim, xmin, xmax, minEval, runEval, maxEval, reqAbsError, reqRelError, val, err, 0, PrintHooker);
     return ret;
 }
 

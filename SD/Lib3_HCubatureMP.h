@@ -31,6 +31,7 @@
 
 namespace Lib3_HCubatureMP {
 
+extern int CPUCORES;
 typedef mpfr::mpreal mpREAL;
 typedef void (* PrintHookerType) (mpREAL*, mpREAL*, size_t *, void *);
 

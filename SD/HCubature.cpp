@@ -3,13 +3,13 @@
  * @brief Numerical Integrator using HCubature
  */
  
-#include "SD.h"
 #include <math.h>
 #include <complex>
 extern "C" {
 #include <quadmath.h>
 }
 #include "mpreal.h"
+#include "SD.h"
 
 using namespace std;
 typedef __float128 qREAL;
@@ -98,6 +98,7 @@ int HCubature::Wrapper(unsigned int xdim, size_t npts, const qREAL *x, void *fda
             for(int j=0; j<xdim; j++) mpx[j] = x[i*xdim+j];
             self->IntegrandMP(xdim, mpx, ydim, mpy, self->mpParameter, self->mpLambda);
             for(int j=0; j<ydim; j++) y[i*ydim+j] = mpy[j].toFloat128();
+            mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
         }
         
         // final check

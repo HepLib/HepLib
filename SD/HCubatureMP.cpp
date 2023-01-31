@@ -3,13 +3,13 @@
  * @brief Numerical Integrator using HCubature
  */
  
-#include "SD.h"
 #include <math.h>
 #include <complex>
 extern "C" {
 #include <quadmath.h>
 }
 #include "mpreal.h"
+#include "SD.h"
 
 using namespace std;
 typedef mpfr::mpreal mpREAL;
@@ -54,6 +54,7 @@ int HCubatureMP::Wrapper(unsigned int xdim, size_t npts, const mpREAL *x, void *
             mpfr_free_cache();
             mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*100));
             self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->mpParameter, self->mpLambda);
+            mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
         }
         
         // final check
@@ -172,6 +173,7 @@ ex HCubatureMP::Integrate() {
     
     StartTimer = time(NULL);
 
+    Lib3_HCubatureMP::CPUCORES = omp_get_num_procs()-1;
     int nok = Lib3_HCubatureMP::hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, MinPTS, RunPTS, MaxPTS, EpsAbs, EpsRel, result, estabs, PrintHooker);
 
     if(nok) {

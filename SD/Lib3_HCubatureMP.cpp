@@ -13,6 +13,8 @@
 
 namespace Lib3_HCubatureMP {
 
+int CPUCORES = 4;
+
 /* Basic datatypes */
 
 struct esterr {
@@ -805,12 +807,12 @@ static int rulecubature(rule *r, unsigned fdim,
                 nR += 2;
                 
                 // Feng : check break
-                int ok = (regions.n<=0) || (numEval2 >= runEval/10 && numEval2 > 100) || (numEval >= maxEval);
+                int ok = (regions.n<=0) || (numEval2 >= runEval/2 && numEval2 > 10*CPUCORES) || (numEval >= maxEval);
                 if(ok) break;
                 mpREAL err_left = 0;
                 for (j = 0; j < fdim; ++j) err_left += ee[j].err;
-                ok = (err_left <= mpREAL(1)/mpREAL(2) * err_sum);
-                if(ok && nR > 10) break;
+                ok = (err_left <= mpREAL(1)/mpREAL(100) * err_sum);
+                if(ok && nR > CPUCORES) break;
             }
             
             if (eval_regions(nR, R, f, fdata, r) || heap_push_many(&regions, nR, R)) goto bad;

@@ -38,6 +38,8 @@ extern "C"
 {
 #endif /* __cplusplus */
 
+typedef void (* PrintHookerType) (REAL*, REAL*, size_t *, void *);
+
 /* USAGE: Call hcubature or pcubature with your function as described
           in the README file. */
 
@@ -66,9 +68,7 @@ typedef int (*integrand_v) (unsigned ndim, size_t npt, const REAL *x, void *, un
 /* adapative integration by partitioning the integration domain ("h-adaptive")
    and using the same fixed-degree quadrature in each subdomain, recursively,
    until convergence is achieved. */
-int hcubature(unsigned fdim, integrand f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err);
-
-typedef void (* PrintHookerType) (REAL*, REAL*, size_t *, void *);
+int hcubature(unsigned fdim, integrand f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err, PrintHookerType PrintHooker);
 
 /* as hcubature, but vectorized integrand */
 int hcubature_v(unsigned fdim, integrand_v f, void *fdata, unsigned dim, const REAL *xmin, const REAL *xmax, size_t minEval, size_t runEval, size_t maxEval, REAL reqAbsError, REAL reqRelError, REAL *val, REAL *err, PrintHookerType PrintHooker);
