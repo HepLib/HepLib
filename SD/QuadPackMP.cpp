@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Numerical Integrator using QAGMP
+ * @brief Numerical Integrator using QuadPackMP
  */
  
 #include "SD.h"
@@ -10,64 +10,69 @@ extern "C" {
 #include <quadmath.h>
 }
 #include "mpreal.h"
-#include "Lib3_QAG.h"
+#include "Lib3_QuadPack.h"
 
 /* error return codes */
 #define SUCCESS 0
 #define FAILURE 1
 
 using namespace std;
-typedef mpfr::mpreal mpREAL;
-typedef complex<mpREAL> mpCOMPLEX;
+namespace {
+    typedef mpfr::mpreal mpREAL;
+    typedef const mpREAL & mpREAL_t;
+    typedef complex<mpREAL> mpCOMPLEX;
+    typedef std::function<int(mpREAL &y, mpREAL &e, const mpREAL & x, void *fdata)> f1Type;
+    typedef std::function<int(mpREAL &y, mpREAL &e, unsigned xdim, const mpREAL *x, void *fdata)> fnType;
+    typedef void (*PrintHookerType) (mpREAL *, mpREAL *, size_t *, void *);
+}
 
 extern mpREAL mpPi;
 extern mpREAL mpEuler;
 extern mpCOMPLEX mpiEpsilon;
-
-using namespace std;
-typedef std::function<mpREAL(const vector<mpREAL> & xs, void * fdata)> fnType;
-typedef std::function<mpREAL(const mpREAL & x, void * fdata)> f1Type;
-typedef void (*PrintHookerType) (mpREAL*, mpREAL*, size_t *, void *);
 
 namespace {
     int CPUCORES = 8;
     size_t QAG_n = 10000;
     size_t QAG_m = 10; // sets (2m+1)-point Gauss-Kronrod
     
-    mpREAL QAG1(const f1Type & f, const mpREAL & sign_eps, PrintHookerType PrintHooker, void * fdata, mpREAL * oerr) {
+    int QuadPack1(mpREAL &oval, mpREAL &oerr, f1Type f, mpREAL_t epsabs, PrintHookerType PrintHooker, void *fdata) {
         Workspace Work(QAG_n, QAG_m);
-        mpREAL epsabs = sign_eps;
-        bool parallel = false;
-        if(epsabs<0) {
-            epsabs = 0-epsabs;
-            parallel = true;
-        }
         mpREAL result, abserr;
         Function F(f,fdata);
-        Work.qag(F, 0, 1, epsabs, 0, result, abserr, PrintHooker, parallel);
-        if(oerr!=NULL) *oerr = abserr;
-        return result;
+        try {
+            return Work.qag(F, 0, 1, epsabs, 0, oval, oerr, PrintHooker);
+        } catch (const char* reason) {
+            cout << reason << endl;
+            throw reason;
+        }
+        return SUCCESS;
     }
     
-    mpREAL QAGN(const int & xdim, const fnType & f, const mpREAL & eps, PrintHookerType PrintHooker, void * fdata, mpREAL * oerr) {
+    mpREAL QuadPackN(mpREAL * oerr, const int & xdim, const fnType & f, const mpREAL & eps, PrintHookerType PrintHooker, void * fdata) {
         if(xdim==1) {
             auto f1 = [f,eps](const mpREAL & x, void * fdata)->mpREAL {
                 vector<mpREAL> xs;
                 xs.push_back(x);
                 return f(xs,fdata);
             };
-            return QAG1(f1, -eps, PrintHooker, fdata, oerr); // eps<0 for parallel mode
+            return QuadPack1(oerr, f1, eps, PrintHooker, fdata);
         }
         
         auto f1 = [f,eps,xdim](const mpREAL & x, void * fdata)->mpREAL {
-            auto f2 =[f,x](const vector<mpREAL> & xs1, void * fdata1)->mpREAL {
-                vector<mpREAL> xs(xs1);
-                xs.push_back(x);
+            auto f2 =[f,x,xdim](const vector<mpREAL> & xs1, void * fdata1)->mpREAL {
+                vector<mpREAL> xs(xdim);
+                if(true) { // insert first
+                    xs[0] = x;
+                    for(int i=1; i<xdim; i++) xs[i] = xs1[i-1];
+                } else { // insert last
+                    for(int i=0; i<xdim-1; i++) xs[i] = xs1[i-1];
+                    xs[xdim-1] = x;
+                }
                 return f(xs,fdata1);
             };
-            return QAGN(xdim-1, f2, eps/xdim, NULL, fdata, NULL);
+            return QuadPackN(NULL, xdim-1, f2, eps/xdim, NULL, fdata);
         };
-        return QAG1(f1, eps, PrintHooker, fdata, oerr);
+        return QuadPack1(oerr, f1, eps, PrintHooker, fdata);
     }
     
 }
@@ -75,10 +80,10 @@ namespace {
 namespace HepLib::SD {
 
 /*-----------------------------------------------------*/
-// QAGMP Classes
+// QuadPackMP Classes
 /*-----------------------------------------------------*/
 
-ex QAGMP::mp2ex(const mpREAL & num) {
+ex QuadPackMP::mp2ex(const mpREAL & num) {
     ostringstream oss;
     oss.precision(MPDigits);
     oss << num;
@@ -87,9 +92,9 @@ ex QAGMP::mp2ex(const mpREAL & num) {
     return ret;
 }
 
-mpREAL QAGMP::Wrapper(const vector<mpREAL> & xs, void * fdata) {
+mpREAL QuadPackMP::Wrapper(const vector<mpREAL> & xs, void * fdata) {
 
-    auto self = (QAGMP*)fdata;
+    auto self = (QuadPackMP*)fdata;
     int xdim = xs.size(), ydim = 2;
     mpREAL x[xdim], y[ydim];
     for(int i=0; i<xdim; i++) x[i] = xs[i];
@@ -121,8 +126,8 @@ mpREAL QAGMP::Wrapper(const vector<mpREAL> & xs, void * fdata) {
     return y[self->Index];
 }
 
-void QAGMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nrun, void *fdata) {
-    auto self = (QAGMP*)fdata;
+void QuadPackMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nrun, void *fdata) {
+    auto self = (QuadPackMP*)fdata;
     if(*nrun == self->RunMAX + 1979) return;
     if(self->RunTime>0) {
         auto cur_timer = time(NULL);
@@ -184,7 +189,7 @@ void QAGMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nrun, vo
     }
 }
 
-ex QAGMP::Integrate() {
+ex QuadPackMP::Integrate() {
     CPUCORES = omp_get_num_procs();
     if(mpfr_buildopt_tls_p()<=0) throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
     mpfr_free_cache();
@@ -205,20 +210,20 @@ ex QAGMP::Integrate() {
     QAG_m = mQAG;
     StartTimer = time(NULL);
     Index = 0;
-    result[Index] = QAGN(xdim, Wrapper, EpsAbs, PrintHooker, this, estabs+Index);
+    result[Index] = QuadPackN(estabs+Index, xdim, Wrapper, EpsAbs, PrintHooker, this);
     StartTimer = time(NULL);
     Index = 1;
-    result[Index] = QAGN(xdim, Wrapper, EpsAbs, PrintHooker, this, estabs+Index);
+    result[Index] = QuadPackN(estabs+Index, xdim, Wrapper, EpsAbs, PrintHooker, this);
     
     
-    int nok;// = QAGN(result, estabs, Wrapper, xdim, ydim, EpsAbs, PrintHooker, this);
+    int nok;// = QuadPackN(result, estabs, Wrapper, xdim, ydim, EpsAbs, PrintHooker, this);
 
     if(nok) {
         mpREAL abs_res = sqrt(result[0]*result[0]+result[1]*result[1]);
         mpREAL abs_est = sqrt(estabs[0]*estabs[0]+estabs[1]*estabs[1]);
         mpREAL mpfr_eps = 10*mpfr::machine_epsilon();
         if( (abs_res < mpfr_eps) && (abs_est < mpfr_eps) ) {
-            cout << ErrColor << "QAGMP Failed with 0 result returned!" << RESET << endl;
+            cout << ErrColor << "QuadPackMP Failed with 0 result returned!" << RESET << endl;
             return NaN;
         }
     }

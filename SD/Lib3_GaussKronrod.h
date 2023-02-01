@@ -1,21 +1,25 @@
+// modified version from https://github.com/drjerry/quadpackpp
 #pragma once
 #include "mpreal.h"
 #include <functional>
 
+/* error return codes */
+#define SUCCESS 0
+#define FAILURE 1
+
 namespace {
     typedef mpfr::mpreal Real;
+    typedef const mpfr::mpreal & Real_t;
     class FtnBase {
     public:
-        virtual Real operator() (const Real & x) =0;
+        virtual int operator() (Real &y, Real &e, Real_t x) =0;
     };
     
     class Function : public FtnBase {
     public:
-        typedef std::function<Real(const Real & x, void * fdata)> f1Type;
-        virtual Real operator() (const Real & x) override {
-            return function_(x,fdata_);
-        }
-        Function(const f1Type & function, void * fdata) : function_(function), fdata_(fdata) { }
+        typedef std::function<int(Real &y, Real &e, Real_t x, void *fdata)> f1Type;
+        virtual int operator() (Real &y, Real &e, Real_t & x) override { return function_(y,e,x,fdata_); }
+        Function(const f1Type & function, void *fdata) : function_(function), fdata_(fdata) { }
         ~Function() { }
     private:
         f1Type function_;
@@ -34,23 +38,23 @@ namespace {
         Real *zeros;  // zeros of Legendre polynomial
         Real *fv1, *fv2;  // scratch space for error estimator
 
-        Real rescale_error(Real err, const Real result_abs, const Real result_asc);
+        Real rescale_error(Real err, Real_t result_abs, Real_t result_asc);
 
         void legendre_zeros();
         void chebyshev_coefs();
         void gauss_kronrod_abscissae();
         void gauss_kronrod_weights();
 
-        Real legendre_err(int deg, Real x, Real& err);
-        Real legendre_deriv(int deg, Real x);
-        Real chebyshev_series(Real x, Real& err);
-        Real chebyshev_series_deriv(Real x);
+        Real legendre_err(int deg, Real_t x, Real& err);
+        Real legendre_deriv(int deg, Real_t x);
+        Real chebyshev_series(Real_t x, Real& err);
+        Real chebyshev_series_deriv(Real_t x);
 
     public:
         GaussKronrod(size_t m = 10);
         ~GaussKronrod();
 
-        void qk(FtnBase& f, Real a, Real b, Real& result, Real& abserr, Real& resabs, Real& resasc, bool parallel=false);
+        int qk(FtnBase& f, Real_t a, Real_t b, Real& result, Real& abserr, Real& resabs, Real& resasc);
 
         size_t size() { return n_; };
 
@@ -203,7 +207,7 @@ namespace {
         }
     }
 
-    Real GaussKronrod::legendre_err(int n, Real x, Real& err) {
+    Real GaussKronrod::legendre_err(int n, Real_t x, Real& err) {
         if (n == 0) {
             err = Real(0);
             return Real(1);
@@ -226,7 +230,7 @@ namespace {
         return P2;
     }
 
-    Real GaussKronrod::legendre_deriv(int n, Real x) {
+    Real GaussKronrod::legendre_deriv(int n, Real_t x) {
         if (n == 0)
             return Real(0);
         else if (n == 1)
@@ -243,7 +247,7 @@ namespace {
         return dP2;
     }
 
-    Real GaussKronrod::chebyshev_series(Real x, Real& err) {
+    Real GaussKronrod::chebyshev_series(Real_t x, Real& err) {
         Real d1(0), d2(0);
         Real absc = abs(coefs[0]); // final term for truncation error
         Real y2 = 2 * x; // linear term for Clenshaw recursion
@@ -259,7 +263,7 @@ namespace {
         return x * d1 - d2 + coefs[0]/2;
     }
 
-    Real GaussKronrod::chebyshev_series_deriv(Real x) {
+    Real GaussKronrod::chebyshev_series_deriv(Real_t x) {
         Real d1(0), d2(0);
         Real y2 = 2 * x; // linear term for Clenshaw recursion
 
@@ -272,7 +276,7 @@ namespace {
         return y2 * d1 - d2 + coefs[1];
     }
 
-    Real GaussKronrod::rescale_error (Real err, const Real result_abs, const Real result_asc) {
+    Real GaussKronrod::rescale_error (Real err, Real_t result_abs, Real_t result_asc) {
         err = abs(err);
 
         if (result_asc != Real(0) && err != Real(0)) {
@@ -298,15 +302,12 @@ namespace {
         return err ;
     }
 
-    void GaussKronrod::qk(FtnBase& f, Real a, Real b,
-                                         Real& result, Real& abserr,
-                                         Real& resabs, Real& resasc,
-                                         bool parallel) {
+    int GaussKronrod::qk(FtnBase& f, Real_t a, Real_t b, Real& result, Real& abserr, Real& resabs, Real& resasc) {
         const Real center = (a + b) / 2;
         const Real half_length = (b - a) / 2;
         const Real abs_half_length = abs(half_length);
-        // const Real f_center = f.function(center, f.params);
-        const Real f_center = f(center);
+        Real f_center, ef_center;
+        if(f(f_center, ef_center, center)) return FAILURE;
 
         Real result_gauss = Real(0);
         Real result_kronrod = f_center * wgk_[n_ - 1];
@@ -315,78 +316,76 @@ namespace {
         Real mean = Real(0), err = Real(0);
 
         int j;
+        if (n_ % 2 == 0) result_gauss = f_center * wg_[n_/2 - 1];
 
-         if (n_ % 2 == 0) {
-             result_gauss = f_center * wg_[n_/2 - 1];
-         }
+        if(true) { // Parallel
+            int RC1[n_], RC2[n_];
+            Real e_fv1[n_], e_fv2[n_];
+            for(int j=0; j<n_; j++) RC1[j] = RC2[j] = 0;
+            auto prec = mpfr::mpreal::get_default_prec();
+            auto rnd = mpfr::mpreal::get_default_rnd();
+            #pragma omp parallel for
+            for(int jj = 0; jj < 2*n_ ; jj++) {
+                int j = jj/2, j2 = jj % 2;
+                mpfr::mpreal::set_default_prec(prec);
+                mpfr::mpreal::set_default_rnd(rnd);
+                Real abscissa = half_length * xgk_[j];
+                if(j2==0) RC1[j] = f(fv1[j], e_fv1[j], center - abscissa);
+                else RC2[j] = f(fv2[j], e_fv2[j], center + abscissa);
+                mpfr_free_cache();
+            }
+            for(int j=0; j<n_; j++) if(RC1[j]!=0 || RC2[j]!=0) return FAILURE;
 
-if(parallel) {
-    auto prec = mpfr::mpreal::get_default_prec();
-    auto rnd = mpfr::mpreal::get_default_rnd();
-    #pragma omp parallel for schedule(dynamic,1)
-    for(int jj = 0; jj < 2*n_ ; jj++) {
-        int j = jj/2, j2 = jj % 2;
-        mpfr::mpreal::set_default_prec(prec);
-        mpfr::mpreal::set_default_rnd(rnd);
-        Real abscissa = half_length * xgk_[j];
-        if(j2==0) fv1[j] = f(center - abscissa);
-        else fv2[j] = f(center + abscissa);
-        mpfr_free_cache();
-    }
-    
-    for(int j = 0; j < (n_ - 1) / 2; j++) {
-        int jtw = j * 2 + 1;
-        Real fval1 = fv1[jtw];
-        Real fval2 = fv2[jtw];
-        Real fsum = fval1 + fval2;
-        result_gauss += wg_[j] * fsum;
-        result_kronrod += wgk_[jtw] * fsum;
-        result_abs += wgk_[jtw] * (abs(fval1) + abs(fval2));
-    }
+            for(int j = 0; j < (n_ - 1) / 2; j++) {
+                int jtw = j * 2 + 1;
+                Real fval1 = fv1[jtw];
+                Real fval2 = fv2[jtw];
+                Real fsum = fval1 + fval2;
+                result_gauss += wg_[j] * fsum;
+                result_kronrod += wgk_[jtw] * fsum;
+                result_abs += wgk_[jtw] * (abs(fval1) + abs(fval2));
+            }
 
-    for (int j = 0; j < n_ / 2; j++) {
-        int jtwm1 = j * 2;
-        Real fval1 = fv1[jtwm1];
-        Real fval2 = fv2[jtwm1];
-        result_kronrod += wgk_[jtwm1] * (fval1 + fval2);
-        result_abs += wgk_[jtwm1] * (abs(fval1) + abs(fval2));
-	}
-} else {
-	for (j = 0; j < (n_ - 1) / 2; j++) {
-      int jtw = j * 2 + 1;        /* j=1,2,3 jtw=2,4,6 */
-      Real abscissa = half_length * xgk_[jtw];
-//      Real fval1 = f.function( center - abscissa , f.params);
-//      Real fval2 = f.function( center + abscissa , f.params);
-		Real fval1 = f(center - abscissa);
-		Real fval2 = f(center + abscissa);
-      Real fsum = fval1 + fval2;
-      fv1[jtw] = fval1;
-      fv2[jtw] = fval2;
-      result_gauss += wg_[j] * fsum;
-      result_kronrod += wgk_[jtw] * fsum;
-      result_abs += wgk_[jtw] * (abs(fval1) + abs(fval2));
-	}
+            for (int j = 0; j < n_ / 2; j++) {
+                int jtwm1 = j * 2;
+                Real fval1 = fv1[jtwm1];
+                Real fval2 = fv2[jtwm1];
+                result_kronrod += wgk_[jtwm1] * (fval1 + fval2);
+                result_abs += wgk_[jtwm1] * (abs(fval1) + abs(fval2));
+            }
+        } else { // Non-Parallel
+            Real fsum, fval1, e_fval1, fval2, e_fval2;
+            for (j = 0; j < (n_ - 1) / 2; j++) {
+                int jtw = j * 2 + 1;        /* j=1,2,3 jtw=2,4,6 */
+                Real abscissa = half_length * xgk_[jtw];
+                f(fval1, e_fval1, center - abscissa);
+                f(fval2, e_fval2, center + abscissa);
+                fsum = fval1 + fval2;
+                fv1[jtw] = fval1;
+                fv2[jtw] = fval2;
+                result_gauss += wg_[j] * fsum;
+                result_kronrod += wgk_[jtw] * fsum;
+                result_abs += wgk_[jtw] * (abs(fval1) + abs(fval2));
+            }
 
-        for (j = 0; j < n_ / 2; j++) {
-          int jtwm1 = j * 2;
-          Real abscissa = half_length * xgk_[jtwm1];
-    //      Real fval1 = f.function( center - abscissa , f.params);
-    //      Real fval2 = f.function( center + abscissa , f.params);
-            Real fval1 = f(center - abscissa);
-            Real fval2 = f(center + abscissa);
-            fv1[jtwm1] = fval1;
-          fv2[jtwm1] = fval2;
-          result_kronrod += wgk_[jtwm1] * (fval1 + fval2);
-          result_abs += wgk_[jtwm1] * (abs(fval1) + abs(fval2));
-        };
-}
+            for (j = 0; j < n_ / 2; j++) {
+                int jtwm1 = j * 2;
+                Real abscissa = half_length * xgk_[jtwm1];
+                f(fval1, e_fval1, center - abscissa);
+                f(fval2, e_fval2, center + abscissa);
+                fv1[jtwm1] = fval1;
+                fv2[jtwm1] = fval2;
+                result_kronrod += wgk_[jtwm1] * (fval1 + fval2);
+                result_abs += wgk_[jtwm1] * (abs(fval1) + abs(fval2));
+            }
+        }
 
         mean = result_kronrod / 2;
 
         result_asc = wgk_[n_ - 1] * abs(f_center - mean);
 
         for (j = 0; j < n_ - 1; j++) {
-          result_asc += wgk_[j] * (abs(fv1[j] - mean) + abs(fv2[j] - mean));
+            result_asc += wgk_[j] * (abs(fv1[j] - mean) + abs(fv2[j] - mean));
         }
 
         /* scale by the width of the integration region */
@@ -401,5 +400,8 @@ if(parallel) {
         resabs = result_abs;
         resasc = result_asc;
         abserr = rescale_error (err, result_abs, result_asc);
+        
+        return SUCCESS;
     }
+    
 }
