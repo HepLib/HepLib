@@ -207,13 +207,13 @@ int QuadPackMP::WrapperN(unsigned ydim, mpREAL *y, mpREAL *e, unsigned xdim, con
 
 void QuadPackMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nrun, void *fdata) {
     auto self = (QuadPackMP*)fdata;
-    if(*nrun == self->RunMAX + 1979) return;
+    if(*nrun == self->LevelMAX + 1979) return;
     if(self->RunTime>0) {
         auto cur_timer = time(NULL);
         auto used_time = difftime(cur_timer,self->StartTimer);
         if(used_time>self->RunTime) {
             self->NEval = *nrun;
-            *nrun = self->RunMAX + 1979;
+            *nrun = self->LevelMAX + 1979;
             if(Verbose>10) cout << WarnColor << "     Exit with Run out of Time: " << used_time << RESET << endl;
             return;
         }
@@ -229,29 +229,11 @@ void QuadPackMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nru
         cout << endl;
     }
     self->NEval = *nrun;
-    
-    if((isnan(result[0]) || isnan(result[1]) || isnan(epsabs[0]) || isnan(epsabs[1])) || (isinf(result[0]) || isinf(result[1]) || isinf(epsabs[0]) || isinf(epsabs[1]))) {
-        self->NEval = *nrun;
-        *nrun = self->RunMAX + 1979;
-        if(self->LastState>0) self->LastState = -1;
-        if(Verbose>10) cout << ErrColor << "     Exit with NaN, LastN=" << self->lastNRUN << RESET << endl;
-        return;
-    }
-    
-    if((self->LastState == 0) || (epsabs[0]<=2*self->LastAbsErr[0] && epsabs[1]<=2*self->LastAbsErr[1])) {
-        self->LastResult[0] = result[0];
-        self->LastResult[1] = result[1];
-        self->LastAbsErr[0] = epsabs[0];
-        self->LastAbsErr[1] = epsabs[1];
-        self->LastState = 1;
-        self->lastNRUN = *nrun;
-        self->lastnNAN = self->nNAN;
-    }
 
     bool rExit = (epsabs[0] < self->EpsAbs+1E-50Q) || (epsabs[0] < fabs(result[0])*self->EpsRel+1E-50Q);
     bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabs(result[1])*self->EpsRel+1E-50Q);
     if(rExit && iExit) {
-        *nrun = self->RunMAX + 1979;
+        *nrun = self->LevelMAX + 1979;
         return;
     }
 
@@ -260,7 +242,7 @@ void QuadPackMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nru
     fn << pid << ".int.done";
     if(file_exists(fn.str().c_str())) {
         self->NEval = *nrun;
-        *nrun = self->RunMAX + 1979;
+        *nrun = self->LevelMAX + 1979;
         ostringstream cmd;
         cmd << "rm " << fn.str();
         system(cmd.str().c_str());
@@ -281,10 +263,7 @@ ex QuadPackMP::Integrate() {
     unsigned int ydim = 2;
     mpREAL result[ydim], estabs[ydim];
 
-    LastState = 0;
-    NEval = 0;
-    nNAN = 0;
-    
+    NEval = 0;    
     int nok;
     QAG_n = nQAG;
     QAG_m = mQAG;
@@ -308,15 +287,6 @@ ex QuadPackMP::Integrate() {
             cout << ErrColor << "QuadPackMP Failed with 0 result returned!" << RESET << endl;
             return NaN;
         }
-    }
-
-    if(LastState==-1 && use_last) {
-        result[0] = LastResult[0];
-        result[1] = LastResult[1];
-        estabs[0] = LastAbsErr[0];
-        estabs[1] = LastAbsErr[1];
-        NEval = lastNRUN;
-        nNAN = lastnNAN;
     }
     
     ex FResult = 0;

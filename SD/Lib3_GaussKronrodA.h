@@ -33,6 +33,7 @@ namespace {
         virtual int operator() (unsigned yn, Real *y, Real *e, Real_t x) override { return function_(yn,y,e,x,fdata_); }
         FunctionN(unsigned yn, const f1Type & function, void *fdata) : FtnBaseN(yn), function_(function), fdata_(fdata) { }
         ~FunctionN() { }
+        void * fdata() { return fdata_; }
     private:
         f1Type function_;
         void * fdata_;
@@ -542,10 +543,9 @@ namespace {
                 result[j] = result0[j];
                 abserr[j] = abserr0[j];
             }
-    if(PrintHooker) {
-        std::cout << result[0] << std::endl;
-        std::cout << abserr[0] << std::endl << std::endl;
-    }
+            size_t kk = 1;
+            auto fdata = ((FunctionN&)f).fdata();
+            if(PrintHooker) PrintHooker(result, abserr, &kk, fdata);
             return SUCCESS;
         }
 
@@ -689,18 +689,24 @@ namespace {
                     e_i[j] = elist[i_work][j];
                 }
             }
-            iteration++;
-        
-    if(PrintHooker) {
-        std::cout << area[0] << std::endl;
-        std::cout << errsum[0] << std::endl << std::endl;
-    }
-
+            
+            if(PrintHooker) {
+                size_t kk = iteration;
+                auto fdata = ((FunctionN&)f).fdata();
+                PrintHooker(area, errsum, &kk, fdata);
+                if(kk!=iteration) {
+                    for(int j=0; j<yn; j++) {
+                        result[j] = area[j];
+                        abserr[j] = errsum[j];
+                    }
+                    return SUCCESS;
+                }
+            }
             ok = true;
             for(int j=0; j<yn; j++) {
                 if(errsum[j]>tolerance[j]) { ok = false; break; }
             }
-
+            iteration++;
         } while (iteration < limit && !ok);
 
         for(int j=0; j<yn; j++) {

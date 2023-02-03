@@ -241,20 +241,16 @@ namespace HepLib::SD {
         static int Wrapper(mpREAL &y, mpREAL &e, unsigned xdim, const mpREAL *x, void *fdata);
         static int WrapperN(unsigned yn, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata);
         typedef void (*PrintHookerType) (mpREAL*, mpREAL*, size_t *, void *);
-        
         virtual ex Integrate() override;
         static void DefaultPrintHooker(mpREAL *, mpREAL *, size_t *, void *);
         PrintHookerType PrintHooker = DefaultPrintHooker;
-        bool use_last = false;
-        size_t lastNRUN = 0;
-        mpREAL LastResult[2];
-        mpREAL LastAbsErr[2];
-        int lastnNAN = 0;
-        int LastState = 0;
         int Index = 0; // y array index
+        size_t & LevelMAX = RunMAX; // alias to RunMAX
+        QuadPackMP() { }
+        QuadPackMP(size_t n) : nQAG(n) { }
         QuadPackMP(size_t n, size_t m) : nQAG(n), mQAG(m) { }
     private:
-        size_t nQAG = 10000;
+        size_t nQAG = 100;
         size_t mQAG = 10;
         ex mp2ex(const mpREAL & num);
     };
