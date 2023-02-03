@@ -1,4 +1,5 @@
 // modified version from https://github.com/drjerry/quadpackpp
+// GaussKronrod Rules
 #pragma once
 #include "mpreal.h"
 #include <functional>
@@ -10,35 +11,19 @@
 namespace {
     typedef mpfr::mpreal Real;
     typedef const mpfr::mpreal & Real_t;
-    class FtnBase {
-    public:
-        virtual int operator() (Real &y, Real &e, Real_t x) =0;
-    };
     
-    class Function : public FtnBase {
-    public:
-        typedef std::function<int(Real &y, Real &e, Real_t x, void *fdata)> f1Type;
-        virtual int operator() (Real &y, Real &e, Real_t & x) override { return function_(y,e,x,fdata_); }
-        Function(const f1Type & function, void *fdata) : function_(function), fdata_(fdata) { }
-        ~Function() { }
-    private:
-        f1Type function_;
-        void * fdata_;
-    };
 
     class GaussKronrod {
-    private:
+    protected:
         size_t m_;  // Gauss-Legendre degree
         size_t n_;  // size of Gauss-Kronrod arrays
         Real*  xgk_;  // Gauss-Kronrod abscissae
         Real*  wg_;   // Gauss-Legendre weights
         Real*  wgk_;  // Gauss-Kronrod weights
 
+    private:
         Real *coefs;  // Chebyshev coefficients
         Real *zeros;  // zeros of Legendre polynomial
-        Real *fv1, *fv2;  // scratch space for error estimator
-
-        Real rescale_error(Real err, Real_t result_abs, Real_t result_asc);
 
         void legendre_zeros();
         void chebyshev_coefs();
@@ -49,26 +34,14 @@ namespace {
         Real legendre_deriv(int deg, Real_t x);
         Real chebyshev_series(Real_t x, Real& err);
         Real chebyshev_series_deriv(Real_t x);
-
+        
     public:
         GaussKronrod(size_t m = 10);
         ~GaussKronrod();
-
-        int qk(FtnBase& f, Real_t a, Real_t b, Real& result, Real& abserr, Real& resabs, Real& resasc);
-
         size_t size() { return n_; };
-
-        Real xgk(int k) {
-            return (0 <= k && k < n_) ? xgk_[k] : Real(0);
-        }
-
-        Real wgk(int k) {
-            return (0 <= k && k < n_) ? wgk_[k] : Real(0);
-        }
-
-        Real wg(int k) {
-            return (0 <= k && k < n_/2) ? wg_[k] : Real(0);
-        }
+        Real xgk(int k) { return (0 <= k && k < n_) ? xgk_[k] : Real(0); }
+        Real wgk(int k) { return (0 <= k && k < n_) ? wgk_[k] : Real(0); }
+        Real wg(int k) { return (0 <= k && k < n_/2) ? wg_[k] : Real(0); }
     };
 
     GaussKronrod::GaussKronrod(size_t m) {
@@ -79,9 +52,7 @@ namespace {
         wgk_ = new Real[n_];
         coefs = new Real[n_ + 1];
         zeros = new Real[m_ + 2];
-        fv1 = new Real[n_];
-        fv2 = new Real[n_];
-
+        
         legendre_zeros();
         chebyshev_coefs();
         gauss_kronrod_abscissae();
@@ -94,8 +65,6 @@ namespace {
         delete[] wg_;
         delete[] coefs;
         delete[] zeros;
-        delete[] fv1;
-        delete[] fv2;
     }
 
     void GaussKronrod::legendre_zeros() {
@@ -123,7 +92,6 @@ namespace {
             // copy roots tmp_0,...,tmp_{k-1} to z_1,...z_k:
             zeros[k+1] = zeros[k];
             for (int j = 0; j < k; ++j) zeros[j+1] = temp[j];
-
         }
         delete[] temp;
     }
@@ -144,14 +112,12 @@ namespace {
         for (int k = 2; k <= ell; ++k) {
             f[k] = f[k-1] * (2*k - 1) * (m_ + k) / (k * (2*m_ + 2*k + 1));
             alpha[k] = -f[k];
-            for (int i = 1; i < k; ++i)
-                alpha[k] -= f[i] * alpha[k-i];
+            for (int i = 1; i < k; ++i) alpha[k] -= f[i] * alpha[k-i];
         }
 
         for (int k = 0; k <= ell; ++k) {
             coefs[m_ + 1 - 2*k] = alpha[k];
-            if (m_  >= 2*k)
-                coefs[m_ - 2*k] = Real(0);
+            if (m_  >= 2*k) coefs[m_ - 2*k] = Real(0);
         }
 
         delete[] alpha;
@@ -160,8 +126,7 @@ namespace {
 
     void GaussKronrod::gauss_kronrod_weights() {
         Real err;
-        /* Gauss-Legendre weights:
-         */
+        // Gauss-Legendre weights:
         for (int k = 0; k < n_ / 2; ++k) {
             Real x = xgk_[2*k + 1];
             wg_[k] = (Real(-2) / ((m_ + 1) * legendre_deriv(m_, x) * legendre_err(m_+1, x, err)));
@@ -173,8 +138,7 @@ namespace {
         Real F_m = Real(2) / Real(2*m_ + 1);
         for (int k = 1; k <= m_; ++k) F_m *= (Real(2*k) / Real(2*k - 1));
 
-        /* Gauss-Kronrod weights:
-         */
+        // Gauss-Kronrod weights:
         for (size_t k = 0; k < n_; ++k) {
             Real x = xgk_[k];
             if (k % 2 == 0) {
@@ -193,17 +157,14 @@ namespace {
             // Newton's method for E_{n+1} :
             Real x_k = (zeros[m_-k] + zeros[m_+1-k])/Real(2);
             Real E = chebyshev_series(x_k, epsilon);
-            while (abs(E) > epsilon &&
-                     abs(delta) > mpfr::machine_epsilon())
-            {
+            while (abs(E) > epsilon && abs(delta) > mpfr::machine_epsilon()) {
                 delta = E / chebyshev_series_deriv(x_k);
                 x_k -= delta;
                 E = chebyshev_series(x_k, epsilon);
             }
             xgk_[2*k] = x_k;
             // copy adjacent Legendre-zero into the array:
-            if (2*k+1 < n_)
-                xgk_[2*k+1] = zeros[m_-k];
+            if (2*k+1 < n_) xgk_[2*k+1] = zeros[m_-k];
         }
     }
 
@@ -220,8 +181,7 @@ namespace {
         Real P0 = Real(1), P1 = x, P2;
         Real E0 = mpfr::machine_epsilon();
         Real E1 = abs(x) * mpfr::machine_epsilon();
-        for (int k = 1; k < n; ++k)
-        {
+        for (int k = 1; k < n; ++k) {
             P2 = ((2*k + 1) * x * P1 - k * P0) / (k + 1);
             err = ((2*k + 1) * abs(x) * E1 + k * E0) / (2*(k + 1));
             P0 = P1; P1 = P2;
@@ -231,10 +191,8 @@ namespace {
     }
 
     Real GaussKronrod::legendre_deriv(int n, Real_t x) {
-        if (n == 0)
-            return Real(0);
-        else if (n == 1)
-            return Real(1);
+        if (n == 0) return Real(0);
+        else if (n == 1) return Real(1);
 
         Real P0 = Real(1), P1 = x, P2;
         Real dP0 = Real(0), dP1 = Real(1), dP2;
@@ -255,7 +213,7 @@ namespace {
         for (int k = n_; k >= 1; --k) {
             Real temp = d1;
             d1 = y2 * d1 - d2 + coefs[k];
-          d2 = temp;
+            d2 = temp;
             absc += abs(coefs[k]);
         }
 
@@ -270,138 +228,10 @@ namespace {
         for (int k = n_; k >= 2; --k) {
             Real temp = d1;
             d1 = y2 * d1 - d2 + k * coefs[k];
-          d2 = temp;
+            d2 = temp;
         }
 
         return y2 * d1 - d2 + coefs[1];
-    }
-
-    Real GaussKronrod::rescale_error (Real err, Real_t result_abs, Real_t result_asc) {
-        err = abs(err);
-
-        if (result_asc != Real(0) && err != Real(0)) {
-            // cast 1.5 as Real number
-            Real exponent = Real(3)/Real(2);
-            Real scale = pow((200 * err / result_asc), exponent);
-
-            if (scale < Real(1)) {
-                err = result_asc * scale ;
-            } else {
-                err = result_asc ;
-            }
-        }
-
-        if (result_abs > mpfr::minval() / (50 * mpfr::machine_epsilon())) {
-          Real min_err = 50 * mpfr::machine_epsilon() * result_abs ;
-
-          if (min_err > err) {
-                err = min_err ;
-            }
-        }
-
-        return err ;
-    }
-
-    int GaussKronrod::qk(FtnBase& f, Real_t a, Real_t b, Real& result, Real& abserr, Real& resabs, Real& resasc) {
-        const Real center = (a + b) / 2;
-        const Real half_length = (b - a) / 2;
-        const Real abs_half_length = abs(half_length);
-        Real f_center, ef_center;
-        if(f(f_center, ef_center, center)) return FAILURE;
-
-        Real result_gauss = Real(0);
-        Real result_kronrod = f_center * wgk_[n_ - 1];
-        Real result_abs = abs(result_kronrod);
-        Real result_asc = Real(0);
-        Real mean = Real(0), err = Real(0);
-
-        int j;
-        if (n_ % 2 == 0) result_gauss = f_center * wg_[n_/2 - 1];
-
-        if(true) { // Parallel
-            int RC1[n_], RC2[n_];
-            Real e_fv1[n_], e_fv2[n_];
-            for(int j=0; j<n_; j++) RC1[j] = RC2[j] = 0;
-            auto prec = mpfr::mpreal::get_default_prec();
-            auto rnd = mpfr::mpreal::get_default_rnd();
-            #pragma omp parallel for
-            for(int jj = 0; jj < 2*n_ ; jj++) {
-                int j = jj/2, j2 = jj % 2;
-                mpfr::mpreal::set_default_prec(prec);
-                mpfr::mpreal::set_default_rnd(rnd);
-                Real abscissa = half_length * xgk_[j];
-                if(j2==0) RC1[j] = f(fv1[j], e_fv1[j], center - abscissa);
-                else RC2[j] = f(fv2[j], e_fv2[j], center + abscissa);
-                mpfr_free_cache();
-            }
-            for(int j=0; j<n_; j++) if(RC1[j]!=0 || RC2[j]!=0) return FAILURE;
-
-            for(int j = 0; j < (n_ - 1) / 2; j++) {
-                int jtw = j * 2 + 1;
-                Real fval1 = fv1[jtw];
-                Real fval2 = fv2[jtw];
-                Real fsum = fval1 + fval2;
-                result_gauss += wg_[j] * fsum;
-                result_kronrod += wgk_[jtw] * fsum;
-                result_abs += wgk_[jtw] * (abs(fval1) + abs(fval2));
-            }
-
-            for (int j = 0; j < n_ / 2; j++) {
-                int jtwm1 = j * 2;
-                Real fval1 = fv1[jtwm1];
-                Real fval2 = fv2[jtwm1];
-                result_kronrod += wgk_[jtwm1] * (fval1 + fval2);
-                result_abs += wgk_[jtwm1] * (abs(fval1) + abs(fval2));
-            }
-        } else { // Non-Parallel
-            Real fsum, fval1, e_fval1, fval2, e_fval2;
-            for (j = 0; j < (n_ - 1) / 2; j++) {
-                int jtw = j * 2 + 1;        /* j=1,2,3 jtw=2,4,6 */
-                Real abscissa = half_length * xgk_[jtw];
-                f(fval1, e_fval1, center - abscissa);
-                f(fval2, e_fval2, center + abscissa);
-                fsum = fval1 + fval2;
-                fv1[jtw] = fval1;
-                fv2[jtw] = fval2;
-                result_gauss += wg_[j] * fsum;
-                result_kronrod += wgk_[jtw] * fsum;
-                result_abs += wgk_[jtw] * (abs(fval1) + abs(fval2));
-            }
-
-            for (j = 0; j < n_ / 2; j++) {
-                int jtwm1 = j * 2;
-                Real abscissa = half_length * xgk_[jtwm1];
-                f(fval1, e_fval1, center - abscissa);
-                f(fval2, e_fval2, center + abscissa);
-                fv1[jtwm1] = fval1;
-                fv2[jtwm1] = fval2;
-                result_kronrod += wgk_[jtwm1] * (fval1 + fval2);
-                result_abs += wgk_[jtwm1] * (abs(fval1) + abs(fval2));
-            }
-        }
-
-        mean = result_kronrod / 2;
-
-        result_asc = wgk_[n_ - 1] * abs(f_center - mean);
-
-        for (j = 0; j < n_ - 1; j++) {
-            result_asc += wgk_[j] * (abs(fv1[j] - mean) + abs(fv2[j] - mean));
-        }
-
-        /* scale by the width of the integration region */
-
-        err = (result_kronrod - result_gauss) * half_length;
-
-        result_kronrod *= half_length;
-        result_abs *= abs_half_length;
-        result_asc *= abs_half_length;
-
-        result = result_kronrod;
-        resabs = result_abs;
-        resasc = result_asc;
-        abserr = rescale_error (err, result_abs, result_asc);
-        
-        return SUCCESS;
     }
     
 }

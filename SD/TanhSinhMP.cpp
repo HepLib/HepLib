@@ -2,14 +2,15 @@
  * @file
  * @brief Numerical Integrator using TanhSinhMP
  */
- 
-#include "SD.h"
+
 #include <math.h>
 #include <complex>
 extern "C" {
 #include <quadmath.h>
 }
 #include "mpreal.h"
+#include <omp.h>
+#include "SD.h"
 
 /* error return codes */
 #define SUCCESS 0
@@ -21,7 +22,9 @@ namespace {
     typedef const mpREAL & mpREAL_t;
     typedef complex<mpREAL> mpCOMPLEX;
     typedef std::function<int(unsigned ydim, mpREAL *y, mpREAL *e, const mpREAL & x, void *fdata)> f1Type;
+    typedef const f1Type & f1Type_t;
     typedef std::function<int(unsigned ydim, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata)> fnType;
+    typedef const fnType & fnType_t;
     typedef void (*PrintHookerType) (mpREAL *, mpREAL *, size_t *, void *);
 }
 extern mpREAL mpPi;
@@ -31,7 +34,7 @@ extern mpCOMPLEX mpiEpsilon;
 namespace {
     int CPUCORES = 8;
     // int f from a to b, parallel version
-    int TanhSinh1(mpREAL *oval, mpREAL *oerr, f1Type f, unsigned ydim, mpREAL_t epsrel, PrintHookerType PrintHooker, void *fdata) {
+    int TanhSinh1(mpREAL *oval, mpREAL *oerr, f1Type_t f, unsigned ydim, mpREAL_t epsrel, PrintHookerType PrintHooker, void *fdata) {
         mpREAL a=0, b=1; // integration domain (a,b)
         mpREAL c = (a+b)/2; // gamma
         mpREAL d = (b-a)/2; // sigma
@@ -47,7 +50,9 @@ namespace {
             eh = exp(h);
             t = eh;
             if (k > 0) eh *= eh;
-            if(true) { // Parallel
+            bool parallel = true;
+            if(omp_in_parallel() && ( !omp_get_nested() || omp_get_active_level()>1 )) parallel = false;
+            if(parallel) { // Parallel
                 while(true) {
                     int total = CPUCORES/2;
                     mpREAL xs[total], ws[total], fps[total*ydim], e_fps[total*ydim], fms[total*ydim], e_fms[total*ydim];
@@ -162,7 +167,7 @@ namespace {
         return SUCCESS;
     }
     
-    int TanhSinhN(mpREAL *val, mpREAL *err, fnType f, unsigned xdim, unsigned ydim, mpREAL_t eps, PrintHookerType PrintHooker, void *fdata) {
+    int TanhSinhN(mpREAL *val, mpREAL *err, fnType_t f, unsigned xdim, unsigned ydim, mpREAL_t eps, PrintHookerType PrintHooker, void *fdata) {
         if(xdim==1) {
             auto f1 = [f](unsigned ydim, mpREAL *y, mpREAL *e, mpREAL_t x, void *fdata)->int {
                 mpREAL xs[1];

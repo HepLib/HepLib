@@ -202,9 +202,7 @@ namespace HepLib::SD {
     class HCubatureMP : public IntegratorBase {
     public:
         static int Wrapper(unsigned int xdim, size_t npts, const mpREAL *x, void *fdata, unsigned int ydim, mpREAL *y);
-        
         typedef void (*PrintHookerType) (mpREAL*, mpREAL*, size_t *, void *);
-        
         virtual ex Integrate() override;
         static void DefaultPrintHooker(mpREAL*, mpREAL*, size_t *, void*);
         PrintHookerType PrintHooker = DefaultPrintHooker;
@@ -240,11 +238,12 @@ namespace HepLib::SD {
      */
     class QuadPackMP : public IntegratorBase {
     public:
-        static mpREAL Wrapper(const vector<mpREAL> & xs, void * fdata);
+        static int Wrapper(mpREAL &y, mpREAL &e, unsigned xdim, const mpREAL *x, void *fdata);
+        static int WrapperN(unsigned yn, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata);
         typedef void (*PrintHookerType) (mpREAL*, mpREAL*, size_t *, void *);
         
         virtual ex Integrate() override;
-        static void DefaultPrintHooker(mpREAL*, mpREAL*, size_t *, void*);
+        static void DefaultPrintHooker(mpREAL *, mpREAL *, size_t *, void *);
         PrintHookerType PrintHooker = DefaultPrintHooker;
         bool use_last = false;
         size_t lastNRUN = 0;
