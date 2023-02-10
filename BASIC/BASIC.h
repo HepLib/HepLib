@@ -37,13 +37,6 @@ lst classname::all(const ex &e) { \
 }
  
 /**
- * @brief Extension to GiNaC
- */
-namespace GiNaC {
-    ex ginac_factor(const ex& poly, unsigned options=0);
-}
-
-/**
  * @brief HepLib namespace
  */
 namespace HepLib {
@@ -107,15 +100,12 @@ namespace HepLib {
     extern const int o_fermat;
     extern const int o_fermatfD;
     extern const int o_fermatN;
-    extern const int o_factor;
     extern const int o_form;
     extern const int o_flint;
     extern const int o_flintf;
     extern const int o_flintfD;
     extern const int o_normal_fermat;
-    extern const int o_normal_factor;
     extern const int o_normal_form;
-    extern const int o_fermat_factor;
     extern const int o_fermat_form;
     
     /**

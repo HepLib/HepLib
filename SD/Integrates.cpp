@@ -113,8 +113,7 @@ namespace HepLib::SD {
     void SecDec::Integrates(const string & key, const string & pkey, int kid) {
         if(MPDigits>0) mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
         if(IsZero) return;
-        if(Integrator==NULL) Integrator = new HCubature();
-                
+        
         if(Verbose>0) cout << Color_HighLight << "  Integrates @ " << now() << RESET << endl;
         
         lst lstRE;
@@ -414,6 +413,7 @@ namespace HepLib::SD {
                 mppl[kv.first] = qpl[kv.first];
             }
             
+            if(Integrator==NULL) Integrator = new HCubature();
             Integrator->ReIm = reim;
             if(MPDigits>0) Integrator->MPDigits = MPDigits;
             Integrator->IntegrandD = fpD;
@@ -429,19 +429,11 @@ namespace HepLib::SD {
             Integrator->XDim = xsize;
         
             if(hasF) {
-                qREAL lamax = ex2q(las.op(las.nops()-1));
-                if(lamax > IntLaMax) lamax = IntLaMax;
-                
-                //if(TryPTS<10000) TryPTS = 10000;
-                Integrator->RunMAX = -5;
-                Integrator->RunPTS = TryPTS/5;
                 Integrator->EpsAbs = EpsAbs/cmax/stot/2;
                 Integrator->EpsRel = 0;
                 
-                if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
-                else if(MinPTS[0]>0) Integrator->MinPTS = xsize * MinPTS[0];
-                else Integrator->MinPTS = RunPTS/10;
-
+                qREAL lamax = ex2q(las.op(las.nops()-1));
+                if(lamax > IntLaMax) lamax = IntLaMax;
                 int ctryR = 0, ctry = 0, ctryL = 0;
                 int smin = -1;
                 ex min_err, min_res;
@@ -494,7 +486,7 @@ namespace HepLib::SD {
                                 dlas[i] = qlas[i];
                             }
                             
-                            auto res = Integrator->Integrate();
+                            auto res = Integrator->Integrate(CTryI);
                             if(Verbose>10) {
                                 cout << "\r                                                    \r";
                                 if(res.has(NaN)) cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << NaN << endl;
@@ -550,17 +542,17 @@ namespace HepLib::SD {
                         if(smin == -1) throw Error("Integrates: smin = -1, too small lambda (<1E-10)!");
                         
                         if(smin <= 0) {
-                            if((!err_break) && (ctryL >= CTryLeft || ctryR>0)) break;
+                            if((!err_break) && (ctryL >= CTryL || ctryR>0)) break;
                             log_lamax = log_lamin;
                             log_lamin -= 1.Q;
                             if(!err_break) ctryL++;
                         } else if(smin >= LambdaSplit) {
-                            if(ctryR >= CTryRight || ctryL>0) break;
+                            if(ctryR >= CTryR || ctryL>0) break;
                             log_lamin = log_lamax;
-                            log_lamax += log10q(CTryRightRatio);
+                            log_lamax += log10q(CTryRRatio);
                             ctryR++;
                         } else {
-                            if(ctry >= CTry) break;
+                            if(ctry >= CTryM) break;
                             auto la1 = log_lamin + (smin-1) * (log_lamax-log_lamin) / LambdaSplit;
                             auto la2 = log_lamin + (smin+1) * (log_lamax-log_lamin) / LambdaSplit;
                             log_lamin = la1;
@@ -639,14 +631,8 @@ namespace HepLib::SD {
                 }
             }
 
-            Integrator->RunMAX = RunMAX;
-            Integrator->RunPTS = RunPTS;
             Integrator->EpsAbs = EpsAbs/cmax/stot;
             Integrator->EpsRel = 0;
-            
-            if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
-            else if(MinPTS[0]>0) Integrator->MinPTS = xsize * MinPTS[0];
-            else Integrator->MinPTS = RunPTS/10;
             auto res = Integrator->Integrate();
             if(Verbose>5) {
                 cout << Color_HighLight << "     IRes = "<< HepLib::SD::VEResult(VESimplify(res)) << RESET << endl;
@@ -699,8 +685,6 @@ namespace HepLib::SD {
      */
     void SecDec::ReIntegrates(const string & key, const string & pkey, qREAL err) {
         if(IsZero) return;
-        if(Integrator==NULL) Integrator = new HCubature();
-                
         if(Verbose>0) cout << Color_HighLight << "  Integrates @ " << now() << RESET << endl;
         
         lst lstRE;
@@ -984,6 +968,7 @@ namespace HepLib::SD {
                 mppl[kv.first] = qpl[kv.first];
             }
             
+            if(Integrator==NULL) Integrator = new HCubature();
             Integrator->ReIm = reim;
             if(MPDigits>0) Integrator->MPDigits = MPDigits;
             Integrator->IntegrandD = fpD;
@@ -1002,16 +987,6 @@ namespace HepLib::SD {
                 qREAL lamax = ex2q(las.op(las.nops()-1));
                 if(lamax > IntLaMax) lamax = IntLaMax;
                 
-                //if(TryPTS<10000) TryPTS = 10000;
-                Integrator->RunMAX = -5;
-                Integrator->RunPTS = TryPTS/5;
-                Integrator->EpsAbs = EpsAbs/cmax/stot/2;
-                Integrator->EpsRel = 0;
-                
-                if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
-                else if(MinPTS[0]>0) Integrator->MinPTS = xsize * MinPTS[0];
-                else Integrator->MinPTS = RunPTS/10;
-                                
                 int ctryR = 0, ctry = 0, ctryL = 0;
                 int smin = -1;
                 ex min_err, min_res;
@@ -1062,7 +1037,7 @@ namespace HepLib::SD {
                             mplas[i] = qlas[i];
                         }
      
-                        auto res = Integrator->Integrate();
+                        auto res = Integrator->Integrate(CTryI);
                         if(Verbose>10) {
                             cout << "\r                                                    \r";
                             if(res.has(NaN)) cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << NaN << endl;
@@ -1117,17 +1092,17 @@ namespace HepLib::SD {
                     if(smin == -1) throw Error("Integrates: smin = -1, too small lambda (<1E-10)!");
                     
                     if(smin <= 0) {
-                        if((!err_break) && (ctryL >= CTryLeft || ctryR>0)) break;
+                        if((!err_break) && (ctryL >= CTryL || ctryR>0)) break;
                         log_lamax = log_lamin;
                         log_lamin -= 1.Q;
                         if(!err_break) ctryL++;
                     } else if(smin >= LambdaSplit) {
-                        if(ctryR >= CTryRight || ctryL>0) break;
+                        if(ctryR >= CTryR || ctryL>0) break;
                         log_lamin = log_lamax;
-                        log_lamax += log10q(CTryRightRatio);
+                        log_lamax += log10q(CTryRRatio);
                         ctryR++;
                     } else {
-                        if(ctry >= CTry) break;
+                        if(ctry >= CTryM) break;
                         auto la1 = log_lamin + (smin-1) * (log_lamax-log_lamin) / LambdaSplit;
                         auto la2 = log_lamin + (smin+1) * (log_lamax-log_lamin) / LambdaSplit;
                         log_lamin = la1;
@@ -1201,15 +1176,6 @@ namespace HepLib::SD {
                     }
                 }
             }
-
-            Integrator->RunMAX = RunMAX;
-            Integrator->RunPTS = RunPTS;
-            Integrator->EpsAbs = EpsAbs/cmax/stot;
-            Integrator->EpsRel = 0;
-            
-            if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
-            else if(MinPTS[0]>0) Integrator->MinPTS = xsize * MinPTS[0];
-            else Integrator->MinPTS = RunPTS/10;
             
             auto res = Integrator->Integrate();
             if(Verbose>5) {

@@ -84,15 +84,12 @@ namespace HepLib {
     const int o_fermat = (_o_++);
     const int o_fermatfD = (_o_++);
     const int o_fermatN = (_o_++);
-    const int o_factor = (_o_++);
     const int o_form = (_o_++);
     const int o_flint = (_o_++);
     const int o_flintf = (_o_++);
     const int o_flintfD = (_o_++);
     const int o_normal_fermat = (_o_++);
-    const int o_normal_factor = (_o_++);
     const int o_normal_form = (_o_++);
-    const int o_fermat_factor = (_o_++);
     const int o_fermat_form = (_o_++);
     
     // Symbols

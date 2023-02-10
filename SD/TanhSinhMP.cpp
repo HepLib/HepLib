@@ -32,6 +32,7 @@ extern mpREAL mpEuler;
 
 namespace {
     int CPUCORES = 8;
+    size_t kmax = 10;
     // int f from a to b, parallel version
     int TanhSinh1(mpREAL *oval, mpREAL *oerr, f1Type_t f, unsigned ydim, mpREAL_t epsrel, PrintHookerType PrintHooker, void *fdata) {
         mpREAL a=0, b=1; // integration domain (a,b)
@@ -41,8 +42,6 @@ namespace {
         mpREAL s[ydim], e_s[ydim], val[ydim], err[ydim], v[ydim], h = 2;
         if(f(ydim, s, e_s, c, fdata)) return FAILURE;
         size_t k = 0;
-        long kmax = ((HepLib::SD::TanhSinhMP*)fdata)->LevelMAX;
-        if(kmax<0) kmax = -kmax;
         while(k<=kmax) {
             mpREAL p[ydim], fp[ydim], fm[ydim], q, t, eh;
             for(int j=0; j<ydim; j++) p[j] = fp[j] = fm[j] = 0;
@@ -203,7 +202,7 @@ namespace HepLib::SD {
 // TanhSinhMP Classes
 /*-----------------------------------------------------*/
 
-TanhSinhMP::TanhSinhMP(size_t kmax) { LevelMAX = kmax; }
+TanhSinhMP::TanhSinhMP(size_t k) { K = k; }
 
 ex TanhSinhMP::mp2ex(mpREAL_t num) {
     ostringstream oss;
@@ -232,18 +231,18 @@ int TanhSinhMP::Wrapper(unsigned ydim, mpREAL *y, mpREAL *e, unsigned xdim, cons
 
 void TanhSinhMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nrun, void *fdata) {
     auto self = (TanhSinhMP*)fdata;
-    if(*nrun == self->LevelMAX + 1979) return;
+    if(*nrun == self->K + 1979) return;
     if(self->RunTime>0) {
         auto cur_timer = time(NULL);
         auto used_time = difftime(cur_timer,self->StartTimer);
         if(used_time>self->RunTime) {
             self->NEval = *nrun;
-            *nrun = self->LevelMAX + 1979;
+            *nrun = self->K + 1979;
             if(Verbose>10) cout << WarnColor << "     Exit with Run out of Time: " << used_time << RESET << endl;
             return;
         }
     }
-    if(Verbose>10 && self->LevelMAX>0) {
+    if(Verbose>10 && self->K>0) {
         auto r0 = result[0];
         auto r1 = result[1];
         auto e0 = epsabs[0].toString(3);
@@ -258,7 +257,7 @@ void TanhSinhMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nru
     bool rExit = (epsabs[0] < self->EpsAbs+1E-50Q) || (epsabs[0] < fabs(result[0])*self->EpsRel+1E-50Q);
     bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabs(result[1])*self->EpsRel+1E-50Q);
     if(rExit && iExit) {
-        *nrun = self->LevelMAX + 1979;
+        *nrun = self->K + 1979;
         return;
     }
 
@@ -267,7 +266,7 @@ void TanhSinhMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nru
     fn << pid << ".int.done";
     if(file_exists(fn.str().c_str())) {
         self->NEval = *nrun;
-        *nrun = self->LevelMAX + 1979;
+        *nrun = self->K + 1979;
         ostringstream cmd;
         cmd << "rm " << fn.str();
         system(cmd.str().c_str());
@@ -275,7 +274,8 @@ void TanhSinhMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nru
     }
 }
 
-ex TanhSinhMP::Integrate() {
+ex TanhSinhMP::Integrate(size_t n) {
+    kmax = n==0 ? K : n;
     CPUCORES = omp_get_num_procs();
     if(mpfr_buildopt_tls_p()<=0) throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
     mpfr_free_cache();
@@ -292,7 +292,7 @@ ex TanhSinhMP::Integrate() {
     epsrel = min(EpsAbs/(fabs(result[0])+EpsAbs), EpsAbs/(fabs(result[1])+EpsAbs));
     if(epsrel < 1E-2) {
         StartTimer = time(NULL);
-        nok = TanhSinhN(result, estabs, Wrapper, xdim, ydim, epsrel, PrintHooker, this);
+        nok = TanhSinhN(result, estabs, Wrapper, xdim, ydim, epsrel, n==0 ? PrintHooker : NULL, this);
     }
 
     if(nok) {

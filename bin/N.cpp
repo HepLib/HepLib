@@ -59,15 +59,13 @@ ex Integrate(int idx, int ni = -1) {
     ErrMin::hjRHO = 0.5;
             
     work.EpsAbs = 1E-3;
-    work.RunPTS = 1000000;
-    work.RunMAX = 5;
     work.LambdaSplit = 5;
-    work.TryPTS = 1000000;
-    work.CTryLeft = 1;
-    work.CTryRight = 1;
-    work.CTry = 1;
+    work.CTryI = 1000000;
+    work.CTryL = 1;
+    work.CTryR = 1;
+    work.CTryM = 1;
     //work.ReIm = 1;
-    work.CTryRightRatio = 2;
+    work.CTryRRatio = 2;
     
     ostringstream ikey;
     ikey << SD_path << "/" << idx;
@@ -75,6 +73,8 @@ ex Integrate(int idx, int ni = -1) {
     auto intor = new HCubature();
     intor->MPXLimit = 5E-12;
     intor->QXLimit = 5E-8;
+    intor->RunPTS = 1000000;
+    intor->RunMAX = 5;
     intor->use_last = false;
     intor->MPXDim = 0;
     work.Integrator = intor;
@@ -95,20 +95,20 @@ ex ReIntegrate(int idx, qREAL err) {
     ErrMin::hjRHO = 0.5;
             
     work.EpsAbs = 1E-4;
-    work.RunPTS = 1000000;
-    work.RunMAX = 10;
     work.LambdaSplit = 5;
-    work.TryPTS = 1000000;
-    work.CTryLeft = 1;
-    work.CTryRight = 1;
-    work.CTry = 1;
+    work.CTryI = 1000000;
+    work.CTryL = 1;
+    work.CTryR = 1;
+    work.CTryM = 1;
     //work.ReIm = 1;
-    work.CTryRightRatio = 2;
+    work.CTryRRatio = 2;
     
     ostringstream ikey;
     ikey << SD_path << "/" << idx;
         
     auto intor = new HCubature();
+    intor->RunPTS = 1000000;
+    intor->RunMAX = 10;
     intor->MPXLimit = 5E-5;
     intor->QXLimit = 5E-3;
     intor->use_last = true;

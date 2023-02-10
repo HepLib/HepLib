@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Numerical Integrator using QuadPackMP
+ * @brief Numerical Integrator using QuadMP
  */
  
 #include <math.h>
@@ -80,10 +80,10 @@ namespace {
 namespace HepLib::SD {
 
 /*-----------------------------------------------------*/
-// QuadPackMP Classes
+// QuadMP Classes
 /*-----------------------------------------------------*/
 
-ex QuadPackMP::mp2ex(const mpREAL & num) {
+ex QuadMP::mp2ex(const mpREAL & num) {
     ostringstream oss;
     oss.precision(MPDigits);
     oss << num;
@@ -92,8 +92,8 @@ ex QuadPackMP::mp2ex(const mpREAL & num) {
     return ret;
 }
 
-int QuadPackMP::Wrapper(unsigned ydim, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata) {
-    auto self = (QuadPackMP*)fdata;
+int QuadMP::Wrapper(unsigned ydim, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata) {
+    auto self = (QuadMP*)fdata;
     self->IntegrandMP(xdim, x, ydim, y, self->mpParameter, self->mpLambda);
     // Check NaN/Inf
     bool ok = true;
@@ -109,20 +109,20 @@ int QuadPackMP::Wrapper(unsigned ydim, mpREAL *y, mpREAL *e, unsigned xdim, cons
     return SUCCESS;
 }
 
-void QuadPackMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nrun, void *fdata) {
-    auto self = (QuadPackMP*)fdata;
-    if(*nrun == self->LevelMAX + 1979) return;
+void QuadMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nrun, void *fdata) {
+    auto self = (QuadMP*)fdata;
+    if(*nrun == self->nGK + 1979) return;
     if(self->RunTime>0) {
         auto cur_timer = time(NULL);
         auto used_time = difftime(cur_timer,self->StartTimer);
         if(used_time>self->RunTime) {
             self->NEval = *nrun;
-            *nrun = self->LevelMAX + 1979;
+            *nrun = self->nGK + 1979;
             if(Verbose>10) cout << WarnColor << "     Exit with Run out of Time: " << used_time << RESET << endl;
             return;
         }
     }
-    if(Verbose>10 && self->LevelMAX>0) {
+    if(Verbose>10) {
         auto r0 = result[0];
         auto r1 = result[1];
         auto e0 = epsabs[0].toString(3);
@@ -137,7 +137,7 @@ void QuadPackMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nru
     bool rExit = (epsabs[0] < self->EpsAbs+1E-50Q) || (epsabs[0] < fabs(result[0])*self->EpsRel+1E-50Q);
     bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabs(result[1])*self->EpsRel+1E-50Q);
     if(rExit && iExit) {
-        *nrun = self->LevelMAX + 1979;
+        *nrun = self->nGK + 1979;
         return;
     }
 
@@ -146,7 +146,7 @@ void QuadPackMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nru
     fn << pid << ".int.done";
     if(file_exists(fn.str().c_str())) {
         self->NEval = *nrun;
-        *nrun = self->LevelMAX + 1979;
+        *nrun = self->nGK + 1979;
         ostringstream cmd;
         cmd << "rm " << fn.str();
         system(cmd.str().c_str());
@@ -154,7 +154,7 @@ void QuadPackMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nru
     }
 }
 
-ex QuadPackMP::Integrate() {
+ex QuadMP::Integrate(size_t n) {
     if(mpfr_buildopt_tls_p()<=0) throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
     mpfr_free_cache();
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
@@ -168,16 +168,16 @@ ex QuadPackMP::Integrate() {
 
     NEval = 0;
     _mGK_ = mGK;
-    _nGK_ = LevelMAX>0 ? LevelMAX : -LevelMAX;
+    _nGK_ = n==0 ? nGK : n;
     StartTimer = time(NULL);
-    auto nok = QuadPackN(ydim, result, estabs, xdim, Wrapper, EpsAbs, PrintHooker, this);
+    auto nok = QuadPackN(ydim, result, estabs, xdim, Wrapper, EpsAbs, n==0 ? PrintHooker : NULL, this);
     
     if(nok) {
         mpREAL abs_res = sqrt(result[0]*result[0]+result[1]*result[1]);
         mpREAL abs_est = sqrt(estabs[0]*estabs[0]+estabs[1]*estabs[1]);
         mpREAL mpfr_eps = 10*mpfr::machine_epsilon();
         if( (abs_res < mpfr_eps) && (abs_est < mpfr_eps) ) {
-            cout << ErrColor << "QuadPackMP Failed with 0 result returned!" << RESET << endl;
+            cout << ErrColor << "QuadMP Failed with 0 result returned!" << RESET << endl;
             return NaN;
         }
     }

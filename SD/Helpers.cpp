@@ -265,217 +265,182 @@ namespace HepLib::SD {
         throw Error("vsRank error!");
     }
 
-/*-----------------------------------------------------*/
-// IntegratorBase::inDQMP
-/*-----------------------------------------------------*/
-int IntegratorBase::inDQMP(qREAL const *x) {
-    unsigned int xdim = XDim;
-    
-    if(xdim<=MPXDim) return 3;
-    qREAL xmin = 100;
-    for(int i=0; i<xdim; i++) {
-        if(x[i] < xmin) xmin = x[i];
+    ex SecDec::VEResult() {
+        return HepLib::SD::VEResult(ResultError);
     }
-    if(xmin < MPXLimit) return 3;
-    
-    if(FT!=NULL) {
-        qREAL ft = 1E50;
-        static FT_Type last_ft = NULL;
-        static qREAL ft0;
-        if(last_ft!=FT) {
-            qREAL x0[xdim];
-            for(int i=0; i<xdim; i++) x0[i]=0.521Q;
-            qREAL ft0 = fabsq(FT(x0, qParameter));
-            if(ft0<1E-50) ft0 = 1;
-            last_ft = FT;
+
+    void SecDec::VEPrint(bool endlQ) {
+        ex expr = HepLib::SD::VEResult(ResultError);
+        for(int i=expr.ldegree(eps); i<=expr.degree(eps); i++) {
+            ex exp1 = expr.coeff(eps, i);
+            for(int j=expr.ldegree(ep); j<=expr.degree(ep); j++) {
+                cout << Color_HighLight <<"(" << RESET;
+                cout << exp1.coeff(ep, j);
+                cout << Color_HighLight << ")" << RESET;
+                if(j!=0 || i!=0) cout << "*" << Color_HighLight << pow(ep,j)*pow(eps,i) << RESET;
+                if(j<expr.degree(ep)) cout << " + ";
+            }
         }
-        ft = fabsq(FT(x, qParameter));
-        ft = ft/ft0;
-        if(ft<MPFLimit) return 3;
-        else if(ft<QFLimit) return 2;
+        if(endlQ) cout << endl;
     }
-    
-    if(xdim <= QXDim || xmin < QXLimit) return 2;
-    
-    return 1;
-}
 
-ex SecDec::VEResult() {
-    return HepLib::SD::VEResult(ResultError);
-}
-
-void SecDec::VEPrint(bool endlQ) {
-    ex expr = HepLib::SD::VEResult(ResultError);
-    for(int i=expr.ldegree(eps); i<=expr.degree(eps); i++) {
-        ex exp1 = expr.coeff(eps, i);
-        for(int j=expr.ldegree(ep); j<=expr.degree(ep); j++) {
-            cout << Color_HighLight <<"(" << RESET;
-            cout << exp1.coeff(ep, j);
-            cout << Color_HighLight << ")" << RESET;
-            if(j!=0 || i!=0) cout << "*" << Color_HighLight << pow(ep,j)*pow(eps,i) << RESET;
-            if(j<expr.degree(ep)) cout << " + ";
+    ex Factor(const ex expr_in) {
+        ex expr = collect_common_factors(expr_in);
+        if(is_a<mul>(expr)) {
+            ex ret = 1;
+            for(auto item : expr) {
+                if(item.has(x(w)) || (item.has(y(w))) || (item.has(z(w)))) ret *= Factor(item);
+                else ret *= item;
+            }
+            return ret;
+        } else if(is_a<power>(expr) || expr.match(pow(w1,w2))) {
+            return pow(Factor(expr.op(0)), expr.op(1));
         }
-    }
-    if(endlQ) cout << endl;
-}
 
-ex Factor(const ex expr_in) {
-    ex expr = collect_common_factors(expr_in);
-    if(is_a<mul>(expr)) {
+        exset xyset;
+        expr.find(x(w), xyset);
+        expr.find(y(w), xyset);
+        expr.find(z(w), xyset);
+        expr.find(PL(w), xyset);
+        lst xy2s, s2xy;
+        for(auto xyi : xyset) {
+            symbol txy;
+            xy2s.append(xyi==txy);
+            s2xy.append(txy==xyi);
+        }
+        ex expr2 = xyz_pow_simplify(expr);
+        expr2 = collect_common_factors(expr2);
+        expr2 = expr2.subs(xy2s);
+        expr2 = factor(expr2);
+        expr2 = expr2.subs(s2xy);
+        expr2 = xyz_pow_simplify(expr2);
+        expr2 = collect_common_factors(expr2);
+        return expr2;
+    }
+
+    ex FactorOutX(const ex expr) {
+        exset xset;
+        expr.find(x(w), xset);
+        lst x2s, s2x;
+        for(auto xi : xset) {
+            symbol tx;
+            x2s.append(xi==tx);
+            s2x.append(tx==xi);
+        }
+        ex expr2 = xyz_pow_simplify(expr);
+        expr2 = collect_common_factors(expr2);
+        expr2 = expr2.subs(x2s);
+        expr2 = factor(expr2);
+        expr2 = expr2.subs(s2x);
+        expr2 = xyz_pow_simplify(expr2);
+        expr2 = collect_common_factors(expr2);
+        if(!is_a<mul>(expr2)) return expr2;
         ex ret = 1;
-        for(auto item : expr) {
-            if(item.has(x(w)) || (item.has(y(w))) || (item.has(z(w)))) ret *= Factor(item);
-            else ret *= item;
+        for(auto item : expr2) {
+            if(!item.match(x(w)) && !item.match(pow(x(w1),w2))) ret *= item;
         }
         return ret;
-    } else if(is_a<power>(expr) || expr.match(pow(w1,w2))) {
-        return pow(Factor(expr.op(0)), expr.op(1));
     }
 
-    exset xyset;
-    expr.find(x(w), xyset);
-    expr.find(y(w), xyset);
-    expr.find(z(w), xyset);
-    expr.find(PL(w), xyset);
-    lst xy2s, s2xy;
-    for(auto xyi : xyset) {
-        symbol txy;
-        xy2s.append(xyi==txy);
-        s2xy.append(txy==xyi);
-    }
-    ex expr2 = xyz_pow_simplify(expr);
-    expr2 = collect_common_factors(expr2);
-    expr2 = expr2.subs(xy2s);
-    expr2 = factor(expr2);
-    expr2 = expr2.subs(s2xy);
-    expr2 = xyz_pow_simplify(expr2);
-    expr2 = collect_common_factors(expr2);
-    return expr2;
-}
-
-ex FactorOutX(const ex expr) {
-    exset xset;
-    expr.find(x(w), xset);
-    lst x2s, s2x;
-    for(auto xi : xset) {
-        symbol tx;
-        x2s.append(xi==tx);
-        s2x.append(tx==xi);
-    }
-    ex expr2 = xyz_pow_simplify(expr);
-    expr2 = collect_common_factors(expr2);
-    expr2 = expr2.subs(x2s);
-    expr2 = factor(expr2);
-    expr2 = expr2.subs(s2x);
-    expr2 = xyz_pow_simplify(expr2);
-    expr2 = collect_common_factors(expr2);
-    if(!is_a<mul>(expr2)) return expr2;
-    ex ret = 1;
-    for(auto item : expr2) {
-        if(!item.match(x(w)) && !item.match(pow(x(w1),w2))) ret *= item;
-    }
-    return ret;
-}
-
-ex exp_simplify(const ex expr_in) {
-    auto expr = expr_in;
-    exmap sub_exp;
-    sub_exp[pow(exp(w1),w2)]=exp(w1*w2);
-    sub_exp[sqrt(exp(w1))]=exp(w1/2);
-    sub_exp[exp(w1)*exp(w2)*w0]=exp(w1+w2)*w0;
-    sub_exp[exp(w1)*exp(w2)]=exp(w1+w2);
-    while(true) {
-        auto expo = expr.subs(sub_exp);
-        if(is_zero(expo-expr)) break;
-        expr = expo;
-    }
-    return expr;
-}
-
-ex pow_simplify(const ex expr_in) {
-    auto expr = expr_in;
-    exmap sub_pow;
-    sub_pow[pow(pow(w1,w2),w3)] = pow(w1,w2*w3);
-    sub_pow[sqrt(pow(w1,w2))] = pow(w1,w2/2);
-    sub_pow[pow(sqrt(w1),w2)] = pow(w1,w2/2);
-    sub_pow[pow(w1,w2)*pow(w1,w3)*w0] = pow(w1,w2+w3)*w0;
-    sub_pow[pow(w1,w2)*w1*w0] = pow(w1,w2+1)*w0;
-    sub_pow[pow(w1,w2)/w1*w0] = pow(w1,w2-1)*w0;
-    sub_pow[pow(w1,w2)*sqrt(w1)] = pow(w1,w2+1/ex(2));
-    sub_pow[pow(w1,w2)/sqrt(w1)] = pow(w1,w2-1/ex(2));
-    while(true) {
-        auto expo = expr.subs(sub_pow);
-        if(is_zero(expo-expr)) break;
-        expr = expo;
-    }
-    return expr;
-}
-
-ex xyz_pow_simplify(const ex expr_in) {
-    ex expr = expr_in;
-    
-    //copied from pow_simplify
-    exmap sub_pow;
-    sub_pow[pow(pow(w1,w2),w3)] = pow(w1,w2*w3);
-    sub_pow[sqrt(pow(w1,w2))] = pow(w1,w2/2);
-    sub_pow[pow(sqrt(w1),w2)] = pow(w1,w2/2);
-    sub_pow[pow(w1,w2)*pow(w1,w3)*w0] = pow(w1,w2+w3)*w0;
-    sub_pow[pow(w1,w2)*w1*w0] = pow(w1,w2+1)*w0;
-    sub_pow[pow(w1,w2)/w1*w0] = pow(w1,w2-1)*w0;
-    sub_pow[pow(w1,w2)*sqrt(w1)] = pow(w1,w2+1/ex(2));
-    sub_pow[pow(w1,w2)/sqrt(w1)] = pow(w1,w2-1/ex(2));
-    
-    sub_pow[pow(x(w1)*w2,w3)] = pow(x(w1),w3)*pow(w2,w3);
-    sub_pow[pow(y(w1)*w2,w3)] = pow(y(w1),w3)*pow(w2,w3);
-    sub_pow[pow(z(w1)*w2,w3)] = pow(z(w1),w3)*pow(w2,w3);
-    while(true) {
-        auto expo = expr.subs(sub_pow);
-        if(is_zero(expo-expr)) break;
-        expr = expo;
-    }
-    return expr;
-}
-
-ex SecDec::PrefactorFIESTA(int nLoop) {
-    return  pow(I*pow(Pi,2-ep)*exp(ex(0)-ep*Euler), ex(0)-ex(nLoop));
-}
-
-
-/*-----------------------------------------------------*/
-// Refined F-Term
-/*-----------------------------------------------------*/
-ex SecDec::XRefined(ex const & in_ft) {
-    auto ft = Factor(in_ft);
-    while(true) {
-        auto ft0 = ft;
-        if(ft.match(pow(w1, w2))) {
-            ft = ft.op(0);
-        } else if(is_a<mul>(ft)) {
-            ex tmp = 1;
-            for(auto fti : ft) {
-                auto s = xSign(fti);
-                if(s>0) continue;
-                else if(s<0) tmp = ex(0)-tmp;
-                else tmp = tmp * fti;
-            }
-            ft = tmp;
-            if((ft-ft0).is_zero()) break;
-            continue;
+    ex exp_simplify(const ex expr_in) {
+        auto expr = expr_in;
+        exmap sub_exp;
+        sub_exp[pow(exp(w1),w2)]=exp(w1*w2);
+        sub_exp[sqrt(exp(w1))]=exp(w1/2);
+        sub_exp[exp(w1)*exp(w2)*w0]=exp(w1+w2)*w0;
+        sub_exp[exp(w1)*exp(w2)]=exp(w1+w2);
+        while(true) {
+            auto expo = expr.subs(sub_exp);
+            if(is_zero(expo-expr)) break;
+            expr = expo;
         }
-        break;
+        return expr;
     }
-    return ft;
-}
 
-lst SecDec::XRefined_lst(ex const & in_ft) {
-    auto ft = XRefined(in_ft);
-    lst ret;
-    if(is_a<mul>(ft)) {
-        for(auto const &item : ft) ret.append(item);
-    } else {
-        ret.append(ft);
+    ex pow_simplify(const ex expr_in) {
+        auto expr = expr_in;
+        exmap sub_pow;
+        sub_pow[pow(pow(w1,w2),w3)] = pow(w1,w2*w3);
+        sub_pow[sqrt(pow(w1,w2))] = pow(w1,w2/2);
+        sub_pow[pow(sqrt(w1),w2)] = pow(w1,w2/2);
+        sub_pow[pow(w1,w2)*pow(w1,w3)*w0] = pow(w1,w2+w3)*w0;
+        sub_pow[pow(w1,w2)*w1*w0] = pow(w1,w2+1)*w0;
+        sub_pow[pow(w1,w2)/w1*w0] = pow(w1,w2-1)*w0;
+        sub_pow[pow(w1,w2)*sqrt(w1)] = pow(w1,w2+1/ex(2));
+        sub_pow[pow(w1,w2)/sqrt(w1)] = pow(w1,w2-1/ex(2));
+        while(true) {
+            auto expo = expr.subs(sub_pow);
+            if(is_zero(expo-expr)) break;
+            expr = expo;
+        }
+        return expr;
     }
-    return ret;
-}
+
+    ex xyz_pow_simplify(const ex expr_in) {
+        ex expr = expr_in;
+        
+        //copied from pow_simplify
+        exmap sub_pow;
+        sub_pow[pow(pow(w1,w2),w3)] = pow(w1,w2*w3);
+        sub_pow[sqrt(pow(w1,w2))] = pow(w1,w2/2);
+        sub_pow[pow(sqrt(w1),w2)] = pow(w1,w2/2);
+        sub_pow[pow(w1,w2)*pow(w1,w3)*w0] = pow(w1,w2+w3)*w0;
+        sub_pow[pow(w1,w2)*w1*w0] = pow(w1,w2+1)*w0;
+        sub_pow[pow(w1,w2)/w1*w0] = pow(w1,w2-1)*w0;
+        sub_pow[pow(w1,w2)*sqrt(w1)] = pow(w1,w2+1/ex(2));
+        sub_pow[pow(w1,w2)/sqrt(w1)] = pow(w1,w2-1/ex(2));
+        
+        sub_pow[pow(x(w1)*w2,w3)] = pow(x(w1),w3)*pow(w2,w3);
+        sub_pow[pow(y(w1)*w2,w3)] = pow(y(w1),w3)*pow(w2,w3);
+        sub_pow[pow(z(w1)*w2,w3)] = pow(z(w1),w3)*pow(w2,w3);
+        while(true) {
+            auto expo = expr.subs(sub_pow);
+            if(is_zero(expo-expr)) break;
+            expr = expo;
+        }
+        return expr;
+    }
+
+    ex SecDec::PrefactorFIESTA(int nLoop) {
+        return  pow(I*pow(Pi,2-ep)*exp(ex(0)-ep*Euler), ex(0)-ex(nLoop));
+    }
+
+
+    /*-----------------------------------------------------*/
+    // Refined F-Term
+    /*-----------------------------------------------------*/
+    ex SecDec::XRefined(ex const & in_ft) {
+        auto ft = Factor(in_ft);
+        while(true) {
+            auto ft0 = ft;
+            if(ft.match(pow(w1, w2))) {
+                ft = ft.op(0);
+            } else if(is_a<mul>(ft)) {
+                ex tmp = 1;
+                for(auto fti : ft) {
+                    auto s = xSign(fti);
+                    if(s>0) continue;
+                    else if(s<0) tmp = ex(0)-tmp;
+                    else tmp = tmp * fti;
+                }
+                ft = tmp;
+                if((ft-ft0).is_zero()) break;
+                continue;
+            }
+            break;
+        }
+        return ft;
+    }
+
+    lst SecDec::XRefined_lst(ex const & in_ft) {
+        auto ft = XRefined(in_ft);
+        lst ret;
+        if(is_a<mul>(ft)) {
+            for(auto const &item : ft) ret.append(item);
+        } else {
+            ret.append(ft);
+        }
+        return ret;
+    }
 
 }

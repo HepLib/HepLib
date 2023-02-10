@@ -119,7 +119,6 @@ namespace HepLib::SD {
     // Integrator Classes
     /*-----------------------------------------------------*/
     
-    
     typedef long double dREAL;
     typedef complex<dREAL> dCOMPLEX;
     typedef __float128 qREAL;
@@ -136,8 +135,7 @@ namespace HepLib::SD {
         typedef int (*SDQ_Type) (const unsigned int xn, const qREAL x[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
         typedef int (*SDMP_Type) (const unsigned int xn, const mpREAL x[], const unsigned int yn, mpREAL y[], const mpREAL pl[], const mpREAL las[]);
         typedef qREAL (*FT_Type) (const qREAL xx[], const qREAL pl[]);
-        virtual ex Integrate() =0;
-        virtual int inDQMP(qREAL const *x);
+        virtual ex Integrate(size_t n=0) =0;
         
         FT_Type FT = NULL;
         SDD_Type IntegrandD = NULL;
@@ -151,28 +149,14 @@ namespace HepLib::SD {
         const mpREAL* mpParameter;
         int XDim;
         
-        time_t StartTimer; // used internally
-        
-        long RunMAX = 100;
-        size_t RunPTS = 100000;
-        size_t MinPTS = 100000;
-        size_t RunTime = 0;
         qREAL EpsAbs = 1E-5;
         qREAL EpsRel = 0;
         int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
-        int NANMax = 250;
-        int nNAN = 0;
-        
-        int DQMP = 0;
-        int QXDim = 0;
-        int MPXDim = 0;
-        qREAL QXLimit = 1E-6Q;
-        qREAL MPXLimit = 1E-8Q;
-        qREAL QFLimit = -1;
-        qREAL MPFLimit = -1;
-        
-        size_t NEval = 0;
         int MPDigits = 64;
+        size_t NEval = 0;
+    protected:
+        time_t StartTimer; // used internally
+        size_t RunTime = 0;
     };
 
     /**
@@ -184,16 +168,32 @@ namespace HepLib::SD {
         
         typedef void (*PrintHookerType) (qREAL*, qREAL*, size_t *, void *);
         
-        virtual ex Integrate() override;
+        virtual ex Integrate(size_t n=0) override;
         static void DefaultPrintHooker(qREAL*, qREAL*, size_t *, void*);
         PrintHookerType PrintHooker = DefaultPrintHooker;
-        long long MaxPTS; // can be negative
         bool use_last = false;
+        
+        int DQMP = 0;
+        int QXDim = 0;
+        int MPXDim = 0;
+        qREAL QXLimit = 1E-6Q;
+        qREAL MPXLimit = 1E-8Q;
+        qREAL QFLimit = -1;
+        qREAL MPFLimit = -1;
+        size_t RunMAX = 100;
+        size_t RunPTS = 100000;
+        size_t MinPTS = 100000;
+        size_t MaxPTS; // used internally
+    private:
+        int NANMax = 250;
+        int nNAN = 0;
         size_t lastNRUN = 0;
         qREAL LastResult[2];
         qREAL LastAbsErr[2];
         int lastnNAN = 0;
         int LastState = 0;
+        
+        int inDQMP(qREAL const *x);
     };
     
     /**
@@ -203,18 +203,25 @@ namespace HepLib::SD {
     public:
         static int Wrapper(unsigned int xdim, size_t npts, const mpREAL *x, void *fdata, unsigned int ydim, mpREAL *y);
         typedef void (*PrintHookerType) (mpREAL*, mpREAL*, size_t *, void *);
-        virtual ex Integrate() override;
+        virtual ex Integrate(size_t n=0) override;
         static void DefaultPrintHooker(mpREAL*, mpREAL*, size_t *, void*);
         PrintHookerType PrintHooker = DefaultPrintHooker;
-        long long MaxPTS; // can be negative
+        size_t RunMAX = 100;
+        size_t RunPTS = 100000;
+        size_t MinPTS = 100000;
+        size_t MaxPTS; // used internally
+    private:
+        ex mp2ex(const mpREAL & num);
+        int NANMax = 250;
+        int nNAN = 0;
         bool use_last = false;
         size_t lastNRUN = 0;
         mpREAL LastResult[2];
         mpREAL LastAbsErr[2];
         int lastnNAN = 0;
         int LastState = 0;
-    private:
-        ex mp2ex(const mpREAL & num);
+        
+        int inDQMP(qREAL const *x);
     };
     
     /**
@@ -224,30 +231,30 @@ namespace HepLib::SD {
     public:
         static int Wrapper(unsigned ydim, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata);
         typedef void (*PrintHookerType) (mpREAL *, mpREAL *, size_t *, void *);
-        virtual ex Integrate() override;
+        virtual ex Integrate(size_t n=0) override;
         static void DefaultPrintHooker(mpREAL *, mpREAL *, size_t *, void *);
         PrintHookerType PrintHooker = DefaultPrintHooker;
-        TanhSinhMP(size_t kmax=10);
-        long & LevelMAX = RunMAX; // alias to RunMAX
+        TanhSinhMP(size_t k=10);
     private:
         ex mp2ex(const mpREAL & num);
+        size_t K = 10;
     };
     
     /**
      * @brief numerical integrator using TanhSinhMP
      */
-    class QuadPackMP : public IntegratorBase {
+    class QuadMP : public IntegratorBase {
     public:
         static int Wrapper(unsigned yn, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata);
         typedef void (*PrintHookerType) (mpREAL*, mpREAL*, size_t *, void *);
-        virtual ex Integrate() override;
+        virtual ex Integrate(size_t n=0) override;
         static void DefaultPrintHooker(mpREAL *, mpREAL *, size_t *, void *);
         PrintHookerType PrintHooker = DefaultPrintHooker;
-        long & LevelMAX = RunMAX; // alias to RunMAX
-        QuadPackMP() { }
-        QuadPackMP(size_t m) : mGK(m) { }
-    private:
+        QuadMP() { }
+        QuadMP(size_t m) : mGK(m) { }
+        size_t nGK = 100;
         size_t mGK = 10;
+    private:
         ex mp2ex(const mpREAL & num);
     };
 
@@ -396,7 +403,6 @@ namespace HepLib::SD {
         ex ResultError;
         bool IsZero = false;
         bool CheckEnd = false;
-        //bool use_CCF = false;
         bool use_ErrMin = false;
         bool use_las = false;
         bool save_las = false;
@@ -414,18 +420,15 @@ namespace HepLib::SD {
         int CTTryPTS = 3;
         int CTSavePTS = 3;
         
-        size_t TryPTS = 500000;
         size_t LambdaSplit = 5;
         qREAL IntLaMax = 50;
-        int CTry = 1;
-        int CTryLeft = 1;
-        int CTryRight = 1;
-        dREAL CTryRightRatio = 1.5;
+        int CTryM = 1; // try lambda in Middle
+        int CTryL = 1; // try lambda in Left
+        int CTryR = 1; // try lambda in Right
+        size_t CTryI = 0; // integrator limit in CTry
+        dREAL CTryRRatio = 1.5;
         int soLimit = 10000;
         
-        long RunMAX = 20; // can be negative
-        size_t RunPTS = 500000;
-        map<int, size_t> MinPTS;
         qREAL EpsAbs = 1E-4;
         int ReIm = 3; // 1-Re, 2-Im, 3-ReIm
         

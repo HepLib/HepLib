@@ -1202,11 +1202,9 @@ namespace HepLib {
             ex vv = ep.first;
             ex cc = ep.second;
             if(opt==o_normal || opt==o_fermat || opt==o_fermatfD || opt==o_fermatN || opt==o_flint || opt==o_flintf || opt==o_flintfD) cc = exnormal(cc,opt);
-            else if(opt==o_factor || opt==o_form) cc = exfactor(cc,opt);
+            else if(opt==o_form) cc = exfactor(cc,opt);
             else if(opt==o_normal_fermat) cc = exnormal(normal(cc),o_fermat);
-            else if(opt==o_normal_factor) cc = ginac_factor(normal(cc),o_fermat);
             else if(opt==o_normal_form) cc = form_factor(normal(cc),o_fermat);
-            else if(opt==o_fermat_factor) cc = ginac_factor(fermat_normal(cc),o_fermat);
             else if(opt==o_fermat_form) cc = form_factor(fermat_normal(cc),o_fermat);
             if(!is_zero(cc)) res_lst.append(lst{cc, vv});
         }
@@ -1823,7 +1821,6 @@ namespace HepLib {
     ex exfactor(const ex & expr, int opt) {
         if(opt==o_none) return expr;
         else if(opt==o_form) return factor_form(expr);
-        else if(opt==o_factor) return ginac_factor(expr);
         else if(opt==o_flint || opt==o_flintf) return factor_flint(expr);
         else return expr;
     }
