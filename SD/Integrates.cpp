@@ -111,6 +111,7 @@ namespace HepLib::SD {
      * @param kid only the kid-th will be evaluated and updated the original "key-pkey" data
      */
     void SecDec::Integrates(const string & key, const string & pkey, int kid) {
+        if(MPDigits>0) mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
         if(IsZero) return;
         if(Integrator==NULL) Integrator = new HCubature();
                 
@@ -388,6 +389,10 @@ namespace HepLib::SD {
             if(hasF) fname << "C";
             fname << "SDMP_" << idx;
             fpMP = (IntegratorBase::SDMP_Type)dlsym(module, fname.str().c_str());
+            if(fpMP==NULL) {
+                cout << "dlerror(): " << dlerror() << endl;
+                throw Error("Integrates: fpMP==NULL");
+            }
                          
             if(is_a<lst>(las)) {
                 fname.clear();
@@ -427,7 +432,7 @@ namespace HepLib::SD {
                 qREAL lamax = ex2q(las.op(las.nops()-1));
                 if(lamax > IntLaMax) lamax = IntLaMax;
                 
-                if(TryPTS<10000) TryPTS = 10000;
+                //if(TryPTS<10000) TryPTS = 10000;
                 Integrator->RunMAX = -5;
                 Integrator->RunPTS = TryPTS/5;
                 Integrator->EpsAbs = EpsAbs/cmax/stot/2;
@@ -436,7 +441,7 @@ namespace HepLib::SD {
                 if(MinPTS[xsize]>0) Integrator->MinPTS = MinPTS[xsize];
                 else if(MinPTS[0]>0) Integrator->MinPTS = xsize * MinPTS[0];
                 else Integrator->MinPTS = RunPTS/10;
-                                
+
                 int ctryR = 0, ctry = 0, ctryL = 0;
                 int smin = -1;
                 ex min_err, min_res;
@@ -468,113 +473,116 @@ namespace HepLib::SD {
                     min_res = res;
                 } else {
                 // ---------------------------------------
-                while(true) {
-                    smin = -1;
-                    min_err = 0;
-                    ex lastResErr = 0;
-                    bool err_break = false;
-                    for(int s=0; s<=LambdaSplit; s++) {
-                        if(Verbose>10 && s==0) {
-                            if(ctryR>0 || ctry>0 || ctryL>0)
-                                cout << "     ------------------------------" << endl;
-                        }
-                        auto log_cla = (log_lamin + s * (log_lamax-log_lamin) / LambdaSplit);
-                        auto cla = powq(10.Q, log_cla);
-                        if(cla < 1E-10) throw Error("NIntegrate: too small lambda.");
-                        for(int i=0; i<las.nops()-1; i++) {
-                            qlas[i] = ex2q(las.op(i)) * cla;
-                            mplas[i] = qlas[i];
-                            dlas[i] = qlas[i];
-                        }
-     
-                        auto res = Integrator->Integrate();
-                        if(Verbose>10) {
-                            cout << "\r                                                    \r";
-                            if(res.has(NaN)) cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << NaN << endl;
-                            else cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << VEResult2(VESimplify(res)) << endl;
-                        }
-                        
-                        if(res.has(NaN) && s==0) continue;
-                        else if(res.has(NaN)) break;
-                        ex res_abs = NN(abs(res.subs(VE(w1,w2)==w1)));
-                        if(lastResErr.is_zero()) lastResErr = res;
-                        auto diff = VESimplify(lastResErr - res);
-                        diff = diff.subs(VE(0,0)==0);
-                        exset ves;
-                        diff.find(VE(w0, w1), ves);
-                        for(auto ve : ves) {
-                            auto ve0 = abs(ve.op(0));
-                            if(ve0>ve.op(1)) { 
-                                if(numeric("1.E10")*ve0<res_abs) continue; // avoid fluctuation aroud 0
-                                if(numeric("1.E10")*ve0<q2ex(EpsAbs)) continue; // avoid fluctuation aroud 0
-                                err_break = true;
-                                break;
+                    auto prec = cout.precision();
+                    cout.precision(5);
+                    while(true) {
+                        smin = -1;
+                        min_err = 0;
+                        ex lastResErr = 0;
+                        bool err_break = false;
+                        for(int s=0; s<=LambdaSplit; s++) {
+                            if(Verbose>10 && s==0) {
+                                if(ctryR>0 || ctry>0 || ctryL>0)
+                                    cout << "     ------------------------------" << endl;
                             }
-                        }
-                        if(err_break) {
-                            if(Verbose>10) cout << Color_HighLight << "     Error Break ..." << RESET << endl;
-                            break;
-                        }
-                        lastResErr = res;
-                        
-                        auto res_tmp = res.subs(VE(w1, w2)==w2);
-                        auto err = real_part(res_tmp);
-                        if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
-                        if(smin<0 || err < min_err) {
-                            min_err = err;
-                            min_res = res;
-                            min_eval = Integrator->NEval;
-                            smin = s;
-                        } 
-                        if(s>0 && min_err < q2ex(EpsAbs/cmax/stot)) { 
-                            // s>0 make sure at least 2 λs compatiable
-                            if(Verbose>5) {
-                                cout << Color_HighLight << "     λ=" << (double)cla << "/" << min_eval << ": " << HepLib::SD::VEResult(VESimplify(min_res)) << RESET << endl;
+                            auto log_cla = (log_lamin + s * (log_lamax-log_lamin) / LambdaSplit);
+                            auto cla = powq(10.Q, log_cla);
+                            if(cla < 1E-10) throw Error("NIntegrate: too small lambda.");
+                            for(int i=0; i<las.nops()-1; i++) {
+                                qlas[i] = ex2q(las.op(i)) * cla;
+                                mplas[i] = qlas[i];
+                                dlas[i] = qlas[i];
                             }
                             
-                            smin = -2;
-                            if(kid>0) lstRE.let_op(kid-1) = co * min_res;
-                            else lstRE.append(co * min_res);
-                            break;
+                            auto res = Integrator->Integrate();
+                            if(Verbose>10) {
+                                cout << "\r                                                    \r";
+                                if(res.has(NaN)) cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << NaN << endl;
+                                else cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << VEResult2(VESimplify(res)) << endl;
+                            }
+                            
+                            if(res.has(NaN) && s==0) continue;
+                            else if(res.has(NaN)) break;
+                            ex res_abs = NN(abs(res.subs(VE(w1,w2)==w1)));
+                            if(lastResErr.is_zero()) lastResErr = res;
+                            auto diff = VESimplify(lastResErr - res);
+                            diff = diff.subs(VE(0,0)==0);
+                            exset ves;
+                            diff.find(VE(w0, w1), ves);
+                            for(auto ve : ves) {
+                                auto ve0 = abs(ve.op(0));
+                                if(ve0>ve.op(1)) {
+                                    if(numeric("1.E10")*ve0<res_abs) continue; // avoid fluctuation aroud 0
+                                    if(numeric("1.E10")*ve0<q2ex(EpsAbs)) continue; // avoid fluctuation aroud 0
+                                    err_break = true;
+                                    break;
+                                }
+                            }
+                            if(err_break) {
+                                if(Verbose>10) cout << Color_HighLight << "     Error Break ..." << RESET << endl;
+                                break;
+                            }
+                            lastResErr = res;
+                            
+                            auto res_tmp = res.subs(VE(w1, w2)==w2);
+                            auto err = real_part(res_tmp);
+                            if(err < imag_part(res_tmp)) err = imag_part(res_tmp);
+                            if(smin<0 || err < min_err) {
+                                min_err = err;
+                                min_res = res;
+                                min_eval = Integrator->NEval;
+                                smin = s;
+                            }
+                            if(s>0 && min_err < q2ex(EpsAbs/cmax/stot)) {
+                                // s>0 make sure at least 2 λs compatiable
+                                if(Verbose>5) {
+                                    cout << Color_HighLight << "     λ=" << (double)cla << "/" << min_eval << ": " << HepLib::SD::VEResult(VESimplify(min_res)) << RESET << endl;
+                                }
+                                
+                                smin = -2;
+                                if(kid>0) lstRE.let_op(kid-1) = co * min_res;
+                                else lstRE.append(co * min_res);
+                                break;
+                            }
+                            if(err > 100 * min_err) break; // s>0 make sure at least 2 λs compatiable
                         }
-                        if(err > 100 * min_err) break; // s>0 make sure at least 2 λs compatiable
+                        if(smin == -2) break;
+                        if(smin == -1) throw Error("Integrates: smin = -1, too small lambda (<1E-10)!");
+                        
+                        if(smin <= 0) {
+                            if((!err_break) && (ctryL >= CTryLeft || ctryR>0)) break;
+                            log_lamax = log_lamin;
+                            log_lamin -= 1.Q;
+                            if(!err_break) ctryL++;
+                        } else if(smin >= LambdaSplit) {
+                            if(ctryR >= CTryRight || ctryL>0) break;
+                            log_lamin = log_lamax;
+                            log_lamax += log10q(CTryRightRatio);
+                            ctryR++;
+                        } else {
+                            if(ctry >= CTry) break;
+                            auto la1 = log_lamin + (smin-1) * (log_lamax-log_lamin) / LambdaSplit;
+                            auto la2 = log_lamin + (smin+1) * (log_lamax-log_lamin) / LambdaSplit;
+                            log_lamin = la1;
+                            log_lamax = la2;
+                            ctry++;
+                        }
                     }
-                    if(smin == -2) break;
-                    if(smin == -1) throw Error("Integrates: smin = -1, too small lambda (<1E-10)!");
+                    cout.precision(prec);
                     
-                    if(smin <= 0) {
-                        if((!err_break) && (ctryL >= CTryLeft || ctryR>0)) break;
-                        log_lamax = log_lamin;
-                        log_lamin -= 1.Q;
-                        if(!err_break) ctryL++;
-                    } else if(smin >= LambdaSplit) {
-                        if(ctryR >= CTryRight || ctryL>0) break;
-                        log_lamin = log_lamax;
-                        log_lamax += log10q(CTryRightRatio);
-                        ctryR++;
-                    } else {
-                        if(ctry >= CTry) break;
-                        auto la1 = log_lamin + (smin-1) * (log_lamax-log_lamin) / LambdaSplit;
-                        auto la2 = log_lamin + (smin+1) * (log_lamax-log_lamin) / LambdaSplit;
-                        log_lamin = la1;
-                        log_lamax = la2;
-                        ctry++;
+                    if(smin == -2) {
+                        if(kid>0) break;
+                        continue;
                     }
-                }
-                
-                if(smin == -2) {
-                    if(kid>0) break;
-                    continue;
-                }
-                
-                auto log_cla = (log_lamin + smin * (log_lamax-log_lamin) / LambdaSplit);
-                auto cla = powq(10.Q, log_cla);
-                if(Verbose>5) cout << Color_HighLight << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
-                for(int i=0; i<las.nops()-1; i++) {
-                    qlas[i] = ex2q(las.op(i)) * cla;
-                    dlas[i] = qlas[i];
-                    mplas[i] = qlas[i];
-                }
+                    
+                    auto log_cla = (log_lamin + smin * (log_lamax-log_lamin) / LambdaSplit);
+                    auto cla = powq(10.Q, log_cla);
+                    if(Verbose>5) cout << Color_HighLight << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
+                    for(int i=0; i<las.nops()-1; i++) {
+                        qlas[i] = ex2q(las.op(i)) * cla;
+                        dlas[i] = qlas[i];
+                        mplas[i] = qlas[i];
+                    }
                 // ---------------------------------------
                 }
                 
@@ -994,7 +1002,7 @@ namespace HepLib::SD {
                 qREAL lamax = ex2q(las.op(las.nops()-1));
                 if(lamax > IntLaMax) lamax = IntLaMax;
                 
-                if(TryPTS<10000) TryPTS = 10000;
+                //if(TryPTS<10000) TryPTS = 10000;
                 Integrator->RunMAX = -5;
                 Integrator->RunPTS = TryPTS/5;
                 Integrator->EpsAbs = EpsAbs/cmax/stot/2;

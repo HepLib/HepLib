@@ -29,7 +29,6 @@ namespace {
 }
 extern mpREAL mpPi;
 extern mpREAL mpEuler;
-extern mpCOMPLEX mpiEpsilon;
 
 namespace {
     int CPUCORES = 8;
@@ -42,7 +41,8 @@ namespace {
         mpREAL s[ydim], e_s[ydim], val[ydim], err[ydim], v[ydim], h = 2;
         if(f(ydim, s, e_s, c, fdata)) return FAILURE;
         size_t k = 0;
-        size_t kmax = ((HepLib::SD::TanhSinhMP*)fdata)->LevelMAX;
+        long kmax = ((HepLib::SD::TanhSinhMP*)fdata)->LevelMAX;
+        if(kmax<0) kmax = -kmax;
         while(k<=kmax) {
             mpREAL p[ydim], fp[ydim], fm[ydim], q, t, eh;
             for(int j=0; j<ydim; j++) p[j] = fp[j] = fm[j] = 0;
@@ -139,7 +139,7 @@ namespace {
             if(k > 10) {
                 cout << RED << "Large Level: " << RESET << k << endl;
                 for(int j=0; j<ydim; j++) {
-                    cout << val[j] << "+/-" << err[j].toString(3) << endl;
+                    cout << val[j] << " +- " << err[j].toString(3) << endl;
                 }
                 cout << endl;
             }
@@ -220,8 +220,7 @@ int TanhSinhMP::Wrapper(unsigned ydim, mpREAL *y, mpREAL *e, unsigned xdim, cons
     self->IntegrandMP(xdim, x, ydim, y, self->mpParameter, self->mpLambda);
     bool ok = true;
     for(int j=0; j<ydim; j++) {
-        mpREAL ytmp = y[j];
-        if(isnan(ytmp) || isinf(ytmp)) { ok = false; break; }
+        if(!isfinite(y[j])) { ok = false; break; }
     }
     if(!ok) {
         mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*100));
@@ -244,7 +243,7 @@ void TanhSinhMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nru
             return;
         }
     }
-    if(Verbose>10) {
+    if(Verbose>10 && self->LevelMAX>0) {
         auto r0 = result[0];
         auto r1 = result[1];
         auto e0 = epsabs[0].toString(3);
@@ -283,7 +282,6 @@ ex TanhSinhMP::Integrate() {
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     mpPi = mpfr::const_pi();
     mpEuler = mpfr::const_euler();
-    mpiEpsilon = complex<mpREAL>(0,mpiEpsilon.imag());
     
     unsigned int xdim = XDim;
     unsigned int ydim = 2;
@@ -308,7 +306,7 @@ ex TanhSinhMP::Integrate() {
     }
     
     ex FResult = 0;
-    if(isnan(result[0]) || isnan(result[1])) FResult += NaN;
+    if(!isfinite(result[0]) || !isfinite(result[1])) FResult += NaN;
     else {
         try{
             FResult += VE(mp2ex(result[0]), mp2ex(estabs[0]));

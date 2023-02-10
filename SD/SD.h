@@ -153,7 +153,7 @@ namespace HepLib::SD {
         
         time_t StartTimer; // used internally
         
-        size_t RunMAX = 100;
+        long RunMAX = 100;
         size_t RunPTS = 100000;
         size_t MinPTS = 100000;
         size_t RunTime = 0;
@@ -187,7 +187,7 @@ namespace HepLib::SD {
         virtual ex Integrate() override;
         static void DefaultPrintHooker(qREAL*, qREAL*, size_t *, void*);
         PrintHookerType PrintHooker = DefaultPrintHooker;
-        size_t MaxPTS;
+        long long MaxPTS; // can be negative
         bool use_last = false;
         size_t lastNRUN = 0;
         qREAL LastResult[2];
@@ -206,7 +206,7 @@ namespace HepLib::SD {
         virtual ex Integrate() override;
         static void DefaultPrintHooker(mpREAL*, mpREAL*, size_t *, void*);
         PrintHookerType PrintHooker = DefaultPrintHooker;
-        size_t MaxPTS;
+        long long MaxPTS; // can be negative
         bool use_last = false;
         size_t lastNRUN = 0;
         mpREAL LastResult[2];
@@ -228,7 +228,7 @@ namespace HepLib::SD {
         static void DefaultPrintHooker(mpREAL *, mpREAL *, size_t *, void *);
         PrintHookerType PrintHooker = DefaultPrintHooker;
         TanhSinhMP(size_t kmax=10);
-        size_t & LevelMAX = RunMAX; // alias to RunMAX
+        long & LevelMAX = RunMAX; // alias to RunMAX
     private:
         ex mp2ex(const mpREAL & num);
     };
@@ -238,20 +238,16 @@ namespace HepLib::SD {
      */
     class QuadPackMP : public IntegratorBase {
     public:
-        static int Wrapper(mpREAL &y, mpREAL &e, unsigned xdim, const mpREAL *x, void *fdata);
-        static int WrapperN(unsigned yn, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata);
+        static int Wrapper(unsigned yn, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata);
         typedef void (*PrintHookerType) (mpREAL*, mpREAL*, size_t *, void *);
         virtual ex Integrate() override;
         static void DefaultPrintHooker(mpREAL *, mpREAL *, size_t *, void *);
         PrintHookerType PrintHooker = DefaultPrintHooker;
-        int Index = 0; // y array index
-        size_t & LevelMAX = RunMAX; // alias to RunMAX
+        long & LevelMAX = RunMAX; // alias to RunMAX
         QuadPackMP() { }
-        QuadPackMP(size_t n) : nQAG(n) { }
-        QuadPackMP(size_t n, size_t m) : nQAG(n), mQAG(m) { }
+        QuadPackMP(size_t m) : mGK(m) { }
     private:
-        size_t nQAG = 100;
-        size_t mQAG = 10;
+        size_t mGK = 10;
         ex mp2ex(const mpREAL & num);
     };
 
@@ -427,7 +423,7 @@ namespace HepLib::SD {
         dREAL CTryRightRatio = 1.5;
         int soLimit = 10000;
         
-        size_t RunMAX = 20;
+        long RunMAX = 20; // can be negative
         size_t RunPTS = 500000;
         map<int, size_t> MinPTS;
         qREAL EpsAbs = 1E-4;

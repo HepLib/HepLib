@@ -198,7 +198,7 @@ ex HCubature::Integrate() {
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     mpPi = mpfr::const_pi();
     mpEuler = mpfr::const_euler();
-    mpiEpsilon = complex<mpREAL>(0,cimagq(qiEpsilon));
+    mpiEpsilon = complex<mpREAL>(0,mpfr::machine_epsilon()*100);
     
     unsigned int xdim = XDim;
     unsigned int ydim = 2;

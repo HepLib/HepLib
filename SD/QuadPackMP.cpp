@@ -9,7 +9,7 @@ extern "C" {
 #include <quadmath.h>
 }
 #include "mpreal.h"
-#include "Lib3_GaussKronrodA.h"
+#include "Lib3_GK.h"
 #include "SD.h"
 
 /* error return codes */
@@ -21,14 +21,10 @@ namespace {
     typedef mpfr::mpreal mpREAL;
     typedef const mpREAL & mpREAL_t;
     typedef complex<mpREAL> mpCOMPLEX;
-    typedef std::function<int(mpREAL &y, mpREAL &e, const mpREAL & x, void *fdata)> f1Type;
+    typedef std::function<int(unsigned yn, mpREAL *y, mpREAL *e, const mpREAL & x, void *fdata)> f1Type;
     typedef const f1Type & f1Type_t;
-    typedef std::function<int(mpREAL &y, mpREAL &e, unsigned xdim, const mpREAL *x, void *fdata)> fnType;
+    typedef std::function<int(unsigned yn, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata)> fnType;
     typedef const fnType & fnType_t;
-    typedef std::function<int(unsigned yn, mpREAL *y, mpREAL *e, const mpREAL & x, void *fdata)> f1TypeN;
-    typedef const f1TypeN & f1TypeN_t;
-    typedef std::function<int(unsigned yn, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata)> fnTypeN;
-    typedef const fnTypeN & fnTypeN_t;
     typedef void (*PrintHookerType) (mpREAL *, mpREAL *, size_t *, void *);
 }
 
@@ -37,13 +33,12 @@ extern mpREAL mpEuler;
 extern mpCOMPLEX mpiEpsilon;
 
 namespace {
-    int CPUCORES = 8;
-    size_t QAG_n = 10000;
-    size_t QAG_m = 10; // sets (2m+1)-point Gauss-Kronrod
+    size_t _nGK_ = 10000;
+    size_t _mGK_ = 10; // sets (2m+1)-point Gauss-Kronrod
     
-    int QuadPack1(mpREAL &oval, mpREAL &oerr, f1Type_t f, mpREAL_t epsabs, PrintHookerType PrintHooker, void *fdata) {
-        GKA gk(QAG_n, QAG_m);
-        Function F(f,fdata);
+    int QuadPack1(unsigned yn, mpREAL *oval, mpREAL *oerr, f1Type_t f, mpREAL_t epsabs, PrintHookerType PrintHooker, void *fdata) {
+        GK gk(_nGK_, _mGK_);
+        Function F(yn,f,fdata);
         try {
             return gk.QAG(F, 0, 1, epsabs, 0, oval, oerr, PrintHooker);
         } catch (const char* reason) {
@@ -53,46 +48,7 @@ namespace {
         return SUCCESS;
     }
     
-    int QuadPackN(mpREAL &oval, mpREAL &oerr, unsigned xdim, fnType_t f, mpREAL_t eps, PrintHookerType PrintHooker, void *fdata) {
-        if(xdim==1) {
-            auto f1 = [f,eps](mpREAL &y, mpREAL &e, mpREAL_t x, void *fdata)->int {
-                mpREAL xs[1];
-                xs[0] = x;
-                return f(y,e,1,xs,fdata);
-            };
-            return QuadPack1(oval, oerr, f1, eps, PrintHooker, fdata);
-        }
-        
-        auto f1 = [f,eps,xdim](mpREAL &y, mpREAL &e, mpREAL_t x, void *fdata)->int {
-            auto f2 =[f,x](mpREAL &y1, mpREAL &e1, unsigned xdim1, const mpREAL *xs1, void *fdata1)->int {
-                mpREAL xs[xdim1+1];
-                if(true) { // insert first
-                    xs[0] = x;
-                    for(int i=0; i<xdim1; i++) xs[i+1] = xs1[i];
-                } else { // insert last
-                    for(int i=0; i<xdim1; i++) xs[i] = xs1[i];
-                    xs[xdim1] = x;
-                }
-                return f(y1,e1,xdim1+1,xs,fdata1);
-            };
-            return QuadPackN(y,e,xdim-1,f2,eps/xdim,NULL,fdata);
-        };
-        return QuadPack1(oval, oerr, f1, eps, PrintHooker, fdata);
-    }
-    
-    int QuadPack1(unsigned yn, mpREAL *oval, mpREAL *oerr, f1TypeN_t f, mpREAL_t epsabs, PrintHookerType PrintHooker, void *fdata) {
-        GKA gk(QAG_n, QAG_m);
-        FunctionN F(yn,f,fdata);
-        try {
-            return gk.QAG(F, 0, 1, epsabs, 0, oval, oerr, PrintHooker);
-        } catch (const char* reason) {
-            cout << reason << endl;
-            throw reason;
-        }
-        return SUCCESS;
-    }
-    
-    int QuadPackN(unsigned yn, mpREAL *oval, mpREAL *oerr, unsigned xdim, fnTypeN_t f, mpREAL_t eps, PrintHookerType PrintHooker, void *fdata) {
+    int QuadPackN(unsigned yn, mpREAL *oval, mpREAL *oerr, unsigned xdim, fnType_t f, mpREAL_t eps, PrintHookerType PrintHooker, void *fdata) {
         if(xdim==1) {
             auto f1 = [f,eps](unsigned yn, mpREAL *y, mpREAL *e, mpREAL_t x, void *fdata)->int {
                 mpREAL xs[1];
@@ -136,72 +92,20 @@ ex QuadPackMP::mp2ex(const mpREAL & num) {
     return ret;
 }
 
-int QuadPackMP::Wrapper(mpREAL &y1, mpREAL &e, unsigned xdim, const mpREAL *x, void *fdata) {
-
+int QuadPackMP::Wrapper(unsigned ydim, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata) {
     auto self = (QuadPackMP*)fdata;
-    int ydim = 2;
-    mpREAL y[ydim];
     self->IntegrandMP(xdim, x, ydim, y, self->mpParameter, self->mpLambda);
-
-    // Final Check NaN/Inf
+    // Check NaN/Inf
     bool ok = true;
     for(int j=0; j<ydim; j++) {
-        mpREAL ytmp = y[j];
-        if(isnan(ytmp) || isinf(ytmp)) { ok = false; break; }
+        if(!isfinite(y[j])) { ok = false; break; }
     }
     if(!ok) {
         mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*100));
         self->IntegrandMP(xdim, x, ydim, y, self->mpParameter, self->mpLambda);
         mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
     }
-    
-    // final check
-    for(int j=0; j<ydim; j++) {
-        mpREAL ytmp = y[j];
-        if(isnan(ytmp) || isinf(ytmp)) {
-            #pragma omp atomic
-            self->nNAN++;
-            if(self->nNAN > self->NANMax) break;
-            else y[j] = 0;
-        }
-    }
-    
-    y1 = y[self->Index];
-    e = 0; // assume error can be ignored
-
-    return SUCCESS;
-}
-
-int QuadPackMP::WrapperN(unsigned ydim, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata) {
-
-    auto self = (QuadPackMP*)fdata;
-    self->IntegrandMP(xdim, x, ydim, y, self->mpParameter, self->mpLambda);
-
-    // Final Check NaN/Inf
-    bool ok = true;
-    for(int j=0; j<ydim; j++) {
-        mpREAL ytmp = y[j];
-        if(isnan(ytmp) || isinf(ytmp)) { ok = false; break; }
-    }
-    if(!ok) {
-        mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*100));
-        self->IntegrandMP(xdim, x, ydim, y, self->mpParameter, self->mpLambda);
-        mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
-    }
-    
-    // final check
-    for(int j=0; j<ydim; j++) {
-        mpREAL ytmp = y[j];
-        if(isnan(ytmp) || isinf(ytmp)) {
-            #pragma omp atomic
-            self->nNAN++;
-            if(self->nNAN > self->NANMax) break;
-            else y[j] = 0;
-        }
-    }
-
     for(int j=0; j<ydim; j++) e[j] = 0; // assume error can be ignored
-
     return SUCCESS;
 }
 
@@ -218,7 +122,7 @@ void QuadPackMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nru
             return;
         }
     }
-    if(Verbose>10) {
+    if(Verbose>10 && self->LevelMAX>0) {
         auto r0 = result[0];
         auto r1 = result[1];
         auto e0 = epsabs[0].toString(3);
@@ -251,33 +155,22 @@ void QuadPackMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nru
 }
 
 ex QuadPackMP::Integrate() {
-    CPUCORES = omp_get_num_procs();
     if(mpfr_buildopt_tls_p()<=0) throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
     mpfr_free_cache();
     mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
     mpPi = mpfr::const_pi();
     mpEuler = mpfr::const_euler();
-    mpiEpsilon = complex<mpREAL>(0,mpiEpsilon.imag());
+    mpiEpsilon = complex<mpREAL>(0,mpfr::machine_epsilon()*100);
     
     unsigned int xdim = XDim;
     unsigned int ydim = 2;
     mpREAL result[ydim], estabs[ydim];
 
-    NEval = 0;    
-    int nok;
-    QAG_n = nQAG;
-    QAG_m = mQAG;
-    if(true) {
-        StartTimer = time(NULL);
-        nok = QuadPackN(ydim, result, estabs, xdim, WrapperN, EpsAbs, PrintHooker, this);
-    } else {
-        StartTimer = time(NULL);
-        Index = 0;
-        nok = QuadPackN(result[Index], estabs[Index], xdim, Wrapper, EpsAbs, PrintHooker, this);
-        StartTimer = time(NULL);
-        Index = 1;
-        nok = QuadPackN(result[Index], estabs[Index], xdim, Wrapper, EpsAbs, PrintHooker, this);
-    }
+    NEval = 0;
+    _mGK_ = mGK;
+    _nGK_ = LevelMAX>0 ? LevelMAX : -LevelMAX;
+    StartTimer = time(NULL);
+    auto nok = QuadPackN(ydim, result, estabs, xdim, Wrapper, EpsAbs, PrintHooker, this);
     
     if(nok) {
         mpREAL abs_res = sqrt(result[0]*result[0]+result[1]*result[1]);

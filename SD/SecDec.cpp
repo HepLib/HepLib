@@ -1185,7 +1185,7 @@ namespace HepLib::SD {
                 exset fts;
                 pns.op(0).find(FTX(w1,w2), fts);
                 bool noFT = (fts.size()==1) && ( is_zero((*(fts.begin())).op(0)-1) );
-                if(!noFT && disable_Contour) noFT = true;
+                if(!noFT || disable_Contour) noFT = true;
                 
                 ex pole_requested = -1;
                 if(noFT || PoleRequested > -1) pole_requested = PoleRequested;

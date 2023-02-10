@@ -233,8 +233,8 @@ namespace HepLib::QCD {
          * @param p2 the p^2 = p.p
          * @return the z integration
          */
-        ex zIntegrate(const ex & c1, const ex & c0, const ex & n, const ex k2, const ex& p2) {
-            Symbol z("z"), kp("kp"), pp("pp");
+        ex zIntegrate(const ex & c1, const ex & c0, const ex & n, const ex & k2, const ex& p2) {
+            Symbol z("z"), kp("kp"), pp("pp"); // pp = p.n, 1-z = k.n/kp
             ex ret =  pow(2,n)*pow(Pi,1-ep)*pow(2*c0+c1*kp*(p2-p2*z)*pow(pp,-1)+c1*k2*pp*pow(kp-kp*z,-1),-n)*pow(c1*pow(pp,2)*pow(-2*c0*kp*pp*(-1+z)+c1*(k2*pow(pp,2)+p2*pow(kp,2)*pow(-1+z,2)),-1),-1+ep)*pow(tgamma(n),-1)*tgamma(-1+ep+n);
             return Symbol::set_all(ret);
         }

@@ -9,11 +9,11 @@ int NRCLog = 5;
 
 const dREAL dPi = 3.1415926535897932384626433832795028841971693993751L;
 const dREAL dEuler = 0.57721566490153286060651209008240243104215933593992L;
-const dCOMPLEX diEpsilon = complex<dREAL>(0, 1.E-50L);
+const dCOMPLEX diEpsilon = complex<dREAL>(0, 100*LDBL_EPSILON);
 
 const qREAL qPi = 3.1415926535897932384626433832795028841971693993751Q;
 const qREAL qEuler = 0.57721566490153286060651209008240243104215933593992Q;
-const qCOMPLEX qiEpsilon = 1.E-50Qi;
+const qCOMPLEX qiEpsilon = 100.Qi*FLT128_EPSILON;
 
 mpREAL mpPi;
 mpREAL mpEuler;
@@ -48,13 +48,14 @@ void Mat(int nfxs, dREAL(*DDf)(const int,const int,const dREAL*,const dREAL*),
 }
 
 dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
+    dREAL epsilon = LDBL_EPSILON * 100;
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
-        if(fabs(mat[i*n+i])<1.0E-15L) {
+        if(fabs(mat[i*n+i])<epsilon) {
             bool is_zero = true;
             for(int j=i+1; j<n; j++) {
-                if(fabs(mat[i*n+j])>1.0E-15L) {
+                if(fabs(mat[i*n+j])>epsilon) {
                     for(int k=0; k<n; k++) {
                         auto tmp = mat[k*n+j];
                         mat[k*n+j] = mat[k*n+i];
@@ -80,7 +81,7 @@ dCOMPLEX MatDet(dCOMPLEX mat[], int n) {
 dCOMPLEX RCLog(dCOMPLEX xs[], int n) {
     dCOMPLEX ret = log(xs[n]);
     if(n<2) return ret;
-    auto eps = LDBL_EPSILON;
+    auto eps = 100*LDBL_EPSILON;
     int total=0;
     int ReIm[n+1][2];
     for(int k=0; k<=n; k++) {
@@ -135,13 +136,14 @@ void Mat(int nfxs, qREAL(*DDf)(const int,const int,const qREAL*,const qREAL*),
 }
 
 qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
+    qREAL epsilon = FLT128_EPSILON * 100;
     bool is_zero = false;
     int s=1;
     for(int i=0; i<n-1; i++) {
-        if(cabsq(mat[i*n+i])<1.0E-25Q) {
+        if(cabsq(mat[i*n+i])<epsilon) {
             bool is_zero = true;
             for(int j=i+1; j<n; j++) {
-                if(cabsq(mat[i*n+j])>1.0E-25Q) {
+                if(cabsq(mat[i*n+j])>epsilon) {
                     for(int k=0; k<n; k++) {
                         auto tmp = mat[k*n+j];
                         mat[k*n+j] = mat[k*n+i];
@@ -167,7 +169,7 @@ qCOMPLEX MatDet(qCOMPLEX mat[], int n) {
 qCOMPLEX RCLog(qCOMPLEX xs[], int n) {
     qCOMPLEX ret = log(xs[n]);
     if(n<2) return ret;
-    auto eps = FLT128_EPSILON;
+    auto eps = 100*FLT128_EPSILON;
     int total=0;
     int ReIm[n+1][2];
     for(int k=0; k<=n; k++) {
@@ -223,12 +225,13 @@ void Mat(int nfxs, mpREAL(*DDf)(const int, const int,const mpREAL*,const mpREAL*
 
 mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
     bool is_zero = false;
+    mpREAL epsilon = mpfr::machine_epsilon() * 100;
     int s=1;
     for(int i=0; i<n-1; i++) {
-        if(abs(mat[i*n+i])<mpREAL(1.0E-35Q)) {
+        if(abs(mat[i*n+i])<epsilon) {
             bool is_zero = true;
             for(int j=i+1; j<n; j++) {
-                if(abs(mat[i*n+j])>mpREAL(1.0E-35Q)) {
+                if(abs(mat[i*n+j])>epsilon) {
                     for(int k=0; k<n; k++) {
                         auto tmp = mat[k*n+j];
                         mat[k*n+j] = mat[k*n+i];
@@ -254,7 +257,7 @@ mpCOMPLEX MatDet(mpCOMPLEX mat[], int n) {
 mpCOMPLEX RCLog(mpCOMPLEX xs[], int n) {
     mpCOMPLEX ret = log(xs[n]);
     if(n<2) return ret;
-    auto eps = mpfr::machine_epsilon(xs[0].real());
+    auto eps = mpfr::machine_epsilon() * 100;
     int total=0;
     int ReIm[n+1][2];
     for(int k=0; k<=n; k++) {
