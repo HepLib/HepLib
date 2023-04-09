@@ -325,7 +325,10 @@ namespace HepLib {
                     }
                     props.let_op(i) = props.op(i).subs(iEpsilon==0,nopat);
                     goto sign_done;
-                } else throw Error("LoopUF: sign of iEpsilon NOT determined.");
+                } else {
+                    cout << endl << ipr << endl;
+                    throw Error("LoopUF: sign of iEpsilon NOT determined.");
+                }
             }
             
             for(auto lp : ibp.Internal) {
@@ -369,7 +372,7 @@ namespace HepLib {
         if(!using_cache || cache.find(key)==cache.end()) { // no cache item
             ut = 1;
             ft = expand_ex(ft);
-            ft = subs_all(ft, ibp.Replacements);
+            ft = subs(ft, ibp.Replacements);
             for(int i=0; i<ibp.Internal.nops(); i++) {
                 auto t2 = ft.coeff(ibp.Internal.op(i),2);
                 auto t1 = ft.coeff(ibp.Internal.op(i),1);
@@ -378,11 +381,11 @@ namespace HepLib {
                 if(is_zero(t2)) return lst{0,0,1};
                 ft = normal_flint(t0-t1*t1/(4*t2));
                 //ft = expand_ex(ft);
-                ft = subs_all(ft, ibp.Replacements);
+                ft = subs(ft, ibp.Replacements);
             }
             ft = normal_flint(ut*ft);
-            ft = normal_flint(subs_all(ft, ibp.Replacements));
-            ut = normal_flint(subs_all(ut, ibp.Replacements));
+            ft = normal_flint(subs(ft, ibp.Replacements));
+            ut = normal_flint(subs(ut, ibp.Replacements));
             uf = normal_flint(ut+ft); // ut*ft, replay with ut+ft
             
             if(using_cache) cache[key] = lst{ut,ft,uf};
@@ -488,7 +491,7 @@ namespace HepLib {
         if(!using_cache || cache.find(key)==cache.end()) { // no cache item
             ut1 = 1;
             ft = expand(ft);
-            ft = subs_all(ft, lsubs);
+            ft = subs(ft, lsubs);
             for(int i=0; i<loops.nops(); i++) {
                 auto t2 = ft.coeff(loops.op(i),2);
                 auto t1 = ft.coeff(loops.op(i),1);
@@ -497,15 +500,15 @@ namespace HepLib {
                 if(is_zero(t2)) return lst{0,0,0,1};
                 ft = exnormal(t0-t1*t1/(4*t2));
                 ft = expand(ft);
-                ft = subs_all(ft, lsubs);
+                ft = subs(ft, lsubs);
             }
             ft = exnormal(ut1*ft);
-            ft = exnormal(subs_all(ft, lsubs));
-            ut1 = exnormal(subs_all(ut1, lsubs));
+            ft = exnormal(subs(ft, lsubs));
+            ut1 = exnormal(subs(ut1, lsubs));
 
             ut2 = 1;
             ft = expand(ft);
-            ft = subs_all(ft, tsubs);
+            ft = subs(ft, tsubs);
             for(int i=0; i<tloops.nops(); i++) {
                 auto t2 = ft.coeff(tloops.op(i),2);
                 auto t1 = ft.coeff(tloops.op(i),1);
@@ -514,11 +517,11 @@ namespace HepLib {
                 if(is_zero(t2)) return lst{0,0,0,1};
                 ft = exnormal(t0-t1*t1/(4*t2));
                 ft = expand(ft);
-                ft = subs_all(ft, tsubs);
+                ft = subs(ft, tsubs);
             }
             ft = exnormal(ut2*ft);
-            ft = exnormal(subs_all(ft, tsubs));
-            ut2 = exnormal(subs_all(ut2, tsubs));
+            ft = exnormal(subs(ft, tsubs));
+            ut2 = exnormal(subs(ut2, tsubs));
             
             uf = exnormal(ut1*ut2*ft);
             if(using_cache) cache[key] = lst{ut1,ut2,ft,uf};
@@ -578,12 +581,13 @@ namespace HepLib {
         }, "FR");
             
         map<ex,lst,ex_is_less> group;
-        int ntotal = 0;
+        int ntotal = uf_smi_vec.size();
+        int nLimit = 10000;
+        
         for(auto item : uf_smi_vec) {
             group[item.op(0)].append(item.op(1));
-            ntotal++;
         }
-
+        
         exmap rules;
         lst int_lst;
         exset pis;
@@ -601,20 +605,19 @@ namespace HepLib {
             }
             for(auto ki : ks) group.erase(ki);
         }
-        
+
         while(!group.empty()) {
             if(pis.size()>0) {
                 exset ks;
                 for(auto g : group) {
                     ex c0, v0;
                     for(auto gi : g.second) {
-                        for(auto pi : pis) {
-                            if(gi.op(0).is_equal(pi)) {
-                                ks.insert(g.first);
-                                c0 = gi.op(1);
-                                v0 = gi.op(2);
-                                goto found;
-                            }
+                        auto itr = pis.find(gi.op(0));
+                        if(itr!=pis.end()) {
+                            ks.insert(g.first);
+                            c0 = gi.op(1);
+                            v0 = gi.op(2);
+                            goto found;
                         }
                     }
                     continue; // if not found pi
@@ -631,11 +634,11 @@ namespace HepLib {
                 if(group.empty()) break;
             }
             pis.clear();
-            
+
             int cur = 0;
             for(auto g : group) {
                 cur++;
-                if(cur>100) break;
+                if(cur>10) break;
                 pis.insert(g.second.op(0).op(0));
             }
         }
@@ -758,7 +761,7 @@ namespace HepLib {
         
         ex ut = 1;
         ft = normal_flint(ft);
-        ft = subs_all(ft, Replacements);
+        ft = subs(ft, Replacements);
         for(int i=0; i<Internal.nops(); i++) {
             auto t2 = ft.coeff(Internal.op(i),2);
             auto t1 = ft.coeff(Internal.op(i),1);
@@ -767,11 +770,11 @@ namespace HepLib {
             if(is_zero(t2)) return true;
             ft = normal_flint(t0-t1*t1/(4*t2));
             //ft = expand(ft);
-            ft = subs_all(ft, Replacements);
+            ft = subs(ft, Replacements);
         }
-        ut = normal_flint(subs_all(ut, Replacements));
+        ut = normal_flint(subs(ut, Replacements));
         ft = normal_flint(ut*ft);
-        ft = normal_flint(subs_all(ft, Replacements));
+        ft = normal_flint(subs(ft, Replacements));
     
         ex G = ut + ft;
         ex sum = 0;
@@ -834,6 +837,7 @@ namespace HepLib {
             _pic++;
             symbol si("sp"+to_string(_pic));
             ss.append(si);
+            sp2s.append(w*item==w*si);
             sp2s.append(item==si);
             s2sp.append(si==item);
         }
@@ -841,8 +845,8 @@ namespace HepLib {
         lst eqns;
         for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
             auto eq = expand(Propagators.op(i)).subs(iEpsilon==0); // drop iEpsilon
-            eq = eq.subs(sp2s, algbr);
-            eq = eq.subs(Replacements, algbr);
+            eq = eq.subs(sp2s);
+            eq = eq.subs(Replacements);
             if(eq.has(iWF(w))) throw Error("IBP::SP2Pn, iWF used in eq.");
             eqns.append(eq == iWF(i));
         }
@@ -878,7 +882,7 @@ namespace HepLib {
         int eN = es.nops();
         int pN = Propagators.nops();
         matrix G(eN, eN);
-        for(int r=0; r<eN; r++) for(int c=0; c<eN; c++) G(r,c) = (es.op(r)*es.op(c)).subs(Replacements,algbr);
+        for(int r=0; r<eN; r++) for(int c=0; c<eN; c++) G(r,c) = (es.op(r)*es.op(c)).subs(Replacements);
         matrix Gi = G.inverse();
         // partial J/partial pi^2
         exmap spmap;
@@ -895,7 +899,7 @@ namespace HepLib {
                 ns2.let_op(pi) = ns.op(pi)+1;
                 ex dpi = -ns.op(pi)*diff_ex(Propagators.op(pi), p1);
                 for(int i=0; i<eN; i++) {
-                    ex idpi = expand_ex(dpi*es.op(i)).subs(Replacements,algbr);
+                    ex idpi = expand_ex(dpi*es.op(i)).subs(Replacements);
                     auto cvs = collect_lst(idpi, InExternal);
                     for(auto cv : cvs) {
                         if(is_zero(cv.op(1)-1)) res += cv.op(0)*pf*Gi(i,p2i)*F(ProblemNumber, ns2);
@@ -959,7 +963,7 @@ namespace HepLib {
             ex sp = External.op(i) * External.op(j);
             auto f = dsp.find(sp);
             if(f==dsp.end()) throw Error("DESS::InitDE, sp NOT found.");
-            auto rsp = sp.subs(Replacements, algbr);
+            auto rsp = sp.subs(Replacements);
             if(sp==rsp) throw Error("DESS::InitDE, sp==rsp, Replacements NOT work.");
             res += f->second * diff_ex(rsp, x);
         }}
@@ -995,7 +999,7 @@ namespace HepLib {
         
         ut = 1;
         ft = expand_ex(ft);
-        ft = subs_all(ft, ibp.Replacements);
+        ft = subs(ft, ibp.Replacements);
         for(int i=0; i<ibp.Internal.nops(); i++) {
             auto t2 = ft.coeff(ibp.Internal.op(i),2);
             auto t1 = ft.coeff(ibp.Internal.op(i),1);
@@ -1004,11 +1008,11 @@ namespace HepLib {
             if(is_zero(t2)) return lst{0,0,1};
             ft = exnormal(t0-t1*t1/(4*t2));
             ft = expand_ex(ft);
-            ft = subs_all(ft, ibp.Replacements);
+            ft = subs(ft, ibp.Replacements);
         }
         ft = exnormal(ut*ft);
-        ft = exnormal(subs_all(ft, ibp.Replacements));
-        ut = exnormal(subs_all(ut, ibp.Replacements));
+        ft = exnormal(subs(ft, ibp.Replacements));
+        ut = exnormal(subs(ut, ibp.Replacements));
         uf = exnormal(ut+ft); // ut*ft, replay with ut+ft
             
         uf = uf.subs(MapPreSP);

@@ -65,16 +65,18 @@ namespace HepLib {
      */
     class FIRE : public IBP {
     public:
+        bool allIBP = false;
         void Export() override;
         void Run() override;
         void Import() override;
         static int PosPref;
-        static int Version;
         static int Threads;
         static int fThreads;
         static int lThreads;
         static int sThreads;
-        static string suffix;
+        static int Version;
+        static string Execute;
+        static exmap NVariables;
         static void RRTables(const string & filename, int pnum);
         static void ThieleTables(const string & filename, int si, int ei);
     };

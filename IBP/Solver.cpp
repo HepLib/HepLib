@@ -325,28 +325,46 @@ namespace HepLib {
                 for(int i=0; i<pdim; i++) {
                     for(int j1=0; j1<n; j1++) for(int j2=0; j2<n; j2++) {
                         ibps.append(ibps.op(i).subs(lst{a(j1)==a(j1)+1}).subs(lst{a(j2)==a(j2)-1}));
-                        ibps.append(ibps.op(i).subs(lst{a(j1)==a(j1)+1}).subs(lst{a(j2)==a(j2)+1}));
-                        ibps.append(ibps.op(i).subs(lst{a(j1)==a(j1)-1}).subs(lst{a(j2)==a(j2)-1}));
+//                        ibps.append(ibps.op(i).subs(lst{a(j1)==a(j1)+1}).subs(lst{a(j2)==a(j2)+1}));
+//                        ibps.append(ibps.op(i).subs(lst{a(j1)==a(j1)-1}).subs(lst{a(j2)==a(j2)-1}));
                     }
                 }
             } else {
                 int n = ibps.nops();
                 for(int i=0; i<pdim; i++) {
                     for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)+1));
-                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)+2));
-                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)+3));
-                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)+4));
+//                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)+2));
+//                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)+3));
+//                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)+4));
                 }
 
-                //n = ibps.nops();
+                n = ibps.nops();
                 for(int i=0; i<pdim; i++) {
                     for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)-1));
-                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)-2));
-                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)-3));
-                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)-4));
+//                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)-2));
+//                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)-3));
+//                    for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)-4));
                 }
             }
-            
+        } else {
+            exset fs;
+            find(ibps, F(w), fs);
+            int n = ibps.nops();
+            for(auto fi : fs) {
+                exmap a2a;
+                for(int i=0; i<fi.op(0).nops(); i++) a2a[a(i)] = fi.op(0).op(i);
+                for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a2a));
+            }
+            for(auto fi : fs) {
+                exmap a2a;
+                for(int i=0; i<fi.op(0).nops(); i++) a2a[a(i)] = fi.op(0).op(i)+1;
+                for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a2a));
+            }
+            for(auto fi : fs) {
+                exmap a2a;
+                for(int i=0; i<fi.op(0).nops(); i++) a2a[a(i)] = fi.op(0).op(i)-1;
+                for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a2a));
+            }
         }
         
         // some a's replaced by integer
@@ -380,7 +398,7 @@ namespace HepLib {
                     auto ni = ns.op(i).subs(a(i)==0,nopat);
                     if(sector.op(i)==1) {
                         if(nfix[i]==1 && ni<=0) psum -= 100000;
-                        else psum += ex2int(ni);
+                        else psum += ex2int(ni)-1; // -1 from FIRE
                     } else {
                         if(nfix[i]==1 && ni>0) nsum += ex2int(ni);
                         else nsum -= ex2int(ni);
@@ -414,11 +432,10 @@ namespace HepLib {
             SparseMatrix smat;
             for(int r=0; r<nr; r++) {
                 auto ibp = ibps.op(r);
-                exset fset;
-                find(ibp,F(w),fset);
-                for(auto const & f : fset) {
-                    int c = f2n[f];
-                    ex cc = ibp.coeff(f);
+                auto cvs = collect_lst(ibp,F(w));
+                for(auto & cv : cvs) {
+                    int c = f2n[cv.op(1)];
+                    ex cc = cv.op(0);
                     if(!cc.is_zero()) smat[r][c] = cc;
                 }
             }
@@ -530,7 +547,7 @@ namespace HepLib {
                             if(sector.op(i)==1 && !nv[i].is_equal(1)) psum++;
                             if(sector.op(i)!=1 && !nv[i].is_zero()) nsum++;
                         }
-                        if(nsum<=1 && psum<=1) {
+                        if(psum<=1 && nsum<=1) {
                             ex con = vec2lst(nv);
                             cons.append(con);
                             cons_vec[con].append(sol);
@@ -544,6 +561,12 @@ cons.sort();
 cons.unique();
 sort_lst(cons,false);
 cout << cons << endl << endl;
+for(auto & item : cons) {
+    if(item==lst{1,1,1,1,1,1,1,1,1,1,0,0}) {
+        cout << endl << cons_vec[item] << endl << endl;
+        exit(0);
+    }
+}
         }
         
         cons.sort();
@@ -588,6 +611,7 @@ cout << cons << endl << endl;
             _pic++;
             Symbol si("P"+to_string(_pic));
             ss.append(si);
+            sp2s.append(w*item==w*si);
             sp2s.append(item==si);
             s2sp.append(si==item);
         }
@@ -595,16 +619,29 @@ cout << cons << endl << endl;
         lst leqns;
         for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
             auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
-            eq = eq.subs(sp2s, algbr);
-            eq = eq.subs(Replacements, algbr);
+            eq = eq.subs(sp2s);
+            eq = eq.subs(Replacements);
             if(eq.has(iWF(w))) throw Error("Solver::IBP, iWF used in eq.");
             leqns.append(eq == iWF(i));
         }
         auto s2p = lsolve(leqns, ss);
         if(s2p.nops() != ISP.nops()) throw Error("Solver::IBP, lsolve failed.");
         
+        // 1st version
+        if(true)
         if(DSP.nops()<1) {
-            for(auto p1 : Internal) for(auto p2 : InExternal) DSP.append(lst{p1,p2});
+            for(auto p1 : Internal)
+            for(auto p2 : InExternal)
+            DSP.append(lst{p1,p2});
+        }
+        
+        // Lee version
+        if(false)
+        if(DSP.nops()<1) {
+            for(int i=0; i<Internal.nops(); i++)
+                DSP.append(lst{Internal.op(i), Internal.op(i==Internal.nops()-1 ? 0 : i+1)});
+            for(auto p2 : InExternal) DSP.append(lst{Internal.op(0), p2});
+            DSP.append(lst{Internal, Internal});
         }
 
         IBPs.remove_all();
@@ -625,9 +662,9 @@ cout << cons << endl << endl;
             
             ibp = ibp * iep;
             ibp = ibp.expand();
-            ibp = ibp.subs(sp2s, algbr);
-            ibp = ibp.subs(Replacements, algbr);
-            ibp = ibp.subs(s2p, algbr);
+            ibp = ibp.subs(sp2s);
+            ibp = ibp.subs(Replacements);
+            ibp = ibp.subs(s2p);
             
             ex res = 0;
             for(int i=0; i<pdim; i++) {
@@ -654,7 +691,7 @@ cout << cons << endl << endl;
         lst ibps = IBPs;
         
         // add more eqn to ibps
-        if(true) {
+        if(false) {
 //            int n = ibps.nops();
 //            for(int i=0; i<pdim; i++) {
 //                for(int j1=0; j1<n; j1++) for(int j2=0; j2<n; j2++)
@@ -676,6 +713,11 @@ cout << cons << endl << endl;
 //                for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)-3));
 //                for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a(i)==a(i)-4));
             }
+        } else {
+            exset fs;
+            find(ibps, F(w1,w2), fs);
+cout << fs << endl;
+exit(0);
         }
         
         // some a's replaced by integer
@@ -708,7 +750,7 @@ cout << cons << endl << endl;
                     auto ni = ns.op(i).subs(a(i)==0,nopat);
                     if(sector.op(i)==1) {
                         if(nfix[i]==1 && ni<=0) psum -= 100000;
-                        else psum += ex2int(ni);
+                        else psum += ex2int(ni)-1; // -1 from FIRE
                     } else {
                         if(nfix[i]==1 && ni>0) nsum += ex2int(ni);
                         else nsum -= ex2int(ni);

@@ -110,14 +110,14 @@ namespace HepLib::QCD {
             ex s13 = x(si+1)*q2;
             ex s23 = x(si+2)*q2;
             exmap sp2x;
-            sp2x[p1*p2]=s12/2;
-            sp2x[p1*p3]=s13/2;
-            sp2x[p2*p3]=s23/2;
-            sp2x[p1*p1]=0;
-            sp2x[p2*p2]=0;
-            sp2x[p3*p3]=0;
+            sp2x[w*p1*p2]=w*s12/2;
+            sp2x[w*p1*p3]=w*s13/2;
+            sp2x[w*p2*p3]=w*s23/2;
+            sp2x[w*p1*p1]=0;
+            sp2x[w*p2*p2]=0;
+            sp2x[w*p3*p3]=0;
 
-            auto ret = pow(2*Pi,3-2*d) * pow(2,-1-d) * pow(q2,1-2*ep) * V(d-1)*V(d-2) * amp.subs(sp2x,algbr);
+            auto ret = pow(2*Pi,3-2*d) * pow(2,-1-d) * pow(q2,1-2*ep) * V(d-1)*V(d-2) * amp.subs(sp2x);
 
             ex ss = x(si+0)*x(si+1)*x(si+2);
             ret = MapFunction([si,ss,d](const ex & e, MapFunction &self)->ex{
@@ -145,19 +145,19 @@ namespace HepLib::QCD {
             ex s24 = x(si+4)*q2;
             ex s34 = x(si+5)*q2;
             exmap sp2x;
-            sp2x[p1*p1]=0;
-            sp2x[p2*p2]=0;
-            sp2x[p3*p3]=0;
-            sp2x[p4*p4]=0;
-            sp2x[p1*p2]=s12/2;
-            sp2x[p1*p3]=s13/2;
-            sp2x[p2*p3]=s23/2;
-            sp2x[p1*p4]=s14/2;
-            sp2x[p2*p4]=s24/2;
-            sp2x[p3*p4]=s34/2;
+            sp2x[w*p1*p1]=0;
+            sp2x[w*p2*p2]=0;
+            sp2x[w*p3*p3]=0;
+            sp2x[w*p4*p4]=0;
+            sp2x[w*p1*p2]=w*s12/2;
+            sp2x[w*p1*p3]=w*s13/2;
+            sp2x[w*p2*p3]=w*s23/2;
+            sp2x[w*p1*p4]=w*s14/2;
+            sp2x[w*p2*p4]=w*s24/2;
+            sp2x[w*p3*p4]=w*s34/2;
             
             auto ret = pow(2*Pi,4-3*d) * pow(2,1-2*d) * V(d-1)*V(d-2)*V(d-3) *
-                pow(q2,2-3*ep) * amp.subs(sp2x,algbr);
+                pow(q2,2-3*ep) * amp.subs(sp2x);
             
             // add λ(x16,x25,x34)^((d-5)/2) to each F
             ret = MapFunction([si,d](const ex & e, MapFunction &self)->ex{

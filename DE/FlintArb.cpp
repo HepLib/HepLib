@@ -69,7 +69,10 @@ namespace HepLib {
             auto nd = e.numer_denom();
             ostringstream oss;
             oss << "1  " << nd.op(0) << "/1  " << nd.op(1);
-            fmpz_poly_q_set_str(f, oss.str().c_str());
+            if(fmpz_poly_q_set_str(f, oss.str().c_str())) {
+                cout << "str: " << oss.str() << endl;
+                throw Error("_to_(fmpz_poly_q_t f, const ex & e)");
+            }
             return;
         } else if(is_a<add>(e)) {
             fmpz_poly_q_zero(f);
@@ -122,7 +125,10 @@ namespace HepLib {
         } else if(e.info(info_flags::integer)) {
             ostringstream oss;
             oss << "1  " << e;
-            fmpz_poly_set_str(f, oss.str().c_str());
+            if(fmpz_poly_set_str(f, oss.str().c_str())) {
+                cout << "str: " << oss.str() << endl;
+                throw Error("void _to_(fmpz_poly_t f, const ex & e)");
+            }
             return;
         } else if(is_a<add>(e)) {
             fmpz_poly_zero(f);
@@ -160,12 +166,18 @@ namespace HepLib {
     
     void _to_(fmpz_t q, const ex & expr) {
         auto str = ex2str(expr);
-        fmpz_set_str(q,str.c_str(),10);
+        if(fmpz_set_str(q,str.c_str(),10)) {
+            cout << "str: " << str << endl;
+            throw Error("fmpz_set_str error.");
+        }
     }
     
     void _to_(fmpq_t q, const ex & expr) {
         auto str = ex2str(expr);
-        fmpq_set_str(q,str.c_str(),10);
+        if(fmpq_set_str(q,str.c_str(),10)) {
+            cout << "str: " << str << endl;
+            throw Error("fmpq_set_str error.");
+        }
     }
     
     void _to_(fmpz_mat_t m, const matrix & mat) {
@@ -201,7 +213,10 @@ namespace HepLib {
             throw Error("to_arb_t: NOT a number");
         }
         auto str = ex2str(ne);
-        arb_set_str(r, str.c_str(), fp);
+        if(arb_set_str(r, str.c_str(), fp)) {
+            cout << "str: " << str << endl;
+            throw Error("arb_set_str error.");
+        }
     }
     
     void _to_(arb_mat_t m, const matrix & mat, slong fp) {
@@ -231,9 +246,15 @@ namespace HepLib {
         auto nre = ne.real_part();
         auto nie = ne.imag_part();
         auto rstr = ex2str(nre);
-        arb_set_str(rb, rstr.c_str(), fp);
+        if(arb_set_str(rb, rstr.c_str(), fp)) {
+            cout << "str: " << rstr << endl;
+            throw Error("arb_set_str error.");
+        }
         auto istr = ex2str(nie);
-        arb_set_str(ib, istr.c_str(), fp);
+        if(arb_set_str(ib, istr.c_str(), fp)) {
+            cout << "str: " << istr << endl;
+            throw Error("arb_set_str error.");
+        }
         acb_set_arb_arb(z, rb, ib);
         arb_clear(rb);
         arb_clear(ib);
@@ -256,8 +277,10 @@ namespace HepLib {
         }
         fmpz_mpoly_ctx_init(ctx, xs.nops(), ORD_LEX);
         fmpz_mpoly_init(f, ctx);
-        if(fmpz_mpoly_set_str_pretty(f, ex2str(e).c_str(), cvars, ctx))
-            throw Error("ex_to_fmpz_mpoly_t failed.");
+        if(fmpz_mpoly_set_str_pretty(f, ex2str(e).c_str(), cvars, ctx)) {
+            cout << "str: " << e << endl;
+            throw Error("fmpz_mpoly_set_str_pretty error.");
+        }
     }
     
     void _to_(const lst & xs, fmpq_mpoly_t f, fmpq_mpoly_ctx_t ctx, const ex & e) {
@@ -269,8 +292,10 @@ namespace HepLib {
         }
         fmpq_mpoly_ctx_init(ctx, xs.nops(), ORD_LEX);
         fmpq_mpoly_init(f, ctx);
-        if(fmpq_mpoly_set_str_pretty(f, ex2str(e).c_str(), cvars, ctx))
-            throw Error("ex_to_fmpq_mpoly_t failed.");
+        if(fmpq_mpoly_set_str_pretty(f, ex2str(e).c_str(), cvars, ctx)) {
+            cout << "str: " << e << endl;
+            throw Error("fmpq_mpoly_set_str_pretty error.");
+        }
     }
         
     //=*********************************************************************=
@@ -1176,29 +1201,37 @@ namespace HepLib {
     
     //=*********************************************************************=
     
-    ex factor_flint(const ex & expr_in) {
-        exmap map_rat;
-        ex res;
-        auto expr = expr_in.to_rational(map_rat);
-        auto xs = syms(expr);
-        if(xs.nops()<1) return expr;
-        if(xs.nops()==1) {
-            auto x = xs.op(0);
-            fmpz_poly_t f;
-            fmpz_poly_init(f);
-            _to_(f,expr); 
-            res = _factor_(x,f);
-            fmpz_poly_clear(f);
+    ex factor_flint(const ex & expr_in, bool nd) {
+        if(nd) {
+            exmap map_rat;
+            auto expr = expr_in.to_rational(map_rat);
+            auto nd = numer_denom(expr);
+            expr = factor_flint(nd.op(0), false) / factor_flint(nd.op(1), false);
+            return expr.subs(map_rat,nopat);
         } else {
-            fmpz_mpoly_t f;
-            fmpz_mpoly_ctx_t ctx;
-            _to_(xs,f,ctx,expr);
-            res = _factor_(xs,f,ctx);
-            fmpz_mpoly_clear(f,ctx);
-            fmpz_mpoly_ctx_clear(ctx);
+            exmap map_rat;
+            ex res;
+            auto expr = expr_in.to_polynomial(map_rat);
+            auto xs = syms(expr);
+            if(xs.nops()<1) return expr;
+            if(xs.nops()==1) {
+                auto x = xs.op(0);
+                fmpz_poly_t f;
+                fmpz_poly_init(f);
+                _to_(f,expr);
+                res = _factor_(x,f);
+                fmpz_poly_clear(f);
+            } else {
+                fmpz_mpoly_t f;
+                fmpz_mpoly_ctx_t ctx;
+                _to_(xs,f,ctx,expr);
+                res = _factor_(xs,f,ctx);
+                fmpz_mpoly_clear(f,ctx);
+                fmpz_mpoly_ctx_clear(ctx);
+            }
+            res = res.subs(map_rat,nopat);
+            return res;
         }
-        res = res.subs(map_rat,nopat);
-        return res;
     }
     
     ex factor_fpq(const ex & expr) {
@@ -1366,14 +1399,42 @@ namespace HepLib {
         if(xs.nops()<1) return expr;
         if(xs.nops()==1) {
             auto x = xs.op(0);
-            auto sx = ex2str(x).c_str();
+            auto sx = ex2str(x);
             symtab st;
             st[sx] = x;
-            fmpz_poly_q_t f;
-            fmpz_poly_q_init(f);
-            _to_(f, expr);
-            res = _to_(x,f);
-            fmpz_poly_q_clear(f);
+            
+            if(opt==o_flint) {
+                fmpz_poly_q_t f;
+                fmpz_poly_q_init(f);
+                _to_(f, expr);
+                auto cstr = fmpz_poly_get_str_pretty(fmpz_poly_q_numref(f), sx.c_str());
+                string nstr(cstr);
+                flint_free(cstr);
+                cstr = fmpz_poly_get_str_pretty(fmpz_poly_q_denref(f), sx.c_str());
+                string dstr(cstr);
+                flint_free(cstr);
+                fmpz_poly_q_clear(f);
+                res = str2ex(nstr,st)/str2ex(dstr,st);
+            } else if(opt==o_flintf) {
+                fmpz_poly_q_t f;
+                fmpz_poly_q_init(f);
+                _to_(f, expr);
+                auto num = _factor_(x, fmpz_poly_q_numref(f));
+                auto den = _factor_(x, fmpz_poly_q_denref(f));
+                fmpz_poly_q_clear(f);
+                res = num/den;
+            } else if(opt==o_flintfD) {
+                fmpz_poly_q_t f;
+                fmpz_poly_q_init(f);
+                _to_(f, expr);
+                auto cstr = fmpz_poly_get_str_pretty(fmpz_poly_q_numref(f), sx.c_str());
+                string nstr(cstr);
+                flint_free(cstr);
+                auto num = str2ex(nstr,st);
+                auto den = _factor_(x, fmpz_poly_q_denref(f));
+                fmpz_poly_q_clear(f);
+                res = num/den;
+            } else throw Error("normal_flint: unsupported option.");
         } else {
             ex e = expr;
             symtab st;

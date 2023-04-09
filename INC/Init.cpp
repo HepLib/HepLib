@@ -63,7 +63,6 @@ namespace HepLib {
     std::map<std::string, ex> iSymbol::Table; // alias as symtab in parser
     
     unsigned nopat = GiNaC::subs_options::no_pattern;
-    unsigned algbr = subs_options::algebraic;
     
     ex w = wild();
     ex w0 = wild(0);
@@ -96,6 +95,7 @@ namespace HepLib {
     const Symbol NA("NA");
     const Symbol NF("NF");
     const Symbol TF("TF");
+    const Symbol CA("CA");
     const Symbol CF("CF");
     const Symbol gs("gs");
     const Symbol as("as");
@@ -225,12 +225,13 @@ namespace HepLib {
     // FROM IBP
     
     int FIRE::PosPref = 1;
-    int FIRE::Version = 6;
     int FIRE::Threads = 4;
     int FIRE::fThreads = 1;
     int FIRE::lThreads = 0;
     int FIRE::sThreads = 0;
-    string FIRE::suffix = "m";
+    int FIRE::Version = 6;
+    string FIRE::Execute;
+    exmap FIRE::NVariables;
     exmap MapPreSP;
     
     string UKIRA::KArgs = "";

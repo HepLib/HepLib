@@ -292,6 +292,7 @@ namespace HepLib {
                 _pic++;
                 Symbol si("P"+to_string(_pic));
                 ss.append(si);
+                sp2s.append(w*item==w*si);
                 sp2s.append(item==si);
                 s2sp.append(si==item);
             }
@@ -299,8 +300,8 @@ namespace HepLib {
             lst eqns;
             for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
                 auto eq = expand(Propagators.op(i)).subs(iEpsilon==0); // drop iEpsilon
-                eq = eq.subs(sp2s, algbr);
-                eq = eq.subs(Replacements, algbr);
+                eq = eq.subs(sp2s);
+                eq = eq.subs(Replacements);
                 if(eq.has(iWF(w))) throw Error("FIRE::Export, iWF used in eq.");
                 eqns.append(eq == iWF(i));
             }
@@ -312,10 +313,22 @@ namespace HepLib {
                 throw Error("FIRE::Export: lsolve failed.");
             }
             
+            // FIRE version
+            if(true)
             if(DSP.nops()<1) {
                 for(auto p1 : Internal)
                 for(auto p2 : InExternal)
                 DSP.append(lst{p1,p2});
+            }
+            
+            // Lee version
+            if(false)
+            if(DSP.nops()<1) {
+                for(int i=0; i<Internal.nops(); i++)
+                    DSP.append(lst{Internal.op(i), Internal.op(i==Internal.nops()-1 ? 0 : i+1)});
+                for(auto p2 : InExternal) DSP.append(lst{Internal.op(0), p2});
+                DSP.append(lst{Internal, Internal});
+                allIBP = true;
             }
 
             vector<exmap> ibps;
@@ -324,40 +337,50 @@ namespace HepLib {
             for(int i=0; i<pdim; i++) ns0.append(0);
             
             for(auto sp : DSP) {
-                symbol ss;
-                auto ilp = sp.op(0);
-                auto iep = sp.op(1);
-                lst dp_lst;
-                for(int i=0; i<pdim; i++) {
-                    dp_lst.append(Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp));
-                } 
-                
-                exmap nc_map;
-                for(int i=0; i<pdim; i++) { // diff on each propagator
-                    auto ns = ns0;
-                    ns.let_op(i) = ns.op(i)+1; // note the covention
-                    auto tmp = dp_lst.op(i) * iep;
-                    tmp = expand(tmp);
-                    tmp = tmp.subs(Replacements, algbr);
-                    tmp = tmp.subs(sp2s, algbr);
-                    tmp = tmp.subs(s2p, algbr);
-                    tmp = tmp.subs(Replacements, algbr);
-                    
-                    tmp = ex(0) - (Shift[i+1]+a(i+1))*tmp; // note Shift here
-
-                    for(int j=0; j<pdim; j++) {
-                        auto cj = tmp.coeff(iWF(j));
-                        if(is_zero(cj)) continue;
-                        lst cns = ns;
-                        cns.let_op(j) = cns.op(j)-1; // note the covention
-                        nc_map[cns] = nc_map[cns] + cj;
-                    }
-                    tmp = tmp.subs(iWF(w)==0); // constant term
-                    if(!is_zero(tmp)) nc_map[ns] = nc_map[ns] + tmp;
+                auto ilp_lst = sp.op(0);
+                auto iep_lst = sp.op(1);
+                if(!is_a<lst>(ilp_lst)) {
+                    ilp_lst = lst{ ilp_lst };
+                    iep_lst = lst{ iep_lst };
                 }
                 
-                auto cilp = iep.coeff(ilp);
-                if(!is_zero(cilp)) nc_map[ns0] = nc_map[ns0] + d*cilp;
+                exmap nc_map;
+                for(int ilst=0; ilst<ilp_lst.nops(); ilst++) {
+                    symbol ss;
+                    auto ilp = ilp_lst.op(ilst);
+                    auto iep = iep_lst.op(ilst);
+                    lst dp_lst;
+                    for(int i=0; i<pdim; i++) {
+                        dp_lst.append(Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp));
+                    }
+                    
+                    for(int i=0; i<pdim; i++) { // diff on each propagator
+                        auto ns = ns0;
+                        ns.let_op(i) = ns.op(i)+1; // note the covention
+                        auto tmp = dp_lst.op(i) * iep;
+                        tmp = expand(tmp);
+                        tmp = tmp.subs(Replacements);
+                        tmp = tmp.subs(sp2s);
+                        tmp = tmp.subs(s2p);
+                        tmp = tmp.subs(Replacements);
+                        
+                        tmp = ex(0) - (Shift[i+1]+a(i+1))*tmp; // note Shift here
+
+                        for(int j=0; j<pdim; j++) {
+                            auto cj = tmp.coeff(iWF(j));
+                            if(is_zero(cj)) continue;
+                            lst cns = ns;
+                            cns.let_op(j) = cns.op(j)-1; // note the covention
+                            nc_map[cns] = nc_map[cns] + cj;
+                        }
+                        tmp = tmp.subs(iWF(w)==0); // constant term
+                        if(!is_zero(tmp)) nc_map[ns] = nc_map[ns] + tmp;
+                    }
+                    
+                    auto cilp = iep.coeff(ilp);
+                    if(!is_zero(cilp)) nc_map[ns0] = nc_map[ns0] + d*cilp;
+                }
+                
                 bool ok = false;
                 for(auto nc : nc_map) {
                     if(!is_zero(nc.second)) {
@@ -580,6 +603,7 @@ namespace HepLib {
                 ostringstream config;
                 if(Version>5) config << "#compressor none" << endl;
                 if(Version==5) config << "#bucket 20" << endl;
+                config << "#allIBP" << endl;
                 config << "#threads " << Threads << endl;
                 if(Version>5) { // FIRE6 or lator
                     if(lThreads>1) {
@@ -616,7 +640,9 @@ namespace HepLib {
                         cout << "IBPvec: " << IBPvec << endl;
                         throw Error("FIRE: Fermat requires a name must begin with a lower case letter: "+s.get_name());
                     }
-                    config << (first ? "" : ",") << s; 
+                    config << (first ? "" : ",") << s;
+                    auto itr = NVariables.find(nv.op(1));
+                    if(itr!=NVariables.end()) config << "->" << itr->second;
                     first=false; 
                 }
                 config << endl;
@@ -691,13 +717,14 @@ namespace HepLib {
      */
     void FIRE::Run() {
         if(IsAlwaysZero) return;
+        if(Execute=="") Execute = InstallPrefix + "/" + "FIRE/bin/FIRE6m";
         if(file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) return;
         if(Integrals.nops()<1) return;
         int tried = 0;
         while(tried<3) {
             tried++;
             ostringstream cmd;
-            cmd << "cd " << WorkingDir << " && $(which FIRE" << Version << suffix << ")";
+            cmd << "cd " << WorkingDir << " && " << Execute;
             if(Version>5) cmd << " -silent -parallel";
             cmd << " -c " << ProblemNumber << " >/dev/null";
             system(cmd.str().c_str());

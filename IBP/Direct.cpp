@@ -140,6 +140,7 @@ namespace HepLib {
             _pic++;
             Symbol si("P"+to_string(_pic));
             ss.append(si);
+            sp2s.append(w*item==w*si);
             sp2s.append(item==si);
             s2sp.append(si==item);
         }
@@ -147,8 +148,8 @@ namespace HepLib {
         lst leqns;
         for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
             auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
-            eq = eq.subs(sp2s, algbr);
-            eq = eq.subs(Replacements, algbr);
+            eq = eq.subs(sp2s);
+            eq = eq.subs(Replacements);
             if(eq.has(iWF(w))) throw Error("Direct::Export, iWF used in eq.");
             leqns.append(eq == iWF(i));
         }
@@ -179,9 +180,9 @@ namespace HepLib {
             
             ibp = ibp * iep;
             ibp = ibp.expand();
-            ibp = ibp.subs(sp2s, algbr);
-            ibp = ibp.subs(Replacements, algbr);
-            ibp = ibp.subs(s2p, algbr);
+            ibp = ibp.subs(sp2s);
+            ibp = ibp.subs(Replacements);
+            ibp = ibp.subs(s2p);
             
             ex res = 0;
             for(int i=0; i<pdim; i++) {

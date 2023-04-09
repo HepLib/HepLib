@@ -24,7 +24,13 @@ int main(int argc, char** argv) {
                 cout << "\r                                             \r" << flush;
                 cout << " - Replacing " << fn << " ..." << flush;
                 string ostr = file2str(fn);
-                string_replace_all(ostr, o_str, n_str);
+                if(n_str.find("<n>")==string::npos) string_replace_all(ostr, o_str, n_str);
+                else {
+                    string fn2 = fn.substr(0, fn.find_last_of("."));
+                    string n_str2 = n_str;
+                    string_replace_all(n_str2, "<n>", fn2);
+                    string_replace_all(ostr, o_str, n_str2);
+                }
                 str2file(ostr, fn);
             }
         }

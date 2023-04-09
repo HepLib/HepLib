@@ -193,10 +193,10 @@ namespace HepLib {
         }
     }
     
-    lst AMF::Evaluate(const ex & d0, int xn, int dp) {
+    lst AMF::Evaluate(int xn, int dp) {
         set_precision(dp);
         int N = Mat.rows();
-        auto nmat = ex_to<matrix>(subs(Mat,lst{d==d0}));
+        auto nmat = Mat;
         int nloop = ibp.Internal.nops();
         int npts = pts.nops();
         
@@ -429,63 +429,63 @@ namespace HepLib {
         return res;
     }
     
-    lst AMF::FitEps(const lst & eps, int xn, int dp, int lp, int nproc) {
-        if(dp>0) set_precision(dp);
-        exvector eps_vec(eps.begin(), eps.end());
-        int nmi = MIntegrals.nops();
-        exvector mis_vec[nmi];
-        int nep = eps.nops();
-        if(nproc>1 && nep>1) {
-            GiNaC_Parallel_NP["AMF"] = nproc;
-            auto res_vec = GiNaC_Parallel(nep, [&](int idx)->ex {
-                ex d0 = 4-2*eps.op(idx);
-                return Evaluate(d0,xn,dp);
-            }, "AMF");
-            for(auto mis : res_vec) {
-                for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
-            }
-        } else {
-            for(int i=0; i<nep; i++) {
-                auto epi = eps.op(i);
-                ex d0 = 4-2*epi;
-                if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF: " << nep << "|" << (i+1) << " @ ep = " << epi << RESET << endl;
-                auto mis = Evaluate(d0,xn,dp);
-                for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
-            }
-        }
-        if(dp>0) reset_precision();
-        if(dp>0) set_precision(100*dp);
-        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--Final PolynomialFit ..." << endl;
-        lst mis_lst;
-        for(int i=0; i<nmi; i++) {
-            int tn = eps.nops()-3;
-            if(tn<1) tn = 1;
-            auto cs = PolynomialFit(eps_vec, mis_vec[i], tn, lp);
-            ex mi = 0;
-            for(int i=0; i<tn; i++) mi += pow(ep,lp+i) * cs.op(i);
-            mis_lst.append(mi);
-        }
-        if(dp>0) reset_precision();
-        return mis_lst;
-    }
+//    lst AMF::FitEps(const lst & eps, int xn, int dp, int lp, int nproc) {
+//        if(dp>0) set_precision(dp);
+//        exvector eps_vec(eps.begin(), eps.end());
+//        int nmi = MIntegrals.nops();
+//        exvector mis_vec[nmi];
+//        int nep = eps.nops();
+//        if(nproc>1 && nep>1) {
+//            GiNaC_Parallel_NP["AMF"] = nproc;
+//            auto res_vec = GiNaC_Parallel(nep, [&](int idx)->ex {
+//                ex d0 = 4-2*eps.op(idx);
+//                return Evaluate(d0,xn,dp);
+//            }, "AMF");
+//            for(auto mis : res_vec) {
+//                for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
+//            }
+//        } else {
+//            for(int i=0; i<nep; i++) {
+//                auto epi = eps.op(i);
+//                ex d0 = 4-2*epi;
+//                if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF: " << nep << "|" << (i+1) << " @ ep = " << epi << RESET << endl;
+//                auto mis = Evaluate(d0,xn,dp);
+//                for(int i=0; i<nmi; i++) mis_vec[i].push_back(mis.op(i));
+//            }
+//        }
+//        if(dp>0) reset_precision();
+//        if(dp>0) set_precision(100*dp);
+//        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--Final PolynomialFit ..." << endl;
+//        lst mis_lst;
+//        for(int i=0; i<nmi; i++) {
+//            int tn = eps.nops()-3;
+//            if(tn<1) tn = 1;
+//            auto cs = PolynomialFit(eps_vec, mis_vec[i], tn, lp);
+//            ex mi = 0;
+//            for(int i=0; i<tn; i++) mi += pow(ep,lp+i) * cs.op(i);
+//            mis_lst.append(mi);
+//        }
+//        if(dp>0) reset_precision();
+//        return mis_lst;
+//    }
     
-    lst AMF::FitEps(int epn, int xn, int dp, int nproc) { // form AMFlow
-        if(dp>0) set_precision(dp);
-        int nl = ibp.Internal.nops();
-        int n0 = 10;
-        int p0 = 10;
-        
-        ex eps0 = GiNaC::pow(10,-p0);
-        
-        int lp = -nl;
-        lst eps;
-        for(int i=1; i<=epn+n0; i++) eps.append(eps0*(111+i)/111);
-        
-        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF \u224B x^" << xn << " " << (epn+n0) << "\u2A09\u03B5 ..." << RESET << endl;
-        auto res = FitEps(eps,xn,dp,lp,nproc); // FitEps(eps, xn, dp, lp, nproc) 
-        if(dp>0) reset_precision();
-        return res;
-    }
+//    lst AMF::FitEps(int epn, int xn, int dp, int nproc) { // form AMFlow
+//        if(dp>0) set_precision(dp);
+//        int nl = ibp.Internal.nops();
+//        int n0 = 10;
+//        int p0 = 10;
+//
+//        ex eps0 = GiNaC::pow(10,-p0);
+//
+//        int lp = -nl;
+//        lst eps;
+//        for(int i=1; i<=epn+n0; i++) eps.append(eps0*(111+i)/111);
+//
+//        if(!In_GiNaC_Parallel && Verbose>0) cout << "  \\--" << WHITE << "AMF \u224B x^" << xn << " " << (epn+n0) << "\u2A09\u03B5 ..." << RESET << endl;
+//        auto res = FitEps(eps,xn,dp,lp,nproc); // FitEps(eps, xn, dp, lp, nproc)
+//        if(dp>0) reset_precision();
+//        return res;
+//    }
     
 //    lst AMF::FitEps(int epn, int xn, int dp, int nproc) { // form AMFlow
 //        if(dp>0) set_precision(dp);

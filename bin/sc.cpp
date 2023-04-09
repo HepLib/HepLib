@@ -13,6 +13,7 @@ int main(int argc, char** argv) {
     string arg_s = "localhost";
     string arg_c = "echo [i]";
     string arg_r = "3";
+    string arg_f = "";
     
     // handle long options
     int opt;
@@ -21,6 +22,7 @@ int main(int argc, char** argv) {
     const char *string = "";
     static struct option long_options[] = {
         { "total", required_argument, NULL, 't' },
+        { "file", required_argument, NULL, 'f' },
         { "port", required_argument, NULL, 'p' },
         { "server", required_argument, NULL, 's' },
         { "command", required_argument, NULL, 'c' },
@@ -35,10 +37,12 @@ int main(int argc, char** argv) {
             case 's': arg_s = optarg; break;
             case 'c': arg_c = optarg; break;
             case 'r': arg_r = optarg; break;
+            case 'f': arg_f = optarg; break;
             default:
                 cout << "A simple Server/Client, bypass with [i].log" << endl;
                 cout << "Supported Options:" << endl;
                 cout << "  --total: total elements @server." << endl;
+                cout << "  --file: all elements from file @server." << endl;
                 cout << "  --port: server port @server/@client." << endl;
                 cout << "  --server: server ip or hostname @client." << endl;
                 cout << "  --command: command with [i] replaced @client." << endl;
@@ -54,28 +58,28 @@ int main(int argc, char** argv) {
     
     if(total > 0) {
         int socket_fd;
-        struct sockaddr_in servaddr;  
-        char buff[MAXSIZE];  
-        int n;  
+        struct sockaddr_in servaddr;
+        char buff[MAXSIZE];
+        int n;
         
-        if( (socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1 ) {  
-            cout << "create socket error(" << errno << "): " << strerror(errno) << endl;  
-            exit(1);  
-        }  
+        if( (socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1 ) {
+            cout << "create socket error(" << errno << "): " << strerror(errno) << endl;
+            exit(1);
+        }
         
-        memset(&servaddr, 0, sizeof(servaddr));  
-        servaddr.sin_family = AF_INET;  
-        servaddr.sin_addr.s_addr = htonl(INADDR_ANY);  
-        servaddr.sin_port = htons(port); 
+        memset(&servaddr, 0, sizeof(servaddr));
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+        servaddr.sin_port = htons(port);
       
-        if( bind(socket_fd, (struct sockaddr*)&servaddr, sizeof(servaddr)) == -1) {  
-            cout << "bind socket error(" << errno << "): " << strerror(errno) << endl;  
-            exit(1);  
-        }  
+        if( bind(socket_fd, (struct sockaddr*)&servaddr, sizeof(servaddr)) == -1) {
+            cout << "bind socket error(" << errno << "): " << strerror(errno) << endl;
+            exit(1);
+        }
         
-        if( listen(socket_fd, 10) == -1) {  
-            cout << "listen socket error(" << errno << "): " << strerror(errno) << endl;  
-            exit(1);  
+        if( listen(socket_fd, 10) == -1) {
+            cout << "listen socket error(" << errno << "): " << strerror(errno) << endl;
+            exit(1);
         }
         
         cout << endl << "Started @ " << now() << endl;
@@ -95,11 +99,79 @@ int main(int argc, char** argv) {
                     }
                     
                     struct linger so_linger;
-                    so_linger.l_onoff = 1; 
-                    so_linger.l_linger = 0; 
-                    setsockopt(connect_fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger); 
+                    so_linger.l_onoff = 1;
+                    so_linger.l_linger = 0;
+                    setsockopt(connect_fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger);
                     
                     std::string data = to_string(current);
+                    if(send(connect_fd, data.c_str(),data.length(),0) == -1) perror("send error");
+                    close(connect_fd);
+                }
+                
+                // check .exit
+                auto pid = getpid();
+                if(file_exists(to_string(pid)+".exit")) {
+                    cout << "Exit @ " << now() << endl << endl;
+                    close(socket_fd);
+                    exit(0);
+                }
+            }
+            cout << endl;
+        }
+        
+        cout << "Finished @ " << now() << endl << endl;
+        close(socket_fd);
+        exit(0);
+    } else if(arg_f != "") {
+        int socket_fd;
+        struct sockaddr_in servaddr;
+        char buff[MAXSIZE];
+        int n;
+        
+        if( (socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1 ) {
+            cout << "create socket error(" << errno << "): " << strerror(errno) << endl;
+            exit(1);
+        }
+        
+        memset(&servaddr, 0, sizeof(servaddr));
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+        servaddr.sin_port = htons(port);
+      
+        if( bind(socket_fd, (struct sockaddr*)&servaddr, sizeof(servaddr)) == -1) {
+            cout << "bind socket error(" << errno << "): " << strerror(errno) << endl;
+            exit(1);
+        }
+        
+        if( listen(socket_fd, 10) == -1) {
+            cout << "listen socket error(" << errno << "): " << strerror(errno) << endl;
+            exit(1);
+        }
+        
+        cout << endl << "Started @ " << now() << endl;
+        cout << "  Server Port: " << port << endl;
+        
+        for(int r=0; r<round; r++) {
+            auto svec = file2strvec(arg_f);
+            total = svec.size();
+            for(int c=0; c<total; c++) {
+                auto current = svec[c];
+                cout << "\r                                     \r";
+                cout << "  Server: " << (c+1) << " / " << total << " @ " << now(false) << flush;
+                
+                if(!file_exists(current+".log")) {
+                    int connect_fd;
+                    if( (connect_fd = accept(socket_fd, (struct sockaddr*)NULL, NULL)) == -1) {
+                        cout << "accept socket error(" << errno << "): " << strerror(errno) << endl;
+                        continue;
+                    }
+                    
+                    struct linger so_linger;
+                    so_linger.l_onoff = 1;
+                    so_linger.l_linger = 0;
+                    setsockopt(connect_fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger);
+                    
+                    std::string data = current;
                     if(send(connect_fd, data.c_str(),data.length(),0) == -1) perror("send error");
                     close(connect_fd);
                 }
@@ -126,39 +198,39 @@ int main(int argc, char** argv) {
         }
         
         while(true) {
-            int sockfd, n,rec_len;  
-            char recvline[MAXSIZE], sendline[MAXSIZE];  
-            char buf[MAXSIZE];  
-            struct sockaddr_in servaddr;  
+            int sockfd, n,rec_len;
+            char recvline[MAXSIZE], sendline[MAXSIZE];
+            char buf[MAXSIZE];
+            struct sockaddr_in servaddr;
                 
-            if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {  
-                cout << "create socket error(" << errno << "): " << strerror(errno) << endl;  
-                exit(1);  
-            }  
+            if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+                cout << "create socket error(" << errno << "): " << strerror(errno) << endl;
+                exit(1);
+            }
           
-            memset(&servaddr, 0, sizeof(servaddr));  
-            servaddr.sin_family = AF_INET;  
-            servaddr.sin_port = htons(port);  
+            memset(&servaddr, 0, sizeof(servaddr));
+            servaddr.sin_family = AF_INET;
+            servaddr.sin_port = htons(port);
             struct hostent *hext;
             if ( (hext = gethostbyname(sip.c_str())) == NULL ) {
-                cout << "gethostbyname error for " << sip << endl;  
+                cout << "gethostbyname error for " << sip << endl;
                 exit(1);
             }
             memcpy(&servaddr.sin_addr, hext->h_addr_list[0], hext->h_length);
            
-            if( connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {  
-                cout << "connect error(" << errno << "): " << strerror(errno) << endl;  
-                exit(1);  
-            }  
+            if( connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {
+                cout << "connect error(" << errno << "): " << strerror(errno) << endl;
+                exit(1);
+            }
              
-            if((rec_len = recv(sockfd, buf, MAXSIZE,0)) == -1) {  
-               perror("recv error: ");  
-               exit(1);  
-            }  
+            if((rec_len = recv(sockfd, buf, MAXSIZE,0)) == -1) {
+               perror("recv error: ");
+               exit(1);
+            }
             
-            buf[rec_len]  = '\0';  
+            buf[rec_len]  = '\0';
             std::string data = buf;
-            close(sockfd);  
+            close(sockfd);
             
             if(file_exists(data+".log")) continue;
             // check .exit
@@ -170,7 +242,7 @@ int main(int argc, char** argv) {
             auto ret = system(cmd.c_str());
             if(ret == -1) break;
         }
-        exit(0); 
+        exit(0);
     }
     
     return 0;

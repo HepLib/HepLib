@@ -164,10 +164,11 @@ namespace HepLib {
         matrix Mat; // original DE matrix
         lst _MIntegrals; // MI @ BC
         lst pts;
+        ex d0;
         
-        lst Evaluate(const ex & d0, int xn, int dp=500);
-        lst FitEps(const lst & eps, int xn, int dp=500, int lp=-1, int nproc=1);
-        lst FitEps(int epn, int xn, int dp, int nproc=1);
+        lst Evaluate(int xn, int dp=500);
+//        lst FitEps(const lst & eps, int xn, int dp=500, int lp=-1, int nproc=1);
+//        lst FitEps(int epn, int xn, int dp, int nproc=1);
         
         static ex Vacuum(int nl, int np);
     };

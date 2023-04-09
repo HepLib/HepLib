@@ -185,7 +185,7 @@ namespace HepLib::QCD {
          * @return S-L with total spin 1
          */
         ex S1L2Proj(ex si, ex qi1, ex qi2, ex mu, ex p) {
-            return sqrt((d-1)/(d+1))*((ITD(si,qi1,p)*ITD(qi2,mu,p)+ITD(si,qi2,p)*ITD(qi1,mu,p))/2- ITD(si,mu,p)*ITD(qi1,qi2,p)/(d-1));
+            return sqrt((d-1)/(d+1))*((ITD(si,qi1,p)*ITD(qi2,mu,p)+ITD(si,qi2,p)*ITD(qi1,mu,p))/2 - ITD(si,mu,p)*ITD(qi1,qi2,p)/(d-1));
         }
         
         /**

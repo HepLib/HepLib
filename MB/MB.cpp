@@ -9,7 +9,7 @@ symbol const MB::ep("ep");
 void Replacements2(exmap &repl) {
     auto tmp = repl;
     for(auto &kv : repl) {
-        kv.second = kv.second.subs(tmp, algbr);
+        kv.second = kv.second.subs(tmp);
     }
 }
 
@@ -20,7 +20,6 @@ void MB::Initialize(FeynmanParameter fp) {
         exit(1);
     }
             
-    auto sop = algbr;
     auto ps = fp.Propagators;
     auto ns = fp.Exponents;
     auto ls = fp.LoopMomenta;
@@ -44,7 +43,7 @@ void MB::Initialize(FeynmanParameter fp) {
     ex pre = fp.Prefactor; // come from below
     for(int i=0; i<ps.nops(); i++) {
         bool ltQ = false; {
-            auto tps = ps.op(i).expand().subs(lsubs,sop);
+            auto tps = ps.op(i).expand().subs(lsubs);
             for(auto lsi : ls) {
                 if(tps.has(lsi)) {
                     ltQ = true;
@@ -57,7 +56,7 @@ void MB::Initialize(FeynmanParameter fp) {
         ex sgn = 0;
         
         if(!ltQ) {
-            pre = pre * pow(ps.op(i).expand().subs(lsubs,sop), ex(0)-ns.op(i));
+            pre = pre * pow(ps.op(i).expand().subs(lsubs), ex(0)-ns.op(i));
             ns.let_op(i) = 0;
             ps.let_op(i) = 1;
             continue;
@@ -70,8 +69,8 @@ void MB::Initialize(FeynmanParameter fp) {
             continue;
         }
 
-        auto p = ps.op(i).expand().subs(lsubs,sop).subs(nsubs);
-        p = p.subs(lsubs,sop).subs(nsubs);
+        auto p = ps.op(i).expand().subs(lsubs).subs(nsubs);
+        p = p.subs(lsubs).subs(nsubs);
         // check loop^2
         for(auto m : ls) {
             if(!is_a<numeric>(p.coeff(m,2))) {
@@ -116,8 +115,8 @@ void MB::Initialize(FeynmanParameter fp) {
             }
             rem = expand(t0 - pow(t1,2)/(4*t2));
         }
-        rem = normal(rem.subs(lsubs,sop).subs(lsubs,sop));
-        u = normal(u.subs(lsubs,sop));
+        rem = normal(rem.subs(lsubs).subs(lsubs));
+        u = normal(u.subs(lsubs));
         
         cu *= u;
         auto u_nd = numer_denom(u);
@@ -153,7 +152,7 @@ void MB::Initialize(FeynmanParameter fp) {
             uList2.append((4-2*ep)/2);
         }
     } else {
-        rem = normal(rem.subs(lsubs,sop).subs(lsubs,sop));
+        rem = normal(rem.subs(lsubs).subs(lsubs));
     }
 
     u = normal(cu);

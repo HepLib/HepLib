@@ -121,9 +121,17 @@ namespace HepLib {
             }
             return false;
         }, false, true);
-
+        
+        static map<pid_t, Fermat> fermat_map;
+        static int v_max = 0;
+        auto pid = getpid();
+        if((fermat_map.find(pid)==fermat_map.end())) { // init section
+            fermat_map[pid].Init();
+            v_max = 0;
+        }
+        Fermat &fermat = fermat_map[pid];
         static exmap cache_map;
-        expr = MapFunction([ext_ps,loop_ps](const ex &e, MapFunction &self)->ex{
+        expr = MapFunction([&fermat,ext_ps,loop_ps](const ex &e, MapFunction &self)->ex{
             if(e.is_equal(coVF(1))) return 1;
             else if(!e.has(coVF(w))) return e;
             else if(e.match(coVF(w))) {
@@ -210,12 +218,17 @@ namespace HepLib {
                     }
 
                     stringstream ss;
-                    for(int i=0; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
-                    Fermat fermat;
-                    fermat.Init();
-                    fermat.Execute(ss.str());
-                    ss.clear();
-                    ss.str("");
+                    if(fvi>111) {
+                        cout << rep_vs << endl;
+                        throw Error("Fermat: Too many variables.");
+                    }
+                    if(fvi>v_max) {
+                        for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
+                        fermat.Execute(ss.str());
+                        ss.clear();
+                        ss.str("");
+                        v_max = fvi;
+                    }
                     
                     ss << "Array m[" << n << "," << n+1 << "];" << endl;
                     fermat.Execute(ss.str());
@@ -238,7 +251,15 @@ namespace HepLib {
                     ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
                     ss << "![m" << endl;
                     auto ostr = fermat.Execute(ss.str());
-                    fermat.Exit();
+                    ss.clear();
+                    ss.str("");
+                    
+                    ss << "&(U=0);" << endl; // disable ugly printing
+                    ss << "@([m]);" << endl;
+                    ss << "&_G;" << endl;
+                    fermat.Execute(ss.str());
+                    ss.clear();
+                    ss.str("");
                     
                     // make sure last char is 0
                     if(ostr[ostr.length()-1]!='0') throw Error("TIR: last char is NOT 0.");

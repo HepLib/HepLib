@@ -985,7 +985,7 @@ namespace HepLib {
         int sn = sn0 * sn_lcm.to_int();
         expr = expr.subs(pow(s0,w)==pow(s,w*sn_lcm)).subs(sqrt(s0)==pow(s,sn_lcm/2)).subs(s0==pow(s,sn_lcm));
         
-        ex cvs = collect_lst(expr,s);
+        auto cvs = collect_lst(expr,s);
         ex ret = 0;
         for(auto cv : cvs) {
             bool ok = false; 

@@ -128,7 +128,7 @@ namespace HepLib {
             for(int j=i; j<External.nops(); j++) {
                 auto pj = External.op(j);
                 oss << "    - [ [" << pi << "," << pj << "], ";
-                oss << subs(pi*pj, Replacements, algbr) << "]" << endl;
+                oss << subs(pi*pj, Replacements) << "]" << endl;
             }
         }
         

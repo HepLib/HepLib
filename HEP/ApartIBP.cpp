@@ -9,62 +9,74 @@ namespace HepLib {
 
     namespace {
 
-        void A2FSave(string garfn, exvector air_vec, ex IntFs, vector<IBP*> &ibp_vec) {
-            archive ar;
+        void AIR2F_Save(string save_dir, exvector air_vec, const lst & IntFs, vector<IBP*> &ibp_vec) {
+            system(("mkdir -p "+save_dir+"/AIR2F").c_str());
+            system(("rm -f "+save_dir+"/AIR2F/*.gar > /dev/null").c_str());
+            GiNaC_Parallel(air_vec.size(), [&air_vec,&save_dir](int idx) {
+                garWrite(air_vec[idx], save_dir+"/AIR2F/air-"+to_string(idx)+".gar");
+                return 0;
+            }, "AIR2F_AIR");
             
-            ar.archive_ex(air_vec.size(), "air_vec_size");
-            for(int i=0; i<air_vec.size(); i++) {
-                ar.archive_ex(air_vec[i], ("air_"+to_string(i)).c_str());
+            GiNaC_Parallel(ibp_vec.size(), [&ibp_vec,&save_dir](int idx) {
+                garWrite(ibp_vec[idx]->TO(), save_dir+"/AIR2F/ibp-"+to_string(idx)+".gar");
+                return 0;
+            }, "AIR2F_IBP");
+            
+            ostringstream oss;
+            oss << air_vec.size() << " " << ibp_vec.size() << " " << IntFs.nops() << endl;
+            if(IntFs.nops()>0) {
+                oss << IntFs.op(0).op(1).nops() << endl;
+                for(auto const & f : IntFs) {
+                    oss << f.op(0);
+                    for(auto const & n : f.op(1)) oss << " " << n;
+                    oss << endl;
+                }
             }
-            
-            ar.archive_ex(IntFs, "IntFs");
-            
-            ar.archive_ex(ibp_vec.size(), "ibp_vec_size");
-            for(int i=0; i<ibp_vec.size(); i++) {
-                ar.archive_ex(ibp_vec[i]->TO(), ("ibp_"+to_string(i)).c_str());
-            }
-
-            ofstream out(garfn);
-            out << ar;
-            out.close();
+            auto oss_str = oss.str();
+            fstream ofs(save_dir+"/AIR2F.gar", fstream::out);
+            ofs.write(oss_str.c_str(), oss_str.size());
+            ofs.close();
         }
 
-        void A2FGet(string garfn, exvector &air_vec, ex &IntFs, vector<IBP*> &ibp_vec, int IBPmethod) {
-            archive ar;
-            ifstream in(garfn);
-            in >> ar;
-            in.close();
+        void AIR2F_Get(string save_dir, exvector &air_vec, lst &IntFs, vector<IBP*> &ibp_vec, int IBPmethod) {
+            fstream ifs(save_dir+"/AIR2F.gar", fstream::in);
+            size_t nair, nibp, nf;
+            ifs >> nair >> nibp >> nf;
             
-            map<string, ex> dict;
-            for(int i=0; i<ar.num_expressions(); i++) {
-                string name;
-                ex res = ar.unarchive_ex(name, i);
-                dict[name] = res;
+            IntFs.remove_all();
+            if(nf>0) {
+                int nn;
+                ifs >> nn;
+                for(int i=0; i<nf; i++) {
+                    int pn, ni;
+                    ifs >> pn;
+                    lst ns;
+                    for(int j=0; j<nn; j++) {
+                        ifs >> ni;
+                        ns.append(ni);
+                    }
+                    IntFs.append(F(pn, ns));
+                }
             }
             
-            auto size = ex_to<numeric>(dict["air_vec_size"]).to_int();
-            if(size != air_vec.size()) throw Error("ApartIBP: ari_vec size is wrong!");
-            air_vec.clear();
-            air_vec.shrink_to_fit();
-            air_vec.resize(size);
-            for(int i=0; i<size; i++) air_vec[i] = dict["air_"+to_string(i)];
+            for(int idx=0; idx<nair; idx++) {
+                air_vec[idx] = garRead(save_dir+"/AIR2F/air-"+to_string(idx)+".gar");
+            }
             
-            size = ex_to<numeric>(dict["ibp_vec_size"]).to_int();
-            ibp_vec.resize(size);
-            for(int i=0; i<size; i++) {
+            ibp_vec.resize(nibp);
+            for(int idx=0; idx<nibp; idx++) {
                 IBP* ibp;
                 if(IBPmethod==0) ibp = new IBP();
                 else if(IBPmethod==1) ibp = new FIRE();
                 else if(IBPmethod==2) ibp = new KIRA();
                 else if(IBPmethod==3) ibp = new UKIRA();
                 else ibp = new IBP();
-                ibp->FROM(dict["ibp_"+to_string(i)]);
-                ibp_vec[i] = ibp;
+                ex ibp_from = garRead(save_dir+"/AIR2F/ibp-"+to_string(idx)+".gar");
+                ibp->FROM(ibp_from);
+                ibp_vec[idx] = ibp;
             }
-            
-            IntFs = dict["IntFs"];
         }
-        
+
     }
     
     /**
@@ -113,11 +125,11 @@ namespace HepLib {
             else if(IBPmethod==3) wdir = wdir + "_UKIRA";
         }
         
-        ex IntFs;
+        lst IntFs;
         vector<IBP*> ibp_vec;
         if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/AIR2F.gar")) {
-            if(Verbose > 1) cout << "  \\--Read AIR2F.gar" << flush; 
-            A2FGet(aio.SaveDir+"/AIR2F.gar", air_vec, IntFs, ibp_vec, IBPmethod);
+            if(Verbose > 1) cout << "  \\--Reading AIR2F" << flush;
+            AIR2F_Get(aio.SaveDir, air_vec, IntFs, ibp_vec, IBPmethod);
             for(auto ibp : ibp_vec) ibp->WorkingDir = wdir; // update working directory
             if(Verbose > 1) cout << " @ " << now(false) << endl; 
             goto AIR2F_Done;
@@ -125,7 +137,7 @@ namespace HepLib {
         
         if(aio.SaveDir != "") {
             if(file_exists(aio.SaveDir+"/AP.gar")) {
-                if(Verbose > 1) cout << "  \\--Read AP.gar" << flush;
+                if(Verbose > 1) cout << "  \\--Reading AP.gar" << flush;
                 garRead(air_vec, aio.SaveDir+"/AP.gar");
                 if(Verbose > 1) cout << " @ " << now(false) << endl; 
                 goto Apart_Done;
@@ -209,6 +221,7 @@ namespace HepLib {
             }
             ap_rules.clear();
             
+            if(GiNaC_Parallel_NP.find("ApPost")==GiNaC_Parallel_NP.end()) GiNaC_Parallel_NP["ApPost"] = 8;
             air_vec = GiNaC_Parallel(av_size, [&air_vec,&ap_vec] (int idx) {
                 auto & cvs = air_vec[idx];
                 ex res = 0;
@@ -216,7 +229,7 @@ namespace HepLib {
                     int idx = ex_to<numeric>(cv.op(1)).to_int();
                     res += cv.op(0) * ap_vec[idx];
                 }
-                res = collect_ex(res, ApartIR(w1,w2), false, false, o_fermat);
+                res = collect_ex(res, ApartIR(w1,w2), false, false, o_flint);
                 return res; // air_vec updated to ApartIR
             }, "ApPost");
             ap_vec.clear();
@@ -250,7 +263,10 @@ namespace HepLib {
             
             lst repls;
             auto sps = sp_map();
-            for(auto kv : sps) repls.append(kv.first == kv.second);
+            for(auto kv : sps) {
+                repls.append(w*kv.first == w*kv.second);
+                repls.append(kv.first == kv.second);
+            }
                     
             lst loops, exts; // to match FIRE notation, not Vector, just Symbol
             for(auto li : lmom) {
@@ -289,7 +305,7 @@ namespace HepLib {
                     } else pns.append(lst{ pc, nc }); // note the convension
                 }
                 sort_lst(pns); // use sort_lst
-                if(aio.pn_sector) {
+                if(aio.pn_sector) { // back to original format
                     for(int i=0; i<pns.nops(); i++) pns.let_op(i) = lst{ pns.op(i).op(1), pns.op(i).op(2) };
                 }
                 
@@ -373,6 +389,7 @@ namespace HepLib {
                 //for(auto ibp : ibp_vec) ibp_vec2.push_back(ibp);
                 auto int_fr = FindRules(ibp_vec, false, aio.UF);
                 IntFs = int_fr.second;
+                if(GiNaC_Parallel_NP.find("AIR2F")==GiNaC_Parallel_NP.end()) GiNaC_Parallel_NP["AIR2F"] = 8;
                 air_vec = GiNaC_Parallel(air_vec.size(), [&air_vec,&AIR2F,&int_fr] (int idx) {
                     auto air = air_vec[idx];
                     air = air.subs(AIR2F,nopat);
@@ -380,7 +397,7 @@ namespace HepLib {
                     air = collect_ex(air, F(w1,w2), false, false, o_fermat);
                     return air;
                 }, "AIR2F");
-                if(aio.SaveDir != "") A2FSave(aio.SaveDir+"/AIR2F.gar", air_vec, IntFs, ibp_vec);
+                if(aio.SaveDir != "") AIR2F_Save(aio.SaveDir, air_vec, IntFs, ibp_vec);
             }
         }
         AIR2F_Done: ;
@@ -586,6 +603,7 @@ namespace HepLib {
                 
         AIOption aio;
         aio.IBPmethod = IBPmethod;
+        //aio.pn_sector = true;
         aio.Internal = loops;
         aio.External = exts;
         aio.Cuts = cut_props;

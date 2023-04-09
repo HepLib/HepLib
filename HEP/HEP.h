@@ -553,6 +553,7 @@ namespace HepLib {
     #endif
     
     ex ToCF(const ex & e);
+    ex ToCACF(const ex & e);
     ex A0(const ex m2, int n=1, const ex d=4-2*ep);
     
         

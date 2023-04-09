@@ -21,7 +21,7 @@ namespace HepLib::SD {
     void Replacements2(exmap &repl) {
         auto tmp = repl;
         for(auto &kv : repl) {
-            kv.second = Symbol::set_all(kv.second.subs(tmp, algbr));
+            kv.second = Symbol::set_all(kv.second.subs(tmp));
         }
     }
 
@@ -64,9 +64,7 @@ namespace HepLib::SD {
                 throw Error("Initialize: (lst{kv.first, kv.second}).has(iEpsilon) @3");
             }
         }
-        
-        auto sop = algbr;
-        
+                
         auto ps = Symbol::set_all(fp.Propagators);
         auto ns = Symbol::set_all(fp.Exponents);
         
@@ -103,7 +101,7 @@ namespace HepLib::SD {
         ex pre = Symbol::set_all(fp.Prefactor); // come from below
         for(int i=0; i<ps.nops(); i++) {
             bool ltQ = false; {
-                auto tps = Symbol::set_all(ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop));
+                auto tps = Symbol::set_all(ps.op(i).expand().subs(lsubs).subs(tsubs));
                 for(auto lsi : ls) {
                     if(tps.has(lsi)) {
                         ltQ = true;
@@ -125,7 +123,7 @@ namespace HepLib::SD {
             ex sgn = 0;
             
             if(!ltQ) {
-                pre = pre * pow(Symbol::set_all(ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop)), ex(0)-ns.op(i));
+                pre = pre * pow(Symbol::set_all(ps.op(i).expand().subs(lsubs).subs(tsubs)), ex(0)-ns.op(i));
                 ns.let_op(i) = 0;
                 ps.let_op(i) = 1;
                 continue;
@@ -134,9 +132,9 @@ namespace HepLib::SD {
                 if(is_zero(ns.op(i))) continue;
             }
 
-            auto p = ps.op(i).expand().subs(lsubs,sop).subs(tsubs,sop).subs(nsubs);
+            auto p = ps.op(i).expand().subs(lsubs).subs(tsubs).subs(nsubs);
             p = Symbol::set_all(p);
-            p = p.subs(lsubs,sop).subs(tsubs,sop).subs(nsubs);
+            p = p.subs(lsubs).subs(tsubs).subs(nsubs);
             p = Symbol::set_all(p);
 
             // check loop^2
@@ -204,8 +202,8 @@ namespace HepLib::SD {
                 }
                 rem = expand(t0 - pow(t1,2)/(4*t2));
             }
-            rem = normal(Symbol::set_all(rem.subs(lsubs,sop).subs(lsubs,sop)));
-            u = normal(Symbol::set_all(u.subs(lsubs,sop)));
+            rem = normal(Symbol::set_all(rem.subs(lsubs).subs(lsubs)));
+            u = normal(Symbol::set_all(u.subs(lsubs)));
             for(auto m: tls) {
                 if(u.has(m)) {
                     cerr << ErrColor << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;
@@ -227,7 +225,7 @@ namespace HepLib::SD {
                 uList2.append((4-2*ep)/2);
             }
         } else {
-            rem = normal(Symbol::set_all(rem.subs(lsubs,sop).subs(lsubs,sop)));
+            rem = normal(Symbol::set_all(rem.subs(lsubs).subs(lsubs)));
         }
 
         // t-Loop
@@ -244,8 +242,8 @@ namespace HepLib::SD {
                 }
                 rem = expand(t0 - pow(t1,2)/(4*t2));
             }
-            rem = normal(Symbol::set_all(rem.subs(tsubs,sop)));
-            u = normal(Symbol::set_all(u.subs(lsubs,sop)));
+            rem = normal(Symbol::set_all(rem.subs(tsubs)));
+            u = normal(Symbol::set_all(u.subs(lsubs)));
             for(auto m: tls) {
                 if(u.has(m)) {
                     cerr << ErrColor << "Initialize: u.has(m), " << u << ", " << m << RESET << endl;

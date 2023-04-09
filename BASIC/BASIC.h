@@ -47,7 +47,6 @@ namespace HepLib {
     typedef std::initializer_list<ex> init_list;
     extern string Version;
     extern unsigned nopat;
-    extern unsigned algbr;
     
     inline ex subs(const ex & e, init_list sl) { 
         return e.subs(lst(sl)); 
@@ -299,13 +298,6 @@ namespace HepLib {
         struct stat buffer;
         return (stat(dir.c_str(), &buffer)==0);
     }
-        
-    inline ex subs_all(const ex & expr, const ex & repls) {
-        return subs(expr, repls, algbr);
-    };
-    inline ex subs_all(const ex & expr, const exmap & repls) {
-        return subs(expr, repls, algbr);
-    };
     
     /*-----------------------------------------------------*/
     // vector : GiNaC_Parallel
@@ -515,14 +507,14 @@ namespace HepLib {
     inline ex fermat_normal(const ex & expr, bool dfactor=false) { return normal_fermat(expr,dfactor); }
     
     ex normal_flint(const ex & expr, int opt=o_flint);
-    ex factor_flint(const ex & e);
+    ex factor_flint(const ex & e, bool nd=true);
     
     ex form_eval(const ex & expr);
     ex factor_form(const ex & expr, bool nd=true);
     inline ex form_factor(const ex & expr, bool nd=true) { return factor_form(expr,nd); }
     
-    ex exfactor(const ex & expr, int opt = o_form);
-    ex exnormal(const ex & expr, int opt = o_fermat);
+    ex exfactor(const ex & expr, int opt = o_flint);
+    ex exnormal(const ex & expr, int opt = o_flint);
     ex exnd(const ex & expr, int opt = 1);
     
     ex collect_factors(const ex & expr);
