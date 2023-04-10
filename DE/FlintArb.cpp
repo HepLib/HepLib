@@ -61,7 +61,7 @@ namespace HepLib {
     }
     
     void _to_(fmpz_poly_q_t f, const ex & e) {
-        if(syms(e).nops()>1) throw Error(">=2 variables found.");
+        if(syms(e).nops()>1) throw Error("_to_(fmpz_poly_q_t, ex): >=2 variables found.");
         if(is_a<symbol>(e)) {
             fmpz_poly_q_set_str(f, "2  0 1/1  1");
             return;
@@ -71,7 +71,7 @@ namespace HepLib {
             oss << "1  " << nd.op(0) << "/1  " << nd.op(1);
             if(fmpz_poly_q_set_str(f, oss.str().c_str())) {
                 cout << "str: " << oss.str() << endl;
-                throw Error("_to_(fmpz_poly_q_t f, const ex & e)");
+                throw Error("_to_(fmpz_poly_q_t, ex) failed.");
             }
             return;
         } else if(is_a<add>(e)) {
@@ -96,29 +96,23 @@ namespace HepLib {
             return;
         } else if(is_a<power>(e) && e.op(1).info(info_flags::posint)) {
             ulong n = ex_to<numeric>(e.op(1)).to_int();
-            fmpz_poly_q_t fi;
-            fmpz_poly_q_init(fi);
-            _to_(fi, e.op(0));
-            fmpz_poly_q_pow(f, fi, n);
-            fmpz_poly_q_clear(fi);
+            _to_(f, e.op(0));
+            fmpz_poly_q_pow(f, f, n);
             return;
         } else if(is_a<power>(e) && e.op(1).info(info_flags::negint)) {
             ulong n = -ex_to<numeric>(e.op(1)).to_int();
-            fmpz_poly_q_t fi;
-            fmpz_poly_q_init(fi);
-            _to_(fi, e.op(0));
-            fmpz_poly_q_pow(f, fi, n);
+            _to_(f, e.op(0));
+            fmpz_poly_q_pow(f, f, n);
             fmpz_poly_q_inv(f,f);
-            fmpz_poly_q_clear(fi);
             return;
         } else {
             cout << "expr = " << e << endl;
-            throw Error("ex_to_fmpz_poly_q_t Not supported region");
+            throw Error("_to_(fmpz_poly_q_t, ex) NOT supported region.");
         }
     }
     
     void _to_(fmpz_poly_t f, const ex & e) {
-        if(syms(e).nops()>1) throw Error(">=2 variables found.");
+        if(syms(e).nops()>1) throw Error("_to_(fmpz_poly_t, ex): >=2 variables found.");
         if(is_a<symbol>(e)) {
             fmpz_poly_set_str(f, "2  0 1");
             return;
@@ -127,7 +121,7 @@ namespace HepLib {
             oss << "1  " << e;
             if(fmpz_poly_set_str(f, oss.str().c_str())) {
                 cout << "str: " << oss.str() << endl;
-                throw Error("void _to_(fmpz_poly_t f, const ex & e)");
+                throw Error("fmpz_poly_set_str error.");
             }
             return;
         } else if(is_a<add>(e)) {
@@ -152,15 +146,12 @@ namespace HepLib {
             return;
         } else if(is_a<power>(e) && e.op(1).info(info_flags::posint)) {
             ulong n = ex_to<numeric>(e.op(1)).to_int();
-            fmpz_poly_t fi;
-            fmpz_poly_init(fi);
-            _to_(fi, e.op(0));
-            fmpz_poly_pow(f, fi, n);
-            fmpz_poly_clear(fi);
+            _to_(f, e.op(0));
+            fmpz_poly_pow(f, f, n);
             return;
         } else {
             cout << "expr = " << e << endl;
-            throw Error("ex_to_fmpz_poly_t Not supported region");
+            throw Error("_to_(fmpz_poly_t, ex) NOT supported region");
         }
     }
     
@@ -210,7 +201,7 @@ namespace HepLib {
         reset_precision();
         if(!is_a<numeric>(ne)) {
             cout << endl << "ne = " << ne << endl;
-            throw Error("to_arb_t: NOT a number");
+            throw Error("_to_(arb_t, ex, slong): NOT a number");
         }
         auto str = ex2str(ne);
         if(arb_set_str(r, str.c_str(), fp)) {
@@ -237,7 +228,7 @@ namespace HepLib {
         reset_precision();
         if(!is_a<numeric>(ne)) {
             cout << endl << "ne = " << ne << endl;
-            throw Error("to_acb_t: NOT a number");
+            throw Error("_to_(acb_t, ex, slong): NOT a number");
         }
         
         arb_t rb, ib;
@@ -316,29 +307,26 @@ namespace HepLib {
         ex res_den = 0;
         auto den = fmpz_poly_q_denref(f);
         auto xdn = fmpz_poly_length(den);
+        fmpz_t z;
+        fmpz_init(z);
         for(slong i=0; i<xdn; i++) {
-            fmpz_t z;
-            fmpz_init(z);
             fmpz_poly_get_coeff_fmpz(z,den,i);
             auto str = fmpz_get_str(NULL,10,z);
             res_den += numeric(str) * pow(x,i);
-            fmpz_clear(z);
             flint_free(str);
         }
-        
         ex res_num = 0;
         auto num = fmpz_poly_q_numref(f);
         auto xnn = fmpz_poly_length(num);
         for(slong i=0; i<xnn; i++) {
-            fmpz_t z;
-            fmpz_init(z);
             fmpz_poly_get_coeff_fmpz(z,num,i);
             auto str = fmpz_get_str(NULL,10,z);
             if(xdn==1) res_num += numeric(str)/res_den * pow(x,i);
             else res_num += numeric(str) * pow(x,i);
-            fmpz_clear(z);
             flint_free(str);
         }
+        fmpz_clear(z);
+        
         if(xdn==1) return res_num;
         return res_num/res_den;
     }
@@ -346,15 +334,15 @@ namespace HepLib {
     ex _to_(const ex & x, fmpz_poly_t f) {
         ex res = 0;
         auto xn = fmpz_poly_length(f);
+        fmpz_t z;
+        fmpz_init(z);
         for(slong i=0; i<xn; i++) {
-            fmpz_t z;
-            fmpz_init(z);
             fmpz_poly_get_coeff_fmpz(z,f,i);
             auto str = fmpz_get_str(NULL,10,z);
             res += numeric(str) * pow(x,i);
-            fmpz_clear(z);
             flint_free(str);
         }
+        fmpz_clear(z);
         return res;
     }
     
@@ -1234,18 +1222,6 @@ namespace HepLib {
         }
     }
     
-    ex factor_fpq(const ex & expr) {
-        auto xs = syms(expr);
-        if(xs.nops()<1) return expr;
-        fmpq_mpoly_t f;
-        fmpq_mpoly_ctx_t ctx;
-        _to_(xs,f,ctx,expr);
-        ex res = _factor_(xs,f,ctx);
-        fmpq_mpoly_clear(f,ctx);
-        fmpq_mpoly_ctx_clear(ctx);
-        return res;
-    }
-    
     ex _factor_(const ex & x, fmpz_poly_t fp) {
         fmpz_poly_factor_t fs;
         fmpz_poly_factor_init(fs);
@@ -1324,47 +1300,8 @@ namespace HepLib {
         return res;
     }
     
-    inline void _to_q_(const lst & xs, fmpz_mpoly_q_t f, fmpz_mpoly_ctx_t ctx, const ex & e) {
-        if(is_a<add>(e)) {
-            fmpz_mpoly_q_zero(f,ctx);
-            fmpz_mpoly_q_t fi;
-            fmpz_mpoly_q_init(fi,ctx);
-            for(auto item : e) {
-                _to_q_(xs,fi,ctx,item);
-                fmpz_mpoly_q_add(f, f, fi, ctx);
-            }
-            fmpz_mpoly_q_clear(fi,ctx);
-            return;
-        } else if(is_a<mul>(e)) {
-            fmpz_mpoly_q_one(f,ctx);
-            fmpz_mpoly_q_t fi;
-            fmpz_mpoly_q_init(fi,ctx);
-            for(auto item : e) {
-                _to_q_(xs,fi,ctx,item);
-                fmpz_mpoly_q_mul(f, f, fi, ctx);
-            }
-            fmpz_mpoly_q_clear(fi,ctx);
-            return;
-        } else if(is_a<power>(e) && e.op(1).info(info_flags::posint)) {
-            ulong n = ex_to<numeric>(e.op(1)).to_int();
-            fmpz_mpoly_q_t fi;
-            fmpz_mpoly_q_init(fi,ctx);
-            _to_q_(xs, fi, ctx, e.op(0));
-            fmpz_mpoly_pow_ui(fmpz_mpoly_q_numref(f), fmpz_mpoly_q_numref(fi), n, ctx);
-            fmpz_mpoly_pow_ui(fmpz_mpoly_q_denref(f), fmpz_mpoly_q_denref(fi), n, ctx);
-            fmpz_mpoly_q_clear(fi,ctx);
-            return;
-        } else if(is_a<power>(e) && e.op(1).info(info_flags::negint)) {
-            ulong n = -ex_to<numeric>(e.op(1)).to_int();
-            fmpz_mpoly_q_t fi;
-            fmpz_mpoly_q_init(fi,ctx);
-            _to_q_(xs, fi, ctx, e.op(0));
-            fmpz_mpoly_pow_ui(fmpz_mpoly_q_numref(f), fmpz_mpoly_q_numref(fi), n, ctx);
-            fmpz_mpoly_pow_ui(fmpz_mpoly_q_denref(f), fmpz_mpoly_q_denref(fi), n, ctx);
-            fmpz_mpoly_q_inv(f,f,ctx);
-            fmpz_mpoly_q_clear(fi,ctx);
-            return;
-        } else if(e.info(info_flags::rational)) {
+    inline void _to_(const lst & xs, fmpz_mpoly_q_t f, fmpz_mpoly_ctx_t ctx, const ex & e) {
+        if(e.info(info_flags::rational)) {
             fmpq_t fq;
             fmpq_init(fq);
             _to_(fq,e);
@@ -1379,15 +1316,55 @@ namespace HepLib {
                 cvars[i] = vars[i].c_str();
             }
             fmpz_mpoly_q_one(f,ctx);
-            if(fmpz_mpoly_set_str_pretty(fmpz_mpoly_q_numref(f), ex2str(e).c_str(), cvars, ctx)) {
+            string es = ex2str(e);
+            if(fmpz_mpoly_set_str_pretty(fmpz_mpoly_q_numref(f), es.c_str(), cvars, ctx)) {
                 cout << e << endl;
                 cout << xs << endl;
-                throw Error("_to_q_ failed.");
+                throw Error("fmpz_mpoly_set_str_pretty error.");
             }
+            return;
+        } else if(is_a<add>(e)) {
+            fmpz_mpoly_q_zero(f,ctx);
+            fmpz_mpoly_q_t fi;
+            fmpz_mpoly_q_init(fi,ctx);
+            for(auto item : e) {
+                _to_(xs,fi,ctx,item);
+                fmpz_mpoly_q_add(f, f, fi, ctx);
+            }
+            fmpz_mpoly_q_clear(fi,ctx);
+            return;
+        } else if(is_a<mul>(e)) {
+            fmpz_mpoly_q_one(f,ctx);
+            fmpz_mpoly_q_t fi;
+            fmpz_mpoly_q_init(fi,ctx);
+            for(auto item : e) {
+                _to_(xs,fi,ctx,item);
+                fmpz_mpoly_q_mul(f, f, fi, ctx);
+            }
+            fmpz_mpoly_q_clear(fi,ctx);
+            return;
+        } else if(is_a<power>(e) && e.op(1).info(info_flags::posint)) {
+            ulong n = ex_to<numeric>(e.op(1)).to_int();
+            fmpz_mpoly_q_t fi;
+            fmpz_mpoly_q_init(fi,ctx);
+            _to_(xs, fi, ctx, e.op(0));
+            fmpz_mpoly_pow_ui(fmpz_mpoly_q_numref(f), fmpz_mpoly_q_numref(fi), n, ctx);
+            fmpz_mpoly_pow_ui(fmpz_mpoly_q_denref(f), fmpz_mpoly_q_denref(fi), n, ctx);
+            fmpz_mpoly_q_clear(fi,ctx);
+            return;
+        } else if(is_a<power>(e) && e.op(1).info(info_flags::negint)) {
+            ulong n = -ex_to<numeric>(e.op(1)).to_int();
+            fmpz_mpoly_q_t fi;
+            fmpz_mpoly_q_init(fi,ctx);
+            _to_(xs, fi, ctx, e.op(0));
+            fmpz_mpoly_pow_ui(fmpz_mpoly_q_numref(f), fmpz_mpoly_q_numref(fi), n, ctx);
+            fmpz_mpoly_pow_ui(fmpz_mpoly_q_denref(f), fmpz_mpoly_q_denref(fi), n, ctx);
+            fmpz_mpoly_q_inv(f,f,ctx);
+            fmpz_mpoly_q_clear(fi,ctx);
             return;
         } else {
             cout << "expr = " << e << endl;
-            throw Error("_to_q_ Not supported region");
+            throw Error("_to_(lst, fmpz_mpoly_q_t, fmpz_mpoly_ctx_t, ex): Not supported region");
         }
     }
     
@@ -1450,7 +1427,7 @@ namespace HepLib {
                 fmpz_mpoly_ctx_t ctx;
                 fmpz_mpoly_ctx_init(ctx, xs.nops(), ORD_LEX);
                 fmpz_mpoly_q_init(f, ctx);
-                _to_q_(xs,f,ctx,e);
+                _to_(xs,f,ctx,e);
                 auto cstr = fmpz_mpoly_get_str_pretty(fmpz_mpoly_q_numref(f), cvars, ctx);
                 string nstr(cstr);
                 flint_free(cstr);
@@ -1465,7 +1442,7 @@ namespace HepLib {
                 fmpz_mpoly_ctx_t ctx;
                 fmpz_mpoly_ctx_init(ctx, xs.nops(), ORD_LEX);
                 fmpz_mpoly_q_init(f, ctx);
-                _to_q_(xs,f,ctx,e);
+                _to_(xs,f,ctx,e);
                 auto num = _factor_(xs, fmpz_mpoly_q_numref(f), ctx);
                 auto den = _factor_(xs, fmpz_mpoly_q_denref(f), ctx);
                 fmpz_mpoly_q_clear(f, ctx);
@@ -1476,7 +1453,7 @@ namespace HepLib {
                 fmpz_mpoly_ctx_t ctx;
                 fmpz_mpoly_ctx_init(ctx, xs.nops(), ORD_LEX);
                 fmpz_mpoly_q_init(f, ctx);
-                _to_q_(xs,f,ctx,e);
+                _to_(xs,f,ctx,e);
                 auto cstr = fmpz_mpoly_get_str_pretty(fmpz_mpoly_q_numref(f), cvars, ctx);
                 string nstr(cstr);
                 flint_free(cstr);

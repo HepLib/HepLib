@@ -147,7 +147,7 @@ namespace HepLib {
         if(true) {
             int av_size = air_vec.size();
             air_vec = GiNaC_Parallel(av_size, [air_vec,lmom] (int idx) {
-                return collect_lst(air_vec[idx], lmom, o_fermat);
+                return collect_lst(air_vec[idx], lmom, o_flint);
             }, "ApPre");
             
             exset vset;
@@ -174,7 +174,7 @@ namespace HepLib {
                 auto air = vvec[idx];
                 air = Apart(air,lmom,emom,aio.smap);
                 air = air.subs(ApartIR(1,w)==aio.apart1);
-                air = collect_lst(air, ApartIR(w1,w2), o_fermat);
+                air = collect_lst(air, ApartIR(w1,w2), o_flintf);
                 return air;
             }, "Apart");
             vvec.clear();
@@ -187,7 +187,7 @@ namespace HepLib {
             if(aio.ap_rules) ap_rules = ApartRules(ap_ir_vec); // including ApartIRC
             ap_ir_vec.clear();
             
-            if(false) {
+            if(false) { // Parallel Version
                 ap_vec = GiNaC_Parallel(ap_vec.size(), [&aio,&ap_vec,&ap_rules] (int idx) {
                     auto const & cvs = ap_vec[idx];
                     ex res = 0;
@@ -223,7 +223,7 @@ namespace HepLib {
             
             if(GiNaC_Parallel_NP.find("ApPost")==GiNaC_Parallel_NP.end()) GiNaC_Parallel_NP["ApPost"] = 8;
             air_vec = GiNaC_Parallel(av_size, [&air_vec,&ap_vec] (int idx) {
-                auto & cvs = air_vec[idx];
+                lst cvs = ex_to<lst>(air_vec[idx]);
                 ex res = 0;
                 for(auto const & cv : cvs) {
                     int idx = ex_to<numeric>(cv.op(1)).to_int();
@@ -254,7 +254,7 @@ namespace HepLib {
                     return ret;
                 }, "ApIRC");
                 exset intg;
-                for(auto airs : ret) for(auto air : airs) intg.insert(air);
+                for(auto airs : ret) for(auto air : ex_to<lst>(airs)) intg.insert(air);
                 AIR = exvector(intg.begin(), intg.end());
             }
             
@@ -394,7 +394,7 @@ namespace HepLib {
                     auto air = air_vec[idx];
                     air = air.subs(AIR2F,nopat);
                     air = air.subs(int_fr.first,nopat);
-                    air = collect_ex(air, F(w1,w2), false, false, o_fermat);
+                    air = collect_ex(air, F(w1,w2), false, false, o_flint);
                     return air;
                 }, "AIR2F");
                 if(aio.SaveDir != "") AIR2F_Save(aio.SaveDir, air_vec, IntFs, ibp_vec);
@@ -531,7 +531,7 @@ namespace HepLib {
                     lst res;
                     for(auto ri : rules) res.append(lst { 
                         ri.op(0),  
-                        ri.op(1).subs(miRules,nopat)
+                        collect_ex(ri.op(1).subs(miRules,nopat),F(w1,w2),false,false,o_flint)
                     });
                     for(auto mi : ibp_vec_re[idx]->MIntegrals) {
                         auto fi = miRules.find(mi);
@@ -561,9 +561,10 @@ namespace HepLib {
             if(aio.SaveDir != "") {
                 exset fs;
                 find(res, F(w1,w2), fs);
-                for(auto fi : fs) {
-                    auto pn = fi.op(0);
-                    auto rs = garRead(aio.SaveDir+"/Rules/"+ex2str(pn)+".gar");
+                exset pns;
+                for(auto fi : fs) pns.insert(fi.op(0));
+                for(auto pn : pns) {
+                    auto rs = ex_to<lst>(garRead(aio.SaveDir+"/Rules/"+ex2str(pn)+".gar"));
                     for(auto ri : rs) if(ri.op(0)!=ri.op(1)) rules[ri.op(0)] = ri.op(1);
                 }
             } else rules = ibpRules;

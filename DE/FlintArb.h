@@ -114,9 +114,7 @@ namespace HepLib {
     ex _factor_(const ex & x,fmpz_poly_t f);
     ex _factor_(const lst & xs,fmpz_mpoly_t f,fmpz_mpoly_ctx_t ctx);
     ex _factor_(const lst & xs,fmpq_mpoly_t f,fmpq_mpoly_ctx_t ctx);
-    //ex factor_flint(const ex & e); // moved to BASIC.h
-    ex factor_fpq(const ex & e);
-    
+    //ex factor_flint(const ex & e); // moved to BASIC.h    
     //ex normal_flint(const ex & expr, int opt=o_flint); // moved to BASIC.h
     
     matrix normal_flint(const matrix & mat);
