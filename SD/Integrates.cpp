@@ -134,11 +134,8 @@ namespace HepLib::SD {
             auto c = ar.unarchive_ex("c");
             if(c!=19790923) throw Error("Integrates: *.ci.gar error!");
             auto gl = ar.unarchive_ex("soLimit");
-            auto epn = ar.unarchive_ex("epN");
-            auto epsn = ar.unarchive_ex("epsN");
+            eps_lst = ex_to<lst>(ar.unarchive_ex("eps_lst"));
             soLimit = ex2int(gl);
-            epN = ex2int(epn);
-            epsN = ex2int(epsn);
             auto res = ar.unarchive_ex("res");
             ciResult.clear();
             for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
@@ -286,11 +283,16 @@ namespace HepLib::SD {
                     if(is_a<add>(ccRes)) {
                         for(auto item : ccRes) css.append(item);
                     }
+                    
+                    exmap eps_map;
+                    ex epn = ex(1)/111;
+                    for(auto epi : eps_lst) {
+                        eps_map[epi.op(0)] = epn;
+                        epn = epn / 13;
+                    }
 
                     for(int ci=0; ci<css.nops(); ci++) {
-                        auto nt = NN(css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{
-                            epsID(w)==1, CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                        }));
+                        auto nt = NN(css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{CV(w1,w2)==w2}).subs(eps_map),30);
                         if(nt.has(ep)) throw Error("Integrates: ep found @ nt = "+ex2str(nt));
                         
                         lst nt_lst;
@@ -659,7 +661,7 @@ namespace HepLib::SD {
         if(!ResultError.is_equal(NaN)) {
             ResultError = 0;
             for(auto item : lstRE) ResultError += item;
-            ResultError = VESimplify(ResultError,epN,epsN);
+            ResultError = VESimplify(ResultError);
         }
 
         if(key != "") {
@@ -702,11 +704,8 @@ namespace HepLib::SD {
             auto c = ar.unarchive_ex("c");
             if(c!=19790923) throw Error("Integrates: *.ci.gar error!");
             auto gl = ar.unarchive_ex("soLimit");
-            auto epn = ar.unarchive_ex("epN");
-            auto epsn = ar.unarchive_ex("epsN");
+            eps_lst = ex_to<lst>(ar.unarchive_ex("eps_lst"));
             soLimit = ex2int(gl);
-            epN = ex2int(epn);
-            epsN = ex2int(epsn);
             auto res = ar.unarchive_ex("res");
             ciResult.clear();
             for(auto item : ex_to<lst>(res)) ciResult.push_back(ex_to<lst>(item));
@@ -848,11 +847,16 @@ namespace HepLib::SD {
                     if(is_a<add>(ccRes)) {
                         for(auto item : ccRes) css.append(item);
                     }
+                    
+                    exmap eps_map;
+                    ex epn = ex(1)/111;
+                    for(auto epi : eps_lst) {
+                        eps_map[epi.op(0)] = epn;
+                        epn = epn / 13;
+                    }
 
                     for(int ci=0; ci<css.nops(); ci++) {
-                        auto nt = NN(css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{
-                            epsID(w)==1, CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                        }));
+                        auto nt = NN(css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{CV(w1,w2)==w2}).subs(eps_map),30);
                         if(nt.has(ep)) throw Error("Integrates: ep found @ nt = "+ex2str(nt));
                         
                         lst nt_lst;
@@ -1198,7 +1202,7 @@ namespace HepLib::SD {
         if(!ResultError.is_equal(NaN)) {
             ResultError = 0;
             for(auto item : lstRE) ResultError += item;
-            ResultError = VESimplify(ResultError,epN,epsN);
+            ResultError = VESimplify(ResultError); 
         }
 
         if(key != "") {

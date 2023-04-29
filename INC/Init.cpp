@@ -177,7 +177,7 @@ namespace HepLib {
     const int form_expand_all = 4;
     int form_expand_mode = form_expand_tr;
     bool Apart_using_fermat = true;
-    bool form_using_su3 = true;
+    bool form_using_su3 = false;
     bool form_using_dim4 = false;
     
     QGRAF::Process::_init::_init() {

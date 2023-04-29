@@ -47,9 +47,13 @@ namespace HepLib::SD {
             
             bool need_contour_deformation = false;
             if(ft.has(x(w)) && !ft.has(PL(w))) {
-                auto tmp = ft.subs(nReplacements).subs(lst{
-                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }).expand();
+                exmap eps_map;
+                ex epn = ex(1)/111;
+                for(auto epi : eps_lst) {
+                    eps_map[epi.op(0)] = epn;
+                    epn = epn / 13;
+                }
+                auto tmp = ft.subs(nReplacements).subs(eps_map).subs(CV(w1,w2)==w2).expand();
                 if(is_a<add>(tmp)) {
                     for(auto item : tmp) {
                         if(!is_a<numeric>(item.subs(x(w)==1))) {
@@ -1160,8 +1164,7 @@ namespace HepLib::SD {
             ar.archive_ex(19790923, "c");
             ar.archive_ex(FT_N_XN, "ftnxn");
             ar.archive_ex(soLimit,"soLimit");
-            ar.archive_ex(epN,"epN");
-            ar.archive_ex(epsN,"epsN");
+            ar.archive_ex(eps_lst,"eps_lst");
             ofstream out(garfn.str());
             out << ar;
             out.close();

@@ -940,6 +940,11 @@ namespace HepLib {
     lst xlst(int ei) {
         return xlst(0, ei);
     }
+    
+    ex series_ex(ex const & expr_in, ex const &s0, int sn0) {
+        static symbol ss;
+        return series_ex(expr_in.subs(s0==ss),ss,sn0).subs(ss==s0);
+    }
 
     /**
      * @brief the series like Mathematica, include s^n
@@ -1167,23 +1172,20 @@ namespace HepLib {
      * @brief the collect function like Mathematica
      * @param expr_in input expression
      * @param has_func only collect the element e, when has_func(e) is true
-     * @param cf true for wrapping coefficient in coCF
-     * @param vf true to wrapping has-ed element in coVF
      * @param opt 0: do nothing, 1: using exnormal, 2: using exfactor on the coefficient
      * @return the collected expression
      */
-    ex collect_ex(ex const &expr_in, std::function<bool(const ex &)> has_func, bool cf, bool vf, int opt) {
+    ex collect_ex(ex const &expr_in, std::function<bool(const ex &)> has_func, int opt) {
         auto cvs = collect_lst(expr_in, has_func, opt);
-        ex res = 0;
+        exvector res_vec;
+        res_vec.reserve(cvs.nops());
         for(auto cv : cvs) {
             auto cc = cv.op(0);
             auto vv = cv.op(1);
             if(cc.is_zero() || vv.is_zero()) continue;
-            if(cf) cc = coCF(cc);
-            if(vf) vv = coVF(vv);
-            res += cc * vv;
+            res_vec.push_back(cc * vv);
         }
-        return res;
+        return add(res_vec);
     }
     
     /**
@@ -2185,6 +2187,23 @@ namespace HepLib {
         if(!is_a<add>(e)) throw Error("add_collect_normal: input is NOT a add class.");
         exvector exv(e.begin(), e.end());
         return add_collect_normal(exv, pats, opt);
+    }
+    
+    bool has_w(const ex & e) {
+        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) if(is_a<wildcard>(*i)) return true;
+        return false;
+    }
+    
+    void subs_w(exmap & repl) {
+        auto r = repl;
+        for(auto kv : r) if(is_a<mul>(kv.first) && !has_w(kv.first)) repl[w*kv.first]=w*kv.second;
+    }
+    
+    void subs_w(lst & repl) {
+        auto r = repl;
+        for(auto item : r) if(is_a<mul>(item) && !has_w(item)) repl.append(w*item.op(0)==w*item.op(1));
+        repl.sort();
+        repl.unique();
     }
         
     void ReShare(const ex & e) {

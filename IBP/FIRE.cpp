@@ -603,7 +603,7 @@ namespace HepLib {
                 ostringstream config;
                 if(Version>5) config << "#compressor none" << endl;
                 if(Version==5) config << "#bucket 20" << endl;
-                config << "#allIBP" << endl;
+                if(allIBP) config << "#allIBP" << endl;
                 config << "#threads " << Threads << endl;
                 if(Version>5) { // FIRE6 or lator
                     if(lThreads>1) {

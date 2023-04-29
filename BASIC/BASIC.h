@@ -391,6 +391,7 @@ namespace HepLib {
     // Series at s=0 similar to Mathematica
     /*-----------------------------------------------------*/
     ex series_ex(ex const & expr, const symbol &s, int sn);
+    ex series_ex(ex const & expr, const ex &s, int sn);
         
     ex expand_ex(const ex &expr, std::function<bool(const ex &)>);
     
@@ -409,69 +410,26 @@ namespace HepLib {
         return expand_ex(expr, [pat](const ex & e)->bool { return e.has(pat); });
     }
     
-    ex collect_ex(const ex &expr, std::function<bool(const ex &)>, bool cf=false, bool vf=false, int opt=o_none);
+    ex collect_ex(const ex &expr, std::function<bool(const ex &)>, int opt=o_none);
     
-    inline ex collect_ex(const ex &expr, init_list const &pats, bool cf=false, bool vf=false, int opt=o_none) {
+    inline ex collect_ex(const ex &expr, init_list const &pats, int opt=o_none) {
         return collect_ex(expr, [pats](const ex & e)->bool {
             for(auto pat : pats) { if(e.has(pat)) return true; }
             return false;
-        }, cf, vf, opt);
+        }, opt);
     }
     
-    inline ex collect_ex(const ex &expr, lst const &pats, bool cf=false, bool vf=false, int opt=o_none) {
+    inline ex collect_ex(const ex &expr, lst const &pats, int opt=o_none) {
         return collect_ex(expr, [pats](const ex & e)->bool {
             for(auto pat : pats) { if(e.has(pat)) return true; }
             return false;
-        }, cf, vf, opt);
+        }, opt);
     }
     
-    inline ex collect_ex(const ex &expr, ex const &pat, bool cf=false, bool vf=false, int opt=o_none) {
-        return collect_ex(expr, [pat](const ex & e)->bool { return e.has(pat); }, cf, vf, opt);
+    inline ex collect_ex(const ex &expr, ex const &pat, int opt=o_none) {
+        return collect_ex(expr, [pat](const ex & e)->bool { return e.has(pat); }, opt);
     }
     
-    inline ex collect_o(const ex &expr, std::function<bool(const ex &)> f, int opt=o_none) {
-        return collect_ex(expr, f, false, false, opt);
-    }
-    inline ex collect_o(const ex &expr, lst const &pats, int opt=o_none) {
-        return collect_ex(expr, pats, false, false, opt);
-    }
-    inline ex collect_o(const ex &expr, ex const &pat, int opt=o_none) {
-        return collect_ex(expr, pat, false, false, opt);
-    }
-    
-    inline ex collect_c(const ex &expr, std::function<bool(const ex &)> f, int opt=o_none) {
-        return collect_ex(expr, f, true, false, opt);
-    }
-    inline ex collect_c(const ex &expr, lst const &pats, int opt=o_none) {
-        return collect_ex(expr, pats, true, false, opt);
-    }
-    inline ex collect_c(const ex &expr, ex const &pat, int opt=o_none) {
-        return collect_ex(expr, pat, true, false, opt);
-    }
-
-    inline ex collect_v(const ex &expr, std::function<bool(const ex &)> f, int opt=o_none) {
-        return collect_ex(expr, f, false, true, opt);
-    }
-    inline ex collect_v(const ex &expr, lst const &pats, int opt=o_none) {
-        return collect_ex(expr, pats, false, true, opt);
-    }
-    inline ex collect_v(const ex &expr, ex const &pat, int opt=o_none) {
-        return collect_ex(expr, pat, false, true, opt);
-    }
-    
-    inline ex collect_cv(const ex &expr, std::function<bool(const ex &)> f, int opt=o_none) {
-        return collect_ex(expr, f, true, true, opt);
-    }
-    inline ex collect_cv(const ex &expr, init_list const &pats, int opt=o_none) {
-        return collect_ex(expr, pats, true, true, opt);
-    }
-    inline ex collect_cv(const ex &expr, lst const &pats, int opt=o_none) {
-        return collect_ex(expr, pats, true, true, opt);
-    }
-    inline ex collect_cv(const ex &expr, ex const &pat, int opt=o_none) {
-        return collect_ex(expr, pat, true, true, opt);
-    }
-
     lst collect_lst(const ex &expr, std::function<bool(const ex &)>, int opt=o_none);
     
     inline lst collect_lst(const ex &expr, init_list const &pats, int opt=o_none) {
@@ -557,8 +515,6 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Customized GiNaC Function
     /*-----------------------------------------------------*/
-    DECLARE_FUNCTION_1P(coCF)
-    DECLARE_FUNCTION_1P(coVF)    
     DECLARE_FUNCTION_1P(x)
     DECLARE_FUNCTION_1P(y)
     DECLARE_FUNCTION_1P(z)
@@ -801,9 +757,11 @@ namespace HepLib {
      */
     class Fermat {
     public:
+        static Fermat& get();
         static int buffer_size;
         string Sentinel = "---EOF---";
         void Init(string fer_path="fer64");
+        int vmax = 0;
         string Execute(string);
         void Exit();
         ~Fermat();
@@ -873,6 +831,9 @@ namespace HepLib {
     ex add_collect_normal(const ex & e, ex const &pats, int opt = o_fermat);
     ex add_collect_normal(const ex & e, lst const &pats, int opt = o_fermat);
     ex add_collect_normal(const ex & e, init_list const &pats, int opt = o_fermat);
+    bool has_w(const ex & e);
+    void subs_w(exmap & repl);
+    void subs_w(lst & repl);
     
     class Server {
     public:

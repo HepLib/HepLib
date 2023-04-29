@@ -350,8 +350,11 @@ namespace HepLib::SD {
                     fs2.append(tmp);
                     es2.append(es.op(j));
                 }
+                exmap eps_map;
+                for(auto epi : eps_lst) eps_map[epi.op(0)] = 0;
+
                 auto vsn0 = vsRank(fpre); // maybe need to expand ep/eps first
-                auto vsn = vsn0 + vs_pow.subs(lst{ep==0, eps==0});
+                auto vsn = vsn0 + vs_pow.subs(eps_map);
                 int di=0;
                 lst fss, ess;
                 fss.append(fs2);
@@ -405,6 +408,13 @@ namespace HepLib::SD {
                 throw Error("MB: epz found at fe.");
             }
             
+            exmap eps_map;
+            ex epn = ex(1)/111;
+            for(auto epi : eps_lst) {
+                eps_map[epi.op(0)] = epn;
+                epn = epn / 13;
+            }
+            
             // check variables besides x or PL
             // CV should only appear at kv.op(0).op(0), i.e., the prefactor
             for(int i=1; i<fe.op(0).nops(); i++) {
@@ -414,8 +424,8 @@ namespace HepLib::SD {
                     throw Error("MB: vz Found.");
                 }
                 
-                auto tmp = fe.op(0).op(i).subs(lst{WRA(w)==0,x(w)==1,PL(w)==1,ep==1/ex(1121),eps==1/ex(1372),vs==1/ex(123456)});
-                if(!is_a<numeric>(NN(tmp))) {
+                auto tmp = fe.op(0).op(i).subs(lst{WRA(w)==0,x(w)==1,PL(w)==1}).subs(eps_map);
+                if(!is_a<numeric>(NN(tmp,20))) {
                     cout << ErrColor << tmp << RESET << endl;
                     throw Error("MB: Extra Variable(^[ep,eps,PL,x]) Found.");
                 }

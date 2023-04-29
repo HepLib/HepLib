@@ -231,7 +231,6 @@ namespace HepLib::QCD {
             ex q = pqi.op(1);
             
             if(!is_a<Vector>(q)) throw Error("LProj invalid 3rd argument");
-            if(expr_in.has(coVF(w))) throw Error("LProj error: expr_in has coVF already.");
             for(int i=2; i<pqi.nops(); i++) {
                 if(!is_a<Index>(pqi.op(i))) throw Error("LProj invalid 3rd argument");
             }
@@ -268,8 +267,9 @@ namespace HepLib::QCD {
                     return DGamma(idx, g.rl) * SP(g.pi, idx);
                 } else if (e.match(TR(w))) {
                     auto ret = self(e.op(0));
-                    ret = collect_ex(ret, q, true);
-                    ret = ret.subs(coCF(w)==TR(w));
+                    auto cvs = collect_lst(ret, q);
+                    ret = 0;
+                    for(auto cv : cvs) ret += TR(cv.op(0)) * cv.op(1);
                     return ret;
                 } else if(is_a<add>(e)) {
                     int lpj = lproj;

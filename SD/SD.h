@@ -37,7 +37,7 @@ namespace HepLib::SD {
     exvector get_z_from(ex pol);
     exvector get_pl_from(ex pol);
     int epRank(ex);
-    int epsRank(ex);
+    int epsRank(ex,ex);
     int vsRank(ex);
     int x_free_index(ex expr);
     int y_free_index(ex expr);
@@ -57,7 +57,6 @@ namespace HepLib::SD {
     DECLARE_FUNCTION_2P(VE)
     DECLARE_FUNCTION_2P(VEO)
     DECLARE_FUNCTION_2P(VEO2)
-    DECLARE_FUNCTION_1P(epsID)
     DECLARE_FUNCTION_2P(CV) // not used internally, for user use only
     DECLARE_FUNCTION_1P(WRA) // for wick rotation
     extern int VEO_Digits;
@@ -328,7 +327,7 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     // VE
     /*-----------------------------------------------------*/
-    ex VESimplify(ex expr, int epN = 0, int epsN = 0);
+    ex VESimplify(ex expr);
     ex VEResult(ex expr);
     ex VEResult2(ex expr); // keep two digits in error
     ex VEMaxErr(ex expr);
@@ -386,8 +385,7 @@ namespace HepLib::SD {
         static bool use_dlclose;
         static string cpp;
         
-        int epN = 0;
-        int epsN = 0;
+        lst eps_lst = { lst{eps,0}, lst{ep,0} }; // { {epi, epiN}, ... }
         int vsN = 0;
         int PoleRequested = -5;
         bool vs_before_ep = false;
@@ -438,7 +436,7 @@ namespace HepLib::SD {
         void Normalizes();
         void Scalelesses();
         void SDPrepares();
-        void EpsEpExpands();
+        void EpsExpands();
         void RemoveDeltas();
         void XReOrders();
         void XTogethers();

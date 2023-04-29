@@ -7,8 +7,6 @@
 
 namespace HepLib {
     
-    REGISTER_FUNCTION(coCF, do_not_evalf_params())
-    REGISTER_FUNCTION(coVF, do_not_evalf_params())
     REGISTER_FUNCTION(x, do_not_evalf_params())
     REGISTER_FUNCTION(y, do_not_evalf_params())
     REGISTER_FUNCTION(z, do_not_evalf_params())

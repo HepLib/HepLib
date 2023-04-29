@@ -11,15 +11,8 @@ namespace HepLib {
 
     // return MR & T, such that MR = T.M0
     static pair<matrix,matrix> RowReduce(matrix mat) {
-        static map<pid_t, Fermat> fermat_map;
-        static int v_max = 0;
-
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         lst rep_vs;
         ex tree = mat;
@@ -184,15 +177,8 @@ namespace HepLib {
     // both row and column start from 0
     typedef map<int,map<int,ex>> SparseMatrix;
     static void RowReduce(SparseMatrix & smat, int pn) {
-        static map<pid_t, Fermat> fermat_map;
-        static int v_max = 0;
-
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         lst rep_vs;
         for(auto const & rv : smat) for(auto const & cv : rv.second) {
@@ -794,7 +780,7 @@ exit(0);
             auto mr = rt.first;
             auto mt = rt.second;
             bvec = mt.mul(bvec);
-            for(int r=0; r<nr; r++) bvec(r,0) = collect_ex(bvec(r,0),F(w),false,false,o_flintfD);
+            for(int r=0; r<nr; r++) bvec(r,0) = collect_ex(bvec(r,0),F(w),o_flintfD);
             
             //cout << "CHECK: 1=" << ex_to<matrix>(normal(mr.sub(mt.mul(mat)))).is_zero_matrix() << endl;
                 

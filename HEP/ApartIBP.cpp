@@ -229,7 +229,7 @@ namespace HepLib {
                     int idx = ex_to<numeric>(cv.op(1)).to_int();
                     res += cv.op(0) * ap_vec[idx];
                 }
-                res = collect_ex(res, ApartIR(w1,w2), false, false, o_flint);
+                res = collect_ex(res, ApartIR(w1,w2), o_flint);
                 return res; // air_vec updated to ApartIR
             }, "ApPost");
             ap_vec.clear();
@@ -399,7 +399,7 @@ namespace HepLib {
                     auto air = air_vec[idx];
                     air = air.subs(AIR2F,nopat);
                     air = air.subs(int_fr.first,nopat);
-                    air = collect_ex(air, F(w1,w2), false, false, o_flint);
+                    air = collect_ex(air, F(w1,w2), o_flint);
                     return air;
                 }, "AIR2F");
                 if(aio.SaveDir != "") AIR2F_Save(aio.SaveDir, air_vec, IntFs, ibp_vec);
@@ -536,7 +536,7 @@ namespace HepLib {
                     lst res;
                     for(auto ri : rules) res.append(lst { 
                         ri.op(0),  
-                        collect_ex(ri.op(1).subs(miRules,nopat),F(w1,w2),false,false,o_flint)
+                        collect_ex(ri.op(1).subs(miRules,nopat),F(w1,w2),o_flint)
                     });
                     for(auto mi : ibp_vec_re[idx]->MIntegrals) {
                         auto fi = miRules.find(mi);

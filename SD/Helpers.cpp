@@ -89,66 +89,35 @@ namespace HepLib::SD {
     /*-----------------------------------------------------*/
     // VE
     /*-----------------------------------------------------*/
-    ex VESimplify(ex expr, int epN, int epsN) {
-        auto expr1 = EvalF(expr);
-        if(expr1.has(eps) && !expr1.is_polynomial(eps)) expr1 = series_ex(expr1, eps, epsN);
-        if(expr1.has(ep) && !expr1.is_polynomial(ep)) expr1 = series_ex(expr1, ep, epN);
-        expr1 = collect_ex(expr1, lst{eps,ep});
+    ex VESimplify(ex expr) {
+        auto ee = NN(EvalF(expr));
+        auto cvs = collect_lst(ee, [](const ex & e)->bool { return !is_a<numeric>(e) && !e.match(VE(w1,w2)); });
         ex ret = 0;
-        for(int si=expr1.ldegree(eps); si<=epsN; si++) {
-        for(int i=expr1.ldegree(ep); i<=epN; i++) {
-        
-            auto ccRes = expr1.coeff(eps,si).coeff(ep,i);
-            ccRes = NN(ccRes).expand();
-            if(!is_a<add>(ccRes)) ccRes = lst{ ccRes };
-            
-            exmap pvmap;
-            for(auto item : ccRes) {
-                ex cc = 1, cf = 1;
-                if(is_a<mul>(item)) {
-                    cc = 1; 
-                    cf = 1;
-                    for(auto ii : item) {
-                        if(is_a<numeric>(ii) || ii.match(VE(w1, w2))) {
-                            cc *= ii;
-                        } else {
-                            cf *= ii;
-                        }
-                    }
-                } else if(is_a<numeric>(item) || item.match(VE(w1, w2))) {
-                    cc = item;
-                } else {
-                    cf = item;
+        for(auto cv : cvs) {
+            auto vf = cv.op(1);
+            auto cc_vv_lst = collect_lst(cv.op(0), VE(w1,w2));
+            ex vIR=0, eI2 = 0, eR2 = 0;
+            for(auto cc_vv : cc_vv_lst) {
+                auto co = NN(cc_vv.op(0));
+                auto ve = cc_vv.op(1);
+                if(!is_a<numeric>(co)) {
+                    cout << cv << endl;
+                    throw Error("VESimplify: coefficient of VE is not numeric.");
                 }
-                pvmap[cf] += cc;
+                if(abs(co)>numeric("1E300")) return NaN;
+                vIR += co * ve.op(0);
+                numeric nco = ex_to<numeric>(co);
+                ex ee = ve.op(1) * ve.op(1);
+                eR2 += nco.real_part() * nco.real_part() * ee;
+                eI2 += nco.imag_part() * nco.imag_part() * ee;
             }
+            if(!is_zero(eR2) || !is_zero(vIR))
+                ret += VE(ex_to<numeric>(vIR).real_part(), sqrt(eR2)) * vf;
+            if(!is_zero(eI2) || !is_zero(vIR))
+                ret += VE(ex_to<numeric>(vIR).imag_part(), sqrt(eI2)) * vf * I;
+        }
         
-            for(auto kv : pvmap) {
-                auto vf = kv.first;
-                auto cvs = collect_lst(kv.second, VE(w1,w2));
-                ex vIR=0, eI2 = 0, eR2 = 0;
-                for(auto cv : cvs) {
-                    auto co = NN(cv.op(0));
-                    auto ve = cv.op(1);
-                    if(!is_a<numeric>(co)) {
-                        cout << cv << endl;
-                        throw Error("VESimplify: coefficient of VE is not numeric.");
-                    }
-                    if(abs(co)>numeric("1E300")) return NaN;
-                    vIR += co * ve.op(0);
-                    numeric nco = ex_to<numeric>(co);
-                    ex ee = ve.op(1) * ve.op(1);
-                    eR2 += nco.real_part() * nco.real_part() * ee;
-                    eI2 += nco.imag_part() * nco.imag_part() * ee;
-                }
-                if(!is_zero(eR2) || !is_zero(vIR))
-                    ret += VE(ex_to<numeric>(vIR).real_part(), sqrt(eR2)) * pow(eps,si) * pow(ep,i) * vf;
-                if(!is_zero(eI2) || !is_zero(vIR))
-                    ret += VE(ex_to<numeric>(vIR).imag_part(), sqrt(eI2)) * pow(eps,si) * pow(ep,i) * vf * I;
-            }
-        }}
-        
-        return ret.collect(lst{eps,ep}, true);
+        return ret;
     }
 
     ex VEResult(ex expr) {
@@ -237,15 +206,17 @@ namespace HepLib::SD {
         throw Error("epRank error!");
     }
 
-    int epsRank(ex expr_in) {
-        if(!expr_in.has(eps)) return 0;
+    int epsRank(ex expr_in, ex epi) {
+        static symbol s;
+        if(!expr_in.has(epi)) return 0;
         int p = -5;
-        auto expr = collect_ex(expr_in, eps);
+        auto expr = expr_in.subs(epi==s);
+        expr = collect_ex(expr, s);
         while(true) {
-            auto tmp = series_to_poly(expr.series(eps, p));
+            auto tmp = series_to_poly(expr.series(s, p));
             if(!tmp.is_zero()) {
-                tmp = collect_ex(tmp, eps);
-                return tmp.ldegree(eps);
+                tmp = collect_ex(tmp, s);
+                return tmp.ldegree(s);
             } else p++;
         }
         throw Error("epsRank error!");

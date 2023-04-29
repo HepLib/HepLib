@@ -495,6 +495,7 @@ namespace HepLib {
     // Form, TIR, Apart
     ex charge_conjugate(const ex &);
     ex form(const ex &expr, int verb=0);
+    ex UnContract(const ex expr, const lst &loop_ps, int mode=0); // 0-Eps/DGamma, 1-Eps/DGamma/Pair
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
     ex Apart(const ex &expr_in, const lst &vars, exmap sgnmap={});
@@ -554,6 +555,7 @@ namespace HepLib {
     
     ex ToCF(const ex & e);
     ex ToCACF(const ex & e);
+    ex DoColor(const ex & e, const ex & pref=1);
     ex A0(const ex m2, int n=1, const ex d=4-2*ep);
     
         

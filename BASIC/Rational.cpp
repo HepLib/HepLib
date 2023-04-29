@@ -1,7 +1,6 @@
 // Rational Polynomial ReConstruction
 #include "BASIC.h"
 #include <vector>
-#include <execution>
 
 namespace HepLib {
 

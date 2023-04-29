@@ -293,15 +293,8 @@ namespace HepLib {
         ex key = sub_matrix(mat,0,nrow,0,ncol);
         if(true || null_cache.find(key)==null_cache.end()) {
             if(Apart_using_fermat) {
-                static map<pid_t, Fermat> fermat_map;
-                static int v_max = 0;
-        
-                auto pid = getpid();
-                if((fermat_map.find(pid)==fermat_map.end())) { // init section
-                    fermat_map[pid].Init();
-                    v_max = 0;
-                }
-                Fermat &fermat = fermat_map[pid];
+                Fermat &fermat = Fermat::get();
+                int &v_max = fermat.vmax;
         
                 lst rep_vs;
                 ex tree = mat;

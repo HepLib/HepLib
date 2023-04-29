@@ -761,6 +761,15 @@ namespace HepLib {
         return res;
     }
     
+    ex ca_neg_pow_sub(const ex & expr) {
+        static MapFunction ca_map([](const ex & e, MapFunction & self)->ex {
+            if(!e.has(CA)) return e;
+            else if(e.match(pow(CA,w)) && e.op(1).info(info_flags::negint)) return pow(CA-2*CF,-e.op(1));
+            else return e.map(self);
+        });
+        return ca_map(expr);
+    }
+    
     ex ToCACF(const ex & e) { // from FeynCalc
         ex res = e.subs(lst{NA==(NF*NF-1),CF==(NF*NF-1)/(2*NF),TF==ex(1)/2});
         res = exfactor(res);
@@ -774,13 +783,26 @@ namespace HepLib {
         // (1-CA^2) -> (-2 CA CF)
         res = res.subs(lst{ w*(1-CA)*(1+CA)==-w*2*CA*CF, w*(-1+CA)*(1+CA)==w*2*CA*CF });
         res = res.subs(lst{ w1*pow(1-CA,w2)*pow(1+CA,w2)==-w1*pow(2*CA*CF,w2), w1*pow(-1+CA,w2)*pow(1+CA,w2)==w1*pow(2*CA*CF,w2) });
-        // (1/CA) -> (CA - 2 CF)
-		res = res.subs(lst{ w/CA==w*(CA-2*CF) });
+        // (1/CA)^n -> (CA - 2 CF)^n
+		//res = res.subs(lst{ w/CA==w*(CA-2*CF) });
+        res = ca_neg_pow_sub(res);
         // ((1 - CA^2)*(CA - 2*CF)) -> (-2*CF)
 		res = res.subs(lst{	w*(1-CA)*(1+CA)*(CA-2*CF)==-2*w*CF, w*(-1+CA)*(1+CA)*(CA-2*CF)==2*w*CF });
         // (CA (CA-2 CF)) -> 1
 		res = res.subs(lst{	w*CA*(CA-2*CF)==w, w*CA*(-CA+2*CF)==-w });
         res = res.subs(lst{	w1*pow(CA,w2)*pow(CA-2*CF,w2)==w1, w1*pow(CA,w2)*pow(-CA+2*CF,w2)==w*pow(-1,w2) });
+        return res;
+    }
+    
+    ex DoColor(const ex & expr, const ex & pref) {
+        auto cvs = collect_lst(expr, [](const ex &e)->bool{ return Index::hasc(e); });
+        ex res = 0;
+        for(auto const & cv : cvs) {
+            auto cc = cv.op(0);
+            auto vv = cv.op(1);
+            vv = ToCACF(form(vv)/pref)*pref;
+            res += cc * vv;
+        }
         return res;
     }
 }

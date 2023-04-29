@@ -4,6 +4,16 @@
 
 namespace HepLib {
 
+    Fermat& Fermat::get() {
+        static map<pid_t, Fermat> fermat_map;
+        auto pid = getpid();
+        if((fermat_map.find(pid)==fermat_map.end())) { // init section
+            fermat_map[pid].Init();
+            fermat_map[pid].vmax = 0;
+        }
+        return fermat_map[pid];
+    }
+
     /**
      * @brief return the numerator and denominator after normalization
      * @param expr the input expression
@@ -12,16 +22,10 @@ namespace HepLib {
      */
     ex numer_denom_fermat(const ex & expr, bool dfactor) {
         int _fermat_using_array = fermat_using_array;
-        static map<pid_t, Fermat> fermat_map;
-        static int v_max = 0;
         bool use_ncheck = false;
-
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         auto expr_in = expr;
         exmap map_rat;
@@ -165,16 +169,10 @@ namespace HepLib {
     
     ex numer_fermat(const ex & expr) {
         int _fermat_using_array = fermat_using_array;
-        static map<pid_t, Fermat> fermat_map;
-        static int v_max = 0;
         bool use_ncheck = false;
 
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         auto expr_in = expr;
         exmap map_rat;
@@ -310,11 +308,6 @@ namespace HepLib {
         return ret;
         
     }
-        
-    namespace {
-        static map<pid_t, Fermat> fermat_map;
-        static int v_max = 0;
-    }
 
     /**
      * @brief return the numerator and denominator after normalization
@@ -322,12 +315,8 @@ namespace HepLib {
      * @return fermat evaluated expression
      */
     ex fermat_eval(const ex & expr) {
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         auto expr_in = expr;
         exmap map_rat;
@@ -418,12 +407,8 @@ namespace HepLib {
     }
     
     matrix fermat_Redrowech(const matrix & mat_in) {
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         exmap map_rat;
         int nrow = mat_in.rows();
@@ -529,12 +514,8 @@ namespace HepLib {
     }
     
     ex fermat_Det(const matrix & mat_in) {
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         exmap map_rat;
         int nrow = mat_in.rows();
@@ -639,12 +620,8 @@ namespace HepLib {
     }
         
     matrix fermat_inv(const matrix & mat_in) {
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         exmap map_rat;
         int nrow = mat_in.rows();
@@ -750,12 +727,8 @@ namespace HepLib {
     }
     
     matrix fermat_mul(const matrix & m1, const matrix & m2) {
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         exmap map_rat;
         int nr1 = m1.rows();
@@ -879,12 +852,8 @@ namespace HepLib {
     }
     
     matrix fermat_pow(const matrix & mat_in, int n) {
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         exmap map_rat;
         int nrow = mat_in.rows();
@@ -999,12 +968,8 @@ namespace HepLib {
         string_replace_all(name, "[", "");
         string_replace_all(name, "]", "");
         
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         int nrow = mat_in.rows();
         int ncol = mat_in.cols();
@@ -1079,12 +1044,9 @@ namespace HepLib {
         string name = _name;
         string_replace_all(name, "[", "");
         string_replace_all(name, "]", "");
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         stringstream ss;
         ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
@@ -1121,12 +1083,8 @@ namespace HepLib {
     }
     
     void fermat_eval(const string & fcmd) {
-        auto pid = getpid();
-        if((fermat_map.find(pid)==fermat_map.end())) { // init section
-            fermat_map[pid].Init();
-            v_max = 0;
-        }
-        Fermat &fermat = fermat_map[pid];
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
         
         stringstream ss;
         ss << fcmd << endl; // ugly printing, the whitespace matters

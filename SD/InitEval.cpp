@@ -420,13 +420,19 @@ namespace HepLib::SD {
             FunExp.push_back(fe);
         }
         Normalizes();
+        exmap eps_map;
+        ex epn = ex(1)/111;
+        for(auto epi : eps_lst) {
+            eps_map[epi.op(0)] = epn;
+            epn = epn / 13;
+        }
         // final check non-f term positive
         for(auto fe : FunExp) {
             auto fs = fe.op(0);
             auto ns = fe.op(1);
             for(int i=0; i<fs.nops(); i++) {
                 if(i==1 || ns.op(i).info(info_flags::integer)) continue;
-                auto nv = Symbol::set_all(fs.op(i)).subs(nReplacements).subs(lst{CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111});
+                auto nv = Symbol::set_all(fs.op(i)).subs(nReplacements).subs(lst{CV(w1,w2)==w2}).subs(eps_map);
                 if(!xPositive(nv)) {
                     cout << "fs = " << fs << endl << "ns = " << ns << endl;
                     throw Error("Initialize: non-positive u-term found.");
@@ -475,7 +481,7 @@ namespace HepLib::SD {
         RemoveDeltas();
         KillPowers();
         SDPrepares();
-        EpsEpExpands();
+        EpsExpands();
         CIPrepares(key);
         auto pps = GiNaC_Parallel_Process;
         GiNaC_Parallel_Process = 0;
@@ -497,7 +503,7 @@ namespace HepLib::SD {
         RemoveDeltas();
         KillPowers();
         SDPrepares();
-        EpsEpExpands();
+        EpsExpands();
         CIPrepares(key);
         auto pps = GiNaC_Parallel_Process;
         GiNaC_Parallel_Process = 0;
@@ -519,7 +525,7 @@ namespace HepLib::SD {
         RemoveDeltas();
         KillPowers();
         SDPrepares();
-        EpsEpExpands();
+        EpsExpands();
         CIPrepares(key);
         auto pps = GiNaC_Parallel_Process;
         GiNaC_Parallel_Process = 0;

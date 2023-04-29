@@ -357,12 +357,17 @@ namespace HepLib::SD {
                 ft = 1;
                 hasWRA = true;
             }
+            
+            exmap eps_map;
+            ex epn = ex(1)/111;
+            for(auto epi : eps_lst) {
+                eps_map[epi.op(0)] = epn;
+                epn = epn / 13;
+            }
 
             bool need_contour_deformation = ft.has(PL(w));
             if(ft.has(y(w)) && !need_contour_deformation) {
-                auto tmp = ft.subs(nReplacements).subs(lst{
-                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }).expand();
+                auto tmp = ft.subs(nReplacements).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map).expand();
                 if(is_a<add>(tmp)) {
                     need_contour_deformation = false;
                     auto first = tmp.op(0).subs(y(w)==1);
@@ -381,9 +386,7 @@ namespace HepLib::SD {
             }
 
             if(disable_Contour || !need_contour_deformation) {
-                auto tmp = NN(ft.subs(y(w)==1).subs(nReplacements).subs(lst{
-                    CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                }),30);
+                auto tmp = NN(ft.subs(y(w)==1).subs(nReplacements).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map),30);
                 
                 if(!is_a<numeric>(tmp)) throw Error("DS: NOT a numeric with " + ex2str(tmp));
                 if(tmp<0) {
@@ -395,8 +398,7 @@ namespace HepLib::SD {
 
             exmap ymol;
             
-            // need collect_common_factors
-            auto det = collect_common_factors(vi[x(-1)]);
+            auto det = exfactor(vi[x(-1)]); // need factor
             if(is_a<add>(det)) throw Error("DS: det is add " + ex2str(det));
             auto ys = get_xy_from(det);
             ex det1 = 1;
@@ -439,18 +441,12 @@ namespace HepLib::SD {
                     tmp1 = tmp;
                 }
                 
-                // need collect_common_factors
-                if(tmp.has(y(w))) tmp = collect_common_factors(expand_ex(tmp,y(w)));
+                if(tmp.has(y(w))) tmp = exfactor(tmp); // need factor
 
-                lst tmps;
-                if(is_exactly_a<mul>(tmp)) {
-                    for (auto item : tmp) tmps.append(item);
-                } else {
-                    tmps.append(tmp);
-                }
-                
                 ex rem = 1;
                 ex ct = 1;
+                ex tmps = tmp;
+                if(!is_a<mul>(tmps)) tmps = lst{tmps};
                 for (auto item : tmps) {
                     if(item.match(y(w))) {
                         auto yi = item;
@@ -462,9 +458,7 @@ namespace HepLib::SD {
                         if(is_a<numeric>(nexp) && ex_to<numeric>(nexp).is_integer()) {
                             ct *= item;
                         } else if(!item.has(PL(w)) && !item.has(WRA(w))) {
-                            auto tr = NN(item.subs(nReplacements).subs(lst{
-                                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                            }),30);
+                            auto tr = NN(item.subs(nReplacements).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map),30);
                             if(!is_a<numeric>(tr)) {
                                 throw Error("DS: not numeric - item: " + ex2str(tr) + " ; " + ex2str(item));
                             }
@@ -600,6 +594,12 @@ namespace HepLib::SD {
                 auto ntmp = in_nlst.op(i);
                 if(!is_a<mul>(ptmp)) ptmp = lst{ ptmp };
                 
+                exmap eps_map;
+                ex epn = ex(1)/111;
+                for(auto epi : eps_lst) {
+                    eps_map[epi.op(0)] = epn;
+                    epn = epn / 13;
+                }
                 ex tmul = 1;
                 for(int j=0; j<ptmp.nops(); j++) {
                     auto tmp = ptmp.op(j);
@@ -609,9 +609,7 @@ namespace HepLib::SD {
                         } else if((tmp-vs).is_zero() || tmp.match(pow(vs,w))) {
                             const_term *=  pow(tmp,ntmp);
                         } else if(!tmp.has(PL(w)) && !tmp.has(vs) && !tmp.has(WRA(w))) {
-                            auto tr = NN(tmp.subs(nReplacements).subs(lst{
-                                CV(w1,w2)==w2, ep==ex(1)/111, eps==ex(1)/1111
-                            }));
+                            auto tr = NN(tmp.subs(nReplacements).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map),30);
                             if(!is_a<numeric>(tr) || !tr.info(info_flags::real)) {
                                 cerr << "tmp: " << tmp << endl;
                                 cerr << "tr: " << tr << endl;
@@ -1070,10 +1068,13 @@ namespace HepLib::SD {
             return;
         }
         
+        exmap eps_map;
+        for(auto epi : eps_lst) eps_map[epi.op(0)] = 0;
+        
         SecDec->use_XMonomials = use_XMonomials;
         if(Verbose > 1) cout << Color_HighLight << "  SDPrepares @ " << now() << RESET << endl;
         auto sd_res =
-        GiNaC_Parallel(FunExp.size(), [this](int idx)->ex {
+        GiNaC_Parallel(FunExp.size(), [this,&eps_map](int idx)->ex {
             // return a lst, element pattern: { {{x1,n1}, {x2,n2}, ...}, {{e1, n1},{e2,n2}, ...} }.
             auto fe = FunExp[idx];
             auto xns_pns = DS(fe);
@@ -1105,7 +1106,7 @@ namespace HepLib::SD {
                             int pxn = -1;
                             while(true) {
                                 ex zp = (pxn-c0)/c1;
-                                ex zpn = zp.subs(lst{eps==0,ep==0,epz==0});
+                                ex zpn = zp.subs(eps_map).subs(lst{ep==0,epz==0});
                                 if(!is_a<numeric>(zpn)) {
                                     cerr << ErrColor << "SDPrepares: zpn is not a number: " << zpn << RESET << endl;
                                     exit(1);
@@ -1130,14 +1131,15 @@ namespace HepLib::SD {
             }
             return para_res_lst;
         }, "SD");
-        
+cout << endl << sd_res << endl; // TODO: remove
+    
         ex min_expn = 1, min_expn2 = 10;
         exvector ibp_in_vec;
         for(auto &item : sd_res) {
             for(auto &it : ex_to<lst>(item)) {
                 ex expn = 0;
                 for(auto xn : it.op(0)) {
-                    ex nxn = xn.op(1).subs(lst{ep==0, eps==0, vz==0});
+                    ex nxn = xn.op(1).subs(eps_map).subs(lst{ep==0, vz==0});
                     if(nxn<-1) expn += nxn+1;
                     if(min_expn2>nxn) min_expn2 = nxn+1;
                 }
@@ -1171,7 +1173,7 @@ namespace HepLib::SD {
             ostringstream spn;
             spn << "XIBP-" << (pn-1);
             auto ibp_res =
-            GiNaC_Parallel(ibp_in_vec.size(), [&ibp_in_vec,this](int idx)->ex {
+            GiNaC_Parallel(ibp_in_vec.size(), [&eps_map,&ibp_in_vec,this](int idx)->ex {
                 // return lst
                 // {0, element} for input with pole reached and doing nothing
                 // {1, {element, ...}} for input whth pole NOT reached
@@ -1192,7 +1194,7 @@ namespace HepLib::SD {
                 
                 for(int n=0; n<xns.nops(); n++) {
                     ex xn = xns.op(n);
-                    auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0,epz==0}).normal();
+                    auto expn = xn.op(1).subs(eps_map).subs(lst{ep==0,vz==0,epz==0}).normal();
                     if(!is_a<numeric>(expn)) throw Error("SDPrepares: expn NOT numeric: " + ex2str(expn));
 
                     if(ex_to<numeric>(expn) < pole_requested) {
@@ -1325,7 +1327,7 @@ namespace HepLib::SD {
         }
 
         auto res =
-        GiNaC_Parallel(ibp_res_vec.size(), [&ibp_res_vec](int idx)->ex {
+        GiNaC_Parallel(ibp_res_vec.size(), [&ibp_res_vec,&eps_map](int idx)->ex {
 
             // return single element in which ep/eps can be expanded safely.
             auto xns_expr = ibp_res_vec[idx];
@@ -1335,13 +1337,14 @@ namespace HepLib::SD {
             lst exprs = { expr };
             symbol dx;
             for(auto xn : xns) {
-                auto expn = xn.op(1).subs(lst{eps==0,ep==0,vz==0,epz==0}).normal();
+                auto expn = xn.op(1).subs(eps_map).subs(lst{ep==0,vz==0,epz==0}).normal();
                 if(!is_a<numeric>(expn)) throw Error("SDPrepares: Not a number with expn = " + ex2str(expn));
                 
                 lst exprs2;
                 for(auto it : exprs) {
                     ex rem = pow(xn.op(0), xn.op(1)) * it;
-                    if(ex_to<numeric>(expn)<=-1) {
+                        if(ex_to<numeric>(expn)<0) { // TODO: remove
+//                    if(ex_to<numeric>(expn)<=-1) {
                         ex dit = it;
                         ex dit0 = dit.subs(xn.op(0)==0);
                         ex ifact = 1;
@@ -1422,17 +1425,17 @@ namespace HepLib::SD {
 
     }
 
-    void SecDec::EpsEpExpands() {
+    void SecDec::EpsExpands() {
         if(IsZero) return;
         if(Integrands.size()<1) {
             IsZero = true;
             return;
         }
         
-        if(Verbose > 1) cout << Color_HighLight << "  EpsEpExpands @ " << now() << RESET << endl;
+        if(Verbose > 1) cout << Color_HighLight << "  EpsExpands @ " << now() << RESET << endl;
         
         if(Verbose > 1) cout << "  \\--Collecting: " << Integrands.size() << " :> " << flush;
-        map<ex, ex, ex_is_less> int_map;
+        exmap int_map;
         for(auto &item : Integrands) {
             if(item.is_zero()) continue;
             exset cts;
@@ -1440,7 +1443,7 @@ namespace HepLib::SD {
             if(cts.size() != 1) {
                 cerr << "cts: " << cts << endl;
                 cerr << "item: " << item << endl;
-                throw Error("EpsEpExpands: CT size is NOT 1: ");
+                throw Error("EpsExpands: CT size is NOT 1: ");
             }
             ex ct = (*(cts.begin())).subs(CT(w)==w);
             auto it = item.subs(CT(w)==1);
@@ -1455,7 +1458,7 @@ namespace HepLib::SD {
         }
         if(Verbose > 1) cout << Integrands.size() << endl;
 
-        GiNaC_Parallel_RM["EpsEp"] = !Debug;
+        GiNaC_Parallel_RM["EpsEx"] = !Debug;
         auto res =
         GiNaC_Parallel(Integrands.size(), [this](int idx)->ex {
             // return { {two elements}, {two elements}, ...},
@@ -1468,11 +1471,11 @@ namespace HepLib::SD {
             if(cts.size() != 1) {
                 cerr << "cts: " << cts << endl;
                 cerr << "item: " << item << endl;
-                throw Error("EpsEpExpands: CT size is NOT 1: ");
+                throw Error("EpsExpands: CT size is NOT 1: ");
             }
             ex ct = (*(cts.begin())).subs(CT(w)==w);
             auto it = item.subs(CT(w)==1);
-            
+        
             if(ct.has(epz)) {
                 if(is_a<mul>(ct)) {
                     ex ct0 = 1, ct1 = 1;
@@ -1488,87 +1491,41 @@ namespace HepLib::SD {
                 }
             }
             if(it.has(epz)) it = series_ex(it,epz,0);
-            auto cv_lst = collect_lst(it, lst{epz, vs});
-            if(cv_lst.nops()<1) return lst{ lst{ 0, 0} };
-            
+
+            auto cvs = collect_lst(it, lst{epz, vs});
             lst para_res_lst;
-            for(int i=0; i<cv_lst.nops();i++) {
-                auto tmp = cv_lst.op(i).op(0);
-                auto vc = cv_lst.op(i).op(1);
-                if(!tmp.has(eps) && !ct.has(eps)) {
-                    if(tmp.has(epsID(w)) || ct.has(epsID(w))) {
-                        throw Error("EpsEpExpands: epsID should be always multipled by eps!");
+            for(auto cv : cvs) {
+                auto cc = cv.op(1) * ct; // multiple ct here
+                auto vv = cv.op(0);
+                for(auto epi : eps_lst) {
+                    auto epis = epi.op(0);
+                    if(!cc.has(epis) && !vv.has(epis)) continue;
+                    int iN = ex2int(epi.op(1));
+                    int cN = epsRank(cc, epis);
+                    vv = series_ex(vv, epis, iN-cN);
+                    int vN = vv.ldegree(epis);
+                    cc = series_ex(cc, epis, iN-vN);
+                }
+                
+                lst pat_lst;
+                for(auto item : eps_lst) pat_lst.append(item.op(0));
+                auto ics = collect_lst(vv, pat_lst);
+                for(auto ic : ics) {
+                    ex intg = ic.op(0);
+                    ex pref = ic.op(1)*cc;
+                    ex n1 = intg.subs(x(w)==ex(1)/7);
+                    if(is_zero(n1)) {
+                        n1 = intg.subs(x(w)==ex(1)/13);
+                        if(is_zero(n1)) intg = exnormal(intg);
                     }
-                    auto ct2 = vc * ct;
-                    int ctN = epRank(ct2);
-                    tmp = series_ex(tmp, ep, epN-ctN);
-                    for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
-                        auto intg = tmp.coeff(ep, di);
-                        if(intg.has(ep)) {
-                            throw Error("EpsEpExpands: ep found @ intg = " + ex2str(intg));
-                        }
-                        auto pref = ct2;
-                        if(vs_before_ep && pref.has(vs)) {
-                            pref = series_ex(pref, vs, vsN);
-                            auto cvs = collect_lst(pref,vs);
-                            for(auto cv : cvs) {
-                                if(cv.op(1).has(eps)) continue;
-                                pref += cv.op(0) * cv.op(1);
-                            }
-                        }
-                        pref = series_ex(pref, ep, epN-di);
-                        if(!vs_before_ep && pref.has(vs)) pref = series_ex(pref, vs, vsN);
-                        if(is_zero(intg.subs(x(w)==ex(1)/7)) && is_zero(intg.subs(x(w)==ex(1)/13))) {
-                            intg = normal_fermat(intg);
-                        }
-                        para_res_lst.append(lst{pref * pow(ep, di), intg});
-                    }
-                } else {
-                    auto sct = vc * ct;
-                    int sctN = epsRank(sct);
-                    ex stmp = series_ex(tmp, eps, epsN-sctN);
-                    for(int sdi=stmp.ldegree(eps); (sdi<=stmp.degree(eps) && sdi<=epsN-sctN); sdi++) {
-                        tmp = stmp.coeff(eps, sdi);
-                        if(tmp.has(eps)) {
-                            throw Error("EpsEpExpands: eps found @ tmp = " + ex2str(tmp));
-                        }
-                        
-                        auto cv_lst = collect_lst(tmp, epsID(w));
-                        auto ct2 = series_ex(sct, eps, epsN-sdi);
-                        int ctN = epRank(ct2);
-                        for(auto ti : cv_lst) { // Note: tmp is local
-                            auto tmp = ti.op(0);
-                            auto eps_ci = ti.op(1);
-                            tmp = series_ex(tmp, ep, epN-ctN);
-                            for(int di=tmp.ldegree(ep); (di<=tmp.degree(ep) && di<=epN-ctN); di++) {
-                                auto intg = tmp.coeff(ep, di);
-                                if(intg.has(ep)) {
-                                    throw Error("EpsEpExpands: ep found @ intg = " + ex2str(intg));
-                                }
-                                auto pref = ct2;
-                                if(vs_before_ep && pref.has(vs)) {
-                                    pref = series_ex(pref, vs, vsN);
-                                    auto cvs = collect_lst(pref,vs);
-                                    for(auto cv : cvs) {
-                                        if(cv.op(1).has(eps)) continue;
-                                        pref += cv.op(0) * cv.op(1);
-                                    }
-                                }
-                                pref = series_ex(pref, ep, epN-di);
-                                if(!vs_before_ep && pref.has(vs)) pref = series_ex(pref, vs, vsN);
-                                if(is_zero(intg.subs(x(w)==ex(1)/7)) && is_zero(intg.subs(x(w)==ex(1)/13))) {
-                                    intg = normal_fermat(intg);
-                                }
-                                para_res_lst.append(lst{eps_ci * pref * pow(eps, sdi) * pow(ep, di), intg});
-                            }
-                        }
-                    }
+                    for(auto epi : eps_lst) pref = series_ex(pref, epi.op(0), ex2int(epi.op(1)));
+                    para_res_lst.append(lst{pref, intg});
                 }
             }
 
             return para_res_lst;
 
-        }, "EpsEp");
+        }, "EpsEx");
         
         if(Verbose > 1) cout << "  \\--Collecting: ";
         map<ex, ex, ex_is_less> int_pref;

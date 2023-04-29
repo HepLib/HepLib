@@ -224,7 +224,6 @@ namespace HepLib::SD {
     REGISTER_FUNCTION(PL, do_not_evalf_params().expl_derivative_func(zd1D).derivative_func(zp1D))
     REGISTER_FUNCTION(FTX, do_not_evalf_params().expl_derivative_func(zd2D).derivative_func(zp2D))
     REGISTER_FUNCTION(CT, do_not_evalf_params().expl_derivative_func(dCT).derivative_func(pCT))
-    REGISTER_FUNCTION(epsID, do_not_evalf_params().expl_derivative_func(zd1D).derivative_func(zp1D))
     REGISTER_FUNCTION(WRA, do_not_evalf_params().expl_derivative_func(zd1D).derivative_func(zp1D))
     REGISTER_FUNCTION(VE, conjugate_func(conjVE))
     REGISTER_FUNCTION(VEO, print_func<print_dflt>(print_VEO))

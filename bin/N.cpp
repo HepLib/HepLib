@@ -7,8 +7,6 @@ using namespace SD;
 
 string cm_path = "cm"; // input directory
 string SD_path = "SD"; // save directory
-int epN = 0;
-int epsN = 0;
 
 void ExportNull(const string & prefix);
 int CheckNull(const string & prefix);
@@ -26,7 +24,7 @@ void Prepare(int idx) {
     work.ChengWu();
     work.RemoveDeltas();
     work.SDPrepares();
-    work.EpsEpExpands();
+    work.EpsExpands();
     
     ostringstream ikey;
     ikey << SD_path << "/" << idx;
@@ -50,8 +48,8 @@ void Contour(int idx) {
 
 ex Integrate(int idx, int ni = -1) {
     SecDec work;
-    work.epN = epN;
-    work.epsN = epsN;
+    //work.epN = epN;
+    //work.epsN = epsN;
     
     work.use_ErrMin = false;
     ErrMin::err_min = 1E-3;
@@ -86,8 +84,8 @@ ex Integrate(int idx, int ni = -1) {
 
 ex ReIntegrate(int idx, qREAL err) {
     SecDec work;
-    work.epN = epN;
-    work.epsN = epsN;
+    //work.epN = epN;
+    //work.epsN = epsN;
     
     work.use_ErrMin = false;
     ErrMin::err_min = 1E-3;
@@ -305,7 +303,7 @@ int main(int argc, char** argv) {
     }
     
     if(arg_a=="" || arg_a=="r") {
-        fRes = VESimplify(fRes, epN, epsN);
+        fRes = VESimplify(fRes);
         cout << endl << "Final Result:";
         if(in>0) cout << "[ n=" << in << " ]";
         cout << ":" << endl;
