@@ -1308,21 +1308,6 @@ namespace HepLib {
             fmpz_mpoly_q_set_fmpq(f,fq,ctx);
             fmpq_clear(fq);
             return;
-        } else if(e.is_polynomial(xs)) {
-            string vars[xs.nops()];
-            const char* cvars[xs.nops()];
-            for(int i=0; i<xs.nops(); i++) {
-                vars[i] = ex2str(xs.op(i));
-                cvars[i] = vars[i].c_str();
-            }
-            fmpz_mpoly_q_one(f,ctx);
-            string es = ex2str(e);
-            if(fmpz_mpoly_set_str_pretty(fmpz_mpoly_q_numref(f), es.c_str(), cvars, ctx)) {
-                cout << e << endl;
-                cout << xs << endl;
-                throw Error("fmpz_mpoly_set_str_pretty error.");
-            }
-            return;
         } else if(is_a<add>(e)) {
             fmpz_mpoly_q_zero(f,ctx);
             fmpz_mpoly_q_t fi;
@@ -1361,6 +1346,21 @@ namespace HepLib {
             fmpz_mpoly_pow_ui(fmpz_mpoly_q_denref(f), fmpz_mpoly_q_denref(fi), n, ctx);
             fmpz_mpoly_q_inv(f,f,ctx);
             fmpz_mpoly_q_clear(fi,ctx);
+            return;
+        } else if(e.is_polynomial(xs)) {
+            string vars[xs.nops()];
+            const char* cvars[xs.nops()];
+            for(int i=0; i<xs.nops(); i++) {
+                vars[i] = ex2str(xs.op(i));
+                cvars[i] = vars[i].c_str();
+            }
+            fmpz_mpoly_q_one(f,ctx);
+            string es = ex2str(e);
+            if(fmpz_mpoly_set_str_pretty(fmpz_mpoly_q_numref(f), es.c_str(), cvars, ctx)) {
+                cout << e << endl;
+                cout << xs << endl;
+                throw Error("fmpz_mpoly_set_str_pretty error.");
+            }
             return;
         } else {
             cout << "expr = " << e << endl;

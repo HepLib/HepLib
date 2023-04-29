@@ -221,7 +221,7 @@ namespace HepLib {
             }
             ap_rules.clear();
             
-            if(GiNaC_Parallel_NP.find("ApPost")==GiNaC_Parallel_NP.end()) GiNaC_Parallel_NP["ApPost"] = 8;
+            if(GiNaC_Parallel_NP.find("ApPost")==GiNaC_Parallel_NP.end() && CpuCores()>8) GiNaC_Parallel_NP["ApPost"] = 8;
             air_vec = GiNaC_Parallel(av_size, [&air_vec,&ap_vec] (int idx) {
                 lst cvs = ex_to<lst>(air_vec[idx]);
                 ex res = 0;
@@ -291,21 +291,26 @@ namespace HepLib {
                 auto vars = ex_to<lst>(ir.op(1));
                 lst pns;
                 int nrow = mat.rows();
+                int den_tot = 0;
                 for(int c=0; c<mat.cols(); c++) {
                     ex pc = 0;
                     for(int r=0; r<nrow-2; r++) pc += mat(r,c) * vars.op(r);
                     pc += mat(nrow-2,c);
                     pc = SP2sp(pc);
                     ex nc = ex(0)-mat(nrow-1,c);
-                    if(aio.pn_sector) {
-                        ex ncn = nc;
-                        if(ncn>0) ncn = -1;
-                        else ncn = 1;
-                        pns.append(lst{ ncn, pc, nc }); // note the convension
-                    } else pns.append(lst{ pc, nc }); // note the convension
+                    int ncn;
+                    if(nc>0) ncn = -1;
+                    else ncn = 1;
+                    if(ncn==-1) den_tot++;
+                    pns.append(lst{ ncn, pc, nc }); // note the convension, ncn just for sorting
                 }
-                sort_lst(pns); // use sort_lst
-                if(aio.pn_sector) { // back to original format
+                bool pn_sector = false;
+                if(aio.pn_sector>0 && den_tot>=aio.pn_sector) pn_sector = true;
+                if(!pn_sector) { // back to original format
+                    for(int i=0; i<pns.nops(); i++) pns.let_op(i) = lst{ pns.op(i).op(1), pns.op(i).op(2) };
+                }
+                sort_lst(pns);
+                if(pn_sector) { // back to original format
                     for(int i=0; i<pns.nops(); i++) pns.let_op(i) = lst{ pns.op(i).op(1), pns.op(i).op(2) };
                 }
                 
@@ -322,9 +327,9 @@ namespace HepLib {
                     props.append(item.op(0));
                     ns.append(item.op(1));
                 }
-
+                
                 ex key = props;
-                if(aio.pn_sector) {
+                if(pn_sector) {
                     lst nss;
                     for(int i=0; i<ns.nops(); i++) nss.append(ns.op(i)>0 ? 1 : 0);
                     key = lst{props,nss};
@@ -356,7 +361,7 @@ namespace HepLib {
                             ibp->DSP.append(sp);
                         }
                     }
-                    if(aio.pn_sector) {
+                    if(pn_sector) {
                         lst sector;
                         for(auto const & item : ns) {
                             if(item>0) sector.append(1);
@@ -389,7 +394,7 @@ namespace HepLib {
                 //for(auto ibp : ibp_vec) ibp_vec2.push_back(ibp);
                 auto int_fr = FindRules(ibp_vec, false, aio.UF);
                 IntFs = int_fr.second;
-                if(GiNaC_Parallel_NP.find("AIR2F")==GiNaC_Parallel_NP.end()) GiNaC_Parallel_NP["AIR2F"] = 8;
+                if(GiNaC_Parallel_NP.find("AIR2F")==GiNaC_Parallel_NP.end() && CpuCores()>8) GiNaC_Parallel_NP["AIR2F"] = 8;
                 air_vec = GiNaC_Parallel(air_vec.size(), [&air_vec,&AIR2F,&int_fr] (int idx) {
                     auto air = air_vec[idx];
                     air = air.subs(AIR2F,nopat);
@@ -554,6 +559,7 @@ namespace HepLib {
         }
         Rules_Done: ;
         
+        if(GiNaC_Parallel_NP.find("F2MI")==GiNaC_Parallel_NP.end() && CpuCores()>16) GiNaC_Parallel_NP["F2MI"] = 16;
         air_vec =
         GiNaC_Parallel(air_vec.size(), [&air_vec,&ibpRules,&_F2ex,&aio](int idx)->ex {
             ex res = air_vec[idx];
@@ -604,7 +610,7 @@ namespace HepLib {
                 
         AIOption aio;
         aio.IBPmethod = IBPmethod;
-        //aio.pn_sector = true;
+        //aio.pn_sector = 4;
         aio.Internal = loops;
         aio.External = exts;
         aio.Cuts = cut_props;
