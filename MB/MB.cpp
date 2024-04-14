@@ -6,7 +6,7 @@ namespace HepLib {
 
 symbol const MB::ep("ep");
 
-void Replacements2(exmap &repl) {
+void Replacement2(exmap &repl) {
     auto tmp = repl;
     for(auto &kv : repl) {
         kv.second = kv.second.subs(tmp);
@@ -15,21 +15,21 @@ void Replacements2(exmap &repl) {
 
 void MB::Initialize(FeynmanParameter fp) {
 
-    if(fp.Propagators.nops() != fp.Exponents.nops()) {
-        cerr << ErrColor << "the length of Propagators and Exponents are NOT equal." << RESET << endl;
+    if(fp.Propagator.nops() != fp.Exponent.nops()) {
+        cerr << ErrColor << "the length of Propagator and Exponent are NOT equal." << RESET << endl;
         exit(1);
     }
             
-    auto ps = fp.Propagators;
-    auto ns = fp.Exponents;
+    auto ps = fp.Propagator;
+    auto ns = fp.Exponent;
     auto ls = fp.LoopMomenta;
     
-    Replacements2(fp.lReplacements);
-    Replacements2(fp.nReplacements);
+    Replacement2(fp.lReplacement);
+    Replacement2(fp.nReplacement);
     
-    auto lsubs = fp.lReplacements;
-    auto nsubs = fp.nReplacements;
-    auto nReplacements = fp.nReplacements;
+    auto lsubs = fp.lReplacement;
+    auto nsubs = fp.nReplacement;
+    auto nReplacement = fp.nReplacement;
     
     if(Verbose > 1) cout << "  Initialize @ " << now() << endl;
     
@@ -128,18 +128,18 @@ void MB::Initialize(FeynmanParameter fp) {
         }
         usgn = normal(usgn)>0 ? 1 : -1;
         
-        if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+        if(!xPositive(normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacement).subs(lst{
             CV(w1,w2)==w2, ep==ex(1)/111
         }))) {
-            cerr <<ErrColor << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacements).subs(lst{
+            cerr <<ErrColor << "NOT positive - un: " << normal(usgn*u_nd.op(0)).subs(xtNeg).subs(nReplacement).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111
             }) << RESET << endl;
             exit(1);
         }
-        if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+        if(!xPositive(normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacement).subs(lst{
             CV(w1,w2)==w2, ep==ex(1)/111
         }))) {
-            cerr << ErrColor << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacements).subs(lst{
+            cerr << ErrColor << "NOT positive - ud: " << normal(usgn*u_nd.op(1)).subs(xtNeg).subs(nReplacement).subs(lst{
                 CV(w1,w2)==w2, ep==ex(1)/111
             }) << RESET << endl;
             exit(1);

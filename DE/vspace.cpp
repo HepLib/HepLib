@@ -1,13 +1,13 @@
 
 #include "vspace.h"
 
-// https://github.com/magv/fuchsia.cpp 
+// https://github.com/magv/fuchsia.cpp
 
 namespace HepLib::ED {
 
     namespace {
         ex ratcan(const ex &e) {
-            ex nd = e.normal().numer_denom();
+            ex nd = HepLib::exnormal(e).numer_denom();
             return nd.op(0).expand()/nd.op(1).expand();
         }
     }
@@ -30,7 +30,7 @@ namespace HepLib::ED {
         unsigned nrows = basis.rows();
         for (; nrows > 0; nrows--) {
             for (unsigned c = 0; c < basis.cols(); c++) {
-                if (!basis(nrows - 1, c).normal().is_zero()) goto done;
+                if (!HepLib::exnormal(basis(nrows - 1, c)).is_zero()) goto done;
             }
         }
     done:;
@@ -83,7 +83,7 @@ namespace HepLib::ED {
                 // was not called between add_rows() and contains().
                 if(p >= basis.cols()) throw Error("Error");
                 if (!basis(i, p).is_zero()) break;
-                vv.let_op(p) = normal(vv.op(p));
+                vv.let_op(p) = HepLib::exnormal(vv.op(p));
                 // If vv has non-zero columns before p, it's not in
                 // the basis.
                 if (!vv.op(p).is_zero())
@@ -96,12 +96,12 @@ namespace HepLib::ED {
                 const ex b_ip = basis(i, p);
                 vv.let_op(p) = 0;
                 for (unsigned j = p + 1; j < basis.cols(); j++) {
-                    vv.let_op(j) = normal(vv.op(j)*b_ip - basis(i, j)*vv_p);
+                    vv.let_op(j) = HepLib::exnormal(vv.op(j)*b_ip - basis(i, j)*vv_p);
                 }
             }
         }
         for (unsigned i = p; i < basis.cols(); i++) {
-            vv.let_op(i) = normal(vv.op(i));
+            vv.let_op(i) = HepLib::exnormal(vv.op(i));
             if (!vv.op(i).is_zero())
                 return false;
         }
@@ -120,7 +120,7 @@ namespace HepLib::ED {
         }
         // Solve M*V = 0
         matrix zero(nrows, 1);
-        matrix s = normal(m).solve(v, zero);
+        matrix s = exnormal(m).solve(v, zero);
         matrix coeff(ncols, ncols);
         for (unsigned k = 0; k < ncols; k++) {
             for (unsigned i = 0; i < ncols; i++) {
@@ -188,7 +188,7 @@ namespace HepLib::ED {
         auto it_d = d.begin();
         for (unsigned i = r; i < r + nr; i++) {
             for (unsigned j = c; j < c + nc; j++) {
-                ex nd = m(i, j).normal().numer_denom();
+                ex nd = HepLib::exnormal(m(i, j)).numer_denom();
                 ex numer = nd.op(0);
                 ex denom = nd.op(1);
                 *it_n++ = numer;
@@ -219,13 +219,13 @@ namespace HepLib::ED {
         unsigned nc = m.cols();
         exvector &mv = ((matrix_hack*)&m)->mvec();
         for (unsigned i = 0; i < nr*nc; i++) {
-            mv[i] = mv[i].normal();
+            mv[i] = HepLib::exnormal(mv[i]);
         }
         unsigned r0 = 0;
         unsigned c0 = 0;
         for (; (c0 < nc) && (r0 < nr - 1); c0++) {
             for (unsigned r = r0; r < nr; r++) {
-                mv[r*nc + c0] = mv[r*nc + c0].normal();
+                mv[r*nc + c0] = HepLib::exnormal(mv[r*nc + c0]);
             }
             // No normalization before is_zero() here, because
             // we maintain the matrix normalized throughout the
@@ -253,7 +253,7 @@ namespace HepLib::ED {
                     ex k = b/a;
                     mv[r*nc + c0] = 0;
                     for (unsigned c = c0 + 1; c < nc; c++) {
-                        mv[r*nc + c] = normal(mv[r*nc + c] - k*mv[r0*nc + c]);
+                        mv[r*nc + c] = HepLib::exnormal(mv[r*nc + c] - k*mv[r0*nc + c]);
                     }
                 }
             }
@@ -298,7 +298,7 @@ namespace HepLib::ED {
         
         try {
             // Solve x*u=1.
-            matrix x = matrix_solve_left(normal(u), tmp, identity);
+            matrix x = matrix_solve_left(exnormal(u), tmp, identity);
             for(int i=0; i<x.nops(); i++) x.let_op(i) = x.op(i).subs(tmpz);
             results.push_back(x);
         } catch (const std::runtime_error &e) {
@@ -321,21 +321,37 @@ namespace HepLib::ED {
         return m.transpose().solve(vars.transpose(), rhs.transpose()).transpose();
     }
 
-    matrix normal(const matrix & m0) {
+    matrix exnormal(const matrix & m0) {
         matrix m = m0;
-        for(unsigned i=0; i<m.nops(); i++) m.let_op(i) = normal(m.op(i));
+        for(unsigned i=0; i<m.nops(); i++) m.let_op(i) = HepLib::exnormal(m.op(i));
         return m;
     }    
     
     //=*********************************************************************=
     
+    ex fmpq_mat_charpoly(const matrix & mat, const symbol & lambda) {
+        auto nr = mat.rows();
+        auto nc = mat.cols();
+        fmpq_mat_t qmat;
+        fmpq_mat_init(qmat, nr, nc);
+        _to_(qmat, mat);
+        fmpq_poly_t pol;
+        fmpq_poly_init(pol);
+        fmpq_mat_charpoly(pol, qmat);
+        fmpq_mat_clear(qmat);
+        ex charpoly = _to_(lambda, pol);
+        fmpq_poly_clear(pol);
+        return charpoly;
+    }
+    
     ev_am_t ev_am(const matrix &mat) { // eigenvalue_algebric_multiplicity
         ev_am_t ev2am;
-        symbol lambda("L");
+        symbol lambda("x");
         matrix m = ex_to<matrix>(unit_matrix(mat.rows()));
         m = m.mul_scalar(lambda).sub(mat); // lambda I - M
-        ex charpoly = fermat_Det(m);
-        ex num = factor_flint(normal(charpoly).numer());
+        //ex charpoly = fermat_Det(m);
+        ex charpoly = fmpq_mat_charpoly(mat, lambda);
+        ex num = factor_flint(HepLib::exnormal(charpoly).numer());
         exvector fvec;
         if (is_a<mul>(num)) for (const auto &f : num) fvec.push_back(f);
         else fvec.push_back(num);
@@ -353,7 +369,8 @@ namespace HepLib::ED {
                 ex c1 = b.coeff(lambda, 1);
                 ev2am[ratcan(-c0/c1)] += n;
             } else {
-                cout << charpoly << " : " << f << endl;
+                cout << endl << "charpoly: " << charpoly << endl;
+                cout << "item: " << f << endl;
                 throw Error("ev_am: higher powers found.");
             }
         }
@@ -458,7 +475,7 @@ namespace HepLib::ED {
         
         vspace ns = nullspace(n);
         vspace ws(a0.cols());
-        
+                
         // Find the span of coefficients of the second half of ns as a poly in lambda.
         for (unsigned i = 0; i < ns.dim(); i++) {
             int maxdeg = 0;
@@ -471,24 +488,28 @@ namespace HepLib::ED {
                 // It would be great to only expand by lambda here.
                 ex e = expand(ns.basis_rows()(i, j + a0.cols()));
                 for (int deg = 0; deg <= maxdeg; deg++) {
-                    s(deg, j) = exfactor(normal(e.coeff(lambda, deg)));
+                    s(deg, j) = exfactor(HepLib::exnormal(e.coeff(lambda, deg)));
                 }
             }
             ws.add_rows(s);
         }
         
         if(ws.basis_rows().has(lambda)) throw Error("Error: ws.basis_rows().has(lambda)");
-        
         ws.normalize();
         matrix wscols = ws.basis_cols();
-        if (ws.dim() == 0) throw Error("Error: matrix is Moser-irreducible");
+        if (ws.dim() == 0) {
+            cout << endl;
+            cout << "a0: " << a0 << endl;
+            cout << "a1: " << a1 << endl;
+            throw Error("Error: matrix is Moser-irreducible");
+        }
         
         auto dualbs = dual_basis(wscols);
         
         if(dualbs.size()<=0) throw Error("Error: dualbs.size()<=0");
         
         auto dualb = dualbs[0];
-        matrix p = normal(wscols.mul(dualb));
+        matrix p = exnormal(wscols.mul(dualb));
         return p;
     }
 

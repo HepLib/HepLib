@@ -17,7 +17,7 @@ namespace HepLib::QCD {
             
         /**
          * @brief Spin Projector with the same mass, non-Relativistic Normalization, 
-         * To Use Relativistic Normalization, Just Times 2e
+         * To Use Relativistic Normalization, Just Times 2e, or set nr = false
          * SpinProj[In,p,pb,m,e,mu], where p=P/2+q, pb=P/2-q, e^2=m^2-q^2,
          * In CM, P=(M=2e,0) & q=(0,q), P.q=0, P.q=0
          * @param io In or Out
@@ -29,20 +29,20 @@ namespace HepLib::QCD {
          * @param mu only for s=1
          * @return the corresponding spin projector
          */
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu) {
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, bool nr) {
             ex ret;
             if(io==In && s==1) ret = (GAS(p)+m*GAS(1))*(GAS(p+pb)+2*e*GAS(1))*GAS(mu)*(GAS(pb)-m*GAS(1));
             if(io==Out && s==1) ret = (GAS(pb)-m*GAS(1))*GAS(mu)*(GAS(p+pb)+2*e*GAS(1))*(GAS(p)+m*GAS(1));
             if(io==In && s==0) ret = -(GAS(p)+m*GAS(1))*(GAS(p+pb)+2*e*GAS(1))*GAS(5)*(GAS(pb)-m*GAS(1));
             if(io==Out && s==0) ret = (GAS(pb)-m*GAS(1))*GAS(5)*(GAS(p+pb)+2*e*GAS(1))*(GAS(p)+m*GAS(1));
             ret = ret/(4*sqrt(ex(2))*e*(e+m));
-            ret = ret/(2*e);
+            if(nr) ret = ret/(2*e);
             return ret;
         }
         
         /**
          * @brief Spin Projector with the same mass, non-Relativistic Normalization, 
-         * - To Use Relativistic Normalization, Just Times 2e
+         * - To Use Relativistic Normalization, Just Times 2e, or set nr = false
          * - SpinProj[In,p,pb,m,e,mu], where p=P/2+q, pb=P/2-q, e^2=m^2-q^2,
          * - In CM, P=(M=2e,0) & q=(0,q), P.q=0, P.q=0
          * @param io In or Out
@@ -56,14 +56,14 @@ namespace HepLib::QCD {
          * @param j anti-quark qgraf index
          * @return the corresponding spin projector
          */
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j) {
-            if(io==IO::Out) return Matrix(SpinProj(io,s,p,pb,m,e,mu), DI(j), DI(i));
-            else return Matrix(SpinProj(io,s,p,pb,m,e,mu), DI(i), DI(j));
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j, bool nr) {
+            if(io==IO::Out) return Matrix(SpinProj(io,s,p,pb,m,e,mu,nr), DI(j), DI(i));
+            else return Matrix(SpinProj(io,s,p,pb,m,e,mu,nr), DI(i), DI(j));
         }
         
         /**
          * @brief Spin Projector with different mass, non-Relativistic Normalization, 
-         * - To Use Relativistic Normalization, Just Times Sqrt[2e 2eb]
+         * - To Use Relativistic Normalization, Just Times Sqrt[2e 2eb], or set nr = false
          * - SpinProj[In,p,pb,m,mb,e,eb,mu], where p=e/(e+eb)P+q,pb=eb/(e+eb)P-q,e^2=m^2-q^2,eb^2=mb^2-qb^2,
          * - In CM, P=(M=e+eb,0) & q=(0,q), P.q=0
          * - arXiv:1003.0061
@@ -78,20 +78,20 @@ namespace HepLib::QCD {
          * @param mu only for s=1
          * @return the corresponding spin projector
          */
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu) {
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, bool nr) {
             ex ret;
             if(io==In && s==1) ret = (GAS(p)+m*GAS(1))*(GAS(p+pb)+(e+eb)*GAS(1))*GAS(mu)*(GAS(pb)-mb*GAS(1));
             if(io==Out && s==1) ret = (GAS(pb)-mb*GAS(1))*GAS(mu)*(GAS(p+pb)+(e+eb)*GAS(1))*(GAS(p)+m*GAS(1));
             if(io==In && s==0) ret = -(GAS(p)+m*GAS(1))*(GAS(p+pb)+(e+eb)*GAS(1))*GAS(5)*(GAS(pb)-mb*GAS(1));
             if(io==Out && s==0) ret = (GAS(pb)-mb*GAS(1))*GAS(5)*(GAS(p+pb)+(e+eb)*GAS(1))*(GAS(p)+m*GAS(1));
             ret = ret/(2*sqrt(ex(2))*(e+eb)*sqrt((e+m)*(eb+mb)));
-            ret = ret/(sqrt(4*e*eb));
+            if(nr) ret = ret/(sqrt(4*e*eb));
             return ret;
         }
         
         /**
          * @brief Spin Projector with different mass, non-Relativistic Normalization, 
-         * - To Use Relativistic Normalization, Just Times Sqrt[2e 2eb]
+         * - To Use Relativistic Normalization, Just Times Sqrt[2e 2eb], or set nr = false
          * - SpinProj[In,p,pb,m,mb,e,eb,mu], where p=e/(e+eb)P+q,pb=eb/(e+eb)P-q,e^2=m^2-q^2,eb^2=mb^2-qb^2,
          * - In CM, P=(M=e+eb,0) & q=(0,q), P.q=0
          * - arXiv:1003.0061
@@ -108,8 +108,8 @@ namespace HepLib::QCD {
          * @param j anti-quark qgraf index
          * @return the corresponding spin projector
          */
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, int i, int j) {
-            return Matrix(SpinProj(io,s,p,pb,m,e,mb,eb,mu), DI(j), DI(i));
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, int i, int j, bool nr) {
+            return Matrix(SpinProj(io,s,p,pb,m,e,mb,eb,mu,nr), DI(j), DI(i));
         }
         
         /**

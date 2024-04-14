@@ -32,6 +32,7 @@ namespace HepLib {
     extern bool Apart_using_fermat;
     extern bool form_using_su3;
     extern bool form_using_dim4;
+    extern bool form_using_gamma5;
     
     class Index;
     class Vector;
@@ -404,13 +405,14 @@ namespace HepLib {
     // GINAC_DECLARE_REGISTERED_CLASS END
     
     public:
-        ex pis[4];
+        exvector pis;
         Eps(const Vector &p1, const Vector &p2, const Vector &p3, const Vector &p4);
         Eps(const Vector &p1, const Vector &p2, const Vector &p3, const Index &i1);
         Eps(const Vector &p1, const Vector &p2, const Index &i1, const Index &i2);
         Eps(const Vector &p1, const Index &i1, const Index &i2, const Index &i3);
         Eps(const Index &i1, const Index &i2, const Index &i3, const Index &i4);
         Eps(vector<Vector> vs, vector<Index> is);
+        Eps(const exvector & pis0);
         size_t nops() const override;
         ex op(size_t i) const override;
         ex & let_op(size_t i) override;
@@ -498,6 +500,7 @@ namespace HepLib {
     ex UnContract(const ex expr, const lst &loop_ps, int mode=0); // 0-Eps/DGamma, 1-Eps/DGamma/Pair
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
+    ex Apart(const matrix & mat);
     ex Apart(const ex &expr_in, const lst &vars, exmap sgnmap={});
     ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms, exmap sgnmap={});
     ex ApartIR2ex(const ex & expr_in);
@@ -520,8 +523,8 @@ namespace HepLib {
         lst External; // External for Apart/IBP
         lst DSP; // DSP for IBP
         exmap smap; // Sign Map for Apart
-        lst Cuts; // Cut Propagators. optional
-        lst CSP; // SP in Cuts, to be cleared. optional
+        lst Cut; // Cut Propagator. optional
+        lst CSP; // SP in Cut, to be cleared. optional
         lst ISP; // SP for IBP. optional
         bool CutFirst = true;
         bool keep0F = false; // keep 0 exponent in F
@@ -555,7 +558,8 @@ namespace HepLib {
     
     ex ToCF(const ex & e);
     ex ToCACF(const ex & e);
-    ex DoColor(const ex & e, const ex & pref=1);
+    ex HomCACF(const ex & e);
+    ex DoColor(const ex & e, const ex & pref=1, int method=0);
     ex A0(const ex m2, int n=1, const ex d=4-2*ep);
     
         

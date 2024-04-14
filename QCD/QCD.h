@@ -19,7 +19,6 @@ namespace HepLib::QCD {
     using namespace QGRAF;
     
     ex Gamma5(const string pre, int start=1);
-    ex Anti5R(const ex & expr);
     ex DoPS(lst moms, ex amp, int si=-1, ex q2=1);
     ex nPS(int n, ex q2=1);
     
@@ -28,10 +27,10 @@ namespace HepLib::QCD {
      */
     namespace Quarkonium {
         enum IO {In, Out};
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu);
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu);
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j);
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, int i, int j);
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, bool nr=true);
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, bool nr=true);
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j, bool nr=true);
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, int i, int j, bool nr=true);
         ex ColorProj(int i, int j, Index a);
         ex ColorProj(int i, int j);
         
@@ -63,8 +62,6 @@ namespace HepLib::QCD {
     namespace FF {
     
         extern int cur_mode;
-        extern string GluonModel;
-        extern string QuarkModel;
         
         ex GluonFFV(ex e, ex n);
         ex QuarkFFV(ex e, ex n);
@@ -84,5 +81,6 @@ namespace HepLib::QCD {
         
         
     }
+    
 }
 

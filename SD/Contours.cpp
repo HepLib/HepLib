@@ -75,7 +75,7 @@ namespace HepLib::SD {
             dREAL paras[npara+1];
             lst plRepl;
             for(auto kv : Parameter) {
-                paras[kv.first] = ex2q(kv.second);
+                paras[kv.first] = (dREAL)ex2q(kv.second);
                 plRepl.append(PL(kv.first)==kv.second);
             }
             

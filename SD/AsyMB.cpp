@@ -308,7 +308,7 @@ namespace HepLib::SD {
                 throw Error("PExpand returned with nothing, even without hard region!");
             }
             if(Verbose>10) {
-                cout << "  \\--Asy Regions:" << (rs.nops()-1) << endl;
+                cout << PRE << "\\--Asy Regions:" << (rs.nops()-1) << endl;
                 if(rs.nops()>1) {
                     for(auto ri : rs) cout << "     " << ri << endl;
                 }

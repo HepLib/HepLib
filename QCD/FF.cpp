@@ -29,12 +29,12 @@ namespace HepLib::QCD {
             SD::FeynmanParameter fp;
             fp.LoopMomenta = ex_to<lst>(ls);
             fp.tLoopMomenta = ex_to<lst>(tls);
-            fp.Propagators = ex_to<lst>(ps);
-            fp.Exponents = ex_to<lst>(ns);
+            fp.Propagator = ex_to<lst>(ps);
+            fp.Exponent = ex_to<lst>(ns);
             
-            for(auto vv : lr) fp.lReplacements[vv.op(0)] = vv.op(1);
-            for(auto vv : tlr) fp.tReplacements[vv.op(0)] = vv.op(1);
-            for(auto vv : nr) fp.nReplacements[vv.op(0)] = vv.op(1);
+            for(auto vv : lr) fp.lReplacement[vv.op(0)] = vv.op(1);
+            for(auto vv : tlr) fp.tReplacement[vv.op(0)] = vv.op(1);
+            for(auto vv : nr) fp.nReplacement[vv.op(0)] = vv.op(1);
                         
             SD::SecDec work;
             work.Initialize(fp);
@@ -162,7 +162,7 @@ namespace HepLib::QCD {
                     } else if(e.op(0).op(0)==g) {
                         return GluonPropagator(e);
                     } else if(e.op(0).op(0)==gh) {
-                        return GhostPropagator(e);
+                        return GluonGhostPropagator(e);
                     } else if(e.op(0).op(0)==n) {
                         auto ret = eikonalPropagator(e, vn, mode);
                         if(!ret.has(q1) && !ret.has(q2) && !ret.has(q3)) ret = ret.subs(iEpsilon==0);
@@ -180,16 +180,16 @@ namespace HepLib::QCD {
                         return eikonalVertex(e, vn, mode);
                     } else if(e.nops()==3 && ((e.op(0).op(0)==qbar && e.op(1).op(0)==q) || (e.op(0).op(0)==Qbar && e.op(1).op(0)==Q)) && (e.op(2).op(0)==g) ) {
                         // qbar-q-g or Qbar-Q-g
-                        return q2gVertex(e);
+                        return QuarkGluonVertex(e);
                     } else if(e.nops()==3 && e.op(0).op(0)==ghbar && e.op(1).op(0)==gh) {
                         // ghbar-gh-g
-                        return gh2gVertex(e);
+                        return GhostGluonVertex(e);
                     } else if(e.nops()==3 && e.op(0).op(0)==g && e.op(1).op(0)==g && e.op(2).op(0)==g) {
                         // g^3
-                        return g3Vertex(e);
+                        return Gluon3Vertex(e);
                     } else if(e.nops()==4 && e.op(0).op(0)==g && e.op(1).op(0)==g && e.op(2).op(0)==g && e.op(3).op(0)==g) {
                         // g^4
-                        return g4Vertex(e);
+                        return Gluon4Vertex(e);
                     }
                 } else return e.map(self);
                 return e;
@@ -225,7 +225,7 @@ namespace HepLib::QCD {
         }
         
         /**
-         * @brief dPhi (c1 p.k + c0)^n, NOT including the zIntFactor yet
+         * @brief dPhi (c1 p.k + c0)^(-n), NOT including the zIntFactor yet
          * @param c1 coefficient of p.k
          * @param c0 constant term
          * @param n the exponent

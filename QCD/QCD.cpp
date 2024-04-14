@@ -16,56 +16,6 @@ namespace HepLib::QCD {
         return LC(i1,i2,i3,i4)*GAS(i1)*GAS(i2)*GAS(i3)*GAS(i4)/(I*factorial(4));
     }
     
-    static ex _Anti5(const ex & expr) { // for internal usage only
-        if(!DGamma::has(expr)) return expr;
-        if(is_a<DGamma>(expr)) {
-            DGamma g = ex_to<DGamma>(expr);
-            if(is_a<Vector>(g.pi) || is_a<Index>(g.pi)) return -expr;
-            else if(is_zero(g.pi-1) || is_zero(g.pi-5)) return expr;
-        }
-        
-        if(is_a<add>(expr)) {
-            ex ret = 0;
-            for(auto item : expr) ret += _Anti5(item);
-            return ret;
-        } else if(is_a<mul>(expr) || is_a<ncmul>(expr)) {
-            ex ret = 1;
-            for(auto item : expr) ret *= _Anti5(item);
-            return ret;
-        }
-        cout << DGamma::has(expr) << " : " << expr << endl;
-        throw Error("_Anti5: unexpected region.");
-        return 0;
-    }
-    
-    // TODO: not finished yet
-    ex Anti5R(const ex & expr) {
-        static ex g5 = GAS(5);
-        static MapFunction anti5([](const ex & e, MapFunction self)->ex{
-            if(!e.has(g5)) return e;
-            else if(is_a<add>(e)) {
-            
-            
-            } else if(is_a<ncmul>(e)) {
-                ex eL=1, eR=1;
-                bool found = false;
-                for(auto item : e) {
-                    if(!found && item.is_equal(g5)) {
-                        found = true;
-                        continue;
-                    }
-                    if(found) eR = eR * item;
-                    else eL = eL * item;
-                }
-                eR = _Anti5(eR);
-                if(eR.has(GAS(5))) eR = Anti5R(eR);
-                return eL * eR * g5;
-            } else return e.map(self);
-            return 0;
-        });
-        return anti5(expr);
-    }
-    
     /**
      * @brief n-massless body phase space
      * https://arxiv.org/abs/hep-ph/0311276v1
@@ -124,8 +74,8 @@ namespace HepLib::QCD {
                 if(!XIntegral::has(e)) return e;
                 else if(is_a<XIntegral>(e)) {
                     XIntegral xint = ex_to<XIntegral>(e);
-                    let_op_append(xint.Functions,ss);
-                    let_op_append(xint.Exponents,(d-4)/2);
+                    let_op_append(xint.Function,ss);
+                    let_op_append(xint.Exponent,(d-4)/2);
                     let_op_append(xint.Deltas,lst{x(si+0),x(si+1),x(si+2)});
                     return xint;
                 } else return e.map(self);
@@ -165,14 +115,14 @@ namespace HepLib::QCD {
                 else if(is_a<XIntegral>(e)) {
                     XIntegral xint = ex_to<XIntegral>(e);
                     ex lambda = pow(x(si+2),2)*pow(x(si+3),2) + pow(x(si+1)*x(si+4)-x(si+0)*x(si+5),2) - 2*x(si+2)*x(si+3)*(x(si+1)*x(si+4) + x(si+0)*x(si+5));
-                    let_op_append(xint.Functions,-lambda);
-                    let_op_append(xint.Exponents,(d-5)/2);
+                    let_op_append(xint.Function,-lambda);
+                    let_op_append(xint.Exponent,(d-5)/2);
                                             
                     lst xs;
                     for(int i=0; i<6; i++) xs.append(x(si+i));
                     let_op_append(xint.Deltas,xs);
                     
-                    ex fe = lst{xint.Functions, xint.Exponents, xint.Deltas};
+                    ex fe = lst{xint.Function, xint.Exponent, xint.Deltas};
                     SD::ChengWu::Projectivize(fe,xs);
                     
                     // cheng-wu: change x(0,1,2) from 0 to ∞, and rescale

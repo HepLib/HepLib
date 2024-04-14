@@ -23,12 +23,13 @@ namespace HepLib {
      */
     class IBP {
     public:
+        virtual ~IBP() { }
         lst Internal;
         lst External;
-        lst Replacements;
-        lst Propagators;
-        lst Integrals; // lst of index lst
-        lst Cuts; // index start from 1
+        lst Replacement;
+        lst Propagator;
+        lst Integral; // lst of index lst
+        lst Cut; // index start from 1
         lst DSP; // { {q1,q1}, {q1,p}, ... } Diff SP
         lst ISP; // { q1*q1, q1*p } Independent SP
         lst SECTOR; // highest sector
@@ -36,9 +37,9 @@ namespace HepLib {
         bool reCut = false;
         string WorkingDir;
         int ProblemNumber = 0;
-        lst PIntegrals;
+        lst PIntegral;
         
-        lst MIntegrals;
+        lst MIntegral;
         lst Rules;
         bool IsAlwaysZero = false;
         
@@ -56,6 +57,7 @@ namespace HepLib {
         exmap Dinv(const lst & ns);
         ex D(const ex & x, const lst &ns);
         void RM(bool keep_start_config=false);
+        void rm(const string & pat);
         
         static void ReShare(const vector<IBP*> & fs);
     };
@@ -69,14 +71,14 @@ namespace HepLib {
         void Export() override;
         void Run() override;
         void Import() override;
-        static int PosPref;
-        static int Threads;
-        static int fThreads;
-        static int lThreads;
-        static int sThreads;
+        int PosPref = 1;
+        int T1 = 4;
+        int LT1 = 2;
+        int T2 = 4;
+        int LT2 = 2;
+        string Execute = InstallPrefix + "/FIRE/M/FIRE";
+        exmap NVariables;
         static int Version;
-        static string Execute;
-        static exmap NVariables;
         static void RRTables(const string & filename, int pnum);
         static void ThieleTables(const string & filename, int si, int ei);
     };
@@ -194,9 +196,9 @@ namespace HepLib {
     private:
         lst ibps;
         int Round = 0;
-        lst _Integrals;
+        lst _Integral;
         lst _Rules;
-        lst RIntegrals;
+        lst RIntegral;
         
         string Fout(const ex & expr);
         ex Fin(const string & expr);

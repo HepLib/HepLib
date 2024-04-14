@@ -192,20 +192,6 @@ namespace HepLib::SD {
         return -1;
     }
 
-    int epRank(ex expr_in) {
-        if(!expr_in.has(ep)) return 0;
-        int p = -5;
-        auto expr = collect_ex(expr_in, ep);
-        while(true) {
-            auto tmp = series_to_poly(expr.series(ep, p));
-            if(!tmp.is_zero()) {
-                tmp = collect_ex(tmp, ep);
-                return tmp.ldegree(ep);
-            } else p++;
-        }
-        throw Error("epRank error!");
-    }
-
     int epsRank(ex expr_in, ex epi) {
         static symbol s;
         if(!expr_in.has(epi)) return 0;

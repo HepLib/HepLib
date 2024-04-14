@@ -22,16 +22,16 @@ int main(int argc, char** argv) {
     
     if(argc==3) { // to support old versions
         lst mul_repl;
-        for(auto const & item : fire.Replacements) {
+        for(auto const & item : fire.Replacement) {
             if(is_a<mul>(item.op(0))) {
                 bool found = false;
                 for(auto const & it : item) if(is_a<wildcard>(it)) { found = true; break; }
                 if(!found) mul_repl.append(wild(10000)*item.op(0) == wild(10000)*item.op(1));
             }
         }
-        for(auto const & item : mul_repl) fire.Replacements.append(item);
+        for(auto const & item : mul_repl) fire.Replacement.append(item);
     }
-    fire.Integrals.append(0);
+    fire.Integral.append(0);
     fire.Import();
     auto rm = fire.FindRules(true);
     ofstream rules_out("./"+pn+".rules");

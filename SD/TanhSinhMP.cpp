@@ -222,7 +222,7 @@ int TanhSinhMP::Wrapper(unsigned ydim, mpREAL *y, mpREAL *e, unsigned xdim, cons
         if(!isfinite(y[j])) { ok = false; break; }
     }
     if(!ok) {
-        mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*100));
+        mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*10));
         self->IntegrandMP(xdim, x, ydim, y, self->mpParameter, self->mpLambda);
         mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
     }

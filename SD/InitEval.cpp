@@ -18,7 +18,7 @@ namespace HepLib::SD {
         Minimizer = NULL;
     }
 
-    void Replacements2(exmap &repl) {
+    void Replacement2(exmap &repl) {
         auto tmp = repl;
         for(auto &kv : repl) {
             kv.second = Symbol::set_all(kv.second.subs(tmp));
@@ -27,7 +27,7 @@ namespace HepLib::SD {
 
     void SecDec::Initialize(FeynmanParameter fp) {
     
-        if(fp.Propagators.nops()<1) {
+        if(fp.Propagator.nops()<1) {
             FunExp.clear();
             if(fp.LoopMomenta.nops()>0 || fp.tLoopMomenta.nops()>0) {
                 IsZero = true;
@@ -38,8 +38,8 @@ namespace HepLib::SD {
             return;
         }
             
-        if(fp.Propagators.nops() != fp.Exponents.nops()) {
-            throw Error("Initialize: the length of Propagators and Exponents are NOT equal.");
+        if(fp.Propagator.nops() != fp.Exponent.nops()) {
+            throw Error("Initialize: the length of Propagator and Exponent are NOT equal.");
         }
         
         if(Symbol::set_all(fp.Prefactor).is_zero()) {
@@ -49,24 +49,24 @@ namespace HepLib::SD {
         
         IsZero = false;
         
-        for(auto kv: fp.lReplacements) {
+        for(auto kv: fp.lReplacement) {
             if((lst{kv.first, kv.second}).has(iEpsilon)) {
                 throw Error("Initialize: (lst{kv.first, kv.second}).has(iEpsilon) @1");
             }
         }
-        for(auto kv: fp.tReplacements) {
+        for(auto kv: fp.tReplacement) {
             if((lst{kv.first, kv.second}).has(iEpsilon)) {
                 throw Error("Initialize: (lst{kv.first, kv.second}).has(iEpsilon) @2");
             }
         }
-        for(auto kv: fp.nReplacements) {
+        for(auto kv: fp.nReplacement) {
             if((lst{kv.first, kv.second}).has(iEpsilon)) {
                 throw Error("Initialize: (lst{kv.first, kv.second}).has(iEpsilon) @3");
             }
         }
                 
-        auto ps = Symbol::set_all(fp.Propagators);
-        auto ns = Symbol::set_all(fp.Exponents);
+        auto ps = Symbol::set_all(fp.Propagator);
+        auto ns = Symbol::set_all(fp.Exponent);
         
         auto ls = fp.LoopMomenta;
         auto tls = fp.tLoopMomenta;
@@ -78,14 +78,14 @@ namespace HepLib::SD {
             if(!is_a<symbol>(item)) throw Error("SecDec::Initialize failed, NOT a symbol: "+ex2str(item));
         }
         
-        Replacements2(fp.lReplacements);
-        Replacements2(fp.tReplacements);
-        Replacements2(fp.nReplacements);
+        Replacement2(fp.lReplacement);
+        Replacement2(fp.tReplacement);
+        Replacement2(fp.nReplacement);
         
-        auto lsubs = fp.lReplacements;
-        auto tsubs = fp.tReplacements;
-        auto nsubs = fp.nReplacements;
-        nReplacements = fp.nReplacements;
+        auto lsubs = fp.lReplacement;
+        auto tsubs = fp.tReplacement;
+        auto nsubs = fp.nReplacement;
+        nReplacement = fp.nReplacement;
         
         if(Verbose > 0) cout << Color_HighLight << "  Initialize @ " << now() << RESET << endl;
         
@@ -432,7 +432,7 @@ namespace HepLib::SD {
             auto ns = fe.op(1);
             for(int i=0; i<fs.nops(); i++) {
                 if(i==1 || ns.op(i).info(info_flags::integer)) continue;
-                auto nv = Symbol::set_all(fs.op(i)).subs(nReplacements).subs(lst{CV(w1,w2)==w2}).subs(eps_map);
+                auto nv = Symbol::set_all(fs.op(i)).subs(nReplacement).subs(lst{CV(w1,w2)==w2}).subs(eps_map);
                 if(!xPositive(nv)) {
                     cout << "fs = " << fs << endl << "ns = " << ns << endl;
                     throw Error("Initialize: non-positive u-term found.");
@@ -447,8 +447,8 @@ namespace HepLib::SD {
     
     void SecDec::Initialize(XIntegrand xint) {
         IsZero = false;
-        Replacements2(xint.nReplacements);
-        nReplacements = xint.nReplacements;
+        Replacement2(xint.nReplacement);
+        nReplacement = xint.nReplacement;
         
         for(int di=0; di<xint.Deltas.nops(); di++) {
             auto delta = xint.Deltas.op(di);
@@ -460,8 +460,8 @@ namespace HepLib::SD {
 
         FunExp.clear();
         FunExp.shrink_to_fit();
-        if(xint.Deltas.nops()>0) FunExp.push_back(lst{xint.Functions, xint.Exponents, xint.Deltas});
-        else FunExp.push_back(lst{xint.Functions, xint.Exponents});
+        if(xint.Deltas.nops()>0) FunExp.push_back(lst{xint.Function, xint.Exponent, xint.Deltas});
+        else FunExp.push_back(lst{xint.Function, xint.Exponent});
         
         Normalizes();
         if(xint.isAsy) DoAsy();

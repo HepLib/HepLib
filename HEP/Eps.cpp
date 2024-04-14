@@ -30,15 +30,24 @@ namespace HepLib {
     Eps::Eps(const Vector &x1, const Index &x2, const Index &x3, const Index &x4) : pis{x1,x2,x3,x4} { }
     Eps::Eps(const Index &x1, const Index &x2, const Index &x3, const Index &x4) : pis{x1,x2,x3,x4} { }
     Eps::Eps(vector<Vector> vs, vector<Index> is) {
+        pis.resize(vs.size()+is.size());
         int i=0;
         for(auto vi : vs) pis[i++] = vi;
         for(auto ii : is) pis[i++] = ii;
+    }
+    Eps::Eps(const exvector & pis0) {
+        int n = pis0.size();
+        pis.resize(n);
+        for(int i=0; i<n; i++) pis[i] = pis0[i];
     }
 
     int Eps::compare_same_type(const basic &other) const {
         if(!is_a<Eps>(other)) throw Error("Eps::compare_same_type");
         const Eps &o = static_cast<const Eps &>(other);
-        for(int i=0; i<4; i++) {
+        int n = pis.size();
+        int no = o.pis.size();
+        if(n!=no) return n>no ? 1 : -1;
+        for(int i=0; i<n; i++) {
             auto c = pis[i].compare(o.pis[i]);
             if(c!=0) return c;
         }
@@ -48,7 +57,10 @@ namespace HepLib {
     bool Eps::is_equal_same_type(const basic & other) const {
         if(!is_a<Eps>(other)) throw Error("Eps::is_equal_same_type");
         const Eps &o = static_cast<const Eps &>(other);
-        for(int i=0; i<4; i++) {
+        int n = pis.size();
+        int no = o.pis.size();
+        if(n!=no) return false;
+        for(int i=0; i<n; i++) {
             if(!pis[i].is_equal(o.pis[i])) return false;
         }
         return true;
@@ -56,31 +68,36 @@ namespace HepLib {
     
     ex Eps::eval() const {
         if(flags & status_flags::evaluated) return *this;
-        bool ok = true;
-        int ii = 4;
-        for(int i=0; i<4; i++) {
-            if(!is_a<Vector>(pis[i]) && !is_a<Index>(pis[i])) ok = false;
-            else if(is_a<Vector>(pis[i]) && ii!=4) ok = false; // Vector after Index
-            else if(is_a<Index>(pis[i]) && ii==4) ii = i;
-            if(!ok) break;
-        }
-        if(!ok) return LC(pis[0],pis[1],pis[2],pis[3]);
-        
-        if(isSorted(ii,pis) && isSorted(4-ii,pis+ii)) return this->hold();
-        else {
-            ex pis2[4];
-            for(int i=0; i<4; i++) pis2[i] = pis[i];
-            int ac1 = ACSort(ii,pis2);
-            int ac2 = ACSort(4-ii,pis2+ii);
-            if(ac1 * ac2==0) return 0;
-            return ac1 * ac2 * LC(pis2[0],pis2[1],pis2[2],pis2[3]);
-        }
+        int n = pis.size();
+        if(n==4) {
+            bool ok = true;
+            int ii = 4;
+            for(int i=0; i<4; i++) {
+                if(!is_a<Vector>(pis[i]) && !is_a<Index>(pis[i])) ok = false;
+                else if(is_a<Vector>(pis[i]) && ii!=4) ok = false; // Vector after Index
+                else if(is_a<Index>(pis[i]) && ii==4) ii = i;
+                if(!ok) break;
+            }
+            if(!ok) return LC(pis[0],pis[1],pis[2],pis[3]);
+            
+            const ex* pis_a = pis.data();
+            if(isSorted(ii,pis_a) && isSorted(4-ii,pis_a+ii)) return this->hold();
+            else {
+                ex pis2[4];
+                for(int i=0; i<4; i++) pis2[i] = pis[i];
+                int ac1 = ACSort(ii,pis2);
+                int ac2 = ACSort(4-ii,pis2+ii);
+                if(ac1 * ac2==0) return 0;
+                return ac1 * ac2 * LC(pis2[0],pis2[1],pis2[2],pis2[3]);
+            }
+        } else return this->hold();
     }
     
     void Eps::print(const print_dflt &c, unsigned level) const {
+        int n = pis.size();
         c.s << "\u03B5" << "(";
-        for(int i=0; i<3; i++) c.s << pis[i] << ",";
-        c.s << pis[3] << ")";
+        for(int i=0; i<n-1; i++) c.s << pis[i] << ",";
+        c.s << pis[n-1] << ")";
     }
     
     /**
@@ -92,28 +109,32 @@ namespace HepLib {
      * @param level the level
      */
     void Eps::form_print(const FormFormat &c, unsigned level) const {
+        int n = pis.size();
         c << "(i_*e_(";
-        for(int i=0; i<3; i++) c << pis[i] << ",";
-        c << pis[3] << "))";
+        for(int i=0; i<n-1; i++) c << pis[i] << ",";
+        c << pis[n-1] << "))";
     }
     
     void Eps::fc_print(const FCFormat &c, unsigned level) const {
-        c << "LCD[";
-        bool first = true;
-        for(int i=3; i>=0; i--) {
-            if(is_a<Vector>(pis[i]) && first) {
-                c << "][";
-                first = false;
+        int n = pis.size();
+        if(n==4) {
+            c << "LCD[";
+            bool first = true;
+            for(int i=3; i>=0; i--) {
+                if(is_a<Vector>(pis[i]) && first) {
+                    c << "][";
+                    first = false;
+                }
+                c << pis[i];
+                
+                if(i==0) c << "]";
+                else if(!first || !is_a<Vector>(pis[i-1])) c << ",";
             }
-            c << pis[i];
-            
-            if(i==0) c << "]";
-            else if(!first || !is_a<Vector>(pis[i-1])) c << ",";
+            if(first) c << "[]";
         }
-        if(first) c << "[]";
     }
     
-    size_t Eps::nops() const { return 4; }
+    size_t Eps::nops() const { return pis.size(); }
     ex Eps::op(size_t i) const {
         return pis[i];
     }
@@ -124,12 +145,18 @@ namespace HepLib {
     
     void Eps::archive(archive_node & n) const {
         inherited::archive(n);
-        for(int i=0; i<4; i++) n.add_ex("pis"+to_string(i), pis[i]);
+        int nn = pis.size();
+        n.add_ex("size", nn);
+        for(int i=0; i<nn; i++) n.add_ex("pis"+to_string(i), pis[i]);
     }
     
     void Eps::read_archive(const archive_node& n) {
         inherited::read_archive(n);
-        for(int i=0; i<4; i++) {
+        ex nex;
+        n.find_ex("size", nex);
+        int nn = ex_to<numeric>(nex).to_int();
+        if(pis.size()!=nn) pis.resize(nn);
+        for(int i=0; i<nn; i++) {
             n.find_ex("pis"+to_string(i), pis[i]);
         }
     }

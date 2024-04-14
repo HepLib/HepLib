@@ -114,14 +114,22 @@ namespace HepLib::QGRAF {
     Index RCI(ex fn);
     Index RAI(ex fn);
     
-    ex QuarkPropagator(ex e, ex m=0, bool color=true);
-    ex GluonPropagator(ex e, bool color=true);
-    ex GluonPropagatorXi(ex e, ex xi, bool color=true);
-    ex GhostPropagator(ex e, bool color=true);
-    ex q2gVertex(ex e, bool color=true);
-    ex g3Vertex(ex e);
-    ex g4Vertex(ex e);
-    ex gh2gVertex(ex e, bool color=true);
+    // Propagator @ SM https://arxiv.org/abs/1209.6213v2
+    ex QuarkPropagator(const ex & e, const ex & m=0);
+    ex LeptonPropagator(const ex & e, const ex & m=0);
+    ex GluonPropagator(const ex & e, const ex & xi=1);
+    ex GluonGhostPropagator(const ex & e, const ex & xi=1, const ex & eta_G=1);
+    ex AZWPropagator(const ex & e, const ex & m=0, const ex & xi=1);
+    ex AZWGhostPropagator(const ex & e, const ex & m=0, const ex & xi=1, const ex & eta_G=1);
+    ex ScalarPropagator(const ex & e, const ex & m, const ex & xi=1);
+    
+    // Vertex @ SM https://arxiv.org/abs/1209.6213v2
+    ex QuarkGluonVertex(const ex & e, const ex & eta_s=-1);
+    ex Gluon3Vertex(const ex & e, const ex & eta_s=-1);
+    ex Gluon4Vertex(const ex & e, const ex & eta_s=-1);
+    ex GhostGluonVertex(const ex & e, const ex & eta_s=-1, const ex & eta_G=1);
+    ex QuarkAVertex(const ex & e, const ex & eq, const ex & eta_e=-1);
+    ex LeptonAVertex(const ex & e, const ex & eq, const ex & eta_e=-1);
     
     ex IndexL2R(ex e, bool all=true);
     ex IndexCC(ex e, bool all=true);
@@ -146,6 +154,19 @@ namespace HepLib::QGRAF {
     inline ex GhostSum(int qi) { return GhostSumL(qi); };
     inline ex AntiGhostSum(int qi) { return AntiGhostSumL(qi); };
     inline ex J1Sum(int qi, ex p) { return J1SumL(qi,p); };
+    
+    class Models {
+    public:
+        static string GluonFF;
+        static string QuarkFF;
+        static string SM;
+        static string QCD;
         
+        static ex FeynRulesSM(const ex & amp, const ex & xi=1);
+        static lst FeynRulesSM(const lst & amps, const ex & xi=1);
+        static ex FeynRulesQCD(const ex & amp, const ex & xi=1);
+        static lst FeynRulesQCD(const lst & amps, const ex & xi=1);
+    };
+    
 }
 

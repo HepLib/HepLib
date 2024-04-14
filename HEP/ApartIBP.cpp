@@ -128,7 +128,7 @@ namespace HepLib {
         lst IntFs;
         vector<IBP*> ibp_vec;
         if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/AIR2F.gar")) {
-            if(Verbose > 1) cout << "  \\--Reading AIR2F" << flush;
+            if(Verbose > 1) cout << PRE << "\\--Reading AIR2F" << flush;
             AIR2F_Get(aio.SaveDir, air_vec, IntFs, ibp_vec, IBPmethod);
             for(auto ibp : ibp_vec) ibp->WorkingDir = wdir; // update working directory
             if(Verbose > 1) cout << " @ " << now(false) << endl; 
@@ -137,7 +137,7 @@ namespace HepLib {
         
         if(aio.SaveDir != "") {
             if(file_exists(aio.SaveDir+"/AP.gar")) {
-                if(Verbose > 1) cout << "  \\--Reading AP.gar" << flush;
+                if(Verbose > 1) cout << PRE << "\\--Reading AP.gar" << flush;
                 garRead(air_vec, aio.SaveDir+"/AP.gar");
                 if(Verbose > 1) cout << " @ " << now(false) << endl; 
                 goto Apart_Done;
@@ -152,24 +152,23 @@ namespace HepLib {
             
             exset vset;
             for(int i=0; i<av_size; i++) {
-                for(auto cv : air_vec[i]) vset.insert(cv.op(1));
+                for(auto cv : ex_to<lst>(air_vec[i])) vset.insert(cv.op(1));
             }
             exvector vvec(vset.begin(), vset.end());
             vset.clear();
-            
-            if(true) {
-                exmap v2ap;
-                for(int i=0; i<vvec.size(); i++) v2ap[vvec[i]] = i;
-                for(int i=0; i<av_size; i++) {
-                    int n = air_vec[i].nops();
-                    for(int j=0; j<n; j++) {
-                        auto & v = air_vec[i][j][1]; // reference here
-                        v = v2ap[v];
-                    }
-                }
-                v2ap.clear();
+
+            exmap v2api;
+            for(int i=0; i<vvec.size(); i++) v2api[vvec[i]] = i;
+            for(int i=0; i<av_size; i++) {
+                lst av_item;
+                lst cvs  = ex_to<lst>(air_vec[i]);
+                air_vec[i] = av_item;
+                for(auto & cv : cvs) av_item.append(lst{cv.op(0), v2api[cv.op(1)]});
+                cvs.remove_all();
+                air_vec[i] = av_item;
             }
-        
+            v2api.clear();
+
             auto ap_vec = GiNaC_Parallel(vvec.size(), [&vvec,lmom,emom,aio] (int idx) {
                 auto air = vvec[idx];
                 air = Apart(air,lmom,emom,aio.smap);
@@ -178,7 +177,7 @@ namespace HepLib {
                 return air;
             }, "Apart");
             vvec.clear();
-            
+
             exset ap_set;
             for(auto cvs : ap_vec) for(auto cv : cvs) if(is_a<matrix>(cv.op(1).op(0))) ap_set.insert(cv.op(1));
             exvector ap_ir_vec(ap_set.begin(), ap_set.end());
@@ -205,7 +204,7 @@ namespace HepLib {
             } else {
                 int vn = ap_vec.size();
                 for(int idx=0; idx<vn; idx++) {
-                    auto const & cvs = ap_vec[idx];
+                    lst cvs = ex_to<lst>(ap_vec[idx]);
                     ex res = 0;
                     if(aio.ap_rules) {
                         for(auto const & cv : cvs) {
@@ -222,6 +221,7 @@ namespace HepLib {
             ap_rules.clear();
             
             if(GiNaC_Parallel_NP.find("ApPost")==GiNaC_Parallel_NP.end() && CpuCores()>8) GiNaC_Parallel_NP["ApPost"] = 8;
+            if(GiNaC_Parallel_NB.find("ApPost")==GiNaC_Parallel_NB.end() && CpuCores()>100) GiNaC_Parallel_NB["ApPost"] = 100;
             air_vec = GiNaC_Parallel(av_size, [&air_vec,&ap_vec] (int idx) {
                 lst cvs = ex_to<lst>(air_vec[idx]);
                 ex res = 0;
@@ -278,14 +278,17 @@ namespace HepLib {
                 else exts.append(li);
             }
         
-            if(Verbose>0) cout <<  "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction @ " << now(false) << flush;
+            if(Verbose>0) cout <<  PRE << "\\--Prepare " << WHITE << "IBP" << RESET << " reduction @ " << now(false) << flush;
             
             exmap AIR2F;
             std::map<ex, IBP*, ex_is_less> p2IBP;
             int pn=1;
             int ntot = AIR.size();
             for(int i=0; i<ntot; i++) {
-                if(Verbose>0 && (((i+1)%1000)==0 || i+1==ntot)) cout << "\r                                 \r" << "  \\--Prepare " << WHITE << "IBP" << RESET << " reduction [" << (i+1) << "/" << ntot << "] @ " << now(false) << flush;
+                if(Verbose>0 && (((i+1)%1000)==0 || i+1==ntot)) {
+                    cout << "\r                                 \r" << flush;
+                    cout << PRE << "\\--Prepare " << WHITE << "IBP" << RESET << " reduction [" << (i+1) << "/" << ntot << "] @ " << now(false) << flush;
+                }
                 auto const & ir = AIR[i];
                 auto mat = ex_to<matrix>(ir.op(0));
                 auto vars = ex_to<lst>(ir.op(1));
@@ -314,9 +317,9 @@ namespace HepLib {
                     for(int i=0; i<pns.nops(); i++) pns.let_op(i) = lst{ pns.op(i).op(1), pns.op(i).op(2) };
                 }
                 
-                int nCuts = aio.Cuts.nops();
-                if(nCuts>0) {
-                    ex cuts = aio.Cuts;
+                int nCut = aio.Cut.nops();
+                if(nCut>0) {
+                    ex cuts = aio.Cut;
                     cuts = cuts.subs(SP_map,nopat);
                     if(aio.CutFirst) for(auto cut : cuts) pns.prepend(lst{ SP2sp(cut), 1 });
                     else for(auto cut : cuts) pns.append(lst{ SP2sp(cut), 1 });
@@ -348,10 +351,10 @@ namespace HepLib {
                     }
                     
                     p2IBP.insert(make_pair(key,ibp));
-                    ibp->Propagators = props;
+                    ibp->Propagator = props;
                     ibp->Internal = loops;
                     ibp->External = exts;
-                    ibp->Replacements = repls;
+                    ibp->Replacement = repls;
                     if(aio.ISP.nops()>0) for(auto item : aio.ISP) ibp->ISP.append(SP2sp(item));
                     if(aio.DSP.nops()>0) {
                         for(auto item : aio.DSP) {
@@ -372,22 +375,22 @@ namespace HepLib {
                     ibp->WorkingDir = wdir;
                     ibp->ProblemNumber = pn;
                     pn++;
-                    if(nCuts>0) {
-                        if(aio.CutFirst) for(int i=0; i<nCuts; i++) ibp->Cuts.append(i+1);
-                        else for(int i=0; i<nCuts; i++) ibp->Cuts.append(nCuts-i);
+                    if(nCut>0) {
+                        if(aio.CutFirst) for(int i=0; i<nCut; i++) ibp->Cut.append(i+1);
+                        else for(int i=0; i<nCut; i++) ibp->Cut.append(nCut-i);
                     }
                     ibp_vec.push_back(ibp);
-                    ibp->Integrals.append(ns);
+                    ibp->Integral.append(ns);
                     AIR2F[AIR[i]] = F(ibp->ProblemNumber, ns);
                 } else {
                     IBP* ibp = kv->second;
-                    ibp->Integrals.append(ns);
+                    ibp->Integral.append(ns);
                     AIR2F[AIR[i]] = F(ibp->ProblemNumber, ns);
                 }
             }
             if(Verbose>0) cout << endl;
 
-            if(Verbose>0) cout << "  \\--Total Ints/Pros: " << WHITE << ntot << "/" << ibp_vec.size() << RESET << " @ " << now(false) << endl;
+            if(Verbose>0) cout << PRE << "\\--Total Ints/Pros: " << WHITE << ntot << "/" << ibp_vec.size() << RESET << " @ " << now(false) << endl;
         
             if(true) {
                 //vector<IBP*> ibp_vec2;
@@ -395,6 +398,7 @@ namespace HepLib {
                 auto int_fr = FindRules(ibp_vec, false, aio.UF);
                 IntFs = int_fr.second;
                 if(GiNaC_Parallel_NP.find("AIR2F")==GiNaC_Parallel_NP.end() && CpuCores()>8) GiNaC_Parallel_NP["AIR2F"] = 8;
+                if(GiNaC_Parallel_NB.find("AIR2F")==GiNaC_Parallel_NB.end() && CpuCores()>100) GiNaC_Parallel_NB["AIR2F"] = 100;
                 air_vec = GiNaC_Parallel(air_vec.size(), [&air_vec,&AIR2F,&int_fr] (int idx) {
                     auto air = air_vec[idx];
                     air = air.subs(AIR2F,nopat);
@@ -411,7 +415,7 @@ namespace HepLib {
             if(!e.has(F(w1,w2))) return e;
             else if(e.match(F(w1,w2))) {
                 int pn = ex_to<numeric>(e.op(0)).to_int();
-                auto pso = ex_to<lst>(ibp_vec[pn-1]->Propagators);
+                auto pso = ex_to<lst>(ibp_vec[pn-1]->Propagator);
                 auto nso = ex_to<lst>(e.op(1));
                 lst ps, ns;
                 for(int i=0; i<pso.nops(); i++) {
@@ -449,16 +453,16 @@ namespace HepLib {
                 int nints = 0;
                 for(auto pi : pn_ints_map) {
                     auto ibp = ibp_vec[pi.first-1];
-                    ibp->Integrals = pi.second;
-                    nints += ibp->Integrals.nops();
+                    ibp->Integral = pi.second;
+                    nints += ibp->Integral.nops();
                     ibp_vec_re.push_back(ibp);
                 }
 
-                if(Verbose>0) cout << "  \\--Refined Ints/Pros: " << WHITE << nints << "/" << ibp_vec_re.size() << RESET << " @ " << now(false) << endl;
+                if(Verbose>0) cout << PRE << "\\--Refined Ints/Pros: " << WHITE << nints << "/" << ibp_vec_re.size() << RESET << " @ " << now(false) << endl;
             } 
             
             if(IBPmethod==1) {
-                GiNaC_Parallel_NB["Expo"] = 1;
+                //if(GiNaC_Parallel_NB.find("Expo")==GiNaC_Parallel_NB.end()) GiNaC_Parallel_NB["Expo"] = 1;
                 auto pRes = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re](int idx)->ex {
                     ibp_vec_re[idx]->Export();
                     auto ret = lst{ ibp_vec_re[idx]->IsAlwaysZero ? 1 : 0, ibp_vec_re[idx]->Rules };
@@ -470,7 +474,7 @@ namespace HepLib {
                 }
                 
                 int nproc = aio.NIBP;
-                if(nproc<1) nproc = CpuCores()/FIRE::Threads;
+                if(nproc<1) nproc = 8;
                 int cproc = 0;
                 if(nproc<1) nproc = 1;
                 size_t nibp = ibp_vec_re.size();
@@ -482,26 +486,27 @@ namespace HepLib {
                     if(Verbose>1) {
                         #pragma omp critical
                         {
-                        cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Reduction [" << (++cproc) << "/" << nibp << "] " << flush;
+                        cout << "\r                                        \r" << flush;
+                        cout << PRE << "\\--" << WHITE << "FIRE" << RESET << " Reduction [" << (++cproc) << "/" << nibp << "] " << flush;
                         }
                     }
                     ibp_vec_re[pi]->Run();
                 }
-                if(Verbose>1) cout << "@" << now(false) << endl;
+                if(Verbose>1 && nibp>0) cout << "@" << now(false) << endl;
                 #else
                 if(nproc>1) {
-                    GiNaC_Parallel_NP["FIRE"] = nproc;
-                    GiNaC_Parallel_NB["FIRE"] = 1;
+                    if(GiNaC_Parallel_NP.find("FIRE")==GiNaC_Parallel_NB.end())  GiNaC_Parallel_NP["FIRE"] = nproc;
+                    if(GiNaC_Parallel_NB.find("FIRE")==GiNaC_Parallel_NB.end()) GiNaC_Parallel_NB["FIRE"] = 1;
                     GiNaC_Parallel(nibp, [&ibp_vec_re](int idx)->ex {
                         ibp_vec_re[idx]->Run();
                         return 0;
                     }, "FIRE");
                 } else {
                     for(int pi=0; pi<nibp; pi++) {
-                        if(Verbose>1) cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Reduction [" << (++cproc) << "/" << nibp << "] " << flush;
+                        if(Verbose>1) cout << "\r                                        \r" << PRE << "\\--" << WHITE << "FIRE" << RESET << " Reduction [" << (++cproc) << "/" << nibp << "] " << flush;
                         ibp_vec_re[pi]->Run();
                     }
-                    if(Verbose>1) cout << "@" << now(false) << endl;
+                    if(Verbose>1 && nibp>0) cout << "@" << now(false) << endl;
                 }
                 #endif
                 
@@ -514,10 +519,10 @@ namespace HepLib {
                 } else {
                     cproc = 0;
                     for(auto item : ibp_vec_re) {
-                        if(Verbose>1) cout << "\r                                        \r" << "  \\--" << WHITE << "FIRE" << RESET << " Import [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
+                        if(Verbose>1) cout << "\r                                        \r" << PRE << "\\--" << WHITE << "FIRE" << RESET << " Import [" << (++cproc) << "/" << ibp_vec_re.size() << "] " << flush;
                         item->Import();
                     }
-                    if(Verbose>1) cout << "@" << now(false) << endl;
+                    if(Verbose>1 && ibp_vec_re.size()>0) cout << "@" << now(false) << endl;
                 }
                 //IBP::ReShare(ibp_vec_re);
                 
@@ -538,7 +543,7 @@ namespace HepLib {
                         ri.op(0),  
                         collect_ex(ri.op(1).subs(miRules,nopat),F(w1,w2),o_flint)
                     });
-                    for(auto mi : ibp_vec_re[idx]->MIntegrals) {
+                    for(auto mi : ibp_vec_re[idx]->MIntegral) {
                         auto fi = miRules.find(mi);
                         if(fi!=miRules.end()) res.append(lst{ mi, fi->second });
                     }
@@ -613,7 +618,7 @@ namespace HepLib {
         //aio.pn_sector = 4;
         aio.Internal = loops;
         aio.External = exts;
-        aio.Cuts = cut_props;
+        aio.Cut = cut_props;
         if(cut_props.nops()>0) {
             for(auto p1 : loops) {
                 for(auto p2 : loops) aio.CSP.append(SP(p1,p2));

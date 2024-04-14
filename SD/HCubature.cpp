@@ -35,7 +35,8 @@ namespace HepLib::SD {
         auto self = (HCubature*)fdata;
         bool NaNQ = false;
 
-        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        unsigned int nthreads = self->Threads>0 ? self->Threads : omp_get_num_procs();
+        #pragma omp parallel for num_threads(nthreads) schedule(dynamic, 1)
         for(int i=0; i<npts; i++) {
             mpfr_free_cache();
             mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
@@ -61,7 +62,7 @@ namespace HepLib::SD {
                 }
             } else {
                 dREAL dx[xdim], dy[ydim];
-                for(int j=0; j<xdim; j++) dx[j] = x[i*xdim+j];
+                for(int j=0; j<xdim; j++) dx[j] = (dREAL)x[i*xdim+j];
                 self->IntegrandD(xdim, dx, ydim, dy, self->dParameter, self->dLambda);
                 for(int j=0; j<ydim; j++) y[i*ydim+j] = dy[j];
                 bool ok = true;
@@ -93,7 +94,7 @@ namespace HepLib::SD {
             }
             if(!ok && (self->IntegrandMP!=NULL)) {
                 mpfr_free_cache();
-                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*100));
+                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*10));
                 mpREAL mpx[xdim], mpy[ydim];
                 for(int j=0; j<xdim; j++) mpx[j] = x[i*xdim+j];
                 self->IntegrandMP(xdim, mpx, ydim, mpy, self->mpParameter, self->mpLambda);

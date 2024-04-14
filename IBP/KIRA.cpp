@@ -38,7 +38,7 @@ namespace HepLib {
      */
     void KIRA::Export() {
 
-        if(Integrals.nops()<1) return;
+        if(Integral.nops()<1) return;
         
         if(WorkingDir.length()<1) WorkingDir = to_string(getpid())+"IBP";
         string job_dir = WorkingDir + "/" + to_string(ProblemNumber);
@@ -77,14 +77,14 @@ namespace HepLib {
         
         //oss << "    top_level_sectors: [127]" << endl;
         oss << "    propagators:" << endl;
-        for(int i=0; i<Propagators.nops(); i++) {
-            oss << "     - [ \"" << Propagators.op(i) << "\", 0]" << endl;
+        for(int i=0; i<Propagator.nops(); i++) {
+            oss << "     - [ \"" << Propagator.op(i) << "\", 0]" << endl;
         }
-        if(Cuts.nops()>0) {
+        if(Cut.nops()>0) {
             oss << "    cut_propagators: [";
-            for(auto i=0; i<Cuts.nops(); i++) {
-                oss << Cuts.op(i);
-                if(i+1<Cuts.nops()) oss << ", ";
+            for(auto i=0; i<Cut.nops(); i++) {
+                oss << Cut.op(i);
+                if(i+1<Cut.nops()) oss << ", ";
                 else oss << "]" << endl;
             }
         }
@@ -106,7 +106,7 @@ namespace HepLib {
         //oss << "  outgoing_momenta: []" << endl;
         //oss << "  momentum_conservation: [p0,-p1-p2]" << endl;
         
-        auto vars = gather_symbols(lst{Propagators, Replacements});
+        auto vars = gather_symbols(lst{Propagator, Replacement});
         exset vset_all;
         for(auto vi : vars) vset_all.insert(vi);
         exset vset_mom;
@@ -128,7 +128,7 @@ namespace HepLib {
             for(int j=i; j<External.nops(); j++) {
                 auto pj = External.op(j);
                 oss << "    - [ [" << pi << "," << pj << "], ";
-                oss << subs(pi*pj, Replacements) << "]" << endl;
+                oss << subs(pi*pj, Replacement) << "]" << endl;
             }
         }
         
@@ -146,7 +146,7 @@ namespace HepLib {
         if(_rmax < 0 || _smax < 0) {
             int rrmax = 0;
             int ssmax = 0;
-            for(auto integral : Integrals) {
+            for(auto integral : Integral) {
                 int rr = 0;
                 int ss = 0;
                 for(auto item : integral) {
@@ -175,10 +175,10 @@ namespace HepLib {
         oss << "      run_initiate: true" << endl;
         oss << "      run_triangular: true" << endl;
         oss << "      run_back_substitution: true" << endl;
-        if(PIntegrals.nops()>0) {
+        if(PIntegral.nops()>0) {
             ostringstream oss2;
-            int nn = PIntegrals.nops();
-            for(int i=0; i<nn; i++) oss2 << Fout(PIntegrals.op(i)) << endl;
+            int nn = PIntegral.nops();
+            for(int i=0; i<nn; i++) oss2 << Fout(PIntegral.op(i)) << endl;
             ofstream pref_out(job_dir+"/preferred");
             pref_out << oss2.str() << endl;
             pref_out.close();
@@ -194,7 +194,7 @@ namespace HepLib {
         oss.clear();
         
         // integrals
-        for(auto integral : Integrals) oss << Fout(integral) << endl;
+        for(auto integral : Integral) oss << Fout(integral) << endl;
         ofstream intg_out(job_dir+"/integrals");
         intg_out << oss.str() << endl;
         intg_out.close();
@@ -230,7 +230,7 @@ namespace HepLib {
         ex exL=0, exR=0;
         map<ex,int,ex_is_less> flags;
         lst exRs;
-        for(auto intg : Integrals) flags[F(ProblemNumber,intg)] = 1;
+        for(auto intg : Integral) flags[F(ProblemNumber,intg)] = 1;
         Rules.remove_all();
         for(auto line : strvec) {
             if(line.size()==0) {
@@ -257,15 +257,15 @@ namespace HepLib {
             flags[exL] = 0;
             exRs.append(exR);
         }
-        MIntegrals.remove_all();
+        MIntegral.remove_all();
         for(auto kv : flags) {
-            if(kv.second!=0) MIntegrals.append(kv.first);
+            if(kv.second!=0) MIntegral.append(kv.first);
         }
         exset miset;
         find(exRs,F(w1,w2),miset);
-        for(auto mi : miset) MIntegrals.append(mi);
-        MIntegrals.sort();
-        MIntegrals.unique();
+        for(auto mi : miset) MIntegral.append(mi);
+        MIntegral.sort();
+        MIntegral.unique();
 
     }
 

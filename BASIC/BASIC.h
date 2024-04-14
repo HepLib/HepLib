@@ -503,6 +503,7 @@ namespace HepLib {
     extern const iSymbol iEpsilon;
     extern const ex iEpsilonN;
     extern int Verbose;
+    extern string PRE;
     extern bool Debug;
 
     /*-----------------------------------------------------*/
@@ -595,6 +596,36 @@ namespace HepLib {
     
     #endif
     
+    // Helper to introduce new GiNaC function
+    inline std::function<GiNaC::function(const ex &)> GiNaC_Function_1(const string name) {
+        for (auto & it : GiNaC::function::get_registered_functions()) {
+            if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
+        }
+        unsigned s = GiNaC::function::register_new(function_options(name,1).do_not_evalf_params());
+        return [s](const ex &p1)->GiNaC::function { return GiNaC::function(s,p1); };
+    }
+    inline std::function<GiNaC::function(const ex &,const ex &)> GiNaC_Function_2(const string name) {
+        for (auto & it : GiNaC::function::get_registered_functions()) {
+            if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
+        }
+        unsigned s = GiNaC::function::register_new(function_options(name,2).do_not_evalf_params());
+        return [s](const ex &p1,const ex &p2)->GiNaC::function { return GiNaC::function(s,p1,p2); };
+    }
+    inline std::function<GiNaC::function(const ex &,const ex &,const ex &)> GiNaC_Function_3(const string name) {
+        for (auto & it : GiNaC::function::get_registered_functions()) {
+            if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
+        }
+        unsigned s = GiNaC::function::register_new(function_options(name,3).do_not_evalf_params());
+        return [s](const ex &p1,const ex &p2,const ex &p3)->GiNaC::function { return GiNaC::function(s,p1,p2,p3); };
+    }
+    inline std::function<GiNaC::function(const ex &,const ex &,const ex &,const ex &)> GiNaC_Function_4(const string name) {
+        for (auto & it : GiNaC::function::get_registered_functions()) {
+            if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
+        }
+        unsigned s = GiNaC::function::register_new(function_options(name,4).do_not_evalf_params());
+        return [s](const ex &p1,const ex &p2,const ex &p3,const ex &p4)->GiNaC::function { return GiNaC::function(s,p1,p2,p4); };
+    }
+    
     /**
      * @brief class to wrap map_function of GiNaC
      */
@@ -639,6 +670,14 @@ namespace HepLib {
             if(is_a<GiNaC::function>(*i)) return true;
         }
         return false;
+    }
+    
+    // tree traversal
+    inline void PreTree(const ex & e, std::function<void(const ex &)> f) {
+        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) f(*i);
+    }
+    inline void PostTree(const ex & e, std::function<void(const ex &)> f) {
+        for(const_postorder_iterator i = e.postorder_begin(); i != e.postorder_end(); ++i) f(*i);
     }
     
     /*-----------------------------------------------------*/
@@ -722,8 +761,8 @@ namespace HepLib {
     // GINAC_DECLARE_REGISTERED_CLASS END
     
     public:
-        ex Functions=lst{};
-        ex Exponents=lst{};
+        ex Function=lst{};
+        ex Exponent=lst{};
         ex Deltas=lst{};
         size_t nops() const override;
         ex op(size_t i) const override;
@@ -825,12 +864,12 @@ namespace HepLib {
     inline void garWrite(string garfn, const exvector &exv) { garWrite(exv,garfn); }
     void garRead(exvector &exv, string garfn);
     inline void garRead(string garfn, exvector &exv) { garRead(exv, garfn); }
-    ex add_collect_normal(const exvector &exv, ex const &pats, int opt = o_fermat);
-    ex add_collect_normal(const exvector &exv, lst const &pats, int opt = o_fermat);
-    ex add_collect_normal(const exvector &exv, init_list const &pats, int opt = o_fermat);
-    ex add_collect_normal(const ex & e, ex const &pats, int opt = o_fermat);
-    ex add_collect_normal(const ex & e, lst const &pats, int opt = o_fermat);
-    ex add_collect_normal(const ex & e, init_list const &pats, int opt = o_fermat);
+    ex add_collect_normal(const exvector &exv, ex const &pats, int opt = o_flint);
+    ex add_collect_normal(const exvector &exv, lst const &pats, int opt = o_flint);
+    ex add_collect_normal(const exvector &exv, init_list const &pats, int opt = o_flint);
+    ex add_collect_normal(const ex & e, ex const &pats, int opt = o_flint);
+    ex add_collect_normal(const ex & e, lst const &pats, int opt = o_flint);
+    ex add_collect_normal(const ex & e, init_list const &pats, int opt = o_flint);
     bool has_w(const ex & e);
     void subs_w(exmap & repl);
     void subs_w(lst & repl);
@@ -857,6 +896,7 @@ namespace HepLib {
     void ReShare(const exvector & ev1, const exvector & ev2);
     
     ex nextprime(const ex & n);
+    ex nextprime(int n);
     numeric RationalReconstruct(numeric a, numeric p);
     numeric mulInv(numeric a, numeric b);
     numeric ChineseRemainder(std::vector<numeric> a, std::vector<numeric> n);
@@ -866,7 +906,9 @@ namespace HepLib {
     
     // fermat functions
     matrix fermat_Redrowech(const matrix & mat);
+    matrix fermat_Redrowech_Sparse(const matrix & mat);
     ex fermat_Det(const matrix & mat);
+    ex fermat_Det_Sparse(const matrix & mat);
     matrix fermat_inv(const matrix & mat);
     matrix fermat_mul(const matrix & m1, const matrix & m2);
     matrix fermat_pow(const matrix & mat_in, int n);
@@ -875,10 +917,9 @@ namespace HepLib {
     matrix fermat_mat(const string & name);
     void fermat_eval(const string & fcmd="@[**]");
     bool has_symbol(const ex & e);
+    void arg2map(int argc, char** argv, const char *optstring, std::map<char,std::string> & kv);
 }
 
 typedef void (*RUN)(std::string dir_id);
-
-void get_opt(int argc, char** argv, const std::string & o, std::map<char,std::string> & kv);
 
 #include "Symbols.h"

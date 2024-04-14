@@ -53,7 +53,7 @@ namespace HepLib::SD {
                     eps_map[epi.op(0)] = epn;
                     epn = epn / 13;
                 }
-                auto tmp = ft.subs(nReplacements).subs(eps_map).subs(CV(w1,w2)==w2).expand();
+                auto tmp = ft.subs(nReplacement).subs(eps_map).subs(CV(w1,w2)==w2).expand();
                 if(is_a<add>(tmp)) {
                     for(auto item : tmp) {
                         if(!is_a<numeric>(item.subs(x(w)==1))) {

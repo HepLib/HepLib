@@ -1,6 +1,6 @@
 // Functions related to fermat program
+
 #include "BASIC.h"
-#include "cln/cln.h"
 
 namespace HepLib {
 
@@ -54,8 +54,8 @@ namespace HepLib {
                 
         exmap v2f, f2v;
         exmap nn_map;
-        auto nn_pi1 = cln::nextprobprime(3);
-        auto nn_pi2 = cln::nextprobprime(3);
+        auto nn_pi1 = nextprime(3);
+        auto nn_pi2 = nextprime(3);
         int fvi = 0;
         for(auto vi : rep_vs) {
             auto name = "v" + to_string(fvi);
@@ -63,9 +63,9 @@ namespace HepLib {
             v2f[vi] = s;
             f2v[s] = vi;
             fvi++;
-            nn_pi1 = cln::nextprobprime(nn_pi2+1);
-            nn_pi2 = cln::nextprobprime(nn_pi1+1);
-            nn_map[s] = numeric(nn_pi1)/numeric(nn_pi2);
+            nn_pi1 = nextprime(nn_pi2+1);
+            nn_pi2 = nextprime(nn_pi1+1);
+            nn_map[s] = nn_pi1/nn_pi2;
         }
         
         stringstream ss;
@@ -147,7 +147,7 @@ namespace HepLib {
         symtab st;
         Parser fp(st);
         auto ret = fp.Read(ostr);
-        ReShare(ret,expr);
+        //ReShare(ret,expr);
         num = ret.op(0);
         if(dfactor) den = factor_form(ret.op(1));
         else den = ret.op(1);
@@ -201,8 +201,8 @@ namespace HepLib {
                 
         exmap v2f, f2v;
         exmap nn_map;
-        auto nn_pi1 = cln::nextprobprime(3);
-        auto nn_pi2 = cln::nextprobprime(3);
+        auto nn_pi1 = nextprime(3);
+        auto nn_pi2 = nextprime(3);
         int fvi = 0;
         for(auto vi : rep_vs) {
             auto name = "v" + to_string(fvi);
@@ -210,9 +210,9 @@ namespace HepLib {
             v2f[vi] = s;
             f2v[s] = vi;
             fvi++;
-            nn_pi1 = cln::nextprobprime(nn_pi2+1);
-            nn_pi2 = cln::nextprobprime(nn_pi1+1);
-            nn_map[s] = numeric(nn_pi1)/numeric(nn_pi2);
+            nn_pi1 = nextprime(nn_pi2+1);
+            nn_pi2 = nextprime(nn_pi1+1);
+            nn_map[s] = nn_pi1/nn_pi2;
         }
         
         stringstream ss;
@@ -513,6 +513,140 @@ namespace HepLib {
         return mr;
     }
     
+    matrix fermat_Redrowech_Sparse(const matrix & mat_in) {
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
+        
+        exmap map_rat;
+        int nrow = mat_in.rows();
+        int ncol = mat_in.cols();
+        matrix mat(nrow, ncol);
+        matrix ret_mat(nrow, ncol);
+        for(int r=0; r<nrow; r++) for(int c=0; c<ncol; c++) mat(r,c) = mat_in(r,c).to_rational(map_rat);
+        
+        lst rep_vs;
+        if(true) {
+            map<ex,long long,ex_is_less> s2c;
+            ex expr_in = mat;
+            for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
+                if(is_a<symbol>(*i)) s2c[*i]++;
+            }
+            exvector sv1, sv2, sv3; // sv2:fermat_weight, sv3:map_rat
+            for(auto kv : s2c) {
+                auto fw = fermat_weight.find(kv.first);
+                if(fw!=fermat_weight.end()) sv2.push_back(lst{fw->second, fw->first});
+                else if(map_rat.find(kv.first)!=map_rat.end()) sv3.push_back(lst{kv.second, kv.first});
+                else sv1.push_back(lst{kv.second, kv.first});
+            }
+            sort_vec(sv1);
+            sort_vec(sv2);
+            sort_vec(sv3);
+            for(auto sv : sv1) rep_vs.append(sv.op(1));
+            for(auto sv : sv2) rep_vs.append(sv.op(1));
+            for(auto sv : sv3) rep_vs.append(sv.op(1));
+        }
+        
+        exmap v2f;
+        symtab st;
+        int fvi = 0;
+        for(auto vi : rep_vs) {
+            auto name = "v" + to_string(fvi);
+            v2f[vi] = Symbol(name);
+            st[name] = vi;
+            fvi++;
+        }
+        
+        stringstream ss;
+        if(fvi>111) {
+            cout << rep_vs << endl;
+            throw Error("Fermat: Too many variables.");
+        }
+        if(fvi>v_max) {
+            for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
+            fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
+            v_max = fvi;
+        }
+        
+        ostringstream oss;
+        oss << "[";
+        bool r1 = true;
+        for(int r=0; r<nrow; r++) {
+            bool c1 = true;
+            for(int c=0; c<ncol; c++) {
+                if(mat(r,c).is_zero()) continue;
+                if(c1) {
+                    if(!r1) oss << "`" << endl;
+                    oss << "[" << r+1 << ",";
+                    r1 = c1 = false;
+                } else oss << ",";
+                oss << "[" << c+1 << "," << mat(r,c).subs(v2f) << "]";
+            }
+            if(!c1) oss << "]";
+        }
+        oss << "];" << endl;
+        
+        ss << "Array m[" << nrow << "," << ncol+1 << "] Sparse;" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        ss << "[m]:=" << oss.str();
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        fermat.Execute("Redrowech([m]);");
+        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
+        
+        if(true) { // read matrix m
+            ss << "![m]" << endl;
+            auto ostr = fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
+            
+            // make sure last char is 0
+            if(ostr[ostr.length()-1]!='0') throw Error("RowReduce, last char is NOT 0.");
+            ostr = ostr.substr(0, ostr.length()-1);
+            string_trim(ostr);
+            
+            ostr.erase(0, ostr.find(":=")+2);
+            size_t sn = ostr.length();
+            char lc;
+            for(size_t i=0; i<sn; i++) {
+                char & c = ostr[i];
+                if(c=='[') {
+                    c = '{';
+                    if(i>0 && lc=='}') ostr[i-1] = ',';
+                } else if(c==']') c = '}';
+                else if(c==' '||c=='\t'||c=='\n'||c=='\r') continue;
+                lc = c;
+            }
+            
+            Parser fp(st);
+            auto res = fp.Read(ostr);
+            for(auto const & item : res) {
+                int r = -1;
+                for(auto const & it : item) {
+                    if(r==-1) r = ex2int(it)-1;
+                    else {
+                        int c = ex2int(it.op(0))-1;
+                        ret_mat(r,c) = it.op(1).subs(map_rat);
+                    }
+                }
+            }
+        }
+        // note the order, before exfactor (normal_fermat will be called again here)
+        ss << "&(U=0);" << endl; // disable ugly printing
+        ss << "@([m]);" << endl;
+        ss << "&_G;" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        return ret_mat;
+    }
+    
     ex fermat_Det(const matrix & mat_in) {
         Fermat &fermat = Fermat::get();
         int &v_max = fermat.vmax;
@@ -596,7 +730,131 @@ namespace HepLib {
         
         // note the order,(normal_fermat will be called again in factor_form)
         ss << "&(U=0);" << endl; // disable ugly printing
-        ss << "@(res,[m]);" << endl;
+        ss << "@res;" << endl;
+        ss << "@[**];" << endl;
+        ss << "&_G;" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+
+        // make sure last char is 0
+        if(ostr[ostr.length()-1]!='0') throw Error("fermat_together: last char is NOT 0.");
+        ostr = ostr.substr(0, ostr.length()-1);
+        auto cpos = ostr.find(bstr);
+        if(cpos==string::npos) throw Error(bstr+" NOT Found.");
+        ostr = ostr.substr(cpos+bstr.length(),string::npos);
+        cpos = ostr.find(estr);
+        if(cpos==string::npos) throw Error(estr+" NOT Found.");
+        ostr = ostr.substr(0,cpos);
+        string_trim(ostr);
+        
+        Parser fp(st);
+        auto res = fp.Read(ostr);
+        res = res.subs(map_rat);
+        return res;
+    }
+    
+    ex fermat_Det_Sparse(const matrix & mat_in) {
+        Fermat &fermat = Fermat::get();
+        int &v_max = fermat.vmax;
+        
+        exmap map_rat;
+        int nrow = mat_in.rows();
+        int ncol = mat_in.cols();
+        matrix mat(nrow, ncol);
+        for(int r=0; r<nrow; r++) for(int c=0; c<ncol; c++) mat(r,c) = mat_in(r,c).to_rational(map_rat);
+        
+        lst rep_vs;
+        if(true) {
+            map<ex,long long,ex_is_less> s2c;
+            ex expr_in = mat;
+            for(const_preorder_iterator i = expr_in.preorder_begin(); i != expr_in.preorder_end(); ++i) {
+                if(is_a<symbol>(*i)) s2c[*i]++;
+            }
+            exvector sv1, sv2, sv3; // sv2:fermat_weight, sv3:map_rat
+            for(auto kv : s2c) {
+                auto fw = fermat_weight.find(kv.first);
+                if(fw!=fermat_weight.end()) sv2.push_back(lst{fw->second, fw->first});
+                else if(map_rat.find(kv.first)!=map_rat.end()) sv3.push_back(lst{kv.second, kv.first});
+                else sv1.push_back(lst{kv.second, kv.first});
+            }
+            sort_vec(sv1);
+            sort_vec(sv2);
+            sort_vec(sv3);
+            for(auto sv : sv1) rep_vs.append(sv.op(1));
+            for(auto sv : sv2) rep_vs.append(sv.op(1));
+            for(auto sv : sv3) rep_vs.append(sv.op(1));
+        }
+        
+        exmap v2f;
+        symtab st;
+        int fvi = 0;
+        for(auto vi : rep_vs) {
+            auto name = "v" + to_string(fvi);
+            v2f[vi] = Symbol(name);
+            st[name] = vi;
+            fvi++;
+        }
+        
+        stringstream ss;
+        if(fvi>111) {
+            cout << rep_vs << endl;
+            throw Error("Fermat: Too many variables.");
+        }
+        if(fvi>v_max) {
+            for(int i=v_max; i<fvi; i++) ss << "&(J=v" << i << ");" << endl;
+            fermat.Execute(ss.str());
+            ss.clear();
+            ss.str("");
+            v_max = fvi;
+        }
+        
+        ostringstream oss;
+        oss << "[";
+        bool r1 = true;
+        for(int r=0; r<nrow; r++) {
+            bool c1 = true;
+            for(int c=0; c<ncol; c++) {
+                if(mat(r,c).is_zero()) continue;
+                if(c1) {
+                    if(!r1) oss << "`" << endl;
+                    oss << "[" << r+1 << ",";
+                    r1 = c1 = false;
+                } else oss << ",";
+                oss << "[" << c+1 << "," << mat(r,c).subs(v2f) << "]";
+            }
+            if(!c1) oss << "]";
+        }
+        oss << "];" << endl;
+        
+        ss << "Array m[" << nrow << "," << ncol << "] Sparse;" << endl;
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        ss << "[m]:=" << oss.str();
+        fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        ss << "res:=Det[m];" << endl;
+        auto tmp = ss.str();
+        string_replace_all(tmp,",)]",")]");
+        fermat.Execute(tmp);
+        ss.clear();
+        ss.str("");
+
+        static string bstr("[-begin-]"), estr("[-end-]");
+        ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
+        ss << "!('" <<bstr<< "',res,'" <<estr<< "')" << endl;
+        auto ostr = fermat.Execute(ss.str());
+        ss.clear();
+        ss.str("");
+        
+        // note the order,(normal_fermat will be called again in factor_form)
+        ss << "&(U=0);" << endl; // disable ugly printing
+        ss << "@res;" << endl;
+        ss << "@[**];" << endl;
         ss << "&_G;" << endl;
         fermat.Execute(ss.str());
         ss.clear();

@@ -81,7 +81,7 @@ namespace HepLib::QGRAF {
         ofs << "out=" << Out << ";" << endl;
         ofs << "loops=" << Loops << ";" << endl;
         ofs << "loop_momentum=" << LoopPrefix << ";" << endl;
-        if(Options!="") ofs << "options=" << Options << ";" << endl;
+        ofs << "options=" << Options << ";" << endl;
         for(auto vs : Others) ofs << vs << ";" << endl;
         ofs.close();
         
@@ -131,9 +131,10 @@ namespace HepLib::QGRAF {
             } else if(isFunction(e, "Propagator")) {
                 lines.append(lst{ iWF(e.op(0).op(1)), iWF(e.op(1).op(1)), lst{e.op(0).op(0), e.op(1).op(0)}, e.op(2) });
             } else if(isFunction(e, "Vertex")) {
-                if(v2id[e]==0) {
+                auto itr = v2id.find(e);
+                if(itr==v2id.end()) {
                     cid++;
-                    v2id[e]=cid;
+                    v2id.emplace(make_pair(e,cid));
                     lst fs;
                     for(auto f : e) {
                         ex fid = f.op(1);
@@ -403,87 +404,124 @@ namespace HepLib::QGRAF {
     /**
      * @brief Propagator for quark
      * @param e expression with head of Propagator
-     * @param m the quark mass, default is 0
-     * @param color true for QCD, false for QED
-     * @return the quark propagator, with dirac/color index
+     * @param m the quark mass
+     * @return the quark propagator
      */
-    ex QuarkPropagator(ex e, ex m, bool color) {
+    ex QuarkPropagator(const ex & e, const ex & m) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        if(color) return I * SP(TI(fi1),TI(fi2)) * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
-        else return I * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
+        return I * SP(TI(fi1),TI(fi2)) * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
+    }
+    
+    /**
+     * @brief Propagator for lepton
+     * @param e expression with head of Propagator
+     * @param m the quark mass
+     * @return the lepton propagator
+     */
+    ex LeptonPropagator(const ex & e, const ex & m) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto mom = e.op(2);
+        return I * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
     }
     
     /**
      * @brief Propagator for gluon
      * @param e expression with head of Propagator
-     * @param color true for QCD, false for QED
-     * @return the gloun propagator under Feynman gauge, with dirac/color index
+     * @param xi R-xi gauge parameter
+     * @return the gloun propagator for R-xi gauge
      */
-    ex GluonPropagator(ex e, bool color) {
+    ex GluonPropagator(const ex & e, const ex & xi) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        if(color) return (-I) * SP(CI(fi1),CI(fi2)) * SP(LI(fi1),LI(fi2)) / SP(mom); // Feynman Gauge
-        else return (-I) * SP(LI(fi1),LI(fi2)) / SP(mom); // Feynman Gauge
+        return (-I) * SP(CI(fi1),CI(fi2)) * ( SP(LI(fi1),LI(fi2)) / SP(mom) - (1-xi)*SP(mom,LI(fi1))*SP(mom,LI(fi2))/pow(SP(mom),2) );
+    }
+        
+    /**
+     * @brief Propagator for gluon ghost
+     * @param e expression with head of Propagator
+     * @param xi the result wil not depend on xi, since null gluon mass
+     * @return the gluon ghost propagator
+     */
+    ex GluonGhostPropagator(const ex & e, const ex & xi, const ex & eta_G) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto mom = e.op(2);
+        return I * eta_G * SP(CI(fi1),CI(fi2)) / SP(mom);
     }
     
     /**
-     * @brief Propagator for gluon
+     * @brief Propagator for A/Z/W boson
      * @param e expression with head of Propagator
-     * @param color true for QCD, false for QED
-     * @return the gloun propagator under Feynman gauge, with dirac/color index
+     * @param m the boson mass, 0/MZ/MW
+     * @param xi R-xi gauge parameter
+     * @return the A/Z/W boson propagator
      */
-    ex GluonPropagatorXi(ex e, ex xi, bool color) {
+    ex AZWPropagator(const ex & e, const ex & m, const ex & xi) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        if(color) return (-I) * SP(CI(fi1),CI(fi2)) * ( SP(LI(fi1),LI(fi2)) / SP(mom) - (1-xi)*SP(mom,LI(fi1))*SP(mom,LI(fi2))/pow(SP(mom),2) ); // Xi Gauge
-        else return (-I) * ( SP(LI(fi1),LI(fi2)) / SP(mom) - (1-xi)*SP(mom,LI(fi1))*SP(mom,LI(fi2))/pow(SP(mom),2) ); // Xi Gauge
+        return -I/(SP(mom)-m*m) * (SP(LI(fi1),LI(fi2))-(1-xi)*SP(LI(fi1))*SP(LI(fi2))/(SP(mom)-xi*m*m));
     }
     
     /**
-     * @brief Propagator for ghost
+     * @brief Propagator for A/Z/W ghost
      * @param e expression with head of Propagator
-     * @param color true for QCD, false for QED
-     * @return the ghost propagator, with dirac/color index
+     * @param m mass for A/Z/W -> 0/MZ/MW
+     * @param xi R-xi gauge parameter
+     * @return the A/Z/W ghost propagator @ R-xi gauge
      */
-    ex GhostPropagator(ex e, bool color) {
+    ex AZWGhostPropagator(const ex & e, const ex & m, const ex & xi, const ex & eta_G) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        if(color) return I * SP(CI(fi1),CI(fi2)) / SP(mom);
-        else return I / SP(mom);
+        return eta_G * I / (SP(mom)-xi*m*m);
+    }
+    
+    /**
+     * @brief Propagator for scalar
+     * @param e expression with head of Propagator
+     * @param m mass for the particle
+     * @param xi R-xi gauge parameter, xi=1 for higgs
+     * @return the scalar propagator
+     */
+    ex ScalarPropagator(const ex & e, const ex & m, const ex & xi) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto mom = e.op(2);
+        return I / (SP(mom)-xi*m*m);
     }
     
     /**
      * @brief q-qbar-g vertex
      * @param e expression with head of Vertex
-     * @param color true for QCD, false for QED
+     * @param eta_s +1/-1 the sign convention
      * @return the q-qbar-g vertex
      */
-    ex q2gVertex(ex e, bool color) {
+    ex QuarkGluonVertex(const ex & e, const ex & eta_s) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
-        if(color) return I*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SUNT(CI(fi3),TI(fi1),TI(fi2));
-        else return I*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2));
+        return -I*eta_s*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SUNT(CI(fi3),TI(fi1),TI(fi2));
     }
-    
+
     /**
      * @brief g-g-g vertex
      * @param e expression with head of Vertex
+     * @param eta_s +1/-1 the sign convention
      * @return the g-g-g vertex
      */
-    ex g3Vertex(ex e) {
+    ex Gluon3Vertex(const ex & e, const ex & eta_s) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
         auto mom1 = e.op(0).op(2);
         auto mom2 = e.op(1).op(2);
         auto mom3 = e.op(2).op(2);
-        return gs*SUNF(CI(fi1),CI(fi2),CI(fi3))*(
+        return -eta_s*gs*SUNF(CI(fi1),CI(fi2),CI(fi3))*(
             SP(mom1-mom2,LI(fi3))*SP(LI(fi1),LI(fi2)) +
             SP(mom2-mom3,LI(fi1))*SP(LI(fi2),LI(fi3)) +
             SP(mom3-mom1,LI(fi2))*SP(LI(fi3),LI(fi1))
@@ -493,14 +531,15 @@ namespace HepLib::QGRAF {
     /**
      * @brief g-g-g-g vertex
      * @param e expression with head of Vertex
+     * @param eta_s +1/-1 the sign convention
      * @return the g-g-g-g vertex
      */
-    ex g4Vertex(ex e) {
+    ex Gluon4Vertex(const ex & e, const ex & eta_s) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
         auto fi4 = e.op(3).op(1);
-        return (-I)*gs*gs*(
+        return -I*gs*gs*(
             SUNF4(CI(fi1),CI(fi2),CI(fi3),CI(fi4))*(SP(LI(fi1),LI(fi3))*SP(LI(fi2),LI(fi4))-SP(LI(fi1),LI(fi4))*SP(LI(fi2),LI(fi3))) +
             SUNF4(CI(fi1),CI(fi3),CI(fi2),CI(fi4))*(SP(LI(fi1),LI(fi2))*SP(LI(fi3),LI(fi4))-SP(LI(fi1),LI(fi4))*SP(LI(fi2),LI(fi3))) +
             SUNF4(CI(fi1),CI(fi4),CI(fi2),CI(fi3))*(SP(LI(fi1),LI(fi2))*SP(LI(fi4),LI(fi3))-SP(LI(fi1),LI(fi3))*SP(LI(fi4),LI(fi2)))
@@ -508,20 +547,48 @@ namespace HepLib::QGRAF {
     }
     
     /**
-     * @brief ghost-anti ghost-g vertex
+     * @brief ghbar-gh-g vertex
      * @param e expression with head of Vertex
-     * @param color true for QCD, false for QED
-     * @return the ghost-anti ghost-g vertex
+     * @param eta_s +1/-1 the sign convention
+     * @param eta_G +1/-1 the sign convention
+     * @return the ghbar-gh-g vertex
      */
-    ex gh2gVertex(ex e, bool color) {
+    ex GhostGluonVertex(const ex & e, const ex & eta_s, const ex & eta_G) {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
         auto mom1 = e.op(0).op(2);
-        if(color) return -gs * SUNF(CI(fi1),CI(fi2),CI(fi3)) * SP(mom1,LI(fi3));
-        else return -gs * SP(mom1,LI(fi3));
+        return eta_s*eta_G*gs*SUNF(CI(fi1),CI(fi2),CI(fi3))*SP(mom1,LI(fi3));
     }
-     
+
+    /**
+     * @brief qbar-q-A vertex
+     * @param e expression with head of Vertex
+     * @param eq the charge
+     * @param eta_e +1/-1 the sign convention
+     * @return the q-qbar-A vertex
+     */
+    ex QuarkAVertex(const ex & e, const ex & eq, const ex & eta_e) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        return -I*eta_e*eq*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SP(TI(fi1),TI(fi2));
+    }
+    
+    /**
+     * @brief l-lbar-A vertex
+     * @param e expression with head of Vertex
+     * @param eq the charge
+     * @param eta_e +1/-1 the sign convention
+     * @return the q-qbar-A vertex
+     */
+    ex LeptonAVertex(const ex & e, const ex & eq, const ex & eta_e) {
+        auto fi1 = e.op(0).op(1);
+        auto fi2 = e.op(1).op(1);
+        auto fi3 = e.op(2).op(1);
+        return -I*eta_e*eq*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2));
+    }
+
     /**
      * @brief Change Index from left to right, only affect li/di/ci/ti, external index start with dim/lim/cim/tim will also be changed if all=true
      * @param e input expression 
@@ -680,6 +747,527 @@ namespace HepLib::QGRAF {
     ex J1SumR(int qi, ex p) {
         if(is_zero(p)) return -SP(RLI(qi),LI(qi));
         else return -SP(RLI(qi),LI(qi)) + SP(p,RLI(qi)) * SP(p,LI(qi)) / SP(p);
+    }
+    
+    // https://arxiv.org/abs/1209.6213v2
+    lst Models::FeynRulesSM(const lst & amps, const ex & xi) {
+        lst ret;
+        for(auto item : amps) ret.append(FeynRulesSM(item,xi));
+        return ret;
+    }
+    ex Models::FeynRulesSM(const ex & amp, const ex & xi) {
+        if(is_a<lst>(amp)) return FeynRulesSM(ex_to<lst>(amp), xi);
+        
+        static Symbol CW("CW"); // cos(theta)
+        static Symbol SW("SW"); // sin(theta)
+        static Symbol C2W("C2W"); // cos(2theta)
+        
+        static Symbol U("U"); // U-quark
+        static Symbol Ubar("Ubar"); // anti U-quark
+        static Symbol D("D"); // D-quark
+        static Symbol Dbar("Dbar"); // anti D-quark
+        static Symbol C("C"); // C-quark
+        static Symbol Cbar("Cbar"); // anti C-quark
+        static Symbol S("S"); // S-quark
+        static Symbol Sbar("Sbar"); // anti S-quark
+        static Symbol T("T"); // T-quark
+        static Symbol Tbar("Tbar"); // anti T-quark
+        static Symbol B("B"); // B-quark
+        static Symbol Bbar("Bbar"); // anti B-quark
+        
+        static Symbol g("g"); // gluon
+        static Symbol gh("gh"); // gluon ghost
+        static Symbol ghbar("ghbar"); // anti gluon ghost
+        
+        static Symbol A("A"); // photon
+        static Symbol Wm("Wm"); // W-
+        static Symbol Wp("Wp"); // W+
+        static Symbol Z("Z"); // Z
+        
+        static Symbol ghA("ghA"); // photon ghost
+        static Symbol ghAbar("ghAbar"); // anti photon ghost
+        static Symbol ghWm("ghWm"); // W- ghost
+        static Symbol ghWmbar("ghWmbar"); // anti W- ghost
+        static Symbol ghWp("ghWp"); // W+ ghost
+        static Symbol ghWpbar("ghWpbar"); // anti W+ ghost
+        static Symbol ghZ("ghZ"); // Z ghost
+        static Symbol ghZbar("ghZbar"); // anti Z ghost
+
+        static Symbol em("em"); // e-
+        static Symbol ep("ep"); // e+
+        static Symbol ne("ne"); // e-neutrino
+        static Symbol nebar("nebar"); // anti e-neutrino
+        static Symbol mum("mum"); // mu-
+        static Symbol mup("mup"); // mu+
+        static Symbol nmu("nmu"); // mu-neutrino
+        static Symbol nmubar("nmubar"); // anti mu-neutrino
+        static Symbol taum("taum"); // tau-
+        static Symbol taup("taup"); // tau+
+        static Symbol ntau("ntau"); // tau-neutrino
+        static Symbol ntaubar("ntaubar"); // anti tau-neutrino
+        
+        static Symbol chi("chi"); // Z goldstone
+        static Symbol phim("phim"); // W- goldstone
+        static Symbol phip("phip"); // W+ goldstone
+        static Symbol H("H"); // higgs
+        
+        static auto M = [](const string & si)->ex {
+            return Symbol("M"+si);
+        };
+        static ex MW = M("W");
+        static ex MZ = M("Z");
+        static ex MH = M("H");
+        
+        static Symbol EL("e"); // charge e
+        
+        static ex eta_s = -1;
+        // Peskin's book convention
+        static ex eta = -1;
+        static ex eta_prime = -1;
+        static ex eta_Z = 1;
+        static ex eta_theta = 1;
+        static ex eta_Y = 1;
+        static ex eta_e = -1;
+        static ex eta_G = 1;
+        
+        static ex GEW = eta_e*eta*eta_theta * EL/SW;
+        static ex EL2 = EL*EL;
+        static ex MW2 = MW*MW;
+        static ex MZ2 = MZ*MZ;
+        static ex MH2 = MH*MH;
+        static ex GEW2 = GEW*GEW;
+        static ex CW2 = CW*CW;
+        static ex SW2 = SW*SW;
+        static ex sqrt2 = sqrt(ex(2));
+        
+        map<string,ex> T3;
+        T3["U"] = T3["C"] = T3["T"] = ex(1)/2;
+        T3["D"] = T3["S"] = T3["B"] = -ex(1)/2;
+        T3["ne"] = T3["nmu"] = T3["ntau"] = ex(1)/2;
+        T3["em"] = T3["mum"] = T3["taum"] = -ex(1)/2;
+        T3["ep"] = T3["mup"] = T3["taup"] = -ex(1)/2; // for sure
+        
+        map<string,ex> Q;
+        Q["U"] = Q["C"] = Q["T"] = ex(2)/3;
+        Q["D"] = Q["S"] = Q["B"] = -ex(1)/3;
+        Q["ne"] = Q["nmu"] = Q["ntau"] = 0;
+        Q["em"] = Q["mum"] = Q["taum"] = -1;
+        Q["ep"] = Q["mup"] = Q["taup"] = -1; // for sure
+        
+        auto is_qbar_q = [&](const ex pi1, const ex pi2)->bool {
+             return (pi1==Ubar && pi2==U) || (pi1==Dbar && pi2==D) || (pi1==Cbar && pi2==C) || (pi1==Sbar && pi2==S) || (pi1==Tbar && pi2==T) || (pi1==Bbar && pi2==B);
+        };
+        auto is_lbar_l = [&](const ex pi1, const ex pi2)->bool {
+             return (pi1==ep && pi2==em) || (pi1==mup && pi2==mum) || (pi1==taup && pi2==taum);
+        };
+        auto is_lbar_n = [&](const ex pi1, const ex pi2)->bool {
+             return (pi1==ep && pi2==ne) || (pi1==mup && pi2==nmu) || (pi1==taup && pi2==ntau);
+        };
+        auto is_nbar_n = [&](const ex pi1, const ex pi2)->bool {
+            return (pi1==nebar && pi2==ne) || (pi1==nmubar && pi2==nmu) || (pi1==ntaubar && pi2==ntau);
+        };
+        auto is_nbar_l = [&](const ex pi1, const ex pi2)->bool {
+            return (pi1==nebar && pi2==em) || (pi1==nmubar && pi2==mum) || (pi1==ntaubar && pi2==taum);
+        };
+        auto is_uqbar = [&](const ex pi)->bool {
+            return (pi==Ubar) || (pi==Cbar) || (pi==Tbar);
+        };
+        auto is_uq = [&](const ex pi)->bool {
+            return (pi==U) || (pi==C) || (pi==T);
+        };
+        auto is_dqbar = [&](const ex pi)->bool {
+            return (pi==Dbar) || (pi==Sbar) || (pi==Bbar);
+        };
+        auto is_dq = [&](const ex pi)->bool {
+            return (pi==D) || (pi==S) || (pi==B);
+        };
+        auto is_uqbar_dq = [&](const ex pi1, const ex pi2)->bool {
+            return is_uqbar(pi1) && is_dq(pi2);
+        };
+        auto is_dqbar_uq = [&](const ex pi1, const ex pi2)->bool {
+            return is_dqbar(pi1) && is_uq(pi2);
+        };
+        auto CKM = [&](const string & si1, const string & si2)->ex {
+            return Symbol("V"+si1+si2);
+        };
+        
+        auto gfV = [&](const string & si)->ex {
+            return T3[si]/2-Q[si]*SW2;
+        };
+        auto gfA = [&](const string & si)->ex {
+            return T3[si]/2;
+        };
+        
+        auto fr = MapFunction([&](const ex &e, MapFunction &self)->ex {
+            if(isFunction(e,"OutField") || isFunction(e,"InField")) return 1;
+            else if(isFunction(e, "Propagator")) {
+                auto pi = e.op(0).op(0);
+                auto si = ex2str(pi);
+                if(pi==U || pi==D || pi==C || pi==S || pi==T || pi==B) {
+                    return QuarkPropagator(e, M(si));
+                } else if(pi==g) {
+                    return GluonPropagator(e, xi);
+                } else if(pi==gh) {
+                    return GluonGhostPropagator(e, xi, eta_G);
+                } else if(pi==A) {
+                    return AZWPropagator(e, 0, xi);
+                } else if(pi==Z) {
+                    return AZWPropagator(e, MZ, xi);
+                } else if(pi==Wm) {
+                    return AZWPropagator(e, MW, xi);
+                } else if(pi==ghA) {
+                    return AZWGhostPropagator(e, 0, xi, eta_G);
+                } else if(pi==ghZ) {
+                    return AZWGhostPropagator(e, MZ, xi, eta_G);
+                } else if(pi==ghWm || pi==ghWp) {
+                    return AZWGhostPropagator(e, MW, xi, eta_G);
+                } else if(pi==em || pi==mum || pi==taum) {
+                    return LeptonPropagator(e, M(si));
+                } else if(pi==ne || pi==nmu || pi==ntau) {
+                    return LeptonPropagator(e, 0);
+                } else if(pi==H) {
+                    return ScalarPropagator(e, MH, 1);
+                } else if(pi==chi) {
+                    return ScalarPropagator(e, MZ, xi);
+                } else if(pi==phim) {
+                    return ScalarPropagator(e, MW, xi);
+                } else {
+                    cout << endl << e << endl;
+                    throw Error("Propagator Not defined!");
+                }
+            } else if(isFunction(e, "Vertex")) {
+                auto pi1 = e.op(0).op(0);
+                auto pi2 = e.op(1).op(0);
+                auto pi3 = e.op(2).op(0);
+                auto fi1 = e.op(0).op(1);
+                auto fi2 = e.op(1).op(1);
+                auto fi3 = e.op(2).op(1);
+                auto mom1 = e.op(0).op(2);
+                auto mom2 = e.op(1).op(2);
+                auto mom3 = e.op(2).op(2);
+                int nn = e.nops();
+                
+                auto si1 = ex2str(pi1);
+                auto si2 = ex2str(pi2);
+                string_replace_all(si1, "bar", "");
+                string_replace_all(si2, "bar", "");
+                auto si = si2;
+
+                if(nn==3) {
+                    if(pi1==ghbar && pi2==gh && pi3==g) {
+                        // ghbar-gh-g
+                        return GhostGluonVertex(e, eta_s, eta_G);
+                    } else if(pi1==g && pi2==g && pi3==g) {
+                        // g^3
+                        return Gluon3Vertex(e, eta_s);
+                    } else if((pi3==g) && is_qbar_q(pi1, pi2)) {
+                        // qbar-q-g
+                        return QuarkGluonVertex(e, eta_s);
+                    } else if((pi3==A) && is_qbar_q(pi1, pi2)) {
+                        // qbar-q-A
+                        return QuarkAVertex(e, EL*Q[si], eta_e);
+                    } else if((pi3==A) && is_lbar_l(pi1, pi2)) {
+                        // lbar-l-A
+                        return LeptonAVertex(e, EL*Q[si], eta_e);
+                    } else if((pi3==Z) && is_qbar_q(pi1, pi2)) {
+                        // qbar-q-Z
+                        return -I*eta*eta_Z*GEW/CW*(gfV(si)*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))-gfA(si)*Matrix(GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2)))*SP(TI(fi1),TI(fi2));
+                    } else if((pi3==Z) && (is_lbar_l(pi1, pi2) || is_nbar_n(pi1, pi2))) {
+                        // lbar-l-Z & nbar-n-Z
+                        return -I*eta*eta_Z*GEW/CW*(gfV(si)*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))-gfA(si)*Matrix(GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2)));
+                    } else if(pi1==Wp && pi2==Wm && pi3==A) {
+                        // Wp-Wm-A
+                        return -I*eta_e*EL*(SP(LI(fi1),LI(fi2))*SP(mom2-mom1,LI(fi3))+SP(LI(fi2),LI(fi3))*SP(mom3-mom2,LI(fi1))+SP(LI(fi3),LI(fi1))*SP(mom1-mom3,LI(fi2)));
+                    } else if(pi1==Wp && pi2==Wm && pi3==Z) {
+                        // Wp-Wm-Z
+                        return -I*eta*eta_Z*GEW*CW*(SP(LI(fi1),LI(fi2))*SP(mom2-mom1,LI(fi3))+SP(LI(fi2),LI(fi3))*SP(mom3-mom2,LI(fi1))+SP(LI(fi3),LI(fi1))*SP(mom1-mom3,LI(fi2)));
+                    } else if(is_uqbar(pi1) && is_dq(pi2) && pi3==Wp) {
+                        // uqbar-dq-Wp
+                        auto ckm = CKM(si1, si2);
+                        return -I*eta*GEW/sqrt2*Matrix(GAS(LI(fi3))-GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2))/2*ckm*SP(TI(fi1),TI(fi2));
+                    } else if(is_dqbar(pi1) && is_uq(pi2) && pi3==Wm) {
+                        // dqbar-uq-Wm
+                        auto ckm = CKM(si1, si2);
+                        return -I*eta*GEW/sqrt2*Matrix(GAS(LI(fi3))-GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2))/2*ckm*SP(TI(fi1),TI(fi2));
+                    } else if( (is_nbar_l(pi1, pi2) && pi3==Wp) || (is_lbar_n(pi1, pi2) && pi3==Wm) ) {
+                        // nbar-l-Wp & lbar-n-Wm
+                        return -I*eta*GEW/sqrt2*Matrix(GAS(LI(fi3))-GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2))/2;
+                    } else if(is_qbar_q(pi1, pi2) && (pi3==H)) {
+                        // qbar-q-H
+                        return -I*GEW/2*M(si)/MW*Matrix(GAS(1),DI(fi1),DI(fi2))*SP(TI(fi1),TI(fi2));
+                    } else if( (is_lbar_l(pi1, pi2) || is_nbar_n(pi1, pi2)) && (pi3==H)) {
+                        // lbar-l-H & nbar-n-H
+                        return -I*GEW/2*M(si)/MW*Matrix(GAS(1),DI(fi1),DI(fi2));
+                    } else if(is_qbar_q(pi1, pi2) && (pi3==chi)) {
+                        // qbar-q-chi
+                        return -GEW*T3[si]*M(si)/MW*Matrix(GAS(5),DI(fi1),DI(fi2))*SP(TI(fi1),TI(fi2));
+                    } else if( (is_lbar_l(pi1, pi2) || is_nbar_n(pi1, pi2)) && (pi3==chi)) {
+                        // lbar-l-chi & nbar-n-chi
+                        return -GEW*T3[si]*M(si)/MW*Matrix(GAS(5),DI(fi1),DI(fi2));
+                    } else if(is_uqbar_dq(pi1, pi2) && pi3==phip) {
+                        // uqbar-dq-phip
+                        auto ckm = CKM(si1,si2);
+                        return I*GEW/sqrt2*(M(si1)/MW*Matrix(GAS(1)-GAS(5),DI(fi1),DI(fi2))/2-M(si2)/MW*Matrix(GAS(1)+GAS(5),DI(fi1),DI(fi2))/2)*ckm*SP(TI(fi1),TI(fi2));
+                    } else if(is_dqbar_uq(pi1, pi2) && pi3==phim) {
+                        // dqbar-uq-phim
+                        auto ckm = CKM(si1,si2);
+                        return I*GEW/sqrt2*(M(si2)/MW*Matrix(GAS(1)+GAS(5),DI(fi1),DI(fi2))/2-M(si1)/MW*Matrix(GAS(1)-GAS(5),DI(fi1),DI(fi2))/2)*ckm*SP(TI(fi1),TI(fi2));
+                    } else if(is_nbar_l(pi1, pi2) && pi3==phip) {
+                        // nbar-l-phip
+                        return -I*GEW/sqrt2*M(si2)/MW*Matrix(GAS(1)+GAS(5),DI(fi1),DI(fi2))/2; // Mnl = 0
+                    } else if(is_lbar_n(pi1, pi2) && pi3==phim) {
+                        // lbar-n-phim
+                        return -I*GEW/sqrt2*M(si1)/MW*Matrix(GAS(1)-GAS(5),DI(fi1),DI(fi2))/2; // Mnl = 0
+                    } else if(pi1==A && pi2==phip && pi3==phim) {
+                        // A-phip-phim
+                        return -I*eta_e*EL*SP(mom2-mom3,LI(fi1));
+                    } else if(pi1==Z && pi2==phip && pi3==phim) {
+                        // Z-phip-phim
+                        return -I*eta*eta_Z*GEW*C2W/(2*CW)*SP(mom2-mom3,LI(fi1));
+                    } else if(pi1==Wp && pi2==phim && pi3==H) {
+                        // Wp-phim-H
+                        return I/2*eta*GEW*SP(mom2-mom3,LI(fi1));
+                    } else if(pi1==Wm && pi2==phip && pi3==H) {
+                        // Wm-phip-H
+                        return -I/2*eta*GEW*SP(mom2-mom3,LI(fi1));
+                    } else if( ((pi1==Wp && pi2==phim) || (pi1==Wm && pi2==phip)) && pi3==chi) {
+                        // Wp-phim-chi & Wm-phip-chi
+                        return -eta*GEW/2*SP(mom2-mom3,LI(fi1));
+                    } else if(pi1==Z && pi2==chi && pi3==H) {
+                        // Z-chi-H
+                        return -eta*eta_Z*GEW/(2*CW)*SP(mom2-mom3,LI(fi1));
+                    } else if( ((pi1==phim && pi2==Wp) || (pi1==phip && pi2==Wm)) && pi3==A) {
+                        // phim-Wp-A & phip-Wm-A
+                        return I*eta_e*eta*EL*MW*SP(LI(fi2),LI(fi3));
+                    } else if( ((pi1==phim && pi2==Wp) || (pi1==phip && pi2==Wm)) && pi3==Z) {
+                        // phim-Wp-Z & phip-Wm-Z
+                        return -I*eta_Z*GEW*MZ*SW2*SP(LI(fi2),LI(fi3));
+                    } else if(pi1==H && pi2==Wp && pi3==Wm) {
+                        // H-Wp-Wm
+                        return I*GEW*MW*SP(LI(fi2),LI(fi3));
+                    } else if(pi1==H && pi2==Z && pi3==Z) {
+                        // H-Z-Z
+                        return I*GEW/CW*MZ*SP(LI(fi2),LI(fi3));
+                    } else if(pi1==H && pi2==phim && pi3==phip) {
+                        // H-phim-phip
+                        return -I/2*GEW*MH2/MW;
+                    } else if(pi1==H && pi2==H && pi3==H) {
+                        // H-H-H
+                        return -3/ex(2)*I*GEW*MH2/MW;
+                    } else if(pi1==H && pi2==chi && pi3==chi) {
+                        // H-chi-chi
+                        return -I/2*GEW*MH2/MW;
+                    } else if(pi1==ghWpbar && pi2==ghWp && pi3==A) {
+                        // ghWpbar-ghWp-A
+                        return I*eta_G*eta_e*EL*SP(mom1,LI(fi3));
+                    } else if(pi1==ghWmbar && pi2==ghWm && pi3==A) {
+                        // ghWmbar-ghWm-A
+                        return -I*eta_G*eta_e*EL*SP(mom1,LI(fi3));
+                    } else if(pi1==ghWpbar && pi2==ghWp && pi3==Z) {
+                        // ghWpbar-ghWp-Z
+                        return I*eta_G*eta*eta_Z*GEW*CW*SP(mom1,LI(fi3));
+                    } else if(pi1==ghWmbar && pi2==ghWm && pi3==Z) {
+                        // ghWmbar-ghWm-Z
+                        return -I*eta_G*eta*eta_Z*GEW*CW*SP(mom1,LI(fi3));
+                    } else if(pi1==ghWpbar && pi2==ghZ && pi3==Wp) {
+                        // ghWpbar-ghZ-Wp
+                        return -I*eta_G*eta*eta_Z*GEW*CW*SP(mom1,LI(fi3));
+                    } else if(pi1==ghWmbar && pi2==ghZ && pi3==Wm) {
+                        // ghWmbar-ghZ-Wm
+                        return I*eta_G*eta*eta_Z*GEW*CW*SP(mom1,LI(fi3));
+                    } else if(pi1==ghWpbar && pi2==ghA && pi3==Wp) {
+                        // ghWpbar-ghA-Wp
+                        return -I*eta_G*eta_e*EL*SP(mom1,LI(fi3));
+                    } else if(pi1==ghWmbar && pi2==ghA && pi3==Wm) {
+                        // ghWmbar-ghA-Wm
+                        return I*eta_G*eta_e*EL*SP(mom1,LI(fi3));
+                    } else if(pi1==ghZbar && pi2==ghWp && pi3==Wm) {
+                        // ghZbar-ghWp-Wm
+                        return -I*eta_G*eta*GEW*CW*SP(mom1,LI(fi3));
+                    } else if(pi1==ghZbar && pi2==ghWm && pi3==Wp) {
+                        // ghZbar-ghWm-Wp
+                        return I*eta_G*eta*GEW*CW*SP(mom1,LI(fi3));
+                    } else if(pi1==ghAbar && pi2==ghWp && pi3==Wm) {
+                        // ghAbar-ghWp-Wm
+                        return -I*eta_G*eta_e*EL*SP(mom1,LI(fi3));
+                    } else if(pi1==ghAbar && pi2==ghWm && pi3==Wp) {
+                        // ghAbar-ghWm-Wp
+                        return I*eta_G*eta_e*EL*SP(mom1,LI(fi3));
+                    } else if(pi1==ghWpbar && pi2==ghWp && pi3==chi) {
+                        // ghWpbar-ghWp-chi
+                        return eta_G*GEW/2*xi*MW;
+                    } else if(pi1==ghWmbar && pi2==ghWm && pi3==chi) {
+                        // ghWmbar-ghWm-chi
+                        return -eta_G*GEW/2*xi*MW;
+                    } else if( ((pi1==ghWpbar && pi2==ghWp) ||(pi1==ghWmbar && pi2==ghWm)) && pi3==H) {
+                        // ghWpbar-ghWp-H & ghWmbar-ghWm-H
+                        return -I/2*eta_G*GEW*xi*MW;
+                    } else if(pi1==ghZbar && pi2==ghZ && pi3==H) {
+                        // ghZbar-ghZ-H
+                        return -eta_G*I*GEW/(2*CW)*xi*MZ;
+                    } else if( pi1==ghZbar && ((pi2==ghWp && pi3==phim) || (pi2==ghWm && pi3==phip)) ) {
+                        // ghZbar-ghWp-phim & ghZbar-ghWm-phip
+                        return I/2*eta_G*eta_Z*GEW*xi*MZ;
+                    } else if( ((pi1==ghWpbar && pi3==phip) || (pi1==ghWmbar && pi3==phim)) && pi2==ghZ) {
+                        // ghWpbar-ghZ-phip & ghWmbar-ghZ-phim
+                        return -I*eta_G*eta_Z*GEW*C2W/(2*CW)*xi*MW;
+                    } else if( ((pi1==ghWpbar && pi3==phip) || (pi1==ghWmbar && pi3==phim)) && pi2==ghA) {
+                        // ghWpbar-ghA-phip & ghWmbar-ghA-phim
+                        return -I*eta_G*eta_e*eta*EL*xi*MW;
+                    } else {
+                        cout << endl << e << endl;
+                        throw Error("Vertex Not defined!");
+                    }
+                } else if(nn==4) {
+                    auto pi4 = e.op(3).op(0);
+                    auto fi4 = e.op(3).op(1);
+                    auto mom4 = e.op(3).op(2);
+                    
+                    if(pi1==g && pi2==g && pi3==g && pi4==g) {
+                        // g^4
+                        return Gluon4Vertex(e, eta_s);
+                    } else if(pi1==Wp && pi2==Wm && pi3==A && pi4==A) {
+                        // Wp-Wm-A-A
+                        return -I*EL2*(2*SP(LI(fi1),LI(fi2))*SP(LI(fi3),LI(fi4))-SP(LI(fi1),LI(fi3))*SP(LI(fi2),LI(fi4))-SP(LI(fi1),LI(fi4))*SP(LI(fi2),LI(fi3)));
+                    } else if(pi1==Wp && pi2==Wm && pi3==Z && pi4==Z) {
+                        // Wp-Wm-Z-Z
+                        return -I*GEW2*CW2*(2*SP(LI(fi1),LI(fi2))*SP(LI(fi3),LI(fi4))-SP(LI(fi1),LI(fi3))*SP(LI(fi2),LI(fi4))-SP(LI(fi1),LI(fi4))*SP(LI(fi2),LI(fi3)));
+                    } else if(pi1==Wp && pi2==Wm && pi3==A && pi4==Z) {
+                        // Wp-Wm-A-Z
+                        return -I*eta_e*eta*eta_Z*EL*GEW*CW*(2*SP(LI(fi1),LI(fi2))*SP(LI(fi3),LI(fi4))-SP(LI(fi1),LI(fi3))*SP(LI(fi2),LI(fi4))-SP(LI(fi1),LI(fi4))*SP(LI(fi2),LI(fi3)));
+                    } else if(pi1==Wp && pi2==Wp && pi3==Wm && pi4==Wm) {
+                        // Wp-Wp-Wm-Wm
+                        return I*GEW2*(2*SP(LI(fi1),LI(fi2))*SP(LI(fi3),LI(fi4))-SP(LI(fi1),LI(fi3))*SP(LI(fi2),LI(fi4))-SP(LI(fi1),LI(fi4))*SP(LI(fi2),LI(fi3)));
+                    } else if(pi1==Wp && pi2==Wm && pi3==H && pi4==H) {
+                        // Wp-Wm-H-H
+                        return I/2*GEW2*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==Wp && pi2==Wm && pi3==chi && pi4==chi) {
+                        // Wp-Wm-chi-chi
+                        return I/2*GEW2*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==Z && pi2==Z && pi3==H && pi4==H) {
+                        // Z-Z-H-H
+                        return I/2*GEW2/CW2*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==Z && pi2==Z && pi3==chi && pi4==chi) {
+                        // Z-Z-chi-chi
+                        return I/2*GEW2/CW2*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==A && pi2==A && pi3==phip && pi4==phim) {
+                        // A-A-phip-phim
+                        return 2*I*EL2*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==Z && pi2==Z && pi3==phip && pi4==phim) {
+                        // Z-Z-phip-phim
+                        return I/2*pow(GEW*C2W/CW,2)*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==Wp && pi2==Wm && pi3==phip && pi4==phim) {
+                        // Wp-Wm-phip-phim
+                        return I/2*GEW2*SP(LI(fi1),LI(fi2));
+                    } else if( ((pi1==Wp && pi3==phim) || (pi1==Wm && pi3==phip)) && pi2==Z && pi4==H) {
+                        // Wp-Z-phim-H & Wm-Z-phip-H
+                        return -I*eta_Z*GEW2*SW2/(2*CW)*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==Wm && pi2==Z && pi3==phip && pi4==chi) {
+                        // Wm-Z-phip-chi
+                        return -eta_Z*GEW2*SW2/(2*CW)*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==Wp && pi2==Z && pi3==phim && pi4==chi) {
+                        // Wp-Z-phim-chi
+                        return eta_Z*GEW2*SW2/(2*CW)*SP(LI(fi1),LI(fi2));
+                    } else if( ((pi1==Wm && pi3==phip) || (pi1==Wp && pi3==phim)) && pi2==A && pi4==H) {
+                        // Wm-A-phip-H & Wp-A-phim-H
+                        return I/2*eta_e*eta*EL*GEW*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==Wp && pi2==A && pi3==phim && pi4==chi) {
+                        // Wp-A-phim-chi
+                        return -1/ex(2)*eta_e*eta*EL*GEW*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==Wm && pi2==A && pi3==phip && pi4==chi) {
+                        // Wm-A-phip-chi
+                        return 1/ex(2)*eta_e*eta*EL*GEW*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==Z && pi2==A && pi3==phip && pi4==phim) {
+                        // Z-A-phip-phim
+                        return I*eta_e*eta*eta_Z*EL*GEW*C2W/CW*SP(LI(fi1),LI(fi2));
+                    } else if(pi1==phim && pi2==phip && pi3==phim && pi4==phip) {
+                        // phim-phip-phim-phip
+                        return -I/2*GEW2*MH2/MW2;
+                    } else if(pi1==H && pi2==H && pi3==phim && pi4==phip) {
+                        // H-H-phim-phip
+                        return -I/4*GEW2*MH2/MW2;
+                    } else if(pi1==chi && pi2==chi && pi3==phim && pi4==phip) {
+                        // chi-chi-phim-phip
+                        return -I/4*GEW2*MH2/MW2;
+                    } else if(pi1==H && pi2==H && pi3==H && pi4==H) {
+                        // H-H-H-H
+                        return -3/ex(4)*I*GEW2*MH2/MW2;
+                    } else if(pi1==H && pi2==H && pi3==chi && pi4==chi) {
+                        // H-H-chi-chi
+                        return -I/4*GEW2*MH2/MW2;
+                    } else if(pi1==chi && pi2==chi && pi3==chi && pi4==chi) {
+                        // chi-chi-chi-chi
+                        return -3/ex(4)*I*GEW2*MH2/MW2;
+                    } else {
+                        cout << endl << e << endl;
+                        throw Error("Vertex Not defined!");
+                    }
+                } else {
+                    cout << endl << e << endl;
+                    throw Error("Vertex Not defined!");
+                }
+            } else return e.map(self);
+            return e;
+        });
+        return fr(amp);
+    }
+        
+        
+    lst Models::FeynRulesQCD(const lst & amps, const ex & xi) {
+        lst ret;
+        for(auto item : amps) ret.append(FeynRulesQCD(item,xi));
+        return ret;
+    }
+    ex Models::FeynRulesQCD(const ex & amp, const ex & xi) {
+        if(is_a<lst>(amp)) return FeynRulesQCD(ex_to<lst>(amp), xi);
+        
+        static Symbol A("A"), Q("Q"), Qbar("Qbar"), q("q"), qbar("qbar"), g("g"), gh("gh"), ghbar("ghbar");
+        static Symbol m("m"), eq("eq"), eQ("eQ");
+        
+        auto fr = MapFunction([&](const ex &e, MapFunction &self)->ex {
+            if(isFunction(e,"OutField") || isFunction(e,"InField")) return 1;
+            else if(isFunction(e, "Propagator")) {
+                if(e.op(0).op(0)==q) {
+                    return QuarkPropagator(e, 0);
+                } else if(e.op(0).op(0)==Q) {
+                    return QuarkPropagator(e, m);
+                } else if(e.op(0).op(0)==g) {
+                    return GluonPropagator(e, xi);
+                } else if(e.op(0).op(0)==gh) {
+                    return GluonGhostPropagator(e, xi);
+                } else {
+                    cout << "expr: " << e << endl;
+                    throw Error("Propagator Not Found!");
+                }
+            } else if(isFunction(e, "Vertex")) {
+                if(e.nops()==3 && ((e.op(0).op(0)==qbar && e.op(1).op(0)==q) || (e.op(0).op(0)==Qbar && e.op(1).op(0)==Q)) && (e.op(2).op(0)==g || e.op(2).op(0)==A) ) {
+                    // qbar-q-g or Qbar-Q-g or g -> A
+                    if(e.op(2).op(0)==g) return QuarkGluonVertex(e);
+                    else {
+                        auto fi1 = e.op(0).op(1);
+                        auto fi2 = e.op(1).op(1);
+                        auto fi3 = e.op(2).op(1);
+                        if(e.op(1).op(0)==q) QuarkAVertex(e, eq);
+                        else if(e.op(1).op(0)==Q) QuarkAVertex(e, eQ);
+                        else throw Error("Vertex Error.");
+                    }
+                } else if(e.nops()==3 && e.op(0).op(0)==ghbar && e.op(1).op(0)==gh) {
+                    // ghbar-gh-g
+                    return GhostGluonVertex(e);
+                } else if(e.nops()==3 && e.op(0).op(0)==g && e.op(1).op(0)==g && e.op(2).op(0)==g) {
+                    // g^3
+                    return Gluon3Vertex(e);
+                } else if(e.nops()==4 && e.op(0).op(0)==g && e.op(1).op(0)==g && e.op(2).op(0)==g && e.op(3).op(0)==g) {
+                    // g^4
+                    return Gluon4Vertex(e);
+                } else {
+                    cout << "expr: " << e << endl;
+                    throw Error("Vertex Not Found!");
+                }
+            } else return e.map(self);
+            return e;
+        });
+        return fr(amp);
     }
     
 }

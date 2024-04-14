@@ -339,7 +339,7 @@ namespace HepLib::SD {
             auto det = tmat.determinant();
             matrix vec(tmat.cols(), 1);
             vec(tmat.cols()-1, 0) = det;
-            vec = tmat.inverse().mul(vec);
+            vec = tmat.inverse(solve_algo::gauss).mul(vec);
             det = 0;
             for(int r=0; r<vec.rows(); r++) {
                 det = gcd(det, vec(r,0));

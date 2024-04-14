@@ -233,7 +233,7 @@ namespace HepLib::SD {
             if(kid>0 && current != kid) continue;
             if(Verbose>0) {
                 cout << "\r                                           \r";
-                cout << "  \\--Integrating [" <<current<<"/"<<total<< "] " << flush;
+                cout << PRE << "\\--Integrating [" <<current<<"/"<<total<< "] " << flush;
             } 
 
             unsigned int xsize = 0;
@@ -292,7 +292,7 @@ namespace HepLib::SD {
                     }
 
                     for(int ci=0; ci<css.nops(); ci++) {
-                        auto nt = NN(css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{CV(w1,w2)==w2}).subs(eps_map),30);
+                        auto nt = NN(css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacement).subs(lst{CV(w1,w2)==w2}).subs(eps_map),30);
                         if(nt.has(ep)) throw Error("Integrates: ep found @ nt = "+ex2str(nt));
                         
                         lst nt_lst;
@@ -317,7 +317,7 @@ namespace HepLib::SD {
                                     reim = 3;
                                 }
                             }
-                            nnt = NN(abs(nnt)); // no PL here, then nReplacements
+                            nnt = NN(abs(nnt)); // no PL here, then nReplacement
                             
                             qREAL qnt = ex2q(nnt);
                             if(qnt > cmax) cmax = qnt;
@@ -411,7 +411,7 @@ namespace HepLib::SD {
             mpREAL mplas[las.nops()], mppl[npara];
             for(auto kv : Parameter) {
                 qpl[kv.first] = ex2q(kv.second);
-                dpl[kv.first] = qpl[kv.first];
+                dpl[kv.first] = (dREAL)qpl[kv.first];
                 mppl[kv.first] = qpl[kv.first];
             }
             
@@ -485,7 +485,7 @@ namespace HepLib::SD {
                             for(int i=0; i<las.nops()-1; i++) {
                                 qlas[i] = ex2q(las.op(i)) * cla;
                                 mplas[i] = qlas[i];
-                                dlas[i] = qlas[i];
+                                dlas[i] = (dREAL)qlas[i];
                             }
                             
                             auto res = Integrator->Integrate(CTryI);
@@ -574,7 +574,7 @@ namespace HepLib::SD {
                     if(Verbose>5) cout << Color_HighLight << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
                     for(int i=0; i<las.nops()-1; i++) {
                         qlas[i] = ex2q(las.op(i)) * cla;
-                        dlas[i] = qlas[i];
+                        dlas[i] = (dREAL)qlas[i];
                         mplas[i] = qlas[i];
                     }
                 // ---------------------------------------
@@ -589,18 +589,18 @@ namespace HepLib::SD {
                     ErrMin::miner = miner;
                     ErrMin::Integrator = Integrator;
                     dREAL oo[las.nops()-1], ip[las.nops()-1];
-                    for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = qlas[i];
+                    for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = (dREAL)qlas[i];
                     ErrMin::lambda = oo;
                     ErrMin::err_max = 1E100;
                     auto oerrmin = ErrMin::err_min;
-                    ErrMin::err_min = oerrmin < 0 ? -oerrmin * ex2q(min_err) : oerrmin/cmax;
+                    ErrMin::err_min = (dREAL)(oerrmin < 0 ? -oerrmin * ex2q(min_err) : oerrmin/cmax);
                     ErrMin::RunRND = 0;
                     miner->Minimize(las.nops()-1, ErrMin::IntError, ip);
                     delete miner;
                     ErrMin::err_min = oerrmin;
                     for(int i=0; i<las.nops()-1; i++) {
                         qlas[i] = ErrMin::lambda[i];
-                        dlas[i] = qlas[i];
+                        dlas[i] = (dREAL)qlas[i];
                         mplas[i] = qlas[i];
                     }
                     
@@ -624,7 +624,7 @@ namespace HepLib::SD {
                     las_ofs.open(las_fn.str(), ios::out);
                     if (las_ofs) {
                         for(int i=0; i<las.nops()-1; i++) {
-                            dREAL la_tmp = qlas[i];
+                            dREAL la_tmp = (dREAL)qlas[i];
                             las_ofs << la_tmp << " ";
                         }
                         las_ofs << endl;
@@ -797,11 +797,11 @@ namespace HepLib::SD {
             if(Verbose>10) {
                 char es[64];
                 quadmath_snprintf(es, sizeof es, "%.10QG", cmerr);
-                cout << "  \\--Current Err: " << es << endl;
+                cout << PRE << "\\--Current Err: " << es << endl;
             }
             if(Verbose>0) {
                 cout << "\r                                           \r";
-                cout << "  \\--Integrating [" <<current<<"/"<<total<< "] " << flush;
+                cout << PRE << "\\--Integrating [" <<current<<"/"<<total<< "] " << flush;
             }
             
             unsigned int xsize = 0;
@@ -856,7 +856,7 @@ namespace HepLib::SD {
                     }
 
                     for(int ci=0; ci<css.nops(); ci++) {
-                        auto nt = NN(css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacements).subs(lst{CV(w1,w2)==w2}).subs(eps_map),30);
+                        auto nt = NN(css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacement).subs(lst{CV(w1,w2)==w2}).subs(eps_map),30);
                         if(nt.has(ep)) throw Error("Integrates: ep found @ nt = "+ex2str(nt));
                         
                         lst nt_lst;
@@ -881,7 +881,7 @@ namespace HepLib::SD {
                                     reim = 3;
                                 }
                             }
-                            nnt = NN(abs(nnt)); // no PL here, then nReplacements
+                            nnt = NN(abs(nnt)); // no PL here, then nReplacement
                             
                             qREAL qnt = ex2q(nnt);
                             if(qnt > cmax) cmax = qnt;
@@ -968,7 +968,7 @@ namespace HepLib::SD {
             mpREAL mplas[las.nops()], mppl[npara];
             for(auto kv : Parameter) {
                 qpl[kv.first] = ex2q(kv.second);
-                dpl[kv.first] = qpl[kv.first];
+                dpl[kv.first] = (dREAL)qpl[kv.first];
                 mppl[kv.first] = qpl[kv.first];
             }
             
@@ -1010,7 +1010,7 @@ namespace HepLib::SD {
                         dREAL la_tmp;
                         las_ifs >> la_tmp;
                         qlas[i] = la_tmp;
-                        dlas[i] = qlas[i];
+                        dlas[i] = (dREAL)qlas[i];
                         mplas[i] = qlas[i];
                     }
                     las_ifs.close();
@@ -1037,7 +1037,7 @@ namespace HepLib::SD {
                         if(cla < 1E-10) throw Error("NIntegrate: too small lambda.");
                         for(int i=0; i<las.nops()-1; i++) {
                             qlas[i] = ex2q(las.op(i)) * cla;
-                            dlas[i] = qlas[i];
+                            dlas[i] = (dREAL)qlas[i];
                             mplas[i] = qlas[i];
                         }
      
@@ -1122,7 +1122,7 @@ namespace HepLib::SD {
                 if(Verbose>5) cout << Color_HighLight << "     Final λ = " << (double)cla << " / " << las.op(las.nops()-1) << RESET << endl;
                 for(int i=0; i<las.nops()-1; i++) {
                     qlas[i] = ex2q(las.op(i)) * cla;
-                    dlas[i] = qlas[i];
+                    dlas[i] = (dREAL)qlas[i];
                     mplas[i] = qlas[i];
                 }
                 // ---------------------------------------
@@ -1137,18 +1137,18 @@ namespace HepLib::SD {
                     ErrMin::miner = miner;
                     ErrMin::Integrator = Integrator;
                     dREAL oo[las.nops()-1], ip[las.nops()-1];
-                    for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = qlas[i];
+                    for(int i=0; i<las.nops()-1; i++) ip[i] = oo[i] = (dREAL)qlas[i];
                     ErrMin::lambda = oo;
                     ErrMin::err_max = 1E100;
                     auto oerrmin = ErrMin::err_min;
-                    ErrMin::err_min = oerrmin < 0 ? -oerrmin * ex2q(min_err) : oerrmin/cmax;
+                    ErrMin::err_min = (dREAL)(oerrmin < 0 ? -oerrmin * ex2q(min_err) : oerrmin/cmax);
                     ErrMin::RunRND = 0;
                     miner->Minimize(las.nops()-1, ErrMin::IntError, ip);
                     delete miner;
                     ErrMin::err_min = oerrmin;
                     for(int i=0; i<las.nops()-1; i++) {
                         qlas[i] = ErrMin::lambda[i];
-                        dlas[i] = qlas[i];
+                        dlas[i] = (dREAL)qlas[i];
                         mplas[i] = qlas[i];
                     }
                     
@@ -1172,7 +1172,7 @@ namespace HepLib::SD {
                     las_ofs.open(las_fn.str(), ios::out);
                     if (las_ofs) {
                         for(int i=0; i<las.nops()-1; i++) {
-                            dREAL la_tmp = qlas[i];
+                            dREAL la_tmp = (dREAL)qlas[i];
                             las_ofs << la_tmp << " ";
                         }
                         las_ofs << endl;

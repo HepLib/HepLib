@@ -106,9 +106,9 @@ namespace HepLib {
      */
     void Direct::Export() {
 
-        if(Integrals.nops()<1) return;
+        if(Integral.nops()<1) return;
         
-        int pdim = Propagators.nops();
+        int pdim = Propagator.nops();
         lst InExternal;
         for(auto ii : Internal) InExternal.append(ii);
         for(auto ii : External) InExternal.append(ii);
@@ -123,8 +123,8 @@ namespace HepLib {
         
         if(ISP.nops() > pdim) {
             cout << "ISP = " << ISP << endl;
-            cout << "Propagators = " << Propagators << endl;
-            throw Error("Direct::Export: #(ISP) > #(Propagators).");
+            cout << "Propagator = " << Propagator << endl;
+            throw Error("Direct::Export: #(ISP) > #(Propagator).");
         }
         
         lst sp2s, s2sp, ss;
@@ -140,9 +140,9 @@ namespace HepLib {
         
         lst leqns;
         for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
-            auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
+            auto eq = Propagator.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
             eq = eq.subs(sp2s);
-            eq = eq.subs(Replacements);
+            eq = eq.subs(Replacement);
             if(eq.has(iWF(w))) throw Error("Direct::Export, iWF used in eq.");
             leqns.append(eq == iWF(i));
         }
@@ -167,14 +167,14 @@ namespace HepLib {
             for(int i=0; i<pdim; i++) {
                 auto ns = nsa;
                 ns.let_op(i) = nsa.op(i) + 1;
-                auto dp = Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
+                auto dp = Propagator.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
                 ibp -= (a(i)+Shift[i]) * F(ns) * dp;
             }
             
             ibp = ibp * iep;
             ibp = ibp.expand();
             ibp = ibp.subs(sp2s);
-            ibp = ibp.subs(Replacements);
+            ibp = ibp.subs(Replacement);
             ibp = ibp.subs(s2p);
             
             ex res = 0;
@@ -202,7 +202,7 @@ namespace HepLib {
             lst ns0;
             for(int i=0; i<pdim; i++) ns0.append(1);
             for(int i=0; i<pdim; i++) {
-                if(Propagators.op(i).has(lpi)) ns0.let_op(i) = -1;
+                if(Propagator.op(i).has(lpi)) ns0.let_op(i) = -1;
                 else ns_vec.push_back(i);
             }
             for(int n=0; n<std::pow(2,ns_vec.size()); n++) {
@@ -235,7 +235,7 @@ namespace HepLib {
             } 
             if(IsAlwaysZero) {
                 lst ws;
-                int pdim = Propagators.nops();
+                int pdim = Propagator.nops();
                 for(int i=0; i<pdim; i++) ws.append(wild(i));
                 Rules.append(F(ProblemNumber, ws)==0);
                 return;
@@ -387,7 +387,7 @@ exit(0);
     
         // improve here, try by level
         exmap sols;
-        auto intgs = Integrals;
+        auto intgs = Integral;
         while(true) {
             exset fs;
             for(auto intg : intgs) {
@@ -433,7 +433,7 @@ exit(0);
             }}
         }
                 
-        for(auto intg : Integrals) {
+        for(auto intg : Integral) {
             ex fi = F(intg);
             ex sum = 0;
             for(auto ni : fi.op(0)) sum += (ni<0 ? -ni : ni);

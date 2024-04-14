@@ -34,8 +34,9 @@ namespace HepLib::SD {
     int HCubatureMP::Wrapper(unsigned int xdim, size_t npts, const mpREAL *x, void *fdata, unsigned int ydim, mpREAL *y) {
         auto self = (HCubatureMP*)fdata;
         bool NaNQ = false;
-
-        #pragma omp parallel for num_threads(omp_get_num_procs()-1) schedule(dynamic, 1)
+        
+        unsigned int nthreads = self->Threads>0 ? self->Threads : omp_get_num_procs();
+        #pragma omp parallel for num_threads(nthreads) schedule(dynamic, 1)
         for(int i=0; i<npts; i++) {
             mpfr_free_cache();
             mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
@@ -48,7 +49,7 @@ namespace HepLib::SD {
             }
             if(!ok && (self->IntegrandMP!=NULL)) {
                 mpfr_free_cache();
-                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*100));
+                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*10));
                 self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->mpParameter, self->mpLambda);
                 mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
             }
@@ -178,7 +179,7 @@ namespace HepLib::SD {
         StartTimer = time(NULL);
         StartTimer = time(NULL);
 
-        Lib3_HCubatureMP::CPUCORES = omp_get_num_procs()-1;
+        Lib3_HCubatureMP::CPUCORES = omp_get_num_procs();
         int nok = Lib3_HCubatureMP::hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, _MinPTS_, _RunPTS_, MaxPTS, EpsAbs, EpsRel, result, estabs, tn==0 ? PrintHooker : NULL);
 
         if(nok) {

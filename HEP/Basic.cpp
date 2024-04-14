@@ -4,7 +4,7 @@
  */
  
 #include "HEP.h"
-#include "cln/cln.h"
+#include "flint/ulong_extras.h"
 
 namespace HepLib {
 
@@ -715,24 +715,27 @@ namespace HepLib {
     REGISTER_FUNCTION(Matrix, do_not_evalf_params().print_func<FCFormat>(&Matrix_fc_print).conjugate_func(mat_conj).set_return_type(return_types::commutative))
     
     bool IsZero(const ex & e) {
-        exset vs;
-        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
-            if(is_a<symbol>(*i) || is_a<Pair>(*i)) vs.insert(*i);
-        }
-        
-        int n = 3;
-        for(int i=0; i<5; i++) {
-            exmap nsubs;
-            for(auto item : vs) {
-                nsubs[item] = ex(1)/numeric(cln::nextprobprime(n));
-                n++;
+        try {
+            exset vs;
+            for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {
+                if(is_a<symbol>(*i) || is_a<Pair>(*i)) vs.insert(*i);
             }
-            ex ret = e.subs(nsubs);
-            if(!normal(e).is_zero()) return false;
-        }
-        
-        auto ret = normal_fermat(e);
-        return ret.is_zero();
+            
+            int n = 13;
+            for(int i=0; i<5; i++) {
+                exmap nsubs;
+                for(auto item : vs) {
+                    nsubs[item] = ex(1)/n_nth_prime(n);
+                    n++;
+                }
+                ex ret = e.subs(nsubs);
+                if(!normal(e).is_zero()) return false;
+            }
+            
+            auto ret = exnormal(e);
+            return ret.is_zero();
+        } catch(...) { }
+        return is_zero(exnormal(e));
     }
     
     ex ToCF(const ex & e) {
@@ -791,16 +794,62 @@ namespace HepLib {
         // (CA (CA-2 CF)) -> 1
 		res = res.subs(lst{	w*CA*(CA-2*CF)==w, w*CA*(-CA+2*CF)==-w });
         res = res.subs(lst{	w1*pow(CA,w2)*pow(CA-2*CF,w2)==w1, w1*pow(CA,w2)*pow(-CA+2*CF,w2)==w*pow(-1,w2) });
+        // (CA^2+c)(CA-2CF) -> CA+c(CA-2CF)
+        res = res.subs(lst{	w0*(CA*CA+w1)*(CA-2*CF)==w0*(CA+w1*(CA-2*CF)), w0*(CA*CA+w1)*(-CA+2*CF)==-w0*(CA+w1*(CA-2*CF)) });
+        res = res.subs(lst{	w0*(CA*CA+w1)*pow(CA-2*CF,w2)==w0*(CA+w1*(CA-2*CF))*pow(CA-2*CF,w2-1), w0*(CA*CA+w1)*pow(-CA+2*CF,w2)==-w0*(CA+w1*(CA-2*CF))*pow(-CA+2*CF,w2-1) });
         return res;
     }
     
-    ex DoColor(const ex & expr, const ex & pref) {
+    ex HomCACF(const ex & e) {
+        ex res = e.subs(lst{NA==(NF*NF-1),CA==NF,CF==(NF*NF-1)/(2*NF),TF==ex(1)/2});
+        res = exfactor(res);
+        if(!is_a<mul>(res)) res = lst{ res };
+        ex c=1, v=1;
+        for(auto item : res) {
+            if(item.has(NF)) c *= item;
+            else v *= item;
+        }
+        c = collect_ex(c, NF);
+        int deg = c.degree(NF);
+        int ldeg = -c.ldegree(NF);
+        if(ldeg>deg) deg = ldeg;
+        if(deg>0) {
+            lst vars;
+            ex eqn = c;
+            for(int i=0; i<=deg; i++) {
+                symbol xi;
+                eqn -= xi * pow(NF,i) * pow((NF*NF-1)/(2*NF), deg-i);
+                vars.append(xi);
+            }
+            eqn = collect_ex(eqn, NF);
+            int nH = eqn.degree(NF);
+            int nL = eqn.ldegree(NF);
+            lst eqns;
+            for(int i=nL; i<=nH; i++) {
+                ex cc = eqn.coeff(NF, i);
+                if(cc.is_zero()) continue;
+                eqns.append(cc==0);
+            }
+            auto sol = lsolve(eqns, vars);
+            if(sol.nops()!=deg+1) {
+                cout << "c=" << c << endl;
+                cout << "sol=" << sol << endl;
+                throw Error("HomCACF: no solution found!");
+            }
+            c = 0;
+            for(int i=0; i<=deg; i++) c += vars.op(i).subs(sol) * pow(CA,i) * pow(CF, deg-i);
+        } 
+        return c * v;
+    }
+    
+    ex DoColor(const ex & expr, const ex & pref, int method) {
         auto cvs = collect_lst(expr, [](const ex &e)->bool{ return Index::hasc(e); });
         ex res = 0;
         for(auto const & cv : cvs) {
             auto cc = cv.op(0);
             auto vv = cv.op(1);
-            vv = ToCACF(form(vv)/pref)*pref;
+            if(method==0) vv = HomCACF(form(vv)/pref)*pref;
+            else vv = ToCACF(form(vv)/pref)*pref;
             res += cc * vv;
         }
         return res;

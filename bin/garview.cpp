@@ -3,12 +3,6 @@
 
 using namespace HepLib;
 
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <stdexcept>
-using namespace std;
-
 int main(int argc, char **argv) {
     auto verb = Verbose;
     if (argc < 2) {
@@ -22,7 +16,7 @@ int main(int argc, char **argv) {
         bool dump_mode = false;
         if(argc>2 && arg == "-d") dump_mode = true;
 
-        std::ifstream f(gar, std::ios_base::binary);
+        std::ifstream f(gar);
         archive ar;
         f >> ar;
         if (dump_mode) {

@@ -268,7 +268,7 @@ namespace HepLib {
         
         bool rm = true;
         if(GiNaC_Parallel_RM.find(key)!=GiNaC_Parallel_RM.end()) rm = GiNaC_Parallel_RM[key]; 
-        string pre = "  ";
+        string pre = PRE;
         if(GiNaC_Parallel_PRE.find(key)!=GiNaC_Parallel_PRE.end()) pre = GiNaC_Parallel_PRE[key]; 
         
         int verb = Verbose;
@@ -281,9 +281,9 @@ namespace HepLib {
             return exvector(std::move(ovec));
         }
         
-        int para_max_run = nproc<0 ? omp_get_num_procs()-1 : nproc;
+        int para_max_run = nproc<0 ? omp_get_num_procs() : nproc;
         if(para_max_run<0) para_max_run = 0;
-        if(para_max_run>omp_get_num_procs()-1) para_max_run = omp_get_num_procs()-1;
+        if(para_max_run>omp_get_num_procs()) para_max_run = omp_get_num_procs();
         
         auto ppid = getpid();
         ostringstream cmd;
@@ -1631,9 +1631,9 @@ namespace HepLib {
     int XIntegral::compare_same_type(const basic &other) const {
         if(!is_a<XIntegral>(other)) throw Error("XIntegral::compare_same_type");
         const XIntegral &o = static_cast<const XIntegral &>(other);
-        auto c = Functions.compare(o.Functions);
+        auto c = Function.compare(o.Function);
         if(c!=0) return c;
-        c = Exponents.compare(o.Exponents);
+        c = Exponent.compare(o.Exponent);
         if(c!=0) return c;
         c = Deltas.compare(o.Deltas);
         if(c!=0) return c;
@@ -1641,43 +1641,43 @@ namespace HepLib {
     }
     
     void XIntegral::print(const print_dflt &c, unsigned level) const {
-        c.s << "[∬" << "(" << Functions << ")^(" << Exponents << ")";
+        c.s << "[∬" << "(" << Function << ")^(" << Exponent << ")";
         if(Deltas.nops()>0) c.s << "*𝜹(" << Deltas << ")";
         c.s << "]";
     }
     
     size_t XIntegral::nops() const { return 3; }
     ex XIntegral::op(size_t i) const {
-        if(i==0) return Functions;
-        else if(i==1) return Exponents;
+        if(i==0) return Function;
+        else if(i==1) return Exponent;
         else if(i==2) return Deltas;
         else throw Error("XIntegral::op, It is required that i<3.");
     }
     ex & XIntegral::let_op(size_t i) {
         ensure_if_modifiable();
-        if(i==0) return Functions;
-        else if(i==1) return Exponents;
+        if(i==0) return Function;
+        else if(i==1) return Exponent;
         else if(i==2) return Deltas;
         else throw Error("XIntegral::let_op, It is required that i<3.");
     }
     
     void XIntegral::archive(archive_node & n) const {
         inherited::archive(n);
-        n.add_ex("Functions", Functions);
-        n.add_ex("Exponents", Exponents);
+        n.add_ex("Function", Function);
+        n.add_ex("Exponent", Exponent);
         n.add_ex("Deltas", Deltas);
     }
     
     void XIntegral::read_archive(const archive_node& n) {
         inherited::read_archive(n);
-        n.find_ex("Functions", Functions);
-        n.find_ex("Exponents", Exponents);
+        n.find_ex("Function", Function);
+        n.find_ex("Exponent", Exponent);
         n.find_ex("Deltas", Deltas);
     }
         
     XIntegral::XIntegral(ex fed)  { 
-        Functions = fed.op(0);
-        Exponents = fed.op(1);
+        Function = fed.op(0);
+        Exponent = fed.op(1);
         if(fed.nops()>2) Deltas = fed.op(2);
     }
     
@@ -1755,8 +1755,8 @@ namespace HepLib {
             ex t0 = rem.coeff(loops.op(i),0);
             u *= (-t2);
             if(t2==0) {
-                Functions = lst{0};
-                Exponents = lst{1};
+                Function = lst{0};
+                Exponent = lst{1};
                 return;
             }
             rem = (t0 - pow(t1,2)/(4*t2)).expand();
@@ -1777,8 +1777,8 @@ namespace HepLib {
             exps.append(-1);
         }
         
-        Functions = funs;
-        Exponents = exps;
+        Function = funs;
+        Exponent = exps;
         Deltas = lst{delta};
     }
     
@@ -2244,6 +2244,10 @@ namespace HepLib {
         auto v = cln::the<cln::cl_I>(ex_to<numeric>(n).to_cl_N());
         return numeric(cln::nextprobprime(v));
     }
+    ex nextprime(int n) {
+        auto v = cln::the<cln::cl_I>(numeric(n).to_cl_N());
+        return numeric(cln::nextprobprime(v));
+    }
     
     ex Rationalize(const ex & e, int dn) {
         
@@ -2289,16 +2293,27 @@ namespace HepLib {
         return cln::default_float_format;
     }
     
-    void get_opt(int & argc, char** & argv, const string & o, map<char,string> & kv) {
-        for (int opt; (opt = getopt(argc, argv, o.c_str())) != -1;) kv[opt] = optarg;
+    void arg2map(int argc, char** argv, const char *optstring, std::map<char,std::string> & kv) {
+        auto o_opterr = opterr;
+        opterr = 0;
+        while(true) {
+            int opt = getopt(argc, argv, optstring);
+            if(opt==-1) break;
+            else if(opt!='?') {
+                if(optarg) kv[opt] = optarg;
+                else kv[opt] = "";
+            }
+        }
         argc -= optind;
         argv += optind;
+        opterr = o_opterr;
     }
     
     bool has_symbol(const ex & e) {
         for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) if(is_a<symbol>(*i)) return true;
         return false;
     }
+
         
 }
 

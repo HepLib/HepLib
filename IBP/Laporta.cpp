@@ -58,9 +58,9 @@ namespace HepLib {
      */
     void Laporta::Export() {
 
-        if(Integrals.nops()<1) return;
+        if(Integral.nops()<1) return;
         
-        int pdim = Propagators.nops();
+        int pdim = Propagator.nops();
         lst InExternal;
         for(auto ii : Internal) InExternal.append(ii);
         for(auto ii : External) InExternal.append(ii);
@@ -75,8 +75,8 @@ namespace HepLib {
         
         if(ISP.nops() > pdim) {
             cout << "ISP = " << ISP << endl;
-            cout << "Propagators = " << Propagators << endl;
-            throw Error("UKIRA::Export: #(ISP) > #(Propagators).");
+            cout << "Propagator = " << Propagator << endl;
+            throw Error("UKIRA::Export: #(ISP) > #(Propagator).");
         }
         
         lst sp2s, s2sp, ss;
@@ -92,9 +92,9 @@ namespace HepLib {
         
         lst leqns;
         for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
-            auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
+            auto eq = Propagator.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
             eq = eq.subs(sp2s);
-            eq = eq.subs(Replacements);
+            eq = eq.subs(Replacement);
             if(eq.has(iWF(w))) throw Error("UKIRA::Export, iWF used in eq.");
             leqns.append(eq == iWF(i));
         }
@@ -119,14 +119,14 @@ namespace HepLib {
             for(int i=0; i<pdim; i++) {
                 auto ns = nsa;
                 ns.let_op(i) = nsa.op(i) + 1;
-                auto dp = Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
+                auto dp = Propagator.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
                 ibp -= (a(i)+Shift[i+1]) * F(ns) * dp;
             }
             
             ibp = ibp * iep;
             ibp = ibp.expand();
             ibp = ibp.subs(sp2s);
-            ibp = ibp.subs(Replacements);
+            ibp = ibp.subs(Replacement);
             ibp = ibp.subs(s2p);
             
             ex res = 0;

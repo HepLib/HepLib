@@ -4,7 +4,7 @@
  */
  
 #include "IBP.h"
-#include "FlintArb.h"
+#include "exFlint.h"
 #include <cmath>
 
 namespace HepLib {
@@ -29,9 +29,9 @@ namespace HepLib {
         archive ar;
         ar.archive_ex(Internal, "Internal");
         ar.archive_ex(External, "External");
-        ar.archive_ex(Replacements, "Replacements");
-        ar.archive_ex(Propagators, "Propagators");
-        ar.archive_ex(Cuts, "Cuts");
+        ar.archive_ex(Replacement, "Replacement");
+        ar.archive_ex(Propagator, "Propagator");
+        ar.archive_ex(Cut, "Cut");
         ar.archive_ex(DSP, "DSP");
         ar.archive_ex(ISP, "ISP");
         ar.archive_ex(SECTOR, "SECTOR");
@@ -47,8 +47,8 @@ namespace HepLib {
         ar.archive_ex(reCut, "reCut"); // bool
         ar.archive_ex(ProblemNumber, "ProblemNumber"); // int
         ar.archive_ex(Symbol(WorkingDir), "WorkingDir"); // string
-        ar.archive_ex(PIntegrals, "PIntegrals");
-        ar.archive_ex(MIntegrals, "MIntegrals");
+        ar.archive_ex(PIntegral, "PIntegral");
+        ar.archive_ex(MIntegral, "MIntegral");
         ar.archive_ex(Rules, "Rules");
         ar.archive_ex(IsAlwaysZero, "IsAlwaysZero"); // bool
         
@@ -61,7 +61,7 @@ namespace HepLib {
         lst shift;
         for(auto kv : Shift) shift.append(lst{kv.first, kv.second});
         
-        return lst{ Internal, External, Replacements, Propagators, Cuts, DSP, ISP, SECTOR, shift, reCut, ProblemNumber, Symbol(WorkingDir), PIntegrals, MIntegrals, Rules, IsAlwaysZero };
+        return lst{ Internal, External, Replacement, Propagator, Cut, DSP, ISP, SECTOR, shift, reCut, ProblemNumber, Symbol(WorkingDir), PIntegral, MIntegral, Rules, IsAlwaysZero };
     }
     
     void IBP::garImport(string garfn) {
@@ -72,9 +72,9 @@ namespace HepLib {
         
         Internal = ex_to<lst>(ar.unarchive_ex("Internal"));
         External = ex_to<lst>(ar.unarchive_ex("External"));
-        Replacements = ex_to<lst>(ar.unarchive_ex("Replacements"));
-        Propagators = ex_to<lst>(ar.unarchive_ex("Propagators"));
-        Cuts = ex_to<lst>(ar.unarchive_ex("Cuts"));
+        Replacement = ex_to<lst>(ar.unarchive_ex("Replacement"));
+        Propagator = ex_to<lst>(ar.unarchive_ex("Propagator"));
+        Cut = ex_to<lst>(ar.unarchive_ex("Cut"));
         DSP = ex_to<lst>(ar.unarchive_ex("DSP"));
         ISP = ex_to<lst>(ar.unarchive_ex("ISP"));
         SECTOR = ex_to<lst>(ar.unarchive_ex("SECTOR"));
@@ -89,8 +89,8 @@ namespace HepLib {
         reCut = !(ar.unarchive_ex("reCut").is_zero()); // bool
         ProblemNumber = ex_to<numeric>(ar.unarchive_ex("ProblemNumber")).to_int(); // int
         WorkingDir = ex_to<Symbol>(ar.unarchive_ex("WorkingDir")).get_name();
-        PIntegrals = ex_to<lst>(ar.unarchive_ex("PIntegrals"));
-        MIntegrals = ex_to<lst>(ar.unarchive_ex("MIntegrals"));
+        PIntegral = ex_to<lst>(ar.unarchive_ex("PIntegral"));
+        MIntegral = ex_to<lst>(ar.unarchive_ex("MIntegral"));
         Rules = ex_to<lst>(ar.unarchive_ex("Rules"));
         IsAlwaysZero = !(ar.unarchive_ex("IsAlwaysZero").is_zero()); // bool
     }
@@ -99,9 +99,9 @@ namespace HepLib {
         int i = 0;
         Internal = ex_to<lst>(s.op(i++));
         External = ex_to<lst>(s.op(i++));
-        Replacements = ex_to<lst>(s.op(i++));
-        Propagators = ex_to<lst>(s.op(i++));
-        Cuts = ex_to<lst>(s.op(i++));
+        Replacement = ex_to<lst>(s.op(i++));
+        Propagator = ex_to<lst>(s.op(i++));
+        Cut = ex_to<lst>(s.op(i++));
         DSP = ex_to<lst>(s.op(i++));
         ISP = ex_to<lst>(s.op(i++));
         if(s.nops()>15) SECTOR = ex_to<lst>(s.op(i++)); // if to work with old version
@@ -109,8 +109,8 @@ namespace HepLib {
         reCut = s.op(i++).is_equal(1);
         ProblemNumber = ex_to<numeric>(s.op(i++)).to_int();
         WorkingDir = ex_to<Symbol>(s.op(i++)).get_name();
-        PIntegrals = ex_to<lst>(s.op(i++));
-        MIntegrals = ex_to<lst>(s.op(i++));
+        PIntegral = ex_to<lst>(s.op(i++));
+        MIntegral = ex_to<lst>(s.op(i++));
         Rules = ex_to<lst>(s.op(i++));
         IsAlwaysZero = s.op(i++).is_equal(1);
         for(auto item : shift) Shift[ex_to<numeric>(item.op(0)).to_int()] = item.op(1);
@@ -124,13 +124,13 @@ namespace HepLib {
                 string si = to_string(i);
                 ar.archive_ex(fs[i]->Internal, (si+"-1").c_str());
                 ar.archive_ex(fs[i]->External, (si+"-2").c_str());
-                ar.archive_ex(fs[i]->Replacements, (si+"-3").c_str());
-                ar.archive_ex(fs[i]->Propagators, (si+"-4").c_str());
+                ar.archive_ex(fs[i]->Replacement, (si+"-3").c_str());
+                ar.archive_ex(fs[i]->Propagator, (si+"-4").c_str());
                 ar.archive_ex(fs[i]->DSP, (si+"-5").c_str());
                 ar.archive_ex(fs[i]->ISP, (si+"-6").c_str());
                 ar.archive_ex(fs[i]->SECTOR,(si+"-7").c_str());
-                ar.archive_ex(fs[i]->PIntegrals, (si+"-8").c_str());
-                ar.archive_ex(fs[i]->MIntegrals, (si+"-9").c_str());
+                ar.archive_ex(fs[i]->PIntegral, (si+"-8").c_str());
+                ar.archive_ex(fs[i]->MIntegral, (si+"-9").c_str());
                 ar.archive_ex(fs[i]->Rules, (si+"-10").c_str());
             }
             ofstream out(garfn);
@@ -154,13 +154,13 @@ namespace HepLib {
                 string si = to_string(i);
                 fs[i]->Internal = ex_to<lst>(dict[si+"-1"]);
                 fs[i]->External = ex_to<lst>(dict[si+"-2"]);
-                fs[i]->Replacements = ex_to<lst>(dict[si+"-3"]);
-                fs[i]->Propagators = ex_to<lst>(dict[si+"-4"]);
+                fs[i]->Replacement = ex_to<lst>(dict[si+"-3"]);
+                fs[i]->Propagator = ex_to<lst>(dict[si+"-4"]);
                 fs[i]->DSP = ex_to<lst>(dict[si+"-5"]);
                 fs[i]->ISP = ex_to<lst>(dict[si+"-6"]);
                 fs[i]->SECTOR = ex_to<lst>(dict[si+"-7"]);
-                fs[i]->PIntegrals = ex_to<lst>(dict[si+"-8"]);
-                fs[i]->MIntegrals = ex_to<lst>(dict[si+"-9"]);
+                fs[i]->PIntegral = ex_to<lst>(dict[si+"-8"]);
+                fs[i]->MIntegral = ex_to<lst>(dict[si+"-9"]);
                 fs[i]->Rules = ex_to<lst>(dict[si+"-10"]);
             }
         }
@@ -176,13 +176,13 @@ namespace HepLib {
                 auto ri = Rules.op(i);
                 Rules.let_op(i) = (ri.op(0) == ri.op(1).subs(rs_mis.first, nopat));
             }
-            for(auto mi : MIntegrals) {
+            for(auto mi : MIntegral) {
                 auto mi2 = mi.subs(rs_mis.first, nopat);
                 if(mi==mi2) continue;
                 Rules.append(mi==mi2);
             }
-            MIntegrals = rs_mis.second;
-            sort_lst(MIntegrals);
+            MIntegral = rs_mis.second;
+            sort_lst(MIntegral);
         }
         return rs_mis;
     }
@@ -309,7 +309,7 @@ namespace HepLib {
      */
     lst LoopUF(const IBP & ibp, const ex & idx) {
         
-        auto props = ibp.Propagators;
+        auto props = ibp.Propagator;
         
         // handle sign
         ex sign = 1;
@@ -372,7 +372,7 @@ namespace HepLib {
         if(!using_cache || cache.find(key)==cache.end()) { // no cache item
             ut = 1;
             ft = expand_ex(ft);
-            ft = subs(ft, ibp.Replacements);
+            ft = subs(ft, ibp.Replacement);
             for(int i=0; i<ibp.Internal.nops(); i++) {
                 auto t2 = ft.coeff(ibp.Internal.op(i),2);
                 auto t1 = ft.coeff(ibp.Internal.op(i),1);
@@ -381,11 +381,11 @@ namespace HepLib {
                 if(is_zero(t2)) return lst{0,0,1};
                 ft = normal_flint(t0-t1*t1/(4*t2));
                 //ft = expand_ex(ft);
-                ft = subs(ft, ibp.Replacements);
+                ft = subs(ft, ibp.Replacement);
             }
             ft = normal_flint(ut*ft);
-            ft = normal_flint(subs(ft, ibp.Replacements));
-            ut = normal_flint(subs(ut, ibp.Replacements));
+            ft = normal_flint(subs(ft, ibp.Replacement));
+            ut = normal_flint(subs(ut, ibp.Replacement));
             uf = normal_flint(ut+ft); // ut*ft, replay with ut+ft
             
             if(using_cache) cache[key] = lst{ut,ft,uf};
@@ -557,7 +557,7 @@ namespace HepLib {
     }
     
     /**
-     * @brief Find Rules for Integrals or Master Integrals
+     * @brief Find Rules for Integral or Master Integral
      * @param fs vector of IBP pointer object
      * @param mi true for Master Integals
      * @param uf the function to compute the UF polynomial
@@ -565,8 +565,8 @@ namespace HepLib {
      */
     pair<exmap,lst> FindRules(vector<IBP*> fs, bool mi, std::function<lst(const IBP &, const ex &)> uf) {
         vector<pair<IBP*,ex>> ibp_idx_vec;
-        if(mi) for(auto fi : fs) for(auto item : fi->MIntegrals) ibp_idx_vec.push_back(make_pair(fi, item));
-        else for(auto fi : fs) for(auto item : fi->Integrals) ibp_idx_vec.push_back(make_pair(fi, F(fi->ProblemNumber,item)));
+        if(mi) for(auto fi : fs) for(auto item : fi->MIntegral) ibp_idx_vec.push_back(make_pair(fi, item));
+        else for(auto fi : fs) for(auto item : fi->Integral) ibp_idx_vec.push_back(make_pair(fi, F(fi->ProblemNumber,item)));
         
         exvector uf_smi_vec = GiNaC_Parallel(ibp_idx_vec.size(), [&ibp_idx_vec,&uf](int idx)->ex {
             auto p = ibp_idx_vec[idx];
@@ -576,7 +576,7 @@ namespace HepLib {
             int nk = ks.nops()-1;
             lst key;
             for(int i=0; i<nk; i++) key.append(expand(ks.op(i)));
-            lst pi = fi.Propagators; 
+            lst pi = fi.Propagator;
             return lst{ key, lst{ pi, ks.op(nk), mi } };  // ks.op(nk) -> the sign
         }, "FR");
             
@@ -643,7 +643,7 @@ namespace HepLib {
             }
         }
         
-        if(Verbose>2) cout << "  \\--FindRules: " << WHITE << ntotal << " :> " << int_lst.nops() << RESET << " @ " << now(false) << endl;
+        if(!In_GiNaC_Parallel && Verbose>2) cout << PRE << "\\--FindRules: " << WHITE << ntotal << " :> " << int_lst.nops() << RESET << " @ " << now(false) << endl;
         return make_pair(rules,int_lst);
     }
     
@@ -740,7 +740,7 @@ namespace HepLib {
     }
     
     bool IBP::IsZero(ex sector) {
-        auto props = Propagators;
+        auto props = Propagator;
         lst xs;
         int nxi=0;
         int nps = props.nops();
@@ -754,7 +754,7 @@ namespace HepLib {
         
         ex ut = 1;
         ft = normal_flint(ft);
-        ft = subs(ft, Replacements);
+        ft = subs(ft, Replacement);
         for(int i=0; i<Internal.nops(); i++) {
             auto t2 = ft.coeff(Internal.op(i),2);
             auto t1 = ft.coeff(Internal.op(i),1);
@@ -763,11 +763,11 @@ namespace HepLib {
             if(is_zero(t2)) return true;
             ft = normal_flint(t0-t1*t1/(4*t2));
             //ft = expand(ft);
-            ft = subs(ft, Replacements);
+            ft = subs(ft, Replacement);
         }
-        ut = normal_flint(subs(ut, Replacements));
+        ut = normal_flint(subs(ut, Replacement));
         ft = normal_flint(ut*ft);
-        ft = normal_flint(subs(ft, Replacements));
+        ft = normal_flint(subs(ft, Replacement));
     
         ex G = ut + ft;
         ex sum = 0;
@@ -817,11 +817,11 @@ namespace HepLib {
             ISP.unique();
         }
         
-        int pdim = Propagators.nops();
+        int pdim = Propagator.nops();
         if(ISP.nops() > pdim) {
             cout << "ISP = " << ISP << endl;
-            cout << "Propagators = " << Propagators << endl;
-            throw Error("IBP::SP2Pn: #(ISP) > #(Propagators).");
+            cout << "Propagator = " << Propagator << endl;
+            throw Error("IBP::SP2Pn: #(ISP) > #(Propagator).");
         }
         
         lst sp2s, s2sp, ss;
@@ -837,9 +837,9 @@ namespace HepLib {
         
         lst eqns;
         for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
-            auto eq = expand(Propagators.op(i)).subs(iEpsilon==0); // drop iEpsilon
+            auto eq = expand(Propagator.op(i)).subs(iEpsilon==0); // drop iEpsilon
             eq = eq.subs(sp2s);
-            eq = eq.subs(Replacements);
+            eq = eq.subs(Replacement);
             if(eq.has(iWF(w))) throw Error("IBP::SP2Pn, iWF used in eq.");
             eqns.append(eq == iWF(i));
         }
@@ -873,10 +873,10 @@ namespace HepLib {
         for(auto ii : External) InExternal.append(ii);
         auto & es = External;
         int eN = es.nops();
-        int pN = Propagators.nops();
+        int pN = Propagator.nops();
         matrix G(eN, eN);
-        for(int r=0; r<eN; r++) for(int c=0; c<eN; c++) G(r,c) = (es.op(r)*es.op(c)).subs(Replacements);
-        matrix Gi = G.inverse();
+        for(int r=0; r<eN; r++) for(int c=0; c<eN; c++) G(r,c) = (es.op(r)*es.op(c)).subs(Replacement);
+        matrix Gi = G.inverse(solve_algo::gauss);
         // partial J/partial pi^2
         exmap spmap;
         auto sp2pn = SP2Pn();
@@ -890,9 +890,9 @@ namespace HepLib {
             for(int pi=0; pi<pN; pi++) {
                 lst ns2 = ns;
                 ns2.let_op(pi) = ns.op(pi)+1;
-                ex dpi = -ns.op(pi)*diff_ex(Propagators.op(pi), p1);
+                ex dpi = -ns.op(pi)*diff_ex(Propagator.op(pi), p1);
                 for(int i=0; i<eN; i++) {
-                    ex idpi = expand_ex(dpi*es.op(i)).subs(Replacements);
+                    ex idpi = expand_ex(dpi*es.op(i)).subs(Replacement);
                     auto cvs = collect_lst(idpi, InExternal);
                     for(auto cv : cvs) {
                         if(is_zero(cv.op(1)-1)) res += cv.op(0)*pf*Gi(i,p2i)*F(ProblemNumber, ns2);
@@ -920,15 +920,15 @@ namespace HepLib {
         lst InExternal;
         for(auto ii : Internal) InExternal.append(ii);
         for(auto ii : External) InExternal.append(ii);
-        int pN = Propagators.nops();
+        int pN = Propagator.nops();
         auto sp2pn = SP2Pn();
         
         ex res = 0;
         for(int pi=0; pi<pN; pi++) { // Direct Diff for each Propagator
             lst ns2 = ns;
             ns2.let_op(pi) = ns.op(pi)+1;
-            ex Pi = Propagators.op(pi);
-            Pi = Pi.subs(Replacements);
+            ex Pi = Propagator.op(pi);
+            Pi = Pi.subs(Replacement);
             ex dpi = -ns.op(pi)*diff_ex(Pi, x);
             auto cvs = collect_lst(dpi, InExternal);
             for(auto cv : cvs) {
@@ -956,8 +956,8 @@ namespace HepLib {
             ex sp = External.op(i) * External.op(j);
             auto f = dsp.find(sp);
             if(f==dsp.end()) throw Error("DESS::InitDE, sp NOT found.");
-            auto rsp = sp.subs(Replacements);
-            if(sp==rsp) throw Error("DESS::InitDE, sp==rsp, Replacements NOT work.");
+            auto rsp = sp.subs(Replacement);
+            if(sp==rsp) throw Error("DESS::InitDE, sp==rsp, Replacement NOT work.");
             res += f->second * diff_ex(rsp, x);
         }}
 
@@ -974,9 +974,16 @@ namespace HepLib {
         file_remove(WorkingDir+"/"+spn+".tables");
     }
     
+    void IBP::rm(const string & pat) {
+        string spn = to_string(ProblemNumber);
+        string fn = WorkingDir+"/"+spn+pat;
+        if(file_exists(fn)) file_remove(fn);
+    }
+
+    
     ex GPolynomial(const IBP & ibp) {
         
-        auto props = ibp.Propagators;
+        auto props = ibp.Propagator;
         ex ut, ft, uf;
         lst key;
         lst xs;
@@ -992,7 +999,7 @@ namespace HepLib {
         
         ut = 1;
         ft = expand_ex(ft);
-        ft = subs(ft, ibp.Replacements);
+        ft = subs(ft, ibp.Replacement);
         for(int i=0; i<ibp.Internal.nops(); i++) {
             auto t2 = ft.coeff(ibp.Internal.op(i),2);
             auto t1 = ft.coeff(ibp.Internal.op(i),1);
@@ -1001,11 +1008,11 @@ namespace HepLib {
             if(is_zero(t2)) return lst{0,0,1};
             ft = exnormal(t0-t1*t1/(4*t2));
             ft = expand_ex(ft);
-            ft = subs(ft, ibp.Replacements);
+            ft = subs(ft, ibp.Replacement);
         }
         ft = exnormal(ut*ft);
-        ft = exnormal(subs(ft, ibp.Replacements));
-        ut = exnormal(subs(ut, ibp.Replacements));
+        ft = exnormal(subs(ft, ibp.Replacement));
+        ut = exnormal(subs(ut, ibp.Replacement));
         uf = exnormal(ut+ft); // ut*ft, replay with ut+ft
             
         uf = uf.subs(MapPreSP);

@@ -222,7 +222,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                 st[v.name.get_name()] = v;
                 for(auto vvx : vec_lst) {
                     auto vv = ex_to<Vector>(vvx);
-                    st[v.name.get_name()+"_"+vv.name.get_name()] = SP(v,vv).subs(SP_map);
+                    st[v.name.get_name()+"__"+vv.name.get_name()] = SP(v,vv).subs(SP_map);
                 }
             }
             ff << ";" << endl;
@@ -356,6 +356,13 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                 ff << idstr << ".sort" << endl;
                 ff << endl;
                 for(int gl=1; gl<=tr.glmax; gl++) {
+                    if(form_using_gamma5) {
+                        ff << ".sort" << endl;
+                        if(form_using_dim4) ff << "Dimension 4;" << endl;
+                        else ff << "Dimension d;" << endl;
+                        ff << "Indices g5j1, g5j2, g5j3, g5j4;" << endl;
+                        ff << "id g_(" << gl << ",5_) = e_(g5j1,g5j2,g5j3,g5j4)*g_(" << gl << ",g5j1,g5j2,g5j3,g5j4)/24;" << endl;
+                    }
                     if(form_using_dim4) ff << "trace4 " << gl << ";" << endl;
                     else ff << "tracen " << gl << ";" << endl;
                     ff << ".sort" << endl;
@@ -374,6 +381,13 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                 item = item.subs(tr2v); 
                 for(int i=0; i<trvec.size(); i++) {
                     ff << "L [tr" << i << "]=" << trvec[i] << ";" << endl;
+                    if(form_using_gamma5) {
+                        ff << ".sort" << endl;
+                        if(form_using_dim4) ff << "Dimension 4;" << endl;
+                        else ff << "Dimension d;" << endl;
+                        ff << "Indices g5j1, g5j2, g5j3, g5j4;" << endl;
+                        ff << "id g_(" << gid << ",5_) = e_(g5j1,g5j2,g5j3,g5j4)*g_(" << gid << ",g5j1,g5j2,g5j3,g5j4)/24;" << endl;
+                    }
                     if(form_using_dim4) ff << "trace4 " << gid << ";" << endl;
                     else ff << "tracen " << gid << ";" << endl;
                     ff << ".sort" << endl;
@@ -414,6 +428,13 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
 
                 for(int i=0; i<trvec.size(); i++) {
                     ff << "L [tr" << i << "]=" << trvec[i] << ";" << endl;
+                    if(form_using_gamma5) {
+                        ff << ".sort" << endl;
+                        if(form_using_dim4) ff << "Dimension 4;" << endl;
+                        else ff << "Dimension d;" << endl;
+                        ff << "Indices g5j1, g5j2, g5j3, g5j4;" << endl;
+                        ff << "id g_(" << gid << ",5_) = e_(g5j1,g5j2,g5j3,g5j4)*g_(" << gid << ",g5j1,g5j2,g5j3,g5j4)/24;" << endl;
+                    }
                     if(form_using_dim4) ff << "trace4 " << gid << ";" << endl;
                     else ff << "tracen " << gid << ";" << endl;
                     ff << ".sort" << endl;
@@ -434,7 +455,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             
             if(verb==1) {
                 cout << "\r                                     \r";
-                cout << "  \\--Form Script @ " << c << " / " << total << flush;
+                cout << PRE << "\\--Form Script @ " << c << " / " << total << flush;
             } else if(verb>1) {
                 cout << "--------------------------------------" << endl;
                 cout << "Form Script @ " << c << " / " << total << endl;
@@ -467,7 +488,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         }
         if(verb==1) cout << endl;
         ostr += "}";
-        
+                
         string_replace_all(ostr, "[", "(");
         string_replace_all(ostr, "]", ")");
         string_replace_all(ostr, "\\\n", "");
@@ -475,10 +496,10 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         for(auto v : vec_lst) {
             string pat(ex_to<Vector>(v).name.get_name());
             string from = pat+"(";
-            string to = "SP("+pat+",";
+            string to = "d_("+pat+",";
             string_replace_all(ostr, from, to);
             from = pat+".";
-            to = pat+"_";
+            to = pat+"__";
             string_replace_all(ostr, from, to);
         }
         

@@ -12,7 +12,7 @@ namespace HepLib {
     pair<matrix,jcf_t> jordan(const matrix &m) { return ED::jordan(m); }
     pair<matrix,jcf_t> jordan(const matrix &m, ev_am_t & ev2am) { return ED::jordan(m,ev2am); }
     matrix proj_mat(const pair<matrix,matrix> & a01) { return ED::proj_mat(a01.first,a01.second); }
-    matrix normal(const matrix & mat) { return ED::normal(mat); }
+    matrix normal(const matrix & mat) { return ED::exnormal(mat); }
     matrix exnormal(const matrix & mat) { 
         auto m = mat;
         GiNaC_Parallel_Verb["NM"] = 0;
@@ -23,13 +23,26 @@ namespace HepLib {
         return m;
     }
     
-    int prank(const matrix & mat, const symbol &x) { // each item has been normalized -> N/D
+    int prank(const matrix & mat, const symbol &x, bool para) { // each item has been normalized -> N/D
         if(mat.is_zero_matrix()) return -100000;
         int pr = -100000;
-        for(int i=0; i<mat.nops(); i++) {
-            auto nd = mat.op(i).numer_denom();
-            auto p = nd.op(1).ldegree(x)-nd.op(0).ldegree(x)-1;
-            if(pr<p) pr = p;
+        if(para) {
+            GiNaC_Parallel_Verb["PR"] = 0;
+            auto res = GiNaC_Parallel(mat.nops(), [&mat,&x](int idx) {
+                auto nd = exnormal(mat.op(idx)).numer_denom();
+                auto p = nd.op(1).ldegree(x)-nd.op(0).ldegree(x)-1;
+                return p;
+            }, "PR");
+            for(unsigned i=0; i<mat.nops(); i++) {
+                int p = ex2int(res[i]);
+                if(pr<p) pr = p;
+            }
+        } else {
+            for(int i=0; i<mat.nops(); i++) {
+                auto nd = exnormal(mat.op(i)).numer_denom();
+                auto p = nd.op(1).ldegree(x)-nd.op(0).ldegree(x)-1;
+                if(pr<p) pr = p;
+            }
         }
         return pr;
     }
@@ -111,7 +124,7 @@ namespace HepLib {
 
     // Dx J = M.J ---> J = T.J' & Dx J' = M'.J' with M' = Ti.M.T - Ti.Dx T
     matrix transform(const matrix &m, const matrix &t, const symbol &x) {
-        return t.inverse().mul(m.mul(t).sub(matrix_diff(t,x)));
+        return t.inverse(solve_algo::gauss).mul(m.mul(t).sub(matrix_diff(t,x)));
     }
     
     matrix x2y(const matrix & mat, const ex & y, const symbol & x) {
@@ -150,7 +163,7 @@ namespace HepLib {
         }
         matrix pmat(n,n);
         for(int r=0; r<n; r++) pmat(vs[r],r) = 1;
-        Mat = pmat.inverse().mul(m).mul(pmat);
+        Mat = pmat.inverse(solve_algo::gauss).mul(m).mul(pmat);
         Mat = exnormal(Mat); // make sure M is normalized
         Ts.push_back(pmat);
         N = n;
@@ -302,7 +315,7 @@ namespace HepLib {
         for(int bi=0; bi<nbs; bi++) { // diagonal blocks
             if(!In_GiNaC_Parallel && Verbose>5) {
                 cout << "\r                                                    \r" << flush;
-                cout << "  \\--reducing diagonal blocks: " << nbs << "|" << bi+1 << flush;
+                cout << PRE << "\\--reducing diagonal blocks: " << nbs << "|" << bi+1 << flush;
             }
             auto n0 = bs[bi].first;
             auto n = bs[bi].second;
@@ -357,7 +370,7 @@ namespace HepLib {
                 auto nr=bs[br].second, nc=bs[bc].second;
                 if(!In_GiNaC_Parallel && Verbose>5) {
                     cout << "\r                                                    \r" << flush;
-                    cout << "  \\--reducing off-diagonal blocks: " << nbs << "|" << br+1 << flush;
+                    cout << PRE << "\\--reducing off-diagonal blocks: " << nbs << "|" << br+1 << flush;
                     cout << " " << br << "|" << (br-bc) << flush; 
                 } 
                 matrix mrc = ex_to<matrix>(sub_matrix(Mat, bs[br].first, nr, bs[bc].first, nc));
@@ -416,7 +429,7 @@ namespace HepLib {
             }
             cur_pos += kv.second;
         }
-        m = qj.first.mul(m).mul(qj.first.inverse());
+        m = qj.first.mul(m).mul(qj.first.inverse(solve_algo::gauss));
         m = exnormal(m);
         
         // initialize UK[a][b][la] & U0[a][b][la][k]
@@ -533,7 +546,7 @@ namespace HepLib {
                         
                             if(!In_GiNaC_Parallel && Verbose>5) {
                                 cout << "\r                                                              \r" << flush;
-                                cout << "  \\--series: r" << nbs << "|" << br+1;
+                                cout << PRE << "\\--series: r" << nbs << "|" << br+1;
                                 cout << " c" << br << "|" << (br-bc);
                                 cout << " [" << nr << "\u2A09" << nc << "]";
                                 cout << " \u03BB" << nla << "|" << cla;
@@ -562,7 +575,7 @@ namespace HepLib {
                             
                             matrix invA = ex_to<matrix>(unit_matrix(nr));
                             invA = invA.mul_scalar(la+n).sub(A0aa);
-                            invA = invA.inverse();
+                            invA = invA.inverse(solve_algo::gauss);
                             U[a][b][la][k][n] = invA.mul(smat);
                         }
                     }
@@ -667,7 +680,7 @@ namespace HepLib {
                     
                         if(!In_GiNaC_Parallel && Verbose>5) {
                             cout << "\r                                                              \r" << flush;
-                            cout << "  \\--series: b" << nbs << "|" << br+1;
+                            cout << PRE << "\\--series: b" << nbs << "|" << br+1;
                             cout << " [" << nr << "\u2A09" << nc << "]";
                             cout << " \u03BB" << nla << "|" << cla;
                             cout << " k" << kmax << "|" << (kmax-k);
@@ -695,7 +708,7 @@ namespace HepLib {
                         
                         matrix invA = ex_to<matrix>(unit_matrix(nr));
                         invA = invA.mul_scalar(la+n).sub(A0aa);
-                        invA = invA.inverse();
+                        invA = invA.inverse(solve_algo::gauss);
                         I[a][la][k][n] = invA.mul(smat);
                     }
                 }

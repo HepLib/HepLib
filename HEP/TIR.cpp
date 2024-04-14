@@ -72,7 +72,10 @@ namespace HepLib {
                 auto ret = self(e.op(0));
                 auto cvs = collect_lst(ret, loop_ps);
                 ret = 0;
-                for(auto const & cv : cvs) ret += TR(cv.op(0)) * cv.op(1);
+                for(auto const & cv : cvs) {
+                    if(DGamma::has(cv.op(1))) throw Error("UnContract: Not working for TIR.");
+                    ret += TR(cv.op(0)) * cv.op(1);
+                }
                 return ret;
             } else if(is_a<add>(e)) {
                 int lpj = lproj;
@@ -284,7 +287,11 @@ namespace HepLib {
 
                 res = 0;
                 for(int i=0; i<n; i++) {
-                    if(is_zero(mat2.op(i).op(i)) && !is_zero(mat2.op(i).op(n))) throw Error("Zero Determinant in TIR.");
+                    if(is_zero(mat2.op(i).op(i)) && !is_zero(mat2.op(i).op(n))) {
+                        cout << cv << endl;
+                        cout << mat << " :> " << mat2 << endl;
+                        throw Error("No Solution in TIR.");
+                    }
                     res += bis.op(i) * mat2.op(i).op(n);
                 }
                 res = res.subs(SP_map);

@@ -367,7 +367,7 @@ namespace HepLib::SD {
 
             bool need_contour_deformation = ft.has(PL(w));
             if(ft.has(y(w)) && !need_contour_deformation) {
-                auto tmp = ft.subs(nReplacements).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map).expand();
+                auto tmp = ft.subs(nReplacement).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map).expand();
                 if(is_a<add>(tmp)) {
                     need_contour_deformation = false;
                     auto first = tmp.op(0).subs(y(w)==1);
@@ -386,7 +386,7 @@ namespace HepLib::SD {
             }
 
             if(disable_Contour || !need_contour_deformation) {
-                auto tmp = NN(ft.subs(y(w)==1).subs(nReplacements).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map),30);
+                auto tmp = NN(ft.subs(y(w)==1).subs(nReplacement).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map),30);
                 
                 if(!is_a<numeric>(tmp)) throw Error("DS: NOT a numeric with " + ex2str(tmp));
                 if(tmp<0) {
@@ -458,7 +458,7 @@ namespace HepLib::SD {
                         if(is_a<numeric>(nexp) && ex_to<numeric>(nexp).is_integer()) {
                             ct *= item;
                         } else if(!item.has(PL(w)) && !item.has(WRA(w))) {
-                            auto tr = NN(item.subs(nReplacements).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map),30);
+                            auto tr = NN(item.subs(nReplacement).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map),30);
                             if(!is_a<numeric>(tr)) {
                                 throw Error("DS: not numeric - item: " + ex2str(tr) + " ; " + ex2str(item));
                             }
@@ -609,12 +609,12 @@ namespace HepLib::SD {
                         } else if((tmp-vs).is_zero() || tmp.match(pow(vs,w))) {
                             const_term *=  pow(tmp,ntmp);
                         } else if(!tmp.has(PL(w)) && !tmp.has(vs) && !tmp.has(WRA(w))) {
-                            auto tr = NN(tmp.subs(nReplacements).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map),30);
+                            auto tr = NN(tmp.subs(nReplacement).subs(lst{ CV(w1,w2)==w2 }).subs(eps_map),30);
                             if(!is_a<numeric>(tr) || !tr.info(info_flags::real)) {
                                 cerr << "tmp: " << tmp << endl;
                                 cerr << "tr: " << tr << endl;
-                                cerr << "nReplacements: " << nReplacements << endl;
-                                throw Error("Normalize: tr is NOT numeric with nReplacements.");
+                                cerr << "nReplacement: " << nReplacement << endl;
+                                throw Error("Normalize: tr is NOT numeric with nReplacement.");
                             }
                             
                             if(tr>0) {
@@ -843,7 +843,7 @@ namespace HepLib::SD {
     // also refers to Feng/Thinking.pdf
     void SecDec::Scalelesses() {
         if(IsZero) return;
-        if(Verbose > 2) cout << "  \\--Scaleless: " << FunExp.size() << " :> " << flush;
+        if(Verbose > 2) cout << PRE << "\\--Scaleless: " << FunExp.size() << " :> " << flush;
         
         auto verb = Verbose; Verbose = 0;
         auto sl_res =
@@ -995,7 +995,7 @@ namespace HepLib::SD {
     }
 
     void SecDec::XEnd() {
-        if(Verbose > 2) cout << "  \\--BiSection: " << FunExp.size() << " :> " << flush;
+        if(Verbose > 2) cout << PRE << "\\--BiSection: " << FunExp.size() << " :> " << flush;
         auto verb = Verbose; Verbose=0;
         GiNaC_Parallel_RM["BiSec"] = !Debug;
         auto funexps =
@@ -1131,7 +1131,6 @@ namespace HepLib::SD {
             }
             return para_res_lst;
         }, "SD");
-cout << endl << sd_res << endl; // TODO: remove
     
         ex min_expn = 1, min_expn2 = 10;
         exvector ibp_in_vec;
@@ -1164,7 +1163,7 @@ cout << endl << sd_res << endl; // TODO: remove
             }
         }
 
-        if(Verbose > 1) cout << "  \\--" << Color_HighLight << "Maximum x^-n: All(" << ex(0)-min_expn << "+1X), Max(" << (ex(0)-min_expn2) << "+1)" << RESET << endl;
+        if(Verbose > 1) cout << PRE << "\\--" << Color_HighLight << "Maximum x^-n: All(" << ex(0)-min_expn << "+1X), Max(" << (ex(0)-min_expn2) << "+1)" << RESET << endl;
 
         int pn = 0;
         exvector ibp_res_vec;
@@ -1343,8 +1342,7 @@ cout << endl << sd_res << endl; // TODO: remove
                 lst exprs2;
                 for(auto it : exprs) {
                     ex rem = pow(xn.op(0), xn.op(1)) * it;
-                        if(ex_to<numeric>(expn)<0) { // TODO: remove
-//                    if(ex_to<numeric>(expn)<=-1) {
+                    if(ex_to<numeric>(expn)<=-1) {
                         ex dit = it;
                         ex dit0 = dit.subs(xn.op(0)==0);
                         ex ifact = 1;
@@ -1434,7 +1432,7 @@ cout << endl << sd_res << endl; // TODO: remove
         
         if(Verbose > 1) cout << Color_HighLight << "  EpsExpands @ " << now() << RESET << endl;
         
-        if(Verbose > 1) cout << "  \\--Collecting: " << Integrands.size() << " :> " << flush;
+        if(Verbose > 1) cout << PRE << "\\--Collecting: " << Integrands.size() << " :> " << flush;
         exmap int_map;
         for(auto &item : Integrands) {
             if(item.is_zero()) continue;
@@ -1527,7 +1525,7 @@ cout << endl << sd_res << endl; // TODO: remove
 
         }, "EpsEx");
         
-        if(Verbose > 1) cout << "  \\--Collecting: ";
+        if(Verbose > 1) cout << PRE << "\\--Collecting: ";
         map<ex, ex, ex_is_less> int_pref;
         size_t ncollect = 0;
         ex expr_nox = 0;

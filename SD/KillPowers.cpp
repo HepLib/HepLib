@@ -72,7 +72,7 @@ namespace HepLib::SD {
             
             // handle eqn==ci xi - cj xj
             if((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0) {
-                if(Verbose>10) cout << "  \\--" << Color_HighLight << "KillPowerD ["<<kpi<<"]: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << PRE << "\\--" << Color_HighLight << "KillPowerD ["<<kpi<<"]: "  << eqn << RESET << endl;
                 ci = abs(ci);
                 cj = abs(cj);
                 symbol yi,yj;
@@ -180,7 +180,7 @@ namespace HepLib::SD {
                                 
                                 if(item.match(pow(w1,w2)) && Verbose>0) {
                                 if(eqn.degree(xi)>1 || eqn.degree(xj)>1 || eqn.coeff(xi).has(xj)) {
-                                    cout << WarnColor << "  \\--Warning: Not handled with eqn1=" << eqn << RESET << endl;
+                                    cout << WarnColor << PRE << "\\--Warning: Not handled with eqn1=" << eqn << RESET << endl;
                                     continue;
                                 }}
 
@@ -215,7 +215,7 @@ namespace HepLib::SD {
             
             // handle eqn==ci xi - cj xj
             if((ci*xi+cj*xj-eqn).is_zero() && is_a<numeric>(ci * cj) && (ci*cj)<0) {
-                if(Verbose>10) cout << "  \\--" << Color_HighLight << "KillPower ["<<kpi<<"]: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << PRE << "\\--" << Color_HighLight << "KillPower ["<<kpi<<"]: "  << eqn << RESET << endl;
                 ci = abs(ci);
                 cj = abs(cj);
                 if(is_zero(ci-cj)) {
@@ -288,7 +288,7 @@ namespace HepLib::SD {
                     FunExp.push_back(lst{f3,e3});
                 }
             } else if( (eqn-(xi+xj-1)).is_zero() || (eqn+(xi+xj-1)).is_zero() ) {
-                if(Verbose>10) cout << "  \\--" << Color_HighLight << "KillPower ["<<kpi<<"]: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << PRE << "\\--" << Color_HighLight << "KillPower ["<<kpi<<"]: "  << eqn << RESET << endl;
                 symbol xx, yy, zz;
                 // Part I: xi+xj-1>0
                 auto f1 = ex_to<lst>(fe.op(0));
@@ -317,7 +317,7 @@ namespace HepLib::SD {
                 let_op_append(fe, 0, iWF(1));
                 let_op_append(fe, 1, 0);
                 FunExp.push_back(fe);
-                if(Verbose>0) cout << WarnColor << "  \\--Warning: Not handled with eqn2=" << eqn << RESET << endl;
+                if(Verbose>0) cout << WarnColor << PRE << "\\--Warning: Not handled with eqn2=" << eqn << RESET << endl;
             }
             return true;
         }
@@ -362,7 +362,7 @@ namespace HepLib::SD {
                             if(ook) continue;
                             
                             if(Verbose>0 && eqn.degree(xi)>1) {
-                                cout << WarnColor << "  \\--Warning: Not handled with eqn3=" << eqn << RESET << endl;
+                                cout << WarnColor << PRE << "\\--Warning: Not handled with eqn3=" << eqn << RESET << endl;
                                 continue;
                             }
                             
@@ -385,7 +385,7 @@ namespace HepLib::SD {
             ex c0 = eqn.subs(lst{xi==0});
             // handle eqn==ci xi - c0
             if((ci*xi+c0-eqn).is_zero() && is_a<numeric>(ci*c0) && (ci*c0)<0 && abs(c0)<abs(ci)) {
-                if(Verbose>10) cout << "  \\--" << Color_HighLight << "KillPower ["<<kpi<<"]: "  << eqn << RESET << endl;
+                if(Verbose>10) cout << PRE << "\\--" << Color_HighLight << "KillPower ["<<kpi<<"]: "  << eqn << RESET << endl;
                 ci = abs(ci);
                 c0 = abs(c0);
                 ex cc = c0/ci;
@@ -413,7 +413,7 @@ namespace HepLib::SD {
                 }
                 FunExp.push_back(lst{f2,e2});
             } else {
-                if(Verbose>0) cout << WarnColor << "  \\--Warning: Not handled with eqn4=" << eqn << RESET << endl;
+                if(Verbose>0) cout << WarnColor << PRE << "\\--Warning: Not handled with eqn4=" << eqn << RESET << endl;
                 FunExp.push_back(fe);
             }
             return true;

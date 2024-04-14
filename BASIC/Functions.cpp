@@ -140,7 +140,7 @@ namespace HepLib {
             }
         }
         if(redo) ret = ret.subs(repl,subs_options::no_pattern);
-        ReShare(ret);
+        //ReShare(ret);
         return ret;
     }
     ex Parser::ReadFile(string filename, bool s2S) {
@@ -248,7 +248,7 @@ namespace HepLib {
                 nextInd = cSlots;
             }
 
-            ~Generator() { delete a; }
+            ~Generator() { delete [] a; }
 
             bool doNext() {
                 for (;;) {

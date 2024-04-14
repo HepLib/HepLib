@@ -36,7 +36,6 @@ namespace HepLib::SD {
     exvector get_y_from(ex pol);
     exvector get_z_from(ex pol);
     exvector get_pl_from(ex pol);
-    int epRank(ex);
     int epsRank(ex,ex);
     int vsRank(ex);
     int x_free_index(ex expr);
@@ -67,11 +66,11 @@ namespace HepLib::SD {
     struct FeynmanParameter {
         lst LoopMomenta;
         lst tLoopMomenta;
-        lst Propagators;
-        lst Exponents;
-        exmap lReplacements;
-        exmap tReplacements;
-        exmap nReplacements;
+        lst Propagator;
+        lst Exponent;
+        exmap lReplacement;
+        exmap tReplacement;
+        exmap nReplacement;
         ex Prefactor = 1;
         bool isQuasi = false;
         bool isAsy = false;
@@ -81,9 +80,9 @@ namespace HepLib::SD {
      * @brief wrap parameters for generic parameter integrals
      */
     struct XIntegrand {
-        lst Functions;
-        lst Exponents;
-        exmap nReplacements;
+        lst Function;
+        lst Exponent;
+        exmap nReplacement;
         lst Deltas;
         bool isAsy = false;
     };
@@ -93,6 +92,7 @@ namespace HepLib::SD {
      */
     class SecDecBase {
     public:
+        virtual ~SecDecBase() { }
         virtual vector<exmap> x2y(const ex &xpol) =0;
         vector<exmap> x2y(const lst &xpols);
         bool use_XMonomials;
@@ -130,6 +130,8 @@ namespace HepLib::SD {
      */
     class IntegratorBase {
     public:
+        virtual ~IntegratorBase() { }
+        
         typedef int (*SDD_Type) (const unsigned int xn, const dREAL x[], const unsigned int yn, dREAL y[], const dREAL pl[], const dREAL las[]);
         typedef int (*SDQ_Type) (const unsigned int xn, const qREAL x[], const unsigned int yn, qREAL y[], const qREAL pl[], const qREAL las[]);
         typedef int (*SDMP_Type) (const unsigned int xn, const mpREAL x[], const unsigned int yn, mpREAL y[], const mpREAL pl[], const mpREAL las[]);
@@ -181,8 +183,9 @@ namespace HepLib::SD {
         qREAL MPFLimit = -1;
         size_t RunMAX = 100;
         size_t RunPTS = 100000;
-        size_t MinPTS = 100000;
+        size_t MinPTS = 0;
         size_t MaxPTS; // used internally
+        unsigned int Threads = 0;
     private:
         int NANMax = 250;
         int nNAN = 0;
@@ -207,8 +210,9 @@ namespace HepLib::SD {
         PrintHookerType PrintHooker = DefaultPrintHooker;
         size_t RunMAX = 100;
         size_t RunPTS = 100000;
-        size_t MinPTS = 100000;
+        size_t MinPTS = 0;
         size_t MaxPTS; // used internally
+        unsigned int Threads = 0;
     private:
         ex mp2ex(const mpREAL & num);
         int NANMax = 250;
@@ -323,6 +327,33 @@ namespace HepLib::SD {
         static void print_real(const CppFormat & c, const cln::cl_R & x);
         static void print_numeric(const numeric & p, const CppFormat & c, unsigned level);
     };
+    
+    class ExFormat : public print_dflt {
+        GINAC_DECLARE_PRINT_CONTEXT(ExFormat, print_dflt)
+    public:
+        ExFormat(ostream &os, const string & s = "L", unsigned opt = 0);
+        string suffix;
+        string type = "ex";
+        string MQuote = "\"";
+        
+        template<class T> const ExFormat & operator << (const T & v) const {
+            s << v;
+            return *this;
+        };
+        const ExFormat & operator << (const basic & v) const;
+        const ExFormat & operator << (const ex & v) const;
+        const ExFormat & operator << (const lst & v) const;
+        const ExFormat & operator<<(std::ostream& (*v)(std::ostream&)) const;
+        
+        class _init {
+            public: _init();
+        };
+    private:
+        static _init ExFormat_init;
+        static void print_integer(const ExFormat & c, const cln::cl_I & x);
+        static void print_real(const ExFormat & c, const cln::cl_R & x);
+        static void print_numeric(const numeric & p, const ExFormat & c, unsigned level);
+    };
 
     /*-----------------------------------------------------*/
     // VE
@@ -391,7 +422,7 @@ namespace HepLib::SD {
         bool vs_before_ep = false;
         bool use_XMonomials = true;
         bool disable_Contour = false;
-        exmap nReplacements;
+        exmap nReplacement;
         exvector FunExp; // each item : { {f1,f2,...}, {n1,n2,...}, { delta_list1, delta_list2 } }
         exvector Integrands;
         exvector expResult;
@@ -494,6 +525,22 @@ namespace HepLib::SD {
         map<ex, ex, ex_is_less> ex_var_map;
         int no = 0;
         vector<pair<int, ex>> o_ex_vec;
+        map<int, int> used;
+    };
+    
+    class cse_Parser {
+    public:
+        ex Parse(ex expr) { return Parse(expr, true); }
+        string v = "v";
+        int vn();
+        const vector<pair<int,ex>> & vs();
+    private:
+        ex Parse(ex expr, bool reset);
+        map<ex, int, ex_is_less> exn;
+        int no = 0;
+        exvector exv;
+        map<int, int> used;
+        vector<pair<int,ex>> on_ex_vec;
     };
     
 }

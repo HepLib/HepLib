@@ -301,7 +301,7 @@ namespace HepLib {
     }
     
     void Solver::SolveSparse(const ex & sector, const map<int,int> & n2n) {
-        int pdim = Propagators.nops();
+        int pdim = Propagator.nops();
         lst ibps = IBPs;
         
         // add more eqn to ibps
@@ -572,7 +572,7 @@ for(auto & item : cons) {
     }
     
     void Solver::IBP() {
-        int pdim = Propagators.nops();
+        int pdim = Propagator.nops();
         lst InExternal;
         for(auto ii : Internal) InExternal.append(ii);
         for(auto ii : External) InExternal.append(ii);
@@ -587,8 +587,8 @@ for(auto & item : cons) {
         
         if(ISP.nops() > pdim) {
             cout << "ISP = " << ISP << endl;
-            cout << "Propagators = " << Propagators << endl;
-            throw Error("Solver::IBP: #(ISP) > #(Propagators).");
+            cout << "Propagator = " << Propagator << endl;
+            throw Error("Solver::IBP: #(ISP) > #(Propagator).");
         }
         
         lst sp2s, s2sp, ss;
@@ -604,9 +604,9 @@ for(auto & item : cons) {
         
         lst leqns;
         for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
-            auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
+            auto eq = Propagator.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
             eq = eq.subs(sp2s);
-            eq = eq.subs(Replacements);
+            eq = eq.subs(Replacement);
             if(eq.has(iWF(w))) throw Error("Solver::IBP, iWF used in eq.");
             leqns.append(eq == iWF(i));
         }
@@ -642,14 +642,14 @@ for(auto & item : cons) {
             for(int i=0; i<pdim; i++) {
                 auto ns = nsa;
                 ns.let_op(i) = nsa.op(i) + 1;
-                auto dp = Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
+                auto dp = Propagator.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
                 ibp -= (a(i)+Shift[i]) * F(ns) * dp;
             }
             
             ibp = ibp * iep;
             ibp = ibp.expand();
             ibp = ibp.subs(sp2s);
-            ibp = ibp.subs(Replacements);
+            ibp = ibp.subs(Replacement);
             ibp = ibp.subs(s2p);
             
             ex res = 0;
@@ -673,7 +673,7 @@ for(auto & item : cons) {
     }
     
     void Solver::Solve(const ex & sector, const map<int,int> & n2n) {
-        int pdim = Propagators.nops();
+        int pdim = Propagator.nops();
         lst ibps = IBPs;
         
         // add more eqn to ibps

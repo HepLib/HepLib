@@ -4,7 +4,6 @@
  */
 
 #include "HEP.h"
-#include "cln/cln.h"
 
 namespace HepLib {
 
@@ -155,7 +154,8 @@ namespace HepLib {
     }
     
     exmap ApartRules(const exvector &airs, bool irc) { // irc=true to include ApartIRC
-        
+        exmap rules;
+        if(airs.size()<1) return rules;
         #define CHECK false
         int nlimit = 50;
         vector<exset> nps_set(airs[0].op(1).nops());
@@ -205,7 +205,6 @@ namespace HepLib {
             }
         }
 
-        exmap rules;
         if(airs.size()<nlimit) {
             for(int k=0; k<airs.size(); k++) {
                 auto pn = air2pn(airs[k]);
@@ -266,7 +265,7 @@ namespace HepLib {
                 } else if(irc) return lst{ airs[k], ApartIRC(airs[k]) };
                 else return lst{ };
             }, "AR");
-            ReShare(ret,airs);
+            //ReShare(ret,airs);
             for(auto lr : ret) if(lr.nops()>1) rules[lr.op(0)] = lr.op(1);
         }
         return rules;
@@ -281,7 +280,8 @@ namespace HepLib {
     ex Apart(const matrix & mat) {
         static exmap mat_cache;
         if(using_cache && cache_limit>0 && mat_cache.size() > cache_limit) mat_cache.clear();
-        if(mat_cache.find(mat)!=mat_cache.end()) return mat_cache[mat];
+        auto mat_itr = mat_cache.find(mat);
+        if(mat_itr!=mat_cache.end()) return mat_itr->second;
         
         int nrow = mat.rows()-2;
         int ncol = mat.cols();
@@ -291,7 +291,8 @@ namespace HepLib {
         static exmap null_cache;
         if(cache_limit>0 && null_cache.size() > cache_limit) null_cache.clear();
         ex key = sub_matrix(mat,0,nrow,0,ncol);
-        if(true || null_cache.find(key)==null_cache.end()) {
+        auto null_itr = null_cache.find(key);
+        if(null_itr==null_cache.end()) {
             if(Apart_using_fermat) {
                 Fermat &fermat = Fermat::get();
                 int &v_max = fermat.vmax;
@@ -401,9 +402,9 @@ namespace HepLib {
                 matrix s = ex_to<matrix>(key.subs(iEpsilon==0,nopat)).solve(v,zero);
                 for(int r=0; r<ncol; r++) null_vec.append(s(r,0).subs(sRepl,nopat));
             }
-            null_cache[key] = null_vec;
+            null_cache.insert({key,null_vec});
         } else {
-            null_vec = ex_to<lst>(null_cache[key]);
+            null_vec = ex_to<lst>(null_itr->second);
         }
 
         // check null & return ApartIR
@@ -416,7 +417,7 @@ namespace HepLib {
         }
         if(is_null) {
             ex res = ApartIR(mat);
-            if(using_cache) mat_cache[mat] = res;
+            if(using_cache) mat_cache.insert({mat,res});
             return res;
         }
         
@@ -497,7 +498,7 @@ namespace HepLib {
                 }
             }
             res = collect_ex(res,ApartIR(w));
-            if(using_cache) mat_cache[mat] = res;
+            if(using_cache) mat_cache.insert({mat,res});
             return res;
         }
         
@@ -566,7 +567,7 @@ namespace HepLib {
             }
             res = res/cres;
             res = collect_ex(res,ApartIR(w));
-            if(using_cache) mat_cache[mat] = res;
+            if(using_cache) mat_cache.insert({mat,res});
             return res;
         } else {
             int ni=-1;
@@ -600,7 +601,7 @@ namespace HepLib {
             }
             res = res/nvec.op(ni);
             res = collect_ex(res,ApartIR(w));
-            if(using_cache) mat_cache[mat] = res;
+            if(using_cache) mat_cache.insert({mat,res});
             return res;
         }
     }
@@ -630,10 +631,10 @@ namespace HepLib {
             nlst.sort();
             nlst.unique();
             exmap nrepl;
-            auto pi = cln::nextprobprime(3);
+            auto pi = nextprime(3);
             for(auto ni : nlst) {
-                pi = cln::nextprobprime(pi+1);
-                nrepl[ni] = ex(1)/numeric(pi);
+                pi = nextprime(pi+1);
+                nrepl[ni] = ex(1)/pi;
             }
             nrepl[iEpsilon]=0;
             ex chk = ApartIR2ex(subs(res,nrepl))-subs(expr_ino,nrepl);
@@ -648,7 +649,8 @@ namespace HepLib {
 
         static exmap cache;
         if(using_cache && cache_limit>0 && cache.size() > cache_limit) cache.clear();
-        if(cache.find(expr_in)!=cache.end()) return cache[expr_in];
+        auto itr = cache.find(expr_in);
+        if(itr!=cache.end()) return itr->second;
     
         exmap map1, map2;
         lst vars;
@@ -684,13 +686,14 @@ namespace HepLib {
         }
         if(!ok) {
             expr = expr_in.subs(map1,nopat);
-            expr = normal_fermat(expr,true); // need option factor=true, factor denominator
+            expr = exnormal(expr,o_flintfD); // need option factor=true, factor denominator
             if(!is_a<mul>(expr)) expr = lst{expr};
         }
         
         lst pnlst;
         ex pref = 1;
         map<ex,int,ex_is_less> count_ip;
+        exmap ie_map;
         for(auto item : expr) {
             bool has_var=false;
             for(auto v : vars) {
@@ -717,14 +720,19 @@ namespace HepLib {
                 
                 // consider sign
                 bool has_sgn = false;
-                for(auto v : vars) {
-                    if(pc.has(iEpsilon) && key_exists(sgnmap,iEpsilon) && !is_zero(sgnmap[iEpsilon])) { // iEpsilon first
-                        ex sign = sgnmap[iEpsilon]/pc.coeff(iEpsilon);
-                        pref /= pow(sign, nc);
-                        pc *= sign;
-                        has_sgn = true;
-                        break;
-                    } else {
+                // iEpsilon
+                if(pc.has(iEpsilon)) { // iEpsilon first
+                    ex si = 1; // default
+                    auto itr = sgnmap.find(iEpsilon);
+                    if(itr != sgnmap.end() && !is_zero(itr->second)) si = itr->second;
+                    ex sign = si/pc.coeff(iEpsilon);
+                    pref /= pow(sign, nc);
+                    pc *= sign;
+                    has_sgn = true;
+                }
+                // v from sgnmap
+                if(!has_sgn) {
+                    for(auto v : vars) {
                         auto cc = pc.coeff(v);
                         if(is_zero(cc) || !key_exists(sgnmap,v) || is_zero(sgnmap[v])) continue;
                         ex sign = sgnmap[v]/cc;
@@ -734,9 +742,10 @@ namespace HepLib {
                         break;
                     }
                 }
+                // v from vars
                 if(!has_sgn) {
                     for(auto v : vars) {
-                        if(key_exists(sgnmap,v)) continue;
+                        if(key_exists(sgnmap,v)) continue; // already handled by sgnmap
                         auto cc = pc.coeff(v);
                         if(is_zero(cc) || !is_a<numeric>(cc)) continue;
                         ex sign = 1/cc;
@@ -745,13 +754,27 @@ namespace HepLib {
                         break;
                     }
                 }
+                
                 ex key = expand(pc.subs(iEpsilon==0,nopat));
-                count_ip[key] = count_ip[key]+1;
+                if(pc.has(iEpsilon)) {
+                    if(ie_map.find(-key) != ie_map.end()) {
+                        cout << expr_ino << endl;
+                        cout << "Item 1: " << ie_map[-key].subs(map2,nopat) << endl;
+                        cout << "Item 2: " << pc.subs(map2,nopat) << endl;
+                        throw Error("iEpsilon Error: maybe pinch singularity?");
+                    }
+                    ie_map[key] = pc;
+                }
+                
+                auto itr = count_ip.find(key);
+                if(itr==count_ip.end()) itr = count_ip.find(-key);
+                if(itr==count_ip.end()) count_ip[key] = 1;
+                else itr->second++;
+        
                 pnlst.append(lst{ pc, nc });
             } else pref *= item;
         }
-        
-        // handle iEpsilon
+        // check whether needs to combine again
         bool needs_again = false;
         for(auto kv : count_ip) {
             if(kv.second>1) { needs_again = true; break; }
@@ -760,12 +783,28 @@ namespace HepLib {
             exmap imap;
             for(auto pn : pnlst) {
                 auto key = pn.op(0);
-                if(key.has(iEpsilon)) imap[key.subs(iEpsilon==0,nopat)] = key;
+                if(key.has(iEpsilon)) {
+                    auto k = key.subs(iEpsilon==0,nopat);
+                    if(imap.find(-k) != imap.end()) {
+                        cout << "Item 1: " << imap[k] << endl;
+                        cout << "Item 2: " << key << endl;
+                        throw Error("iEpsilon Error: maybe pinch singularity?");
+                    }
+                    if(imap.find(k)==imap.end()) imap[k] = key;
+                }
             }
             exmap p2n;
             for(auto pn : pnlst) {
                 auto key = pn.op(0);
-                if(!key.has(iEpsilon)) key = key.subs(imap,nopat);
+                auto itr = imap.find(key);
+                if(itr!=imap.end()) key = itr->second;
+                else {
+                    itr = imap.find(-key);
+                    if(itr!=imap.end()) {
+                        key = itr->second;
+                        pref *= pow(-1, pn.op(1));
+                    }
+                }
                 p2n[key] = p2n[key] + pn.op(1);
             }
             pnlst.remove_all();
@@ -779,8 +818,7 @@ namespace HepLib {
                 pnlst.append(lst{k, v});
             }
         }
-        sort_lst(pnlst); // need sort_lst 
-
+        sort_lst(pnlst); // need sort_lst
         
         if(pnlst.nops()==0) return cache[expr_in] = pref * ApartIR(1,vars_in);
         
@@ -790,6 +828,7 @@ namespace HepLib {
         matrix mat(nrow+2, ncol);
         for(int c=0; c<ncol; c++) {
             ex pn = pnlst.op(c);
+            if(pn.op(0).is_zero() && pn.op(1).is_zero()) throw Error("Apart: 0^0 is found!");
             mat(nrow+1,c) = normal(pn.op(1));
             auto tmp = pn.op(0);
             for(int r=0; r<nrow; r++) {
@@ -852,10 +891,10 @@ namespace HepLib {
         nlst.sort();
         nlst.unique();
         exmap nrepl;
-        auto pi = cln::nextprobprime(3);
+        auto pi = nextprime(3);
         for(auto ni : nlst) {
-            pi = cln::nextprobprime(pi+1);
-            nrepl[ni] = ex(1)/numeric(pi);
+            pi = nextprime(pi+1);
+            nrepl[ni] = 1/pi;
         }
         nrepl[iEpsilon]=0;
         ex chk = ApartIR2ex(subs(res,nrepl))-subs(expr_in,nrepl);

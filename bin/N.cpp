@@ -13,8 +13,8 @@ int CheckNull(const string & prefix);
 void Prepare(int idx) {
 
     XIntegrand xint;
-    xint.Functions = lst{ 1, x(0)+x(1) };
-    xint.Exponents = lst{ 1, -1+ep };
+    xint.Function = lst{ 1, x(0)+x(1) };
+    xint.Exponent = lst{ 1, -1+ep };
     
     SecDec work;
     work.Initialize(xint);
@@ -48,8 +48,6 @@ void Contour(int idx) {
 
 ex Integrate(int idx, int ni = -1) {
     SecDec work;
-    //work.epN = epN;
-    //work.epsN = epsN;
     
     work.use_ErrMin = false;
     ErrMin::err_min = 1E-3;
@@ -84,8 +82,6 @@ ex Integrate(int idx, int ni = -1) {
 
 ex ReIntegrate(int idx, qREAL err) {
     SecDec work;
-    //work.epN = epN;
-    //work.epsN = epsN;
     
     work.use_ErrMin = false;
     ErrMin::err_min = 1E-3;

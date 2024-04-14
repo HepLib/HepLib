@@ -58,9 +58,9 @@ namespace HepLib {
      */
     void UKIRA::Export() {
 
-        if(Integrals.nops()<1) return;
+        if(Integral.nops()<1) return;
         
-        int pdim = Propagators.nops();
+        int pdim = Propagator.nops();
         lst InExternal;
         for(auto ii : Internal) InExternal.append(ii);
         for(auto ii : External) InExternal.append(ii);
@@ -75,8 +75,8 @@ namespace HepLib {
         
         if(ISP.nops() > pdim) {
             cout << "ISP = " << ISP << endl;
-            cout << "Propagators = " << Propagators << endl;
-            throw Error("UKIRA::Export: #(ISP) > #(Propagators).");
+            cout << "Propagator = " << Propagator << endl;
+            throw Error("UKIRA::Export: #(ISP) > #(Propagator).");
         }
         
         lst sp2s, s2sp, ss;
@@ -92,9 +92,9 @@ namespace HepLib {
         
         lst leqns;
         for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
-            auto eq = Propagators.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
+            auto eq = Propagator.op(i).expand().subs(iEpsilon==0); // drop iEpsilon
             eq = eq.subs(sp2s);
-            eq = eq.subs(Replacements);
+            eq = eq.subs(Replacement);
             if(eq.has(iWF(w))) throw Error("UKIRA::Export, iWF used in eq.");
             leqns.append(eq == iWF(i));
         }
@@ -119,14 +119,14 @@ namespace HepLib {
             for(int i=0; i<pdim; i++) {
                 auto ns = nsa;
                 ns.let_op(i) = nsa.op(i) + 1;
-                auto dp = Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
+                auto dp = Propagator.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
                 ibp -= (a(i)+Shift[i+1]) * F(ns) * dp;
             }
             
             ibp = ibp * iep;
             ibp = ibp.expand();
             ibp = ibp.subs(sp2s);
-            ibp = ibp.subs(Replacements);
+            ibp = ibp.subs(Replacement);
             ibp = ibp.subs(s2p);
             
             ex res = 0;
@@ -152,7 +152,7 @@ namespace HepLib {
         int rmax = -1, smax = -1;
         int rrmax[pdim], ssmax[pdim];
         for(int i=0; i<pdim; i++) rrmax[i] = ssmax[i] = -1;
-        for(auto integral : Integrals) {
+        for(auto integral : Integral) {
             if(integral.nops()!=pdim) throw Error("UKIRA::Export, integral dimension not match propagators.");
             int rr = 0;
             int ss = 0;
@@ -218,12 +218,12 @@ namespace HepLib {
         }
         done: ;
         
-        int nCut = Cuts.nops();
+        int nCut = Cut.nops();
         bool hasCut = (nCut>1);
-        int iCuts[nCut+1];
-        for(int i=0; i<nCut; i++) iCuts[i] = ex_to<numeric>(Cuts.op(i)).to_int();
+        int iCut[nCut+1];
+        for(int i=0; i<nCut; i++) iCut[i] = ex_to<numeric>(Cut.op(i)).to_int();
         auto eqns_result =
-        GiNaC_Parallel(asvec.size(), [this,&asvec,pdim,hasCut,nCut,&iCuts](int idx)->ex {
+        GiNaC_Parallel(asvec.size(), [this,&asvec,pdim,hasCut,nCut,&iCut](int idx)->ex {
             auto as = asvec[idx];
             exmap sol;
             for(int i=0; i<pdim; i++) sol[a(i)]=as[i];
@@ -238,7 +238,7 @@ namespace HepLib {
                     for(auto fi : fs) {
                         lst ns = ex_to<lst>(fi.op(0));
                         for(int nc=0; nc<nCut; nc++) {
-                            int j = iCuts[nc]-1;
+                            int j = iCut[nc]-1;
                             if(ns.op(j)<=0) {
                                 repl[fi]=0;
                                 break;
@@ -256,7 +256,7 @@ namespace HepLib {
                         bool has = false;
                         for(int i=0; i<pdim; i++) {
                             if(is_zero(Shift[i+1]) && ns.op(i)<=0) continue;
-                            if(Propagators.op(i).has(li)) {
+                            if(Propagator.op(i).has(li)) {
                                 has = true;
                                 break;
                             }
@@ -281,8 +281,8 @@ namespace HepLib {
         if(using_uw) {
             exset fs;
             for(auto eqn : eqns) find(eqn, F(w), fs);
-            for(auto intg : Integrals) fs.insert(F(intg));
-            for(auto intg : PIntegrals) fs.insert(F(intg));
+            for(auto intg : Integral) fs.insert(F(intg));
+            for(auto intg : PIntegral) fs.insert(F(intg));
             exvector intg_vec;
             for(auto fi : fs) {
                 lst rs,ss;
@@ -347,7 +347,7 @@ namespace HepLib {
                 unsigned long long weight = int64;
                 auto idx = intg.op(intg.nops()-1).op(0);
                 for(int nc=0; nc<nCut; nc++) {
-                    int j = iCuts[nc]-1;
+                    int j = iCut[nc]-1;
                     if(idx.op(j)>1) {
                         weight += 100000000000000;
                         break;
@@ -387,10 +387,10 @@ namespace HepLib {
         oss << "      input_system: " << endl;
         oss << "        config: false" << endl;
         oss << "        files: [equations]" << endl;
-        if(PIntegrals.nops()>0) {
+        if(PIntegral.nops()>0) {
             ostringstream oss2;
-            int nn = PIntegrals.nops();
-            for(int i=0; i<nn; i++) oss2 << Fout(PIntegrals.op(i)) << endl;
+            int nn = PIntegral.nops();
+            for(int i=0; i<nn; i++) oss2 << Fout(PIntegral.op(i)) << endl;
             ofstream pref_out(job_dir+"/preferred");
             pref_out << oss2.str() << endl;
             pref_out.close();
@@ -406,7 +406,7 @@ namespace HepLib {
         
         oss.str("");
         oss.clear();
-        for(auto integral : Integrals) oss << Fout(integral) << endl;
+        for(auto integral : Integral) oss << Fout(integral) << endl;
         ofstream intg_out(job_dir+"/integrals");
         intg_out << oss.str() << endl;
         intg_out.close();
@@ -435,7 +435,7 @@ namespace HepLib {
         ex exL=0, exR=0;
         map<ex,int,ex_is_less> flags;
         lst exRs;
-        for(auto intg : Integrals) flags[F(ProblemNumber,intg)] = 1;
+        for(auto intg : Integral) flags[F(ProblemNumber,intg)] = 1;
         Rules.remove_all();
         for(auto line : strvec) {
             if(line.size()==0) {
@@ -460,15 +460,15 @@ namespace HepLib {
             flags[exL] = 0;
             exRs.append(exR);
         }
-        MIntegrals.remove_all();
+        MIntegral.remove_all();
         for(auto kv : flags) {
-            if(kv.second!=0) MIntegrals.append(kv.first);
+            if(kv.second!=0) MIntegral.append(kv.first);
         }
         exset miset;
         find(exRs,F(w1,w2),miset);
-        for(auto mi : miset) MIntegrals.append(mi);
-        MIntegrals.sort();
-        MIntegrals.unique();
+        for(auto mi : miset) MIntegral.append(mi);
+        MIntegral.sort();
+        MIntegral.unique();
         
     }
 

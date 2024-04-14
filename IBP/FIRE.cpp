@@ -261,13 +261,13 @@ namespace HepLib {
      */
     void FIRE::Export() {
         if(WorkingDir=="") WorkingDir = to_string(getpid())+"IBP";
-        int pdim = Propagators.nops();
+        int pdim = Propagator.nops();
         string spn = to_string(ProblemNumber);
         int pn = 0; // to avoid unsigned short overflow in FIRE
         
-        if(!file_exists(WorkingDir+"/"+to_string(ProblemNumber)+".start") || !file_exists(WorkingDir+"/"+to_string(ProblemNumber)+".config")) {
+        if(!file_exists(WorkingDir+"/"+spn+".start") || !file_exists(WorkingDir+"/"+spn+".config")) {
             
-            if(Integrals.nops()<1) return;
+            if(Integral.nops()<1) return;
             lst InExternal;
             for(auto ii : Internal) InExternal.append(ii);
             for(auto ii : External) InExternal.append(ii);
@@ -282,8 +282,8 @@ namespace HepLib {
             
             if(ISP.nops() > pdim) {
                 cout << "ISP = " << ISP << endl;
-                cout << "Propagators = " << Propagators << endl;
-                throw Error("FIRE::Export: #(ISP) > #(Propagators).");
+                cout << "Propagator = " << Propagator << endl;
+                throw Error("FIRE::Export: #(ISP) > #(Propagator).");
             }
             
             lst sp2s, s2sp, ss;
@@ -299,16 +299,16 @@ namespace HepLib {
             
             lst eqns;
             for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
-                auto eq = expand(Propagators.op(i)).subs(iEpsilon==0); // drop iEpsilon
+                auto eq = expand(Propagator.op(i)).subs(iEpsilon==0); // drop iEpsilon
                 eq = eq.subs(sp2s);
-                eq = eq.subs(Replacements);
+                eq = eq.subs(Replacement);
                 if(eq.has(iWF(w))) throw Error("FIRE::Export, iWF used in eq.");
                 eqns.append(eq == iWF(i));
             }
             auto s2p = lsolve(eqns, ss);
             if(s2p.nops() != ISP.nops()) {
                 cout << "ISP=" << ISP << endl;
-                cout << "Propagators=" << Propagators << endl;
+                cout << "Propagator=" << Propagator << endl;
                 cout << "eqns=" << eqns << endl;
                 throw Error("FIRE::Export: lsolve failed.");
             }
@@ -351,7 +351,7 @@ namespace HepLib {
                     auto iep = iep_lst.op(ilst);
                     lst dp_lst;
                     for(int i=0; i<pdim; i++) {
-                        dp_lst.append(Propagators.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp));
+                        dp_lst.append(Propagator.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp));
                     }
                     
                     for(int i=0; i<pdim; i++) { // diff on each propagator
@@ -359,10 +359,10 @@ namespace HepLib {
                         ns.let_op(i) = ns.op(i)+1; // note the covention
                         auto tmp = dp_lst.op(i) * iep;
                         tmp = expand(tmp);
-                        tmp = tmp.subs(Replacements);
+                        tmp = tmp.subs(Replacement);
                         tmp = tmp.subs(sp2s);
                         tmp = tmp.subs(s2p);
-                        tmp = tmp.subs(Replacements);
+                        tmp = tmp.subs(Replacement);
                         
                         tmp = ex(0) - (Shift[i+1]+a(i+1))*tmp; // note Shift here
 
@@ -395,7 +395,7 @@ namespace HepLib {
             for(auto e : External) {
                 if(Variables.has(e)) {
                     cout << "IBPvec: " << IBPvec << endl;
-                    cout << "Replacements: " << Replacements << endl;
+                    cout << "Replacement: " << Replacement << endl;
                     cout << "Variables: " << Variables << endl;
                     throw Error("FIRE: Replacement NOT work!");
                 }
@@ -468,7 +468,7 @@ namespace HepLib {
                 lst ns0;
                 for(int i=0; i<pdim; i++) ns0.append(1);
                 for(int i=0; i<pdim; i++) {
-                    if(Propagators.op(i).has(lpi)) ns0.let_op(i) = -1;
+                    if(Propagator.op(i).has(lpi)) ns0.let_op(i) = -1;
                     else ns_vec.push_back(i);
                 }
                 size_t tot = std::pow(2LL,ns_vec.size());
@@ -548,15 +548,15 @@ namespace HepLib {
                 
                 if(IsAlwaysZero) {
                     Rules.remove_all();
-                    for(auto ii : Integrals) Rules.append(F(ProblemNumber, ii)==0);
+                    for(auto ii : Integral) Rules.append(F(ProblemNumber, ii)==0);
                     return;
                 }
             }
             
-            // handle Cut Propagators
-            if(Cuts.nops()>0) {
-                for(auto cx : Cuts) {
-                    int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cuts
+            // handle Cut Propagator
+            if(Cut.nops()>0) {
+                for(auto cx : Cut) {
+                    int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cut
                     lst ns0;
                     for(int i=0; i<pdim; i++) ns0.append(1);
                     ns0.let_op(ci) = -1;
@@ -598,32 +598,9 @@ namespace HepLib {
             start_out.close();
         
             // .config
-            int ct = 1; // 1-poly, 1-poly+prime, 2-poly+prime+mpq, since fire-config provided, we only generate poly
-            for(int ci=0; ci<ct; ci++) { // 0-poly, 1-prime, 2-mpq
+            {
                 ostringstream config;
-                if(Version>5) config << "#compressor none" << endl;
-                if(Version==5) config << "#bucket 20" << endl;
-                if(allIBP) config << "#allIBP" << endl;
-                config << "#threads " << Threads << endl;
-                if(Version>5) { // FIRE6 or lator
-                    if(lThreads>1) {
-                        config << "#lthreads " << lThreads << endl;
-                        if(fThreads>0) config << "#fthreads s" << fThreads << endl;
-                        else if(ci==2) config << "#fthreads s1" << endl;
-                        else config << "#fthreads s" << Threads << endl;
-                    } else {
-                        if(fThreads>0) config << "#fthreads " << fThreads << endl;
-                        else if(ci==2) config << "#fthreads 1" << endl;
-                        else config << "#fthreads " << Threads << endl;
-                    }
-                    if(sThreads>0) config << "#sthreads " << sThreads << endl;
-                    if(PosPref!=1) config << "#pos_pref "<< PosPref << endl;
-                    if(ci==1) config << "#prime 1" << endl;
-                } else {
-                    if(fThreads>0) config << "#fthreads " << fThreads << endl;
-                    else if(ci==2) config << "#fthreads 1" << endl;
-                    else config << "#fthreads " << Threads << endl;
-                }
+                
                 config << "#variables ";
                 bool first = true;
                 exvector ev_sort;
@@ -635,8 +612,8 @@ namespace HepLib {
                 sort_vec(ev_sort);
                 for(auto nv : ev_sort) { 
                     const symbol & s = ex_to<symbol>(nv.op(1));
-                    if(!islower(s.get_name()[0])) {
-                        cout << "Replacements: " << Replacements << endl;
+                    if(false && !islower(s.get_name()[0])) {
+                        cout << "Replacement: " << Replacement << endl;
                         cout << "IBPvec: " << IBPvec << endl;
                         throw Error("FIRE: Fermat requires a name must begin with a lower case letter: "+s.get_name());
                     }
@@ -646,8 +623,13 @@ namespace HepLib {
                     first=false; 
                 }
                 config << endl;
+                
+                if(PosPref!=1) config << "#pos_pref "<< PosPref << endl;
                 config << "#database db" << ProblemNumber << endl;
+                config << "##prime 111" << endl; // ## for comment
+                if(allIBP) config << "#allIBP" << endl;
                 config << "#start" << endl;
+                
                 if(SECTOR.nops()==pdim) {
                     int pmax = pdim;
                     for(int i=pdim-1; i>=0; i--) {
@@ -668,13 +650,16 @@ namespace HepLib {
                     else if(pmax!=pdim) config << "|" << pmax << "|";
                     config << ProblemNumber << ".start" << endl;
                 } else config << "#problem " << pn << " " << ProblemNumber << ".start" << endl;
-                if(PIntegrals.nops()>0) {
+                
+                config << "#output " << ProblemNumber << ".tables" << endl;
+                
+                if(PIntegral.nops()>0) {
                     ostringstream oss;
                     oss << "{";
-                    int nn = PIntegrals.nops();
+                    int nn = PIntegral.nops();
                     for(int i=0; i<nn; i++) {
-                        if(PIntegrals.op(i).nops()!=pdim) throw Error("FIRE::Export@1, Index dimension NOT match Propagators.");
-                        oss << "{" << pn << "," << PIntegrals.op(i) << (i<nn-1 ? "}," : "}");
+                        if(PIntegral.op(i).nops()!=pdim) throw Error("FIRE::Export@1, Index dimension NOT match Propagator.");
+                        oss << "{" << pn << "," << PIntegral.op(i) << (i<nn-1 ? "}," : "}");
                     }
                     oss << "}";
                     ofstream pref_out(WorkingDir+"/"+spn+".pref");
@@ -682,13 +667,10 @@ namespace HepLib {
                     pref_out.close();
                     config << "#preferred " << ProblemNumber << ".pref" << endl;
                 }
-                config << "#integrals " << ProblemNumber << ".intg" << endl;
-                config << "#output " << ProblemNumber << ".tables" << endl;
                 
-                string cpos = "";
-                if(ci==1) cpos = "p";
-                else if(ci==2) cpos = "q";
-                ofstream config_out(WorkingDir+"/"+spn+cpos+".config");
+                config << "#integrals " << ProblemNumber << ".intg" << endl;
+                
+                ofstream config_out(WorkingDir+"/"+spn+".config");
                 config_out << config.str() << endl;
                 config_out.close();
             }
@@ -696,20 +678,24 @@ namespace HepLib {
         }
         
         // *.intg
-        ostringstream intg;
-        intg << "{";
-        for(int i=0; i<Integrals.nops(); i++) {
-            if(Integrals[i].nops()!=pdim) throw Error("FIRE::Export@2, Index dimension NOT match Propagators.");
-            intg << "{" << pn << "," << Integrals[i] << (i<Integrals.nops()-1 ? "}," : "}");
+        if(!file_exists(WorkingDir+"/"+spn+".intg")) {
+            ostringstream intg;
+            intg << "{";
+            for(int i=0; i<Integral.nops(); i++) {
+                if(Integral[i].nops()!=pdim) throw Error("FIRE::Export@2, Index dimension NOT match Propagator.");
+                intg << "{" << pn << "," << Integral[i] << (i<Integral.nops()-1 ? "}," : "}");
+            }
+            intg << "}" << endl;
+            
+            ofstream intg_out(WorkingDir+"/"+spn+".intg");
+            intg_out << intg.str() << endl;
+            intg_out.close();
         }
-        intg << "}" << endl;
-        
-        ofstream intg_out(WorkingDir+"/"+spn+".intg");
-        intg_out << intg.str() << endl;
-        intg_out.close();
         
         // export .gar here
-        garWrite(TO(), WorkingDir+"/"+spn+".gar");
+        if(!file_exists(WorkingDir+"/"+spn+".gar")) {
+            garWrite(TO(), WorkingDir+"/"+spn+".gar");
+        }
     }
     
     /**
@@ -717,23 +703,23 @@ namespace HepLib {
      */
     void FIRE::Run() {
         if(IsAlwaysZero) return;
-        if(Execute=="") Execute = InstallPrefix + "/" + "FIRE/bin/FIRE6m";
+        if(Execute=="") Execute = InstallPrefix + "/FIRE/M/FIRE";
         if(file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) return;
-        if(Integrals.nops()<1) return;
+        if(Integral.nops()<1) return;
         int tried = 0;
         while(tried<3) {
             tried++;
             ostringstream cmd;
             cmd << "cd " << WorkingDir << " && " << Execute;
-            if(Version>5) cmd << " -silent -parallel";
-            cmd << " -c " << ProblemNumber << " >/dev/null";
+            if(Version>5) cmd << " -silent -t1 " << T1 << " -lt1 " << LT1 << " -t2 " << T2 << " -lt2 " << LT2;
+            cmd << " -c " << ProblemNumber << " 1>/dev/null 2>&1";
             system(cmd.str().c_str());
             system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());
             if(file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) break;
             sleep(3);
         }
         if(!file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) {
-            cout << "Propagators: " << Propagators << endl;
+            cout << "Propagator: " << Propagator << endl;
             throw Error("FIRE::Run failed!");
         }    
     }
@@ -743,7 +729,7 @@ namespace HepLib {
      */
     void FIRE::Import() {
         if(IsAlwaysZero) return;
-        if(Integrals.nops()<1) return;
+        if(Integral.nops()<1) return;
         string spn = to_string(ProblemNumber);
         ifstream ifs(WorkingDir+"/"+spn+".tables");
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
@@ -766,18 +752,18 @@ namespace HepLib {
             for(auto it : item.op(1)) {
                 right += it.op(0).subs(id2F) * it.op(1);
             }
-            if(left.is_equal(right)) MIntegrals.append(left);
+            if(left.is_equal(right)) MIntegral.append(left);
             else Rules.append(left==right);
         }
-        MIntegrals.sort();
-        MIntegrals.unique();
-        sort_lst(MIntegrals);
+        MIntegral.sort();
+        MIntegral.unique();
+        sort_lst(MIntegral);
      
-        // handle Cuts not equal 1, using #preferred
-        if(reCut && Cuts.nops()>0) {
+        // handle Cut not equal 1, using #preferred
+        if(reCut && Cut.nops()>0) {
             lst ois, vis;
-            auto mis = MIntegrals;
-            MIntegrals.remove_all();
+            auto mis = MIntegral;
+            MIntegral.remove_all();
             int nrun = -1;
             while(true) {
                 nrun++;
@@ -788,14 +774,14 @@ namespace HepLib {
                 for(auto item : mis) {
                     lst mi = ex_to<lst>(item.op(1));
                     bool isOK = true;
-                    for(auto cx : Cuts) {
+                    for(auto cx : Cut) {
                         if(!is_zero(mi.op(ex_to<numeric>(cx).to_int()-1)-1)) {
                             isOK = false;
                             allOK = false;
                             break;
                         }
                     }
-                    if(nrun==0 && isOK) MIntegrals.append(item);
+                    if(nrun==0 && isOK) MIntegral.append(item);
                     else if(!isOK) {
                         if(nrun==0) {
                             ois.append(item);
@@ -806,7 +792,7 @@ namespace HepLib {
                         vector<int> ipos, ineg;
                         for(int i=0; i<mi.nops(); i++) {
                             bool isCut = false;
-                            for(auto cx : Cuts) {
+                            for(auto cx : Cut) {
                                 if(is_zero(cx-1-i)) {
                                     isCut = true;
                                     break;
@@ -856,18 +842,18 @@ namespace HepLib {
                 iis.unique();
                 if(pis.nops()>0) {
                     FIRE fire;
-                    fire.Propagators = Propagators;
+                    fire.Propagator = Propagator;
                     fire.Internal = Internal;
                     fire.External = External;
-                    fire.Replacements = Replacements;
+                    fire.Replacement = Replacement;
                     fire.ProblemNumber = ProblemNumber;
                     fire.ISP = ISP;
                     fire.DSP = DSP;
-                    fire.Cuts = Cuts;
+                    fire.Cut = Cut;
                     fire.reCut = false;
                     fire.Shift = Shift;
-                    fire.Integrals = iis;
-                    fire.PIntegrals = pis;
+                    fire.Integral = iis;
+                    fire.PIntegral = pis;
                     fire.WorkingDir = WorkingDir + "_C"+to_string(ProblemNumber);
                     fire.Reduce();
                     system(("rm -rf " + fire.WorkingDir).c_str());
@@ -885,37 +871,37 @@ namespace HepLib {
             
             exmap c2m;
             for(int i=0; i<ois.nops(); i++) c2m[ois.op(i)] = vis.op(i);
-            for(auto item : mis) MIntegrals.append(item);
-            MIntegrals.sort();
-            MIntegrals.unique();
-            sort_lst(MIntegrals);
+            for(auto item : mis) MIntegral.append(item);
+            MIntegral.sort();
+            MIntegral.unique();
+            sort_lst(MIntegral);
             
             auto rules = Rules;
             Rules.remove_all();
-            lst rIntegrals;
+            lst rIntegral;
             for(auto r : rules) {
                 auto ri = r.op(0);
                 bool isMI = false;
-                for(auto item : MIntegrals) {
+                for(auto item : MIntegral) {
                     if(item.is_equal(ri)) {
                         isMI = true;
-                        rIntegrals.append(ri);
+                        rIntegral.append(ri);
                         break;
                     }
                 }
                 if(isMI) continue;
                 auto rv = r.op(1);
-                rIntegrals.append(rv);
+                rIntegral.append(rv);
                 Rules.append(ri==rv.subs(c2m));
             }
             
-            rIntegrals.sort();
-            rIntegrals.unique();
+            rIntegral.sort();
+            rIntegral.unique();
             exset fs;
-            find(rIntegrals,F(w1,w2),fs);
-            MIntegrals.remove_all();
-            for(auto fi : fs) MIntegrals.append(fi);
-            sort_lst(MIntegrals);
+            find(rIntegral,F(w1,w2),fs);
+            MIntegral.remove_all();
+            for(auto fi : fs) MIntegral.append(fi);
+            sort_lst(MIntegral);
         }
     }
     

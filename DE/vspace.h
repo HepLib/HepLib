@@ -6,7 +6,7 @@
 #pragma once
 #include "BASIC.h"
 #include "IBP.h"
-#include "FlintArb.h"
+#include "exFlint.h"
 
 namespace HepLib::ED {
 
@@ -33,7 +33,7 @@ namespace HepLib::ED {
     };
     
     vspace nullspace(const matrix &m);
-    matrix normal(const matrix &m);
+    matrix exnormal(const matrix &m);
     vector<matrix> dual_basis(const matrix &u);
     vector<matrix> dual_basis_left(const matrix &v);
     vector<matrix> eigenvectors(const matrix &m, const ex &eval);

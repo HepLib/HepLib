@@ -34,23 +34,23 @@ int main(int argc, char** argv) {
     if(isQuasi>0) fp.isQuasi = true;
     fp.LoopMomenta = ex_to<lst>(ls);
     fp.tLoopMomenta = ex_to<lst>(tls);
-    fp.Propagators = ex_to<lst>(ps);
-    fp.Exponents = ex_to<lst>(ns);
+    fp.Propagator = ex_to<lst>(ps);
+    fp.Exponent = ex_to<lst>(ns);
     
     for(auto vv : lr) {
-        fp.lReplacements[vv.op(0)] = vv.op(1);
+        fp.lReplacement[vv.op(0)] = vv.op(1);
     }
     
     for(auto vv : tlr) {
-        fp.tReplacements[vv.op(0)] = vv.op(1);
+        fp.tReplacement[vv.op(0)] = vv.op(1);
     }
     
     for(auto vv : nr) {
-        fp.nReplacements[vv.op(0)] = vv.op(1);
+        fp.nReplacement[vv.op(0)] = vv.op(1);
     }
     
-    fp.nReplacements[ep] = ex(1)/11;
-    fp.nReplacements[eps] = ex(1)/111;
+    fp.nReplacement[ep] = ex(1)/11;
+    fp.nReplacement[eps] = ex(1)/111;
     
     SecDec work;
     //work.CheckEnd = true;

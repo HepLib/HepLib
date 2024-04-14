@@ -2,8 +2,7 @@
  * @file
  * @brief Initailization for global objects
  */
- 
-#include "cln/cln.h"
+
 #include "BASIC.h"
 #include "HEP.h"
 #include "QGRAF.h"
@@ -11,7 +10,10 @@
 #include "IBP.h"
 #include "SD.h"
 #include "DE.h"
+#include "AMF.h"
 #include <cstdlib>
+
+#include "cln/cln.h"
 
 namespace HepLib {
 
@@ -57,7 +59,7 @@ namespace HepLib {
     
     // FROM BASIC
 
-    string Version = "1.1 - 2022-02-14";
+    string Version = "1.1 - 2022-08-01";
     exmap Symbol::vmap;
     std::map<std::string, ex> Symbol::Table; // alias as symtab in parser
     std::map<std::string, ex> iSymbol::Table; // alias as symtab in parser
@@ -114,6 +116,7 @@ namespace HepLib {
     
     const ex iEpsilonN = I*pow(ex(10), -50);
     int Verbose = 0;
+    string PRE = "  ";
     bool Debug = false;
     bool In_GiNaC_Parallel = false;
     int GiNaC_Parallel_Process = -1;
@@ -146,6 +149,10 @@ namespace HepLib {
         set_print_func<numeric, CppFormat>(CppFormat::print_numeric);
     }
     SD::CppFormat::_init SD::CppFormat::CppFormat_init;
+    SD::ExFormat::_init::_init() {
+        set_print_func<numeric, ExFormat>(ExFormat::print_numeric);
+    }
+    SD::ExFormat::_init SD::ExFormat::ExFormat_init;
     int SD::VEO_Digits = 10;
     
     exmap SP_map;
@@ -179,6 +186,7 @@ namespace HepLib {
     bool Apart_using_fermat = true;
     bool form_using_su3 = false;
     bool form_using_dim4 = false;
+    bool form_using_gamma5 = false;
     
     QGRAF::Process::_init::_init() {
         auto A = Symbol("A");
@@ -219,19 +227,90 @@ namespace HepLib {
         
         VerTeX[lst{Qbar, e, nbar}] = "[crossed dot]";
         VerTeX[lst{nbar, e, g}] = "[crossed dot]";
+        
+        {
+            Symbol U("U"); // U-quark
+            Symbol Ubar("Ubar"); // anti U-quark
+            Symbol D("D"); // D-quark
+            Symbol Dbar("Dbar"); // anti D-quark
+            Symbol C("C"); // C-quark
+            Symbol Cbar("Cbar"); // anti C-quark
+            Symbol S("S"); // S-quark
+            Symbol Sbar("Sbar"); // anti S-quark
+            Symbol T("T"); // T-quark
+            Symbol Tbar("Tbar"); // anti T-quark
+            Symbol B("B"); // B-quark
+            Symbol Bbar("Bbar"); // anti B-quark
+        
+            Symbol g("g"); // gluon
+            Symbol gh("gh"); // gluon ghost
+            Symbol ghbar("ghbar"); // anti gluon ghost
+        
+            Symbol A("A"); // photon
+            Symbol Wm("Wm"); // W-
+            Symbol Wp("Wp"); // W+
+            Symbol Z("Z"); // Z
+        
+            Symbol ghA("SW"); // photon ghost
+            Symbol ghAbar("ghAbar"); // anti photon ghost
+            Symbol ghWm("ghWm"); // W- ghost
+            Symbol ghWmbar("ghWmbar"); // anti W- ghost
+            Symbol ghWp("ghWp"); // W+ ghost
+            Symbol ghWpbar("ghWpbar"); // anti W+ ghost
+            Symbol ghZ("ghZ"); // Z ghost
+            Symbol ghZbar("ghZbar"); // anti Z ghost
+
+            Symbol em("em"); // e-
+            Symbol ep("ep"); // e+
+            Symbol ne("ne"); // e-neutrino
+            Symbol nebar("nebar"); // anti e-neutrino
+            Symbol mum("mum"); // mu-
+            Symbol mup("mup"); // mu+
+            Symbol nmu("nmu"); // mu-neutrino
+            Symbol nmubar("nmubar"); // anti mu-neutrino
+            Symbol taum("taum"); // tau-
+            Symbol taup("taup"); // tau+
+            Symbol ntau("ntau"); // tau-neutrino
+            Symbol ntaubar("ntaubar"); // anti tau-neutrino
+        
+            Symbol chi("chi"); // Z goldstone
+            Symbol phim("phim"); // W- goldstone
+            Symbol phip("phip"); // W+ goldstone
+            Symbol H("H"); // higgs
+            
+            lst fs = { U, D, C, S, T, B, em, mum, taum, ne, nmu, ntau};
+            lst fs2 = {Ubar, Dbar, Cbar, Sbar, Tbar, Bbar, ep, mup, taup, nebar, nmubar, ntaubar};
+            string fsi[] = { "$u$", "$d$", "$c$", "$s$", "$t$", "$b$", "$e$", "$\\mu$", "$\\tau$", "$\\nu_e$", "$\\nu_\\mu$", "$\\nu_\\tau$"  };
+            for(int i=0; i<fs.nops(); i++) {
+                auto si = fsi[i];
+                LineTeX[fs.op(i)] = "fermion ,edge label="+si;
+                LineTeX[fs2.op(i)] = "anti fermion ,edge label="+si;
+            }
+            
+            LineTeX[Wp] = "photon, edge label=$W$";
+            LineTeX[Wm] = "photon, edge label=$W$";
+            LineTeX[Z] = "photon, edge label=$Z$";
+            
+            LineTeX[H]="scalar, edge label=$H$";
+            LineTeX[chi]="scalar, edge label=$\\chi$";
+            LineTeX[phim]="charged scalar, edge label=$\\phi$";
+            LineTeX[phip]="anti charged scalar, edge label=$\\phi$";
+            
+            lst ghs = {gh, ghA, ghWm, ghWp, ghZ};
+            lst ghs2 = {ghbar, ghAbar, ghWmbar, ghWpbar, ghZbar};
+            string ghsi[] = {"$c$", "$c_\\gamma$", "$c_-$", "$c_+$", "$c_Z$"};
+            
+            for(int i=0; i<ghs.nops(); i++) {
+                auto si = ghsi[i];
+                LineTeX[ghs.op(i)] = "ghost ,edge label="+si;
+                LineTeX[ghs2.op(i)] = "anti ghost ,edge label="+si;
+            }
+        }
     }
     QGRAF::Process::_init QGRAF::Process::Process_init;
     
     // FROM IBP
-    
-    int FIRE::PosPref = 1;
-    int FIRE::Threads = 4;
-    int FIRE::fThreads = 1;
-    int FIRE::lThreads = 0;
-    int FIRE::sThreads = 0;
     int FIRE::Version = 6;
-    string FIRE::Execute;
-    exmap FIRE::NVariables;
     exmap MapPreSP;
     
     string UKIRA::KArgs = "";
@@ -243,6 +322,9 @@ namespace HepLib {
     // FROM DE
     slong error_pass_dp = 100;
     
+    // FROM AMF
+    int DEX::Threads = 8;
+    
     // global init
     std::stack<cln::float_format_t> cln_prec_stack;
     std::stack<long> digits_stack;
@@ -250,13 +332,7 @@ namespace HepLib {
         ostringstream oss;
         string path = InstallPrefix + "/bin";
         if(dir_exists(path)) oss << path;
-        
-        path = InstallPrefix + "/FIRE5/bin";
-        if(dir_exists(path)) oss << ":" << path;
-        
-        path = InstallPrefix + "/FIRE6/bin";
-        if(dir_exists(path)) oss << ":" << path;
-        
+                
         auto opath = getenv("PATH");
         if(opath != NULL) oss << ":" << opath;
         setenv("PATH", oss.str().c_str(), true);
@@ -309,7 +385,7 @@ std::string HepLib::QGRAF::Process::Style = R"EOF(
 
 )EOF";
 
-std::string HepLib::QCD::FF::GluonModel = R"EOF(
+std::string HepLib::QGRAF::Models::GluonFF = R"EOF(
 [ model = 'Gluon FF Model' ]
 [q, qbar, -]
 [Q, Qbar, -]
@@ -327,7 +403,7 @@ std::string HepLib::QCD::FF::GluonModel = R"EOF(
 %[n, e, g; QCD='+0']
 )EOF";
 
-std::string HepLib::QCD::FF::QuarkModel = R"EOF(
+std::string HepLib::QGRAF::Models::QuarkFF = R"EOF(
 [ model = 'Quark FF Model' ]
 [q, qbar, -]
 [Q, Qbar, -]
@@ -345,4 +421,294 @@ std::string HepLib::QCD::FF::QuarkModel = R"EOF(
 [ebar, q, nbar; QCD='0']
 [Qbar, e, nbar; QCD='0']
 [ebar, Q, nbar; QCD='0']
+)EOF";
+
+std::string HepLib::QGRAF::Models::SM = R"EOF(
+% From Boehm, Denner, Joos @ Feynman Gauge
+[ model = 'Standard Model' ]
+
+%------------------------------------
+% Propagators
+%------------------------------------
+
+% quarks
+[U, Ubar, -]
+[D, Dbar, -]
+[C, Cbar, -]
+[S, Sbar, -]
+[T, Tbar, -]
+[B, Bbar, -]
+
+% gluon and its ghost:
+[g, g, +, notadpole]
+[gh, ghbar, -]
+
+% V: EWSM gauge bosons
+[A, A, +, notadpole]
+[Wm, Wp, +]
+[Z, Z, +]
+
+% leptons
+[em, ep, -]
+[ne, nebar, -]
+[mum, mup, -]
+[nmu, nmubar, -]
+[taum, taup, -]
+[ntau, ntaubar, -]
+
+% G: Faddeev-Popov Ghosts
+[ghA, ghAbar, -]
+[ghZ, ghZbar, -]
+[ghWm, ghWmbar, -]
+[ghWp, ghWpbar, -]
+
+% S: scalars
+[H, H, +]
+[chi, chi, +]
+[phim, phip, +]
+
+%------------------------------------
+% Vertices
+%------------------------------------
+
+% QCD
+[Ubar, U, g; QCD='+1', QED='0']
+[Dbar, D, g; QCD='+1', QED='0']
+[Sbar, S, g; QCD='+1', QED='0']
+[Cbar, C, g; QCD='+1', QED='0']
+[Bbar, B, g; QCD='+1', QED='0']
+[Tbar, T, g; QCD='+1', QED='0']
+
+[g, g, g, g; QCD='+2', QED='0']
+[g, g, g; QCD='+1', QED='0']
+[ghbar, gh, g; QCD='+1', QED='0']
+
+% VVVV
+[Wp, Wm, Z, Z; QCD='0', QED='+2']
+[Wp, Wm, A, Z; QCD='0', QED='+2']
+[Wp, Wm, A, A; QCD='0', QED='+2']
+[Wp, Wp, Wm, Wm; QCD='0', QED='+2']
+
+% VVV
+[Wp, Wm, A; QCD='0', QED='+1']
+[Wp, Wm, Z; QCD='0', QED='+1']
+
+% SSSS
+[H, H, H, H; QCD='0', QED='+2']
+[chi, chi, chi, chi; QCD='0', QED='+2']
+[H, H, chi, chi; QCD='0', QED='+2']
+[H, H, phim, phip; QCD='0', QED='+2']
+[chi, chi, phim, phip; QCD='0', QED='+2']
+[phim, phip, phim, phip; QCD='0', QED='+2']
+
+% SSS
+[H, H, H; QCD='0', QED='+1']
+[H, chi, chi; QCD='0', QED='+1']
+[H, phim, phip; QCD='0', QED='+1']
+
+% VVSS
+[Z, Z, H, H; QCD='0', QED='+2']
+[Z, Z, chi, chi; QCD='0', QED='+2']
+[Wp, Wm, H, H; QCD='0', QED='+2']
+[Wp, Wm, chi, chi; QCD='0', QED='+2']
+[Wp, Wm, phip, phim; QCD='0', QED='+2']
+
+[A, A, phip, phim; QCD='0', QED='+2']
+[Z, A, phip, phim; QCD='0', QED='+2']
+[Z, Z, phip, phim; QCD='0', QED='+2']
+
+[Wp, A, phim, H; QCD='0', QED='+2']
+[Wm, A, phip, H; QCD='0', QED='+2']
+[Wp, A, phim, chi; QCD='0', QED='+2']
+[Wm, A, phip, chi; QCD='0', QED='+2']
+[Wp, Z, phim, H; QCD='0', QED='+2']
+[Wm, Z, phip, H; QCD='0', QED='+2']
+[Wp, Z, phim, chi; QCD='0', QED='+2']
+[Wm, Z, phip, chi; QCD='0', QED='+2']
+
+% VSS
+[Z, chi, H; QCD='0', QED='+1']
+[A, phip, phim; QCD='0', QED='+1']
+[Z, phip, phim; QCD='0', QED='+1']
+[Wp, phim, H; QCD='0', QED='+1']
+[Wm, phip, H; QCD='0', QED='+1']
+[Wp, phim, chi; QCD='0', QED='+1']
+[Wm, phip, chi; QCD='0', QED='+1']
+
+% SVV
+[H, Z, Z; QCD='0', QED='+1']
+[H, Wp, Wm; QCD='0', QED='+1']
+[phip, Wm, A; QCD='0', QED='+1']
+[phim, Wp, A; QCD='0', QED='+1']
+[phip, Wm, Z; QCD='0', QED='+1']
+[phim, Wp, Z; QCD='0', QED='+1']
+
+% ffV
+[Ubar, U, A; QCD='0', QED='+1']
+[Dbar, D, A; QCD='0', QED='+1']
+[Sbar, S, A; QCD='0', QED='+1']
+[Cbar, C, A; QCD='0', QED='+1']
+[Bbar, B, A; QCD='0', QED='+1']
+[Tbar, T, A; QCD='0', QED='+1']
+
+[ep, em, A; QCD='0', QED='+1']
+[mup, mum, A; QCD='0', QED='+1']
+[taup, taum, A; QCD='0', QED='+1']
+
+[Ubar, U, Z; QCD='0', QED='+1']
+[Dbar, D, Z; QCD='0', QED='+1']
+[Sbar, S, Z; QCD='0', QED='+1']
+[Cbar, C, Z; QCD='0', QED='+1']
+[Bbar, B, Z; QCD='0', QED='+1']
+[Tbar, T, Z; QCD='0', QED='+1']
+
+[ep, em, Z; QCD='0', QED='+1']
+[mup, mum, Z; QCD='0', QED='+1']
+[taup, taum, Z; QCD='0', QED='+1']
+
+[nebar, ne, Z; QCD='0', QED='+1']
+[nmubar, nmu, Z; QCD='0', QED='+1']
+[ntaubar, ntau, Z; QCD='0', QED='+1']
+
+[Dbar, U, Wm; QCD='0', QED='+1']
+[Dbar, C, Wm; QCD='0', QED='+1']
+[Dbar, T, Wm; QCD='0', QED='+1']
+
+[Sbar, U, Wm; QCD='0', QED='+1']
+[Sbar, C, Wm; QCD='0', QED='+1']
+[Sbar, T, Wm; QCD='0', QED='+1']
+
+[Bbar, U, Wm; QCD='0', QED='+1']
+[Bbar, C, Wm; QCD='0', QED='+1']
+[Bbar, T, Wm; QCD='0', QED='+1']
+
+[Ubar, D, Wp; QCD='0', QED='+1']
+[Ubar, S, Wp; QCD='0', QED='+1']
+[Ubar, B, Wp; QCD='0', QED='+1']
+
+[Cbar, D, Wp; QCD='0', QED='+1']
+[Cbar, S, Wp; QCD='0', QED='+1']
+[Cbar, B, Wp; QCD='0', QED='+1']
+
+[Tbar, D, Wp; QCD='0', QED='+1']
+[Tbar, S, Wp; QCD='0', QED='+1']
+[Tbar, B, Wp; QCD='0', QED='+1']
+
+[ep, ne, Wm; QCD='0', QED='+1']
+[mup, nmu, Wm; QCD='0', QED='+1']
+[taup, ntau, Wm; QCD='0', QED='+1']
+
+[nebar, em, Wp; QCD='0', QED='+1']
+[nmubar, mum, Wp; QCD='0', QED='+1']
+[ntaubar, taum, Wp; QCD='0', QED='+1']
+
+% Sff
+[Ubar, U, H; QCD='0', QED='+1']
+[Dbar, D, H; QCD='0', QED='+1']
+[Sbar, S, H; QCD='0', QED='+1']
+[Cbar, C, H; QCD='0', QED='+1']
+[Bbar, B, H; QCD='0', QED='+1']
+[Tbar, T, H; QCD='0', QED='+1']
+
+[ep, em, H; QCD='0', QED='+1']
+[mup, mum, H; QCD='0', QED='+1']
+[taup, taum, H; QCD='0', QED='+1']
+
+[Ubar, U, chi; QCD='0', QED='+1']
+[Dbar, D, chi; QCD='0', QED='+1']
+[Sbar, S, chi; QCD='0', QED='+1']
+[Cbar, C, chi; QCD='0', QED='+1']
+[Bbar, B, chi; QCD='0', QED='+1']
+[Tbar, T, chi; QCD='0', QED='+1']
+
+[ep, em, chi; QCD='0', QED='+1']
+[mup, mum, chi; QCD='0', QED='+1']
+[taup, taum, chi; QCD='0', QED='+1']
+
+[Dbar, U, phim; QCD='0', QED='+1']
+[Dbar, C, phim; QCD='0', QED='+1']
+[Dbar, T, phim; QCD='0', QED='+1']
+
+[Sbar, U, phim; QCD='0', QED='+1']
+[Sbar, C, phim; QCD='0', QED='+1']
+[Sbar, T, phim; QCD='0', QED='+1']
+
+[Bbar, U, phim; QCD='0', QED='+1']
+[Bbar, C, phim; QCD='0', QED='+1']
+[Bbar, T, phim; QCD='0', QED='+1']
+
+[Ubar, D, phip; QCD='0', QED='+1']
+[Ubar, S, phip; QCD='0', QED='+1']
+[Ubar, B, phip; QCD='0', QED='+1']
+
+[Cbar, D, phip; QCD='0', QED='+1']
+[Cbar, S, phip; QCD='0', QED='+1']
+[Cbar, B, phip; QCD='0', QED='+1']
+
+[Tbar, D, phip; QCD='0', QED='+1']
+[Tbar, S, phip; QCD='0', QED='+1']
+[Tbar, B, phip; QCD='0', QED='+1']
+
+[ep, ne, phim; QCD='0', QED='+1']
+[mup, nmu, phim; QCD='0', QED='+1']
+[taup, ntau, phim; QCD='0', QED='+1']
+
+[nebar, em, phip; QCD='0', QED='+1']
+[nmubar, mum, phip; QCD='0', QED='+1']
+[ntaubar, taum, phip; QCD='0', QED='+1']
+
+% VGG
+[ghWpbar, ghWp, A; QCD='0', QED='+1']
+[ghWmbar, ghWm, A; QCD='0', QED='+1']
+[ghAbar, ghWm, Wp; QCD='0', QED='+1']
+[ghAbar, ghWp, Wm; QCD='0', QED='+1']
+[ghWmbar, ghA, Wm; QCD='0', QED='+1']
+[ghWpbar, ghA, Wp; QCD='0', QED='+1']
+[ghWpbar, ghWp, Z; QCD='0', QED='+1']
+[ghWmbar, ghWm, Z; QCD='0', QED='+1']
+[ghZbar, ghWm, Wp; QCD='0', QED='+1']
+[ghZbar, ghWp, Wm; QCD='0', QED='+1']
+[ghWmbar, ghZ, Wm; QCD='0', QED='+1']
+[ghWpbar, ghZ, Wp; QCD='0', QED='+1'] 
+
+% SGG
+[ghZbar, ghZ, H; QCD='0', QED='+1']
+[ghWpbar, ghWp, H; QCD='0', QED='+1']
+[ghWmbar, ghWm, H; QCD='0', QED='+1']
+[ghWpbar, ghWp, chi; QCD='0', QED='+1']
+[ghWmbar, ghWm, chi; QCD='0', QED='+1']
+[ghWpbar, ghA, phip; QCD='0', QED='+1']
+[ghWmbar, ghA, phim; QCD='0', QED='+1']
+[ghWpbar, ghZ, phip; QCD='0', QED='+1']
+[ghWmbar, ghZ, phim; QCD='0', QED='+1']
+[ghZbar, ghWp, phim; QCD='0', QED='+1']
+[ghZbar, ghWm, phip; QCD='0', QED='+1']
+
+)EOF";
+
+std::string HepLib::QGRAF::Models::QCD = R"EOF(
+[ model = 'qcd Model' ]
+%------------------------------------
+% Propagators
+%------------------------------------
+% quark
+[q, qbar, -]
+[Q, Qbar, -]
+% gluon and its ghost:
+[gh, ghbar, -]
+[g, g, +, notadpole]
+% external photon
+[A, A, +, external]
+%------------------------------------
+% Vertices
+%------------------------------------
+% QCD
+[qbar, q, g; QCD='+1']
+[Qbar, Q, g; QCD='+1']
+[g, g, g, g; QCD='+2']
+[g, g, g; QCD='+1']
+[ghbar, gh, g; QCD='+1']
+% external
+[qbar, q, A; QCD='+0']
+[Qbar, Q, A; QCD='+0']
 )EOF";
