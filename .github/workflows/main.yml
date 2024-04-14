@@ -6,10 +6,10 @@ on:
 jobs:
   ubuntu-codecoverage:
     name: Ubuntu GCC, Code Coverage (x10)
-
     runs-on: ubuntu-latest
-
+    
     steps:
+      - uses: actions/checkout@v4
       - name: "Setup"
         run: |
           sudo apt-get update
