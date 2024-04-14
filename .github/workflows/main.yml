@@ -1,23 +1,37 @@
-stages:          # List of stages for jobs, and their order of execution
-  - test
+on:
+  push:
+    branches:
+    - main
+    - release/*
 
-test:
-  stage: test
-  script:
-    - apt-get update
-    - apt-get install -y doxygen
-    - apt-get install -y fig2dev
-    - apt-get install -y texinfo
-    - apt-get install -y libcln-dev
-    - apt-get install -y byacc
-    - apt-get install -y g++
-    - apt-get install -y gfortran
-    - apt-get install -y cmake
-    - wget https://heplib.gitlab.io/download/Install.tar.gz
-    - tar xfv Install.tar.gz
-    - cd Install
-    - INSTALL_PATH=/usr/local jn=8 ./install.sh
-    - cd ..
-    - cmake .
-    - make -j 8
+jobs:
+  my_job:
+    name: deploy to staging
+    runs-on: ubuntu-22.04
+
+steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node_version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node_version }}
+
+    - name: build
+      run: |
+        apt-get update
+        apt-get install -y doxygen
+        apt-get install -y fig2dev
+        apt-get install -y texinfo
+        apt-get install -y libcln-dev
+        apt-get install -y byacc
+        apt-get install -y g++
+        apt-get install -y gfortran
+        apt-get install -y cmake
+        wget https://heplib.github.io/download/Install.tar.gz
+        tar xfv Install.tar.gz
+        cd Install
+        INSTALL_PATH=/usr/local jn=8 ./install.sh
+        cd ..
+        cmake .
+        make -j 4
     
