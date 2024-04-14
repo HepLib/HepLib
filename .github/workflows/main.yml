@@ -24,8 +24,8 @@ jobs:
           wget https://heplib.github.io/download/Install.tar.gz
           tar xfv Install.tar.gz
           cd Install
-          mkdir /usr/local/heplib
-          chmod a+rwx /usr/local/heplib
+          sudo mkdir /usr/local/heplib
+          sudo chmod a+rwx /usr/local/heplib
           INSTALL_PATH=/usr/local/heplib jn=4 ./install.sh
           cd ..
           cmake .
