@@ -24,11 +24,11 @@ jobs:
           sudo apt-get install -y g++
           sudo apt-get install -y gfortran
           sudo apt-get install -y cmake
-          sudo wget https://heplib.github.io/download/Install.tar.gz
-          sudo tar xfv Install.tar.gz
-          sudo cd Install
-          sudo INSTALL_PATH=/usr/local jn=4 ./install.sh
-          sudo cd ..
-          sudo cmake .
-          sudo make -j 4
+          wget https://heplib.github.io/download/Install.tar.gz
+          tar xfv Install.tar.gz
+          cd Install
+          INSTALL_PATH=/usr/local jn=4 ./install.sh
+          cd ..
+          cmake .
+          make -j 4
 
