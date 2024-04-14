@@ -28,6 +28,6 @@ jobs:
           sudo chmod a+rwx /usr/local/heplib
           INSTALL_PATH=/usr/local/heplib jn=4 ./install.sh
           cd ..
-          cmake .
+          cmake -DCMAKE_INSTALL_PREFIX=/usr/local/heplib .
           make -j 4
 
