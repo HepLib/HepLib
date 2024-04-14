@@ -1,0 +1,23 @@
+stages:          # List of stages for jobs, and their order of execution
+  - test
+
+test:
+  stage: test
+  script:
+    - apt-get update
+    - apt-get install -y doxygen
+    - apt-get install -y fig2dev
+    - apt-get install -y texinfo
+    - apt-get install -y libcln-dev
+    - apt-get install -y byacc
+    - apt-get install -y g++
+    - apt-get install -y gfortran
+    - apt-get install -y cmake
+    - wget https://heplib.gitlab.io/download/Install.tar.gz
+    - tar xfv Install.tar.gz
+    - cd Install
+    - INSTALL_PATH=/usr/local jn=8 ./install.sh
+    - cd ..
+    - cmake .
+    - make -j 8
+    
