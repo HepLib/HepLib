@@ -1,7 +1,7 @@
 ### **How** to Install `HepLib`
 - Download and extract the `all-in-one` archive
 ```bash
-wget https://heplib.gitlab.io/download/Install.tar.gz
+wget https://heplib.github.io/download/Install.tar.gz
 tar xfv Install.tar.gz
 ```
 
