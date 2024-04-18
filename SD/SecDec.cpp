@@ -138,7 +138,8 @@ namespace HepLib::SD {
                 if(item.match(x(w))) continue;
                 else if(item.match(pow(x(w1),w2))) continue;
                 else if(item.match(pow(w1,w2))) item = item.op(0);
-                xpols *= factor_form(item, false);
+                //xpols *= factor_form(item, false);
+                xpols *= exfactor(item);
             }
             if(!is_a<mul>(xpols)) xpols = lst{ xpols };
             

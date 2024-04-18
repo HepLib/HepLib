@@ -297,6 +297,15 @@ namespace HepLib {
                 s2sp.append(si==item);
             }
             
+            if(!has_w(Replacement)) {
+                lst repl;
+                for(auto item : Replacement) {
+                    repl.append(item);
+                    repl.append(w*item.op(0) == w*item.op(1));
+                }
+                Replacement = repl;
+            }
+            
             lst eqns;
             for(int i=0; i<ISP.nops(); i++) { // note NOT pdim
                 auto eq = expand(Propagator.op(i)).subs(iEpsilon==0); // drop iEpsilon

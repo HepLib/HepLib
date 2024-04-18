@@ -106,6 +106,15 @@ namespace HepLib {
         //oss << "  outgoing_momenta: []" << endl;
         //oss << "  momentum_conservation: [p0,-p1-p2]" << endl;
         
+        if(!has_w(Replacement)) {
+            lst repl;
+            for(auto item : Replacement) {
+                repl.append(item);
+                repl.append(w*item.op(0) == w*item.op(1));
+            }
+            Replacement = repl;
+        }
+        
         auto vars = gather_symbols(lst{Propagator, Replacement});
         exset vset_all;
         for(auto vi : vars) vset_all.insert(vi);
