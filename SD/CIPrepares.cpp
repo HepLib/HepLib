@@ -402,6 +402,7 @@ namespace HepLib::SD {
             }
             cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << " -o " << sofn.str() << " " << pid << "/F*.o";
             cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
+            cmd << " 1> /dev/null 2> /dev/null";
             system(cmd.str().c_str());
             
             cmd.clear();
@@ -1191,6 +1192,7 @@ namespace HepLib::SD {
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 0 " << (soLimit-1) << ")";
             cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
+            cmd << " 1> /dev/null 2> /dev/null";
             system(cmd.str().c_str());
             
             for(int n=1; true; n++) {
@@ -1208,6 +1210,7 @@ namespace HepLib::SD {
                 cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' " << start << " " << end << ")";
                 if(hasF) cmd << " " << fsofn.str();
                 cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
+                cmd << " 1> /dev/null 2> /dev/null";
                 system(cmd.str().c_str());
                 if(end>=res_size-1) break;
             }
@@ -1219,6 +1222,7 @@ namespace HepLib::SD {
             cmd << " -o " << sofn.str() << " " << pid << "/*.o";
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
+            cmd << " 1> /dev/null 2> /dev/null";
             system(cmd.str().c_str());
         }
         cmd.clear();

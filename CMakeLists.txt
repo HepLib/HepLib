@@ -148,5 +148,13 @@ INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/OINC/update" DESTINATION "bin"
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -Wno-deprecated-declarations")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Wno-deprecated-declarations")
 
+#-----------------------------------------------
 # Command Line Tools 15.0 - bug work around
-#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Wno-deprecated-declarations -ld_classic")
+#-----------------------------------------------
+# if you get an error message like
+# 'libunwind: _Unwind_GetTextRelBase - _Unwind_GetTextRelBase() not implemented'
+# Please uncomment the following line
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+#    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ld_classic")
+endif()
+

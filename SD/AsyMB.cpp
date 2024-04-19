@@ -417,7 +417,7 @@ namespace HepLib::SD {
             
             // check variables besides x or PL
             // CV should only appear at kv.op(0).op(0), i.e., the prefactor
-            for(int i=1; i<fe.op(0).nops(); i++) {
+            for(int i=2; i<fe.op(0).nops(); i++) {
                 // make sure only Constant/F terms can contain small variable: vs
                 if(i!=1 && fe.op(0).op(i).has(vz)) {
                     cout << "vz Found @ " << i << " of " << fe.op(0) << endl;
@@ -427,6 +427,7 @@ namespace HepLib::SD {
                 auto tmp = fe.op(0).op(i).subs(lst{WRA(w)==0,x(w)==1,PL(w)==1}).subs(eps_map);
                 if(!is_a<numeric>(NN(tmp,20))) {
                     cout << ErrColor << tmp << RESET << endl;
+                    cout << fe.op(0) << endl;
                     throw Error("MB: Extra Variable(^[ep,eps,PL,x]) Found.");
                 }
             }

@@ -49,6 +49,41 @@ namespace HepLib::SD {
         
         IsZero = false;
         
+        bool wFound = false;
+        for(auto kv : fp.lReplacement) {
+            if(has_w(kv.first)) {
+                wFound = true;
+                break;
+            }
+        }
+        if(!wFound) {
+            auto repl = fp.lReplacement;
+            for(auto kv : repl) fp.lReplacement[w*kv.first] = w*kv.second;
+        }
+        wFound = false;
+        for(auto kv : fp.tReplacement) {
+            if(has_w(kv.first)) {
+                wFound = true;
+                break;
+            }
+        }
+        if(!wFound) {
+            auto repl = fp.tReplacement;
+            for(auto kv : repl) fp.tReplacement[w*kv.first] = w*kv.second;
+        }
+        wFound = false;
+        for(auto kv : fp.nReplacement) {
+            if(has_w(kv.first)) {
+                wFound = true;
+                break;
+            }
+        }
+        if(!wFound) {
+            auto repl = fp.nReplacement;
+            for(auto kv : repl) fp.nReplacement[w*kv.first] = w*kv.second;
+        }
+        
+        
         for(auto kv: fp.lReplacement) {
             if((lst{kv.first, kv.second}).has(iEpsilon)) {
                 throw Error("Initialize: (lst{kv.first, kv.second}).has(iEpsilon) @1");
