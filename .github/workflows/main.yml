@@ -16,7 +16,7 @@ jobs:
           TOKEN: ${{ secrets.PERSONAL_TOKEN }}
           REF: github.com/HepLib/doxygen.git
           MYEMAIL: f.feng@outlook.com
-          MYNAME: F. Feng          
+          MYNAME: F-Feng          
         run: |
           sudo apt-get install -y doxygen
           echo $PWD
