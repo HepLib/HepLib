@@ -9,6 +9,7 @@ tar xfv Install.tar.gz
 ```bash
 cd Install
 INSTALL_PATH=<Path to Install> jn=8 ./install.sh
+# INSTALL_PATH=<Path to Install> jn=8 ./install-M1.sh # Apple Silicon Chip
 ```
 
 ### **Try** a simple example
