@@ -36,7 +36,7 @@ jobs:
           TOKEN: ${{ secrets.PERSONAL_TOKEN }}
           REF: github.com/HepLib/doxygen.git
           MYEMAIL: f.feng@outlook.com
-          MYNAME: ${{ github.repository_owner }}          
+          MYNAME: F. Feng          
         run: |
           sudo apt-get install -y doxygen
           echo $PWD
@@ -48,7 +48,7 @@ jobs:
           git init
           git remote add origin https://${REF}
           git add . 
-          git commit -m "Updated By Github Actions With Build ${{github.run_number}} of ${{github.workflow}} For Github Pages"
+          git commit -m "Updated By Github Actions With Build For Github Pages"
           git branch -M master
           git push --force --quiet "https://${TOKEN}@${REF}" master:master
 
