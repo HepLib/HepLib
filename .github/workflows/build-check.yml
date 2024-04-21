@@ -10,7 +10,7 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4      
-      - name: "build"
+      - name: "build check"
         run: |
           sudo apt-get update
           sudo apt-get install -y doxygen
