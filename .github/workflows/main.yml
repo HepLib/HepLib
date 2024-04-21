@@ -26,12 +26,12 @@ jobs:
           git config --global user.email "${MYEMAIL}"
           git config --global user.name "${MYNAME}"
           git init
-          git remote add origin https://${REF}
+          git remote add origin "https://${MYNAME}:${TOKEN}@${REF}"
           git add . 
           git commit -m "Updated By Github Actions For Github Pages"
           git branch -M master
           echo start push
-          git push --force --quiet "https://${TOKEN}@${REF}"
+          git push --force --quiet "https://${MYNAME}:${TOKEN}@${REF}"
           echo push done
       
       - name: "Setup"
