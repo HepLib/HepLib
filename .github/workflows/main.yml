@@ -10,7 +10,31 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - name: "build"
+
+      - name: doxygen
+        env:
+          TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          REF: github.com/HepLib/doxygen.git
+          MYEMAIL: f.feng@outlook.com
+          MYNAME: F-Feng          
+        run: |
+          sudo apt-get install -y doxygen
+          echo $PWD
+          cd doc
+          doxygen
+          cd html
+          git config --global user.email "${MYEMAIL}"
+          git config --global user.name "${MYNAME}"
+          git init
+          git remote add origin https://${REF}
+          git add . 
+          git commit -m "Updated By Github Actions For Github Pages"
+          git branch -M master
+          echo start push
+          git push --force --quiet "https://${TOKEN}@${REF}"
+          echo push done
+      
+      - name: "Setup"
         run: |
           sudo apt-get update
           sudo apt-get install -y doxygen
@@ -21,12 +45,6 @@ jobs:
           sudo apt-get install -y g++
           sudo apt-get install -y gfortran
           sudo apt-get install -y cmake
-          
-          cd doc
-          doxygen
-          mv html ../doxygen
-          cd ..
-          
           wget https://heplib.github.io/download/Install.tar.gz
           tar xfv Install.tar.gz
           cd Install
@@ -36,4 +54,3 @@ jobs:
           cd ..
           cmake -DCMAKE_INSTALL_PREFIX=/usr/local/heplib .
           make -j 4
-
