@@ -1,0 +1,33 @@
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+  ubuntu-codecoverage:
+    name: Ubuntu GCC, Code Coverage (x10)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: doxygen
+        env:
+          TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          REF: github.com/${{ github.repository }}.git
+          MYEMAIL: f.feng@outlook.com
+          MYNAME: ${{ github.repository_owner }}          
+        run: |
+          sudo apt-get install -y doxygen
+          cd doc
+          doxygen
+          cd html
+          git config --global user.email "${MYEMAIL}"
+          git config --global user.name "${MYNAME}"
+          git init
+          git remote add origin https://${REF}
+          git add . 
+          git commit -m "Updated By Github Actions With Build ${{github.run_number}} of ${{github.workflow}} For Github Pages"
+          git branch -M master
+          git push --force --quiet "https://${TOKEN}@${REF}" master:gh-pages
+  
