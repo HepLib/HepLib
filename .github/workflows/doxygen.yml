@@ -18,6 +18,7 @@ jobs:
           MYEMAIL: f.feng@outlook.com
           MYNAME: ${{ github.repository_owner }}          
         run: |
+          sudo apt-get install graphviz
           sudo apt-get install -y doxygen
           cd doc
           doxygen
