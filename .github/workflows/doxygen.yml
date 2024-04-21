@@ -25,9 +25,13 @@ jobs:
           git config --global user.email "${MYEMAIL}"
           git config --global user.name "${MYNAME}"
           git init
+          echo ================
+          echo ${REF}
+          echo ================
           git remote add origin https://${REF}
           git add . 
           git commit -m "Updated By Github Actions With Build ${{github.run_number}} of ${{github.workflow}} For Github Pages"
           git branch -M master
+          echo "https://${TOKEN}@${REF}"
           git push --force --quiet "https://${TOKEN}@${REF}" master:gh-pages
   
