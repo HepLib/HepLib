@@ -16,8 +16,8 @@ namespace HepLib::SD {
      */
     void SecDec::CIPrepares(const string & key) {
         if(expResult.size()<1) IsZero = true;
-        
         if(IsZero) return;
+        int rc;
         
         if(Verbose > 0) cout << Color_HighLight << "  CIPrepares @ " << now() << RESET << endl;
         auto pid = getpid();
@@ -180,8 +180,8 @@ namespace HepLib::SD {
                     DDFs[i][j] = collect_common_factors(ddf);
                 }
             }
-
-            if(!dir_exists(to_string(pid))) system(("mkdir -p "+to_string(pid)).c_str());
+            
+            if(!dir_exists(to_string(pid))) auto rc = system(("mkdir -p "+to_string(pid)).c_str());
             ostringstream cppfn, sofn;
             cppfn << pid << "/F" << ft_n << ".cpp";
             sofn << pid << "/F" << ft_n << ".o";
@@ -379,13 +379,13 @@ namespace HepLib::SD {
             
             ostringstream cmd;
             cmd << cpp << " -fPIC -c " << INC_FLAGS << " -o " << sofn.str() << " " << cppfn.str();
-            system(cmd.str().c_str());
+            auto rc = system(cmd.str().c_str());
             
             if(!file_exists(sofn.str().c_str())) {
                 cmd.clear();
                 cmd.str("");
                 cmd << "cp " << sofn.str() << " . ";
-                system(cmd.str().c_str());
+                rc = system(cmd.str().c_str());
             }
             
             return 0;
@@ -403,12 +403,12 @@ namespace HepLib::SD {
             cmd << cpp << " " << LIB_FLAGS <<  " -Wl,-rpath,. -rdynamic -fPIC -shared -lHepLib -lquadmath -lmpfr -lgmp " << " -o " << sofn.str() << " " << pid << "/F*.o";
             cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
             cmd << " 1> /dev/null 2> /dev/null";
-            system(cmd.str().c_str());
+            rc = system(cmd.str().c_str());
             
             cmd.clear();
             cmd.str("");
             cmd << "rm -rf " << pid;
-            if(!Debug) system(cmd.str().c_str());
+            if(!Debug) rc = system(cmd.str().c_str());
         }
 
 
@@ -417,12 +417,12 @@ namespace HepLib::SD {
         if(true) {
             ostringstream cmd;
             if(!dir_exists(to_string(pid))) cmd << "mkdir -p " << pid;
-            system(cmd.str().c_str());
+            rc = system(cmd.str().c_str());
             cmd.clear();
             cmd.str("");
             cmd << "echo ''>" << pid << "/null.cpp;";
             cmd << cpp << " -fPIC -c -o " << pid << "/null.o " << pid << "/null.cpp";
-            system(cmd.str().c_str());
+            rc = system(cmd.str().c_str());
         }
 
         // Prepare Integrand
@@ -442,7 +442,7 @@ namespace HepLib::SD {
             if(xs.size()<1) {
                 ostringstream cmd;
                 cmd << "cp " << pid << "/null.o " << pid << "/" << idx << ".o";
-                system(cmd.str().c_str());
+                auto rc = system(cmd.str().c_str());
                 return lst{ expr.subs(lst{FTX(w1,w2)==1}), xs.size(), kvf.op(0), -1};
             }
             
@@ -492,7 +492,7 @@ namespace HepLib::SD {
                 plRepl.append(PL(i) == Symbol(pl.str()));
             }
             
-            if(!dir_exists(to_string(pid))) system(("mkdir -p "+to_string(pid)).c_str());
+            if(!dir_exists(to_string(pid))) auto rc = system(("mkdir -p "+to_string(pid)).c_str());
             ostringstream cppfn;
             cppfn << pid << "/" << idx << ".cpp";
             std::ofstream ofs;
@@ -1145,7 +1145,7 @@ namespace HepLib::SD {
             ostringstream ofn, cmd;
             ofn << pid << "/" << idx << ".o";
             cmd << cpp << " -fPIC " << INC_FLAGS <<  " -c -o " << ofn.str() << " " << cppfn.str();
-            system(cmd.str().c_str());
+            auto rc = system(cmd.str().c_str());
             if(!Debug) remove(cppfn.str().c_str());
             return lst{ idx, xs.size(), kvf.op(0), ft_n };
         }, "FCI-I");
@@ -1172,7 +1172,7 @@ namespace HepLib::SD {
             cmd.clear();
             cmd.str("");
             cmd << "rm -f " << key << "X*.so";
-            system(cmd.str().c_str());
+            rc = system(cmd.str().c_str());
         } else {
             fsofn << pid << "F.so";
             sofn << pid << ".so";
@@ -1180,7 +1180,7 @@ namespace HepLib::SD {
             cmd.clear();
             cmd.str("");
             cmd << "rm -f " << pid << "X*.so";
-            system(cmd.str().c_str());
+            rc = system(cmd.str().c_str());
         }
         
         int res_size = res.size();
@@ -1193,7 +1193,7 @@ namespace HepLib::SD {
             cmd << " -o " << sofn.str() << " $(seq -f '" << pid << "/%g.o' 0 " << (soLimit-1) << ")";
             cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
             cmd << " 1> /dev/null 2> /dev/null";
-            system(cmd.str().c_str());
+            rc = system(cmd.str().c_str());
             
             for(int n=1; true; n++) {
                 int start = n*soLimit;
@@ -1211,7 +1211,7 @@ namespace HepLib::SD {
                 if(hasF) cmd << " " << fsofn.str();
                 cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
                 cmd << " 1> /dev/null 2> /dev/null";
-                system(cmd.str().c_str());
+                rc = system(cmd.str().c_str());
                 if(end>=res_size-1) break;
             }
         } else {
@@ -1223,13 +1223,13 @@ namespace HepLib::SD {
             if(hasF) cmd << " " << fsofn.str();
             cmd << " -lHepLib -lquadmath -lmpfr -lgmp";
             cmd << " 1> /dev/null 2> /dev/null";
-            system(cmd.str().c_str());
+            rc = system(cmd.str().c_str());
         }
         cmd.clear();
         cmd.str("");
         if(Debug) cmd << "rm -rf " << key << "_debug;mv -f " << pid << " " << key << "_debug;rm -f " << key << "_debug/*.o";
         else cmd << "rm -rf " << pid;
-        system(cmd.str().c_str());
+        rc = system(cmd.str().c_str());
 
     }
     

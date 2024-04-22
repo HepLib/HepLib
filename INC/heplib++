@@ -1,3 +1,7 @@
 #!/usr/bin/env bash
-g++ @INC_FLAGS@ @LIB_FLAGS@ -fopenmp -Wno-deprecated-declarations -lHepLib -lcln -lginac -lqhullstatic_r -lmpfr -ljemalloc $@ -lHepLib -lcln -lginac -lqhullstatic_r -lmpfr -ljemalloc
-#g++ @INC_FLAGS@ @LIB_FLAGS@ -fopenmp -Wno-deprecated-declarations -lHepLib -lcln -lginac -lqhullstatic_r -lmpfr $@ -lHepLib -lcln -lginac -lqhullstatic_r -lmpfr
+hl_dir="$(dirname "$(readlink -f "$0")")" ## install_dir/bin
+hl_dir="$(dirname "$hl_dir")" ## install_dir
+echo $hl_dir
+g++ -I"$hl_dir/include" -Wl,-rpath,"$hl_dir/lib" -L"$hl_dir/lib" @INC_FLAGS@ @LIB_FLAGS@ -fopenmp -Wno-deprecated-declarations -lHepLib -lcln -lginac -lqhullstatic_r -lmpfr -ljemalloc $@ -lHepLib -lcln -lginac -lqhullstatic_r -lmpfr -ljemalloc
+# below without -ljemalloc
+# g++ -I"$hl_dir/include" -Wl,-rpath,"$hl_dir/lib" -L"$hl_dir/lib" @INC_FLAGS@ @LIB_FLAGS@ -fopenmp -Wno-deprecated-declarations -lHepLib -lcln -lginac -lqhullstatic_r -lmpfr $@ -lHepLib -lcln -lginac -lqhullstatic_r -lmpfr

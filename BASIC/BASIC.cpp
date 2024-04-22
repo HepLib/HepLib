@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Basic Functions, extend GiNaC
+ * @brief Basic Functions, extend GiNaC, etc
  */
 
 #include "BASIC.h"
@@ -285,10 +285,11 @@ namespace HepLib {
         if(para_max_run<0) para_max_run = 0;
         if(para_max_run>omp_get_num_procs()) para_max_run = omp_get_num_procs();
         
+        int rc;
         auto ppid = getpid();
         ostringstream cmd;
         cmd << "mkdir -p " << ppid;
-        if(!dir_exists(to_string(ppid))) system(cmd.str().c_str());
+        if(!dir_exists(to_string(ppid))) rc = system(cmd.str().c_str());
         
         int nbatch = GiNaC_Parallel_Batch;
         if(GiNaC_Parallel_NB.find(key)!=GiNaC_Parallel_NB.end()) nbatch = GiNaC_Parallel_NB[key];
@@ -480,7 +481,7 @@ namespace HepLib {
             cmd.clear();
             cmd.str("");
             cmd << "rm -fr " << ppid;
-            system(cmd.str().c_str());
+            rc = system(cmd.str().c_str());
         }
         if(ovec.size() != ntotal) {
             throw Error("GiNaC_Parallel: The output size is wrong!");
@@ -728,6 +729,11 @@ namespace HepLib {
         return oss.str();
     }
     
+    /**
+     * @brief convert 2Dim lst to matrix
+     * @param ls a 2Dim lst
+     * @return the matrix
+     */
     matrix lst2mat(const lst & ls) {
         int nr = ls.nops();
         int nc = ls.op(0).nops();
@@ -773,6 +779,11 @@ namespace HepLib {
         return ostr;
     }
     
+    /**
+     * @brief export string to a file
+     * @param ostr the input string
+     * @param filename output file name
+     */
     void str2file(const string & ostr, string filename) {
         std::ofstream ofs;
         ofs.open(filename, ios::out);
@@ -838,6 +849,12 @@ namespace HepLib {
         ofs.close();
     }
     
+    /**
+     * @brief export expression file
+     * @param filename file name
+     * @param expr the input expression
+     * @return the file content in ex
+     */
     void ex2file(string filename, const ex & expr) {
         ex2file(expr, filename);
     }
@@ -941,6 +958,13 @@ namespace HepLib {
         return xlst(0, ei);
     }
     
+    /**
+     * @brief the series like Mathematica, include s^n
+     * @param expr_in input expression
+     * @param s0 the variable
+     * @param sn0 expanded upto sn0 order, include s0^sn0
+     * @return the corresponding series
+     */
     ex series_ex(ex const & expr_in, ex const &s0, int sn0) {
         static symbol ss;
         return series_ex(expr_in.subs(s0==ss),ss,sn0).subs(ss==s0);
@@ -1244,6 +1268,13 @@ namespace HepLib {
         lst repl = lst{Pi==sPi, Euler==sEuler,iEpsilon==siEpsilon};
         return EvalF(expr.subs(repl));
     }
+    
+    /**
+     * @brief the nuerical evaluation
+     * @param expr input expression
+     * @param digits precision digits
+     * @return the nuerical expression
+     */
     ex NN(ex expr, int digits) {
         set_precision(digits);
         auto nexpr = evalf(expr);

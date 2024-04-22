@@ -43,7 +43,7 @@ namespace HepLib::SD {
         auto pid = getpid();
         ostringstream cmd;
         cmd << "mkdir -p " << pid;
-        if(!dir_exists(to_string(pid))) system(cmd.str().c_str());
+        if(!dir_exists(to_string(pid))) auto rc = system(cmd.str().c_str());
         
         ostringstream fsofn;
         if(key != "") {
@@ -222,7 +222,7 @@ namespace HepLib::SD {
         cmd.clear();
         cmd.str("");
         cmd << "rm -rf " << pid;
-        if(!Debug) system(cmd.str().c_str());
+        if(!Debug) auto rc = system(cmd.str().c_str());
     }
 
 }

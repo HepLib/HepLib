@@ -42,12 +42,12 @@ namespace HepLib {
         
         if(WorkingDir.length()<1) WorkingDir = to_string(getpid())+"IBP";
         string job_dir = WorkingDir + "/" + to_string(ProblemNumber);
-        system(("rm -rf "+job_dir).c_str());
+        auto rc = system(("rm -rf "+job_dir).c_str());
         if(!dir_exists(job_dir)) system(("mkdir -p "+job_dir).c_str());
         
         string config_dir = job_dir + "/config";
-        system(("rm -rf "+config_dir).c_str());
-        if(!dir_exists(config_dir)) system(("mkdir -p "+config_dir).c_str());
+        rc = system(("rm -rf "+config_dir).c_str());
+        if(!dir_exists(config_dir)) rc = system(("mkdir -p "+config_dir).c_str());
         
         ostringstream oss;
         
@@ -218,7 +218,7 @@ namespace HepLib {
         string job_dir = WorkingDir + "/" + to_string(ProblemNumber);
         ostringstream cmd;
         cmd << "cd " << job_dir << " && kira " << KArgs << " --silent job.yaml >/dev/null 2>&1";
-        system(cmd.str().c_str());
+        auto rc = system(cmd.str().c_str());
     }
 
     /**

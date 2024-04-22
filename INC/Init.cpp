@@ -14,8 +14,28 @@
 #include <cstdlib>
 
 #include "cln/cln.h"
+#include <dlfcn.h>
+#include <string.h>
+#include <string>
 
 namespace HepLib {
+
+
+    namespace {
+        string prefix_path() {
+            static string wdir = "";
+            if(wdir == "") {
+                string path;
+                Dl_info dl_info;
+                dladdr((void*)prefix_path, &dl_info);
+                path = dl_info.dli_fname;
+                wdir = path.substr(0, path.find_last_of('/'));
+                path = wdir;
+                wdir = path.substr(0, path.find_last_of('/'));
+            }
+            return wdir;
+        }
+    }
 
     // Initialization Unit
     // to make sure the initialization order is correct,

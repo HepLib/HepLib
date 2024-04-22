@@ -600,7 +600,7 @@ namespace HepLib {
             string_replace_all(sss, "=", " = ");
             string_replace_all(sss, ",", ", ");
             
-            if(!dir_exists(WorkingDir)) system(("mkdir -p " + WorkingDir).c_str());
+            if(!dir_exists(WorkingDir)) auto rc = system(("mkdir -p " + WorkingDir).c_str());
             
             ofstream start_out(WorkingDir+"/"+spn+".start");
             start_out << sss << endl;
@@ -722,8 +722,8 @@ namespace HepLib {
             cmd << "cd " << WorkingDir << " && " << Execute;
             if(Version>5) cmd << " -silent -t1 " << T1 << " -lt1 " << LT1 << " -t2 " << T2 << " -lt2 " << LT2;
             cmd << " -c " << ProblemNumber << " 1>/dev/null 2>&1";
-            system(cmd.str().c_str());
-            system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());
+            auto rc = system(cmd.str().c_str());
+            rc = system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());
             if(file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) break;
             sleep(3);
         }
@@ -865,7 +865,7 @@ namespace HepLib {
                     fire.PIntegral = pis;
                     fire.WorkingDir = WorkingDir + "_C"+to_string(ProblemNumber);
                     fire.Reduce();
-                    system(("rm -rf " + fire.WorkingDir).c_str());
+                    auto rc = system(("rm -rf " + fire.WorkingDir).c_str());
                     
                     auto vis_chk = vis;
                     vis_chk = ex_to<lst>(subs(vis_chk, fire.Rules));

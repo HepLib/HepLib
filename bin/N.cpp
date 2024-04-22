@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
     
     ostringstream cmd;
     cmd << "mkdir -p " << SD_path;
-    system(cmd.str().c_str());
+    auto rc = system(cmd.str().c_str());
     cmd.clear();
     cmd.str("");
     int nmi = 1;
@@ -324,7 +324,7 @@ int main(int argc, char** argv) {
 void ExportNull(const string & prefix) {
     ostringstream cmd;
     cmd << "rm -f " << prefix << "[-.]*";
-    system(cmd.str().c_str());
+    auto rc = system(cmd.str().c_str());
     
     ofstream ofs;
     ofs.open(prefix+".null", ios::out);

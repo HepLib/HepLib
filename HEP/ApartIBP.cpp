@@ -10,8 +10,8 @@ namespace HepLib {
     namespace {
 
         void AIR2F_Save(string save_dir, exvector air_vec, const lst & IntFs, vector<IBP*> &ibp_vec) {
-            system(("mkdir -p "+save_dir+"/AIR2F").c_str());
-            system(("rm -f "+save_dir+"/AIR2F/*.gar > /dev/null").c_str());
+            auto rc = system(("mkdir -p "+save_dir+"/AIR2F").c_str());
+            rc = system(("rm -f "+save_dir+"/AIR2F/*.gar > /dev/null").c_str());
             GiNaC_Parallel(air_vec.size(), [&air_vec,&save_dir](int idx) {
                 garWrite(air_vec[idx], save_dir+"/AIR2F/air-"+to_string(idx)+".gar");
                 return 0;
@@ -109,6 +109,7 @@ namespace HepLib {
     void ApartIBP(exvector &air_vec, AIOption aio) {
         if(aio.smap.size()<1) aio.init_smap();
         int IBPmethod = aio.IBPmethod;
+        int rc;
         
         lst lmom = ex_to<lst>(aio.Internal);
         lst emom = ex_to<lst>(aio.External);
@@ -141,8 +142,8 @@ namespace HepLib {
                 garRead(air_vec, aio.SaveDir+"/AP.gar");
                 if(Verbose > 1) cout << " @ " << now(false) << endl; 
                 goto Apart_Done;
-            } else system(("mkdir -p "+aio.SaveDir).c_str());
-        } 
+            } else rc = system(("mkdir -p "+aio.SaveDir).c_str());
+        }
         
         if(true) {
             int av_size = air_vec.size();
@@ -433,7 +434,7 @@ namespace HepLib {
                 return _F2ex(res);
             }, "F2F");
             for(auto fp : ibp_vec) delete fp;
-            if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
+            if(aio.SaveDir == "") rc = system(("rm -rf "+wdir).c_str());
             return;
         }
 
@@ -526,16 +527,16 @@ namespace HepLib {
                 }
                 //IBP::ReShare(ibp_vec_re);
                 
-                if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
+                if(aio.SaveDir == "") rc = system(("rm -rf "+wdir).c_str());
             } else if(IBPmethod==2 || IBPmethod==3) {
                 for(auto ibp : ibp_vec_re) ibp->Reduce();
-                if(aio.SaveDir == "") system(("rm -rf "+wdir).c_str());
+                if(aio.SaveDir == "") rc = system(("rm -rf "+wdir).c_str());
             }
             
             // Find Rules in MIs
             exmap miRules = FindRules(ibp_vec_re, true, aio.UF).first;
             if(true) { // scope for ret
-                if(aio.SaveDir != "") system(("mkdir -p "+aio.SaveDir+"/Rules").c_str());
+                if(aio.SaveDir != "") rc = system(("mkdir -p "+aio.SaveDir+"/Rules").c_str());
                 auto rules_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&miRules,&aio](int idx)->ex {
                     lst rules = ex_to<lst>(ibp_vec_re[idx]->Rules);
                     lst res;

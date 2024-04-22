@@ -98,8 +98,8 @@ int main(int argc, char **argv) {
         if(!file_exists(si+".start")) continue;
         if(file_exists(si+suffix+".log")) continue;
         if(file_exists(si+suffix+".tables")) continue;
-        system(("touch "+si+suffix+".log").c_str());
-        system(("echo $HOSTNAME > "+si+suffix+".log").c_str());
+        auto rc = system(("touch "+si+suffix+".log").c_str());
+        rc = system(("echo $HOSTNAME > "+si+suffix+".log").c_str());
         
         if(!file_exists(exe)) {
             cout << "exe: " << exe << endl;
@@ -108,8 +108,8 @@ int main(int argc, char **argv) {
         }
         
         if(nolog) system((exe+" -c "+si+options).c_str());
-        else system((exe+" -c "+si+options+" >> "+si+suffix+".log").c_str());
-        system(("dbdir=$(cat "+si+".config | grep database | sed s/'#database '//);test -d $dbdir"+suffix+" && rm -rf $dbdir"+suffix).c_str());
+        else rc = system((exe+" -c "+si+options+" >> "+si+suffix+".log").c_str());
+        rc = system(("dbdir=$(cat "+si+".config | grep database | sed s/'#database '//);test -d $dbdir"+suffix+" && rm -rf $dbdir"+suffix).c_str());
         
         if(file_exists(si+suffix+".log")) remove((si+suffix+".log").c_str());
     }

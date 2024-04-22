@@ -191,7 +191,7 @@ namespace HepLib::SD {
             *nrun = self->MaxPTS + 1979;
             ostringstream cmd;
             cmd << "rm " << fn.str();
-            system(cmd.str().c_str());
+            auto rc = system(cmd.str().c_str());
             if(Verbose>10) cout << "     Exit: " << fn.str() << endl;
         }
     }

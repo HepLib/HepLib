@@ -61,7 +61,7 @@ namespace HepLib::QGRAF {
      * @return Amplitudes for current QGRAF object
      */
     lst Process::Amplitudes(symtab st) {
-        system("rm -f qgraf.dat qgraf.out qgraf.sty qgraf.mod");
+        auto rc = system("rm -f qgraf.dat qgraf.out qgraf.sty qgraf.mod");
         std::ofstream style;
         style.open("qgraf.sty", ios::out);
         style << Style << endl;
@@ -85,8 +85,8 @@ namespace HepLib::QGRAF {
         for(auto vs : Others) ofs << vs << ";" << endl;
         ofs.close();
         
-        if(Debug) system((InstallPrefix+"/bin/qgraf").c_str());
-        else system((InstallPrefix+"/bin/qgraf > /dev/null").c_str());
+        if(Debug) rc = system((InstallPrefix+"/bin/qgraf").c_str());
+        else rc = system((InstallPrefix+"/bin/qgraf > /dev/null").c_str());
         
         ifstream ifs("qgraf.out");
         string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
@@ -163,11 +163,11 @@ namespace HepLib::QGRAF {
      * @return nonthing, check pdf file
      */
     void DrawPDF(const lst & amps, string fn) {
-        int id=0;
+        int id=0, rc;
         exvector amp_vec;
         for(auto item : amps) amp_vec.push_back(item);
         string tex_path = to_string(getpid()) + "_TeX/";
-        if(!dir_exists(tex_path)) system(("mkdir -p "+tex_path).c_str());
+        if(!dir_exists(tex_path)) rc = system(("mkdir -p "+tex_path).c_str());
         int limit = 300;
         
         GiNaC_Parallel(amp_vec.size(), [&amp_vec,tex_path](int idx)->ex {
@@ -231,7 +231,7 @@ namespace HepLib::QGRAF {
             out << "};" << endl;
             out << "\\end{document}" << endl;
             out.close();
-            system(("cd "+tex_path+" && echo X | lualatex " + to_string(idx) + " 1>/dev/null").c_str());
+            auto rc = system(("cd "+tex_path+" && echo X | lualatex " + to_string(idx) + " 1>/dev/null").c_str());
             return 0;
         }, "TeX");
         
@@ -270,9 +270,9 @@ namespace HepLib::QGRAF {
         out << "\\end{adjustbox}" << endl;
         out << "\\end{document}" << endl;
         out.close();
-        if(Debug)  system(("cd "+tex_path+" && pdflatex diagram && mv diagram.pdf ../"+fn).c_str());
-        else system(("cd "+tex_path+" && echo X | pdflatex diagram 1>/dev/null && mv diagram.pdf ../"+fn).c_str());
-        if(!Debug) system(("rm -r "+tex_path).c_str());
+        if(Debug) rc = system(("cd "+tex_path+" && pdflatex diagram && mv diagram.pdf ../"+fn).c_str());
+        else rc = system(("cd "+tex_path+" && echo X | pdflatex diagram 1>/dev/null && mv diagram.pdf ../"+fn).c_str());
+        if(!Debug) rc = system(("rm -r "+tex_path).c_str());
     }
     
     /**
@@ -760,7 +760,10 @@ namespace HepLib::QGRAF {
         
         static Symbol CW("CW"); // cos(theta)
         static Symbol SW("SW"); // sin(theta)
-        static Symbol C2W("C2W"); // cos(2theta)
+        //static Symbol C2W("C2W"); // cos(2theta)
+        static ex CW2 = CW*CW;
+        static ex SW2 = SW*SW;
+        static ex C2W = CW2-SW2;
         
         static Symbol U("U"); // U-quark
         static Symbol Ubar("Ubar"); // anti U-quark
@@ -836,8 +839,6 @@ namespace HepLib::QGRAF {
         static ex MZ2 = MZ*MZ;
         static ex MH2 = MH*MH;
         static ex GEW2 = GEW*GEW;
-        static ex CW2 = CW*CW;
-        static ex SW2 = SW*SW;
         static ex sqrt2 = sqrt(ex(2));
         
         map<string,ex> T3;
