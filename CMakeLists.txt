@@ -1,4 +1,4 @@
-# usage 
+# usage, with p0 is a directory, so are p1,p2,...
 # cmake -DCMAKE_INSTALL_PREFIX=p0 -DINC_PATH="p1;p2" -DLIB_PATH="p3;p4" path
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
@@ -83,7 +83,7 @@ AUX_SOURCE_DIRECTORY("${CMAKE_CURRENT_BINARY_DIR}/OINC" OINC_SRCS)
 # install library HepLib
 #-----------------------------------------------
 ADD_LIBRARY(HepLib SHARED ${BASIC_SRCS} ${HEP_SRCS} ${QGRAF_SRCS} ${QCD_SRCS} ${IBP_SRCS} ${SD_SRCS} ${DE_SRCS} ${AMF_SRCS} ${EX_SRCS} ${OINC_SRCS} ${MPQ_SRCS})
-SET_TARGET_PROPERTIES(HepLib PROPERTIES INSTALL_RPATH "${LIB_PATH}")
+SET_TARGET_PROPERTIES(HepLib PROPERTIES INSTALL_RPATH "$ORIGIN;${LIB_PATH}")
 INSTALL(TARGETS HepLib DESTINATION lib)
 
 #-----------------------------------------------
@@ -128,7 +128,7 @@ FILE(GLOB cpp_files "bin/*.cpp")
 FOREACH(exe_cpp ${cpp_files})
     GET_FILENAME_COMPONENT(exe ${exe_cpp} NAME_WE)
     ADD_EXECUTABLE(${exe} bin/${exe}.cpp)
-    SET_TARGET_PROPERTIES(${exe} PROPERTIES INSTALL_RPATH "${LIB_PATH}")
+    SET_TARGET_PROPERTIES(${exe} PROPERTIES INSTALL_RPATH "$ORIGIN/../lib;${LIB_PATH}")
     TARGET_LINK_LIBRARIES(${exe} HepLib)
     INSTALL(TARGETS ${exe} DESTINATION bin)
 ENDFOREACH()

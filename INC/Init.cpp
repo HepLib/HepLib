@@ -22,12 +22,12 @@ namespace HepLib {
 
 
     namespace {
-        string prefix_path() {
+        string install_prefix() {
             static string wdir = "";
             if(wdir == "") {
                 string path;
                 Dl_info dl_info;
-                dladdr((void*)prefix_path, &dl_info);
+                dladdr((void*)install_prefix, &dl_info);
                 path = dl_info.dli_fname;
                 wdir = path.substr(0, path.find_last_of('/'));
                 path = wdir;
@@ -155,7 +155,7 @@ namespace HepLib {
     
     MMAFormat mout(cout);
     
-    string InstallPrefix = "@CMAKE_INSTALL_PREFIX@";
+    string InstallPrefix = install_prefix();
     string INC_FLAGS = "@INC_FLAGS@";
     string LIB_FLAGS = "@LIB_FLAGS@";
     
