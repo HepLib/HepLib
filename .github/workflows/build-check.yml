@@ -13,10 +13,6 @@ jobs:
       - name: "build check"
         run: |
           ls
-          sudo apt-get update
-          sudo apt-get install wget
-          sudo apt-get install gcc
-          sudo apt-get install g++
           wget https://github.com/HepLib/download/raw/main/usr.tar.gz
           echo Step 1
           ls
