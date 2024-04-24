@@ -13,20 +13,7 @@ jobs:
       - name: "build check"
         run: |
           sudo apt-get update
-          sudo apt-get install -y doxygen
-          sudo apt-get install -y fig2dev
-          sudo apt-get install -y texinfo
-          sudo apt-get install -y libcln-dev
-          sudo apt-get install -y byacc
-          sudo apt-get install -y g++
-          sudo apt-get install -y gfortran
-          sudo apt-get install -y cmake
-          wget https://heplib.github.io/download/Install.tar.gz
-          tar xfv Install.tar.gz
-          cd Install
-          sudo mkdir /usr/local/heplib
-          sudo chmod a+rwx /usr/local/heplib
-          INSTALL_PATH=/usr/local/heplib jn=4 ./install.sh
-          cd ..
-          cmake -DCMAKE_INSTALL_PREFIX=/usr/local/heplib .
+          wget https://github.com/HepLib/download/raw/main/usr.tar.gz
+          tar zxfv usr.tar.gz
+          cmake -DCMAKE_INSTALL_PREFIX=$PWD/usr .
           make -j 4
