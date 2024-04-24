@@ -13,7 +13,14 @@ jobs:
       - name: "build check"
         run: |
           sudo apt-get update
+          sudo apt-get install wget
+          sudo apt-get install gcc
+          sudo apt-get install g++
           wget https://github.com/HepLib/download/raw/main/usr.tar.gz
+          echo Step 1
+          ls
           tar zxfv usr.tar.gz
+          echo Step 2
+          ls
           cmake -DCMAKE_INSTALL_PREFIX=$PWD/usr .
           make -j 4
