@@ -156,14 +156,14 @@ namespace HepLib {
     MMAFormat mout(cout);
     
     string InstallPrefix = install_prefix();
-    string INC_FLAGS = "@INC_FLAGS@";
-    string LIB_FLAGS = "@LIB_FLAGS@";
+    string INC_FLAGS = "-I'"+InstallPrefix+"/include' " + "@INC_FLAGS@";
+    string LIB_FLAGS = "-L'"+InstallPrefix+"/lib' -Wl,-rpath,'"+InstallPrefix+"'/lib " + "@LIB_FLAGS@";
     
     int Fermat::buffer_size = 1024*128;
     int Form::buffer_size = 1024*128;
 
     bool SD::SecDec::use_dlclose = true;
-    string SD::SecDec::cpp = "g++";
+    string SD::SecDec::cpp = "g++ -w";
     
     SD::CppFormat::_init::_init() {
         set_print_func<numeric, CppFormat>(CppFormat::print_numeric);

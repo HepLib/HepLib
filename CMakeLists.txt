@@ -1,5 +1,8 @@
-# usage, with p0 is a directory, so are p1,p2,...
+# usage:
 # cmake -DCMAKE_INSTALL_PREFIX=p0 -DINC_PATH="p1;p2" -DLIB_PATH="p3;p4" path
+#  p0 is the directory where HepLib will be installed
+#  if the required libraries[ CLN/GiNaC/Flint etc] are not installed to p0,
+#  one need to set p1/p3 the corresponding include and lib path
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
 SET(CMAKE_C_COMPILER gcc)
