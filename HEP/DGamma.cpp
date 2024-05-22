@@ -115,6 +115,11 @@ namespace HepLib {
         if(is_zero(pi-1)) {
             c.s << "\u0130";
             return;
+        } else if(is_zero(pi-5) || is_zero(pi-6) || is_zero(pi-7)) {
+            c.s << "\u0263";
+            if(is_a<numeric>(pi)) c.s << pi;
+            else c.s << "." << pi;
+            return;
         }
         c.s << "(" << "\u0263";
         if(is_a<numeric>(pi)) c.s << pi;

@@ -40,13 +40,15 @@ namespace HepLib {
         
     }
     
-    ex UnContract(const ex expr, const lst &loop_ps, int mode) {
+    ex UnContract(const ex expr, const lst &loop_ps, const lst &ext_ps) {
         // handle Eps/DGamma/Pair and related power
         int lproj = 0;
-        return MapFunction([&lproj,loop_ps,mode](const ex &e, MapFunction &self)->ex {
+        return MapFunction([&lproj,loop_ps,ext_ps](const ex &e, MapFunction &self)->ex {
             string prefix = "dmi";
+            int mode = 0;
+            if(ext_ps.nops()>0) mode = 1;
             if(!Eps::has(e) && !DGamma::has(e) && (mode==0 || !Pair::has(e))) return e;
-            else if(mode==1 && is_a<Pair>(e)) {
+            else if(mode==1 && is_a<Pair>(e) && has_any(e,loop_ps) && has_any(e,ext_ps)) {
                 Index idx(prefix+to_string(++lproj));
                 auto p = ex_to<Pair>(e);
                 return SP(p.op(0), idx) * SP(p.op(1), idx);
@@ -122,7 +124,7 @@ namespace HepLib {
         int &v_max = fermat.vmax;
         static exmap cache_map;
         
-        auto expr = UnContract(expr_in, loop_ps, 0); // UnContract
+        auto expr = UnContract(expr_in, loop_ps); // UnContract
         auto cvs = collect_lst(expr, [&loop_ps](const ex & e)->bool{
             if(!Index::hasv(e)) return false;
             for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) {

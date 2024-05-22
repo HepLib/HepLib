@@ -720,7 +720,10 @@ namespace HepLib {
             tried++;
             ostringstream cmd;
             cmd << "cd " << WorkingDir << " && " << Execute;
-            if(Version>5) cmd << " -silent -t1 " << T1 << " -lt1 " << LT1 << " -t2 " << T2 << " -lt2 " << LT2;
+            if(Version>5) {
+                if(opt=="") cmd << " -silent -t " << T1 << "," << T2 << " -lt " << LT1 << "," << LT2;
+                else cmd << " " << opt;
+            }
             cmd << " -c " << ProblemNumber << " 1>/dev/null 2>&1";
             auto rc = system(cmd.str().c_str());
             rc = system(("rm -rf "+WorkingDir+"/db"+to_string(ProblemNumber)).c_str());

@@ -106,6 +106,7 @@ namespace HepLib {
     private:
         static GiNaC::registered_class_info reg_info;
     public:
+        static GiNaC::exmap Dimension;
         static GiNaC::registered_class_info &get_class_info_static();
         class visitor {
         public:
@@ -497,7 +498,7 @@ namespace HepLib {
     // Form, TIR, Apart
     ex charge_conjugate(const ex &);
     ex form(const ex &expr, int verb=0);
-    ex UnContract(const ex expr, const lst &loop_ps, int mode=0); // 0-Eps/DGamma, 1-Eps/DGamma/Pair
+    ex UnContract(const ex expr, const lst &loop_ps, const lst &ext_ps=lst{}); // Eps/DGamma always uncontract
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex MatrixContract(const ex & expr_in);
     ex Apart(const matrix & mat);

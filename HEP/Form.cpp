@@ -214,6 +214,15 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         FormFormat ff(ss);
         ff << ".store" << endl;
         symtab st;
+        if(sym_lst.nops()>0) {
+            ff << "Symbols";
+            for(auto sx : sym_lst) {
+                auto s = ex_to<symbol>(sx);
+                ff << " " << s.get_name();
+                st[s.get_name()] = sx;
+            }
+            ff << ";" << endl;
+        }
         if(vec_lst.nops()>0) {
             ff << "Vectors";
             for(auto vx : vec_lst) {
@@ -235,6 +244,8 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                 auto i = ex_to<Index>(ix);
                 ff << " " << i;
                 st[i.name.get_name()] = i;
+                auto itr = Index::Dimension.find(ix);
+                if(itr!=Index::Dimension.end()) ff << "=" << itr->second;
             }
             ff << ";" << endl;
         }
@@ -245,6 +256,8 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                 auto i = ex_to<Index>(ix);
                 ff << " " << i;
                 st[i.name.get_name()] = i;
+                auto itr = Index::Dimension.find(ix);
+                if(itr!=Index::Dimension.end()) ff << "=" << itr->second;
             }
             ff << ";" << endl;
         }
@@ -255,15 +268,8 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                 auto i = ex_to<Index>(ix);
                 ff << " " << i;
                 st[i.name.get_name()] = i;
-            }
-            ff << ";" << endl;
-        }
-        if(sym_lst.nops()>0) {
-            ff << "Symbols";
-            for(auto sx : sym_lst) {
-                auto s = ex_to<symbol>(sx);
-                ff << " " << s.get_name();
-                st[s.get_name()] = sx;
+                auto itr = Index::Dimension.find(ix);
+                if(itr!=Index::Dimension.end()) ff << "=" << itr->second;
             }
             ff << ";" << endl;
         }
@@ -286,6 +292,14 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         for(auto it : expr_lst) {
             ff << ".store" << endl;
             ex item = it;
+            item = MapFunction([](const ex & e, MapFunction &self)->ex{
+                if(!e.has(TR(w))) return e;
+                else if(e.match(TR(w))) {
+                    ex nd = e.op(0).normal().numer_denom();
+                    return TR(nd.op(0))/nd.op(1);
+                } else return e.map(self);
+            })(item);
+            item = normal(item);
             // pull out global common factor
             item = collect_common_factors(item);
             item = CoPat(item,[](const ex &e)->bool{return Index::has(e) || DGamma::has(e) || Eps::has(e);});
@@ -360,8 +374,10 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                         ff << ".sort" << endl;
                         if(form_using_dim4) ff << "Dimension 4;" << endl;
                         else ff << "Dimension d;" << endl;
-                        ff << "Indices g5j1, g5j2, g5j3, g5j4;" << endl;
-                        ff << "id g_(" << gl << ",5_) = e_(g5j1,g5j2,g5j3,g5j4)*g_(" << gl << ",g5j1,g5j2,g5j3,g5j4)/24;" << endl;
+                        ff << "Indices [g5_i1], [g5_i2], [g5_i3], [g5_i4];" << endl;
+                        ff << "id g_(" << gl << ",5_) = e_([g5_i1],[g5_i2],[g5_i3],[g5_i4])*g_(" << gl << ",[g5_i1],[g5_i2],[g5_i3],[g5_i4])/24;" << endl;
+                        ff << "sum [g5_i1],[g5_i2],[g5_i3],[g5_i4];" << endl;
+                        ff << ".sort" << endl;
                     }
                     if(form_using_dim4) ff << "trace4 " << gl << ";" << endl;
                     else ff << "tracen " << gl << ";" << endl;
@@ -378,15 +394,16 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                     trvec.push_back(tri);
                     trn++;
                 }
-                item = item.subs(tr2v); 
+                item = item.subs(tr2v);
                 for(int i=0; i<trvec.size(); i++) {
                     ff << "L [tr" << i << "]=" << trvec[i] << ";" << endl;
                     if(form_using_gamma5) {
                         ff << ".sort" << endl;
                         if(form_using_dim4) ff << "Dimension 4;" << endl;
                         else ff << "Dimension d;" << endl;
-                        ff << "Indices g5j1, g5j2, g5j3, g5j4;" << endl;
-                        ff << "id g_(" << gid << ",5_) = e_(g5j1,g5j2,g5j3,g5j4)*g_(" << gid << ",g5j1,g5j2,g5j3,g5j4)/24;" << endl;
+                        ff << "Indices [g5_i1], [g5_i2], [g5_i3], [g5_i4];" << endl;
+                        ff << "id g_(" << gid << ",5_) = e_([g5_i1],[g5_i2],[g5_i3],[g5_i4])*g_(" << gid << ",[g5_i1],[g5_i2],[g5_i3],[g5_i4])/24;" << endl;
+                        ff << "sum [g5_i1],[g5_i2],[g5_i3],[g5_i4];" << endl;
                     }
                     if(form_using_dim4) ff << "trace4 " << gid << ";" << endl;
                     else ff << "tracen " << gid << ";" << endl;
@@ -432,8 +449,9 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                         ff << ".sort" << endl;
                         if(form_using_dim4) ff << "Dimension 4;" << endl;
                         else ff << "Dimension d;" << endl;
-                        ff << "Indices g5j1, g5j2, g5j3, g5j4;" << endl;
-                        ff << "id g_(" << gid << ",5_) = e_(g5j1,g5j2,g5j3,g5j4)*g_(" << gid << ",g5j1,g5j2,g5j3,g5j4)/24;" << endl;
+                        ff << "Indices [g5_i1], [g5_i2], [g5_i3], [g5_i4];" << endl;
+                        ff << "id g_(" << gid << ",5_) = e_([g5_i1],[g5_i2],[g5_i3],[g5_i4])*g_(" << gid << ",[g5_i1],[g5_i2],[g5_i3],[g5_i4])/24;" << endl;
+                        ff << "sum [g5_i1],[g5_i2],[g5_i3],[g5_i4];" << endl;
                     }
                     if(form_using_dim4) ff << "trace4 " << gid << ";" << endl;
                     else ff << "tracen " << gid << ";" << endl;

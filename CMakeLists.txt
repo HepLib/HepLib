@@ -70,7 +70,7 @@ CONFIGURE_FILE(INC/Init.cpp "${CMAKE_CURRENT_BINARY_DIR}/OINC/Init.cpp" @ONLY)
 CONFIGURE_FILE(INC/heplib++ "${CMAKE_CURRENT_BINARY_DIR}/OINC/heplib++" @ONLY)
  
 #-----------------------------------------------
-PROJECT(HepLib VERSION 1.0 LANGUAGES C CXX Fortran)
+PROJECT(HepLib VERSION 1.5 LANGUAGES C CXX Fortran)
 AUX_SOURCE_DIRECTORY(BASIC BASIC_SRCS)
 AUX_SOURCE_DIRECTORY(SD SD_SRCS)
 AUX_SOURCE_DIRECTORY(DE DE_SRCS)
@@ -143,8 +143,8 @@ INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/OINC/heplib++" DESTINATION "bin"
 #-----------------------------------------------
 # OpenMP support
 #-----------------------------------------------
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -Wno-deprecated-declarations")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Wno-deprecated-declarations")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w -fopenmp")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -fopenmp")
 
 #-----------------------------------------------
 # Command Line Tools 15.0 - bug work around

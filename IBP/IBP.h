@@ -76,6 +76,7 @@ namespace HepLib {
         int LT1 = 2;
         int T2 = 4;
         int LT2 = 2;
+        string opt = "";
         string Execute = InstallPrefix + "/FIRE/M/FIRE";
         exmap NVariables;
         static int Version;
