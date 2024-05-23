@@ -101,18 +101,21 @@ namespace HepLib {
     }
     
     /**
-     * @brief LC in FORM format
+     * @brief Eps in FORM format
+     * https://onlinelibrary.wiley.com/doi/pdf/10.1002/9783527630097.app3
      * to make Tr(g5, g1, g2, g3, g4) is the same in both HepLib & FORM, require that
-     * LC(a,b,c,d) = i_ * e_(a,b,c,d) ( we use the convention as in FeynCalc, Tr[5,1,2,3,4]=(- i) 4 LC[1,2,3,4])
-     * LC is real in HepLib, while e_ is imaginary in FORM.
+     * Eps(a,b,c,d) = i_ * e_(a,b,c,d) (we use the convention as in FeynCalc, Tr[5,a,b,c,d]=(- i) 4 Eps(a,b,c,d)=4 eps_(a,b,c,d)), and Eps^{0123}=+1, and g5=i g^{0123}=(-i) Eps(a,b,c,d) gamma(a,b,c,d)/4!
+     * Eps is real in HepLib, while e_ is imaginary in FORM.
      * @param c the FormFormat
      * @param level the level
      */
     void Eps::form_print(const FormFormat &c, unsigned level) const {
         int n = pis.size();
-        c << "(i_*e_(";
+        if(n==4) c << "(i_*"; // only multiple i for gamma5
+        c << "e_(";
         for(int i=0; i<n-1; i++) c << pis[i] << ",";
-        c << pis[n-1] << "))";
+        c << pis[n-1] << ")";
+        if(n==4) c << ")";
     }
     
     void Eps::fc_print(const FCFormat &c, unsigned level) const {

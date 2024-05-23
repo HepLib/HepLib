@@ -17,7 +17,8 @@ namespace HepLib {
         }
         
         alignas(2) static ex LC_reader(const exvector& ev) {
-            return (-I)*LC(ev[0], ev[1], ev[2], ev[3]);
+            if(ev.size()==4) return (-I)*LC(ev[0], ev[1], ev[2], ev[3]);
+            else return Eps(ev);
         }
         
         alignas(2) static ex SUNT_reader(const exvector& ev) {
@@ -299,7 +300,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
                     return TR(nd.op(0))/nd.op(1);
                 } else return e.map(self);
             })(item);
-            item = normal(item);
+            item = normal(item); // TODO: normal
             // pull out global common factor
             item = collect_common_factors(item);
             item = CoPat(item,[](const ex &e)->bool{return Index::has(e) || DGamma::has(e) || Eps::has(e);});
