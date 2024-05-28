@@ -1,0 +1,25 @@
+<map id="/home/runner/work/HepLib/HepLib/SD/SD.h" name="/home/runner/work/HepLib/HepLib/SD/SD.h">
+<area shape="rect" id="node1" title="SecDec header file." alt="" coords="2313,5,2508,47"/>
+<area shape="rect" id="node2" href="$AsyMB_8cpp.html" title="Functions to do Asy." alt="" coords="5,95,200,136"/>
+<area shape="rect" id="node3" href="$ChengWu_8cpp.html" title="Functions to use Cheng&#45;Wu theorem to make F&#45;term positive." alt="" coords="224,95,419,136"/>
+<area shape="rect" id="node4" href="$CIPrepares_8cpp.html" title="Functions for Contour/Integration Preparation." alt="" coords="443,95,637,136"/>
+<area shape="rect" id="node5" href="$Contours_8cpp.html" title="Functions for Contour Deformation." alt="" coords="661,95,856,136"/>
+<area shape="rect" id="node6" href="$CppFormat_8cpp.html" title="Format for C++ code." alt="" coords="880,95,1075,136"/>
+<area shape="rect" id="node7" href="$cseParser_8cpp.html" title="Functions for C++ code generation for Numerical Integration." alt="" coords="1099,95,1293,136"/>
+<area shape="rect" id="node8" href="$ErrMin_8cpp.html" title="Functions for Fine Tunning of lambda." alt="" coords="1317,95,1512,136"/>
+<area shape="rect" id="node9" href="$ExFormat_8cpp.html" title="Format for C++ code." alt="" coords="1536,95,1731,136"/>
+<area shape="rect" id="node10" href="$SD_2Functions_8cpp.html" title="Functions for SD." alt="" coords="1755,95,1949,136"/>
+<area shape="rect" id="node11" href="$HCubature_8cpp.html" title="Numerical Integrator using HCubature." alt="" coords="1973,95,2168,136"/>
+<area shape="rect" id="node12" href="$HCubatureMP_8cpp.html" title="Numerical Integrator using HCubature." alt="" coords="2192,95,2403,136"/>
+<area shape="rect" id="node13" href="$Helpers_8cpp.html" title="Helpers Functions for SD." alt="" coords="2427,95,2621,136"/>
+<area shape="rect" id="node14" href="$HookeJeeves_8cpp.html" title="HookeJeeves to find a minimum." alt="" coords="2645,95,2853,136"/>
+<area shape="rect" id="node15" href="$InitEval_8cpp.html" title="Functions for Initialize and Evaluate." alt="" coords="2877,95,3072,136"/>
+<area shape="rect" id="node16" href="$Integrates_8cpp.html" title="Functions for Numerical Integration." alt="" coords="3096,95,3291,136"/>
+<area shape="rect" id="node17" href="$KillPowers_8cpp.html" title="Functions to Kill terms like (a xi &#45; b xj )^n." alt="" coords="3315,95,3509,136"/>
+<area shape="rect" id="node18" href="$QuadMP_8cpp.html" title="Numerical Integrator using QuadMP." alt="" coords="3533,95,3728,136"/>
+<area shape="rect" id="node19" href="$SecDec_8cpp.html" title="Basic Functions for SecDec." alt="" coords="3752,95,3947,136"/>
+<area shape="rect" id="node20" href="$SecDecG_8cpp.html" title="SecDec using Geometric method." alt="" coords="3971,95,4165,136"/>
+<area shape="rect" id="node21" href="$TanhSinhMP_8cpp.html" title="Numerical Integrator using TanhSinhMP." alt="" coords="4189,95,4389,136"/>
+<area shape="rect" id="node22" href="$HepLib_8h.html" title="HepLib header file, include all *.h in HepLib." alt="" coords="4413,95,4608,136"/>
+<area shape="rect" id="node23" href="$Init_8cpp.html" title="Initailization for global objects." alt="" coords="4632,95,4827,136"/>
+</map>
