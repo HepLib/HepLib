@@ -4,6 +4,7 @@
  */
  
 #include "BASIC.h"
+#include "ginac/parse_context.h"
 
 namespace HepLib {
     
@@ -50,24 +51,8 @@ namespace HepLib {
     /*-----------------------------------------------------*/
     // Parser Class
     /*-----------------------------------------------------*/
-    // copy from GiNaC parser, note the alignas(2)
+    // copy from GiNaC parser
     namespace {
-        alignas(2) static ex sqrt_reader(const exvector& ev) {
-            return GiNaC::sqrt(ev[0]);
-        }
-
-        alignas(2) static ex pow_reader(const exvector& ev) {
-            return GiNaC::pow(ev[0], ev[1]);
-        }
-
-        alignas(2) static ex power_reader(const exvector& ev) {
-            return GiNaC::power(ev[0], ev[1]);
-        }
-
-        alignas(2) static ex lst_reader(const exvector& ev) {
-            return GiNaC::lst(ev.begin(), ev.end());
-        }
-    
         class functions_hack : public GiNaC::function {
         public:
             static const std::vector<function_options>& get_registered_functions() {
@@ -75,11 +60,20 @@ namespace HepLib {
             }
         };
         
-        static reader_func encode_serial_as_reader_func(unsigned serial) {
-            uintptr_t u = (uintptr_t)serial;
-            u = (u << 1) | (uintptr_t)1;
-            reader_func ptr = (reader_func)((void *)u);
-            return ptr;
+        static ex sqrt_reader(const exvector& ev) {
+            return GiNaC::sqrt(ev[0]);
+        }
+
+        static ex pow_reader(const exvector& ev) {
+            return GiNaC::pow(ev[0], ev[1]);
+        }
+
+        static ex power_reader(const exvector& ev) {
+            return GiNaC::power(ev[0], ev[1]);
+        }
+
+        static ex lst_reader(const exvector& ev) {
+            return GiNaC::lst(ev.begin(), ev.end());
         }
         
         const prototype_table& ginac_reader() {
@@ -87,10 +81,10 @@ namespace HepLib {
             static bool initialized = false;
             static prototype_table reader;
             if (!initialized) {
-                reader[make_pair("sqrt", 1)] = sqrt_reader;
-                reader[make_pair("pow", 2)] = pow_reader;
-                reader[make_pair("power", 2)] = power_reader;
-                reader[make_pair("lst", 0)] = lst_reader;
+                reader.insert({{"sqrt", 1}, reader_func(sqrt_reader)});
+                reader.insert({{"pow", 2}, reader_func(pow_reader)});
+                reader.insert({{"power", 2}, reader_func(power_reader)});
+                reader.insert({{"lst", 0}, reader_func(lst_reader)});
                 enum { log, exp, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh, atanh, atan2,
                         Li2, Li3, zetaderiv, Li, S, H, lgamma, tgamma, beta, factorial, binomial, Order,
                         NFUNCTIONS
@@ -98,8 +92,7 @@ namespace HepLib {
                 auto it = functions_hack::get_registered_functions().begin();
                 unsigned serial = 0;
                 for ( ; serial<NFUNCTIONS; ++it, ++serial ) {
-                    prototype proto = make_pair(it->get_name(), it->get_nparams());
-                    reader[proto] = encode_serial_as_reader_func(serial);
+                    reader.insert({{it->get_name(), it->get_nparams()}, reader_func(serial)});
                 }
                 initialized = true;
             }
@@ -120,8 +113,7 @@ namespace HepLib {
         string_replace_all(instr, "==", "=");
         unsigned serial = 0;
         for (auto & it : functions_hack::get_registered_functions()) {
-            prototype proto = make_pair(it.get_name(), it.get_nparams());
-            FTable[proto] = encode_serial_as_reader_func(serial);
+            FTable.insert({{it.get_name(), it.get_nparams()}, reader_func(serial)});
             ++serial;
         }
         parser ginac_parser(STable, false, FTable);

@@ -816,7 +816,7 @@ namespace HepLib {
     ex _factor_(const lst & xs, fmpz_mpoly_t fp, fmpz_mpoly_ctx_t ctx) {
         fmpz_mpoly_factor_t fs;
         fmpz_mpoly_factor_init(fs, ctx);
-        if(!fmpz_mpoly_factor(fs, fp, ctx)) {
+        if(!fmpz_mpoly_factor_zassenhaus(fs, fp, ctx)) { // or use fmpz_poly_factor
             flint_abort();
             throw Error("fmpz_mpoly_factor failed.");
         }

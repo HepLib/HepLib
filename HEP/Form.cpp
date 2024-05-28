@@ -4,6 +4,7 @@
  */
  
 #include "HEP.h"
+#include "ginac/parse_context.h"
 
 namespace HepLib {
 
@@ -540,14 +541,14 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         st["i_"] = I;
 
         Parser fp(st);
-        fp.FTable[make_pair("SP", 2)] = SP_reader;
-        fp.FTable[make_pair("LC", 4)] = LC_reader;
-        fp.FTable[make_pair("Matrix", 3)] = Matrix_reader;
-        for(int i=1; i<30; i++) fp.FTable[make_pair("T", i)] = SUNT_reader;
-        for(int i=1; i<30; i++) fp.FTable[make_pair("TTRX", i)] = TTR_reader;
-        for(int i=1; i<30; i++) fp.FTable[make_pair("DG", i)] = DGamma_reader;
-        fp.FTable[make_pair("GI", 0)] = gi_reader;
-        fp.FTable[make_pair("GI", 1)] = gi_reader;
+        fp.FTable.insert({{"SP", 2}, reader_func(SP_reader)});
+        fp.FTable.insert({{"LC", 4}, reader_func(LC_reader)});
+        fp.FTable.insert({{"Matrix", 3}, reader_func(Matrix_reader)});
+        for(int i=1; i<30; i++) fp.FTable.insert({{"T", i}, reader_func(SUNT_reader)});
+        for(int i=1; i<30; i++) fp.FTable.insert({{"TTRX", i},  reader_func(TTR_reader)});
+        for(int i=1; i<30; i++) fp.FTable.insert({{"DG", i}, reader_func(DGamma_reader)});
+        fp.FTable.insert({{"GI", 0}, reader_func(gi_reader)});
+        fp.FTable.insert({{"GI", 1}, reader_func(gi_reader)});
         ex ret = fp.Read(ostr);
         if(!islst) ret = ret.op(0);
         return ret;
