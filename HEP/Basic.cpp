@@ -768,7 +768,7 @@ namespace HepLib {
         MapFunction inner_expand([&](const ex & e, MapFunction & self)->ex {
             if(!e.has(GMat(w1,w2,w3))) return e;
             else if(e.match(GMat(w1,w2,w3))) {
-                auto e0 = ncmul_expand(e.op(0));
+                auto e0 = e.op(0);
                 if(is_a<add>(e0)) {
                     ex res = 0;
                     for(auto item : e0) res += GMatExpand(GMat(item, e.op(1), e.op(2)));
@@ -838,17 +838,17 @@ namespace HepLib {
                                             else throw Error("GMatExpand: only GAS(i/p/1/5) supported.");
                                             to_exit = false; // need to cycle again
                                         } else {
-                                            if(last!=GAS(1)) vv = vv * last;
+                                            if(last!=GAS(1) && !last.is_equal(1)) vv = vv * last;
                                             last = vi;
                                         }
                                     }
                                 }
-                                if(!last.is_equal(1) && last!=GAS(1)) vv = vv * last; // check last item
-                                if(vv.is_equal(1)) v = GAS(1); // identity matrix
+                                if(!last.is_equal(1) && last!=GAS(1)) v = vv * last; // check last item
                                 else v = vv;
                             }
                             if(to_exit) break;
                         }
+                        if(v.is_equal(1)) v = GAS(1); // identity matrix
                         res += c * GMat(v, e.op(1), e.op(2));
                     }
                     return res;
@@ -887,6 +887,7 @@ namespace HepLib {
                 }
                 if(eg.op(gi).is_equal(eg.op(gj))) {
                     ex ip = eg.op(gi).op(0);
+                    if(rem.is_equal(1)) rem = GAS(1);
                     ex res = GMat(rem, e.op(1), e.op(2));
                     res = GMatShift(res, g, to_right);
                     ex c;
@@ -895,6 +896,8 @@ namespace HepLib {
                     else throw Error("GMatShift: only GAS(i/p) supproted.");
                     return c * res;
                 }
+                if(rem.is_equal(1)) rem = GAS(1);
+                if(rem2.is_equal(1)) rem2 = GAS(1);
                 ex res = 2*SP(eg.op(gi).op(0), eg.op(gj).op(0)) * GMat(rem, e.op(1), e.op(2));
                 res = res - GMat(rem2, e.op(1), e.op(2));
                 return GMatShift(res, g, to_right);
