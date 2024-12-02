@@ -1,0 +1,7 @@
+<map id="HepLib::SD::IntegratorBase" name="HepLib::SD::IntegratorBase">
+<area shape="rect" id="node1" title="base for numerical integrator" alt="" coords="5,81,203,108"/>
+<area shape="rect" id="node2" href="$classHepLib_1_1SD_1_1HCubature.html" title="numerical integrator using HCubature" alt="" coords="261,5,431,32"/>
+<area shape="rect" id="node3" href="$classHepLib_1_1SD_1_1HCubatureMP.html" title="numerical integrator using HCubatureMP" alt="" coords="251,56,441,83"/>
+<area shape="rect" id="node4" href="$classHepLib_1_1SD_1_1QuadMP.html" title="numerical integrator using TanhSinhMP" alt="" coords="269,107,423,133"/>
+<area shape="rect" id="node5" href="$classHepLib_1_1SD_1_1TanhSinhMP.html" title="numerical integrator using TanhSinhMP" alt="" coords="257,157,435,184"/>
+</map>

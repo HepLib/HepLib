@@ -1,0 +1,25 @@
+<map id="/home/runner/work/HepLib/HepLib/IBP/IBP.h" name="/home/runner/work/HepLib/HepLib/IBP/IBP.h">
+<area shape="rect" id="node1" title="IBP header file." alt="" coords="2980,5,3175,47"/>
+<area shape="rect" id="node2" href="$HEP_8h.html" title="HEP header file." alt="" coords="1348,95,1543,136"/>
+<area shape="rect" id="node5" href="$HepLib_8h.html" title="HepLib header file, include all *.h in HepLib." alt="" coords="2291,273,2485,315"/>
+<area shape="rect" id="node6" href="$Init_8cpp.html" title="Initailization for global objects." alt="" coords="5,273,200,315"/>
+<area shape="rect" id="node17" href="$Direct_8cpp.html" title="IBP with KIRA." alt="" coords="2652,95,2847,136"/>
+<area shape="rect" id="node18" href="$FIRE_8cpp.html" title="IBP with FIRE." alt="" coords="2871,95,3065,136"/>
+<area shape="rect" id="node19" href="$IBP_8cpp.html" title="IBP." alt="" coords="3089,95,3284,136"/>
+<area shape="rect" id="node20" href="$KIRA_8cpp.html" title="IBP with KIRA." alt="" coords="3308,95,3503,136"/>
+<area shape="rect" id="node21" href="$Laporta_8cpp.html" title="IBP with Leporta." alt="" coords="3527,95,3721,136"/>
+<area shape="rect" id="node22" href="$Solver_8cpp.html" title="IBP with Solver." alt="" coords="3745,95,3940,136"/>
+<area shape="rect" id="node23" href="$UKIRA_8cpp.html" title="IBP with KIRA." alt="" coords="3964,95,4159,136"/>
+<area shape="rect" id="node3" href="$QGRAF_8h.html" title="QGRAF header file." alt="" coords="2113,184,2308,225"/>
+<area shape="rect" id="node7" href="$ABCD_8cpp.html" title="Functions to perform Tensor Index Reduction." alt="" coords="2383,184,2577,225"/>
+<area shape="rect" id="node8" href="$Apart_8cpp.html" title="Functions to perform partial fraction." alt="" coords="140,184,335,225"/>
+<area shape="rect" id="node9" href="$ApartIBP_8cpp.html" title="Functions to perform partial fraction." alt="" coords="359,184,553,225"/>
+<area shape="rect" id="node10" href="$AsGamma_8cpp.html" title="Functions for AsGamma." alt="" coords="577,184,777,225"/>
+<area shape="rect" id="node11" href="$Basic_8cpp.html" title="Basic Functions for FC." alt="" coords="801,184,996,225"/>
+<area shape="rect" id="node12" href="$DGamma_8cpp.html" title="Functions for DGamma." alt="" coords="1020,184,1215,225"/>
+<area shape="rect" id="node13" href="$Eps_8cpp.html" title="Functions for Levi&#45;Civita Tensor." alt="" coords="1239,184,1433,225"/>
+<area shape="rect" id="node14" href="$Form_8cpp.html" title="Helpers to call FORM in FC." alt="" coords="1457,184,1652,225"/>
+<area shape="rect" id="node15" href="$Pair_8cpp.html" title="Pair class." alt="" coords="1676,184,1871,225"/>
+<area shape="rect" id="node16" href="$TIR_8cpp.html" title="Functions to perform Tensor Index Reduction." alt="" coords="1895,184,2089,225"/>
+<area shape="rect" id="node4" href="$QGRAF_8cpp.html" title="QGRAF related." alt="" coords="2070,273,2266,315"/>
+</map>
