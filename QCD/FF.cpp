@@ -58,7 +58,7 @@ namespace HepLib::QCD {
             auto fi2 = e.op(1).op(1);
             auto mom = e.op(2);
             if(mode==0) return I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)+iEpsilon);
-            else return I * Matrix(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)+iEpsilon);
+            else return I * GMat(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)+iEpsilon);
         }
         
         /**
@@ -73,7 +73,7 @@ namespace HepLib::QCD {
             auto fi2 = e.op(1).op(1);
             auto mom = e.op(2);
             if(mode==0) return -I * SP(CI(fi1),CI(fi2)) / (SP(n,mom)-iEpsilon);
-            else return -I * Matrix(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)-iEpsilon);
+            else return -I * GMat(GAS(1), DI(fi1),DI(fi2)) * SP(TI(fi1),TI(fi2)) / (SP(n,mom)-iEpsilon);
         }
         
         /**
@@ -89,8 +89,8 @@ namespace HepLib::QCD {
             auto fi3 = e.op(2).op(1);
             auto mom1 = e.op(0).op(2);
             if(mode==0) return I * gs * SP(n,LI(fi3)) * (-I*SUNF(CI(fi3),CI(fi1),CI(fi2)));
-            else if(mode==1 || mode==-2) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(CI(fi3),TI(fi2),TI(fi1)));
-            else if(mode==2 || mode==-1) return I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(CI(fi3),TI(fi1),TI(fi2));
+            else if(mode==1 || mode==-2) return I * gs * SP(n,LI(fi3)) * GMat(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(CI(fi3),TI(fi2),TI(fi1)));
+            else if(mode==2 || mode==-1) return I * gs * SP(n,LI(fi3)) * GMat(GAS(1), DI(fi1),DI(fi2)) * SUNT(CI(fi3),TI(fi1),TI(fi2));
             else return 0;
         }
         
@@ -106,9 +106,9 @@ namespace HepLib::QCD {
             auto fi2 = e.op(1).op(1);
             auto fi3 = e.op(2).op(1);
             auto mom1 = e.op(0).op(2);
-            if(mode==0) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (I*SUNF(CI(fi3),CI(fi1),CI(fi2)));
-            else if(mode==1 || mode==-2) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(CI(fi3),TI(fi2),TI(fi1)));
-            else if(mode==2 || mode==-1) return -I * gs * SP(n,LI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi2)) * SUNT(CI(fi3),TI(fi1),TI(fi2));
+            if(mode==0) return -I * gs * SP(n,LI(fi3)) * GMat(GAS(1), DI(fi1),DI(fi2)) * (I*SUNF(CI(fi3),CI(fi1),CI(fi2)));
+            else if(mode==1 || mode==-2) return -I * gs * SP(n,LI(fi3)) * GMat(GAS(1), DI(fi1),DI(fi2)) * (-SUNT(CI(fi3),TI(fi2),TI(fi1)));
+            else if(mode==2 || mode==-1) return -I * gs * SP(n,LI(fi3)) * GMat(GAS(1), DI(fi1),DI(fi2)) * SUNT(CI(fi3),TI(fi1),TI(fi2));
             else return 0;
         }
         
@@ -136,7 +136,7 @@ namespace HepLib::QCD {
         ex QuarkFFV(ex e, ex n) {
             auto fi1 = e.op(0).op(1);
             auto fi3 = e.op(2).op(1);
-            return SP(TI(fi1),TI(fi3)) * Matrix(GAS(1), DI(fi1),DI(fi3));
+            return SP(TI(fi1),TI(fi3)) * GMat(GAS(1), DI(fi1),DI(fi3));
         }
     
         // mode = 0 for gluon
@@ -200,7 +200,7 @@ namespace HepLib::QCD {
         // mode = 0 for gluon
         ex eSUM(int mode) {
             if(mode==0) return SP(LI(-1), RLI(-1)) * SP(CI(-2),RCI(-2));
-            else return SP(TI(-2),RTI(-2)) * Matrix(GAS(Vector("n")), DI(-2), RDI(-2));
+            else return SP(TI(-2),RTI(-2)) * GMat(GAS(Vector("n")), DI(-2), RDI(-2));
         }
         
         /**

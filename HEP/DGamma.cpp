@@ -84,7 +84,6 @@ namespace HepLib {
         return pi.is_equal(o.pi);
     }
 
-    
     DGamma::DGamma(int int_1567, unsigned _rl) : pi(int_1567), rl(_rl) { }
     DGamma::DGamma(const Vector &p, unsigned _rl) : pi(p), rl(_rl) { }
     DGamma::DGamma(const Index &i, unsigned _rl) : pi(i), rl(_rl) { }
@@ -169,6 +168,18 @@ namespace HepLib {
         else if(is_zero(pi-7)) return DGamma(6, rl);
         else if(is_zero(pi-1)) return DGamma(1, rl);
         throw Error("invalid Dirac Gamma Found.");
+    }
+    
+    ex DGamma::sigma(const ex & mu, const ex & nu) {
+        return I/2 * (GAS(mu)*GAS(nu)-GAS(nu)*GAS(mu));
+    }
+    
+    ex DGamma::G5Eps(int i, int rl) {
+        Index a("g5Idx"+to_string(i));
+        Index b("g5Idx"+to_string(i+1));
+        Index c("g5Idx"+to_string(i+2));
+        Index d("g5Idx"+to_string(i+3));
+        return -I/factorial(4) * LC(a,b,c,d) * GAS(a,rl)*GAS(b,rl)*GAS(c,rl)*GAS(d,rl);
     }
     
     //-----------------------------------------------------------
@@ -278,7 +289,6 @@ namespace HepLib {
         }
         return res;
     }
-    
     
 
 

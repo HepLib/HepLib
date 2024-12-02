@@ -57,8 +57,8 @@ namespace HepLib::QCD {
          * @return the corresponding spin projector
          */
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j, bool nr) {
-            if(io==IO::Out) return Matrix(SpinProj(io,s,p,pb,m,e,mu,nr), DI(j), DI(i));
-            else return Matrix(SpinProj(io,s,p,pb,m,e,mu,nr), DI(i), DI(j));
+            if(io==IO::Out) return GMat(SpinProj(io,s,p,pb,m,e,mu,nr), DI(j), DI(i));
+            else return GMat(SpinProj(io,s,p,pb,m,e,mu,nr), DI(i), DI(j));
         }
         
         /**
@@ -109,7 +109,7 @@ namespace HepLib::QCD {
          * @return the corresponding spin projector
          */
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, int i, int j, bool nr) {
-            return Matrix(SpinProj(io,s,p,pb,m,e,mb,eb,mu,nr), DI(j), DI(i));
+            return GMat(SpinProj(io,s,p,pb,m,e,mb,eb,mu,nr), DI(j), DI(i));
         }
         
         /**

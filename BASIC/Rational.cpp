@@ -99,6 +99,7 @@ namespace HepLib {
         for(int i=n-1; i>=0; i--) result = coeffs[i] + (d - keys[i])/result;
         result = normal(result);
         //result = exnormal(result);
+        // TODO: check on all keys and values
         return result;
     }
     
@@ -108,16 +109,16 @@ namespace HepLib {
         for(int i=0; i<n; i++) coeffs[i] = 0;
         for(int i=0; i<n; i++) {
             auto temp = values[i] * factor.subs(d==keys[i]);
-            temp = normal(temp); 
-            //temp = exnormal(temp); 
+            //temp = normal(temp);
+            temp = exnormal(temp);
             for(int j=0; j<i; j++) {
                 if(temp.is_equal(coeffs[j])) { 
                     n = i-1;
                     goto out;
                 }
                 temp = (temp - coeffs[j])/(keys[i] - keys[j]);
-                temp = normal(temp);
-                //temp = exnormal(temp);
+                //temp = normal(temp);
+                temp = exnormal(temp);
             }
             coeffs[i] = temp;
         }

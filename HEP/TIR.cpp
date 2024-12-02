@@ -44,7 +44,7 @@ namespace HepLib {
         // handle Eps/DGamma/Pair and related power
         int lproj = 0;
         return MapFunction([&lproj,loop_ps,ext_ps](const ex &e, MapFunction &self)->ex {
-            string prefix = "dmi";
+            string prefix = "HIdx";
             int mode = 0;
             if(ext_ps.nops()>0) mode = 1;
             if(!Eps::has(e) && !DGamma::has(e) && (mode==0 || !Pair::has(e))) return e;
@@ -68,15 +68,22 @@ namespace HepLib {
             } else if(is_a<DGamma>(e)) {
                 Index idx(prefix+to_string(++lproj));
                 auto g = ex_to<DGamma>(e);
-                if(!is_equal_any(g.pi,loop_ps)) throw Error("UnContract: g.pi is NOT a loop.");
-                return DGamma(idx, g.rl) * SP(g.pi, idx);
+                if(!is_equal_any(g.pi,loop_ps)) return e;
+                else return DGamma(idx, g.rl) * SP(g.pi, idx);
             } else if (e.match(TR(w))) {
                 auto ret = self(e.op(0));
                 auto cvs = collect_lst(ret, loop_ps);
                 ret = 0;
                 for(auto const & cv : cvs) {
-                    if(DGamma::has(cv.op(1))) throw Error("UnContract: Not working for TIR.");
                     ret += TR(cv.op(0)) * cv.op(1);
+                }
+                return ret;
+            } else if (e.match(GMat(w1,w2,w3))) {
+                auto ret = self(e.op(0));
+                auto cvs = collect_lst(ret, loop_ps);
+                ret = 0;
+                for(auto const & cv : cvs) {
+                    ret += GMat(cv.op(0), e.op(1), e.op(2)) * cv.op(1);
                 }
                 return ret;
             } else if(is_a<add>(e)) {

@@ -411,7 +411,7 @@ namespace HepLib::QGRAF {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        return I * SP(TI(fi1),TI(fi2)) * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
+        return I * SP(TI(fi1),TI(fi2)) * GMat(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
     }
     
     /**
@@ -424,7 +424,7 @@ namespace HepLib::QGRAF {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto mom = e.op(2);
-        return I * Matrix(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
+        return I * GMat(GAS(mom)+GAS(1)*m, DI(fi1),DI(fi2)) / (SP(mom)-m*m);
     }
     
     /**
@@ -505,7 +505,7 @@ namespace HepLib::QGRAF {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
-        return -I*eta_s*gs*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SUNT(CI(fi3),TI(fi1),TI(fi2));
+        return -I*eta_s*gs*GMat(GAS(LI(fi3)),DI(fi1),DI(fi2))*SUNT(CI(fi3),TI(fi1),TI(fi2));
     }
 
     /**
@@ -572,7 +572,7 @@ namespace HepLib::QGRAF {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
-        return -I*eta_e*eq*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))*SP(TI(fi1),TI(fi2));
+        return -I*eta_e*eq*GMat(GAS(LI(fi3)),DI(fi1),DI(fi2))*SP(TI(fi1),TI(fi2));
     }
     
     /**
@@ -586,7 +586,7 @@ namespace HepLib::QGRAF {
         auto fi1 = e.op(0).op(1);
         auto fi2 = e.op(1).op(1);
         auto fi3 = e.op(2).op(1);
-        return -I*eta_e*eq*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2));
+        return -I*eta_e*eq*GMat(GAS(LI(fi3)),DI(fi1),DI(fi2));
     }
 
     /**
@@ -648,8 +648,8 @@ namespace HepLib::QGRAF {
      * @return Quark summation
      */
     ex QuarkSumL(int qi, ex p, ex m, bool color) {
-        if(color) return Matrix(GAS(p)+m*GAS(1), RDI(qi), DI(qi)) * SP(RTI(qi), TI(qi));
-        else return Matrix(GAS(p)+m*GAS(1), RDI(qi), DI(qi));
+        if(color) return GMat(GAS(p)+m*GAS(1), RDI(qi), DI(qi)) * SP(RTI(qi), TI(qi));
+        else return GMat(GAS(p)+m*GAS(1), RDI(qi), DI(qi));
     }
     
     /**
@@ -661,8 +661,8 @@ namespace HepLib::QGRAF {
      * @return Quark summation
      */
     ex QuarkSumR(int qi, ex p, ex m, bool color) {
-        if(color) return Matrix(GAS(p)+m*GAS(1), DI(qi), RDI(qi)) * SP(TI(qi),RTI(qi));
-        else return Matrix(GAS(p)+m*GAS(1), DI(qi), RDI(qi));
+        if(color) return GMat(GAS(p)+m*GAS(1), DI(qi), RDI(qi)) * SP(TI(qi),RTI(qi));
+        else return GMat(GAS(p)+m*GAS(1), DI(qi), RDI(qi));
     }
 
     /**
@@ -674,8 +674,8 @@ namespace HepLib::QGRAF {
      * @return anti-Quark summation
      */
     ex AntiQuarkSumL(int qi, ex p, ex m, bool color) {
-        if(color) return Matrix(GAS(p)-m*GAS(1), DI(qi), RDI(qi)) * SP(TI(qi), RTI(qi));
-        else return Matrix(GAS(p)-m*GAS(1), DI(qi), RDI(qi));
+        if(color) return GMat(GAS(p)-m*GAS(1), DI(qi), RDI(qi)) * SP(TI(qi), RTI(qi));
+        else return GMat(GAS(p)-m*GAS(1), DI(qi), RDI(qi));
     }
     
     /**
@@ -687,8 +687,8 @@ namespace HepLib::QGRAF {
      * @return anti-Quark summation
      */
     ex AntiQuarkSumR(int qi, ex p, ex m, bool color) {
-        if(color) return Matrix(GAS(p)-m*GAS(1), RDI(qi), DI(qi)) * SP(RTI(qi), TI(qi));
-        else return Matrix(GAS(p)-m*GAS(1), RDI(qi), DI(qi));
+        if(color) return GMat(GAS(p)-m*GAS(1), RDI(qi), DI(qi)) * SP(RTI(qi), TI(qi));
+        else return GMat(GAS(p)-m*GAS(1), RDI(qi), DI(qi));
     }
     
     /**
@@ -972,10 +972,10 @@ namespace HepLib::QGRAF {
                         return LeptonAVertex(e, EL*Q[si], eta_e);
                     } else if((pi3==Z) && is_qbar_q(pi1, pi2)) {
                         // qbar-q-Z
-                        return -I*eta*eta_Z*GEW/CW*(gfV(si)*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))-gfA(si)*Matrix(GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2)))*SP(TI(fi1),TI(fi2));
+                        return -I*eta*eta_Z*GEW/CW*(gfV(si)*GMat(GAS(LI(fi3)),DI(fi1),DI(fi2))-gfA(si)*GMat(GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2)))*SP(TI(fi1),TI(fi2));
                     } else if((pi3==Z) && (is_lbar_l(pi1, pi2) || is_nbar_n(pi1, pi2))) {
                         // lbar-l-Z & nbar-n-Z
-                        return -I*eta*eta_Z*GEW/CW*(gfV(si)*Matrix(GAS(LI(fi3)),DI(fi1),DI(fi2))-gfA(si)*Matrix(GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2)));
+                        return -I*eta*eta_Z*GEW/CW*(gfV(si)*GMat(GAS(LI(fi3)),DI(fi1),DI(fi2))-gfA(si)*GMat(GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2)));
                     } else if(pi1==Wp && pi2==Wm && pi3==A) {
                         // Wp-Wm-A
                         return -I*eta_e*EL*(SP(LI(fi1),LI(fi2))*SP(mom2-mom1,LI(fi3))+SP(LI(fi2),LI(fi3))*SP(mom3-mom2,LI(fi1))+SP(LI(fi3),LI(fi1))*SP(mom1-mom3,LI(fi2)));
@@ -985,40 +985,40 @@ namespace HepLib::QGRAF {
                     } else if(is_uqbar(pi1) && is_dq(pi2) && pi3==Wp) {
                         // uqbar-dq-Wp
                         auto ckm = CKM(si1, si2);
-                        return -I*eta*GEW/sqrt2*Matrix(GAS(LI(fi3))-GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2))/2*ckm*SP(TI(fi1),TI(fi2));
+                        return -I*eta*GEW/sqrt2*GMat(GAS(LI(fi3))-GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2))/2*ckm*SP(TI(fi1),TI(fi2));
                     } else if(is_dqbar(pi1) && is_uq(pi2) && pi3==Wm) {
                         // dqbar-uq-Wm
                         auto ckm = CKM(si1, si2);
-                        return -I*eta*GEW/sqrt2*Matrix(GAS(LI(fi3))-GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2))/2*ckm*SP(TI(fi1),TI(fi2));
+                        return -I*eta*GEW/sqrt2*GMat(GAS(LI(fi3))-GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2))/2*ckm*SP(TI(fi1),TI(fi2));
                     } else if( (is_nbar_l(pi1, pi2) && pi3==Wp) || (is_lbar_n(pi1, pi2) && pi3==Wm) ) {
                         // nbar-l-Wp & lbar-n-Wm
-                        return -I*eta*GEW/sqrt2*Matrix(GAS(LI(fi3))-GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2))/2;
+                        return -I*eta*GEW/sqrt2*GMat(GAS(LI(fi3))-GAS(LI(fi3))*GAS(5),DI(fi1),DI(fi2))/2;
                     } else if(is_qbar_q(pi1, pi2) && (pi3==H)) {
                         // qbar-q-H
-                        return -I*GEW/2*M(si)/MW*Matrix(GAS(1),DI(fi1),DI(fi2))*SP(TI(fi1),TI(fi2));
+                        return -I*GEW/2*M(si)/MW*GMat(GAS(1),DI(fi1),DI(fi2))*SP(TI(fi1),TI(fi2));
                     } else if( (is_lbar_l(pi1, pi2) || is_nbar_n(pi1, pi2)) && (pi3==H)) {
                         // lbar-l-H & nbar-n-H
-                        return -I*GEW/2*M(si)/MW*Matrix(GAS(1),DI(fi1),DI(fi2));
+                        return -I*GEW/2*M(si)/MW*GMat(GAS(1),DI(fi1),DI(fi2));
                     } else if(is_qbar_q(pi1, pi2) && (pi3==chi)) {
                         // qbar-q-chi
-                        return -GEW*T3[si]*M(si)/MW*Matrix(GAS(5),DI(fi1),DI(fi2))*SP(TI(fi1),TI(fi2));
+                        return -GEW*T3[si]*M(si)/MW*GMat(GAS(5),DI(fi1),DI(fi2))*SP(TI(fi1),TI(fi2));
                     } else if( (is_lbar_l(pi1, pi2) || is_nbar_n(pi1, pi2)) && (pi3==chi)) {
                         // lbar-l-chi & nbar-n-chi
-                        return -GEW*T3[si]*M(si)/MW*Matrix(GAS(5),DI(fi1),DI(fi2));
+                        return -GEW*T3[si]*M(si)/MW*GMat(GAS(5),DI(fi1),DI(fi2));
                     } else if(is_uqbar_dq(pi1, pi2) && pi3==phip) {
                         // uqbar-dq-phip
                         auto ckm = CKM(si1,si2);
-                        return I*GEW/sqrt2*(M(si1)/MW*Matrix(GAS(1)-GAS(5),DI(fi1),DI(fi2))/2-M(si2)/MW*Matrix(GAS(1)+GAS(5),DI(fi1),DI(fi2))/2)*ckm*SP(TI(fi1),TI(fi2));
+                        return I*GEW/sqrt2*(M(si1)/MW*GMat(GAS(1)-GAS(5),DI(fi1),DI(fi2))/2-M(si2)/MW*GMat(GAS(1)+GAS(5),DI(fi1),DI(fi2))/2)*ckm*SP(TI(fi1),TI(fi2));
                     } else if(is_dqbar_uq(pi1, pi2) && pi3==phim) {
                         // dqbar-uq-phim
                         auto ckm = CKM(si1,si2);
-                        return I*GEW/sqrt2*(M(si2)/MW*Matrix(GAS(1)+GAS(5),DI(fi1),DI(fi2))/2-M(si1)/MW*Matrix(GAS(1)-GAS(5),DI(fi1),DI(fi2))/2)*ckm*SP(TI(fi1),TI(fi2));
+                        return I*GEW/sqrt2*(M(si2)/MW*GMat(GAS(1)+GAS(5),DI(fi1),DI(fi2))/2-M(si1)/MW*GMat(GAS(1)-GAS(5),DI(fi1),DI(fi2))/2)*ckm*SP(TI(fi1),TI(fi2));
                     } else if(is_nbar_l(pi1, pi2) && pi3==phip) {
                         // nbar-l-phip
-                        return -I*GEW/sqrt2*M(si2)/MW*Matrix(GAS(1)+GAS(5),DI(fi1),DI(fi2))/2; // Mnl = 0
+                        return -I*GEW/sqrt2*M(si2)/MW*GMat(GAS(1)+GAS(5),DI(fi1),DI(fi2))/2; // Mnl = 0
                     } else if(is_lbar_n(pi1, pi2) && pi3==phim) {
                         // lbar-n-phim
-                        return -I*GEW/sqrt2*M(si1)/MW*Matrix(GAS(1)-GAS(5),DI(fi1),DI(fi2))/2; // Mnl = 0
+                        return -I*GEW/sqrt2*M(si1)/MW*GMat(GAS(1)-GAS(5),DI(fi1),DI(fi2))/2; // Mnl = 0
                     } else if(pi1==A && pi2==phip && pi3==phim) {
                         // A-phip-phim
                         return -I*eta_e*EL*SP(mom2-mom3,LI(fi1));

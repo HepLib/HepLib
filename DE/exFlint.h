@@ -45,6 +45,7 @@ namespace HepLib {
     void _to_(gr_mat_t m, const matrix & mat, gr_ctx_t ctx); // gr is acf
     void _to_(const lst & xs, fmpz_mpoly_t f, fmpz_mpoly_ctx_t ctx, const ex & e);
     void _to_(const lst & xs, fmpq_mpoly_t f, fmpq_mpoly_ctx_t ctx, const ex & e);
+    void _to_(const lst & xs, fmpz_mpoly_q_t f, fmpz_mpoly_ctx_t ctx, const ex & e);
     //=*********************************************************************=
     ex _to_(gr_ptr z, gr_ctx_t ctx); // assume gr is acf
     matrix _to_(const ex & x, fmpz_poly_mat_t m);
@@ -62,6 +63,7 @@ namespace HepLib {
     matrix _to_(gr_mat_t m, gr_ctx_t ctx); // gr is acf
     ex _to_(const lst & xs, fmpz_mpoly_t f, fmpz_mpoly_ctx_t ctx);
     ex _to_(const lst & xs, fmpq_mpoly_t f, fmpq_mpoly_ctx_t ctx);
+    ex _to_(const lst & xs, fmpz_mpoly_q_t f, fmpz_mpoly_ctx_t ctx);
     //=*********************************************************************=
     class MX { 
     public:

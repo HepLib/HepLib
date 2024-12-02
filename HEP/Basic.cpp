@@ -157,7 +157,7 @@ namespace HepLib {
             }
         };
         ex mat_conj(const ex & e1, const ex & e2, const ex & e3) {
-            return Matrix(e1.conjugate(), e3, e2);
+            return GMat(e1.conjugate(), e3, e2);
         }
     }
     void FCFormat::ncmul_print(const ncmul & nm, const FCFormat & c, unsigned level) {
@@ -591,23 +591,47 @@ namespace HepLib {
         return 0;
     }
     
+    ex ncmul_expand(const ex & expr) {
+        MapFunction inner_expand([](const ex & e, MapFunction & self)->ex{
+            if(is_a<add>(e)) {
+                ex res = 0;
+                for(auto ei : e) res += ncmul_expand(ei);
+                return res;
+            } else if(is_a<mul>(e) || is_a<ncmul>(e)) {
+                lst res = lst{ 1 };
+                for(auto ei : e) {
+                    ex rei = ncmul_expand(ei);
+                    if(!is_a<add>(rei)) rei = lst{ rei };
+                    lst ores = res;
+                    res = lst{ };
+                    for(auto oi : ores) for(auto ri : rei) res.append(oi * ri);
+                }
+                ex ret = 0;
+                for(auto ri : res) ret += ri;
+                return ret;
+            } else return e.map(self);
+        });
+        return inner_expand(expr);
+    }
+    
     /**
-     * @brief make contract on matrix, i.e., Matrix(a,i1,i2)*Matrix(b,i2,i3) -> Matrix(a*b,i1,i3)
-     * @param expr_in expression contains Matrix
+     * @brief make contract on matrix, i.e., GMat(a,i1,i2)*GMat(b,i2,i3) -> GMat(a*b,i1,i3)
+     * @param expr_in expression contains GMat
      * @return contracted expression
      */
-    ex MatrixContract(const ex & expr_in) {
-        if(!expr_in.has(Matrix(w1,w2,w3))) return expr_in;
+    ex GMatContract(const ex & expr_in) {
+        if(!expr_in.has(GMat(w1,w2,w3))) return expr_in;
         
-        auto expr = expr_in.subs(pow(Matrix(w1,w2,w3),2)==Matrix(w1,w2,w3)*Matrix(w1,w3,w2));
-        auto cv_lst = collect_lst(expr, Matrix(w1, w2, w3));
+        auto expr = expr_in.subs(pow(GMat(w1,w2,w3),2)==GMat(w1,w2,w3)*GMat(w1,w3,w2));
+        auto cv_lst = collect_lst(expr, GMat(w1, w2, w3));
         expr = 0;
         for(auto cv : cv_lst) {
             auto e = cv.op(1);
-            if(is_zero(e-1) || e.match(Matrix(w1, w2, w3))) {
-                expr += cv.op(0) * e;
+            if(is_zero(e-1) || e.match(GMat(w1, w2, w3))) {
+                if(e.match(GMat(w1, w2, w2))) expr += cv.op(0) * TR(e.op(0));
+                else expr += cv.op(0) * e;
                 continue;
-            } else if(!is_a<mul>(e)) throw Error("MatrixContract: collect error: " + ex2str(e));
+            } else if(!is_a<mul>(e)) throw Error("GMatContract: collect error: " + ex2str(e));
             
             lst mats;
             for(auto item : e) mats.append(item);
@@ -620,7 +644,7 @@ namespace HepLib {
                 if(item.op(0).return_type()==return_types::commutative || item.op(0).is_equal(GAS(1))  || item.op(0).is_equal(color_ONE())) {
                     mats_idx.append(lst{item,i});
                 } else {
-                    if(to_map[item.op(1)]!=0 || from_map[item.op(2)]!=0) throw Error("MatrixContract: index conflict for "+ex2str(item));
+                    if(to_map[item.op(1)]!=0 || from_map[item.op(2)]!=0) throw Error("GMatContract: index conflict for "+ex2str(item));
                     to_map[item.op(1)] = i+10; // avoid 0 in map
                     from_map[item.op(2)] = i+10; // avoid 0 in map
                 }
@@ -655,7 +679,7 @@ namespace HepLib {
                         let_op(mats, ii, 1, ri);
                         let_op(mats, ii, 2, li);
                     } else {
-                        throw Error("MatrixContract: index conflict (2).");
+                        throw Error("GMatContract: index conflict (2).");
                     }
                 }
                 if(mats_idx2.nops()<1) break;
@@ -678,7 +702,7 @@ namespace HepLib {
                     int ti = to_map[ri];
                     int fi = from_map[li];
                     if(ti==0 && fi==0) {
-                        retMat *= Matrix(curMat, li, ri);
+                        retMat *= GMat(curMat, li, ri);
                         break;
                     }
                     if(ti!=0) {
@@ -705,14 +729,267 @@ namespace HepLib {
         return expr;
     }
     
+    ex Contract(const ex & ei) {
+        lst idx_lst;
+        MapFunction get_idx([&idx_lst](const ex & e, MapFunction & self)->ex{
+            if(!Index::has(e) || !Pair::has(e) || e.match(GMat(w1,w2,w3))) return 1; // skip GMat object
+            else if(is_a<Pair>(e)) {
+                if(is_a<Index>(e.op(0)) || is_a<Index>(e.op(1))) idx_lst.append(e);
+                return 1;
+            } else return e.map(self);
+        });
+        get_idx(ei);
+        idx_lst.sort();
+        idx_lst.unique();
+        if(idx_lst.nops()==0) return ei;
+        auto cvs = collect_lst(ei, idx_lst);
+        ex res = 0;
+        for(auto cv : cvs) {
+            auto c = cv.op(0);
+            auto v = form(cv.op(1)); // contract on itself
+            if(!Index::has(v)) res += c * v;
+            else {
+                if(!is_a<mul>(v)) v = lst{ v };
+                exmap repl;
+                ex r = 1; // uncontracted remained index
+                for(auto vi : v) {
+                    if(!is_a<Pair>(vi)) r *= vi; // contract may result in a non-Pair object
+                    else if(is_a<Index>(vi.op(1)) && c.has(vi.op(1))) repl[vi.op(1)] = vi.op(0);
+                    else if(is_a<Index>(vi.op(0)) && c.has(vi.op(0))) repl[vi.op(0)] = vi.op(1);
+                    else r *= vi;
+                }
+                res += r * c.subs(repl);
+            }
+        }
+        return res.subs(SP_map);
+    }
+    
+    ex GMatExpand(const ex & expr_in) {
+        MapFunction inner_expand([&](const ex & e, MapFunction & self)->ex {
+            if(!e.has(GMat(w1,w2,w3))) return e;
+            else if(e.match(GMat(w1,w2,w3))) {
+                auto e0 = ncmul_expand(e.op(0));
+                if(is_a<add>(e0)) {
+                    ex res = 0;
+                    for(auto item : e0) res += GMatExpand(GMat(item, e.op(1), e.op(2)));
+                    return res;
+                } else if(is_a<mul>(e0)) {
+                    ex c = 1, v = 1;
+                    for(auto item : e0) {
+                        if(item.return_type()==return_types::commutative) c *= item;
+                        else {
+                            if(!v.is_equal(1)) {
+                                cout << "c=" << c << ", " << "v=" << v << endl;
+                                throw Error("GMatExpand: v != 1"); // make sure only one non-commutative object
+                            }
+                            v = item;
+                        }
+                    }
+                    if(v.is_equal(1)) v = GAS(1); 
+                    return c * GMatExpand(GMat(v, e.op(1), e.op(2)));
+                } else if(is_a<ncmul>(e0)) { // expand ncmul
+                    ex res;
+                    bool first = true;
+                    for(auto item : e0) {
+                        if(first) {
+                            res = item;
+                            first = false;
+                            continue;
+                        }
+                        ex ncL = res; // previous result
+                        if(!is_a<add>(ncL)) ncL = lst{ ncL };
+                        ex ncR = item;
+                        if(!is_a<add>(ncR)) ncR = lst{ ncR };
+                        res = 0; // current result
+                        for(auto iL : ncL) for(auto iR : ncR) res += iL * iR;
+                    }
+                    ex rs = res;
+                    res = 0;
+                    if(!is_a<add>(rs)) rs = lst{ rs };
+                    for(auto item : rs) { // pull out commutative coefficient
+                        ex c = 1, v = 1;
+                        if(is_a<mul>(item)) {
+                            if(item.nops()==1) throw Error("GMatExpand: item.nops == 1"); // make sure
+                            for(auto it : item) {
+                                if(it.return_type()==return_types::commutative) c *= it;
+                                else {
+                                    if(!v.is_equal(1)) throw Error("GMatExpand: v != 1"); // make sure only one non-commutative object
+                                    v = it;
+                                }
+                            }
+                        } else v = item;
+                        
+                        while(true) { // recursive replace ɣ.P * ɣ.P -> P^2 and ɣ.mu * ɣ.mu -> d @ v
+                            bool to_exit = true;
+                            if(is_a<ncmul>(v)) {
+                                bool first = true;
+                                ex last = 1, vv = 1;
+                                for(auto vi : v) {
+                                    if(first) {
+                                        first = false;
+                                        last = vi;
+                                    } else {
+                                        if(last==vi && is_a<DGamma>(vi)) {
+                                            first = true;
+                                            last = 1;
+                                            if(is_a<Vector>(vi.op(0))) c *= SP(vi.op(0));
+                                            else if(is_a<Index>(vi.op(0))) c *= d;
+                                            else if(vi.op(0).is_equal(1) || vi.op(0).is_equal(5)) c *= 1; // GAS(1)*GAS(1) = GAS(5)*GAS(5) = 1
+                                            else throw Error("GMatExpand: only GAS(i/p/1/5) supported.");
+                                            to_exit = false; // need to cycle again
+                                        } else {
+                                            if(last!=GAS(1)) vv = vv * last;
+                                            last = vi;
+                                        }
+                                    }
+                                }
+                                if(!last.is_equal(1) && last!=GAS(1)) vv = vv * last; // check last item
+                                if(vv.is_equal(1)) v = GAS(1); // identity matrix
+                                else v = vv;
+                            }
+                            if(to_exit) break;
+                        }
+                        res += c * GMat(v, e.op(1), e.op(2));
+                    }
+                    return res;
+                } else return e;
+            } else return e.map(self);
+        });
+        return inner_expand(expr_in);
+    }
+    
+    ex GMatShift(const ex & expr, const ex & g, bool to_right) {
+        if(!expr.has(g)) return expr;
+        MapFunction inner_shift([g,to_right](const ex & e, MapFunction & self)->ex{
+            if(!e.has(g) || !e.has(GMat(w1,w2,w3))) return e;
+            else if(e.match(GMat(w1,w2,w3))) {
+                ex eg = e.op(0);
+                if(!is_a<ncmul>(eg)) eg = lst{ eg };
+                int gi = -1;
+                if(to_right) {
+                    for(int i=0; i<eg.nops()-1; i++) if(eg.op(i)==g) { gi = i; break; }
+                    if(gi==-1 || gi==eg.nops()-1) return e;
+                } else {
+                    for(int i=eg.nops()-1; i>=0; i--) if(eg.op(i)==g) { gi = i; break; }
+                    if(gi==-1 || gi==0) return e;
+                }
+                int gj = gi + ( to_right ? 1 : -1 );
+                ex rem = 1, rem2 = 1;
+                for(int i=0; i<eg.nops(); i++) {
+                    if(i!=gi && i!=gj) {
+                        rem *= eg.op(i);
+                        rem2 *= eg.op(i);
+                    }
+                    if(i==gi) {
+                        if(to_right) rem2 *= eg.op(gj)*eg.op(gi);
+                        else rem2 *= eg.op(gi)*eg.op(gj);
+                    }
+                }
+                if(eg.op(gi).is_equal(eg.op(gj))) {
+                    ex ip = eg.op(gi).op(0);
+                    ex res = GMat(rem, e.op(1), e.op(2));
+                    res = GMatShift(res, g, to_right);
+                    ex c;
+                    if(is_a<Vector>(ip)) c = SP(ip);
+                    else if(is_a<Index>(ip)) c = d;
+                    else throw Error("GMatShift: only GAS(i/p) supproted.");
+                    return c * res;
+                }
+                ex res = 2*SP(eg.op(gi).op(0), eg.op(gj).op(0)) * GMat(rem, e.op(1), e.op(2));
+                res = res - GMat(rem2, e.op(1), e.op(2));
+                return GMatShift(res, g, to_right);
+            } else return e.map(self);
+        });
+        ex res = GMatExpand(Contract(expr)); // add Contract & GMatExpand here
+        res = collect_ex(res, GMat(w1,w2,w3));
+        res = inner_shift(res);
+        return res;
+    }
+    
     namespace {
-        void Matrix_fc_print(const ex &arg1, const ex &arg2, const ex &arg3, const print_context &c0) {
+        lst shift_12_right(const ex & e) { // return a list of {coeff, gammas}
+            if(!is_a<ncmul>(e)) throw Error("input is not a ncmul.");
+            if(e.nops()==2) {
+                ex e0 = e.op(0);
+                if(e.op(0)!=e.op(1)) throw Error("2 items are not equal!");
+                else if(is_a<Index>(e0.op(0))) return lst{ lst{ d, 1 }};
+                else if(is_a<Vector>(e0.op(0))) return lst{ lst{ SP(e.op(0).op(0)), 1 }};
+                else {
+                    cout << endl << e << endl;
+                    throw Error("shift_12_right: only GAS(i/p) supproted.");
+                }
+            }
+            ex rem = 1;
+            int n = e.nops();
+            for(int i=2; i<n; i++) rem *= e.op(i);
+            lst res = shift_12_right(e.op(0)*rem);
+            n = res.nops();
+            for(int i=0; i<n; i++) {
+                res.let_op(i).let_op(0) = -res.op(i).op(0);
+                res.let_op(i).let_op(1) = e.op(1) * res.op(i).op(1);
+            }
+            if(!is_a<Index>(e.op(0).op(0)) && !is_a<Vector>(e.op(0).op(0))) {
+                cout << e << endl;
+                throw Error("shift_12_right: not a Vector or Index");
+            }
+            if(!is_a<Index>(e.op(1).op(0)) && !is_a<Vector>(e.op(1).op(0))) {
+                cout << e << endl;
+                throw Error("shift_12_right: not a Vector or Index");
+            }
+            res.append(lst{ 2*SP(e.op(0).op(0), e.op(1).op(0)), rem });
+            return res;
+        }
+    }
+    ex GMatShift(const ex & expr) {
+        MapFunction inner_shift([](const ex & e, MapFunction & self)->ex{
+            if(!e.has(GMat(w1,w2,w3))) return e;
+            else if(e.match(GMat(w1,w2,w3))) {
+                ex eg = e.op(0);
+                if(!is_a<ncmul>(eg)) eg = lst{ eg };
+                
+                int gi = -1, gj = -1;
+                for(int i=0; i<eg.nops(); i++) for(int j=i+1; j<eg.nops(); j++) {
+                    if(eg.op(i).is_equal(eg.op(j))) {
+                        gi = i;
+                        gj = j;
+                        goto done;
+                    }
+                }
+                return e;
+                done: ;
+                
+                ex exL = 1, exM=1, exR = 1;
+                for(int i=0; i<eg.nops(); i++) {
+                    if(i<gi) exL *= eg.op(i);
+                    else if(i>gj) exR *= eg.op(i);
+                    else exM *= eg.op(i);
+                }
+                lst cvs = shift_12_right(exM);
+                
+                ex res = 0;
+                for(auto cv : cvs) {
+                    ex item = exL*cv.op(1)*exR;
+                    if(item.is_equal(1)) item = GAS(1);
+                    res += cv.op(0)*GMatShift(GMat(item, e.op(1), e.op(2)));
+                }
+                
+                return res;
+            } else return e.map(self);
+        });
+        ex res = GMatExpand(Contract(expr)); // add Contract & GMatExpand here
+        res = collect_ex(res, GMat(w1,w2,w3));
+        res = inner_shift(res);
+        return res;
+    }
+    
+    namespace {
+        void GMat_fc_print(const ex &arg1, const ex &arg2, const ex &arg3, const print_context &c0) {
             auto c = static_cast<const FCFormat &>(c0);
-            c << "Matrix[" << arg1 << "," << arg2 << "," << arg3 << "]";
+            c << "GMat[" << arg1 << "," << arg2 << "," << arg3 << "]";
         }
     }
     
-    REGISTER_FUNCTION(Matrix, do_not_evalf_params().print_func<FCFormat>(&Matrix_fc_print).conjugate_func(mat_conj).set_return_type(return_types::commutative))
+    REGISTER_FUNCTION(GMat, do_not_evalf_params().print_func<FCFormat>(&GMat_fc_print).conjugate_func(mat_conj).set_return_type(return_types::commutative))
     
     bool IsZero(const ex & e) {
         try {

@@ -743,6 +743,21 @@ namespace HepLib {
         return str2ex(str,st);
     }
     
+    ex _to_(const lst & xs, fmpz_mpoly_q_t f, fmpz_mpoly_ctx_t ctx) {
+        symtab st;
+        string vars[xs.nops()];
+        const char* cvars[xs.nops()];
+        for(int i=0; i<xs.nops(); i++) {
+            vars[i] = ex2str(xs.op(i));
+            cvars[i] = vars[i].c_str();
+            st[cvars[i]] = xs.op(i);
+        }
+        auto cstr = fmpz_mpoly_q_get_str_pretty(f, cvars, ctx);
+        string str(cstr);
+        flint_free(cstr);
+        return str2ex(str,st);
+    }
+    
     ex _to_(const lst & xs, fmpq_mpoly_t f, fmpq_mpoly_ctx_t ctx) {
         symtab st;
         string vars[xs.nops()];
@@ -869,7 +884,7 @@ namespace HepLib {
         return res;
     }
     
-    inline void _to_(const lst & xs, fmpz_mpoly_q_t f, fmpz_mpoly_ctx_t ctx, const ex & e) {
+    void _to_(const lst & xs, fmpz_mpoly_q_t f, fmpz_mpoly_ctx_t ctx, const ex & e) {
         if(e.info(info_flags::rational)) {
             fmpq_t fq;
             fmpq_init(fq);

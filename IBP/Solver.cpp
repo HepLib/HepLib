@@ -250,6 +250,8 @@ namespace HepLib {
         ss.clear();
         ss.str("");
         
+        fermat.Execute("&(u=3);");
+        
         if(pn>0) fermat.Execute("Redrowech([m],,,"+to_string(pn)+");");
         else fermat.Execute("Redrowech([m]);");
         ss << "&(U=1);" << endl; // ugly printing, the whitespace matters
@@ -305,14 +307,14 @@ namespace HepLib {
         lst ibps = IBPs;
         
         // add more eqn to ibps
-        if(true) {
+        if(false) {
             if(true) {
                 int n = ibps.nops();
                 for(int i=0; i<pdim; i++) {
                     for(int j1=0; j1<n; j1++) for(int j2=0; j2<n; j2++) {
                         ibps.append(ibps.op(i).subs(lst{a(j1)==a(j1)+1}).subs(lst{a(j2)==a(j2)-1}));
-//                        ibps.append(ibps.op(i).subs(lst{a(j1)==a(j1)+1}).subs(lst{a(j2)==a(j2)+1}));
-//                        ibps.append(ibps.op(i).subs(lst{a(j1)==a(j1)-1}).subs(lst{a(j2)==a(j2)-1}));
+                        //ibps.append(ibps.op(i).subs(lst{a(j1)==a(j1)+1}).subs(lst{a(j2)==a(j2)+1}));
+                        //ibps.append(ibps.op(i).subs(lst{a(j1)==a(j1)-1}).subs(lst{a(j2)==a(j2)-1}));
                     }
                 }
             } else {
@@ -333,24 +335,26 @@ namespace HepLib {
                 }
             }
         } else {
+        {
             exset fs;
             find(ibps, F(w), fs);
             int n = ibps.nops();
             for(auto fi : fs) {
                 exmap a2a;
-                for(int i=0; i<fi.op(0).nops(); i++) a2a[a(i)] = fi.op(0).op(i);
+                for(int i=0; i<fi.op(0).nops(); i++) a2a[a(i)] = a(i)-fi.op(0).op(i).subs(a(i)==0);
                 for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a2a));
             }
-            for(auto fi : fs) {
-                exmap a2a;
-                for(int i=0; i<fi.op(0).nops(); i++) a2a[a(i)] = fi.op(0).op(i)+1;
-                for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a2a));
-            }
-            for(auto fi : fs) {
-                exmap a2a;
-                for(int i=0; i<fi.op(0).nops(); i++) a2a[a(i)] = fi.op(0).op(i)-1;
-                for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a2a));
-            }
+        }
+//            for(auto fi : fs) {
+//                exmap a2a;
+//                for(int i=0; i<fi.op(0).nops(); i++) a2a[a(i)] = fi.op(0).op(i)+1;
+//                for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a2a));
+//            }
+//            for(auto fi : fs) {
+//                exmap a2a;
+//                for(int i=0; i<fi.op(0).nops(); i++) a2a[a(i)] = fi.op(0).op(i)-1;
+//                for(int j=0; j<n; j++) ibps.append(ibps.op(j).subs(a2a));
+//            }
         }
         
         // some a's replaced by integer
@@ -464,9 +468,9 @@ namespace HepLib {
                         ex nd = cv.second;
                         if(next_sol_ibp==1) {
                             f = f.subs(amap,nopat);
-                            nd = nd.subs(amap,nopat);
-                            ex num = factor_flint(nd.numer());
-                            ex den = factor_flint(nd.denom());
+                            nd = nd.subs(amap,nopat).numer_denom();
+                            ex num = exfactor(nd.op(0));
+                            ex den = exfactor(nd.op(1));
                             ns = f.op(0).subs(a(w)==0); // reuse ns here
                             for(int i=0; i<pdim; i++) {
                                 if(sector.op(i)!=1) {
@@ -547,10 +551,14 @@ cons.sort();
 cons.unique();
 sort_lst(cons,false);
 cout << cons << endl << endl;
-for(auto & item : cons) {
-    if(item==lst{1,1,1,1,1,1,1,1,1,1,0,0}) {
-        cout << endl << cons_vec[item] << endl << endl;
-        exit(0);
+if(n2n.size()>0) {
+    for(auto & item : cons) {
+        for(auto kv : n2n) {
+            if(kv.second==0) continue;
+            if(item.op(kv.first)!=kv.second) goto done;
+        }
+        cout << endl << item << endl << cons_vec[item] << endl << endl;
+        done: ;
     }
 }
         }
@@ -559,14 +567,14 @@ for(auto & item : cons) {
         cons.unique();
         sort_lst(cons,false);
 
-//        cout << endl;
-//        for(auto & k : cons) {
-//            cons_vec[k].sort();
-//            cons_vec[k].unique();
-//            cout << k << endl;
-//            cout << cons_vec[k] << endl << endl;
-//        }
-//        cout << endl << cons << endl;
+        cout << endl;
+        for(auto & k : cons) {
+            cons_vec[k].sort();
+            cons_vec[k].unique();
+            cout << k << endl;
+            cout << cons_vec[k] << endl << endl;
+        }
+        cout << endl << cons << endl;
         
 
     }

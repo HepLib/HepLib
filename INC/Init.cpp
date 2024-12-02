@@ -70,6 +70,9 @@ namespace HepLib {
     
     GiNaC::registered_class_info DGamma::reg_info = 
         GiNaC::registered_class_info(GiNaC::registered_class_options("DGamma", "basic", typeid(DGamma)).print_func<print_dflt>(&DGamma::print).print_func<FormFormat>(&DGamma::form_print).print_func<FCFormat>(&DGamma::fc_print));
+        
+    GiNaC::registered_class_info AsGamma::reg_info =
+        GiNaC::registered_class_info(GiNaC::registered_class_options("AsGamma", "basic", typeid(AsGamma)).print_func<print_dflt>(&AsGamma::print).print_func<FormFormat>(&AsGamma::form_print).print_func<FCFormat>(&AsGamma::fc_print));
     
     GiNaC::registered_class_info Eps::reg_info = 
         GiNaC::registered_class_info(GiNaC::registered_class_options("Eps", "basic", typeid(Eps)).print_func<print_dflt>(&Eps::print).print_func<FormFormat>(&Eps::form_print).print_func<FCFormat>(&Eps::fc_print));
@@ -369,6 +372,7 @@ namespace HepLib {
         table.insert(std::string("SUNF"), []()->GiNaC::basic*{ return new SUNF(); });
         table.insert(std::string("SUNF4"), []()->GiNaC::basic*{ return new SUNF4(); });
         table.insert(std::string("DGamma"), []()->GiNaC::basic*{ return new DGamma(); });
+        table.insert(std::string("AsGamma"), []()->GiNaC::basic*{ return new AsGamma(); });
         table.insert(std::string("Eps"), []()->GiNaC::basic*{ return new Eps(); });
         table.insert(std::string("Pair"), []()->GiNaC::basic*{ return new Pair(); });
         

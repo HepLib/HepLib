@@ -91,7 +91,7 @@ namespace HepLib {
      * @param level level in print function
      */
     void Pair::print(const print_dflt &c, unsigned level) const {
-        c.s << lr[0] << "." << lr[1];
+        c.s << "(" << lr[0] << "." << lr[1] << ")";
     }
     
     /**

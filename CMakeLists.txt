@@ -3,6 +3,8 @@
 #  p0 is the directory where HepLib will be installed
 #  if the required libraries[ CLN/GiNaC/Flint etc] are not installed to p0,
 #  one need to set p1/p3 the corresponding include and lib path
+# e.g. on MacOS-M1
+# cmake -DCMAKE_INSTALL_PREFIX=$HOME/usr -DINC_PATH=/opt/homebrew/include -DLIB_PATH=/opt/homebrew/lib ..
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
 SET(CMAKE_C_COMPILER gcc)
@@ -152,7 +154,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -fopenmp")
 # if you get an error message like
 # 'libunwind: _Unwind_GetTextRelBase - _Unwind_GetTextRelBase() not implemented'
 # Please uncomment the following line
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ld_classic")
-endif()
+#if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+#    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ld_classic")
+#endif()
 

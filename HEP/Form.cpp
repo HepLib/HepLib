@@ -55,8 +55,8 @@ namespace HepLib {
             else throw Error("DGamma_reader: number of arguments more than 2.");
         }
         
-        alignas(2) static ex Matrix_reader(const exvector& ev) {
-            return Matrix(ev[0],ev[1],ev[2]);
+        alignas(2) static ex GMat_reader(const exvector& ev) {
+            return GMat(ev[0],ev[1],ev[2]);
         }
     }
     
@@ -109,7 +109,7 @@ namespace HepLib {
         };
         
         string init_script = R"EOF(
-CFunction pow,sqrt,gamma,HF,Matrix,WF;
+CFunction pow,sqrt,gamma,HF,GMat,WF;
 Tensor TTR(cyclic), f(antisymmetric), T, f4, colTp;
 Symbols reX,I2R,NF,NA,d,I,Pi;
 AutoDeclare Symbols gCF, trcN;
@@ -192,7 +192,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             } else if(is_a<symbol>(*i)) sym_lst.append(*i);
             else if(is_a<GiNaC::function>(*i)) {
                 static vector<string> fun_vec = { 
-                    "iWF", "WF", "TR", "sin", "cos", "HF", "TTR", "Matrix"
+                    "iWF", "WF", "TR", "sin", "cos", "HF", "TTR", "GMat"
                 };
                 auto func = ex_to<GiNaC::function>(*i).get_name();
                 bool ok = false;
@@ -512,6 +512,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         string_replace_all(ostr, "[", "(");
         string_replace_all(ostr, "]", ")");
         string_replace_all(ostr, "\\\n", "");
+        string_replace_all(ostr, "\n", "");
         string_replace_all(ostr, " ","");
         for(auto v : vec_lst) {
             string pat(ex_to<Vector>(v).name.get_name());
@@ -543,7 +544,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         Parser fp(st);
         fp.FTable.insert({{"SP", 2}, reader_func(SP_reader)});
         fp.FTable.insert({{"LC", 4}, reader_func(LC_reader)});
-        fp.FTable.insert({{"Matrix", 3}, reader_func(Matrix_reader)});
+        fp.FTable.insert({{"GMat", 3}, reader_func(GMat_reader)});
         for(int i=1; i<30; i++) fp.FTable.insert({{"T", i}, reader_func(SUNT_reader)});
         for(int i=1; i<30; i++) fp.FTable.insert({{"TTRX", i},  reader_func(TTR_reader)});
         for(int i=1; i<30; i++) fp.FTable.insert({{"DG", i}, reader_func(DGamma_reader)});
@@ -630,12 +631,12 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
     }
 
     /**
-     * @brief make the charge conjugate operaton, M -> C^{-1} . M^T . C w.r.t. a Matrix object
+     * @brief make the charge conjugate operaton, M -> C^{-1} . M^T . C w.r.t. a GMat object
      * @param expr the input expression
      * @return returned charge conjugated expression
      */
     ex charge_conjugate(const ex & expr) {
-        if(expr.has(Matrix(w1,w2,w3))) throw Error("charge_conjugate: Matrix found.");
+        if(expr.has(GMat(w1,w2,w3))) throw Error("charge_conjugate: GMat found.");
         if(!DGamma::has(expr)) return expr;
         if(is_a<DGamma>(expr)) {
             DGamma g = ex_to<DGamma>(expr);

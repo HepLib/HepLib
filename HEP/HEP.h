@@ -459,7 +459,7 @@ namespace HepLib {
     
     public:
         ex pi;
-        unsigned rl;
+        unsigned rl = 0;
         DGamma(const Vector &p, unsigned rl=0);
         DGamma(const Index &i, unsigned rl=0);
         DGamma(int int_1567, unsigned _rl=0);
@@ -479,15 +479,81 @@ namespace HepLib {
         void read_archive(const archive_node& n) override;
         static bool has(const ex &e);
         static lst all(const ex &e);
+        static ex sigma(const ex & mu, const ex & nu);
+        static ex G5Eps(int i=0, int rl=0);
         ex derivative(const symbol & s) const override;
         ex conjugate() const override;
         bool is_equal_same_type(const basic & other) const override;
     };
     
+    /**
+     * @brief class for AntiSymmetric Gamma object
+     */
+    class AsGamma : public basic {
+    //GINAC_DECLARE_REGISTERED_CLASS(AsGamma, basic)
+    private:
+        static GiNaC::registered_class_info reg_info;
+    public:
+        static GiNaC::registered_class_info &get_class_info_static();
+        class visitor {
+        public:
+            virtual void visit(const AsGamma &) = 0; // classname
+            virtual ~visitor();
+        };
+        template<class B, typename... Args> friend B & dynallocate(Args &&... args);
+        typedef basic inherited; // supername
+        AsGamma(); // classname
+        AsGamma * duplicate() const override; // classname
+        void accept(GiNaC::visitor & v) const override;
+        const GiNaC::registered_class_info &get_class_info() const override;
+        GiNaC::registered_class_info &get_class_info() override;
+        const char *class_name() const override;
+    protected:
+        int compare_same_type(const GiNaC::basic & other) const override;
+    // GINAC_DECLARE_REGISTERED_CLASS END
+    
+    private:
+        AsGamma(const exvector & _pis, int _rl=0);
+    
+    public:
+        exvector pis; // momentum and index lst
+        unsigned rl = 0;
+        AsGamma(const lst & _pis, int _rl=0);
+        static ex from(const lst & pis_lst, unsigned rl=0);
+        static ex from(const exvector & pis_vec, unsigned rl=0) { return from(vec2lst(pis_vec), rl); }
+        ex to() const;
+        AsGamma(const AsGamma &g, unsigned _rl);
+        void print(const print_dflt &c, unsigned level = 0) const;
+        void form_print(const FormFormat &c, unsigned level = 0) const;
+        void fc_print(const FCFormat &c, unsigned level = 0) const;
+        return_type_t return_type_tinfo() const override;
+        unsigned return_type() const override { return return_types::noncommutative; }
+        bool match_same_type(const basic & other) const override;
+        unsigned get_rl();
+        size_t nops() const override;
+        ex op(size_t i) const override;
+        ex& let_op(size_t i) override;
+        ex eval() const override;
+        void archive(archive_node & n) const override;
+        void read_archive(const archive_node& n) override;
+        static bool has(const ex &e);
+        static lst all(const ex &e);
+        ex derivative(const symbol & s) const override;
+        ex conjugate() const override;
+        bool is_equal_same_type(const basic & other) const override;
+        
+        ex mul_right(const ex & pi) const;
+        ex mul_left(const ex & pi) const;
+    };
+    
+    ex AsGamma_mul_right(const ex & expr, const ex & pi_in);
+    ex AsGamma_mul_left(const ex & expr, const ex & pi_in);
+    ex AsGamma_to(const ex & expr);
+    
     //-----------------------------------------------------------
     // TR/GAS functions
     //-----------------------------------------------------------
-    DECLARE_FUNCTION_3P(Matrix)
+    DECLARE_FUNCTION_3P(GMat)
     DECLARE_FUNCTION_1P(TR)
     DECLARE_FUNCTION_1P(TTR)
     DECLARE_FUNCTION_1P(HF)
@@ -500,8 +566,13 @@ namespace HepLib {
     ex charge_conjugate(const ex &);
     ex form(const ex &expr, int verb=0);
     ex UnContract(const ex expr, const lst &loop_ps, const lst &ext_ps=lst{}); // Eps/DGamma always uncontract
+    ex Contract(const ex & expr);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
-    ex MatrixContract(const ex & expr_in);
+    ex ncmul_expand(const ex & expr);
+    ex GMatContract(const ex & expr_in);
+    ex GMatExpand(const ex & expr_in);
+    ex GMatShift(const ex & expr, const ex & g, bool to_right=true);
+    ex GMatShift(const ex & expr);
     ex Apart(const matrix & mat);
     ex Apart(const ex &expr_in, const lst &vars, exmap sgnmap={});
     ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms, exmap sgnmap={});

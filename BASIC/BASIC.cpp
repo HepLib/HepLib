@@ -1851,11 +1851,21 @@ namespace HepLib {
      * @param opt 1 to use FORM, otherwise using GiNaC for factorization
      * @return factorized result
      */
-    ex exfactor(const ex & expr, int opt) {
-        if(opt==o_none) return expr;
-        else if(opt==o_form) return factor_form(expr);
-        else if(opt==o_flint || opt==o_flintf) return factor_flint(expr);
-        else return expr;
+    ex exfactor(const ex & expr_in, int opt) {
+        // replace Symbol
+        auto syms = gather_symbols(expr_in);
+        exmap subs1, subs2;
+        for(int i=0; i<syms.nops(); i++) {
+            Symbol si("xfaci"+to_string(i));
+            subs1[syms.op(i)] = si;
+            subs2[si] = syms.op(i);
+        }
+        ex expr = expr_in.subs(subs1);
+        
+        if(opt==o_form) expr = factor_form(expr);
+        else if(opt==o_flint || opt==o_flintf) expr = factor_flint(expr);
+        
+        return expr.subs(subs2); // replace back
     }
     
     /**

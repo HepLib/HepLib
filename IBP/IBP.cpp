@@ -167,6 +167,14 @@ namespace HepLib {
     }
     
     pair<exmap,lst> IBP::FindRules(bool is_mi) {
+        if(!has_w(Replacement)) {
+            lst repl;
+            for(auto item : Replacement) {
+                repl.append(item);
+                repl.append(w*item.op(0) == w*item.op(1));
+            }
+            Replacement = repl;
+        }
         vector<IBP*> ibps;
         ibps.push_back(this);
         auto rs_mis = HepLib::FindRules(ibps, is_mi);
@@ -186,7 +194,7 @@ namespace HepLib {
         }
         return rs_mis;
     }
-        
+    
     /**
      * @brief Sort for all permuations, and return xs w.r.t. 1st permutation
      * @param in_expr the input expression, as the sort key, no need of polynormial of xs
@@ -565,6 +573,18 @@ namespace HepLib {
      */
     pair<exmap,lst> FindRules(vector<IBP*> fs, bool mi, std::function<lst(const IBP &, const ex &)> uf) {
         vector<pair<IBP*,ex>> ibp_idx_vec;
+        
+        for(auto & fi : fs) {
+            if(!has_w(fi->Replacement)) {
+                lst repl;
+                for(auto item : fi->Replacement) {
+                    repl.append(item);
+                    repl.append(w*item.op(0) == w*item.op(1));
+                }
+                fi->Replacement = repl;
+            }
+        }
+        
         if(mi) for(auto fi : fs) for(auto item : fi->MIntegral) ibp_idx_vec.push_back(make_pair(fi, item));
         else for(auto fi : fs) for(auto item : fi->Integral) ibp_idx_vec.push_back(make_pair(fi, F(fi->ProblemNumber,item)));
         

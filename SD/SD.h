@@ -528,7 +528,7 @@ namespace HepLib::SD {
         map<int, int> used;
     };
     
-    class cse_Parser {
+    class cse_Parser { // just a bit try
     public:
         ex Parse(ex expr) { return Parse(expr, true); }
         string v = "v";

@@ -6,6 +6,8 @@
 #include "IBP.h"
 #include <cmath>
 
+#include "exFlint.h"
+
 namespace HepLib {
 
     // FROM FIRE6.m
@@ -54,6 +56,17 @@ namespace HepLib {
             18446744073709546429llu, 18446744073709546409llu, 18446744073709546391llu,
             18446744073709546363llu, 18446744073709546337llu, 18446744073709546333llu,
             18446744073709546289llu, 18446744073709546271llu};
+    }
+    
+    inline lst syms(const exvector & ev) {
+        exset ss;
+        for(auto e : ev) {
+            for(const_preorder_iterator i=e.preorder_begin(); i!=e.preorder_end(); ++i)
+                if(is_a<symbol>(*i)) ss.insert(*i);
+        }
+        lst ls;
+        for(auto item : ss) ls.append(item);
+        return ls;
     }
         
     void FIRE::RRTables(const string & filename, int pnum) {
@@ -225,15 +238,84 @@ namespace HepLib {
         ofs << "    {" << endl;
         for(int i=0; i<int_mi_cs_vec.size(); i++) {
             cout << "\r                               \r" << flush;
-            cout << "Thiele " << int_mi_cs_vec.size() << "|" << i+1 << flush;
+            cout << "Thiele: " << int_mi_cs_vec.size() << "|" << i+1 << flush;
             auto imc = int_mi_cs_vec[i];
             ofs << "        {" << imc.first << "," << endl;
             ofs << "            {" << endl;
-            for(int j=0; j<imc.second.size(); j++) {
+            
+            auto nnn = imc.second.size();
+            vector<fmpz_mpoly_q_struct*> res_vec(nnn);
+            vector<lst> xs_vec(nnn);
+            #pragma omp parallel for schedule(dynamic, 1)
+            for(int j=0; j<nnn; j++) {
                 auto item = imc.second[j];
+                xs_vec[j] = syms(item.second);
+                fmpz_mpoly_ctx_t ctx;
+                fmpz_mpoly_ctx_init(ctx, xs_vec[j].nops(), ORD_LEX);
+                res_vec[j] = (fmpz_mpoly_q_struct*) flint_malloc(sizeof(fmpz_mpoly_q_struct));
+                fmpz_mpoly_q_init(res_vec[j], ctx);
+                int n = keys.size();
+                vector<fmpz_mpoly_q_struct*> key_vec(n);
+                vector<fmpz_mpoly_q_struct*> val_vec(n);
+                vector<fmpz_mpoly_q_struct*> coeff_vec(n);
+                for(int k=0; k<n; k++) {
+                    key_vec[j] = (fmpz_mpoly_q_struct*) flint_malloc(sizeof(fmpz_mpoly_q_struct));
+                    fmpz_mpoly_q_init(key_vec[k], ctx);
+                    _to_(xs_vec[j], key_vec[k], ctx, item.first.op(k));
+                    val_vec[j] = (fmpz_mpoly_q_struct*) flint_malloc(sizeof(fmpz_mpoly_q_struct));
+                    fmpz_mpoly_q_init(val_vec[k], ctx);
+                    _to_(xs_vec[j], val_vec[j], ctx, item.second[k]);
+                    coeff_vec[j] = (fmpz_mpoly_q_struct*) flint_malloc(sizeof(fmpz_mpoly_q_struct));
+                    fmpz_mpoly_q_init(coeff_vec[k], ctx);
+                    fmpz_mpoly_q_zero(coeff_vec[k], ctx);
+                }
+                
+                fmpz_mpoly_q_t t1, t2;
+                fmpz_mpoly_q_init(t1, ctx);
+                fmpz_mpoly_q_init(t2, ctx);
+                for(int i=0; i<n; i++) {
+                    fmpz_mpoly_q_set(t1, val_vec[i], ctx);
+                    for(int j=0; j<i; j++) {
+                        if(fmpz_mpoly_q_equal(t1, coeff_vec[j], ctx)) {
+                            n = i-1;
+                            goto out;
+                        }
+                        fmpz_mpoly_q_sub(t2, key_vec[i], key_vec[j], ctx);
+                        fmpz_mpoly_q_sub(t1, t1, coeff_vec[j], ctx);
+                        fmpz_mpoly_q_div(t1, t2, t1, ctx);
+                    }
+                    fmpz_mpoly_q_set(coeff_vec[i], t1, ctx);
+                }
+                throw Error("Thiele unstable!");
+                out: ;
+                fmpz_mpoly_q_set(t1, coeff_vec[n], ctx);
+                fmpz_mpoly_q_t dx;
+                fmpz_mpoly_q_init(dx, ctx);
+                _to_(xs_vec[j], dx, ctx, d);
+                for(int i=n-1; i>=0; i--) {
+                    fmpz_mpoly_q_sub(t2, dx, key_vec[i], ctx);
+                    fmpz_mpoly_q_div(t2, t2, t1, ctx);
+                    fmpz_mpoly_q_add(t1, coeff_vec[i], t2, ctx);
+                }
+                fmpz_mpoly_q_clear(dx, ctx);
+                fmpz_mpoly_q_set(res_vec[i], t1, ctx);
+                for(int k=0; k<n; k++) {
+                    fmpz_mpoly_q_clear(key_vec[k], ctx);
+                    fmpz_mpoly_q_clear(val_vec[k], ctx);
+                    fmpz_mpoly_q_clear(coeff_vec[k], ctx);
+                }
+                fmpz_mpoly_q_clear(t1, ctx);
+                fmpz_mpoly_q_clear(t2, ctx);
+                fmpz_mpoly_ctx_clear(ctx);
+            }
+            for(int j=0; j<imc.second.size(); j++) {
+                fmpz_mpoly_ctx_t ctx;
+                fmpz_mpoly_ctx_init(ctx, xs_vec[j].nops(), ORD_LEX);
+                auto item = imc.second[j];
+                ex res;
+                res = _to_(xs_vec[j], res_vec[j], ctx);
+                fmpz_mpoly_q_clear(res_vec[j], ctx);
                 ofs << "                {" << item.first << ", ";
-                exvector vals(item.second.begin(), item.second.end());
-                auto res = Thiele(keys, vals, d);
                 ofs << "\"" << res << "\"}";
                 if(j+1<imc.second.size()) ofs << ",";
                 ofs << endl;
