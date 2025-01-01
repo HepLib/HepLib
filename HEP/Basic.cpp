@@ -641,7 +641,7 @@ namespace HepLib {
             lst mats_idx;
             for(int i=0; i<mats.nops(); i++) {
                 auto item = mats.op(i);
-                if(item.op(0).return_type()==return_types::commutative || item.op(0).is_equal(GAS(1))  || item.op(0).is_equal(color_ONE())) {
+                if(item.op(0).return_type()==return_types::commutative || item.op(0).is_equal(GAS(1))) {
                     mats_idx.append(lst{item,i});
                 } else {
                     if(to_map[item.op(1)]!=0 || from_map[item.op(2)]!=0) throw Error("GMatContract: index conflict for "+ex2str(item));
@@ -695,7 +695,7 @@ namespace HepLib {
                 auto li=mats.op(c).op(1);
                 auto ri=mats.op(c).op(2);
                 while(true) {
-                    if(is_zero(li-ri)) {
+                    if(li.is_equal(ri)) {
                         retMat *= TR(curMat);
                         break;
                     }
@@ -707,16 +707,16 @@ namespace HepLib {
                     }
                     if(ti!=0) {
                         auto mat = mats.op(ti-10).op(0);
-                        if(is_zero(curMat-GAS(1))) curMat = mat;
-                        else if(!is_zero(mat-GAS(1))) curMat = curMat * mat;
+                        if(curMat.is_equal(GAS(1))) curMat = mat;
+                        else if(!mat.is_equal(GAS(1))) curMat = curMat * mat;
                         ri = mats.op(ti-10).op(2);
                         todo.erase(ti-10);
                         continue;
                     }
                     if(fi!=0) {
                         auto mat = mats.op(fi-10).op(0);
-                        if(is_zero(curMat-GAS(1))) curMat = mat;
-                        else if(!is_zero(mat-GAS(1))) curMat = mat * curMat;
+                        if(curMat.is_equal(GAS(1))) curMat = mat;
+                        else if(!mat.is_equal(GAS(1))) curMat = mat * curMat;
                         li = mats.op(fi-10).op(1);
                         todo.erase(fi-10);
                         continue;
@@ -906,6 +906,13 @@ namespace HepLib {
         ex res = GMatExpand(Contract(expr)); // add Contract & GMatExpand here
         res = collect_ex(res, GMat(w1,w2,w3));
         res = inner_shift(res);
+        return res;
+    }
+    
+    ex GMatSimplify(const ex & expr) {
+        ex res = GMatContract(expr);
+        res = GMatShift(res);
+        res = Contract(res);
         return res;
     }
     

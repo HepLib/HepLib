@@ -543,7 +543,8 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
 
         Parser fp(st);
         fp.FTable.insert({{"SP", 2}, reader_func(SP_reader)});
-        fp.FTable.insert({{"LC", 4}, reader_func(LC_reader)});
+        //fp.FTable.insert({{"LC", 4}, reader_func(LC_reader)});
+        for(int i=3; i<10; i++) fp.FTable.insert({{"LC", i}, reader_func(LC_reader)});
         fp.FTable.insert({{"GMat", 3}, reader_func(GMat_reader)});
         for(int i=1; i<30; i++) fp.FTable.insert({{"T", i}, reader_func(SUNT_reader)});
         for(int i=1; i<30; i++) fp.FTable.insert({{"TTRX", i},  reader_func(TTR_reader)});
@@ -637,11 +638,23 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
      */
     ex charge_conjugate(const ex & expr) {
         if(expr.has(GMat(w1,w2,w3))) throw Error("charge_conjugate: GMat found.");
-        if(!DGamma::has(expr)) return expr;
+        if(!DGamma::has(expr) && !AsGamma::has(expr)) return expr;
         if(is_a<DGamma>(expr)) {
             DGamma g = ex_to<DGamma>(expr);
             if(is_a<Vector>(g.pi) || is_a<Index>(g.pi)) return -expr;
             else if(is_zero(g.pi-1) || is_zero(g.pi-5)) return expr;
+        } else if(is_a<AsGamma>(expr)) {
+            AsGamma ag = ex_to<AsGamma>(expr);
+            ex sign = 1;
+            lst pis_lst;
+            for(int i=ag.pis.size()-1; i>=0; --i) {
+                ex pi = ag.pis[i];
+                if(is_a<Vector>(pi) || is_a<Index>(pi)) sign *= -1;
+                else if(is_zero(pi-1) || is_zero(pi-5)) sign *= 1;
+                else throw Error("charge_conjugate: only p/i/1/5 supported.");
+                pis_lst.append(pi);
+            }
+            return sign * AsGamma::from(pis_lst);
         }
         
         if(is_a<add>(expr)) {

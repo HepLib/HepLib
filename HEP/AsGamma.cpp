@@ -183,7 +183,14 @@ namespace HepLib {
         lst pis_sort = pis_lst;
         int n = pis_sort.nops();
         for(int i=0; i<n; i++) if(is_a<DGamma>(pis_sort.op(i))) pis_sort.let_op(i) = pis_sort.op(i).op(0);
+        lst tmp;
+        for(auto item : pis_sort) {
+            if(is_a<Vector>(item) || is_a<Index>(item)) tmp.append(item);
+            else if(!item.is_equal(1)) throw Error("AsGamma::from only support GAS(1/i/p)."); // 1 just to skip
+        }
+        pis_sort = tmp;
         pis_sort.sort();
+        n = pis_sort.nops();
         
         std::map<ex,int,ex_is_less> e2i;
         for(int i=0; i<n; i++) e2i[pis_lst.op(i)] = i;
@@ -226,7 +233,7 @@ namespace HepLib {
                 if(i==r) continue;
                 pis3.append(pis[i]);
             }
-            res += (n-r-1%2==0 ? 1 : -1) * SP(pis[r], pi) * AsGamma::from(pis3, rl);
+            res += ((n-r-1)%2==0 ? 1 : -1) * SP(pis[r], pi) * AsGamma::from(pis3, rl);
         }
         return res;
     }

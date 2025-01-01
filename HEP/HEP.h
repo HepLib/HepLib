@@ -573,6 +573,7 @@ namespace HepLib {
     ex GMatExpand(const ex & expr_in);
     ex GMatShift(const ex & expr, const ex & g, bool to_right=true);
     ex GMatShift(const ex & expr);
+    ex GMatSimplify(const ex & expr);
     ex Apart(const matrix & mat);
     ex Apart(const ex &expr_in, const lst &vars, exmap sgnmap={});
     ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms, exmap sgnmap={});
