@@ -12,11 +12,13 @@
 #include "flint/fmpq_mpoly_factor.h"
 #include "flint/fmpz_mat.h"
 #include "flint/fmpq_mat.h"
+#include "flint/arb_mat.h"
 #include "flint/acb_mat.h"
 #include "flint/bool_mat.h"
 #include "flint/arb_fmpz_poly.h"
 #include "flint/acb_poly.h"
 #include "flint/acf.h"
+#include "flint/gr_poly.h"
 #include "flint/gr_mat.h"
 #include "flint/gr_special.h"
 

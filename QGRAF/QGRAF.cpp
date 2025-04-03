@@ -82,7 +82,10 @@ namespace HepLib::QGRAF {
         ofs << "loops=" << Loops << ";" << endl;
         ofs << "loop_momentum=" << LoopPrefix << ";" << endl;
         ofs << "options=" << Options << ";" << endl;
-        for(auto vs : Others) ofs << vs << ";" << endl;
+        for(auto vs : Others) {
+            if(vs.find(";") != std::string::npos) ofs << vs << endl;
+            else ofs << vs << ";" << endl;
+        }
         ofs.close();
         
         if(Debug) rc = system((InstallPrefix+"/bin/qgraf").c_str());
@@ -162,13 +165,12 @@ namespace HepLib::QGRAF {
      * @param fn the filename of the PDF
      * @return nonthing, check pdf file
      */
-    void DrawPDF(const lst & amps, string fn) {
+    void DrawPDF(const lst & amps, string fn, int nr) {
         int id=0, rc;
         exvector amp_vec;
         for(auto item : amps) amp_vec.push_back(item);
         string tex_path = to_string(getpid()) + "_TeX/";
         if(!dir_exists(tex_path)) rc = system(("mkdir -p "+tex_path).c_str());
-        int limit = 300;
         
         GiNaC_Parallel(amp_vec.size(), [&amp_vec,tex_path](int idx)->ex {
             auto amp = amp_vec[idx];
@@ -241,29 +243,32 @@ namespace HepLib::QGRAF {
         out << "\\documentclass{standalone}" << endl;
         out << "\\usepackage{graphicx}" << endl;
         out << "\\usepackage{adjustbox}" << endl;
+        out << "\\usepackage{scalefnt}" << endl;
         out << "\\begin{document}" << endl;
+        //out << "\\scalefont{" << .5/nr << "}" << endl;
         out << "\\begin{adjustbox}{valign=T,width=\\textwidth}" << endl;
-        out << "\\begin{tabular}{|cc|cc|cc|cc|}" << endl;
+        out << "\\begin{tabular}{|"; for(int i=0; i<nr; i++) out << "cc|"; out << "}" << endl;
         out << "\\hline" << endl;
         int total = amps.nops();
         int namps = total;
-        if((total%4)!=0) total = (total/4+1)*4;
-        for(int i=0 ; i<total; i++) {
+        if((total%nr)!=0) total = (total/nr+1)*nr;
+        for(int i=0; i<total; i++) {
             
-            if((i!=0) && (i+1!=total) && (i%limit)==0) {
-                out << "\\end{tabular}" << endl << endl;
-                out << "\\begin{tabular}{|cc|cc|cc|cc|}" << endl;
-                out << "\\hline" << endl;
-            }
+            //int limit = 300;
+            //if((i!=0) && (i+1!=total)) {
+            //    out << "\\end{tabular}" << endl << endl;
+            //    out << "\\begin{tabular}{|"; for(int i=0; i<nr; i++) out << "cc|"; out << "}" << endl;
+            //    out << "\\hline" << endl;
+            //}
             
             out << "{\\tiny " << i+1 << "}&" << endl;
             if(i<namps) {
                 out << "\\includegraphics[keepaspectratio,";
-                out << "height=0.22\\textwidth,";
-                out << "width=0.22\\textwidth]";
+                out << "height=" << 1.0/nr << "\\textwidth,";
+                out << "width=" << 1.0/nr << "\\textwidth]";
                 out << "{"<<i<<".pdf}" << endl;
             }
-            if((i+1)%4==0) out << "\\\\ \\hline";
+            if((i+1)%nr==0) out << "\\\\ \\hline";
             else out << "&";
         }
         out << "\\end{tabular}" << endl;
