@@ -79,13 +79,34 @@ namespace HepLib {
         if(!In_GiNaC_Parallel && Verbose>0) {
             cout << WHITE << "\\--Fit @ Start " << now() << RESET << endl;
             cout << "  \\--Configure: x^" << xn << ", working prec: " << dp << ", r=1/" << rr << " , ep numbers: " << eps.nops() << ", |ep| ~ " << eps.op(0) << endl;
+            cout << endl;
         }
     
         lst nis;
+        int cnt = 0, tot = eps.nops();
         for(auto nep : eps) {
+            if(!In_GiNaC_Parallel && Verbose>0) {
+                cnt++;
+                cout << "  \\--[" << cnt << " / " << tot << "] @ eps = " << nep << endl;
+            }
             ex nd = 4-2*nep;
             if(Mode==Modes::Single) {
                 Single amf(nd);
+            
+                amf.Integral = Integral;
+                amf.Propagator = Propagator;
+                amf.Replacement = Replacement;
+                amf.Internal = Internal;
+                amf.External = External;
+                
+                amf.xn = xn;
+                amf.dp = dp;
+                amf.rr = rr;
+                
+                amf();
+                nis.append(amf.NIntegral);
+            } else if(Mode==Modes::Loop) {
+                Loop amf(nd);
             
                 amf.Integral = Integral;
                 amf.Propagator = Propagator;
@@ -150,6 +171,21 @@ namespace HepLib {
             ex nd = 4-2*nep;
             if(Mode==Modes::Single) {
                 Single amf(nd);
+            
+                amf.Integral = Integral;
+                amf.Propagator = Propagator;
+                amf.Replacement = Replacement;
+                amf.Internal = Internal;
+                amf.External = External;
+                
+                amf.xn = xn;
+                amf.dp = dp;
+                amf.rr = rr;
+                
+                amf();
+                return amf.NIntegral;
+            } else if(Mode==Modes::Loop) {
+                Loop amf(nd);
             
                 amf.Integral = Integral;
                 amf.Propagator = Propagator;

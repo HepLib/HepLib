@@ -72,10 +72,13 @@ namespace HepLib {
         void Run() override;
         void Import() override;
         int PosPref = 1;
+        int Prime = 0;
         int T1 = 4;
-        int LT1 = 2;
+        int LT1 = 1;
         int T2 = 4;
-        int LT2 = 2;
+        int LT2 = 1;
+        int TP = 8;
+        int LEN = 50;
         string opt = "";
         string Execute = InstallPrefix + "/FIRE/M/FIRE";
         exmap NVariables;

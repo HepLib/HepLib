@@ -240,6 +240,8 @@ namespace HepLib {
             T2 = amf.T2;
             LT1 = amf.LT1;
             LT2 = amf.LT2;
+            TP = amf.TP;
+            LEN = amf.LEN;
             PosPref = amf.PosPref;
             pre = amf.pre;
         }
@@ -266,8 +268,10 @@ namespace HepLib {
         int rr = 2;
         int T1 = CpuCores()/2;
         int T2 = CpuCores()/2;
-        int LT1 = 4;
-        int LT2 = 4;
+        int LT1 = 1;
+        int LT2 = 1;
+        int TP = CpuCores()/2;
+        int LEN = 50;
         int PosPref = 1;
         string pre = "  ";
         
@@ -361,7 +365,7 @@ namespace HepLib {
     
     class Fit {
     public:
-        enum class Modes { Single, All };
+        enum class Modes { Single, All, Loop };
         lst Integral;
         lst NIntegral;
         lst Propagator;

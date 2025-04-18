@@ -250,7 +250,11 @@ namespace HepLib::SD {
             auto u_nd = numer_denom(u);
             ex usgn = FactorOutX(u_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
             if(is_zero(usgn)) usgn = FactorOutX(u_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
-            if(!is_a<numeric>(usgn) || is_zero(usgn)) throw Error("Initialize: usgn is zero or non-numeric.");
+            usgn = usgn.subs(nsubs);
+            if(!is_a<numeric>(usgn) || is_zero(usgn)) {
+                cout << "usgn: " << usgn << endl;
+                throw Error("Initialize@1: usgn is zero or non-numeric.");
+            }
             usgn = normal(usgn)>0 ? 1 : -1;
             
             uList1.append(usgn*u_nd.op(0));
@@ -290,7 +294,12 @@ namespace HepLib::SD {
             auto u_nd = numer_denom(u);
             ex usgn = FactorOutX(u_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
             if(is_zero(usgn)) usgn = FactorOutX(u_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/3).subs(nsubs);
-            if(!is_a<numeric>(usgn) || is_zero(usgn)) throw Error("Initialize: usgn is zero or non-numeric.");
+            usgn = usgn.subs(nsubs);
+            if(!is_a<numeric>(usgn) || is_zero(usgn)) {
+                cout << "usgn: " << usgn << endl;
+                cout << "nsbus: " << nsubs << endl;
+                throw Error("Initialize@2: usgn is zero or non-numeric.");
+            }
             usgn = normal(usgn)>0 ? 1 : -1;
             
             uList1.append(usgn*u_nd.op(0));
@@ -309,10 +318,19 @@ namespace HepLib::SD {
         auto rem_nd = numer_denom(rem);
         
         ex usgn = FactorOutX(u_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
-        if(!is_a<numeric>(usgn) || is_zero(usgn)) throw Error("Initialize: usgn is zero or non-numeric.");
+        usgn = usgn.subs(nsubs);
+        if(!is_a<numeric>(usgn) || is_zero(usgn)) {
+            cout << "usgn: " << usgn << endl;
+            throw Error("Initialize@3: usgn is zero or non-numeric.");
+        }
         usgn = normal(usgn)>0 ? 1 : -1;
         ex fsgn = FactorOutX(rem_nd.op(1)).subs(xtNeg).subs(x(w)==ex(1)/2).subs(nsubs);
-        if(!is_a<numeric>(fsgn) || is_zero(fsgn)) throw Error("Initialize: fsgn is zero or non-numeric.");
+        fsgn = fsgn.subs(nsubs);
+        if(!is_a<numeric>(fsgn) || is_zero(fsgn)) {
+            cout << "fsgn: " << fsgn << endl;
+            cout << "nsubs: " << nsubs << endl;
+            throw Error("Initialize: fsgn is zero or non-numeric.");
+        }
         fsgn = normal(fsgn)>0 ? 1 : -1;
         
         lst fList1, fList2;

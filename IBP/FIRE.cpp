@@ -717,7 +717,8 @@ namespace HepLib {
                 
                 if(PosPref!=1) config << "#pos_pref "<< PosPref << endl;
                 config << "#database db" << ProblemNumber << endl;
-                config << "##prime 111" << endl; // ## for comment
+                if(Prime>0) config << "#prime " << Prime << endl;
+                else config << "##prime 111" << endl; // ## for comment
                 if(allIBP) config << "#allIBP" << endl;
                 config << "#start" << endl;
                 
@@ -803,7 +804,7 @@ namespace HepLib {
             ostringstream cmd;
             cmd << "cd " << WorkingDir << " && " << Execute;
             if(Version>5) {
-                if(opt=="") cmd << " -silent -t " << T1 << "," << T2 << " -lt " << LT1 << "," << LT2;
+                if(opt=="") cmd << " -silent -t " << T1 << "," << T2 << " -lt " << LT1 << "," << LT2 << " -tp " << TP << " -len " << LEN;
                 else cmd << " " << opt;
             }
             cmd << " -c " << ProblemNumber << " 1>/dev/null 2>&1";

@@ -764,6 +764,30 @@ namespace HepLib {
         return res.subs(SP_map);
     }
     
+    ex GMatOut(const ex & expr_in) {
+        MapFunction inner_out([&](const ex & e, MapFunction & self)->ex {
+            if(e.match(GMat(w1,w2,w3))) {
+                auto e0 = e.op(0);
+                if(is_a<mul>(e0)) {
+                    ex c = 1, v = 1;
+                    for(auto item : e0) {
+                        if(item.return_type()==return_types::commutative) c *= item;
+                        else {
+                            if(!v.is_equal(1)) {
+                                cout << "c=" << c << ", " << "v=" << v << endl;
+                                throw Error("GMatOut: v != 1"); // make sure only one non-commutative object
+                            }
+                            v = item;
+                        }
+                    }
+                    if(v.is_equal(1)) v = GAS(1);
+                    return c * GMatOut(GMat(v, e.op(1), e.op(2)));
+                } else return e;
+            } else return e.map(self);
+        });
+        return inner_out(expr_in);
+    }
+    
     ex GMatExpand(const ex & expr_in) {
         MapFunction inner_expand([&](const ex & e, MapFunction & self)->ex {
             if(!e.has(GMat(w1,w2,w3))) return e;

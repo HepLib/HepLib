@@ -23,6 +23,8 @@ namespace HepLib {
         fire.T2 = T2;
         fire.LT1 = LT1;
         fire.LT2 = LT2;
+        fire.TP = TP;
+        fire.LEN = LEN;
         fire.PosPref = 2;
         fire.Internal = Internal;
         fire.External = External;
@@ -166,6 +168,7 @@ namespace HepLib {
         }
         
         fire.NVariables[x] = 1/ex(19);
+        fire.Prime = 111;
         fire.Execute = InstallPrefix + "/FIRE/P/FIRE";
         
         for(int i=0; i<iPropagator.nops(); i++) {
@@ -796,6 +799,7 @@ namespace HepLib {
         }
         
         //auto rref_fmat = fermat_Redrowech_Sparse(fmat);
+        
         fmpq_mat_t qmat;
         fmpq_mat_init(qmat, fmat.rows(), fmat.cols());
         _to_(qmat, fmat);
@@ -806,19 +810,14 @@ namespace HepLib {
         fmpq_mat_get_fmpz_mat_matwise(zmat, z, qmat);
         fmpq_mat_clear(qmat);
         
-        //auto rank = fmpq_mat_rref(qmat, qmat);
-        fmpz_set_ui(z, 99999999u);
-        fmpz_nextprime(z, z, 1);
-        
-        fmpz_mod_ctx_t mod_ctx;
-        fmpz_mod_ctx_init(mod_ctx, z);
-        fmpz_mod_mat_t zmat_mod;
-        fmpz_mod_mat_init(zmat_mod, fmat.rows(), fmat.cols(), mod_ctx);
-        fmpz_mod_mat_set_fmpz_mat(zmat_mod, zmat, mod_ctx);
-        auto rank = fmpz_mod_mat_rref(zmat_mod, zmat_mod, mod_ctx);
-        fmpz_mod_mat_clear(zmat_mod, mod_ctx);
-        fmpz_mod_ctx_clear(mod_ctx);
-        
+//        auto rank = fmpq_mat_rref_fraction_free(qmat, qmat);
+//        if(rank!=N) {
+//            cout << "rank=" << rank << " != "<< "N=" << N << endl;
+//            throw Error("oo: BC is NOT enough!");
+//        }
+//        auto rref_fmat = _to_(qmat);
+
+        auto rank = fmpz_mat_rref(zmat, z, zmat);
         if(rank!=N) {
             cout << "rank=" << rank << " != "<< "N=" << N << endl;
             throw Error("oo: BC is NOT enough!");
@@ -836,7 +835,7 @@ namespace HepLib {
         for(int r=0; r<N; r++) {
             for( ; c<N*fmat_vec.size(); c++) {
                 if(!rref_fmat(r,c).is_zero()) {
-                    if(rref_fmat(r,c)!=1) throw Error("pivot is NOT 1 in RREF.");
+                    //if(rref_fmat(r,c)!=1) throw Error("pivot is NOT 1 in RREF.");
                     for(int j=0; j<N; j++) inv_mat(r, j) = fmat(j, c);
                     auto itr = fcol_vec.begin();
                     std::advance(itr, c/N);

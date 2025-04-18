@@ -32,9 +32,16 @@ int main(int argc, char** argv) {
             }
             sector_intgs[key].append(i);
         }
-        int n = 0;
         string config = file2str(pn+".config");
+        lst n_intg;
         for(auto const & kv : sector_intgs) {
+            ex tot = 0;
+            for(auto item : kv.first) tot += item;
+            n_intg.append(lst{ tot, kv.second });
+        }
+        sort_lst_by(n_intg, 0);
+        int n = 0;
+        for(auto const & item : n_intg) {
             n++;
             string ns = to_string(n);
             string cc = config;
@@ -42,7 +49,7 @@ int main(int argc, char** argv) {
             string_replace_all(cc, "#integrals "+pn+".intg", "#integrals "+pn+"-"+ns+".intg");
             string_replace_all(cc, "#output "+pn+".tables", "#output "+pn+"-"+ns+".tables");
             str2file(cc, pn+"-"+ns+".config");
-            ex2file(kv.second, pn+"-"+ns+".intg");
+            ex2file(item.op(1), pn+"-"+ns+".intg");
         }
     } else if(act=="-c") {
     

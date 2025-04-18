@@ -82,10 +82,14 @@ namespace HepLib {
     }
     
     void Exp2AMF::Export(const ex & expr, const string & dir) {
-        static string wlo = R"EOF(
-current = If[$FrontEnd===Null,$InputFileName,NotebookFileName[]]//DirectoryName;
+        static string wlo =
+R"EOF(
+If[Length[$ScriptCommandLine]<2, Print["Usage: wolframescript -f "<>ToString[$ScriptCommandLine[[1]]]<>" <n>"];Quit[]];
+current = DirectoryName@If[$FrontEnd===Null,$InputFileName,NotebookFileName[]];
+
 <<AMFlow`AMFlow`
-SetReductionOptions["IBPReducer"->"FiniteFlow+LiteRed"];
+
+SetReductionOptions["IBPReducer"->"Blade"];
 ID = ToExpression[$ScriptCommandLine[[2]]];
 PropsInts=Get[FileNameJoin[{current,ToString[ID]<>".m"}]];
 
@@ -96,7 +100,7 @@ AMFlowInfo["Conservation"] = { };
 AMFlowInfo["Replacement"] = <<Replacement>>;
 AMFlowInfo["Propagator"] = PropsInts[[1]]/.<<M2M2>>;
 AMFlowInfo["Numeric"] = <<Numeric>>;
-AMFlowInfo["NThread"] = 6;
+AMFlowInfo["NThread"] = <<NThread>>;
 
 integrals = Map[(j[Symbol["I"<>ToString[ID]], Sequence@@#])&, PropsInts[[2]]];
 precision = <<Precision>>;
@@ -122,6 +126,7 @@ Quit[];
         string_replace_all(wl, "<<Leg>>", sLeg);
         string_replace_all(wl, "<<Replacement>>", sReplacement);
         string_replace_all(wl, "<<Numeric>>", sNumeric);
+        string_replace_all(wl, "<<NThread>>", to_string(NThread));
         string_replace_all(wl, "<<M2M2>>", sM2M2);
         string_replace_all(wl, "<<Order>>", ex2str(Order));
         string_replace_all(wl, "<<Precision>>", ex2str(Precision));
@@ -310,14 +315,15 @@ Quit[];
         cout << "Exporting res.txt ..." << endl;
         ex2file(res.subs(Numeric), dir+"/res.txt");
         
-        string sres = R"EOF(
+        string sres =
+R"EOF(
 current = If[$FrontEnd===Null,$InputFileName,NotebookFileName[]]//DirectoryName;
 <<HepLib`
 Module[{sols, res},
 sols = Flatten@Table[Import[FileNameJoin[{current,"sol"<>ToString[i]<>".m"}]], {i,0,<<NN>>}];
 res = C2M@Import[FileNameJoin[{current, "res.txt"}]];
-res = res/.{F[p_, n_] :> j[Symbol["I"<>ToString[p]], Sequence@@n]} /. sols;
-res//Print
+res = res/.{F[p_, n_] :> j[Symbol["I"<>ToString[p]], Sequence@@n]} /. Dispatch@sols;
+res
 ]
 )EOF";
         

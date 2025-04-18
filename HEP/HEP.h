@@ -569,6 +569,7 @@ namespace HepLib {
     ex Contract(const ex & expr);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex ncmul_expand(const ex & expr);
+    ex GMatOut(const ex & expr_in);
     ex GMatContract(const ex & expr_in);
     ex GMatExpand(const ex & expr_in);
     ex GMatShift(const ex & expr, const ex & g, bool to_right=true);
@@ -643,8 +644,9 @@ namespace HepLib {
         lst Replacement = lst{ };
         lst Numeric = lst{ };
         lst M2M2 = lst{ };
+        int NThread = 32;
+        int Precision = 35;
         int Order = 0;
-        int Precision = 30;
         void Export(const ex & expr, const string & dir);
     private:
         exmap sp2x;
