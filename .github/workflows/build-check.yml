@@ -12,11 +12,15 @@ jobs:
       - uses: actions/checkout@v4      
       - name: "build check"
         run: |
-          wget https://github.com/HepLib/download/raw/main/usr.tar.gz
-          tar zxfv usr.tar.gz
-          cmake -DCMAKE_INSTALL_PREFIX=$PWD/usr .
-          make -j 4 install
+          CWD=$PWD
+          wget https://heplib.github.io/download/Install.tar.gz
+          tar Install usr.tar.gz
+          cd Install
+          INSTALL_PATH=$CWD/usr jn=2 ./install.sh
+          cd $CWD
+          cmake -DCMAKE_INSTALL_PREFIX=$CWD/usr .
+          make -j 2 install
           wget https://heplib.github.io/src/trace.cpp
-          $PWD/usr/bin/heplib++ -o trace trace.cpp
+          $CWD/usr/bin/heplib++ -o trace trace.cpp
           ./trace
           
