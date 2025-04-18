@@ -1,0 +1,5 @@
+<map id="HepLib::SD::QuadMP" name="HepLib::SD::QuadMP">
+<area shape="rect" id="Node000001" title="numerical integrator using TanhSinhMP" alt="" coords="27,79,181,104"/>
+<area shape="rect" id="Node000002" href="$classHepLib_1_1SD_1_1IntegratorBase.html" title="base for numerical integrator" alt="" coords="5,5,203,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="107,44,107,79,101,79,101,44"/>
+</map>
