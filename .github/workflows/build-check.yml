@@ -14,7 +14,7 @@ jobs:
         run: |
           CWD=$PWD
           wget https://heplib.github.io/download/Install.tar.gz
-          tar Install usr.tar.gz
+          tar xf Install.tar.gz
           cd Install
           INSTALL_PATH=$CWD/usr jn=2 ./install.sh
           cd $CWD
