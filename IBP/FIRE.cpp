@@ -797,6 +797,7 @@ namespace HepLib {
         if(IsAlwaysZero) return;
         if(Execute=="") Execute = InstallPrefix + "/FIRE/M/FIRE";
         if(file_exists(WorkingDir + "/" + to_string(ProblemNumber) + ".tables")) return;
+        if(using_BL_tables && file_exists(WorkingDir + "/F" + to_string(ProblemNumber) + ".tables")) return;
         if(Integral.nops()<1) return;
         int tried = 0;
         while(tried<3) {
@@ -823,32 +824,55 @@ namespace HepLib {
      * @brief Import tables  
      */
     void FIRE::Import() {
+        int nn = Propagator.nops();
         if(IsAlwaysZero) return;
         if(Integral.nops()<1) return;
         string spn = to_string(ProblemNumber);
-        ifstream ifs(WorkingDir+"/"+spn+".tables");
-        string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
-        ifs.close();
-        
-        //string_replace_all(ostr, "\"", "");
-        for(auto & c : ostr) if(c=='"') c = ' '; 
-        
-        Parser tp;
-        auto tp_lst = tp.Read(ostr);
-        exmap id2F;
-        for(auto item : tp_lst.op(1)) {
-            if(!is_zero(item.op(1).op(0))) throw Error("FIRE::Reduce: pn is NOT 0.");
-            id2F[item.op(0)] = F(ProblemNumber, item.op(1).op(1));
-        }
-        
-        for(auto item : tp_lst.op(0)) {
-            ex left = item.op(0).subs(id2F);
-            ex right = 0;
-            for(auto it : item.op(1)) {
-                right += it.op(0).subs(id2F) * it.op(1);
+        if(file_exists(WorkingDir+"/"+spn+".tables")) {
+            ifstream ifs(WorkingDir+"/"+spn+".tables");
+            string ostr((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));
+            ifs.close();
+            
+            //string_replace_all(ostr, "\"", "");
+            for(auto & c : ostr) if(c=='"') c = ' ';
+            
+            Parser tp;
+            auto tp_lst = tp.Read(ostr);
+            exmap id2F;
+            for(auto item : tp_lst.op(1)) {
+                if(!is_zero(item.op(1).op(0))) throw Error("FIRE::Import: pn is NOT 0.");
+                if(item.op(1).op(1).nops() != nn) {
+                    cout << "pn=" << spn << ", WRONG format: " << item.op(1).op(1) << endl;
+                    throw Error("FIRE::Import: something is wrong @ ProblemNumber("+spn+").");
+                }
+                id2F[item.op(0)] = F(ProblemNumber, item.op(1).op(1));
             }
-            if(left.is_equal(right)) MIntegral.append(left);
-            else Rules.append(left==right);
+            
+            for(auto item : tp_lst.op(0)) {
+                ex left = item.op(0).subs(id2F);
+                ex right = 0;
+                for(auto it : item.op(1)) {
+                    right += it.op(0).subs(id2F) * it.op(1);
+                }
+                if(left.is_equal(right)) MIntegral.append(left);
+                else Rules.append(left==right);
+            }
+        } else {
+            string fn = WorkingDir+"/F"+spn+".tables";
+            if(!using_BL_tables || !file_exists(fn)) throw Error("FIRE::Import: (F)"+spn+".table NOT found!");
+            auto stbl = file2str(fn);
+            
+            string_replace_all(stbl, "BL[F", "F(");
+            string_replace_all(stbl, "]", ")");
+            string_replace_all(stbl, "->", "==");
+            
+            auto rules = str2ex(stbl);
+            exset mis;
+            for(auto item : rules) {
+                Rules.append(item);
+                find(item.op(1), F(w1,w2), mis);
+            }
+            for(auto mi : mis) MIntegral.append(mi);
         }
         MIntegral.sort();
         MIntegral.unique();

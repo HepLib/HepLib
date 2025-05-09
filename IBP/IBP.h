@@ -67,6 +67,7 @@ namespace HepLib {
      */
     class FIRE : public IBP {
     public:
+        bool using_BL_tables = true;
         bool allIBP = false;
         void Export() override;
         void Run() override;
