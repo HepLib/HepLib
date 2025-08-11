@@ -163,16 +163,17 @@ namespace HepLib::QGRAF {
      * @brief generate Feynman diagrams for the amplitudes, in PDF format
      * @param amps refers to Amplitudes
      * @param fn the filename of the PDF
+     * @param single_page output as single page or multiple pages
      * @return nonthing, check pdf file
      */
-    void DrawPDF(const lst & amps, string fn, int nr) {
+    void DrawPDF(const lst & amps, string fn, int nr, bool single_page) {
         int id=0, rc;
         exvector amp_vec;
         for(auto item : amps) amp_vec.push_back(item);
         string tex_path = to_string(getpid()) + "_TeX/";
         if(!dir_exists(tex_path)) rc = system(("mkdir -p "+tex_path).c_str());
         
-        GiNaC_Parallel(amp_vec.size(), [&amp_vec,tex_path](int idx)->ex {
+        GiNaC_Parallel(amp_vec.size(), [&amp_vec,single_page,tex_path](int idx)->ex {
             auto amp = amp_vec[idx];
             ofstream out(tex_path+to_string(idx)+".tex");
             out << "\\documentclass[tikz]{standalone}" << endl;
@@ -238,16 +239,26 @@ namespace HepLib::QGRAF {
         }, "TeX");
         
         ofstream out(tex_path+"diagram.tex");
-        out << "\\let\\mypdfximage\\pdfximage" << endl;
-        out << "\\def\\pdfximage{\\immediate\\mypdfximage}" << endl;
-        out << "\\documentclass{standalone}" << endl;
+        if(single_page) {
+            out << "\\let\\mypdfximage\\pdfximage" << endl;
+            out << "\\def\\pdfximage{\\immediate\\mypdfximage}" << endl;
+            out << "\\documentclass{standalone}" << endl;
+        } else {
+            out << "\\documentclass{article}" << endl;
+        }
         out << "\\usepackage{graphicx}" << endl;
         out << "\\usepackage{adjustbox}" << endl;
+        out << "\\usepackage{longtable}" << endl;
         out << "\\usepackage{scalefnt}" << endl;
         out << "\\begin{document}" << endl;
         //out << "\\scalefont{" << .5/nr << "}" << endl;
-        out << "\\begin{adjustbox}{valign=T,width=\\textwidth}" << endl;
-        out << "\\begin{tabular}{|"; for(int i=0; i<nr; i++) out << "cc|"; out << "}" << endl;
+        if(single_page) {
+            out << "\\begin{adjustbox}{valign=T,width=\\textwidth}" << endl;
+            out << "\\begin{tabular}{|"; for(int i=0; i<nr; i++) out << "cc|"; out << "}" << endl;
+        } else {
+            out << "\\setlength\\LTleft{-2.5cm} \\setlength\\LTright{0pt}" << endl;
+            out << "\\begin{longtable}{|"; for(int i=0; i<nr; i++) out << "cc|"; out << "}" << endl;
+        }
         out << "\\hline" << endl;
         int total = amps.nops();
         int namps = total;
@@ -271,13 +282,25 @@ namespace HepLib::QGRAF {
             if((i+1)%nr==0) out << "\\\\ \\hline";
             else out << "&";
         }
-        out << "\\end{tabular}" << endl;
-        out << "\\end{adjustbox}" << endl;
+        if(single_page) {
+            out << "\\end{tabular}" << endl;
+            out << "\\end{adjustbox}" << endl;
+        } else {
+            out << "\\end{longtable}" << endl;
+        }
         out << "\\end{document}" << endl;
         out.close();
-        if(Debug) rc = system(("cd "+tex_path+" && pdflatex diagram && mv diagram.pdf ../"+fn).c_str());
-        else rc = system(("cd "+tex_path+" && echo X | pdflatex diagram 1>/dev/null && mv diagram.pdf ../"+fn).c_str());
-        if(!Debug) rc = system(("rm -r "+tex_path).c_str());
+        if(Debug) rc = system(("ulimit -n unlimited > /dev/null; cd "+tex_path+" && pdflatex diagram && mv diagram.pdf ../"+fn).c_str());
+        else rc = system(("ulimit -n unlimited > /dev/null; cd "+tex_path+" && echo X | pdflatex diagram 1>/dev/null && mv diagram.pdf ../"+fn).c_str());
+        
+        if(!file_exists(fn)) {
+            cout << "DrawPDF failed, files not removed, please check the TeX files!" << endl;
+            cout << "latex command: pdflatex diagram.tex" << endl;
+            cout << "if there are many pdf files, one needs ulimint -n <large number>." << endl;
+            exit(1);
+        } else if(!Debug) {
+            rc = system(("rm -r "+tex_path).c_str());
+        }
     }
     
     /**

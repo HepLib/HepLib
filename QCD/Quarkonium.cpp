@@ -16,8 +16,8 @@ namespace HepLib::QCD {
         using namespace SD;
             
         /**
-         * @brief Spin Projector with the same mass, non-Relativistic Normalization, 
-         * To Use Relativistic Normalization, Just Times 2e, or set nr = false
+         * https://journals.aps.org/prd/pdf/10.1103/PhysRevD.81.114014
+         * @brief Spin Projector with the same mass, non-Relativistic Normalization for two quark lines,
          * SpinProj[In,p,pb,m,e,mu], where p=P/2+q, pb=P/2-q, e^2=m^2-q^2,
          * In CM, P=(M=2e,0) & q=(0,q), P.q=0, P.q=0
          * @param io In or Out
@@ -41,8 +41,7 @@ namespace HepLib::QCD {
         }
         
         /**
-         * @brief Spin Projector with the same mass, non-Relativistic Normalization, 
-         * - To Use Relativistic Normalization, Just Times 2e, or set nr = false
+         * @brief Spin Projector with the same mass, non-Relativistic Normalization for two quark lines,
          * - SpinProj[In,p,pb,m,e,mu], where p=P/2+q, pb=P/2-q, e^2=m^2-q^2,
          * - In CM, P=(M=2e,0) & q=(0,q), P.q=0, P.q=0
          * @param io In or Out
@@ -62,11 +61,11 @@ namespace HepLib::QCD {
         }
         
         /**
-         * @brief Spin Projector with different mass, non-Relativistic Normalization, 
-         * - To Use Relativistic Normalization, Just Times Sqrt[2e 2eb], or set nr = false
+         * @brief Spin Projector with different mass, Relativistic Normalization for two quark lines,
          * - SpinProj[In,p,pb,m,mb,e,eb,mu], where p=e/(e+eb)P+q,pb=eb/(e+eb)P-q,e^2=m^2-q^2,eb^2=mb^2-qb^2,
          * - In CM, P=(M=e+eb,0) & q=(0,q), P.q=0
          * - arXiv:1003.0061
+         * - https://journals.aps.org/prd/pdf/10.1103/PhysRevD.81.114014
          * @param io In or Out
          * @param s s=0 or s=1
          * @param p quark momentum
@@ -90,8 +89,7 @@ namespace HepLib::QCD {
         }
         
         /**
-         * @brief Spin Projector with different mass, non-Relativistic Normalization, 
-         * - To Use Relativistic Normalization, Just Times Sqrt[2e 2eb], or set nr = false
+         * @brief Spin Projector with different mass, non-Relativistic Normalization for two quarks,
          * - SpinProj[In,p,pb,m,mb,e,eb,mu], where p=e/(e+eb)P+q,pb=eb/(e+eb)P-q,e^2=m^2-q^2,eb^2=mb^2-qb^2,
          * - In CM, P=(M=e+eb,0) & q=(0,q), P.q=0
          * - arXiv:1003.0061

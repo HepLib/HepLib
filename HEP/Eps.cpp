@@ -133,7 +133,7 @@ namespace HepLib {
                 if(i==0) c << "]";
                 else if(!first || !is_a<Vector>(pis[i-1])) c << ",";
             }
-            if(first) c << "[]";
+            //if(first) c << "[]";
         }
     }
     

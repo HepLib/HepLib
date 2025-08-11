@@ -14,6 +14,17 @@ namespace HepLib {
             return ls;
         }
         
+        inline lst syms(const exvector & ev) {
+            exset ss;
+            for(auto e : ev) {
+                for(const_preorder_iterator i=e.preorder_begin(); i!=e.preorder_end(); ++i)
+                    if(is_a<symbol>(*i)) ss.insert(*i);
+            }
+            lst ls;
+            for(auto item : ss) ls.append(item);
+            return ls;
+        }
+        
     }
     
     //=*********************************************************************=
@@ -892,6 +903,21 @@ namespace HepLib {
             fmpz_mpoly_q_set_fmpq(f,fq,ctx);
             fmpq_clear(fq);
             return;
+        } else if(e.is_polynomial(xs)) {
+            string vars[xs.nops()];
+            const char* cvars[xs.nops()];
+            for(int i=0; i<xs.nops(); i++) {
+                vars[i] = ex2str(xs.op(i));
+                cvars[i] = vars[i].c_str();
+            }
+            //fmpz_mpoly_q_one(f,ctx);
+            string es = ex2str(e);
+            if(fmpz_mpoly_q_set_str_pretty(f, es.c_str(), cvars, ctx)) {
+                cout << es << endl;
+                cout << xs << endl;
+                throw Error("fmpz_mpoly_q_set_str_pretty error.");
+            }
+            return;
         } else if(is_a<add>(e)) {
             fmpz_mpoly_q_zero(f,ctx);
             fmpz_mpoly_q_t fi;
@@ -932,21 +958,6 @@ namespace HepLib {
             fmpz_mpoly_q_canonicalise(f,ctx);
             fmpz_mpoly_q_inv(f,f,ctx);
             fmpz_mpoly_q_clear(fi,ctx);
-            return;
-        } else if(e.is_polynomial(xs)) {
-            string vars[xs.nops()];
-            const char* cvars[xs.nops()];
-            for(int i=0; i<xs.nops(); i++) {
-                vars[i] = ex2str(xs.op(i));
-                cvars[i] = vars[i].c_str();
-            }
-            fmpz_mpoly_q_one(f,ctx);
-            string es = ex2str(e);
-            if(fmpz_mpoly_set_str_pretty(fmpz_mpoly_q_numref(f), es.c_str(), cvars, ctx)) {
-                cout << e << endl;
-                cout << xs << endl;
-                throw Error("fmpz_mpoly_set_str_pretty error.");
-            }
             return;
         } else {
             cout << "expr = " << e << endl;
@@ -1058,7 +1069,7 @@ namespace HepLib {
         matrix m = mat;
         for(int i=0; i<m.nops(); i++) m.let_op(i) = normal_flint(m.op(i));
         return m;
-    }   
+    }
     
     ex den_lcm(const ex & expr) {
         auto xs = syms(expr);
@@ -1105,6 +1116,177 @@ namespace HepLib {
         fmpz_poly_factor_clear(fac);
         fmpz_poly_clear(poly);
         return root_lst;
+    }
+    
+    ex flint_add(const ex & e, int opt, bool parallel){
+        if(!is_a<add>(e)) throw Error("flint_add: the input is NOT sum/add.");
+        exvector ev;
+        for(auto item : e) ev.push_back(item);
+        return flint_add(ev, opt, parallel);
+    }
+    
+    ex flint_add(const exvector & ev_in, int opt, bool parallel) {
+        int nn = ev_in.size();
+        exmap map_rat;
+        exvector ev(nn);
+        for(int i=0; i<nn; i++) ev[i] = ev_in[i].to_rational(map_rat);
+        auto xs = syms(ev);
+        
+        if(xs.nops()<1) return add(ev_in);
+        
+        ex res = 0;
+        
+        if(xs.nops()==1) {
+            auto x = xs.op(0);
+            auto sx = ex2str(x);
+            symtab st;
+            st[sx] = x;
+            
+            vector<fmpz_poly_q_t> fv(nn);
+            for(int i=0; i<nn; i++) {
+                fmpz_poly_q_init(fv[i]);
+                _to_(fv[i], ev[i]);
+            }
+            
+            int cn = nn;
+            while(cn>=2) {
+                int cn2 = cn/2 + (cn%2);
+                #pragma omp parallel for schedule(dynamic, 1)
+                for(int j=0; j<cn2; j++) {
+                    if(j!=cn-j-1) {
+                        fmpz_poly_q_add(fv[j], fv[j], fv[cn-j-1]);
+                        fmpz_poly_q_clear(fv[cn-j-1]);
+                    }
+                }
+                cn = cn2;
+            }
+            
+            if(opt==o_flint) {
+                auto cstr = fmpz_poly_get_str_pretty(fmpz_poly_q_numref(fv[0]), sx.c_str());
+                string nstr(cstr);
+                flint_free(cstr);
+                cstr = fmpz_poly_get_str_pretty(fmpz_poly_q_denref(fv[0]), sx.c_str());
+                string dstr(cstr);
+                flint_free(cstr);
+                fmpz_poly_q_clear(fv[0]);
+                res = str2ex(nstr,st)/str2ex(dstr,st);
+            } else if(opt==o_flintf) {
+                auto num = _factor_(x, fmpz_poly_q_numref(fv[0]));
+                auto den = _factor_(x, fmpz_poly_q_denref(fv[0]));
+                fmpz_poly_q_clear(fv[0]);
+                res = num/den;
+            } else if(opt==o_flintfD) {
+                auto cstr = fmpz_poly_get_str_pretty(fmpz_poly_q_numref(fv[0]), sx.c_str());
+                string nstr(cstr);
+                flint_free(cstr);
+                auto num = str2ex(nstr,st);
+                auto den = _factor_(x, fmpz_poly_q_denref(fv[0]));
+                fmpz_poly_q_clear(fv[0]);
+                res = num/den;
+            } else throw Error("flint_add: unsupported option.");
+            
+        } else {
+            symtab st;
+            string vars[xs.nops()];
+            const char* cvars[xs.nops()];
+            for(int i=0; i<xs.nops(); i++) {
+                vars[i] = ex2str(xs.op(i));
+                cvars[i] = vars[i].c_str();
+                st[cvars[i]] = xs.op(i);
+            }
+            
+            fmpz_mpoly_ctx_t ctx;
+            fmpz_mpoly_ctx_init(ctx, xs.nops(), ORD_LEX);
+            vector<fmpz_mpoly_q_t> fv(nn);
+            
+            if(parallel) {
+                auto ppid = getpid();
+                ostringstream cmd;
+                string dir = "flint_add_"+to_string(ppid);
+                cmd << "mkdir -p " << dir;
+                int rc = 0;
+                if(!dir_exists(to_string(ppid))) rc = system(cmd.str().c_str());
+                GiNaC_Parallel(nn, [&](int idx)->ex {
+                    fmpz_mpoly_q_t f;
+                    fmpz_mpoly_q_init(f, ctx);
+                    _to_(xs, f, ctx, ev[idx]);
+                    auto cstr = fmpz_mpoly_q_get_str_pretty(f, cvars, ctx);
+                    string str(cstr);
+                    flint_free(cstr);
+                    str2file(str, dir+"/"+to_string(idx)+".txt");
+                    fmpz_mpoly_q_clear(f, ctx);
+                    return 0;
+                }, "flint_add");
+                
+                #pragma omp parallel for schedule(dynamic, 1)
+                for(int i=0; i<nn; i++) {
+                    fmpz_mpoly_q_init(fv[i], ctx);
+                    
+                    string fs = file2str(dir+"/"+to_string(i)+".txt");
+                    if(fmpz_mpoly_q_set_str_pretty(fv[i], fs.c_str(), cvars, ctx)) {
+                        cout << fs << endl;
+                        cout << xs << endl;
+                        throw Error("fmpz_mpoly_q_set_str_pretty error.");
+                    }
+                    
+                }
+                
+                cmd.clear();
+                cmd.str("");
+                cmd << "rm -fr " << dir;
+                rc = system(cmd.str().c_str());
+            } else {
+                for(int i=0; i<nn; i++) {
+                    fmpz_mpoly_q_init(fv[i], ctx);
+                    _to_(xs, fv[i], ctx, ev[i]);
+                }
+            }
+            
+            int cn = nn;
+            while(cn>=2) {
+                int cn2 = cn/2 + (cn%2);
+                #pragma omp parallel for schedule(dynamic, 1)
+                for(int j=0; j<cn2; j++) {
+                    if(j!=cn-j-1) {
+                        fmpz_mpoly_q_add(fv[j], fv[j], fv[cn-j-1], ctx);
+                        fmpz_mpoly_q_clear(fv[cn-j-1], ctx);
+                    }
+                }
+                cn = cn2;
+            }
+            
+            if(opt==o_flint) {
+                auto cstr = fmpz_mpoly_get_str_pretty(fmpz_mpoly_q_numref(fv[0]), cvars, ctx);
+                string nstr(cstr);
+                flint_free(cstr);
+                cstr = fmpz_mpoly_get_str_pretty(fmpz_mpoly_q_denref(fv[0]), cvars, ctx);
+                string dstr(cstr);
+                flint_free(cstr);
+                fmpz_mpoly_q_clear(fv[0], ctx);
+                fmpz_mpoly_ctx_clear(ctx);
+                res = str2ex(nstr,st)/str2ex(dstr,st);
+            } else if(opt==o_flintf) {
+                auto num = _factor_(xs, fmpz_mpoly_q_numref(fv[0]), ctx);
+                auto den = _factor_(xs, fmpz_mpoly_q_denref(fv[0]), ctx);
+                fmpz_mpoly_q_clear(fv[0], ctx);
+                fmpz_mpoly_ctx_clear(ctx);
+                res = num/den;
+            } else if(opt==o_flintfD) {
+                auto cstr = fmpz_mpoly_get_str_pretty(fmpz_mpoly_q_numref(fv[0]), cvars, ctx);
+                string nstr(cstr);
+                flint_free(cstr);
+                auto num = str2ex(nstr,st);
+                auto den = _factor_(xs, fmpz_mpoly_q_denref(fv[0]), ctx);
+                fmpz_mpoly_q_clear(fv[0], ctx);
+                fmpz_mpoly_ctx_clear(ctx);
+                res = num/den;
+            } else throw Error("flint_add: unsupported option.");
+            
+        }
+        
+        res = res.subs(map_rat,nopat);
+        return res;
+        
     }
     
 }

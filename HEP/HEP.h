@@ -460,6 +460,7 @@ namespace HepLib {
     public:
         ex pi;
         unsigned rl = 0;
+        bool isTr = false; // is transposed or not
         DGamma(const Vector &p, unsigned rl=0);
         DGamma(const Index &i, unsigned rl=0);
         DGamma(int int_1567, unsigned _rl=0);
@@ -481,6 +482,9 @@ namespace HepLib {
         static lst all(const ex &e);
         static ex sigma(const ex & mu, const ex & nu);
         static ex G5Eps(int i=0, int rl=0);
+        static ex I; // identity rl = 0
+        static ex g5; // gamma^5
+        static ex C; // Charge conjugation matrix
         ex derivative(const symbol & s) const override;
         ex conjugate() const override;
         bool is_equal_same_type(const basic & other) const override;
@@ -561,20 +565,24 @@ namespace HepLib {
     inline ex GAS(const Vector &p, unsigned rl=0) { return DGamma(p,rl); }
     inline ex GAS(const Index &i, unsigned rl=0) { return DGamma(i,rl); }
     ex GAS(const ex &expr, unsigned rl=0);
+    ex GAS(const initializer_list<ex> & expr_lst, unsigned rl=0);
     
     // Form, TIR, Apart
     ex charge_conjugate(const ex &);
+    ex gamma_transpose(const ex &);
     ex form(const ex &expr, int verb=0);
     ex UnContract(const ex expr, const lst &loop_ps, const lst &ext_ps=lst{}); // Eps/DGamma always uncontract
     ex Contract(const ex & expr);
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps);
     ex ncmul_expand(const ex & expr);
     ex GMatOut(const ex & expr_in);
-    ex GMatContract(const ex & expr_in);
+    ex GMatContract(const ex & expr_in, bool auto_tr=false); // auto_tr: auto tranpose
     ex GMatExpand(const ex & expr_in);
     ex GMatShift(const ex & expr, const ex & g, bool to_right=true);
     ex GMatShift(const ex & expr);
     ex GMatSimplify(const ex & expr);
+    ex GMatECC(const ex & expr); // eliminate C*...*C in GMat
+    ex GMatT(const ex & expr); // GMat Transpose
     ex Apart(const matrix & mat);
     ex Apart(const ex &expr_in, const lst &vars, exmap sgnmap={});
     ex Apart(const ex &expr_in, const lst &loops, const lst & extmoms, exmap sgnmap={});

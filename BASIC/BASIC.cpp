@@ -787,7 +787,7 @@ namespace HepLib {
     void str2file(const string & ostr, string filename) {
         std::ofstream ofs;
         ofs.open(filename, ios::out);
-        ofs << ostr << endl;
+        ofs << ostr << flush;
         ofs.close();
     }
     

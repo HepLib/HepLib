@@ -828,7 +828,7 @@ namespace HepLib {
         matrix mat(nrow+2, ncol);
         for(int c=0; c<ncol; c++) {
             ex pn = pnlst.op(c);
-            if(pn.op(0).is_zero() && pn.op(1).is_zero()) throw Error("Apart: 0^0 is found!");
+            if(pn.op(0).is_zero() && pn.op(1).is_zero()) throw Error("Apart: 0^0 Found!");
             mat(nrow+1,c) = normal(pn.op(1));
             auto tmp = pn.op(0);
             for(int r=0; r<nrow; r++) {

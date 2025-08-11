@@ -349,6 +349,11 @@ namespace HepLib {
     // FROM AMF
     int DEX::Threads = 8;
     
+    // gamma matrix
+    ex DGamma::I = GAS(1);
+    ex DGamma::g5 = GAS(5);
+    ex DGamma::C = GAS(int('c'));
+    
     // global init
     std::stack<cln::float_format_t> cln_prec_stack;
     std::stack<long> digits_stack;

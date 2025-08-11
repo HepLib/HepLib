@@ -454,7 +454,7 @@ namespace HepLib::SD {
         int CTryM = 1; // try lambda in Middle
         int CTryL = 1; // try lambda in Left
         int CTryR = 1; // try lambda in Right
-        size_t CTryI = 0; // integrator limit in CTry
+        size_t CTryI = 10000; // integrator limit in CTry
         dREAL CTryRRatio = 1.5;
         int soLimit = 10000;
         

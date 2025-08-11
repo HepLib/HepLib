@@ -146,4 +146,8 @@ namespace HepLib {
     
     ex den_lcm(const ex & e);
     
+    //=*********************************************************************=
+    ex flint_add(const exvector & exv, int opt = o_flint, bool parallel = false);
+    ex flint_add(const ex & e, int opt = o_flint, bool parallel = false);
+    
 }

@@ -133,6 +133,10 @@ namespace HepLib {
     }
     
     void AsGamma::print(const print_dflt &c, unsigned level) const {
+        if(pis.size()<1) {
+            c.s << "\u0130";
+            return;
+        }
         c.s << "\u0263[";
         bool first = true;
         for(auto pi : pis) {

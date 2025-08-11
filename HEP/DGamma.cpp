@@ -84,7 +84,10 @@ namespace HepLib {
         return pi.is_equal(o.pi);
     }
 
-    DGamma::DGamma(int int_1567, unsigned _rl) : pi(int_1567), rl(_rl) { }
+    DGamma::DGamma(int int_1567c, unsigned _rl) : pi(int_1567c), rl(_rl) {
+        if(int_1567c==int('C')) pi = int('c');
+        if(pi!=1 && pi!=5 && pi!=6 && pi!=7 && pi!=int('c')) throw Error("1/5/6/7/'c'/'C' only supported in DGamma.");
+    }
     DGamma::DGamma(const Vector &p, unsigned _rl) : pi(p), rl(_rl) { }
     DGamma::DGamma(const Index &i, unsigned _rl) : pi(i), rl(_rl) { }
     DGamma::DGamma(const DGamma &g, unsigned _rl) : pi(g.pi), rl(_rl) { }
@@ -105,7 +108,8 @@ namespace HepLib {
     
     ex DGamma::eval() const {
         if(flags & status_flags::evaluated) return *this;
-        else if(is_zero(pi) || is_zero(pi-1) || is_zero(pi-5) || is_zero(pi-6) || is_zero(pi-7)) return this->hold();
+        else if(is_zero(pi-int('C'))) return GAS(int('c'), rl);
+        else if(is_zero(pi) || is_zero(pi-1) || is_zero(pi-5) || is_zero(pi-6) || is_zero(pi-7) || is_zero(pi-int('c'))) return this->hold();
         else if(!is_a<Vector>(pi) && !is_a<Index>(pi)) return GAS(pi,rl);
         else return this->hold();
     }
@@ -113,25 +117,34 @@ namespace HepLib {
     void DGamma::print(const print_dflt &c, unsigned level) const {
         if(is_zero(pi-1)) {
             c.s << "\u0130";
+            if(isTr) c.s << "\u1D40";
             return;
         } else if(is_zero(pi-5) || is_zero(pi-6) || is_zero(pi-7)) {
             c.s << "\u0263";
+            if(isTr) c.s << "\u1D40";
             if(is_a<numeric>(pi)) c.s << pi;
             else c.s << "." << pi;
             return;
+        } else if(is_zero(pi-int('c')) || is_zero(pi-int('C'))) {
+            c.s << "C";
+            if(isTr) c.s << "\u1D40";
+            return;
         }
         c.s << "(" << "\u0263";
+        if(isTr) c.s << "\u1D40";
         if(is_a<numeric>(pi)) c.s << pi;
         else c.s << "." << pi;
         c.s << ")";
     }
     
     void DGamma::form_print(const FormFormat &c, unsigned level) const {
+        if(isTr) throw Error("Transposed not supported in DGamma::form_print.");
         if(!is_a<numeric>(pi)) c << "g_(" << rl << "," << pi << ")";
         else if(is_zero(pi-1)) c << "gi_(" << rl << ")";
         else if(is_zero(pi-5)) c << "g5_(" << rl << ")";
         else if(is_zero(pi-6)) c << "g6_(" << rl << ")";
         else if(is_zero(pi-7)) c << "g7_(" << rl << ")";
+        else if(is_zero(pi-int('c'))) throw Error("C not supported @ DGamma::form_print.");
         else throw Error("DGamma::form_print unexpected region.");
     }
     
@@ -139,7 +152,12 @@ namespace HepLib {
         if(is_zero(pi-1)) {
             c << "1";
             return;
+        } else if(is_zero(pi-int('c'))) {
+            if(isTr) c << "Transpose@";
+            c << "ChargeConjugationMatrix";
+            return;
         }
+        if(isTr) c << "Transpose@";
         if(is_a<Vector>(pi)) c << "GSD";
         else c << "GAD";
         c << "[" << pi << "]";
@@ -149,24 +167,30 @@ namespace HepLib {
         inherited::archive(n);
         n.add_ex("pi", pi);
         n.add_unsigned("rl", rl);
+        n.add_unsigned("tr", isTr ? 1 : 0);
     }
     
     void DGamma::read_archive(const archive_node& n) {
         inherited::read_archive(n);
         n.find_unsigned("rl", rl);
         n.find_ex("pi", pi);
+        unsigned tr = 0;
+        n.find_unsigned("rl", rl);("tr", tr);
+        if(tr>0) isTr = true;
+        else isTr = false;
     }
     
     ex DGamma::derivative(const symbol & s) const {
         return 0;
     }
     
-    ex DGamma::conjugate() const {
+    ex DGamma::conjugate() const { // refers to g^0 . g^\dag . g^0
         if(is_a<Index>(pi) || is_a<Vector>(pi)) return *this;
         else if(is_zero(pi-5)) return (-1)*DGamma(5, rl);
         else if(is_zero(pi-6)) return DGamma(7, rl);
         else if(is_zero(pi-7)) return DGamma(6, rl);
         else if(is_zero(pi-1)) return DGamma(1, rl);
+        else if(is_zero(pi-int('c'))) return DGamma(int('c'), rl);
         throw Error("invalid Dirac Gamma Found.");
     }
     
@@ -260,6 +284,7 @@ namespace HepLib {
         else if(is_zero(expr-5)) return DGamma(5,rl);
         else if(is_zero(expr-6)) return DGamma(6,rl);
         else if(is_zero(expr-7)) return DGamma(7,rl);
+        else if(is_zero(expr-int('c')) || is_zero(expr-int('C'))) return DGamma(int('c'),rl);
         
         ex tmp = expand(expr);
         lst ex_lst;
@@ -284,12 +309,24 @@ namespace HepLib {
                     c *= ii;
                 }
             }
-            if(!is_a<DGamma>(g)) throw Error("Something Wrong with GAS @3, g="+ex2str(g));
+            if(!is_a<DGamma>(g)) throw Error("Something Wrong with GAS @3, g="+ex2str(g)+", in="+ex2str(expr));
             res += c * g;
         }
         return res;
     }
     
+    /**
+     * @brief function similar to GAD/GSD in FeynClac
+     * @param expr momentum/index or 1,5,6,7
+     * @param rl the represent line number
+     * @return expanded/translasted to Dirac Gamma objects
+     */
+    ex GAS(const initializer_list<ex> & expr_lst, unsigned rl) {
+        ex res = 1;
+        for(auto item : expr_lst) res *= GAS(item);
+        if(res.is_equal(1)) res = GAS(1);
+        return res;
+    }
 
 
 }

@@ -617,14 +617,17 @@ namespace HepLib {
     /**
      * @brief make contract on matrix, i.e., GMat(a,i1,i2)*GMat(b,i2,i3) -> GMat(a*b,i1,i3)
      * @param expr_in expression contains GMat
+     * @param auto_tr automatic transpose to avoid index conflict
      * @return contracted expression
      */
-    ex GMatContract(const ex & expr_in) {
+    ex GMatContract(const ex & expr_in, bool auto_tr) {
         if(!expr_in.has(GMat(w1,w2,w3))) return expr_in;
         
         auto expr = expr_in.subs(pow(GMat(w1,w2,w3),2)==GMat(w1,w2,w3)*GMat(w1,w3,w2));
+        expr = expr.subs(GMat(w1,w2,w2)==TR(w1));
         auto cv_lst = collect_lst(expr, GMat(w1, w2, w3));
         expr = 0;
+
         for(auto cv : cv_lst) {
             auto e = cv.op(1);
             if(is_zero(e-1) || e.match(GMat(w1, w2, w3))) {
@@ -639,12 +642,28 @@ namespace HepLib {
             std::map<ex,int,ex_is_less> to_map, from_map;
             std::set<int> todo;
             lst mats_idx;
+            
+            start:
             for(int i=0; i<mats.nops(); i++) {
                 auto item = mats.op(i);
                 if(item.op(0).return_type()==return_types::commutative || item.op(0).is_equal(GAS(1))) {
                     mats_idx.append(lst{item,i});
                 } else {
-                    if(to_map[item.op(1)]!=0 || from_map[item.op(2)]!=0) throw Error("GMatContract: index conflict for "+ex2str(item));
+                    if(!item.match(GMat(w1,w2,w3))) {
+                        cout << "item in GMatContract: " << item << endl;
+                        throw Error("GMatContract faild!");
+                    }
+                    if(to_map[item.op(1)]!=0 || from_map[item.op(2)]!=0) {
+                        if(!auto_tr) throw Error("GMatContract: index conflict for mats: "+ex2str(mats));
+                        lst mats2; // to avoid dead-loop
+                        mats2.append(GMatT(item));
+                        for(int j=0; j<mats.nops(); j++) if(j!=i) mats2.append(mats.op(j));
+                        mats = mats2;
+                        to_map.clear();
+                        from_map.clear();
+                        mats_idx.remove_all();
+                        goto start;
+                    }
                     to_map[item.op(1)] = i+10; // avoid 0 in map
                     from_map[item.op(2)] = i+10; // avoid 0 in map
                 }
@@ -892,10 +911,10 @@ namespace HepLib {
                 int gi = -1;
                 if(to_right) {
                     for(int i=0; i<eg.nops()-1; i++) if(eg.op(i)==g) { gi = i; break; }
-                    if(gi==-1 || gi==eg.nops()-1) return e;
+                    if(gi==-1) return e;
                 } else {
-                    for(int i=eg.nops()-1; i>=0; i--) if(eg.op(i)==g) { gi = i; break; }
-                    if(gi==-1 || gi==0) return e;
+                    for(int i=eg.nops()-1; i>0; i--) if(eg.op(i)==g) { gi = i; break; }
+                    if(gi==-1) return e;
                 }
                 int gj = gi + ( to_right ? 1 : -1 );
                 ex rem = 1, rem2 = 1;
@@ -917,12 +936,16 @@ namespace HepLib {
                     ex c;
                     if(is_a<Vector>(ip)) c = SP(ip);
                     else if(is_a<Index>(ip)) c = d;
-                    else throw Error("GMatShift: only GAS(i/p) supproted.");
+                    else if(eg.op(gi).is_equal(GAS(5))) c = 1;
+                    else throw Error("GMatShift: only GAS(i/p/5) supproted.");
                     return c * res;
                 }
                 if(rem.is_equal(1)) rem = GAS(1);
                 if(rem2.is_equal(1)) rem2 = GAS(1);
-                ex res = 2*SP(eg.op(gi).op(0), eg.op(gj).op(0)) * GMat(rem, e.op(1), e.op(2));
+                ex res = 0;
+                if(!eg.op(gi).is_equal(GAS(5)) && !eg.op(gj).is_equal(GAS(5))) {
+                    res = 2*SP(eg.op(gi).op(0), eg.op(gj).op(0)) * GMat(rem, e.op(1), e.op(2));
+                }
                 res = res - GMat(rem2, e.op(1), e.op(2));
                 return GMatShift(res, g, to_right);
             } else return e.map(self);
@@ -941,36 +964,40 @@ namespace HepLib {
     }
     
     namespace {
-        lst shift_12_right(const ex & e) { // return a list of {coeff, gammas}
+        // 1st and last should be equal
+        lst shift_1st_to_right(const ex & e) { // return a list of {coeff, gammas}
             if(!is_a<ncmul>(e)) throw Error("input is not a ncmul.");
             if(e.nops()==2) {
                 ex e0 = e.op(0);
-                if(e.op(0)!=e.op(1)) throw Error("2 items are not equal!");
+                if(e.op(0)!=e.op(1)) throw Error("shift_1st_to_right: the 2 items are not equal!");
                 else if(is_a<Index>(e0.op(0))) return lst{ lst{ d, 1 }};
                 else if(is_a<Vector>(e0.op(0))) return lst{ lst{ SP(e.op(0).op(0)), 1 }};
+                else if(e0.is_equal(GAS(5))) return lst{ lst{ 1, 1 }};
                 else {
                     cout << endl << e << endl;
-                    throw Error("shift_12_right: only GAS(i/p) supproted.");
+                    throw Error("shift_1st_to_right: only GAS(i/p/5) supproted.");
                 }
             }
             ex rem = 1;
             int n = e.nops();
             for(int i=2; i<n; i++) rem *= e.op(i);
-            lst res = shift_12_right(e.op(0)*rem);
+            lst res = shift_1st_to_right(e.op(0)*rem);
             n = res.nops();
             for(int i=0; i<n; i++) {
                 res.let_op(i).let_op(0) = -res.op(i).op(0);
                 res.let_op(i).let_op(1) = e.op(1) * res.op(i).op(1);
             }
-            if(!is_a<Index>(e.op(0).op(0)) && !is_a<Vector>(e.op(0).op(0))) {
-                cout << e << endl;
-                throw Error("shift_12_right: not a Vector or Index");
+            if(!e.op(0).is_equal(GAS(5)) && !e.op(1).is_equal(GAS(5))) {
+                if(!is_a<Index>(e.op(0).op(0)) && !is_a<Vector>(e.op(0).op(0))) {
+                    cout << e << endl;
+                    throw Error("shift_12_right: not a Vector or Index");
+                }
+                if(!is_a<Index>(e.op(1).op(0)) && !is_a<Vector>(e.op(1).op(0))) {
+                    cout << e << endl;
+                    throw Error("shift_12_right: not a Vector or Index");
+                }
+                res.append(lst{ 2*SP(e.op(0).op(0), e.op(1).op(0)), rem });
             }
-            if(!is_a<Index>(e.op(1).op(0)) && !is_a<Vector>(e.op(1).op(0))) {
-                cout << e << endl;
-                throw Error("shift_12_right: not a Vector or Index");
-            }
-            res.append(lst{ 2*SP(e.op(0).op(0), e.op(1).op(0)), rem });
             return res;
         }
     }
@@ -998,7 +1025,7 @@ namespace HepLib {
                     else if(i>gj) exR *= eg.op(i);
                     else exM *= eg.op(i);
                 }
-                lst cvs = shift_12_right(exM);
+                lst cvs = shift_1st_to_right(exM);
                 
                 ex res = 0;
                 for(auto cv : cvs) {
@@ -1013,6 +1040,78 @@ namespace HepLib {
         ex res = GMatExpand(Contract(expr)); // add Contract & GMatExpand here
         res = collect_ex(res, GMat(w1,w2,w3));
         res = inner_shift(res);
+        return res;
+    }
+    
+    ex GMatECC(const ex & expr) {
+        if(!expr.has(DGamma::C)) return expr;
+        MapFunction inner_ecc([](const ex & e, MapFunction & self)->ex{
+            if(!e.has(DGamma::C)) return e;
+            else if(e.match(GMat(w1,w2,w3)) || e.match(TR(w))) {
+                ex eg = e.op(0), cc = 1;
+                if(is_a<mul>(e.op(0))) {
+                    eg = 1;
+                    for(auto item : e.op(0)) {
+                        if(item.return_type()==return_types::noncommutative) {
+                            if(eg.is_equal(1)) eg = item;
+                            else throw Error("GMatECC:: 2 more noncommutative objects found.");
+                        } else cc *= item;
+                    }
+                    if(eg.is_equal(1)) throw Error("GMatECC:: eg is 1, NOT expected.");
+                }
+                if(!is_a<ncmul>(eg)) eg = lst{ eg }; // only one item
+                int ci = -1;
+                for(int i=0; i<eg.nops(); i++) if(eg.op(i)==DGamma::C) { ci = i; break; }
+                if(ci==-1) return e; // not found C
+                int cj = -1;
+                for(int i=ci+1; i<eg.nops(); i++) if(eg.op(i)==DGamma::C) { cj = i; break; }
+                if(cj==-1) return e; // not found C
+                int cnt = 0; // remaining C
+                for(int i=cj+1; i<eg.nops(); i++) if(eg.op(i)==DGamma::C) { cnt++; }
+                ex res = 1;
+                for(int i=0; i<ci; i++) res *= eg.op(i);
+                ex m = 1;
+                for(int i=ci+1; i<cj; i++) m *= eg.op(i);
+                cc *= -1; // C = -C^{-1}
+                if(!m.is_equal(1)) res *= gamma_transpose(charge_conjugate(m));
+                for(int i=cj+1; i<eg.nops(); i++) res *= eg.op(i);
+                if(e.nops()==3) res = cc * GMat(res, e.op(1), e.op(2));
+                else res = cc * TR(res);
+                return cnt<2 ? res : self(res);
+            } else return e.map(self);
+        });
+        ex res = collect_ex(expr, GMat(w1,w2,w3));
+        res = inner_ecc(res);
+        if(res.has(TR(w))) { // replace TR(e^T) = TR(e)
+            res = MapFunction([](const ex & e, MapFunction & self)->ex{
+                if(!e.has(TR(w))) return e;
+                else if(e.match(TR(w))) {
+                    auto gs = DGamma::all(e.op(0));
+                    bool ok = true;
+                    for(auto item : gs) {
+                        auto gi = ex_to<DGamma>(item);
+                        if(!item.is_equal(DGamma::C) && !gi.isTr) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if(ok) return TR(gamma_transpose(e.op(0)));
+                    else return e;
+                } else return e.map(self);
+            })(res);
+        }
+        return res;
+    }
+    
+    ex GMatT(const ex & expr) {
+        MapFunction inner_transpose([](const ex & e, MapFunction & self)->ex{
+            if(!e.has(GMat(w1,w2,w3))) return e;
+            else if(e.match(GMat(w1,w2,w3))) {
+                return GMat(gamma_transpose(e.op(0)), e.op(2), e.op(1));
+            } else return e.map(self);
+        });
+        ex res = collect_ex(expr, GMat(w1,w2,w3));
+        res = inner_transpose(res);
         return res;
     }
     

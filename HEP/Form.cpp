@@ -638,6 +638,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
      */
     ex charge_conjugate(const ex & expr) {
         if(expr.has(GMat(w1,w2,w3))) throw Error("charge_conjugate: GMat found.");
+        
         if(!DGamma::has(expr) && !AsGamma::has(expr)) return expr;
         if(is_a<DGamma>(expr)) {
             DGamma g = ex_to<DGamma>(expr);
@@ -671,8 +672,44 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
             for(int i=n-1; i>-1; i--) ret *= charge_conjugate(expr.op(i));
             return ret;
         }
-        cout << DGamma::has(expr) << " : " << expr << endl;
+        cout << expr << endl;
         throw Error("charge_conjugate: unexpected region.");
+        return 0;
+    }
+    
+    /**
+     * @brief make the transpose operaton M --> M^T
+     * @param expr the input expression
+     * @return returned transposed expression
+     */
+    ex gamma_transpose(const ex & expr) {
+        if(expr.has(GMat(w1,w2,w3))) throw Error("charge_conjugate: GMat found.");
+        if(AsGamma::has(expr)) throw Error("gamma_transpose: Not supported for AsGamma.");
+        
+        if(!DGamma::has(expr)) return expr;
+        if(is_a<DGamma>(expr)) {
+            if(expr.is_equal(DGamma::C)) return (-1)*DGamma::C;
+            DGamma g = ex_to<DGamma>(expr);
+            g.isTr = !g.isTr;
+            return g;
+        }
+        
+        if(is_a<add>(expr)) {
+            ex ret = 0;
+            for(auto item : expr) ret += gamma_transpose(item);
+            return ret;
+        } else if(is_a<mul>(expr)) {
+            ex ret = 1;
+            for(auto item : expr) ret *= gamma_transpose(item);
+            return ret;
+        } else if(is_a<ncmul>(expr)) {
+            ex ret = 1;
+            int n = expr.nops();
+            for(int i=n-1; i>-1; i--) ret *= gamma_transpose(expr.op(i));
+            return ret;
+        }
+        cout << "gamma_transpose input:" << expr << endl;
+        throw Error("gamma_transpose: unexpected region.");
         return 0;
     }
 

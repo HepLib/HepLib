@@ -112,7 +112,7 @@ namespace HepLib::SD {
                 if(maxf>0) {
                     if(Verbose>5) {
                         cout << "\r                                                    \r";
-                        cout << "     λ: F>0 is Found, back to REAL mode!" << endl;
+                        cout << "     λ: F>0 Found, back to REAL mode!" << endl;
                     }
                     return lst{ ftnxn.op(1), 1979 }; // ft_id, las
                 }
@@ -121,7 +121,7 @@ namespace HepLib::SD {
                 if(maxf>0) {
                     if(Verbose>5) {
                         cout << "\r                                                    \r";
-                        cout << "     λ: F<0 is Found, back to REAL mode!" << endl;
+                        cout << "     λ: F<0 Found, back to REAL mode!" << endl;
                     }
                     return lst{ ftnxn.op(1), 1979 }; // ft_id, las
                 }
