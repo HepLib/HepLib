@@ -74,8 +74,9 @@ namespace HepLib::SD {
             }
             auto deltas = fe.op(2);
             for(int di=0; di<deltas.nops(); di++) {
-                Projectivize(fe, deltas.op(di)); //make sure projective
+                Projectivize(fe, deltas.op(di)); // make sure projective
             }
+            if(is_zero(ft)) cft = fe.op(0).op(1); // due to projective
             let_op_prepend(fe, 0, cft);
             let_op_prepend(fe, 1, 0);
             auto ret = Evaluate(fe);
