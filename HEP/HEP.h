@@ -482,7 +482,7 @@ namespace HepLib {
         static lst all(const ex &e);
         static ex sigma(const ex & mu, const ex & nu);
         static ex G5Eps(int i=0, int rl=0);
-        static ex I; // identity rl = 0
+        static ex gi; // identity matrix rl = 0
         static ex g5; // gamma^5
         static ex C; // Charge conjugation matrix
         ex derivative(const symbol & s) const override;

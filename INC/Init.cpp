@@ -350,7 +350,7 @@ namespace HepLib {
     int DEX::Threads = 8;
     
     // gamma matrix
-    ex DGamma::I = GAS(1);
+    ex DGamma::gi = GAS(1);
     ex DGamma::g5 = GAS(5);
     ex DGamma::C = GAS(int('c'));
     
