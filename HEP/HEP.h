@@ -517,7 +517,7 @@ namespace HepLib {
     // GINAC_DECLARE_REGISTERED_CLASS END
     
     private:
-        AsGamma(const exvector & _pis, int _rl=0);
+        AsGamma(const exvector & _pis, unsigned _rl=0);
     
     public:
         exvector pis; // momentum and index lst

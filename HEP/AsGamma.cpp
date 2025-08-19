@@ -75,7 +75,7 @@ namespace HepLib {
     }
     
     AsGamma::AsGamma(const AsGamma &g, unsigned _rl) : pis(g.pis), rl(_rl) { }
-    AsGamma::AsGamma(const exvector & _pis, int _rl) : pis(_pis), rl(_rl) {
+    AsGamma::AsGamma(const exvector & _pis, unsigned _rl) : pis(_pis), rl(_rl) {
         lst pis_sort = vec2lst(_pis);
         int n = pis_sort.nops();
         for(int i=0; i<n; i++) if(is_a<DGamma>(pis_sort.op(i))) {

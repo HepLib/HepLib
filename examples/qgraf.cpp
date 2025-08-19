@@ -99,7 +99,7 @@ int main() {
         } else if(isFunction(e, "Vertex")) {
             if( (e.op(0).op(0)==qbar && e.op(1).op(0)==q) || (e.op(0).op(0)==Qbar && e.op(1).op(0)==Q) ) {
                 if(e.op(2).op(0)==g) return QuarkGluonVertex(e);
-                else return Matrix(GAS(LI(e.op(2).op(1))),DI(e.op(0).op(1)), DI(e.op(1).op(1))) * SP(TI(e.op(0).op(1)), TI(e.op(1).op(1)));
+                else return GMat(GAS(LI(e.op(2).op(1))),DI(e.op(0).op(1)), DI(e.op(1).op(1))) * SP(TI(e.op(0).op(1)), TI(e.op(1).op(1)));
             } else if(e.op(0).op(0)==ghbar && e.op(1).op(0)==gh) {
                 return GhostGluonVertex(e);
             } else if(e.nops()==3) {
