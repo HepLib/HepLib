@@ -27,10 +27,10 @@ namespace HepLib::QCD {
      */
     namespace Quarkonium {
         enum IO {In, Out};
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, bool nr=true);
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, bool nr=true);
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j, bool nr=true);
-        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, int i, int j, bool nr=true);
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, bool nr=false);
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, bool nr=false);
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j, bool nr=false);
+        ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, int i, int j, bool nr=false);
         ex ColorProj(int i, int j, Index a);
         ex ColorProj(int i, int j);
         

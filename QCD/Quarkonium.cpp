@@ -17,7 +17,7 @@ namespace HepLib::QCD {
             
         /**
          * https://journals.aps.org/prd/pdf/10.1103/PhysRevD.81.114014
-         * @brief Spin Projector with the same mass, non-Relativistic Normalization for two quark lines,
+         * @brief Spin Projector with the same mass
          * SpinProj[In,p,pb,m,e,mu], where p=P/2+q, pb=P/2-q, e^2=m^2-q^2,
          * In CM, P=(M=2e,0) & q=(0,q), P.q=0, P.q=0
          * @param io In or Out
@@ -27,6 +27,7 @@ namespace HepLib::QCD {
          * @param m mass
          * @param e e^2=m^q-q^2
          * @param mu only for s=1
+         * @param nr using non-Relativistic normalization or not
          * @return the corresponding spin projector
          */
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, bool nr) {
@@ -41,7 +42,7 @@ namespace HepLib::QCD {
         }
         
         /**
-         * @brief Spin Projector with the same mass, non-Relativistic Normalization for two quark lines,
+         * @brief Spin Projector with the same mass
          * - SpinProj[In,p,pb,m,e,mu], where p=P/2+q, pb=P/2-q, e^2=m^2-q^2,
          * - In CM, P=(M=2e,0) & q=(0,q), P.q=0, P.q=0
          * @param io In or Out
@@ -53,6 +54,7 @@ namespace HepLib::QCD {
          * @param mu only for s=1
          * @param i quark qgraf index
          * @param j anti-quark qgraf index
+         * @param nr using non-Relativistic normalization or not
          * @return the corresponding spin projector
          */
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mu, int i, int j, bool nr) {
@@ -61,7 +63,7 @@ namespace HepLib::QCD {
         }
         
         /**
-         * @brief Spin Projector with different mass, Relativistic Normalization for two quark lines,
+         * @brief Spin Projector with different mass
          * - SpinProj[In,p,pb,m,mb,e,eb,mu], where p=e/(e+eb)P+q,pb=eb/(e+eb)P-q,e^2=m^2-q^2,eb^2=mb^2-qb^2,
          * - In CM, P=(M=e+eb,0) & q=(0,q), P.q=0
          * - arXiv:1003.0061
@@ -75,6 +77,7 @@ namespace HepLib::QCD {
          * @param e for quark: e^2=m^q-q^2
          * @param eb for anti-quark eb^2=mb^2-qb^2 
          * @param mu only for s=1
+         * @param nr using non-Relativistic normalization or not
          * @return the corresponding spin projector
          */
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, bool nr) {
@@ -89,7 +92,7 @@ namespace HepLib::QCD {
         }
         
         /**
-         * @brief Spin Projector with different mass, non-Relativistic Normalization for two quarks,
+         * @brief Spin Projector with different mass
          * - SpinProj[In,p,pb,m,mb,e,eb,mu], where p=e/(e+eb)P+q,pb=eb/(e+eb)P-q,e^2=m^2-q^2,eb^2=mb^2-qb^2,
          * - In CM, P=(M=e+eb,0) & q=(0,q), P.q=0
          * - arXiv:1003.0061
@@ -104,6 +107,7 @@ namespace HepLib::QCD {
          * @param mu only for s=1
          * @param i quark qgraf index
          * @param j anti-quark qgraf index
+         * @param nr using non-Relativistic normalization or not
          * @return the corresponding spin projector
          */
         ex SpinProj(IO io, int s, ex p, ex pb, ex m, ex e, ex mb, ex eb, ex mu, int i, int j, bool nr) {
