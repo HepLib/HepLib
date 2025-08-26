@@ -35,11 +35,11 @@ namespace HepLib {
                     }
                 }
                 if(pi.match(w1*w2) && pi.nops()==2) {
-                    iPropagator.let_op(i) = pow(pi.op(0), 2);
+                    iPropagator[i] = pow(pi.op(0), 2);
                     if(!isComplete(iPropagator, Internal, External)) {
-                        iPropagator.let_op(i) = pow(pi.op(1), 2);
+                        iPropagator[i] = pow(pi.op(1), 2);
                         if(!isComplete(iPropagator, Internal, External)) {
-                            iPropagator.let_op(i) = pow(pi.op(0)+pi.op(1), 2);
+                            iPropagator[i] = pow(pi.op(0)+pi.op(1), 2);
                             if(!isComplete(iPropagator, Internal, External)) throw Error("isComplete failed, somthing may be wrong here.");
                         }
                     }
@@ -74,7 +74,7 @@ namespace HepLib {
                         auto fns = e.op(1);
                         auto itr = pi_by_prop.find(j);
                         if(itr == pi_by_prop.end()) {
-                            fns.let_op(j) = fns.op(j) + ni.op(j);
+                            fns[j] = fns.op(j) + ni.op(j);
                             return F(e.op(0), fns);
                         } else {
                             if(ni.op(j)>0) throw Error("ni.op(j)>0.");
@@ -94,7 +94,7 @@ namespace HepLib {
                                     deg = ex2int(cv.op(1).op(1));
                                     pos = ex2int(cv.op(1).op(0).op(0));
                                 }
-                                if(pos>=0) fns2.let_op(pos) = fns2.op(pos) - deg;
+                                if(pos>=0) fns2[pos] = fns2.op(pos) - deg;
                                 res += cv.op(0) * F(e.op(0), fns2);
                             }
                             return res;
@@ -179,7 +179,7 @@ namespace HepLib {
         
         // add ieta to all propagators
         for(int i=0; i<iPropagator.nops(); i++) {
-            fire.Propagator.let_op(i) = iPropagator.op(i) + x;
+            fire.Propagator[i] = iPropagator.op(i) + x;
         }
         auto cMIntegral = MIntegral;
         while(true) {
@@ -191,7 +191,7 @@ namespace HepLib {
                 for(int j=0; j<ns0.nops(); j++) {
                     if(is_zero(ns0.op(j))) continue;
                     auto ns = ns0;
-                    ns.let_op(j) = ns.op(j)+1;
+                    ns[j] = ns.op(j)+1;
                     fire.Integral.append(ns);
                 }
             }
@@ -237,7 +237,7 @@ namespace HepLib {
                 for(int i=0; i<ns0.nops(); i++) {
                     if(is_zero(ns0.op(i))) continue;
                     auto ns = ns0;
-                    ns.let_op(i) = ns.op(i)+1;
+                    ns[i] = ns.op(i)+1;
                     fire.Integral.append(ns);
                     dmi -= ns0.op(i)*F(mi.op(0),ns);
                 }
@@ -310,7 +310,7 @@ namespace HepLib {
             bc.Internal = Internal;
             bc.Reduce();
             bc.FindRules(true);
-            for(int i=0; i<ooMIntegral.nops(); i++) ooMIntegral.let_op(i) = ooMIntegral.op(i).subs(bc.Rules).subs(F(w1,w2)==F(bc.Propagator, w2));
+            for(int i=0; i<ooMIntegral.nops(); i++) ooMIntegral[i] = ooMIntegral.op(i).subs(bc.Rules).subs(F(w1,w2)==F(bc.Propagator, w2));
             system(("rm -rf "+bc.WorkingDir).c_str());
             if(!In_GiNaC_Parallel && Verbose>1) cout << pre << "\\--Generated BC @ " << now() << endl;
         }
@@ -515,7 +515,7 @@ namespace HepLib {
             auto mat = t_mat.mul(cmat);
             int ldeg = 0;
             for(int i=0; i<mat.nops(); i++) {
-                mat.let_op(i) = series_ex(mat.op(i),x,0);
+                mat[i] = series_ex(mat.op(i),x,0);
                 if(ldeg>mat.op(i).ldegree(x)) ldeg = mat.op(i).ldegree(x);
             }
             for(int l=ldeg; l<=0; l++) {
@@ -764,7 +764,7 @@ namespace HepLib {
         for(int n=0; n<C00.size(); n++) U = U.add(C00[n].mul_scalar(pow(x,n)));
         auto TU = T.mul(U);
         //xpow(TU,x); // TODO: maybe no need for DEX ?
-        for(int i=0; i<TU.nops(); i++) TU.let_op(i) = series_ex(TU.op(i),x,0);
+        for(int i=0; i<TU.nops(); i++) TU[i] = series_ex(TU.op(i),x,0);
 
         ex x0 = pts.op(0);
         matrix iT = ex_to<matrix>(subs(T,x==x0)).inverse(solve_algo::gauss);

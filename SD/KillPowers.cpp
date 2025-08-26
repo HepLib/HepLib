@@ -81,10 +81,10 @@ namespace HepLib::SD {
                 auto e1 = ex_to<lst>(fe.op(1));
                 ex c1 = cj/ci;
                 for(int i=0; i<f1.nops(); i++) {
-                    f1.let_op(i) = f1.op(i).subs(lst{xi==c1*yj/(1+c1)+yi,xj==yj/(1+c1)}).subs(lst{yi==xi,yj==xj});
+                    f1[i] = f1.op(i).subs(lst{xi==c1*yj/(1+c1)+yi,xj==yj/(1+c1)}).subs(lst{yi==xi,yj==xj});
                 }
-                if(e1.op(0)==1) f1.let_op(0) = f1.op(0)/(1+c1); // Jaccobi
-                else if(e1.op(1)==1) f1.let_op(1) = f1.op(1)/(1+c1);
+                if(e1.op(0)==1) f1[0] = f1.op(0)/(1+c1); // Jaccobi
+                else if(e1.op(1)==1) f1[1] = f1.op(1)/(1+c1);
                 else {
                     f1.append(1/(1+c1));
                     e1.append(1);
@@ -95,10 +95,10 @@ namespace HepLib::SD {
                 auto e2 = ex_to<lst>(fe.op(1));
                 ex c2 = ci/cj;
                 for(int i=0; i<f2.nops(); i++) {
-                    f2.let_op(i) = f2.op(i).subs(lst{xj==c2*yi/(1+c2)+yj,xi==yi/(1+c2)}).subs(lst{yi==xi,yj==xj});
+                    f2[i] = f2.op(i).subs(lst{xj==c2*yi/(1+c2)+yj,xi==yi/(1+c2)}).subs(lst{yi==xi,yj==xj});
                 }
-                if(e2.op(0)==1) f2.let_op(0) = f2.op(0)/(1+c2); // Jaccobi
-                else if(e2.op(1)==1) f2.let_op(1) = f2.op(1)/(1+c2);
+                if(e2.op(0)==1) f2[0] = f2.op(0)/(1+c2); // Jaccobi
+                else if(e2.op(1)==1) f2[1] = f2.op(1)/(1+c2);
                 else {
                     f2.append(1/(1+c2));
                     e2.append(1);
@@ -205,7 +205,7 @@ namespace HepLib::SD {
                 symbol xx;
                 auto f1 = fe.op(0);
                 auto e1 = fe.op(1);
-                for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xi==1-xx).subs(xx==xi);
+                for(int i=0; i<f1.nops(); i++) f1[i] = f1.op(i).subs(xi==1-xx).subs(xx==xi);
                 FunExp.push_back(lst{f1,e1});
                 return true;
             }
@@ -223,14 +223,14 @@ namespace HepLib::SD {
                     // Part I: xi<xj
                     auto f1 = ex_to<lst>(fe.op(0));
                     auto e1 = ex_to<lst>(fe.op(1));
-                    for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xi==xx*xj).subs(xx==xi);
+                    for(int i=0; i<f1.nops(); i++) f1[i] = f1.op(i).subs(xi==xx*xj).subs(xx==xi);
                     f1.append(xj); // Jaccobi
                     e1.append(1);
                     FunExp.push_back(lst{f1,e1});
                     // Part II: xj<xi
                     auto f2 = ex_to<lst>(fe.op(0));
                     auto e2 = ex_to<lst>(fe.op(1));
-                    for(int i=0; i<f2.nops(); i++) f2.let_op(i) = f2.op(i).subs(xj==xx*xi).subs(xx==xj);
+                    for(int i=0; i<f2.nops(); i++) f2[i] = f2.op(i).subs(xj==xx*xi).subs(xx==xj);
                     f2.append(xi); // Jaccobi
                     e2.append(1);
                     FunExp.push_back(lst{f2,e2});
@@ -250,9 +250,9 @@ namespace HepLib::SD {
                     // Part I: 0<x2<1, c2/c1<x1<1
                     auto f1 = ex_to<lst>(fe.op(0));
                     auto e1 = ex_to<lst>(fe.op(1));
-                    for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(x1==xx*(c1-c2)/c1+c2/c1).subs(xx==x1);
-                    if(e1.op(0)==1) f1.let_op(0) = f1.op(0)*(c1-c2)/c1; // Jaccobi
-                    else if(e1.op(1)==1) f1.let_op(1) = f1.op(1)*(c1-c2)/c1;
+                    for(int i=0; i<f1.nops(); i++) f1[i] = f1.op(i).subs(x1==xx*(c1-c2)/c1+c2/c1).subs(xx==x1);
+                    if(e1.op(0)==1) f1[0] = f1.op(0)*(c1-c2)/c1; // Jaccobi
+                    else if(e1.op(1)==1) f1[1] = f1.op(1)*(c1-c2)/c1;
                     else {
                         f1.append((c1-c2)/c1);
                         e1.append(1);
@@ -261,24 +261,24 @@ namespace HepLib::SD {
                     // Part II: x1>c2/c1 x2, i.e., x2<c1/c2 x1, 0<x1<c2/c1
                     auto f2 = ex_to<lst>(fe.op(0));
                     auto e2 = ex_to<lst>(fe.op(1));
-                    for(int i=0; i<f2.nops(); i++) f2.let_op(i) = f2.op(i).subs(x1==xx*c2/c1).subs(xx==x1);
-                    if(e2.op(0)==1) f2.let_op(0) = f2.op(0)*c2/c1; // Jaccobi
-                    else if(e2.op(1)==1) f2.let_op(1) = f2.op(1)*c2/c1;
+                    for(int i=0; i<f2.nops(); i++) f2[i] = f2.op(i).subs(x1==xx*c2/c1).subs(xx==x1);
+                    if(e2.op(0)==1) f2[0] = f2.op(0)*c2/c1; // Jaccobi
+                    else if(e2.op(1)==1) f2[1] = f2.op(1)*c2/c1;
                     else {
                         f2.append(c2/c1);
                         e2.append(1);
                     }
                     // now x2<x1, 0<x1<1
-                    for(int i=0; i<f2.nops(); i++) f2.let_op(i) = f2.op(i).subs(x2==xx*x1).subs(xx==x2);
+                    for(int i=0; i<f2.nops(); i++) f2[i] = f2.op(i).subs(x2==xx*x1).subs(xx==x2);
                     f2.append(x1); // Jaccobi
                     e2.append(1);
                     FunExp.push_back(lst{f2,e2});
                     // Part III: x1<c2/c1 x2
                     auto f3 = ex_to<lst>(fe.op(0));
                     auto e3 = ex_to<lst>(fe.op(1));
-                    for(int i=0; i<f3.nops(); i++) f3.let_op(i) = f3.op(i).subs(x1==xx*x2*c2/c1).subs(xx==x1);
-                    if(e3.op(0)==1) f3.let_op(0) = f3.op(0)*c2/c1; // Jaccobi
-                    else if(e3.op(1)==1) f3.let_op(1) = f3.op(1)*c2/c1;
+                    for(int i=0; i<f3.nops(); i++) f3[i] = f3.op(i).subs(x1==xx*x2*c2/c1).subs(xx==x1);
+                    if(e3.op(0)==1) f3[0] = f3.op(0)*c2/c1; // Jaccobi
+                    else if(e3.op(1)==1) f3[1] = f3.op(1)*c2/c1;
                     else {
                         f3.append(c2/c1);
                         e3.append(1);
@@ -293,23 +293,23 @@ namespace HepLib::SD {
                 // Part I: xi+xj-1>0
                 auto f1 = ex_to<lst>(fe.op(0));
                 auto e1 = ex_to<lst>(fe.op(1));
-                for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xj==xx+1-xi).subs(xx==xj);
+                for(int i=0; i<f1.nops(); i++) f1[i] = f1.op(i).subs(xj==xx+1-xi).subs(xx==xj);
                 // now 0<xi<1, 0<xj<xi
-                for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xj==xx*xi).subs(xx==xj);
+                for(int i=0; i<f1.nops(); i++) f1[i] = f1.op(i).subs(xj==xx*xi).subs(xx==xj);
                 f1.append(xi); // Jaccobi
                 e1.append(1);
                 FunExp.push_back(lst{f1,e1});
                 // Part IIa: 1-xi-xj>0, (a): xj<xi
                 auto f2 = ex_to<lst>(fe.op(0));
                 auto e2 = ex_to<lst>(fe.op(1));
-                for(int i=0; i<f2.nops(); i++) f2.let_op(i) = f2.op(i).subs(lst{xi==(1+zz)*yy/2,xj==(1-zz)*yy/2}).subs(lst{yy==xi, zz==xj});
+                for(int i=0; i<f2.nops(); i++) f2[i] = f2.op(i).subs(lst{xi==(1+zz)*yy/2,xj==(1-zz)*yy/2}).subs(lst{yy==xi, zz==xj});
                 f2.append(xi/2); // Jaccobi
                 e2.append(1);
                 FunExp.push_back(lst{f2,e2});
                 // Part IIb: 1-xi-xj>0, (a): xj>xi
                 auto f3 = ex_to<lst>(fe.op(0));
                 auto e3 = ex_to<lst>(fe.op(1));
-                for(int i=0; i<f3.nops(); i++) f3.let_op(i) = f3.op(i).subs(lst{xj==(1+zz)*yy/2,xi==(1-zz)*yy/2}).subs(lst{yy==xi, zz==xj});
+                for(int i=0; i<f3.nops(); i++) f3[i] = f3.op(i).subs(lst{xj==(1+zz)*yy/2,xi==(1-zz)*yy/2}).subs(lst{yy==xi, zz==xj});
                 f3.append(xi/2); // Jaccobi
                 e3.append(1);
                 FunExp.push_back(lst{f3,e3});
@@ -393,9 +393,9 @@ namespace HepLib::SD {
                 // Part I: xi<cc
                 auto f1 = ex_to<lst>(fe.op(0));
                 auto e1 = ex_to<lst>(fe.op(1));
-                for(int i=0; i<f1.nops(); i++) f1.let_op(i) = f1.op(i).subs(xi==xx*cc).subs(xx==1-xi);
-                if(e1.op(0)==1) f1.let_op(0) = f1.op(0)*cc; // Jaccobi
-                else if(e1.op(1)==1) f1.let_op(1) = f1.op(1)*cc;
+                for(int i=0; i<f1.nops(); i++) f1[i] = f1.op(i).subs(xi==xx*cc).subs(xx==1-xi);
+                if(e1.op(0)==1) f1[0] = f1.op(0)*cc; // Jaccobi
+                else if(e1.op(1)==1) f1[1] = f1.op(1)*cc;
                 else {
                     f1.append(cc);
                     e1.append(1);
@@ -404,9 +404,9 @@ namespace HepLib::SD {
                 // Part II: xi>cc
                 auto f2 = ex_to<lst>(fe.op(0));
                 auto e2 = ex_to<lst>(fe.op(1));
-                for(int i=0; i<f2.nops(); i++) f2.let_op(i) = f2.op(i).subs(xi==(1-cc)*xx+cc).subs(xx==xi);
-                if(e2.op(0)==1) f2.let_op(0) = f2.op(0)*(1-cc); // Jaccobi
-                else if(e2.op(1)==1) f2.let_op(1) = f2.op(1)*(1-cc);
+                for(int i=0; i<f2.nops(); i++) f2[i] = f2.op(i).subs(xi==(1-cc)*xx+cc).subs(xx==xi);
+                if(e2.op(0)==1) f2[0] = f2.op(0)*(1-cc); // Jaccobi
+                else if(e2.op(1)==1) f2[1] = f2.op(1)*(1-cc);
                 else {
                     f2.append(1-cc);
                     e2.append(1);

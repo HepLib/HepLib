@@ -1367,7 +1367,7 @@ namespace HepLib {
     void let_op_append(ex & ex_in, int index, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.append(item);
-        ex_in.let_op(index) = tmp;
+        ex_in[index] = tmp;
     }
     
     /**
@@ -1379,7 +1379,7 @@ namespace HepLib {
     void let_op_append(lst & ex_in, int index, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.append(item);
-        ex_in.let_op(index) = tmp;
+        ex_in[index] = tmp;
     }
     
     /**
@@ -1392,7 +1392,7 @@ namespace HepLib {
     void let_op_append(ex & ex_in, int index1, int index2, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.append(item);
-        ex_in.let_op(index1).let_op(index2) = tmp;
+        ex_in[index1][index2] = tmp;
     }
     
     /**
@@ -1405,7 +1405,7 @@ namespace HepLib {
     void let_op_append(lst & ex_in, int index1, int index2, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.append(item);
-        ex_in.let_op(index1).let_op(index2) = tmp;
+        ex_in[index1][index2] = tmp;
     }
 
     /**
@@ -1417,7 +1417,7 @@ namespace HepLib {
     void let_op_prepend(ex & ex_in, int index, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.prepend(item);
-        ex_in.let_op(index) = tmp;
+        ex_in[index] = tmp;
     }
     
     /**
@@ -1429,7 +1429,7 @@ namespace HepLib {
     void let_op_prepend(lst & ex_in, int index, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.prepend(item);
-        ex_in.let_op(index) = tmp;
+        ex_in[index] = tmp;
     }
     
     /**
@@ -1442,7 +1442,7 @@ namespace HepLib {
     void let_op_prepend(ex & ex_in, int index1, int index2, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.prepend(item);
-        ex_in.let_op(index1).let_op(index2) = tmp;
+        ex_in[index1][index2] = tmp;
     }
     
     /**
@@ -1455,7 +1455,7 @@ namespace HepLib {
     void let_op_prepend(lst & ex_in, int index1, int index2, ex const item) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.prepend(item);
-        ex_in.let_op(index1).let_op(index2) = tmp;
+        ex_in[index1][index2] = tmp;
     }
 
     /**
@@ -1466,7 +1466,7 @@ namespace HepLib {
     void let_op_remove_last(ex & ex_in, int index) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.remove_last();
-        ex_in.let_op(index) = tmp;
+        ex_in[index] = tmp;
     }
     
     /**
@@ -1477,7 +1477,7 @@ namespace HepLib {
     void let_op_remove_last(lst & ex_in, int index) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.remove_last();
-        ex_in.let_op(index) = tmp;
+        ex_in[index] = tmp;
     }
     
     /**
@@ -1489,7 +1489,7 @@ namespace HepLib {
     void let_op_remove_last(ex & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.remove_last();
-        ex_in.let_op(index1).let_op(index2) = tmp;
+        ex_in[index1][index2] = tmp;
     }
     
     /**
@@ -1501,7 +1501,7 @@ namespace HepLib {
     void let_op_remove_last(lst & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.remove_last();
-        ex_in.let_op(index1).let_op(index2) = tmp;
+        ex_in[index1][index2] = tmp;
     }
 
     /**
@@ -1512,7 +1512,7 @@ namespace HepLib {
     void let_op_remove_first(ex & ex_in, int index) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.remove_first();
-        ex_in.let_op(index) = tmp;
+        ex_in[index] = tmp;
     }
     
     /**
@@ -1523,7 +1523,7 @@ namespace HepLib {
     void let_op_remove_first(lst & ex_in, int index) {
         auto tmp = ex_to<lst>(ex_in.op(index));
         tmp.remove_first();
-        ex_in.let_op(index) = tmp;
+        ex_in[index] = tmp;
     }
     
     /**
@@ -1535,7 +1535,7 @@ namespace HepLib {
     void let_op_remove_first(ex & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.remove_first();
-        ex_in.let_op(index1).let_op(index2) = tmp;
+        ex_in[index1][index2] = tmp;
     }
     
     /**
@@ -1547,7 +1547,7 @@ namespace HepLib {
     void let_op_remove_first(lst & ex_in, int index1, int index2) {
         auto tmp = ex_to<lst>(ex_in.op(index1).op(index2));
         tmp.remove_first();
-        ex_in.let_op(index1).let_op(index2) = tmp;
+        ex_in[index1][index2] = tmp;
     }
 
     /**
@@ -1558,7 +1558,7 @@ namespace HepLib {
      * @param item the new item
      */
     void let_op(ex &ex_in, int index1, int index2, const ex item) {
-        ex_in.let_op(index1).let_op(index2) = item;
+        ex_in[index1][index2] = item;
     }
     
     /**
@@ -1569,7 +1569,7 @@ namespace HepLib {
      * @param item the new item
      */
     void let_op(lst &ex_in, int index1, int index2, const ex item) {
-        ex_in.let_op(index1).let_op(index2) = item;
+        ex_in[index1][index2] = item;
     }
     
     /**
@@ -1581,7 +1581,7 @@ namespace HepLib {
      * @param item the new item
      */
     void let_op(ex &ex_in, int index1, int index2, int index3, const ex item) {
-        ex_in.let_op(index1).let_op(index2).let_op(index3) = item;
+        ex_in[index1][index2][index3] = item;
     }
     
     /**
@@ -1593,7 +1593,7 @@ namespace HepLib {
      * @param item the new item
      */
     void let_op(lst &ex_in, int index1, int index2, int index3, const ex item) {
-        ex_in.let_op(index1).let_op(index2).let_op(index3) = item;
+        ex_in[index1][index2][index3] = item;
     }
 
     /**
@@ -1733,8 +1733,8 @@ namespace HepLib {
             ex sgn = 0;
             if(!ltQ) {
                 pre *= pow(Symbol::set_all(ps.op(i).expand()), ex(0)-ns.op(i));
-                ns.let_op(i) = 0;
-                ps.let_op(i) = 1;
+                ns[i] = 0;
+                ps[i] = 1;
                 continue;
             } else if(is_a<numeric>(ns.op(i)) && (ns.op(i)<0)) {
                 throw Error("XIntegral, negative powers not supported yet.");
@@ -1762,7 +1762,7 @@ namespace HepLib {
             }
             
             cpi = (ps.op(i)*sgn).subs(iEpsilon==0);
-            if(sgn==-1) pre *= exp(I * Pi * ns.op(i));
+            if(sgn==-1) pre *= exp(I * Pi * ns.op(i)); // sgn<0: +iep, sgn>0: -iep, so I*Pi here
             a += ns.op(i);
             auto xi = x(xni);
             rem += xi * cpi;

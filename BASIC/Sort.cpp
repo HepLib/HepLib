@@ -79,7 +79,7 @@ namespace HepLib {
      void sort_lst(lst & ilst, bool less) {
         auto ivec = lst2vec(ilst);
         sort_vec(ivec,less);
-        for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
+        for(auto i=0; i<ivec.size(); i++) ilst[i] = ivec[i];
      }
      
      /**
@@ -91,7 +91,7 @@ namespace HepLib {
      void sort_lst_by(lst & ilst, int ki, bool less) {
         auto ivec = lst2vec(ilst);
         sort_vec_by(ivec,ki,less);
-        for(auto i=0; i<ivec.size(); i++) ilst.let_op(i) = ivec[i];
+        for(auto i=0; i<ivec.size(); i++) ilst[i] = ivec[i];
      }
     
     

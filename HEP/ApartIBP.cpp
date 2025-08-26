@@ -311,11 +311,11 @@ namespace HepLib {
                 bool pn_sector = false;
                 if(aio.pn_sector>0 && den_tot>=aio.pn_sector) pn_sector = true;
                 if(!pn_sector) { // back to original format
-                    for(int i=0; i<pns.nops(); i++) pns.let_op(i) = lst{ pns.op(i).op(1), pns.op(i).op(2) };
+                    for(int i=0; i<pns.nops(); i++) pns[i] = lst{ pns.op(i).op(1), pns.op(i).op(2) };
                 }
                 sort_lst(pns);
                 if(pn_sector) { // back to original format
-                    for(int i=0; i<pns.nops(); i++) pns.let_op(i) = lst{ pns.op(i).op(1), pns.op(i).op(2) };
+                    for(int i=0; i<pns.nops(); i++) pns[i] = lst{ pns.op(i).op(1), pns.op(i).op(2) };
                 }
                 
                 int nCut = aio.Cut.nops();
@@ -360,8 +360,8 @@ namespace HepLib {
                     if(aio.DSP.nops()>0) {
                         for(auto item : aio.DSP) {
                             lst sp = ex_to<lst>(item);
-                            if(is_a<Vector>(sp.op(0))) sp.let_op(0) = (ex_to<Vector>(sp.op(0)).name);
-                            if(is_a<Vector>(sp.op(1))) sp.let_op(1) = (ex_to<Vector>(sp.op(1)).name);
+                            if(is_a<Vector>(sp.op(0))) sp[0] = (ex_to<Vector>(sp.op(0)).name);
+                            if(is_a<Vector>(sp.op(1))) sp[1] = (ex_to<Vector>(sp.op(1)).name);
                             ibp->DSP.append(sp);
                         }
                     }

@@ -36,11 +36,11 @@ namespace HepLib {
                     }
                 }
                 if(pi.match(w1*w2) && pi.nops()==2) {
-                    iPropagator.let_op(i) = pow(pi.op(0), 2);
+                    iPropagator[i] = pow(pi.op(0), 2);
                     if(!isComplete(iPropagator, Internal, External)) {
-                        iPropagator.let_op(i) = pow(pi.op(1), 2);
+                        iPropagator[i] = pow(pi.op(1), 2);
                         if(!isComplete(iPropagator, Internal, External)) {
-                            iPropagator.let_op(i) = pow(pi.op(0)+pi.op(1), 2);
+                            iPropagator[i] = pow(pi.op(0)+pi.op(1), 2);
                             if(!isComplete(iPropagator, Internal, External)) throw Error("isComplete failed, somthing may be wrong here.");
                         }
                     }
@@ -75,7 +75,7 @@ namespace HepLib {
                         auto fns = e.op(1);
                         auto itr = pi_by_prop.find(j);
                         if(itr == pi_by_prop.end()) {
-                            fns.let_op(j) = fns.op(j) + ni.op(j);
+                            fns[j] = fns.op(j) + ni.op(j);
                             return F(e.op(0), fns);
                         } else {
                             if(ni.op(j)>0) throw Error("ni.op(j)>0.");
@@ -95,7 +95,7 @@ namespace HepLib {
                                     deg = ex2int(cv.op(1).op(1));
                                     pos = ex2int(cv.op(1).op(0).op(0));
                                 }
-                                if(pos>=0) fns2.let_op(pos) = fns2.op(pos) - deg;
+                                if(pos>=0) fns2[pos] = fns2.op(pos) - deg;
                                 res += cv.op(0) * F(e.op(0), fns2);
                             }
                             return res;
@@ -188,7 +188,7 @@ namespace HepLib {
             if(TopTopo.op(i)==0) continue;
             if(!In_GiNaC_Parallel && Verbose>10) cout << pre << "\\--Try Position @ " << i << endl;
             fire.Propagator = iPropagator;
-            fire.Propagator.let_op(i) = iPropagator.op(i) + x;
+            fire.Propagator[i] = iPropagator.op(i) + x;
             auto cMIntegral = MIntegral;
             sort_lst(cMIntegral);
             while(true) {
@@ -198,7 +198,7 @@ namespace HepLib {
                 for(auto mi : cMIntegral) {
                     auto ns = mi.op(1);
                     if(is_zero(ns.op(i))) continue;
-                    ns.let_op(i) = ns.op(i)+1;
+                    ns[i] = ns.op(i)+1;
                     fire.Integral.append(ns);
                 }
                 if(fire.Integral.nops()<1) break;
@@ -243,7 +243,7 @@ namespace HepLib {
             fire.NVariables = nvar_o;
             fire.Execute = exe_o;
             fire.Propagator = iPropagator;
-            fire.Propagator.let_op(prop_idx) = iPropagator.op(prop_idx) + x;
+            fire.Propagator[prop_idx] = iPropagator.op(prop_idx) + x;
             fire.Rules.remove_all();
             fire.MIntegral.remove_all();
             fire.Integral.remove_all();
@@ -252,7 +252,7 @@ namespace HepLib {
                 auto ns = mi.op(1);
                 auto n0 = ns.op(prop_idx);
                 if(!n0.is_zero()) {
-                    ns.let_op(prop_idx) = n0+1;
+                    ns[prop_idx] = n0+1;
                     fire.Integral.append(ns);
                     dmis.append(-n0*F(mi.op(0),ns));
                 } else dmis.append(0);
@@ -634,7 +634,7 @@ namespace HepLib {
         //  ========== to Find all Regions ==========
         
         auto xPropagator = iPropagator;
-        xPropagator.let_op(prop_idx) = iPropagator.op(prop_idx) + x;
+        xPropagator[prop_idx] = iPropagator.op(prop_idx) + x;
         
         static symbol y("y");
         int nL = Internal.nops();
@@ -693,10 +693,10 @@ namespace HepLib {
                         int nP = xprop.nops();
                         lst powers;
                         for(int i=0; i<nP; i++) {
-                            pp.let_op(i) = pp.op(i).normal();
+                            pp[i] = pp.op(i).normal();
                             if(pp.op(i).has(y)) {
                                 powers.append(1);
-                                pp.let_op(i) = pp.op(i).expand().coeff(y,2);
+                                pp[i] = pp.op(i).expand().coeff(y,2);
                                 if(is_zero(pp.op(i))) throw Error("oo: linear propagator with non-zero exponent!");
                             } else powers.append(0);
                         }
@@ -865,7 +865,7 @@ namespace HepLib {
                             ex ibc;
                             if(lc.op(0).nops()==0) { // all SMALL region
                                 lst ns = ex_to<lst>(mi.op(1));
-                                ns.let_op(prop_idx) = -xon;
+                                ns[prop_idx] = -xon;
                                 ex cc = 1;
                                 if(xon>0) {
                                     symbol p("p");
@@ -1084,7 +1084,7 @@ namespace HepLib {
         for(int n=0; n<C00.size(); n++) U = U.add(C00[n].mul_scalar(pow(x,n)));
         auto TU = T.mul(U);
         //xpow(TU,x); // TODO: maybe no need for DEX ?
-        for(int i=0; i<TU.nops(); i++) TU.let_op(i) = series_ex(TU.op(i),x,0);
+        for(int i=0; i<TU.nops(); i++) TU[i] = series_ex(TU.op(i),x,0);
 
         ex x0 = pts.op(0);
         matrix iT = ex_to<matrix>(subs(T,x==x0)).inverse(solve_algo::gauss);

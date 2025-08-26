@@ -166,7 +166,7 @@ namespace HepLib {
             symbol ss;
             for(int i=0; i<pdim; i++) {
                 auto ns = nsa;
-                ns.let_op(i) = nsa.op(i) + 1;
+                ns[i] = nsa.op(i) + 1;
                 auto dp = Propagator.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
                 ibp -= (a(i)+Shift[i]) * F(ns) * dp;
             }
@@ -184,7 +184,7 @@ namespace HepLib {
                     if(!e.has(F(w))) return e;
                     else if(e.match(F(w))) {
                         lst tmp = ex_to<lst>(e.op(0));
-                        tmp.let_op(i) = tmp.op(i)-1;
+                        tmp[i] = tmp.op(i)-1;
                         return F(tmp);
                     } else return e.map(self);
                 })(ci);
@@ -202,14 +202,14 @@ namespace HepLib {
             lst ns0;
             for(int i=0; i<pdim; i++) ns0.append(1);
             for(int i=0; i<pdim; i++) {
-                if(Propagator.op(i).has(lpi)) ns0.let_op(i) = -1;
+                if(Propagator.op(i).has(lpi)) ns0[i] = -1;
                 else ns_vec.push_back(i);
             }
             for(int n=0; n<std::pow(2,ns_vec.size()); n++) {
                 int cn = n;
                 lst ns1 = ns0;
                 for(int j=0; j<ns_vec.size(); j++) {
-                    if((cn%2)==1) ns1.let_op(ns_vec[j]) = -1;
+                    if((cn%2)==1) ns1[ns_vec[j]] = -1;
                     cn /= 2;
                 }
                 //Rlst.append(ns1);
@@ -227,7 +227,7 @@ namespace HepLib {
                 lst ns1 = ns0;
                 lst sector = ns0;
                 for(int j=0; j<pdim; j++) {
-                    if((cn%2)==1) { ns1.let_op(j) = -1; sector.let_op(j) = 0; }
+                    if((cn%2)==1) { ns1[j] = -1; sector[j] = 0; }
                     cn /= 2;
                 }
                 //if(IsZero(sector)) Rlst.append(ns1);

@@ -86,11 +86,11 @@ namespace HepLib {
                     }
                 }
                 if(pi.match(w1*w2)) {
-                    iPropagator.let_op(i) = pow(pi.op(0), 2);
+                    iPropagator[i] = pow(pi.op(0), 2);
                     if(!isComplete(iPropagator, Internal, External)) {
-                        iPropagator.let_op(i) = pow(pi.op(1), 2);
+                        iPropagator[i] = pow(pi.op(1), 2);
                         if(!isComplete(iPropagator, Internal, External)) {
-                            iPropagator.let_op(i) = pow(pi.op(0)+pi.op(1), 2);
+                            iPropagator[i] = pow(pi.op(0)+pi.op(1), 2);
                             if(!isComplete(iPropagator, Internal, External)) throw Error("isComplete failed, somthing may be wrong here.");
                         }
                     }
@@ -174,7 +174,7 @@ namespace HepLib {
         for(int i=0; i<iPropagator.nops(); i++) {
             if(TopTopo.op(i)==0 || !iPropagator.op(i).has(eLoop)) continue;
             fire.Propagator = iPropagator;
-            fire.Propagator.let_op(i) = iPropagator.op(i) + x;
+            fire.Propagator[i] = iPropagator.op(i) + x;
         }
         
         auto cMIntegral = MIntegral;
@@ -188,7 +188,7 @@ namespace HepLib {
                 for(int j=0; j<ns0.nops(); j++) {
                     if(is_zero(ns0.op(j))) continue;
                     auto ns = ns0;
-                    ns.let_op(j) = ns.op(j)+1;
+                    ns[j] = ns.op(j)+1;
                     fire.Integral.append(ns);
                 }
             }
@@ -235,7 +235,7 @@ namespace HepLib {
                 for(int i=0; i<ns0.nops(); i++) {
                     if(is_zero(ns0.op(i))) continue;
                     auto ns = ns0;
-                    ns.let_op(i) = ns.op(i)+1;
+                    ns[i] = ns.op(i)+1;
                     fire.Integral.append(ns);
                     dmi -= ns0.op(i)*F(mi.op(0),ns);
                 }
@@ -676,10 +676,10 @@ namespace HepLib {
                         int nP = xprop.nops();
                         lst powers;
                         for(int i=0; i<nP; i++) {
-                            pp.let_op(i) = pp.op(i).normal();
+                            pp[i] = pp.op(i).normal();
                             if(pp.op(i).has(y)) {
                                 powers.append(1);
-                                pp.let_op(i) = pp.op(i).expand().coeff(y,2);
+                                pp[i] = pp.op(i).expand().coeff(y,2);
                                 if(is_zero(pp.op(i))) throw Error("oo: linear propagator with non-zero exponent!");
                             } else powers.append(0);
                         }
@@ -848,7 +848,7 @@ namespace HepLib {
                             ex ibc;
                             if(lc.op(0).nops()==0) { // all SMALL region
                                 lst ns = ex_to<lst>(mi.op(1));
-//                                ns.let_op(prop_idx) = -xon;
+//                                ns[prop_idx] = -xon;
                                 ex cc = 1;
                                 if(xon>0) {
                                     symbol p("p");
@@ -1066,7 +1066,7 @@ namespace HepLib {
         for(int n=0; n<C00.size(); n++) U = U.add(C00[n].mul_scalar(pow(x,n)));
         auto TU = T.mul(U);
         //xpow(TU,x); // TODO: maybe no need for DEX ?
-        for(int i=0; i<TU.nops(); i++) TU.let_op(i) = series_ex(TU.op(i),x,0);
+        for(int i=0; i<TU.nops(); i++) TU[i] = series_ex(TU.op(i),x,0);
 
         ex x0 = pts.op(0);
         matrix iT = ex_to<matrix>(subs(T,x==x0)).inverse(solve_algo::gauss);

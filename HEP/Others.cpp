@@ -170,14 +170,14 @@ Quit[];
                     } else { // ns.op(i)==0
                         auto pa = pi.op(0), pb = pi.op(1);
                         ex pab = expand(pow(pa+pb,2)).subs(Replacement);
-                        ps.let_op(i) = pab;
+                        ps[i] = pab;
                         bool ic = is_complete(ps, sp2x);
                         if(!ic && is_loop(pa)) {
-                            ps.let_op(i) = expand(pow(pa,2)).subs(Replacement);
+                            ps[i] = expand(pow(pa,2)).subs(Replacement);
                             ic = is_complete(ps, sp2x);
                         }
                         if(!ic && is_loop(pb)) {
-                            ps.let_op(i) = expand(pow(pb,2)).subs(Replacement);
+                            ps[i] = expand(pow(pb,2)).subs(Replacement);
                             ic = is_complete(ps, sp2x);
                         }
                         if(!ic) {
@@ -192,21 +192,21 @@ Quit[];
                 abort();
             } else if(ns_p.nops()>0) {
                 auto idx = ex2int(ns_p.op(0));
-                ns.let_op(idx) = 0;
+                ns[idx] = 0;
                 auto pidx = ps.op(idx);
                 
                 ex pa = pidx.op(0);
                 ex pb = pidx.op(1);
                 
                 ex pab = expand(pow(pa+pb,2)).subs(Replacement);
-                ps.let_op(idx) = pab;
+                ps[idx] = pab;
                 bool ic = is_complete(ps, sp2x);
                 if(!ic && is_loop(pa)) {
-                    ps.let_op(idx) = expand(pow(pa,2)).subs(Replacement);
+                    ps[idx] = expand(pow(pa,2)).subs(Replacement);
                     ic = is_complete(ps, sp2x);
                 }
                 if(!ic && is_loop(pb)) {
-                    ps.let_op(idx) = expand(pow(pb,2)).subs(Replacement);
+                    ps[idx] = expand(pow(pb,2)).subs(Replacement);
                     ic = is_complete(ps, sp2x);
                 }
                 if(!ic) {
@@ -236,7 +236,7 @@ Quit[];
                     xeq += yi*xps.op(ii);
                     eq += yi*ps.op(ii);
                     lst nn = ns;
-                    nn.let_op(ii) = ns.op(ii)-1;
+                    nn[ii] = ns.op(ii)-1;
                     fres += yi*F(ps, nn);
                     ys.append(yi);
                 }

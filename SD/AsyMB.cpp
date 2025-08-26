@@ -123,12 +123,12 @@ namespace HepLib::SD {
                     }
                 }
                 if(bf) {
-                    vs2.let_op(id) = 0;
+                    vs2[id] = 0;
                     ex min = vs2.op(0);
                     for(auto vsi : vs2) {
                         if(vsi<min) min = vsi;
                     }
-                    for(int i=0; i<vs2.nops(); i++) vs2.let_op(i) = vs2.op(i)-min;
+                    for(int i=0; i<vs2.nops(); i++) vs2[i] = vs2.op(i)-min;
                     ret.append(vs2);
                 }
             }
@@ -229,10 +229,10 @@ namespace HepLib::SD {
                     auto e1 = ex_to<lst>(fe.op(1));
                     ex c1 = cj/ci;
                     for(int i=0; i<f1.nops(); i++) {
-                        f1.let_op(i) = f1.op(i).subs(lst{xi==c1*yj/(1+c1)+yi,xj==yj/(1+c1)}).subs(lst{yi==xi,yj==xj});
+                        f1[i] = f1.op(i).subs(lst{xi==c1*yj/(1+c1)+yi,xj==yj/(1+c1)}).subs(lst{yi==xi,yj==xj});
                     }
-                    if(e1.op(0)==1) f1.let_op(0) = f1.op(0)/(1+c1); // Jaccobi
-                    else if(e1.op(1)==1) f1.let_op(1) = f1.op(1)/(1+c1);
+                    if(e1.op(0)==1) f1[0] = f1.op(0)/(1+c1); // Jaccobi
+                    else if(e1.op(1)==1) f1[1] = f1.op(1)/(1+c1);
                     else {
                         f1.append(1/(1+c1));
                         e1.append(1);
@@ -244,10 +244,10 @@ namespace HepLib::SD {
                     auto e2 = ex_to<lst>(fe.op(1));
                     ex c2 = ci/cj;
                     for(int i=0; i<f2.nops(); i++) {
-                        f2.let_op(i) = f2.op(i).subs(lst{xj==c2*yi/(1+c2)+yj,xi==yi/(1+c2)}).subs(lst{yi==xi,yj==xj});
+                        f2[i] = f2.op(i).subs(lst{xj==c2*yi/(1+c2)+yj,xi==yi/(1+c2)}).subs(lst{yi==xi,yj==xj});
                     }
-                    if(e2.op(0)==1) f2.let_op(0) = f2.op(0)/(1+c2); // Jaccobi
-                    else if(e2.op(1)==1) f2.let_op(1) = f2.op(1)/(1+c2);
+                    if(e2.op(0)==1) f2[0] = f2.op(0)/(1+c2); // Jaccobi
+                    else if(e2.op(1)==1) f2[1] = f2.op(1)/(1+c2);
                     else {
                         f2.append(1/(1+c2));
                         e2.append(1);
@@ -371,10 +371,10 @@ namespace HepLib::SD {
                                 auto dit = diff_ex(fs4.op(ii),vs);
                                 if(!dit.is_zero()) {
                                     if((es4.op(ii)-1).is_zero()) {
-                                        fs4.let_op(ii) = dit;
+                                        fs4[ii] = dit;
                                     } else {
                                         fs4.append(es4.op(ii)*dit);
-                                        es4.let_op(ii) = es4.op(ii)-1;
+                                        es4[ii] = es4.op(ii)-1;
                                         es4.append(1);
                                     }
                                     fss2.append(fs4);
@@ -441,34 +441,34 @@ namespace HepLib::SD {
                 }
                 ex expn = ex(0)-fe.op(1).op(1);
                 // (2*Pi*I) dropped out, since we will take residue later.
-                fe.let_op(0).let_op(0) = fe.op(0).op(0) * tgamma(expn+vz)*tgamma(ex(0)-vz)/tgamma(expn)*pow(vs,vz);
+                fe[0][0] = fe.op(0).op(0) * tgamma(expn+vz)*tgamma(ex(0)-vz)/tgamma(expn)*pow(vs,vz);
                 ex w1 = ft.coeff(vs);
                 ex w2 = ft.subs(vs==0);
                 if(!w2.is_zero()) {
                     if(xPositive(w1)) {
                         let_op_append(fe, 0, w1);
                         let_op_append(fe, 1, vz);
-                        fe.let_op(0).let_op(1) = w2;
-                        fe.let_op(1).let_op(1) = fe.op(1).op(1)-vz-epz;
+                        fe[0][1] = w2;
+                        fe[1][1] = fe.op(1).op(1)-vz-epz;
                     } else if(xPositive(w2)) {
                         let_op_append(fe, 0, w2);
                         let_op_append(fe, 1, fe.op(1).op(1)-vz-epz);
-                        fe.let_op(0).let_op(1) = w1;
-                        fe.let_op(1).let_op(1) = vz;
+                        fe[0][1] = w1;
+                        fe[1][1] = vz;
                     } else if(xPositive(ex(0)-w1)) {
                         let_op_append(fe, 0, ex(0)-w1);
                         let_op_append(fe, 1, vz);
                         let_op_append(fe, 0, exp(-I*Pi*vz));
                         let_op_append(fe, 1, 1);
-                        fe.let_op(0).let_op(1) = w2;
-                        fe.let_op(1).let_op(1) = fe.op(1).op(1)-vz-epz;
+                        fe[0][1] = w2;
+                        fe[1][1] = fe.op(1).op(1)-vz-epz;
                     } else if(xPositive(ex(0)-w2)) {
                         let_op_append(fe, 0, ex(0)-w2);
                         let_op_append(fe, 1, fe.op(1).op(1)-vz-epz);
                         let_op_append(fe, 0, exp(-I*Pi*(fe.op(1).op(1)-vz-epz)));
                         let_op_append(fe, 1, 1);
-                        fe.let_op(0).let_op(1) = w1;
-                        fe.let_op(1).let_op(1) = vz;
+                        fe[0][1] = w1;
+                        fe[1][1] = vz;
                     } else {
                         cout << "w1=" << w1 << endl;
                         cout << "w2=" << w2 << endl;

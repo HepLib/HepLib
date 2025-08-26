@@ -246,11 +246,11 @@ namespace HepLib::SD {
                     for(auto item : polists) {
                         symbol xy;
                         auto tmp = ex_to<lst>(subs(subs(item, lst{xs[i]==x0*xy}), lst{xy==xs[i]}));
-                        tmp.let_op(0) = tmp.op(0) * x0;
+                        tmp[0] = tmp.op(0) * x0;
                         polists2.append(tmp);
                         
                         tmp = ex_to<lst>(subs(subs(item, lst{xs[i]==(x0-1)*xy+1}), lst{xy==xs[i]}));
-                        tmp.let_op(0) = tmp.op(0) * (1-x0);
+                        tmp[0] = tmp.op(0) * (1-x0);
                         polists2.append(tmp);
                     }
                     polists = polists2;
@@ -391,7 +391,7 @@ namespace HepLib::SD {
                 
                 if(!is_a<numeric>(tmp)) throw Error("DS: NOT a numeric with " + ex2str(tmp));
                 if(tmp<0) {
-                    ct = exp(-I * Pi * exlist.op(1));
+                    ct = exp(-I * Pi * exlist.op(1)); // negtive F-term: -1-i ep --> exp(-I*Pi)
                     fsgin = -1;
                 }
                 ft = 1;
@@ -485,7 +485,7 @@ namespace HepLib::SD {
                 pnp = pnp.subs(y(w)==x(w));
                 
                 pol_exp_lst.append(lst{pnp, nexp});
-                pol_exp_lst.let_op(0) = pol_exp_lst.op(0).subs(CT(w)==CT(w*pow(ct,nexp))).subs(CT(0)==0);
+                pol_exp_lst[0] = pol_exp_lst.op(0).subs(CT(w)==CT(w*pow(ct,nexp))).subs(CT(0)==0);
             }
 
             lst x_n_lst;
@@ -527,7 +527,7 @@ namespace HepLib::SD {
                     if(nd.op(0).is_polynomial(vars) && nd.op(1).is_polynomial(vars)) {
                         in_plst.append(nd.op(1));
                         in_nlst.append(ex(0)-ni);
-                        in_plst.let_op(i) = nd.op(0);
+                        in_plst[i] = nd.op(0);
                         goto ok;
                     }
                 } else {
@@ -536,13 +536,13 @@ namespace HepLib::SD {
                         if(xPositive(nd.op(1))) {
                             in_plst.append(nd.op(1));
                             in_nlst.append(ex(0)-ni);
-                            in_plst.let_op(i) = nd.op(0);
+                            in_plst[i] = nd.op(0);
                             goto ok;
                         } else if(xPositive(nd.op(0))) {
                             in_plst.append(nd.op(0));
                             in_nlst.append(ni);
-                            in_plst.let_op(i) = nd.op(1);
-                            in_nlst.let_op(i) = ex(0)-ni;
+                            in_plst[i] = nd.op(1);
+                            in_nlst[i] = ex(0)-ni;
                             goto ok;
                         }
                     }
@@ -574,7 +574,7 @@ namespace HepLib::SD {
                             }
                         } else goto nok;
                     }
-                    in_plst.let_op(i) = rem;
+                    in_plst[i] = rem;
                     goto ok;
                 }
                 
@@ -588,7 +588,11 @@ namespace HepLib::SD {
             if(i!=1 && !in_plst.op(i).has(x(w)) && !in_plst.op(i).has(y(w)) && !in_plst.op(i).has(z(w))) {
                 if(in_nlst.op(i).info(info_flags::integer) || xPositive(in_plst.op(i))) {
                     const_term *= pow(in_plst.op(i), in_nlst.op(i));
-                } else const_term *= exp(log(in_plst.op(i)) * in_nlst.op(i));
+                } else if(is_a<numeric>(in_plst.op(i)) && in_plst.op(i)<0) {
+                    const_term *= exp((log(-in_plst.op(i))-I*Pi) * in_nlst.op(i)); // note: -1-iep --> exp(-I*Pi), like F-term
+                } else {
+                    const_term *= exp(log(in_plst.op(i)) * in_nlst.op(i)); // note: log(-1)==I*Pi in GiNaC
+                }
             } else {
                 //auto ptmp = collect_common_factors(expand_ex(in_plst.op(i),{x(w),y(w),z(w)}));
                 auto ptmp = in_plst.op(i);
@@ -680,9 +684,11 @@ namespace HepLib::SD {
 
         if(nlst_comb.op(0)!=1) {
             if(nlst_comb.op(0).info(info_flags::integer) || xPositive(plst_comb.op(0))) {
-                plst_comb.let_op(0) = pow(plst_comb.op(0),nlst_comb.op(0));
-            } else plst_comb.let_op(0) = exp(log(plst_comb.op(0))*nlst_comb.op(0));
-            nlst_comb.let_op(0) = 1;
+                plst_comb[0] = pow(plst_comb.op(0),nlst_comb.op(0));
+            } else if(is_a<numeric>(plst_comb.op(0)) && plst_comb.op(0)<0) {
+                plst_comb[0] = exp((log(-plst_comb.op(0))-I*Pi) * nlst_comb.op(0)); // note: -1-iep --> exp(-I*Pi), like F-term
+            } else plst_comb[0] = exp(log(plst_comb.op(0))*nlst_comb.op(0));
+            nlst_comb[0] = 1;
         }
         
         return (input.nops()>2) ? lst{plst_comb, nlst_comb, input.op(2)} : lst{plst_comb, nlst_comb};
@@ -784,8 +790,8 @@ namespace HepLib::SD {
                 }
             }
             auto key = fe;
-            key.let_op(0) = fun;
-            key.let_op(1) = exp;
+            key[0] = fun;
+            key[1] = exp;
             fe_cc[key] += rem;
         }
         
@@ -833,8 +839,8 @@ namespace HepLib::SD {
                 auto fe2 = fe;
                 let_op_append(fe2, 0, item);
                 let_op_append(fe2, 1, 1);
-                fe2.let_op(0) = fun;
-                fe2.let_op(1) = exp;
+                fe2[0] = fun;
+                fe2[1] = exp;
                 FunExp.push_back(fe2);
             }
         }
@@ -1027,11 +1033,11 @@ namespace HepLib::SD {
         for(auto fe : fes) {
             symbol xy;
             auto tmp = ex_to<lst>(subs(subs(fe, lst{xi==x0*xy}), lst{xy==xi}));
-            tmp.let_op(0).let_op(0) = tmp.op(0).op(0) * x0;
+            tmp[0][0] = tmp.op(0).op(0) * x0;
             FunExp.push_back(tmp);
             
             tmp = ex_to<lst>(subs(subs(fe, lst{xi==(x0-1)*xy+1}), lst{xy==xi}));
-            tmp.let_op(0).let_op(0) = tmp.op(0).op(0) * (1-x0);
+            tmp[0][0] = tmp.op(0).op(0) * (1-x0);
             FunExp.push_back(tmp);
         }
     }
@@ -1199,7 +1205,7 @@ namespace HepLib::SD {
 
                     if(ex_to<numeric>(expn) < pole_requested) {
                         auto xx = xn.op(0);
-                        pns.let_op(0).let_op(0) = pns.op(0).op(0) / (xn.op(1)+1);
+                        pns[0][0] = pns.op(0).op(0) / (xn.op(1)+1);
                         
                         lst xns2;
                         for(int i=0; i<xns.nops(); i++) {
@@ -1207,7 +1213,7 @@ namespace HepLib::SD {
                         }
                         lst pns2 = ex_to<lst>(pns);
                         for(int i=0; i<pns.nops(); i++) {
-                            pns2.let_op(i).let_op(0) = pns2.op(i).op(0).subs(xx==1);
+                            pns2[i][0] = pns2.op(i).op(0).subs(xx==1);
                         }
                         
                         lst xns_pns_lst;
@@ -1215,7 +1221,7 @@ namespace HepLib::SD {
                         
                         for(int i=0; i<pns.nops(); i++) {
                             lst xns3 = ex_to<lst>(xns);
-                            xns3.let_op(n).let_op(1) = xn.op(1)+1;
+                            xns3[n][1] = xn.op(1)+1;
                             
                             ex tmp = ex(0)-pns.op(i).op(1)*diff_ex(pns.op(i).op(0),xx);
                             if(tmp.is_zero()) continue;
@@ -1239,7 +1245,7 @@ namespace HepLib::SD {
                                         bool t = true;
                                         for(int ij=0; ij<xns3.nops(); ij++) {
                                             if(xns3.op(ij).op(0)==ii.op(0)) {
-                                                xns3.let_op(ij).let_op(1) += ii.op(1);
+                                                xns3[ij][1] += ii.op(1);
                                                 t = false;
                                                 break;
                                             }
@@ -1249,7 +1255,7 @@ namespace HepLib::SD {
                                         bool t = true;
                                         for(int ij=0; ij<xns3.nops(); ij++) {
                                             if(xns3.op(ij).op(0)==ii) {
-                                                xns3.let_op(ij).let_op(1) += 1;
+                                                xns3[ij][1] += 1;
                                                 t = false;
                                                 break;
                                             }
@@ -1264,12 +1270,12 @@ namespace HepLib::SD {
                             
                             lst pns3 = ex_to<lst>(pns);
                             if(is_zero(pns.op(i).op(1)-1)) {
-                                pns3.let_op(i).let_op(0) = tmp;
+                                pns3[i][0] = tmp;
                             } else {
-                                pns3.let_op(i).let_op(1) = pns.op(i).op(1)-1;
+                                pns3[i][1] = pns.op(i).op(1)-1;
                                 int nn = pns.nops();
                                 if(!(pns.op(nn-1).op(1)-1).is_zero()) pns3.append(lst{ tmp, 1 });
-                                else pns3.let_op(nn-1).let_op(0) = pns.op(nn-1).op(0) * tmp;
+                                else pns3[nn-1][0] = pns.op(nn-1).op(0) * tmp;
                             }
                             xns_pns_lst.append(lst{xns3, pns3});
                         }
@@ -1304,6 +1310,8 @@ namespace HepLib::SD {
                         } else if(xPositive(pn.op(0)) || pn.op(1).info(info_flags::integer)) {
                             if(pn.op(0).has(exp(w))) expr_exp *= pow(pn.op(0), pn.op(1));
                             else expr *= pow(pn.op(0), pn.op(1));
+                        } else if(is_a<numeric>(pn.op(0)) && pn.op(0)<0) {
+                            expr_exp *= exp((log(-pn.op(0))-I*Pi) * pn.op(0)); // note: -1-iep --> exp(-I*Pi), like F-term
                         } else {
                             expr_exp *= exp(log(pn.op(0)) * pn.op(1));
                         }

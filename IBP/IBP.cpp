@@ -182,7 +182,7 @@ namespace HepLib {
             auto nr = Rules.nops();
             for(int i=0; i<nr; i++) {
                 auto ri = Rules.op(i);
-                Rules.let_op(i) = (ri.op(0) == ri.op(1).subs(rs_mis.first, nopat));
+                Rules[i] = (ri.op(0) == ri.op(1).subs(rs_mis.first, nopat));
             }
             for(auto mi : MIntegral) {
                 auto mi2 = mi.subs(rs_mis.first, nopat);
@@ -329,9 +329,9 @@ namespace HepLib {
                 if(is_a<numeric>(cc)) {
                     if(cc<0) { // using +iEpsilon
                         sign *= pow(-1, idx.op(i));
-                        props.let_op(i) = ex(0)-props.op(i);
+                        props[i] = ex(0)-props.op(i);
                     }
-                    props.let_op(i) = props.op(i).subs(iEpsilon==0,nopat);
+                    props[i] = props.op(i).subs(iEpsilon==0,nopat);
                     goto sign_done;
                 } else {
                     cout << endl << ipr << endl;
@@ -345,7 +345,7 @@ namespace HepLib {
                     if(is_a<numeric>(cc)) {
                         if(cc<0) { // using +l^2
                             sign *= pow(-1, idx.op(i));
-                            props.let_op(i) = ex(0)-props.op(i);
+                            props[i] = ex(0)-props.op(i);
                         }
                         goto sign_done;
                     }
@@ -438,9 +438,9 @@ namespace HepLib {
                 if(is_a<numeric>(cc)) {
                     if(cc<0) { // using +iEpsilon
                         sign *= pow(-1, ns.op(i));
-                        ps.let_op(i) = ex(0)-ps.op(i);
+                        ps[i] = ex(0)-ps.op(i);
                     }
-                    ps.let_op(i) = ps.op(i).subs(iEpsilon==0,nopat);
+                    ps[i] = ps.op(i).subs(iEpsilon==0,nopat);
                     goto sign_done;
                 } else throw Error("UF: sign of iEpsilon NOT determined.");
             }
@@ -451,7 +451,7 @@ namespace HepLib {
                     if(is_a<numeric>(cc)) {
                         if(cc<0) { // using +l^2
                             sign *= pow(-1, ns.op(i));
-                            ps.let_op(i) = ex(0)-ps.op(i);
+                            ps[i] = ex(0)-ps.op(i);
                         }
                         goto sign_done;
                     }
@@ -465,7 +465,7 @@ namespace HepLib {
                     if(is_a<numeric>(cc)) {
                         if(cc<0) { // using +l^2
                             sign *= pow(-1, ns.op(i));
-                            ps.let_op(i) = ex(0)-ps.op(i);
+                            ps[i] = ex(0)-ps.op(i);
                         }
                         goto sign_done;
                     }
@@ -909,7 +909,7 @@ namespace HepLib {
             ex res = 0;
             for(int pi=0; pi<pN; pi++) {
                 lst ns2 = ns;
-                ns2.let_op(pi) = ns.op(pi)+1;
+                ns2[pi] = ns.op(pi)+1;
                 ex dpi = -ns.op(pi)*diff_ex(Propagator.op(pi), p1);
                 for(int i=0; i<eN; i++) {
                     ex idpi = expand_ex(dpi*es.op(i)).subs(Replacement);
@@ -924,7 +924,7 @@ namespace HepLib {
                             for(int j=1; j<pN+1; j++) {
                                 if(is_zero(cps.op(j))) continue;
                                 lst ns3 = ns2;
-                                ns3.let_op(j-1) = ns2.op(j-1)-1;
+                                ns3[j-1] = ns2.op(j-1)-1;
                                 res += cv.op(0)*pf*Gi(i,p2i)*cps.op(j)*F(ProblemNumber, ns3);
                             }
                         }
@@ -946,7 +946,7 @@ namespace HepLib {
         ex res = 0;
         for(int pi=0; pi<pN; pi++) { // Direct Diff for each Propagator
             lst ns2 = ns;
-            ns2.let_op(pi) = ns.op(pi)+1;
+            ns2[pi] = ns.op(pi)+1;
             ex Pi = Propagator.op(pi);
             Pi = Pi.subs(Replacement);
             ex dpi = -ns.op(pi)*diff_ex(Pi, x);
@@ -961,7 +961,7 @@ namespace HepLib {
                     for(int j=1; j<pN+1; j++) {
                         if(is_zero(cps.op(j))) continue;
                         lst ns3 = ns2;
-                        ns3.let_op(j-1) = ns2.op(j-1)-1;
+                        ns3[j-1] = ns2.op(j-1)-1;
                         res += cv.op(0)*cps.op(j)*F(ProblemNumber, ns3);
                     }
                 }

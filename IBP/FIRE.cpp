@@ -447,7 +447,7 @@ namespace HepLib {
                     
                     for(int i=0; i<pdim; i++) { // diff on each propagator
                         auto ns = ns0;
-                        ns.let_op(i) = ns.op(i)+1; // note the covention
+                        ns[i] = ns.op(i)+1; // note the covention
                         auto tmp = dp_lst.op(i) * iep;
                         tmp = expand(tmp);
                         tmp = tmp.subs(Replacement);
@@ -461,7 +461,7 @@ namespace HepLib {
                             auto cj = tmp.coeff(iWF(j));
                             if(is_zero(cj)) continue;
                             lst cns = ns;
-                            cns.let_op(j) = cns.op(j)-1; // note the covention
+                            cns[j] = cns.op(j)-1; // note the covention
                             nc_map[cns] = nc_map[cns] + cj;
                         }
                         tmp = tmp.subs(iWF(w)==0); // constant term
@@ -559,7 +559,7 @@ namespace HepLib {
                 lst ns0;
                 for(int i=0; i<pdim; i++) ns0.append(1);
                 for(int i=0; i<pdim; i++) {
-                    if(Propagator.op(i).has(lpi)) ns0.let_op(i) = -1;
+                    if(Propagator.op(i).has(lpi)) ns0[i] = -1;
                     else ns_vec.push_back(i);
                 }
                 size_t tot = std::pow(2LL,ns_vec.size());
@@ -567,7 +567,7 @@ namespace HepLib {
                     int cn = n;
                     lst ns1 = ns0;
                     for(int j=0; j<ns_vec.size(); j++) {
-                        if((cn%2)==1) ns1.let_op(ns_vec[j]) = -1;
+                        if((cn%2)==1) ns1[ns_vec[j]] = -1;
                         cn /= 2;
                     }
                     Rlst.append(ns1);
@@ -586,7 +586,7 @@ namespace HepLib {
                     int cn = n;
                     lst sector = ns0;
                     for(int j=0; j<pdim; j++) {
-                        if((cn%2)==1) sector.let_op(j) = 0;
+                        if((cn%2)==1) sector[j] = 0;
                         cn /= 2;
                     }
                     if(SECTOR.nops()==pdim) {
@@ -604,7 +604,7 @@ namespace HepLib {
                     if(IsZero(sector)) { // from LiteRed: all subsector is zero
                         lst ns1 = sector;
                         for(int j=0; j<pdim; j++) {
-                            if(sector.op(j).is_zero()) ns1.let_op(j) = -1;
+                            if(sector.op(j).is_zero()) ns1[j] = -1;
                         }
                         Rlst.append(ns1);
                         exset subsets;
@@ -619,7 +619,7 @@ namespace HepLib {
                             sectors.erase(item);
                             lst ns1 = ex_to<lst>(item);
                             for(int j=0; j<pdim; j++) {
-                                if(item.op(j).is_zero()) ns1.let_op(j) = -1;
+                                if(item.op(j).is_zero()) ns1[j] = -1;
                             }
                             Rlst.append(ns1);
                         }
@@ -650,13 +650,13 @@ namespace HepLib {
                     int ci = ex_to<numeric>(cx-1).to_int(); // start from 1 in Cut
                     lst ns0;
                     for(int i=0; i<pdim; i++) ns0.append(1);
-                    ns0.let_op(ci) = -1;
+                    ns0[ci] = -1;
                     for(int n=0; n<std::pow(2,pdim-1); n++) {
                         int cn = n;
                         lst ns1 = ns0;
                         for(int j=0; j<pdim; j++) {
                             if(ci==j) continue;
-                            if((cn%2)==1) ns1.let_op(j) = -1;
+                            if((cn%2)==1) ns1[j] = -1;
                             cn /= 2;
                         }
                         Rlst.append(ns1);
@@ -917,7 +917,7 @@ namespace HepLib {
                                     break;
                                 }
                             }
-                            if(isCut) pi.let_op(i)=1;
+                            if(isCut) pi[i]=1;
                             else if(mi.op(i)<=0) ineg.push_back(i);
                             else ipos.push_back(i);
                         }
@@ -930,7 +930,7 @@ namespace HepLib {
                             auto pi2 = pi;
                             for(int i=0; i<ineg.size(); i++) {
                                 int re = mod(cin,max).to_int();
-                                pi2.let_op(ineg[i]) = ex(0)-re;
+                                pi2[ineg[i]] = ex(0)-re;
                                 cin = (cin-re)/max;
                             }
                             tis.append(pi2);
@@ -944,7 +944,7 @@ namespace HepLib {
                                 auto pi2 = pi;
                                 for(int i=0; i<ipos.size(); i++) {
                                     int re = mod(cin,max2).to_int();
-                                    pi2.let_op(ipos[i]) = re-max;
+                                    pi2[ipos[i]] = re-max;
                                     cin = (cin-re)/max2;
                                 }
                                 pis.append(pi2);

@@ -48,7 +48,7 @@ namespace HepLib::ED {
         if(i >= basis.rows()) throw Error("Error");
         matrix v(basis.cols(), 1);
         for (unsigned j = 0; j < basis.cols(); j++) {
-            v.let_op(j) = basis(i, j);
+            v[j] = basis(i, j);
         }
         return v;
     }
@@ -57,7 +57,7 @@ namespace HepLib::ED {
         if(i >= basis.rows()) throw Error("Error");
         matrix v(1, basis.cols());
         for (unsigned j = 0; j < basis.cols(); j++) {
-            v.let_op(j) = basis(i, j);
+            v[j] = basis(i, j);
         }
         return v;
     }
@@ -83,7 +83,7 @@ namespace HepLib::ED {
                 // was not called between add_rows() and contains().
                 if(p >= basis.cols()) throw Error("Error");
                 if (!basis(i, p).is_zero()) break;
-                vv.let_op(p) = HepLib::exnormal(vv.op(p));
+                vv[p] = HepLib::exnormal(vv.op(p));
                 // If vv has non-zero columns before p, it's not in
                 // the basis.
                 if (!vv.op(p).is_zero())
@@ -94,14 +94,14 @@ namespace HepLib::ED {
             const ex &vv_p = vv.op(p);
             if (!vv_p.is_zero()) {
                 const ex b_ip = basis(i, p);
-                vv.let_op(p) = 0;
+                vv[p] = 0;
                 for (unsigned j = p + 1; j < basis.cols(); j++) {
-                    vv.let_op(j) = HepLib::exnormal(vv.op(j)*b_ip - basis(i, j)*vv_p);
+                    vv[j] = HepLib::exnormal(vv.op(j)*b_ip - basis(i, j)*vv_p);
                 }
             }
         }
         for (unsigned i = p; i < basis.cols(); i++) {
-            vv.let_op(i) = HepLib::exnormal(vv.op(i));
+            vv[i] = HepLib::exnormal(vv.op(i));
             if (!vv.op(i).is_zero())
                 return false;
         }
@@ -292,14 +292,14 @@ namespace HepLib::ED {
         exmap tmpz;
         for (unsigned i = 0; i < tmp.nops(); i++) {
             symbol t;
-            tmp.let_op(i) = t;
+            tmp[i] = t;
             tmpz[t] = 0;
         }
         
         try {
             // Solve x*u=1.
             matrix x = matrix_solve_left(exnormal(u), tmp, identity);
-            for(int i=0; i<x.nops(); i++) x.let_op(i) = x.op(i).subs(tmpz);
+            for(int i=0; i<x.nops(); i++) x[i] = x.op(i).subs(tmpz);
             results.push_back(x);
         } catch (const std::runtime_error &e) {
             if (e.what() != std::string("matrix::solve(): inconsistent linear system")) {
@@ -323,7 +323,7 @@ namespace HepLib::ED {
 
     matrix exnormal(const matrix & m0) {
         matrix m = m0;
-        for(unsigned i=0; i<m.nops(); i++) m.let_op(i) = HepLib::exnormal(m.op(i));
+        for(unsigned i=0; i<m.nops(); i++) m[i] = HepLib::exnormal(m.op(i));
         return m;
     }    
     

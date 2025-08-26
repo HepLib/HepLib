@@ -79,7 +79,7 @@ namespace HepLib {
         lst pis_sort = vec2lst(_pis);
         int n = pis_sort.nops();
         for(int i=0; i<n; i++) if(is_a<DGamma>(pis_sort.op(i))) {
-            pis_sort.let_op(i) = pis_sort.op(i).op(0);
+            pis_sort[i] = pis_sort.op(i).op(0);
             pis[i] = pis[i].op(0);
         }
         pis_sort.sort();
@@ -89,7 +89,7 @@ namespace HepLib {
         lst pis_sort = _pis;
         int n = pis_sort.nops();
         for(int i=0; i<n; i++) if(is_a<DGamma>(pis_sort.op(i))) {
-            pis_sort.let_op(i) = pis_sort.op(i).op(0);
+            pis_sort[i] = pis_sort.op(i).op(0);
             pis[i] = pis[i].op(0);
         }
         pis_sort.sort();
@@ -186,7 +186,7 @@ namespace HepLib {
     ex AsGamma::from(const lst & pis_lst, unsigned rl) {
         lst pis_sort = pis_lst;
         int n = pis_sort.nops();
-        for(int i=0; i<n; i++) if(is_a<DGamma>(pis_sort.op(i))) pis_sort.let_op(i) = pis_sort.op(i).op(0);
+        for(int i=0; i<n; i++) if(is_a<DGamma>(pis_sort.op(i))) pis_sort[i] = pis_sort.op(i).op(0);
         lst tmp;
         for(auto item : pis_sort) {
             if(is_a<Vector>(item) || is_a<Index>(item)) tmp.append(item);

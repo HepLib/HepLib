@@ -35,7 +35,7 @@ namespace HepLib {
         auto cmat = X.mul(X.transpose()).inverse(solve_algo::gauss).mul(X).mul(Y);
         
         for(int c=0; c<nc; c++) {
-            for(int r=0; r<n; r++) res.let_op(c) += pow(ep,lp+r) * cmat(r,c);
+            for(int r=0; r<n; r++) res[c] += pow(ep,lp+r) * cmat(r,c);
         }
         return is_y_lst ? res : res.op(0);
     }
@@ -70,7 +70,7 @@ namespace HepLib {
         lst eps = ex_to<lst>(neps);
         NIntegral = ex_to<lst>(PolyFit(eps, nis, leading));
         for(int i=0; i<NIntegral.nops(); i++) {
-            NIntegral.let_op(i) = series_ex(NIntegral.op(i), ep, order+leading);
+            NIntegral[i] = series_ex(NIntegral.op(i), ep, order+leading);
         }
     }
     
@@ -155,7 +155,7 @@ namespace HepLib {
         lst eps = ex_to<lst>(neps);
         NIntegral = ex_to<lst>(PolyFit(eps, nis, leading));
         for(int i=0; i<NIntegral.nops(); i++) {
-            NIntegral.let_op(i) = series_ex(NIntegral.op(i), ep, order+leading);
+            NIntegral[i] = series_ex(NIntegral.op(i), ep, order+leading);
         }
     }
     

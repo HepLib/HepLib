@@ -293,8 +293,8 @@ namespace HepLib {
         for(int j=n-1; j>i; j--) 
         if(ex_less(exs.op(j),exs.op(j-1))) {
             auto tmp = exs.op(j-1);
-            exs.let_op(j-1) = exs.op(j);
-            exs.let_op(j) = tmp;
+            exs[j-1] = exs.op(j);
+            exs[j] = tmp;
             ac++;
         }
         for(int i=0; i<n-1; i++) if(exs.op(i).is_equal(exs.op(i+1))) return 0;

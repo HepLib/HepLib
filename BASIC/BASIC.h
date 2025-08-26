@@ -262,7 +262,7 @@ namespace HepLib {
     template <typename F>
     void lstHelper::map_inplace(lst &m, F f) {
         for (unsigned i = 0; i < m.nops(); i++) {
-            m.let_op(i) = f(m.op(i));
+            m[i] = f(m.op(i));
         }
     }
 
@@ -270,7 +270,7 @@ namespace HepLib {
     lst lstHelper::map(const lst &m, F f) {
         lst r = m;
         for (unsigned i = 0; i < m.nops(); i++) {
-            r.let_op(i) = f(m.op(i));
+            r[i] = f(m.op(i));
         }
         return r;
     }

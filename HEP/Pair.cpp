@@ -191,7 +191,7 @@ namespace HepLib {
             for(auto item : aex) alst.append(item);
         } else alst.append(aex);
         for(int i=0; i<alst.nops(); i++) {
-            if(!is_a<mul>(alst.op(i))) alst.let_op(i) = lst{alst.op(i)};
+            if(!is_a<mul>(alst.op(i))) alst[i] = lst{alst.op(i)};
             ex c=1;
             ex v=1;
             for(auto ii : alst.op(i)) {
@@ -201,14 +201,14 @@ namespace HepLib {
                 } else c *= ii;
             }
             if(is_zero(v-1)) throw Error("Error Found in SP @2 : "+ex2str(alst));
-            alst.let_op(i) = lst{c,v};
+            alst[i] = lst{c,v};
         }
         
         if(is_a<add>(bex)) {
             for(auto item : bex) blst.append(item);
         } else blst.append(bex);
         for(int i=0; i<blst.nops(); i++) {
-            if(!is_a<mul>(blst.op(i))) blst.let_op(i) = lst{blst.op(i)};
+            if(!is_a<mul>(blst.op(i))) blst[i] = lst{blst.op(i)};
             ex c=1;
             ex v=1;
             for(auto ii : blst.op(i)) {
@@ -218,7 +218,7 @@ namespace HepLib {
                 } else c *= ii;
             }
             if(is_zero(v-1)) throw Error("Error Found in SP @4");
-            blst.let_op(i) = lst{c,v};
+            blst[i] = lst{c,v};
         }
         
         ex res = 0;

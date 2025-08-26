@@ -336,7 +336,7 @@ namespace HepLib::QGRAF {
             auto tls2 = tls;
             for(auto ci : cls) {
                 auto ol = tls2.op(ci);
-                tls2.let_op(ci) = lst{ol.op(0), 0, lst{ol.op(2).op(0)}, ol.op(3)};
+                tls2[ci] = lst{ol.op(0), 0, lst{ol.op(2).op(0)}, ol.op(3)};
                 tls2.append(lst{0, ol.op(1), lst{ol.op(2).op(1)}, ol.op(3)} );
             }
             
@@ -350,15 +350,15 @@ namespace HepLib::QGRAF {
                     if(is_zero(li) || li.op(2).nops()<2) continue;
                     last = i;
                     lp = li;
-                    tls2.let_op(last) = 0;
+                    tls2[last] = 0;
                     break;
                 }
                 if(is_zero(lp)) break;
                 
                 for(int i=0; i<ntls2; i++) {
                     if(is_zero(tls2.op(i))) continue;
-                    if(is_zero(tls2.op(i).op(0)-lp.op(0))) tls2.let_op(i).let_op(0) = lp.op(1);
-                    if(is_zero(tls2.op(i).op(1)-lp.op(0))) tls2.let_op(i).let_op(1) = lp.op(1);
+                    if(is_zero(tls2.op(i).op(0)-lp.op(0))) tls2[i][0] = lp.op(1);
+                    if(is_zero(tls2.op(i).op(1)-lp.op(0))) tls2[i][1] = lp.op(1);
                 }
             }
 
@@ -415,15 +415,15 @@ namespace HepLib::QGRAF {
                 if(is_zero(li.op(0)-li.op(1))) return true; // a loop found
                 last = i;
                 lp = li;
-                tls.let_op(last) = 0;
+                tls[last] = 0;
                 break;
             }
             if(is_zero(lp)) break;
             
             for(int i=0; i<ntls; i++) {
                 if(is_zero(tls.op(i))) continue;
-                if(is_zero(tls.op(i).op(0)-lp.op(0))) tls.let_op(i).let_op(0) = lp.op(1);
-                if(is_zero(tls.op(i).op(1)-lp.op(0))) tls.let_op(i).let_op(1) = lp.op(1);
+                if(is_zero(tls.op(i).op(0)-lp.op(0))) tls[i][0] = lp.op(1);
+                if(is_zero(tls.op(i).op(1)-lp.op(0))) tls[i][1] = lp.op(1);
             }
         }
         return false;

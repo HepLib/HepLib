@@ -207,7 +207,7 @@ namespace HepLib {
                     throw Error("LC Error: there is no Index or Vector.");
                 }
             }
-            pis.let_op(i) = pi;
+            pis[i] = pi;
         }
         
         ex res = 0;

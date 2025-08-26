@@ -1067,7 +1067,7 @@ namespace HepLib {
     
     matrix normal_flint(const matrix & mat) {
         matrix m = mat;
-        for(int i=0; i<m.nops(); i++) m.let_op(i) = normal_flint(m.op(i));
+        for(int i=0; i<m.nops(); i++) m[i] = normal_flint(m.op(i));
         return m;
     }
     

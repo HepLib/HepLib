@@ -57,8 +57,8 @@ void MB::Initialize(FeynmanParameter fp) {
         
         if(!ltQ) {
             pre = pre * pow(ps.op(i).expand().subs(lsubs), ex(0)-ns.op(i));
-            ns.let_op(i) = 0;
-            ps.let_op(i) = 1;
+            ns[i] = 0;
+            ps[i] = 1;
             continue;
         } else if(ns.op(i).info(info_flags::negint) && is_zero(ns.op(i))) {
             xtNeg[x(i)]=0;
@@ -93,7 +93,7 @@ void MB::Initialize(FeynmanParameter fp) {
         }
         
         p = (ps.op(i)*sgn);
-        if(sgn==-1) asgn *= exp(I * Pi * ns.op(i));
+        if(sgn==-1) asgn *= exp(I * Pi * ns.op(i)); // sgn<0: +iep, sgn>0: -iep, so I*Pi here
         rem += x(i) * p;
     }
 
@@ -201,14 +201,14 @@ void MB::Initialize(FeynmanParameter fp) {
                     auto plst2 = plst;
                     auto nlst2 = nlst;
                     if((nlst.op(ij)-1).is_zero()) {
-                        plst2.let_op(ij) = dtmp;
+                        plst2[ij] = dtmp;
                     } else {
-                        nlst2.let_op(ij) = nlst.op(ij)-1;
+                        nlst2[ij] = nlst.op(ij)-1;
                         int nn = plst.nops();
                         if(!(nlst.op(nn-1)-1).is_zero()) {
                             plst2.append(dtmp);
                             nlst2.append(1);
-                        } else plst2.let_op(nn-1) = plst.op(nn-1) * dtmp;
+                        } else plst2[nn-1] = plst.op(nn-1) * dtmp;
                     }
                     nret.push_back(make_pair(plst2, nlst2));
                 }

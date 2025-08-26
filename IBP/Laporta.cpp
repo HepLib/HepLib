@@ -118,7 +118,7 @@ namespace HepLib {
             symbol ss;
             for(int i=0; i<pdim; i++) {
                 auto ns = nsa;
-                ns.let_op(i) = nsa.op(i) + 1;
+                ns[i] = nsa.op(i) + 1;
                 auto dp = Propagator.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
                 ibp -= (a(i)+Shift[i+1]) * F(ns) * dp;
             }
@@ -136,7 +136,7 @@ namespace HepLib {
                     if(!e.has(F(w))) return e;
                     else if(e.match(F(w))) {
                         lst tmp = ex_to<lst>(e.op(0));
-                        tmp.let_op(i) = tmp.op(i)-1;
+                        tmp[i] = tmp.op(i)-1;
                         return F(tmp);
                     } else return e.map(self);
                 })(ci);

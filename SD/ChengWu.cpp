@@ -128,19 +128,30 @@ namespace HepLib::SD {
         ex over_all_sn = 0;
         int nnn = fe.op(0).nops();
         for(int i=0; i<nnn; i++) {
-            auto func = fe.op(0).op(i);
-            if(!func.has(x(w))) continue;
-            func = expand_ex(func.subs(sRepl),s);
-            auto sn = func.degree(s);
-            over_all_sn += sn*fe.op(1).op(i);
-            if(!is_a<add>(func)) func = lst{func};
-            ex tmp = 0;
-            for(auto ii : func) {
-                auto sni = ii.degree(s);
-                if(sni!=sn) tmp += ii.subs(s==1) * pow(xsum, sn-sni);
-                else tmp += ii.subs(s==1);
+            auto funcs = fe.op(0).op(i);
+            if(!funcs.has(x(w))) continue;
+            if(!is_a<mul>(funcs)) funcs = lst{ funcs };
+            ex tmp_mul = 1;
+            for(auto func : funcs) {
+                ex nn = 1;
+                if(func.match(pow(w1,w2))) {
+                    nn =  func.op(1);
+                    func = func.op(0);
+                }
+                func = expand_ex(func.subs(sRepl),s);
+                auto sn = func.degree(s);
+                over_all_sn += sn*fe.op(1).op(i);
+                if(!is_a<add>(func)) func = lst{func};
+                ex tmp = 0;
+                for(auto ii : func) {
+                    auto sni = ii.degree(s);
+                    if(sni!=sn) tmp += ii.subs(s==1) * pow(xsum, sn-sni);
+                    else tmp += ii.subs(s==1);
+                }
+                if(nn!=1) tmp = pow(tmp,nn);
+                tmp_mul *= tmp;
             }
-            fe.let_op(0).let_op(i) = tmp;
+            fe[0][i] = tmp_mul;
         }
 
         over_all_sn = normal(over_all_sn+delta.nops());
@@ -184,10 +195,10 @@ namespace HepLib::SD {
             tmp = exfactor(tmp);
             tmp = numer_denom(tmp);
             if(tmp.op(1).subs(x(w)==1)<0) {
-                tmp.let_op(0) = ex(0)-tmp.op(0);
-                tmp.let_op(1) = ex(0)-tmp.op(1);
+                tmp[0] = ex(0)-tmp.op(0);
+                tmp[1] = ex(0)-tmp.op(1);
             }
-            fe.let_op(0).let_op(i) = tmp.op(0);
+            fe[0][i] = tmp.op(0);
             if(tmp.op(1)!=1) {
                 let_op_append(fe, 0, tmp.op(1));
                 let_op_append(fe, 1, ex(0)-fe.op(1).op(i));
@@ -197,8 +208,8 @@ namespace HepLib::SD {
         ex det = exfactor(cy);
         det = numer_denom(det);
         if(det.op(1).subs(x(w)==1)<0) {
-            det.let_op(0) = ex(0)-det.op(0);
-            det.let_op(1) = ex(0)-det.op(1);
+            det[0] = ex(0)-det.op(0);
+            det[1] = ex(0)-det.op(1);
         }
         auto xn = xs.nops();
         if(det.op(0)!=1) {
@@ -252,34 +263,34 @@ namespace HepLib::SD {
         auto e1 = ex_to<lst>(fe.op(1));
         ex c1 = cj/ci;
         for(int i=0; i<f1.nops(); i++) {
-            f1.let_op(i) = f1.op(i).subs(lst{xi==c1*yj/(1+c1)+yi,xj==yj/(1+c1)}).subs(lst{yi==xi,yj==xj});
+            f1[i] = f1.op(i).subs(lst{xi==c1*yj/(1+c1)+yi,xj==yj/(1+c1)}).subs(lst{yi==xi,yj==xj});
         }
-        if(e1.op(0)==1) f1.let_op(0) = f1.op(0)/(1+c1); // Jaccobi
-        else if(e1.op(1)==1) f1.let_op(1) = f1.op(1)/(1+c1);
+        if(e1.op(0)==1) f1[0] = f1.op(0)/(1+c1); // Jaccobi
+        else if(e1.op(1)==1) f1[1] = f1.op(1)/(1+c1);
         else {
             f1.append(1/(1+c1));
             e1.append(1);
         }
         auto fe1 = fe;
-        fe1.let_op(0) = f1;
-        fe1.let_op(1) = e1;
+        fe1[0] = f1;
+        fe1[1] = e1;
         
         // Part II: ci xi-cj xj<0, i.e., i.e., xj>ci/cj xi
         auto f2 = ex_to<lst>(fe.op(0));
         auto e2 = ex_to<lst>(fe.op(1));
         ex c2 = ci/cj;
         for(int i=0; i<f2.nops(); i++) {
-            f2.let_op(i) = f2.op(i).subs(lst{xj==c2*yi/(1+c2)+yj,xi==yi/(1+c2)}).subs(lst{yi==xi,yj==xj});
+            f2[i] = f2.op(i).subs(lst{xj==c2*yi/(1+c2)+yj,xi==yi/(1+c2)}).subs(lst{yi==xi,yj==xj});
         }
-        if(e2.op(0)==1) f2.let_op(0) = f2.op(0)/(1+c2); // Jaccobi
-        else if(e2.op(1)==1) f2.let_op(1) = f2.op(1)/(1+c2);
+        if(e2.op(0)==1) f2[0] = f2.op(0)/(1+c2); // Jaccobi
+        else if(e2.op(1)==1) f2[1] = f2.op(1)/(1+c2);
         else {
             f2.append(1/(1+c2));
             e2.append(1);
         }
         auto fe2 = fe;
-        fe2.let_op(0) = f2;
-        fe2.let_op(1) = e2;
+        fe2[0] = f2;
+        fe2[1] = e2;
         
         // return vector 
         if(pos1) {
@@ -334,9 +345,9 @@ namespace HepLib::SD {
             auto s = xcs.op(i).op(1);
             auto yi = xi.subs(x(w)==y(w));
             inv_det *= s;
-            xcs.let_op(i).let_op(1) = yi/s;
+            xcs[i][1] = yi/s;
             for(int j=i+1; j<nnn; j++) {
-                xcs.let_op(j) = xcs.op(j).subs(xi==yi/s);
+                xcs[j] = xcs.op(j).subs(xi==yi/s);
             }
         }
         exmap x2y;
@@ -353,10 +364,10 @@ namespace HepLib::SD {
             tmp = tmp.subs(y(w)==x(w));
             auto num_den = numer_denom(tmp);
             if(num_den.op(1).subs(x(w)==1)<0) {
-                num_den.let_op(0) = ex(0)-num_den.op(0);
-                num_den.let_op(1) = ex(0)-num_den.op(1);
+                num_den[0] = ex(0)-num_den.op(0);
+                num_den[1] = ex(0)-num_den.op(1);
             }
-            fe.let_op(0).let_op(i) = num_den.op(0);
+            fe[0][i] = num_den.op(0);
             if(num_den.op(1)!=1) {
                 let_op_append(fe, 0, num_den.op(1));
                 let_op_append(fe, 1, ex(0)-fe.op(1).op(i));
@@ -367,8 +378,8 @@ namespace HepLib::SD {
         inv_det = inv_det.subs(y(w)==x(w));
         auto idet_num_den = numer_denom(inv_det);
         if(idet_num_den.op(1).subs(x(w)==1)<0) {
-            idet_num_den.let_op(0) = ex(0)-idet_num_den.op(0);
-            idet_num_den.let_op(1) = ex(0)-idet_num_den.op(1);
+            idet_num_den[0] = ex(0)-idet_num_den.op(0);
+            idet_num_den[1] = ex(0)-idet_num_den.op(1);
         }
         if(idet_num_den.op(0)!=1) {
             let_op_append(fe, 0, idet_num_den.op(0));
@@ -541,9 +552,9 @@ namespace HepLib::SD {
             auto yi = xi.subs(x(w)==y(w));
             auto s = ret.op(i).op(1);
             inv_det *= s;
-            ret.let_op(i).let_op(1) = yi/s;
+            ret[i][1] = yi/s;
             for(int j=i-1; j>=0; j--) {
-                ret.let_op(j) = ret.op(j).subs(xi==yi/s);
+                ret[j] = ret.op(j).subs(xi==yi/s);
             }
         }
         lst x2y;
@@ -556,10 +567,10 @@ namespace HepLib::SD {
             tmp = tmp.subs(y(w)==x(w));
             auto num_den = numer_denom(tmp);
             if(num_den.op(1).subs(x(w)==1)<0) {
-                num_den.let_op(0) = ex(0)-num_den.op(0);
-                num_den.let_op(1) = ex(0)-num_den.op(1);
+                num_den[0] = ex(0)-num_den.op(0);
+                num_den[1] = ex(0)-num_den.op(1);
             }
-            fe.let_op(0).let_op(i) = num_den.op(0);
+            fe[0][i] = num_den.op(0);
             if(num_den.op(1)!=1) {
                 let_op_append(fe, 0, num_den.op(1));
                 let_op_append(fe, 1, ex(0)-fe.op(1).op(i));
@@ -569,8 +580,8 @@ namespace HepLib::SD {
         inv_det = exfactor(inv_det.subs(y(w)==x(w)));
         auto idet_num_den = numer_denom(inv_det);
         if(idet_num_den.op(1).subs(x(w)==1)<0) {
-            idet_num_den.let_op(0) = ex(0)-idet_num_den.op(0);
-            idet_num_den.let_op(1) = ex(0)-idet_num_den.op(1);
+            idet_num_den[0] = ex(0)-idet_num_den.op(0);
+            idet_num_den[1] = ex(0)-idet_num_den.op(1);
         }
         if(idet_num_den.op(0)!=1) {
             let_op_append(fe, 0, idet_num_den.op(0));
@@ -759,9 +770,9 @@ namespace HepLib::SD {
                     if(xSign(c0)!=0) {
                         auto max_xn = maxn(fe.op(0),xi)+1;
                         auto wra = WRA(-xSign(cx) * Pi/max_xn);
-                        fe.let_op(0) = fe.op(0).subs(xi==exp(I*wra)*xi);
+                        fe[0] = fe.op(0).subs(xi==exp(I*wra)*xi);
                         if(fe.op(1).op(0)!=1) throw Error("WickRotation: fe.op(0).op(0)!=1.");
-                        fe.let_op(0).let_op(0) = fe.op(0).op(0) * exp(I*wra);
+                        fe[0][0] = fe.op(0).op(0) * exp(I*wra);
                         ret_vec.push_back(fe);
                         goto next_fe;
                     } else {
@@ -802,10 +813,10 @@ namespace HepLib::SD {
                     if(xSign(c1)!=0) {
                         auto max_xn = maxn(fe.op(0),xi)+1;
                         auto wra = WRA(-xSign(c2) * Pi/max_xn);
-                        fe.let_op(0) = fe.op(0).subs(xi==exp(I*wra)*xi);
-                        fe.let_op(0).let_op(1) = c2*pow(xi,2)*exp(I*wra)+c1*xi+c0*exp(-I*wra);
+                        fe[0] = fe.op(0).subs(xi==exp(I*wra)*xi);
+                        fe[0][1] = c2*pow(xi,2)*exp(I*wra)+c1*xi+c0*exp(-I*wra);
                         if(fe.op(1).op(0)!=1) throw Error("WickRotation: fe.op(0).op(0)!=1.");
-                        fe.let_op(0).let_op(0) = fe.op(0).op(0) * exp(I*wra*(1+fe.op(1).op(1)));
+                        fe[0][0] = fe.op(0).op(0) * exp(I*wra*(1+fe.op(1).op(1)));
                         ret_vec.push_back(fe);
                         goto next_fe;
                     } else {
@@ -836,10 +847,10 @@ namespace HepLib::SD {
                     if(xSign(c2)!=0) {
                         auto max_xn = maxn(fe.op(0),xi)+1;
                         auto wra = WRA(xSign(c0) * Pi/max_xn);
-                        fe.let_op(0) = fe.op(0).subs(xi==exp(I*wra)*xi);
-                        fe.let_op(0).let_op(1) = c2*pow(xi,2)+c1*xi*exp(-I*wra)+c0*exp(-2*I*wra);
+                        fe[0] = fe.op(0).subs(xi==exp(I*wra)*xi);
+                        fe[0][1] = c2*pow(xi,2)+c1*xi*exp(-I*wra)+c0*exp(-2*I*wra);
                         if(fe.op(1).op(0)!=1) throw Error("WickRotation: fe.op(0).op(0)!=1.");
-                        fe.let_op(0).let_op(0) = fe.op(0).op(0) * exp(I*wra*(1+2*fe.op(1).op(1)));
+                        fe[0][0] = fe.op(0).op(0) * exp(I*wra*(1+2*fe.op(1).op(1)));
                         ret_vec.push_back(fe);
                         goto next_fe;
                     } else {

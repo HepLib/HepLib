@@ -369,7 +369,7 @@ namespace HepLib {
         }
         if(a2n.size()>0) {
             int nibps = ibps.nops();
-            for(int i=0; i<nibps; i++) ibps.let_op(i) = ibps.op(i).subs(a2n);
+            for(int i=0; i<nibps; i++) ibps[i] = ibps.op(i).subs(a2n);
         }
         
         lst cons;
@@ -649,7 +649,7 @@ if(n2n.size()>0) {
             symbol ss;
             for(int i=0; i<pdim; i++) {
                 auto ns = nsa;
-                ns.let_op(i) = nsa.op(i) + 1;
+                ns[i] = nsa.op(i) + 1;
                 auto dp = Propagator.op(i).subs(ilp==ss).diff(ss).subs(ss==ilp);
                 ibp -= (a(i)+Shift[i]) * F(ns) * dp;
             }
@@ -667,7 +667,7 @@ if(n2n.size()>0) {
                     if(!e.has(F(w))) return e;
                     else if(e.match(F(w))) {
                         lst tmp = ex_to<lst>(e.op(0));
-                        tmp.let_op(i) = tmp.op(i)-1;
+                        tmp[i] = tmp.op(i)-1;
                         return F(tmp);
                     } else return e.map(self);
                 })(ci);
@@ -725,7 +725,7 @@ exit(0);
             a2n[a(k)] = kv.second;
         }
         int nibps = ibps.nops();
-        for(int i=0; i<nibps; i++) ibps.let_op(i) = ibps.op(i).subs(a2n);
+        for(int i=0; i<nibps; i++) ibps[i] = ibps.op(i).subs(a2n);
         
         lst cons;
         map<ex,lst,ex_is_less> cons_vec;

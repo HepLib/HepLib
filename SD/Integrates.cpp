@@ -253,7 +253,7 @@ namespace HepLib::SD {
                     cout << Color_HighLight << "     IRes = "<< HepLib::SD::VEResult(VESimplify(res)) << RESET << endl;
                 }
                 if(kid>0) {
-                    lstRE.let_op(kid-1) = res*co;
+                    lstRE[kid-1] = res*co;
                     break;
                 }
                 lstRE.append(res*co);
@@ -534,7 +534,7 @@ namespace HepLib::SD {
                                 }
                                 
                                 smin = -2;
-                                if(kid>0) lstRE.let_op(kid-1) = co * min_res;
+                                if(kid>0) lstRE[kid-1] = co * min_res;
                                 else lstRE.append(co * min_res);
                                 break;
                             }
@@ -641,16 +641,17 @@ namespace HepLib::SD {
             }
             if(res.has(NaN)) {
                 ResultError = NaN;
-                if(kid>0) lstRE.let_op(kid-1) = NaN;
+                if(kid>0) lstRE[kid-1] = NaN;
                 else lstRE.append(NaN);
                 break;
             } else {
                 if(kid>0) {
-                    lstRE.let_op(kid-1) = co * res;
+                    lstRE[kid-1] = co * res;
                     break;
                 } else lstRE.append(co * res);
             }
         }
+        if(Verbose>0 && Verbose<=5) cout << endl;
         //----------------------------------------------------------------
              
         if(use_dlclose) {
@@ -820,7 +821,7 @@ namespace HepLib::SD {
                     cout << "XDim=" << xsize << endl;
                     cout << Color_HighLight << "     IRes = "<< HepLib::SD::VEResult(VESimplify(res)) << RESET << endl;
                 }
-                lstRE.let_op(current-1) = res*co;
+                lstRE[current-1] = res*co;
                 continue;
             }
             
@@ -1087,7 +1088,7 @@ namespace HepLib::SD {
                             }
                             
                             smin = -2;
-                            lstRE.let_op(current-1) = co * min_res;
+                            lstRE[current-1] = co * min_res;
                             break;
                         }
                         if(err > 100 * min_err) break; // s>0 make sure at least 2 λs compatiable
@@ -1187,11 +1188,13 @@ namespace HepLib::SD {
             }
             if(res.has(NaN)) {
                 ResultError = NaN;
-                lstRE.let_op(current-1) = NaN;
+                lstRE[current-1] = NaN;
             } else {
-                lstRE.let_op(current-1) = co * res;
+                lstRE[current-1] = co * res;
             }
         }
+        if(Verbose>0 && Verbose<=5) cout << endl;
+        
         //----------------------------------------------------------------
                 
         if(use_dlclose) {

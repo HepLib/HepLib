@@ -984,8 +984,8 @@ namespace HepLib {
             lst res = shift_1st_to_right(e.op(0)*rem);
             n = res.nops();
             for(int i=0; i<n; i++) {
-                res.let_op(i).let_op(0) = -res.op(i).op(0);
-                res.let_op(i).let_op(1) = e.op(1) * res.op(i).op(1);
+                res[i][0] = -res.op(i).op(0);
+                res[i][1] = e.op(1) * res.op(i).op(1);
             }
             if(!e.op(0).is_equal(GAS(5)) && !e.op(1).is_equal(GAS(5))) {
                 if(!is_a<Index>(e.op(0).op(0)) && !is_a<Vector>(e.op(0).op(0))) {

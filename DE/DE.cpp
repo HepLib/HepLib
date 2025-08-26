@@ -19,7 +19,7 @@ namespace HepLib {
         auto res = GiNaC_Parallel(m.nops(), [&m](int idx) {
             return exnormal(m.op(idx));
         }, "NM");
-        for(unsigned i=0; i<m.nops(); i++) m.let_op(i) = res[i];
+        for(unsigned i=0; i<m.nops(); i++) m[i] = res[i];
         return m;
     }
     
@@ -66,12 +66,12 @@ namespace HepLib {
     
     void xpow(matrix & mat, const ex & x) {
         auto n = mat.nops();
-        for(int i=0; i<n; i++) mat.let_op(i) = xpow(mat.op(i),x);
+        for(int i=0; i<n; i++) mat[i] = xpow(mat.op(i),x);
     }
     
     void subs(matrix & mat, const ex & s, unsigned opt) {
         auto n = mat.nops();
-        for(int i=0; i<n; i++) mat.let_op(i) = mat.op(i).subs(s, opt);
+        for(int i=0; i<n; i++) mat[i] = mat.op(i).subs(s, opt);
     }
     
     matrix a0_mat(const matrix &mat, const symbol &x, int pr) {
@@ -83,8 +83,8 @@ namespace HepLib {
             auto nl = nd.op(0).ldegree(x);
             auto dl = nd.op(1).ldegree(x);
             if(dl-nl-1>pr) throw Error("input pr > prank!");
-            if(dl-nl-1<pr) a0.let_op(i) = 0;
-            else a0.let_op(i) = nd.op(0).coeff(x,nl) / nd.op(1).coeff(x,dl);
+            if(dl-nl-1<pr) a0[i] = 0;
+            else a0[i] = nd.op(0).coeff(x,nl) / nd.op(1).coeff(x,dl);
         }
         return a0;
     }
@@ -99,18 +99,18 @@ namespace HepLib {
             auto dl = nd.op(1).ldegree(x);
             if(dl-nl-1>pr) throw Error("input pr > prank!");
             if(dl-nl<pr) {
-                a0.let_op(i) = 0;
-                a1.let_op(i) = 0;
+                a0[i] = 0;
+                a1[i] = 0;
             } else if(dl-nl-1<pr) { //dl-nl=pr
-                a0.let_op(i) = 0;
-                a1.let_op(i) = nd.op(0).coeff(x,nl) / nd.op(1).coeff(x,dl);
+                a0[i] = 0;
+                a1[i] = nd.op(0).coeff(x,nl) / nd.op(1).coeff(x,dl);
             } else { //dl-nl-1=pr
                 auto n0 = nd.op(0).coeff(x,nl);
                 auto n1 = nd.op(0).coeff(x,nl+1);
                 auto d0 = nd.op(1).coeff(x,dl);
                 auto d1 = nd.op(1).coeff(x,dl+1);
-                a0.let_op(i) = n0/d0;
-                a1.let_op(i) = (d0*n1-d1*n0)/(d0*d0);
+                a0[i] = n0/d0;
+                a1[i] = (d0*n1-d1*n0)/(d0*d0);
             }
         }
         return make_pair(a0, a1);
@@ -118,7 +118,7 @@ namespace HepLib {
     
     matrix matrix_diff(const matrix & m, const symbol &x) {
         auto mat = m;
-        for(int i=0; i<mat.nops(); i++) mat.let_op(i) = mat.op(i).diff(x);
+        for(int i=0; i<mat.nops(); i++) mat[i] = mat.op(i).diff(x);
         return mat;
     }
 
@@ -132,7 +132,7 @@ namespace HepLib {
         ex det = diff_ex(y,x);
         auto m = mat;
         for(int i=0; i<m.nops(); i++) {
-            m.let_op(i) = det * m.op(i).subs(x==xx,nopat).subs(xx==y,nopat);
+            m[i] = det * m.op(i).subs(x==xx,nopat).subs(xx==y,nopat);
         }
         return m;
     }
