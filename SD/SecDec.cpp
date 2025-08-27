@@ -942,10 +942,26 @@ namespace HepLib::SD {
             FunExp.clear();
             FunExp.shrink_to_fit();
             for(auto fe : funexp) {
-                if(fe.nops()<3) {
+                if(fe.nops()<3 || !is_a<lst>(fe.op(2))) {
                     FunExp.push_back(fe);
                     continue;
                 }
+                                
+                if(fe.op(2).nops()==0) { // Deltas = { }
+                    FunExp.push_back(lst{fe.op(0), fe.op(1)});
+                    continue;
+                }
+                
+                if(true) { // remove {} in Deltas
+                    lst Dlts;
+                    for(auto dlt : fe.op(2)) if(dlt.nops()>0) Dlts.append(dlt);
+                    if(Dlts.nops()==0) {
+                        FunExp.push_back(lst{fe.op(0), fe.op(1)});
+                        continue;
+                    }
+                    fe[2] = Dlts;
+                }
+                
                 auto xs = ex_to<lst>(fe.op(2).op(0));
                 lst re_deltas;
                 for(int i=1; i<fe.op(2).nops(); i++) {
@@ -1050,7 +1066,7 @@ namespace HepLib::SD {
             return;
         }
         if(SecDec==NULL) SecDec = new SecDecG();
-        
+
         MB();
         RemoveDeltas();
         if(CheckEnd) XEnd();
@@ -1311,7 +1327,7 @@ namespace HepLib::SD {
                             if(pn.op(0).has(exp(w))) expr_exp *= pow(pn.op(0), pn.op(1));
                             else expr *= pow(pn.op(0), pn.op(1));
                         } else if(is_a<numeric>(pn.op(0)) && pn.op(0)<0) {
-                            expr_exp *= exp((log(-pn.op(0))-I*Pi) * pn.op(0)); // note: -1-iep --> exp(-I*Pi), like F-term
+                            expr_exp *= exp((log(-pn.op(0))-I*Pi) * pn.op(1)); // note: -1-iep --> exp(-I*Pi), like F-term
                         } else {
                             expr_exp *= exp(log(pn.op(0)) * pn.op(1));
                         }
