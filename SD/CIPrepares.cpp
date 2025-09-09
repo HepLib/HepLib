@@ -1144,13 +1144,19 @@ namespace HepLib::SD {
             ofs.close();
             ostringstream ofn, cmd;
             ofn << pid << "/" << idx << ".o";
-            cmd << cpp << " -fPIC " << INC_FLAGS <<  " -c -o " << ofn.str() << " " << cppfn.str();
+            cmd << cpp << " -pipe -fPIC " << INC_FLAGS <<  " -c -o " << ofn.str() << " " << cppfn.str();
             auto rc = system(cmd.str().c_str());
             if(!Debug) remove(cppfn.str().c_str());
             return lst{ idx, xs.size(), kvf.op(0), ft_n };
         }, "FCI-I");
         
-
+//        if(true) { // try other complilation method
+//            ostringstream cmd;
+//            cmd << "cd " << pid << ";find . -name '*.cpp' | xargs -n 100 -P " << CpuCores() << " " << cpp << " -pipe -fPIC " << INC_FLAGS <<  " -c";
+//            auto rc = system(cmd.str().c_str());
+//            //if(!Debug) remove(cppfn.str().c_str());
+//        }
+                
     //============================================================================================================
 
         ostringstream fsofn, sofn, garfn, cmd;

@@ -115,9 +115,9 @@ namespace HepLib {
         else if(is_a<Vector>(lr[0]) && is_a<Index>(lr[1])) c << "FVD[" << lr[0] << "," << lr[1] << "]";
         else if(is_a<Index>(lr[0]) && is_a<Index>(lr[1])) {
             auto ii = ex_to<Index>(lr[0]);
-            if(ii.type == Index::Type::VD) c << "MTD[" << lr[0] << "," << lr[1] << "]";
-            else if(ii.type == Index::Type::CF) c << "SUNFDelta[" << lr[0] << "," << lr[1] << "]";
-            else if(ii.type == Index::Type::CA) c << "SUNDelta[" << lr[0] << "," << lr[1] << "]";
+            if(ii.dim == d) c << "MTD[" << lr[0] << "," << lr[1] << "]";
+            else if(ii.dim == NF) c << "SUNFDelta[" << lr[0] << "," << lr[1] << "]";
+            else if(ii.dim == NA) c << "SUNDelta[" << lr[0] << "," << lr[1] << "]";
             else throw Error("Pair::fc_print unexpected.");
         }
     }

@@ -230,6 +230,7 @@ namespace HepLib {
         auto n = Symbol("n");
         auto nbar = Symbol("nbar");
         auto e = Symbol("e");
+        auto G = Symbol("G"); // graviton
         
         LineTeX[q] = "fermion, edge label=$q$";
         LineTeX[qbar] = "anti fermion, edge label=$q$";
@@ -239,6 +240,7 @@ namespace HepLib {
         LineTeX[ghbar] = "ghost, edge label=$\\chi$"; 
         LineTeX[g] = "gluon, edge label=$g$";
         LineTeX[A] = "photon, edge label=$\\gamma$";
+        LineTeX[G] = "graviton, edge label=$\\gamma$";
         LineTeX[Q] = "fermion, edge label=$Q$";
         LineTeX[Qbar] = "anti fermion, edge label=$Q$";
         LineTeX[C] = "fermion, edge label=$c$";

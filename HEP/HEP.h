@@ -126,18 +126,18 @@ namespace HepLib {
     // GINAC_DECLARE_REGISTERED_CLASS END
     
     public:
-        enum Type {VD, CF, CA};
-        Index(const string &s, const Type type=Type::VD);
+        Index(const string &s, const ex &dim=d);
         Pair operator() (const Index & i);
         Pair operator() (const Vector & p);
         Symbol name;
-        Type type;
+        ex dim;
         void print(const print_context &c, unsigned level = 0) const;
         void archive(archive_node & n) const override;
         void read_archive(const archive_node& n) override;
         static bool has(const ex &e);
         static bool hasc(const ex &e);
         static bool hasv(const ex &e);
+        static bool has(const ex &e, const ex &DIM);
         static lst all(const ex &e);
         ex derivative(const symbol & s) const override;
         bool is_equal_same_type(const basic & other) const override;        

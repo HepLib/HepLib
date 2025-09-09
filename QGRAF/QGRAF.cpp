@@ -42,18 +42,18 @@ namespace HepLib::QGRAF {
     
     #endif
 
-    Index DI(ex fn) { return Index(di_+n2s(fn),Index::Type::VD); }
-    Index LI(ex fn) { return Index(li_+n2s(fn),Index::Type::VD); }
-    Index TI(ex fn) { return Index(ti_+n2s(fn),Index::Type::CF); }
-    Index FI(ex fn) { return Index(fi_+n2s(fn),Index::Type::CF); }
-    Index CI(ex fn) { return Index(ci_+n2s(fn),Index::Type::CA); }
-    Index AI(ex fn) { return Index(ai_+n2s(fn),Index::Type::CA); }
-    Index RDI(ex fn) { return Index(rdi_+n2s(fn),Index::Type::VD); }
-    Index RLI(ex fn) { return Index(rli_+n2s(fn),Index::Type::VD); }
-    Index RTI(ex fn) { return Index(rti_+n2s(fn),Index::Type::CF); }
-    Index RFI(ex fn) { return Index(rfi_+n2s(fn),Index::Type::CF); }
-    Index RCI(ex fn) { return Index(rci_+n2s(fn),Index::Type::CA); }
-    Index RAI(ex fn) { return Index(rai_+n2s(fn),Index::Type::CA); }
+    Index DI(ex fn) { return Index(di_+n2s(fn),d); }
+    Index LI(ex fn) { return Index(li_+n2s(fn),d); }
+    Index TI(ex fn) { return Index(ti_+n2s(fn),NF); }
+    Index FI(ex fn) { return Index(fi_+n2s(fn),NF); }
+    Index CI(ex fn) { return Index(ci_+n2s(fn),NA); }
+    Index AI(ex fn) { return Index(ai_+n2s(fn),NA); }
+    Index RDI(ex fn) { return Index(rdi_+n2s(fn),d); }
+    Index RLI(ex fn) { return Index(rli_+n2s(fn),d); }
+    Index RTI(ex fn) { return Index(rti_+n2s(fn),NF); }
+    Index RFI(ex fn) { return Index(rfi_+n2s(fn),NF); }
+    Index RCI(ex fn) { return Index(rci_+n2s(fn),NA); }
+    Index RAI(ex fn) { return Index(rai_+n2s(fn),NA); }
     
     /**
      * @brief generte the Amplitudes
@@ -182,14 +182,23 @@ namespace HepLib::QGRAF {
             out << "\\begin{document}" << endl;
             out << "\\feynmandiagram{" << endl;
             auto lines = TopoLines(amp);
+            
+            map<ex,int,ex_is_less> tot_bend_map;
+            for(auto l : lines) {
+                lst ll = lst{l.op(0), l.op(1)};
+                ll.sort();
+                tot_bend_map[ll]++;
+            }
 
-            exmap bend_map;
+            map<ex,int,ex_is_less> bend_map;
             std::map<ex,int,ex_is_less> vtex_map; // vertex option, only once
             for(auto l : lines) {
                 lst ll = lst{l.op(0), l.op(1)};
                 bool isExt = (is_a<numeric>(ll.op(0)) && ll.op(0)<0) || (is_a<numeric>(ll.op(1)) && ll.op(1)<0);
+                lst oll = ll;
                 ll.sort();
-                bend_map[ll] = bend_map[ll] + 1;
+                bool ll_same = oll.is_equal(ll);
+                bend_map[ll]++;
                 
                 auto fidL = (is_a<numeric>(l.op(1)) ? l.op(1) : l.op(1).op(0));
                 out << "\"" << fidL << "\"";
@@ -213,8 +222,25 @@ namespace HepLib::QGRAF {
                         else out << LineTeX[f];
                     }
                 }
-                if(bend_map[ll]>2) out << ",half right";
-                else if(bend_map[ll]>1) out << ",half left";
+                if(tot_bend_map[ll]>1) {
+                    if((tot_bend_map[ll]%2)==0) { // even case
+                        if((bend_map[ll]%2)==0) {
+                            if(ll_same) out << ",half right";
+                            else out << ",half left";
+                        } else {
+                            if(ll_same) out << ",half left";
+                            else out << ",half right";
+                        }
+                    } else if(bend_map[ll]>2) { // odd case
+                        if((bend_map[ll]%2)==0) {
+                            if(ll_same) out << ",half right";
+                            else out << ",half left";
+                        } else {
+                            if(ll_same) out << ",half left";
+                            else out << ",half right";
+                        }
+                    }
+                }
                 if(is_zero(l.op(0)-l.op(1))) out << ",loop,distance=2cm";
                 out << "]";
                 
@@ -633,7 +659,7 @@ namespace HepLib::QGRAF {
                 else if(!all && nstr.rfind("dim",0)==0) return e;
                 else if(!all && nstr.rfind("cim",0)==0) return e;
                 else if(!all && nstr.rfind("tim",0)==0) return e;
-                else if(nstr.rfind("li",0)==0 || nstr.rfind("di",0)==0 || nstr.rfind("ci",0)==0 || nstr.rfind("ti",0)==0) return Index("r"+nstr, idx.type);
+                else if(nstr.rfind("li",0)==0 || nstr.rfind("di",0)==0 || nstr.rfind("ci",0)==0 || nstr.rfind("ti",0)==0) return Index("r"+nstr, idx.dim);
                 else return e;
             }
             else return e.map(self);

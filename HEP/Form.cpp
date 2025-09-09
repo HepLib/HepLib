@@ -14,7 +14,8 @@ namespace HepLib {
     namespace {
 
         alignas(2) static ex SP_reader(const exvector& ev) {
-            return SP(ev[0], ev[1]).subs(SP_map);
+            if(ev.size()<2) return SP(ev[0]).subs(SP_map);
+            else return SP(ev[0], ev[1]).subs(SP_map);
         }
         
         alignas(2) static ex LC_reader(const exvector& ev) {
@@ -186,9 +187,9 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         for(const_preorder_iterator i = all_expr.preorder_begin(); i != all_expr.preorder_end(); ++i) {
             if(is_a<Vector>(*i)) vec_lst.append(*i);
             else if(is_a<Index>(*i)) {
-                if(ex_to<Index>(*i).type==Index::Type::VD) VD_lst.append(*i);
-                else if(ex_to<Index>(*i).type==Index::Type::CF) CF_lst.append(*i);
-                else if(ex_to<Index>(*i).type==Index::Type::CA) CA_lst.append(*i);
+                if(ex_to<Index>(*i).dim==d) VD_lst.append(*i);
+                else if(ex_to<Index>(*i).dim==NF) CF_lst.append(*i);
+                else if(ex_to<Index>(*i).dim==NA) CA_lst.append(*i);
             } else if(is_a<symbol>(*i)) sym_lst.append(*i);
             else if(is_a<GiNaC::function>(*i)) {
                 static vector<string> fun_vec = { 
@@ -543,6 +544,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
 
         Parser fp(st);
         fp.FTable.insert({{"SP", 2}, reader_func(SP_reader)});
+        fp.FTable.insert({{"SP", 1}, reader_func(SP_reader)});
         //fp.FTable.insert({{"LC", 4}, reader_func(LC_reader)});
         for(int i=3; i<10; i++) fp.FTable.insert({{"LC", i}, reader_func(LC_reader)});
         fp.FTable.insert({{"GMat", 3}, reader_func(GMat_reader)});

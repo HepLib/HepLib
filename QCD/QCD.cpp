@@ -9,10 +9,10 @@
 namespace HepLib::QCD {
     
     ex Gamma5(const string pre, int start) {
-        Index i1(pre+to_string(start+0), Index::Type::VD);
-        Index i2(pre+to_string(start+1), Index::Type::VD);
-        Index i3(pre+to_string(start+2), Index::Type::VD);
-        Index i4(pre+to_string(start+3), Index::Type::VD);
+        Index i1(pre+to_string(start+0),d);
+        Index i2(pre+to_string(start+1),d);
+        Index i3(pre+to_string(start+2),d);
+        Index i4(pre+to_string(start+3),d);
         return LC(i1,i2,i3,i4)*GAS(i1)*GAS(i2)*GAS(i3)*GAS(i4)/(I*factorial(4));
     }
     

@@ -177,20 +177,22 @@ namespace HepLib {
     const char *Index::class_name() const { return get_class_info_static().options.get_name(); }
     //GINAC_IMPLEMENT_REGISTERED_CLASS END
     
-    Index::Index(const string &s, const Type t) : name(s), type(t) { }
+    Index::Index(const string &s, const ex & dimension) : name(s), dim(dimension) { }
     int Index::compare_same_type(const basic &other) const {
         if(!is_a<Index>(other)) throw Error("Index::compare_same_type");
         const Index &o = static_cast<const Index &>(other);
         auto ret = name.get_name().compare(o.name.get_name());
-        if(ret==0) return 0;
-        else if(ret<0) return -1;
-        else return 1;
+        if(ret<0) return -1;
+        else if(ret>0) return 1;
+        else return dim.compare(o.dim);
     }
     
     bool Index::is_equal_same_type(const basic & other) const {
         if(!is_a<Index>(other)) throw Error("Index::is_equal_same_type");
         const Index &o = static_cast<const Index &>(other);
-        return (name.get_name() == o.name.get_name());
+        auto ret = name.get_name() == o.name.get_name();
+        if(!ret) return false;
+        return dim.is_equal(o.dim);
     }
     
     void Index::print(const print_context &c, unsigned level) const {
@@ -208,32 +210,36 @@ namespace HepLib {
     void Index::archive(archive_node & n) const {
         inherited::archive(n);
         n.add_string("name", name.get_name());
-        n.add_unsigned("type", type);
+        n.add_ex("dim", dim);
     }
     
     void Index::read_archive(const archive_node& n) {
         inherited::read_archive(n);
         string nstr;
-        unsigned t;
         n.find_string("name", nstr);
         name = Symbol(nstr);
-        n.find_unsigned("type", t);
-        type = (Type)t;
+        n.find_ex("dim", dim);
     }
     
     ex Index::derivative(const symbol & s) const {
         return 0;
     }
     
+    bool Index::has(const ex & e, const ex & DIM) {
+        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i)
+            if(is_a<Index>(*i) && ex_to<Index>(*i).dim==DIM) return true;
+        return false;
+    }
+    
     bool Index::hasc(const ex & e) {
-        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) 
-            if(is_a<Index>(*i) && ex_to<Index>(*i).type!=Index::Type::VD) return true; 
-        return false; 
+        for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i)
+            if(is_a<Index>(*i) && (ex_to<Index>(*i).dim==NA || ex_to<Index>(*i).dim==NF)) return true;
+        return false;
     }
     
     bool Index::hasv(const ex & e) {
         for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i)
-            if(is_a<Index>(*i) && ex_to<Index>(*i).type==Index::Type::VD) return true;
+            if(is_a<Index>(*i) && ex_to<Index>(*i).dim==d) return true;
         return false;
     }
 
