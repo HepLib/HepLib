@@ -755,6 +755,11 @@ namespace HepLib {
     }
     
     ex Contract(const ex & ei) {
+        static exmap cache;
+        if(GMat_using_cache) {
+            auto found = cache.find(ei);
+            if(found!=cache.end()) return found->second;
+        }
         lst idx_lst;
         MapFunction get_idx([&idx_lst](const ex & e, MapFunction & self)->ex{
             if(!Index::has(e) || !Pair::has(e) || e.match(GMat(w1,w2,w3))) return 1; // skip GMat object
@@ -786,7 +791,9 @@ namespace HepLib {
                 res += r * c.subs(repl);
             }
         }
-        return res.subs(SP_map);
+        res = res.subs(SP_map);
+        if(GMat_using_cache) cache[ei] = res;
+        return res;
     }
     
     ex GMatOut(const ex & expr_in) {
@@ -814,6 +821,12 @@ namespace HepLib {
     }
     
     ex GMatExpand(const ex & expr_in) {
+        static exmap cache;
+        ex key = expr_in;
+        if(GMat_using_cache) {
+            auto found = cache.find(key);
+            if(found!=cache.end()) return found->second;
+        }
         MapFunction inner_expand([&](const ex & e, MapFunction & self)->ex {
             if(!e.has(GMat(w1,w2,w3))) return e;
             else if(e.match(GMat(w1,w2,w3))) {
@@ -904,11 +917,19 @@ namespace HepLib {
                 } else return e;
             } else return e.map(self);
         });
-        return inner_expand(expr_in);
+        ex res = inner_expand(expr_in);
+        if(GMat_using_cache) cache[key] = res;
+        return res;
     }
     
     ex GMatShift(const ex & expr, const ex & g, bool to_right) {
         if(!expr.has(g)) return expr;
+        static exmap cache;
+        ex key = lst{expr, g, to_right ? 1 : 0};
+        if(GMat_using_cache) {
+            auto found = cache.find(key);
+            if(found!=cache.end()) return found->second;
+        }
         MapFunction inner_shift([g,to_right](const ex & e, MapFunction & self)->ex{
             if(!e.has(g) || !e.has(GMat(w1,w2,w3))) return e;
             else if(e.match(GMat(w1,w2,w3))) {
@@ -959,6 +980,7 @@ namespace HepLib {
         ex res = GMatExpand(Contract(expr)); // add Contract & GMatExpand here
         res = collect_ex(res, GMat(w1,w2,w3));
         res = inner_shift(res);
+        if(GMat_using_cache) cache[key] = res;
         return res;
     }
     
@@ -1008,9 +1030,14 @@ namespace HepLib {
         }
     }
     ex GMatShift(const ex & expr) {
+        static exmap cache;
+        if(GMat_using_cache) {
+            auto found = cache.find(expr);
+            if(found!=cache.end()) return found->second;
+        }
+        
         MapFunction inner_shift([](const ex & e, MapFunction & self)->ex{
-            if(!e.has(GMat(w1,w2,w3))) return e;
-            else if(e.match(GMat(w1,w2,w3))) {
+            if(e.match(GMat(w1,w2,w3))) {
                 ex eg = e.op(0);
                 if(!is_a<ncmul>(eg)) eg = lst{ eg };
                 
@@ -1046,12 +1073,13 @@ namespace HepLib {
         ex res = GMatExpand(Contract(expr)); // add Contract & GMatExpand here
         res = collect_ex(res, GMat(w1,w2,w3));
         res = inner_shift(res);
+        if(GMat_using_cache) cache[expr] = res;
         return res;
     }
     
-    ex GMatECC(const ex & expr) {
+    ex GMatECC(const ex & expr, int sign) {
         if(!expr.has(DGamma::C)) return expr;
-        MapFunction inner_ecc([](const ex & e, MapFunction & self)->ex{
+        MapFunction inner_ecc([sign](const ex & e, MapFunction & self)->ex{
             if(!e.has(DGamma::C)) return e;
             else if(e.match(GMat(w1,w2,w3)) || e.match(TR(w))) {
                 ex eg = e.op(0), cc = 1;
@@ -1078,7 +1106,7 @@ namespace HepLib {
                 for(int i=0; i<ci; i++) res *= eg.op(i);
                 ex m = 1;
                 for(int i=ci+1; i<cj; i++) m *= eg.op(i);
-                cc *= -1; // C = -C^{-1}
+                if(sign<0) cc *= -1; // C = sign * C^{-1}
                 if(!m.is_equal(1)) res *= gamma_transpose(charge_conjugate(m));
                 for(int i=cj+1; i<eg.nops(); i++) res *= eg.op(i);
                 if(e.nops()==3) res = cc * GMat(res, e.op(1), e.op(2));

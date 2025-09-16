@@ -141,12 +141,14 @@ namespace HepLib::QGRAF {
     ex AntiGhostSumL(int qi);
     ex J1SumL(int qi, ex p);
     
+    ex J1SumTr(int si, const ex & p, const ex & n);
+    
     ex GluonSumR(int qi, bool color=true);
     ex QuarkSumR(int qi, ex p, ex m, bool color=true);
     ex AntiQuarkSumR(int qi, ex p, ex m, bool color=true);
     ex GhostSumR(int qi);
     ex AntiGhostSumR(int qi);
-    ex J1SumL(int qi, ex p);
+    ex J1SumR(int qi, ex p);
     
     inline ex GluonSum(int qi, bool color=true) { return GluonSumL(qi,color); };
     inline ex QuarkSum(int qi, ex p, ex m, bool color=true) { return QuarkSumL(qi,p,m,color); };

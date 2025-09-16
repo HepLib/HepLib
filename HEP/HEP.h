@@ -568,6 +568,7 @@ namespace HepLib {
     ex GAS(const initializer_list<ex> & expr_lst, unsigned rl=0);
     
     // Form, TIR, Apart
+    extern bool GMat_using_cache;
     ex charge_conjugate(const ex &);
     ex gamma_transpose(const ex &);
     ex form(const ex &expr, int verb=0);
@@ -581,7 +582,7 @@ namespace HepLib {
     ex GMatShift(const ex & expr, const ex & g, bool to_right=true);
     ex GMatShift(const ex & expr);
     ex GMatSimplify(const ex & expr);
-    ex GMatECC(const ex & expr); // eliminate C*...*C in GMat
+    ex GMatECC(const ex & expr, int sign = -1); // eliminate C*...*C in GMat, C^{-1} = sign * C
     ex GMatT(const ex & expr); // GMat Transpose
     ex Apart(const matrix & mat);
     ex Apart(const ex &expr_in, const lst &vars, exmap sgnmap={});

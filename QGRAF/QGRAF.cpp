@@ -792,6 +792,11 @@ namespace HepLib::QGRAF {
         else return -SP(LI(qi),RLI(qi)) + SP(p,LI(qi)) * SP(p,RLI(qi)) / SP(p);
     }
     
+    ex J1SumTr(int si, const ex & p, const ex & n) {
+        ex mu = LI(si), nu = RLI(si);
+        return -SP(mu,nu) + (SP(p,mu)*SP(n,nu)+SP(p,nu)*SP(n,mu))/SP(p,n) - SP(p)*SP(n,mu)*SP(n,nu)/pow(SP(n,p),2);
+    }
+    
     /**
      * @brief polarization sum for total angular momentum
      * @param qi qgraf index

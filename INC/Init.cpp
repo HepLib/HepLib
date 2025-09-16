@@ -157,6 +157,8 @@ namespace HepLib {
     long long cache_limit = -1;
     int NNDigits = 100;
     
+    bool GMat_using_cache = true;
+    
     MMAFormat mout(cout);
     
     string InstallPrefix = install_prefix();
