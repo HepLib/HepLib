@@ -322,7 +322,7 @@ namespace HepLib {
      */
     ex GAS(const initializer_list<ex> & expr_lst, unsigned rl) {
         ex res = 1;
-        for(auto item : expr_lst) res *= GAS(item);
+        for(auto item : expr_lst) res *= GAS(item, rl);
         if(res.is_equal(1)) res = GAS(1);
         return res;
     }
