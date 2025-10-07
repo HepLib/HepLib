@@ -153,7 +153,7 @@ int main() {
     
     // case: q1.i1 q1.i2 q2.i3 q2.i4 with p1,p2,p3
     {
-        cout << "Note: this section may run form some long time."
+        cout << "Note: this section may run form some long time." << endl;
         cout << "Check q1.i1*q1.i2*q2.i3*q2.i4 with p1,p2,p3" << endl;
         ex e0 = SP(q1,i1)*SP(q1,i2)*SP(q2,i3)*SP(q2,i4);
         ex res = TIR(e0, lst{q1,q2}, lst{p1,p2,p3});

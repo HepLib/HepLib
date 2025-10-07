@@ -140,7 +140,7 @@ namespace HepLib::SD {
                 }
                 func = expand_ex(func.subs(sRepl),s);
                 auto sn = func.degree(s);
-                over_all_sn += sn*fe.op(1).op(i);
+                over_all_sn += sn*fe.op(1).op(i)*nn;
                 if(!is_a<add>(func)) func = lst{func};
                 ex tmp = 0;
                 for(auto ii : func) {
@@ -159,6 +159,7 @@ namespace HepLib::SD {
             let_op_append(fe, 0, xsum);
             let_op_append(fe, 1, ex(0)-over_all_sn);
         }
+        
     }
 
     /**
@@ -646,7 +647,11 @@ namespace HepLib::SD {
         ex eqn = px-nx;
         auto bilst = Binarize(fe, eqn);
         for(auto item : bilst) {
-            if(!isProjective(item,delta)) throw Error("Partilize: something is wrong here.");
+            if(!isProjective(item,delta)) {
+                cout << item << endl;
+                cout << delta << endl;
+                throw Error("Partilize: something is wrong here.");
+            }
             let_op(item, 0, 0, 1);
             ret_lst.push_back(item);
         }
