@@ -5,8 +5,8 @@ using namespace HepLib;
 int main() {
 
     Index i1("i1"), i2("i2"), i3("i3"), i4("i4"), i5("i5"), i6("i6");
-    Index ti1("ti1",Index::Type::CF),  ti2("ti2",Index::Type::CF), ti3("ti3",Index::Type::CF), ti4("ti4",Index::Type::CF);
-    Index a1("a1",Index::Type::CA), a2("a2",Index::Type::CA), a3("a3",Index::Type::CA), a4("a4",Index::Type::CA);
+    Index ti1("ti1",NF),  ti2("ti2",NF), ti3("ti3",NF), ti4("ti4",NF);
+    Index a1("a1",NA), a2("a2",NA), a3("a3",NA), a4("a4",NA);
     Vector p1("p1"), p2("p2"), p3("p3"), p4("p4"), q1("q1"), q2("q2");
     Symbol m("m"), c("c");
     
@@ -59,7 +59,7 @@ int main() {
     try {
         cout << form(TR(GAS(5)+m*GAS(1)),100) << endl;
     } catch(Error& err) {
-        cout << "Error: " << err.what() << endl;
+        cout << "Error(as expected): " << err.what() << endl;
     }
     cout << "using form again after error:" << endl;
     cout << form(TR(GAS(i1)*GAS(i2)*GAS(i3)*GAS(i4))) << endl;
