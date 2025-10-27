@@ -42,6 +42,7 @@ namespace HepLib::SD {
     int y_free_index(ex expr);
     ex Factor(const ex expr);
     ex FactorOutX(const ex expr);
+    ex FactorFT(const ex & expr);
     ex exp_simplify(const ex);
     ex pow_simplify(const ex);
     ex xyz_pow_simplify(const ex expr);
@@ -542,6 +543,9 @@ namespace HepLib::SD {
         map<int, int> used;
         vector<pair<int,ex>> on_ex_vec;
     };
+    
+    vector<matrix> Triangularize(const lst & fs_in, const ex & xs_in, const lst & nsubs={});
+    void Triangularize(exvector & FunExp, const lst & fs_in, const ex & xs_in, const lst & nsubs={});
     
 }
 

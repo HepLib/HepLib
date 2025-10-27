@@ -107,7 +107,7 @@ namespace HepLib::SD {
     /**
      * @brief Contours, note that here we need to provide the specific Parameter
      * @param key the to retrive data from CIPrepares call
-     * @param pkey secondary key, final key will "key-pkey" to store Contours data
+     * @param pkey secondary key (parameter-key), final key will "key-pkey" to store Contours data
      * @param kid only the kid-th will be evaluated and updated the original "key-pkey" data
      */
     void SecDec::Integrates(const string & key, const string & pkey, int kid) {
@@ -683,7 +683,7 @@ namespace HepLib::SD {
     /**
      * @brief Contours, note that here we need to provide the specific Parameter
      * @param key the to retrive data from CIPrepares call
-     * @param pkey secondary key, final key will "key-pkey" to store Contours data
+     * @param pkey secondary key (parameter-key), final key will "key-pkey" to store Contours data
      * @param err only the item ( with error > err ) will be evaluated and updated the original "key-pkey" data
      */
     void SecDec::ReIntegrates(const string & key, const string & pkey, qREAL err) {

@@ -298,6 +298,19 @@ namespace HepLib::SD {
         }
         return ret;
     }
+    
+    ex FactorFT(const ex & expr) {
+        auto f = exfactor(expr);
+        if(!is_a<mul>(f)) f = lst{ f };
+        ex ft = 1;
+        for(auto item : f) {
+            auto s = xSign(item);
+            if(s>0) continue;
+            else if(s<0) ft *= -1;
+            else ft *= item;
+        }
+        return ft;
+    }
 
     ex exp_simplify(const ex expr_in) {
         auto expr = expr_in;
