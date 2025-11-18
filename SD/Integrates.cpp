@@ -111,7 +111,10 @@ namespace HepLib::SD {
      * @param kid only the kid-th will be evaluated and updated the original "key-pkey" data
      */
     void SecDec::Integrates(const string & key, const string & pkey, int kid) {
-        if(MPDigits>0) mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
+        if(MPDigits>0) {
+            auto pbit = mpfr::digits2bits(MPDigits);
+            if(mpfr::mpreal::get_default_prec()!=pbit) mpfr::mpreal::set_default_prec(pbit);
+        }
         if(IsZero) return;
         
         if(Verbose>0) cout << Color_HighLight << "  Integrates @ " << now() << RESET << endl;
@@ -264,9 +267,15 @@ namespace HepLib::SD {
             ex intid = item.op(0);
             ex ftid = item.op(3);
 
-            if(co.is_zero()) continue;
+            if(co.is_zero()) {
+                lstRE.append(0);
+                continue;
+            }
             co = collect_ex(co, eps);
-            if(co.is_zero()) continue;
+            if(co.is_zero()) {
+                lstRE.append(0);
+                continue;
+            }
             if(co.has(PL(w))) throw Error("Integrates: PL found @ " + ex2str(co));
             qREAL cmax = -1;
             int reim = 0;
@@ -326,12 +335,27 @@ namespace HepLib::SD {
                 }
             }
             if(cmax<=0) {
+                MapFunction logF([](const ex & e, MapFunction & self)->ex{
+                    if(e.match(log(w)) && e.op(0)<1) {
+                        return -log(1/e.op(0));
+                    } else if(e.match(w1*log(w2))) {
+                        ex cv = e.subs(w1*log(w2)==lst{w1,w2});
+                        if(ex_to<numeric>(cv.op(0)).is_integer()) {
+                            return self(log(pow(cv.op(1), cv.op(0))));
+                        } else return e.map(self);
+                    } else return e.map(self);
+                });
                 while(true) {
-                    auto co2 = subs(co,lst{exp(w1*log(w2)+w3)==pow(w2,w1)*exp(w3),exp(w1*log(w2))==pow(w2,w1)});
+                    auto co2 = subs(exfactor(co), lst{exp(w1*log(w2)+w3)==pow(w2,w1)*exp(w3),exp(w1*log(w2))==pow(w2,w1)});
+                    co2 = co2.subs(lst{log(w1)+log(w2)==log(w1*w2),log(w1)-log(w2)==log(w1/w2)});
+                    co2 = logF(co2);
                     if(is_zero(co2-co)) break;
                     co = co2;
                 }
-                if(normal(co).is_zero()) continue;
+                if(normal(co).is_zero()) {
+                    lstRE.append(0);
+                    continue;
+                }
                 throw Error("Integrates: cmax<=0 with co = "+ex2str(co));
             }
             if(reim!=3 && ReIm!=3) {
@@ -663,20 +687,20 @@ namespace HepLib::SD {
             ResultError = 0;
             for(auto item : lstRE) ResultError += item;
             ResultError = VESimplify(ResultError);
-        }
-
-        if(key != "") {
-            ostringstream garfn;
-            garfn << key;
-            if(pkey != "") garfn << "-" << pkey;
-            garfn << ".res.gar";
-            archive ar;
-            ar.archive_ex(ResultError, "res");
-            ar.archive_ex(lstRE, "relst");
-            ar.archive_ex(19790923, "c");
-            ofstream out(garfn.str());
-            out << ar;
-            out.close();
+            
+            if(key != "") {
+                ostringstream garfn;
+                garfn << key;
+                if(pkey != "") garfn << "-" << pkey;
+                garfn << ".res.gar";
+                archive ar;
+                ar.archive_ex(ResultError, "res");
+                ar.archive_ex(lstRE, "relst");
+                ar.archive_ex(19790923, "c");
+                ofstream out(garfn.str());
+                out << ar;
+                out.close();
+            }
         }
     }
     
@@ -748,6 +772,8 @@ namespace HepLib::SD {
                 lstRE = ex_to<lst>(relst);
             }
             reset_precision();
+            
+            if(lstRE.nops()!=ciResult.size()) throw Error("Error: the size is not same between ciResult and lstRE!");
         }
         
         void* main_module = dlopen(sofn.str().c_str(), RTLD_NOW);
@@ -802,7 +828,7 @@ namespace HepLib::SD {
             }
             if(Verbose>0) {
                 cout << "\r                                           \r";
-                cout << PRE << "\\--Integrating [" <<current<<"/"<<total<< "] " << flush;
+                cout << PRE << "\\--ReIntegrating [" <<current<<"/"<<total<< "] " << flush;
             }
             
             unsigned int xsize = 0;
@@ -829,14 +855,20 @@ namespace HepLib::SD {
             ex intid = item.op(0);
             ex ftid = item.op(3);
             
-            if(co.is_zero()) continue;
+            if(co.is_zero()) {
+                lstRE[current-1] = 0;
+                continue;
+            }
             co = collect_ex(co, eps);
-            if(co.is_zero()) continue;
+            if(co.is_zero()) {
+                lstRE[current-1] = 0;
+                continue;
+            }
             if(co.has(PL(w))) throw Error("Integrates: PL found @ " + ex2str(co));
             qREAL cmax = -1;
             int reim = 0;
             if(ReIm==3) reim = 3;
-            
+                        
             for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
                 auto tmp = co.coeff(eps, si);
                 if(tmp.has(eps)) throw Error("Integrates: eps found @ " + ex2str(tmp));
@@ -891,12 +923,27 @@ namespace HepLib::SD {
                 }
             }
             if(cmax<=0) {
+                MapFunction logF([](const ex & e, MapFunction & self)->ex{
+                    if(e.match(log(w)) && e.op(0)<1) {
+                        return -log(1/e.op(0));
+                    } else if(e.match(w1*log(w2))) {
+                        ex cv = e.subs(w1*log(w2)==lst{w1,w2});
+                        if(ex_to<numeric>(cv.op(0)).is_integer()) {
+                            return self(log(pow(cv.op(1), cv.op(0))));
+                        } else return e.map(self);
+                    } else return e.map(self);
+                });
                 while(true) {
-                    auto co2 = subs(co,lst{exp(w1*log(w2)+w3)==pow(w2,w1)*exp(w3),exp(w1*log(w2))==pow(w2,w1)});
+                    auto co2 = subs(exfactor(co),lst{exp(w1*log(w2)+w3)==pow(w2,w1)*exp(w3),exp(w1*log(w2))==pow(w2,w1)});
+                    co2 = co2.subs(lst{log(w1)+log(w2)==log(w1*w2),log(w1)-log(w2)==log(w1/w2)});
+                    co2 = logF(co2);
                     if(is_zero(co2-co)) break;
                     co = co2;
                 }
-                if(normal(co).is_zero()) continue;
+                if(normal(co).is_zero()) {
+                    lstRE[current-1] = 0;
+                    continue;
+                }
                 throw Error("Integrates: cmax<=0 with co = "+ex2str(co));
             }
             if(reim!=3 && ReIm!=3) {
@@ -920,7 +967,7 @@ namespace HepLib::SD {
                     hasF = false;
                 }
             }
-
+            
             IntegratorBase::SDD_Type fpD = nullptr;
             IntegratorBase::SDQ_Type fpQ = nullptr;
             IntegratorBase::SDMP_Type fpMP = nullptr;

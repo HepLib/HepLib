@@ -39,7 +39,8 @@ namespace HepLib::SD {
         #pragma omp parallel for num_threads(nthreads) schedule(dynamic, 1)
         for(int i=0; i<npts; i++) {
             mpfr_free_cache();
-            mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
+            auto pbit = mpfr::digits2bits(self->MPDigits);
+            if(mpfr::mpreal::get_default_prec()!=pbit) mpfr::mpreal::set_default_prec(pbit);
             self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->mpParameter, self->mpLambda);
             // Final Check NaN/Inf
             bool ok = true;
@@ -49,9 +50,11 @@ namespace HepLib::SD {
             }
             if(!ok && (self->IntegrandMP!=NULL)) {
                 mpfr_free_cache();
-                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits*10));
+                auto pbit = mpfr::digits2bits(self->MPDigits*10);
+                if(mpfr::mpreal::get_default_prec()!=pbit) mpfr::mpreal::set_default_prec(pbit);
                 self->IntegrandMP(xdim, x+i*xdim, ydim, y+i*ydim, self->mpParameter, self->mpLambda);
-                mpfr::mpreal::set_default_prec(mpfr::digits2bits(self->MPDigits));
+                pbit = mpfr::digits2bits(self->MPDigits);
+                if(mpfr::mpreal::get_default_prec()!=pbit) mpfr::mpreal::set_default_prec(pbit);
             }
             
             // final check
@@ -147,7 +150,8 @@ namespace HepLib::SD {
     ex HCubatureMP::Integrate(size_t tn) {
         if(mpfr_buildopt_tls_p()<=0) throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
         mpfr_free_cache();
-        mpfr::mpreal::set_default_prec(mpfr::digits2bits(MPDigits));
+        auto pbit = mpfr::digits2bits(MPDigits);
+        if(mpfr::mpreal::get_default_prec()!=pbit) mpfr::mpreal::set_default_prec(pbit);
         mpPi = mpfr::const_pi();
         mpEuler = mpfr::const_euler();
         mpiEpsilon = complex<mpREAL>(0,mpfr::machine_epsilon()*100);

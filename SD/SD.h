@@ -196,7 +196,7 @@ namespace HepLib::SD {
         int lastnNAN = 0;
         int LastState = 0;
         
-        int inDQMP(qREAL const *x);
+        int XDQMP(qREAL const *x);
     };
     
     /**
@@ -223,9 +223,7 @@ namespace HepLib::SD {
         mpREAL LastResult[2];
         mpREAL LastAbsErr[2];
         int lastnNAN = 0;
-        int LastState = 0;
-        
-        int inDQMP(qREAL const *x);
+        int LastState = 0;        
     };
     
     /**

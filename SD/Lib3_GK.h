@@ -76,7 +76,7 @@ namespace {
             #pragma omp parallel for
             for(int jj = 0; jj < 2*n_; jj++) {
                 int j = jj/2, j2 = jj % 2;
-                mpfr::mpreal::set_default_prec(prec);
+                if(mpfr::mpreal::get_default_prec()!=prec) mpfr::mpreal::set_default_prec(prec);
                 mpfr::mpreal::set_default_rnd(rnd);
                 Real abscissa = half_length * xgk_[j];
                 if(j2==0) RC1[j] = f(yn, fv1+yn*j, e_fv1+yn*j, center - abscissa);

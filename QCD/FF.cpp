@@ -219,7 +219,7 @@ namespace HepLib::QCD {
             else throw Error("zIntFactor: Not supported mode "+to_string(mode));
             
             if(tls>0) ret = NCS*M/SF*(-((pow(2,(2-tls-(3-2*ep)*tls))*pow(Pi,(1-(3-2*ep)*tls)))/(kp*(-1+z))));
-            else ret = NCS*M*4*Pi/kp;
+            else ret = NCS*M*4*Pi/kp; // omit delta(z-1)
             return Symbol::set_all(ret);
         }
         

@@ -463,6 +463,7 @@ namespace HepLib::SD {
                 let_op_remove_last(fe, 1);
             }
         }
+        
         Normalizes();
     }
 

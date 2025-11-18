@@ -604,6 +604,7 @@ namespace HepLib {
         unsigned s = GiNaC::function::register_new(function_options(name,1).do_not_evalf_params());
         return [s](const ex &p1)->GiNaC::function { return GiNaC::function(s,p1); };
     }
+    
     inline std::function<GiNaC::function(const ex &,const ex &)> GiNaC_Function_2(const string name) {
         for (auto & it : GiNaC::function::get_registered_functions()) {
             if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
@@ -611,6 +612,7 @@ namespace HepLib {
         unsigned s = GiNaC::function::register_new(function_options(name,2).do_not_evalf_params());
         return [s](const ex &p1,const ex &p2)->GiNaC::function { return GiNaC::function(s,p1,p2); };
     }
+    
     inline std::function<GiNaC::function(const ex &,const ex &,const ex &)> GiNaC_Function_3(const string name) {
         for (auto & it : GiNaC::function::get_registered_functions()) {
             if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
@@ -618,12 +620,53 @@ namespace HepLib {
         unsigned s = GiNaC::function::register_new(function_options(name,3).do_not_evalf_params());
         return [s](const ex &p1,const ex &p2,const ex &p3)->GiNaC::function { return GiNaC::function(s,p1,p2,p3); };
     }
+    
     inline std::function<GiNaC::function(const ex &,const ex &,const ex &,const ex &)> GiNaC_Function_4(const string name) {
         for (auto & it : GiNaC::function::get_registered_functions()) {
             if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
         }
         unsigned s = GiNaC::function::register_new(function_options(name,4).do_not_evalf_params());
-        return [s](const ex &p1,const ex &p2,const ex &p3,const ex &p4)->GiNaC::function { return GiNaC::function(s,p1,p2,p4); };
+        return [s](const ex &p1,const ex &p2,const ex &p3,const ex &p4)->GiNaC::function { return GiNaC::function(s,p1,p2,p3,p4); };
+    }
+    
+    inline std::function<GiNaC::function(const ex &,const ex &,const ex &,const ex &,const ex &)> GiNaC_Function_5(const string name) {
+        for (auto & it : GiNaC::function::get_registered_functions()) {
+            if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
+        }
+        unsigned s = GiNaC::function::register_new(function_options(name,5).do_not_evalf_params());
+        return [s](const ex &p1,const ex &p2,const ex &p3,const ex &p4,const ex &p5)->GiNaC::function { return GiNaC::function(s,p1,p2,p3,p4,p5); };
+    }
+    
+    inline std::function<GiNaC::function(const ex &,const ex &,const ex &,const ex &,const ex &,const ex &)> GiNaC_Function_6(const string name) {
+        for (auto & it : GiNaC::function::get_registered_functions()) {
+            if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
+        }
+        unsigned s = GiNaC::function::register_new(function_options(name,6).do_not_evalf_params());
+        return [s](const ex &p1,const ex &p2,const ex &p3,const ex &p4,const ex &p5,const ex &p6)->GiNaC::function { return GiNaC::function(s,p1,p2,p3,p4,p5,p6); };
+    }
+    
+    inline std::function<GiNaC::function(const ex &,const ex &,const ex &,const ex &,const ex &,const ex &,const ex &)> GiNaC_Function_7(const string name) {
+        for (auto & it : GiNaC::function::get_registered_functions()) {
+            if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
+        }
+        unsigned s = GiNaC::function::register_new(function_options(name,7).do_not_evalf_params());
+        return [s](const ex &p1,const ex &p2,const ex &p3,const ex &p4,const ex &p5,const ex &p6,const ex &p7)->GiNaC::function { return GiNaC::function(s,p1,p2,p3,p4,p5,p6,p7); };
+    }
+    
+    inline std::function<GiNaC::function(const ex &,const ex &,const ex &,const ex &,const ex &,const ex &,const ex &,const ex &)> GiNaC_Function_8(const string name) {
+        for (auto & it : GiNaC::function::get_registered_functions()) {
+            if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
+        }
+        unsigned s = GiNaC::function::register_new(function_options(name,8).do_not_evalf_params());
+        return [s](const ex &p1,const ex &p2,const ex &p3,const ex &p4,const ex &p5,const ex &p6,const ex &p7,const ex &p8)->GiNaC::function { return GiNaC::function(s,p1,p2,p3,p4,p5,p6,p7,p8); };
+    }
+    
+    inline std::function<GiNaC::function(const ex &,const ex &,const ex &,const ex &,const ex &,const ex &,const ex &,const ex &,const ex &)> GiNaC_Function_9(const string name) {
+        for (auto & it : GiNaC::function::get_registered_functions()) {
+            if (it.get_name() == name) throw Error("Function named "+name+" already exists!");
+        }
+        unsigned s = GiNaC::function::register_new(function_options(name,9).do_not_evalf_params());
+        return [s](const ex &p1,const ex &p2,const ex &p3,const ex &p4,const ex &p5,const ex &p6,const ex &p7,const ex &p8,const ex &p9)->GiNaC::function { return GiNaC::function(s,p1,p2,p3,p4,p5,p6,p7,p8,p9); };
     }
     
     /**
