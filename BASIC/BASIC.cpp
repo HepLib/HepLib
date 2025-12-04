@@ -288,8 +288,10 @@ namespace HepLib {
         int rc;
         auto ppid = getpid();
         ostringstream cmd;
-        cmd << "mkdir -p " << ppid;
-        if(!dir_exists(to_string(ppid))) rc = system(cmd.str().c_str());
+        string gp_host = get_env("GiNaC_Parallel_Host");
+        if(gp_host.length()>0) gp_host += "_";
+        cmd << "mkdir -p " << gp_host << ppid;
+        if(!dir_exists(gp_host+to_string(ppid))) rc = system(cmd.str().c_str());
         
         int nbatch = GiNaC_Parallel_Batch;
         if(GiNaC_Parallel_NB.find(key)!=GiNaC_Parallel_NB.end()) nbatch = GiNaC_Parallel_NB[key];
@@ -328,8 +330,8 @@ namespace HepLib {
                 
                 if(fork_retried>0) { // skip when bi.*.gar exists
                     ostringstream garfn;
-                    if(key == "") garfn << ppid << "/" << bi << ".gar";
-                    else garfn << ppid << "/" << bi << "." << key << ".gar";
+                    if(key == "") garfn << gp_host << ppid << "/" << bi << ".gar";
+                    else garfn << gp_host << ppid << "/" << bi << "." << key << ".gar";
                     if(file_exists(garfn.str())) continue;
                 }
                 
@@ -362,8 +364,8 @@ namespace HepLib {
                         else break;
                     }
                     ostringstream garfn;
-                    if(key == "") garfn << ppid << "/" << bi << ".gar";
-                    else garfn << ppid << "/" << bi << "." << key << ".gar";
+                    if(key == "") garfn << gp_host << ppid << "/" << bi << ".gar";
+                    else garfn << gp_host << ppid << "/" << bi << "." << key << ".gar";
                     garWrite(garfn.str(), res_lst);
                 } catch(exception &p) { // NOT use Error
                     cout << ErrColor << "Failed in GiNaC_Parallel!" << RESET << endl;
@@ -382,8 +384,8 @@ namespace HepLib {
             bool all_gar_exists = true;
             for(int bi=0; bi<btotal; bi++) {
                 ostringstream garfn;
-                if(key == "") garfn << ppid << "/" << bi << ".gar";
-                else garfn << ppid << "/" << bi << "." << key << ".gar";
+                if(key == "") garfn << gp_host << ppid << "/" << bi << ".gar";
+                else garfn << gp_host << ppid << "/" << bi << "." << key << ".gar";
                 if(!file_exists(garfn.str())) {
                     all_gar_exists = false;
                     break;
@@ -417,8 +419,8 @@ namespace HepLib {
                 }
 
                 ostringstream garfn;
-                if(key == "") garfn << ppid << "/" << bi << ".gar";
-                else garfn << ppid << "/" << bi << "." << key << ".gar";
+                if(key == "") garfn << gp_host << ppid << "/" << bi << ".gar";
+                else garfn << gp_host << ppid << "/" << bi << "." << key << ".gar";
                 lst res_lst;
                 try {
                     if(file_exists(garfn.str())) {
@@ -466,8 +468,8 @@ namespace HepLib {
             
             if(GiNaC_Parallel_ReWR.find(key)==GiNaC_Parallel_ReWR.end() || GiNaC_Parallel_ReWR[key]) {
                 ostringstream garfn;
-                if(key == "") garfn << ppid << "/ReWR.gar";
-                else garfn << ppid << "/ReWR." << key << ".gar";
+                if(key == "") garfn << gp_host << ppid << "/ReWR.gar";
+                else garfn << gp_host << ppid << "/ReWR." << key << ".gar";
                 garWrite(garfn.str(), ovec_tmp);
                 ovec_tmp.clear();
                 garRead(garfn.str(), ovec);
@@ -480,7 +482,7 @@ namespace HepLib {
         if(rm) {
             cmd.clear();
             cmd.str("");
-            cmd << "rm -fr " << ppid;
+            cmd << "rm -fr " << gp_host << ppid;
             rc = system(cmd.str().c_str());
         }
         if(ovec.size() != ntotal) {
@@ -2354,7 +2356,23 @@ namespace HepLib {
         for(const_preorder_iterator i = e.preorder_begin(); i != e.preorder_end(); ++i) if(is_a<symbol>(*i)) return true;
         return false;
     }
-
+    
+    #include <unistd.h>
+    string get_hostname() {
+        char hostname[256];
+        memset(hostname, 0, sizeof(hostname));
+        if (gethostname(hostname, sizeof(hostname)) == 0) {
+            return string(hostname);
+        } else {
+            throw Error("get_hostname error");
+        }
+    }
+    
+    string get_env(const string & name) {
+        const char* val = std::getenv(name.c_str());
+        if(val==NULL) return string("");
+        return string(val);
+    }
         
 }
 

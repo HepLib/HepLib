@@ -1,3 +1,4 @@
+//#define _Float128 __float128
 /*
     MPFR C++: Multi-precision floating point number class for C++.
     Based on MPFR library:    http://mpfr.org

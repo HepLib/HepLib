@@ -22,15 +22,21 @@ ADD_EXECUTABLE(qgraf "QGRAF/qgraf-3.1.4.f")
 SET(INC_PATH "${CMAKE_INSTALL_PREFIX}/include;${INC_PATH}")
 LIST(REMOVE_DUPLICATES INC_PATH)
 SET(INC_FLAGS "")
+SET(INC_FLAGS_2 "")
 FOREACH(dir ${INC_PATH})
 IF(EXISTS ${dir})
     INCLUDE_DIRECTORIES(${dir})
     SET(INC_FLAGS "${INC_FLAGS} -I'${dir}'")
+    SET(INC_FLAGS_2 "${INC_FLAGS_2};-I'${dir}'")
 ENDIF()
 ENDFOREACH()
 STRING(FIND "${INC_FLAGS}" "${CMAKE_INSTALL_PREFIX}/include" INC_POS)
 IF( "${INC_POS}" STREQUAL "-1" )
     SET(INC_FLAGS "${INC_FLAGS} -I'${CMAKE_INSTALL_PREFIX}/include'")
+ENDIF()
+STRING(FIND "${INC_FLAGS_2}" "${CMAKE_INSTALL_PREFIX}/include" INC_POS_2)
+IF( "${INC_POS_2}" STREQUAL "-1" )
+    SET(INC_FLAGS_2 "${INC_FLAGS_2};-I'${CMAKE_INSTALL_PREFIX}/include'")
 ENDIF()
 
 SET(LIB_PATH "${CMAKE_INSTALL_PREFIX}/lib;${LIB_PATH}")
@@ -158,3 +164,13 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -fopenmp")
 #    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ld_classic")
 #endif()
 
+
+#-----------------------------------------------
+# PreCompiled Headers
+#-----------------------------------------------
+ADD_CUSTOM_TARGET(
+    pch
+    COMMAND ${CMAKE_CXX_COMPILER} -w ${INC_FLAGS_2} -x c++-header ${CMAKE_INSTALL_PREFIX}/include/HepLib.h
+    COMMAND ${CMAKE_CXX_COMPILER} -w ${INC_FLAGS_2} -x c++-header ${CMAKE_INSTALL_PREFIX}/include/NFunctions.h
+    COMMENT "Compiling headers ..."
+)

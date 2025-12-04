@@ -961,6 +961,11 @@ namespace HepLib {
     void fermat_eval(const string & fcmd="@[**]");
     bool has_symbol(const ex & e);
     void arg2map(int argc, char** argv, const char *optstring, std::map<char,std::string> & kv);
+    
+    // other helpers
+    std::string get_hostname();
+    std::string get_env(const std::string & name);
+
 }
 
 typedef void (*RUN)(std::string dir_id);

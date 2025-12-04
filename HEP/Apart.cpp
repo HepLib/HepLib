@@ -647,10 +647,11 @@ namespace HepLib {
         if(expr_ino.nops()!=1) throw Error("Apart: wrong convention found!");
         ex expr_in = expr_ino.op(0);
 
-        static exmap cache;
-        if(using_cache && cache_limit>0 && cache.size() > cache_limit) cache.clear();
-        auto itr = cache.find(expr_in);
-        if(itr!=cache.end()) return itr->second;
+        static exmap apart_cache;
+        if(using_cache && cache_limit>0 && apart_cache.size() > cache_limit) apart_cache.clear();
+        ex ckey = lst{expr_in, vars_in};
+        auto itr = apart_cache.find(ckey);
+        if(itr!=apart_cache.end()) return itr->second;
     
         exmap map1, map2;
         lst vars;
@@ -820,7 +821,7 @@ namespace HepLib {
         }
         sort_lst(pnlst); // need sort_lst
         
-        if(pnlst.nops()==0) return cache[expr_in] = pref * ApartIR(1,vars_in);
+        if(pnlst.nops()==0) return apart_cache[ckey] = pref * ApartIR(1,vars_in);
         
         int nrow=vars.nops(), ncol=pnlst.nops();
         exmap vars0;
@@ -845,7 +846,7 @@ namespace HepLib {
             ret += pref * cv.op(0) * ApartIR(cv.op(1).op(0), vars).subs(map2,nopat);
         }
 
-        return cache[expr_in] = ret;
+        return apart_cache[ckey] = ret;
     }
     
     /**

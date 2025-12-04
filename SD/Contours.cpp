@@ -16,8 +16,7 @@ namespace HepLib::SD {
      */
     void SecDec::Contours(const string & key, const string & pkey) {
         if(IsZero) return;
-        if(Minimizer==NULL) Minimizer = new HookeJeeves();
-
+        
         if(key != "") {
             set_precision(NNDigits);
             ostringstream garfn;
@@ -36,20 +35,24 @@ namespace HepLib::SD {
         if(FT_N_XN.nops()<1) return;
         if(Verbose > 0) cout << Color_HighLight << "  Contours @ " << now() << RESET << endl;
         
+        if(Minimizer==NULL) Minimizer = new HookeJeeves();
+        
         exvector ftnxn_vec;
         //change 1->0 from GiNaC 1.7.7
         for(int i=0; i<FT_N_XN.nops(); i++) ftnxn_vec.push_back(FT_N_XN.op(i));
         
         auto pid = getpid();
+        string spid = to_string(pid);
+        if(get_env("GiNaC_Parallel_Host").length()>0) spid = get_env("GiNaC_Parallel_Host")+"_"+spid;
         ostringstream cmd;
-        cmd << "mkdir -p " << pid;
-        if(!dir_exists(to_string(pid))) auto rc = system(cmd.str().c_str());
+        cmd << "mkdir -p " << spid;
+        if(!dir_exists(spid)) auto rc = system(cmd.str().c_str());
         
         ostringstream fsofn;
         if(key != "") {
             fsofn << key << "F.so";
         } else {
-            fsofn << pid << "F.so";
+            fsofn << spid << "F.so";
         }
         void* module = dlopen(fsofn.str().c_str(), RTLD_NOW);
         if (module == nullptr) {
@@ -221,7 +224,7 @@ namespace HepLib::SD {
         
         cmd.clear();
         cmd.str("");
-        cmd << "rm -rf " << pid;
+        cmd << "rm -rf " << spid;
         if(!Debug) auto rc = system(cmd.str().c_str());
     }
 

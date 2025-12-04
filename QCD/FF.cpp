@@ -172,8 +172,8 @@ namespace HepLib::QCD {
                     if(e.nops()==3 && e.op(0).op(0)==nbar && e.op(1).op(0)==ep && e.op(2).op(0)==g) {
                         // nbar-e-g
                         return GluonFFV(e, vn);
-                    } else if(e.nops()==3 && e.op(0).op(0)==Qbar && e.op(1).op(0)==ep && e.op(2).op(0)==nbar) {
-                        // Qbar-e-nbar
+                    } else if(e.nops()==3 && (e.op(0).op(0)==Qbar || (e.op(0).op(0)==qbar)) && e.op(1).op(0)==ep && e.op(2).op(0)==nbar) {
+                        // Qbar-e-nbar / qbar-e-nbar
                         return QuarkFFV(e, vn);
                     } else if(e.nops()==3 && e.op(0).op(0)==nbar && e.op(1).op(0)==n && e.op(2).op(0)==g) {
                         // nbar-n-g

@@ -515,8 +515,15 @@ namespace HepLib::SD {
                             auto res = Integrator->Integrate(CTryI);
                             if(Verbose>10) {
                                 cout << "\r                                                    \r";
-                                if(res.has(NaN)) cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << NaN << endl;
-                                else cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << VEResult2(VESimplify(res)) << endl;
+                                if(res.has(NaN)) {
+                                    cout << "     λ=" << (double)cla;
+                                    if(Integrator->NEval>0) cout << "/" << Integrator->NEval;
+                                    cout << ": " << NaN << endl;
+                                } else {
+                                    cout << "     λ=" << (double)cla;
+                                    if(Integrator->NEval>0) cout << "/" << Integrator->NEval;
+                                    cout << ": " << VEResult2(VESimplify(res)) << endl;
+                                }
                             }
                             
                             if(res.has(NaN) && s==0) continue;
@@ -529,7 +536,7 @@ namespace HepLib::SD {
                             diff.find(VE(w0, w1), ves);
                             for(auto ve : ves) {
                                 auto ve0 = abs(ve.op(0));
-                                if(ve0>ve.op(1)) {
+                                if(ve0>1.5*ve.op(1)) {
                                     if(numeric("1.E10")*ve0<res_abs) continue; // avoid fluctuation aroud 0
                                     if(numeric("1.E10")*ve0<q2ex(EpsAbs)) continue; // avoid fluctuation aroud 0
                                     err_break = true;
@@ -711,8 +718,12 @@ namespace HepLib::SD {
      * @param err only the item ( with error > err ) will be evaluated and updated the original "key-pkey" data
      */
     void SecDec::ReIntegrates(const string & key, const string & pkey, qREAL err) {
+        if(MPDigits>0) {
+            auto pbit = mpfr::digits2bits(MPDigits);
+            if(mpfr::mpreal::get_default_prec()!=pbit) mpfr::mpreal::set_default_prec(pbit);
+        }
         if(IsZero) return;
-        if(Verbose>0) cout << Color_HighLight << "  Integrates @ " << now() << RESET << endl;
+        if(Verbose>0) cout << Color_HighLight << "  ReIntegrates @ " << now() << RESET << endl;
         
         lst lstRE;
         auto pid = getpid();
@@ -727,7 +738,7 @@ namespace HepLib::SD {
             in >> ar;
             in.close();
             auto c = ar.unarchive_ex("c");
-            if(c!=19790923) throw Error("Integrates: *.ci.gar error!");
+            if(c!=19790923) throw Error("ReIntegrates: *.ci.gar error!");
             auto gl = ar.unarchive_ex("soLimit");
             eps_lst = ex_to<lst>(ar.unarchive_ex("eps_lst"));
             soLimit = ex2int(gl);
@@ -746,7 +757,7 @@ namespace HepLib::SD {
                 la_in.close();
                 auto la_c = la_ar.unarchive_ex("c");
                 auto la_res = la_ar.unarchive_ex("res");
-                if(la_c!=19790923) throw Error("Integrates: *.ci.gar error!");
+                if(la_c!=19790923) throw Error("ReIntegrates: *.ci.gar error!");
                 for(auto item : ex_to<lst>(la_res)) {
                     LambdaMap[item.op(0)] = item.op(1);
                 }
@@ -759,7 +770,7 @@ namespace HepLib::SD {
                 if(pkey != "") garfn << "-" << pkey;
                 garfn << ".res.gar";
                 if(!file_exists(garfn.str().c_str())) {
-                    throw Error("Integrates: File Not Found: " + garfn.str());
+                    throw Error("ReIntegrates: File Not Found: " + garfn.str());
                 }
                 
                 archive res_ar;
@@ -781,7 +792,7 @@ namespace HepLib::SD {
             main_module = dlopen(("./"+sofn.str()).c_str(), RTLD_NOW);
             if(main_module == nullptr) {
                 cout << "dlerror(): " << dlerror() << endl;
-                throw Error("Integrates: could not open main module!");
+                throw Error("ReIntegrates: could not open main module!");
             }
         }
         
@@ -795,7 +806,7 @@ namespace HepLib::SD {
                     module = dlopen(("./"+ex_sofn.str()).c_str(), RTLD_NOW);
                     if(module == nullptr) {
                         cout << "dlerror(): " << dlerror() << endl;
-                        throw Error("Integrates: could not open ex-module!");
+                        throw Error("ReIntegrates: could not open ex-module!");
                     }
                 }
                 ex_modules.push_back(module);
@@ -864,14 +875,14 @@ namespace HepLib::SD {
                 lstRE[current-1] = 0;
                 continue;
             }
-            if(co.has(PL(w))) throw Error("Integrates: PL found @ " + ex2str(co));
+            if(co.has(PL(w))) throw Error("ReIntegrates: PL found @ " + ex2str(co));
             qREAL cmax = -1;
             int reim = 0;
             if(ReIm==3) reim = 3;
                         
             for(int si=co.ldegree(eps); si<=co.degree(eps); si++) {
                 auto tmp = co.coeff(eps, si);
-                if(tmp.has(eps)) throw Error("Integrates: eps found @ " + ex2str(tmp));
+                if(tmp.has(eps)) throw Error("ReIntegrates: eps found @ " + ex2str(tmp));
                 tmp = collect_ex(tmp, ep);
                 for(int i=tmp.ldegree(ep); i<=tmp.degree(ep); i++) {
                     auto ccRes = NN(tmp.coeff(ep, i)).expand();
@@ -890,14 +901,14 @@ namespace HepLib::SD {
 
                     for(int ci=0; ci<css.nops(); ci++) {
                         auto nt = NN(css.op(ci).subs(epz==1).subs(log(vs)==1).subs(vs==1).subs(nReplacement).subs(lst{CV(w1,w2)==w2}).subs(eps_map),30);
-                        if(nt.has(ep)) throw Error("Integrates: ep found @ nt = "+ex2str(nt));
+                        if(nt.has(ep)) throw Error("ReIntegrates: ep found @ nt = "+ex2str(nt));
                         
                         lst nt_lst;
                         if(!is_a<numeric>(nt)) {
                             auto cv_lst = collect_lst(nt,[](const ex &e)->bool{return Symbol::has(e);});
                             for(auto nti : cv_lst) {
                                 auto nnt = nti.op(0);
-                                if(!is_a<numeric>(nnt)) throw Error("Integrates: Not a number with nt = "+ex2str(nnt));
+                                if(!is_a<numeric>(nnt)) throw Error("ReIntegrates: Not a number with nt = "+ex2str(nnt));
                                 nt_lst.append(nnt);
                             }
                         } else nt_lst.append(nt);
@@ -944,7 +955,7 @@ namespace HepLib::SD {
                     lstRE[current-1] = 0;
                     continue;
                 }
-                throw Error("Integrates: cmax<=0 with co = "+ex2str(co));
+                throw Error("ReIntegrates: cmax<=0 with co = "+ex2str(co));
             }
             if(reim!=3 && ReIm!=3) {
                 if(ReIm==2) {
@@ -959,10 +970,10 @@ namespace HepLib::SD {
             if(Verbose>5) cout << "XDim=" << xsize << ", EpsAbs=" << d1 << "/" << d2 << endl;           
             auto las = LambdaMap[ftid];
             bool hasF = (ftid>0);
-            if(hasF && las.is_zero()) throw Error("Integrates: lambda with the key(ft_n=" + ex2str(ftid) + ") is NOT found!");         
+            if(hasF && las.is_zero()) throw Error("ReIntegrates: lambda with the key(ft_n=" + ex2str(ftid) + ") is NOT found!");         
             if(hasF && !is_a<lst>(las)) {
                 if(!is_zero(las-ex(1979))) { // the convention for xPositive or explict real mode
-                    throw Error("Integrates: something is wrong with the F-term @ ft_n = "+ex2str(ftid) + ", las=" + ex2str(las));
+                    throw Error("ReIntegrates: something is wrong with the F-term @ ft_n = "+ex2str(ftid) + ", las=" + ex2str(las));
                 } else {
                     hasF = false;
                 }
@@ -981,7 +992,7 @@ namespace HepLib::SD {
             fpD = (IntegratorBase::SDD_Type)dlsym(module, fname.str().c_str());
             if(fpD==NULL) {
                 cout << "dlerror(): " << dlerror() << endl;
-                throw Error("Integrates: fpD==NULL");
+                throw Error("ReIntegrates: fpD==NULL");
             }
             
             fname.clear();
@@ -991,7 +1002,7 @@ namespace HepLib::SD {
             fpQ = (IntegratorBase::SDQ_Type)dlsym(module, fname.str().c_str());
             if(fpQ==NULL) {
                 cout << "dlerror(): " << dlerror() << endl;
-                throw Error("Integrates: fpQ==NULL");
+                throw Error("ReIntegrates: fpQ==NULL");
             }
 
             fname.clear();
@@ -999,7 +1010,11 @@ namespace HepLib::SD {
             if(hasF) fname << "C";
             fname << "SDMP_" << idx;
             fpMP = (IntegratorBase::SDMP_Type)dlsym(module, fname.str().c_str());
-                            
+            if(fpMP==NULL) {
+                cout << "dlerror(): " << dlerror() << endl;
+                throw Error("ReIntegrates: fpMP==NULL");
+            }
+                         
             if(is_a<lst>(las)) {
                 fname.clear();
                 fname.str("");
@@ -1007,7 +1022,7 @@ namespace HepLib::SD {
                 ftp = (IntegratorBase::FT_Type)dlsym(module, fname.str().c_str());
                 if(ftp==NULL) {
                     cout << "dlerror(): " << dlerror() << endl;
-                    throw Error("Integrates: ftp==NULL.");
+                    throw Error("ReIntegrates: ftp==NULL.");
                 }
             }
             
@@ -1036,6 +1051,9 @@ namespace HepLib::SD {
             Integrator->XDim = xsize;
             
             if(hasF) {
+                Integrator->EpsAbs = EpsAbs/cmax/stot/2;
+                Integrator->EpsRel = 0;
+                
                 qREAL lamax = ex2q(las.op(las.nops()-1));
                 if(lamax > IntLaMax) lamax = IntLaMax;
                 
@@ -1053,7 +1071,7 @@ namespace HepLib::SD {
                 if(use_las && file_exists(las_fn.str().c_str())) {
                     std::ifstream las_ifs;
                     las_ifs.open(las_fn.str(), ios::in);
-                    if (!las_ifs) throw Error("Integrates: failed to open *.las file!");
+                    if (!las_ifs) throw Error("ReIntegrates: failed to open *.las file!");
                     for(int i=0; i<las.nops()-1; i++) {
                         dREAL la_tmp;
                         las_ifs >> la_tmp;
@@ -1082,7 +1100,7 @@ namespace HepLib::SD {
                         }
                         auto log_cla = (log_lamin + s * (log_lamax-log_lamin) / LambdaSplit);
                         auto cla = powq(10.Q, log_cla);
-                        if(cla < 1E-10) throw Error("NIntegrate: too small lambda.");
+                        if(cla < 1E-10) throw Error("ReIntegrates: too small lambda.");
                         for(int i=0; i<las.nops()-1; i++) {
                             qlas[i] = ex2q(las.op(i)) * cla;
                             dlas[i] = (dREAL)qlas[i];
@@ -1092,8 +1110,15 @@ namespace HepLib::SD {
                         auto res = Integrator->Integrate(CTryI);
                         if(Verbose>10) {
                             cout << "\r                                                    \r";
-                            if(res.has(NaN)) cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << NaN << endl;
-                            else cout << "     λ=" << (double)cla << "/" << Integrator->NEval << ": " << VEResult2(VESimplify(res)) << endl;
+                            if(res.has(NaN)) {
+                                cout << "     λ=" << (double)cla;
+                                if(Integrator->NEval>0) cout << "/" << Integrator->NEval;
+                                cout << ": " << NaN << endl;
+                            } else {
+                                cout << "     λ=" << (double)cla;
+                                if(Integrator->NEval>0) cout << "/" << Integrator->NEval;
+                                cout << ": " << VEResult2(VESimplify(res)) << endl;
+                            }
                         }
                         
                         if(res.has(NaN) && s==0) continue;
@@ -1106,7 +1131,7 @@ namespace HepLib::SD {
                         diff.find(VE(w0, w1), ves);
                         for(auto ve : ves) {
                             auto ve0 = abs(ve.op(0));
-                            if(ve0>ve.op(1)) {
+                            if(ve0>1.5*ve.op(1)) {
                                 if(numeric("1.E10")*ve0<res_abs) continue; // avoid fluctuation aroud 0
                                 if(numeric("1.E10")*ve0<q2ex(EpsAbs)) continue; // avoid fluctuation aroud 0
                                 err_break = true;
@@ -1141,7 +1166,7 @@ namespace HepLib::SD {
                         if(err > 100 * min_err) break; // s>0 make sure at least 2 λs compatiable
                     }
                     if(smin == -2) break;
-                    if(smin == -1) throw Error("Integrates: smin = -1, too small lambda (<1E-10)!");
+                    if(smin == -1) throw Error("ReIntegrates: smin = -1, too small lambda (<1E-10)!");
                     
                     if(smin <= 0) {
                         if((!err_break) && (ctryL >= CTryL || ctryR>0)) break;
@@ -1229,6 +1254,8 @@ namespace HepLib::SD {
                 }
             }
             
+            Integrator->EpsAbs = EpsAbs/cmax/stot;
+            Integrator->EpsRel = 0;
             auto res = Integrator->Integrate();
             if(Verbose>5) {
                 cout << Color_HighLight << "     IRes = "<< HepLib::SD::VEResult(VESimplify(res)) << RESET << endl;
