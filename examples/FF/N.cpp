@@ -190,7 +190,7 @@ ex Integrate(int idx, int ii = -1) {
     SecDec work;
     work.eps_lst = str2lst("{{eps,0},{ep,0}}");
                 
-    work.EpsAbs = 1E-5;
+    work.EpsAbs = 1E-3;
     work.LambdaSplit = 5;
     work.CTTryPTS = 100000;
     work.CTryL = 1;
@@ -203,10 +203,12 @@ ex Integrate(int idx, int ii = -1) {
     ikey << SD_path << "/" << idx;
         
     auto intor = new HCubature();
-    intor->MPXLimit = 1E-2;
+    intor->MPXLimit = 1E-3;
     intor->QXLimit = 5E-1;
-    intor->MPXDim = 0;
-    intor->QXDim = 0;
+    
+    //auto intor = new HCubatureMP();
+    //intor->MPDigits = 100;
+    
     intor->RunPTS = 100000;
     intor->RunMAX = 10;
     //intor->use_last = true;
@@ -224,7 +226,7 @@ ex ReIntegrate(int idx, qREAL err) {
     
     work.eps_lst = str2lst("{{eps,0},{ep,0}}");
                 
-    work.EpsAbs = 1E-5;
+    work.EpsAbs = 1E-4;
     work.LambdaSplit = 5;
     work.CTTryPTS = 100000;
     work.CTryL = 1;
@@ -236,13 +238,17 @@ ex ReIntegrate(int idx, qREAL err) {
     ostringstream ikey;
     ikey << SD_path << "/" << idx;
         
-    auto intor = new HCubature();
-    intor->MPXLimit = 1E-2;
-    intor->QXLimit = 5E-1;
-    intor->MPXDim = 0;
-    intor->QXDim = 0;
+    auto intor = new HCubatureMP();
+    intor->MPDigits = 100;
+    
+    //auto intor = new HCubature();
+    //intor->MPXLimit = 1E-2;
+    //intor->QXLimit = 5E-1;
+    //intor->MPXDim = 1;
+    //intor->QXDim = 2;
+    
     intor->RunPTS = 100000;
-    intor->RunMAX = 10;
+    intor->RunMAX = 30;
     //intor->use_last = true;
     work.Integrator = intor;
     
@@ -259,7 +265,7 @@ int main(int argc, char** argv) {
     const char* arg_n = NULL;
     const char* arg_i = NULL;
     const char* arg_v = "0";
-    const char* arg_e = "1";
+    const char* arg_e = "0";
     bool is_o = false;
     bool to_skip = false;
     const char* arg_o = "";
@@ -267,7 +273,7 @@ int main(int argc, char** argv) {
     
     string exe_name(argv[0]);
     // handle options
-    for (int opt; (opt = getopt(argc, argv, "a:n:i:o:v:e:z:se:v:h")) != -1;) {
+    for (int opt; (opt = getopt(argc, argv, "a:n:i:o:v:e:z:se:v:")) != -1;) {
         switch (opt) {
             case 'a': arg_a = optarg; break;
             case 'n': arg_n = optarg; break;
@@ -372,7 +378,7 @@ int main(int argc, char** argv) {
             fRes += res;
             cout << endl;
             if(res.has(SD::NaN)) nid.push_back(i);
-            else if(VEMaxErr(res)>ee) {
+            else if(ee>0 && VEMaxErr(res)>ee) {
                 cout << "n = " << i << endl;
                 cout << res << endl << endl;
             }
@@ -401,7 +407,7 @@ int main(int argc, char** argv) {
             fRes += res;
             cout << endl;
             if(res.has(SD::NaN)) nid.push_back(i);
-            else if(VEMaxErr(res)>ee) {
+            else if(ee>0 && VEMaxErr(res)>ee) {
                 cout << "n = " << i << endl;
                 cout << res << endl << endl;
             }
@@ -443,7 +449,7 @@ int main(int argc, char** argv) {
             auto res = garRead(ss.str());
             fRes += res;
             if(res.has(SD::NaN)) nid.push_back(i);            
-            else if(VEMaxErr(res)>ee) {
+            else if(ee>0 && VEMaxErr(res)>ee) {
                 cout << "n = " << i << endl;
                 cout << res << endl << endl;
             }

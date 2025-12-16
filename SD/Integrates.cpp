@@ -111,11 +111,13 @@ namespace HepLib::SD {
      * @param kid only the kid-th will be evaluated and updated the original "key-pkey" data
      */
     void SecDec::Integrates(const string & key, const string & pkey, int kid) {
-        if(MPDigits>0) {
-            auto pbit = mpfr::digits2bits(MPDigits);
-            if(mpfr::mpreal::get_default_prec()!=pbit) mpfr::mpreal::set_default_prec(pbit);
-        }
         if(IsZero) return;
+        if(Integrator==NULL) {
+            Integrator = new HCubature();
+            if(MPDigits>0) Integrator->MPDigits = MPDigits;
+        }
+        auto pbit = mpfr::digits2bits(Integrator->MPDigits);
+        if(mpfr::mpreal::get_default_prec()!=pbit) mpfr::mpreal::set_default_prec(pbit);
         
         if(Verbose>0) cout << Color_HighLight << "  Integrates @ " << now() << RESET << endl;
         
@@ -439,9 +441,7 @@ namespace HepLib::SD {
                 mppl[kv.first] = qpl[kv.first];
             }
             
-            if(Integrator==NULL) Integrator = new HCubature();
             Integrator->ReIm = reim;
-            if(MPDigits>0) Integrator->MPDigits = MPDigits;
             Integrator->IntegrandD = fpD;
             Integrator->IntegrandQ = fpQ;
             Integrator->IntegrandMP = fpMP;
@@ -718,11 +718,13 @@ namespace HepLib::SD {
      * @param err only the item ( with error > err ) will be evaluated and updated the original "key-pkey" data
      */
     void SecDec::ReIntegrates(const string & key, const string & pkey, qREAL err) {
-        if(MPDigits>0) {
-            auto pbit = mpfr::digits2bits(MPDigits);
-            if(mpfr::mpreal::get_default_prec()!=pbit) mpfr::mpreal::set_default_prec(pbit);
-        }
         if(IsZero) return;
+        if(Integrator==NULL) {
+            Integrator = new HCubature();
+            if(MPDigits>0) Integrator->MPDigits = MPDigits;
+        }
+        auto pbit = mpfr::digits2bits(Integrator->MPDigits);
+        if(mpfr::mpreal::get_default_prec()!=pbit) mpfr::mpreal::set_default_prec(pbit);
         if(Verbose>0) cout << Color_HighLight << "  ReIntegrates @ " << now() << RESET << endl;
         
         lst lstRE;
@@ -1035,9 +1037,7 @@ namespace HepLib::SD {
                 mppl[kv.first] = qpl[kv.first];
             }
             
-            if(Integrator==NULL) Integrator = new HCubature();
             Integrator->ReIm = reim;
-            if(MPDigits>0) Integrator->MPDigits = MPDigits;
             Integrator->IntegrandD = fpD;
             Integrator->IntegrandQ = fpQ;
             Integrator->IntegrandMP = fpMP;

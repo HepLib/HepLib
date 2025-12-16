@@ -22,7 +22,8 @@ namespace HepLib::SD {
             coordT* cpts = (coordT*)malloc(sizeof(coordT) * npts * dim);
             for(int r=0; r<npts; r++) {
                 for(int c=0; c<dim; c++) {
-                    cpts[r*dim + c] = ex_to<numeric>(pts.op(r).op(c)).to_double();
+                    //cpts[r*dim + c] = ex_to<numeric>(pts.op(r).op(c)).to_double();
+                    cpts[r*dim + c] = ex2int(pts.op(r).op(c));
                 }
             }
 
@@ -115,22 +116,27 @@ namespace HepLib::SD {
             if(sol.nops()>0) {
                 auto ps = subs(xs,ex_to<lst>(sol));
                 bool ok = true;
-                for(auto pi : ps) {
-                    ex npi = pi.subs(nsubs);
-                    if(!is_a<numeric>(npi)) {
-                        cout << "Found non-numeric(after nsubs): " << pi.subs(nsubs) << endl;
-                        cout << eqs << endl;
-                        cout << sol << endl;
-                        cout << endl << endl;
-                    }
-                    if(npi<0 || npi>nmax) { ok = false; break; }
+                for(auto xi : xs) {
+                    if(ps.has(xi)) { ok = false; break; }
                 }
-                if(ok) pts.append(ps);
+                if(ok) {
+                    for(auto pi : ps) {
+                        ex npi = pi.subs(nsubs);
+                        if(!is_a<numeric>(npi)) {
+                            cout << "Found non-numeric(after nsubs): " << pi.subs(nsubs) << endl;
+                            cout << eqs << endl;
+                            cout << sol << endl;
+                            cout << endl << endl;
+                        }
+                        if(npi<0 || npi>nmax) { ok = false; break; }
+                    }
+                    if(ok) pts.append(ps);
+                }
             }
         });
         pts.sort();
         pts.unique();
-  
+          
         exset pts_set;
         pts_set.insert(pts);
         for(auto const & fi : fs) { // divide pts by the planes, i.e., equations
@@ -162,7 +168,7 @@ namespace HepLib::SD {
                 pts_set.insert(lstn);
             }
         }
-
+        
         vector<matrix> mats;
         for(auto const & pts : pts_set) { // redefine pts here
             vector<vector<int>> res;
@@ -205,7 +211,9 @@ namespace HepLib::SD {
                     else sgn = 1;
                     for(int j=0; j<nx; j++) mat(i,j) = sgn * sol.op(j);
                 }
-                mats.push_back(mat.inverse());
+                if(mat.determinant()!=0) { // if det==0, the volume is zero, no contribution
+                    mats.push_back(mat.inverse());
+                }
             }
         }
 
