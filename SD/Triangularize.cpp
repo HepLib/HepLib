@@ -22,8 +22,7 @@ namespace HepLib::SD {
             coordT* cpts = (coordT*)malloc(sizeof(coordT) * npts * dim);
             for(int r=0; r<npts; r++) {
                 for(int c=0; c<dim; c++) {
-                    //cpts[r*dim + c] = ex_to<numeric>(pts.op(r).op(c)).to_double();
-                    cpts[r*dim + c] = ex2int(pts.op(r).op(c));
+                    cpts[r*dim + c] = ex_to<numeric>(pts.op(r).op(c)).to_double();
                 }
             }
 
