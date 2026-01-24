@@ -157,6 +157,7 @@ Quit[];
                 if(!ok) {
                     ex pi = ps.op(i);
                     if(!is_a<mul>(pi) || !pi.nops()==2) {
+                        cout << "prop: " << pi << endl;
                         cout << "prop is NOT the form of a*b" << endl;
                         abort();
                     }
@@ -276,11 +277,8 @@ Quit[];
         res = MapFunction([&](const ex & e, MapFunction &self)->ex{
             if(e.match(F(w1, w2))) {
                 auto itr = pq_f2f.find(e);
-                if(itr==pq_f2f.end()) {
-                    cout << "F Not Found" << endl;
-                    abort();
-                }
-                return itr->second;
+                if(itr==pq_f2f.end()) return e;
+                else return itr->second;
             } else return e.map(self);
         })(res);
         

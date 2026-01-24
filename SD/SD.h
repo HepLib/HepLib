@@ -471,6 +471,7 @@ namespace HepLib::SD {
         void XReOrders();
         void XTogethers();
         void XExpands();
+        void Evaluate(const string & key="");
         void KillPowers(int bits=1+2);
         bool IsBad(ex f, vector<exmap> vmap);
         exvector AutoEnd(ex po_ex);
@@ -489,7 +490,7 @@ namespace HepLib::SD {
         static ex XRefined(ex const & ft);
         static lst XRefined_lst(ex const & ft);
         static ex PrefactorFIESTA(int nLoop);
-        ex VEResult();
+        ex VEResult(const ex & chop_err = 0);
         void VEPrint(bool endlQ=true);
         static ex PExpand(ex xpol, bool delta=true);
         static int PRank(matrix m);

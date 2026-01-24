@@ -657,6 +657,7 @@ namespace HepLib {
         int Precision = 35;
         int Order = 0;
         void Export(const ex & expr, const string & dir);
+        inline void Export(const string & dir, const ex & expr) { Export(expr, dir); }
     private:
         exmap sp2x;
         bool is_loop(const ex & e);

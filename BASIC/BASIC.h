@@ -971,3 +971,4 @@ namespace HepLib {
 typedef void (*RUN)(std::string dir_id);
 
 #include "Symbols.h"
+#include "PoolPipe.h"

@@ -112,7 +112,7 @@ namespace HepLib {
         string init_script = R"EOF(
 CFunction pow,sqrt,gamma,HF,GMat,WF;
 Tensor TTR(cyclic), f(antisymmetric), T, f4, colTp;
-Symbols reX,I2R,NF,NA,d,I,Pi;
+Symbols reX,I2R,NF,NA,d;
 AutoDeclare Symbols gCF, trcN;
 Dimension NA;
 AutoDeclare Index colA;
@@ -151,6 +151,10 @@ endrepeat;
 id	T(?a,colF1?,colF1?) = TTR(?a);
 id	TTR(colA1?) = 0;
 id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
+.sort
+
+Local I = i_;
+Local Pi = pi_;
 .sort
 
 #endprocedure
@@ -541,6 +545,7 @@ id	TTR(colA1?,colA2?) = I2R*d_(colA1,colA2);
         st["NF"] = NF;
         st["I"] = I;
         st["i_"] = I;
+        st["pi_"] = Pi;
 
         Parser fp(st);
         fp.FTable.insert({{"SP", 2}, reader_func(SP_reader)});

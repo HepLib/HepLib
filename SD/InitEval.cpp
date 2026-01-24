@@ -566,6 +566,27 @@ namespace HepLib::SD {
         if(Verbose>1) cout << "  Finished @ " << now() << endl << endl;
     }
     
+    void SecDec::Evaluate(const string & key) {
+        
+        if(Verbose>1) cout << endl << "  Starting @ " << now() << endl;
+        
+        MB();
+        if(FunExp.size()<1) return;
+        Scalelesses();
+        ChengWu();
+        RemoveDeltas();
+        KillPowers();
+        SDPrepares();
+        EpsExpands();
+        CIPrepares(key);
+        auto pps = GiNaC_Parallel_Process;
+        GiNaC_Parallel_Process = 0;
+        Contours(key);
+        Integrates(key);
+        GiNaC_Parallel_Process = pps;
+        if(Verbose>1) cout << "  Finished @ " << now() << endl << endl;
+    }
+    
     void SecDec::Evaluate(const exvector & funexp, const string & key) {
         
         if(Verbose>1) cout << endl << "  Starting @ " << now() << endl;

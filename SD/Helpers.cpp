@@ -222,8 +222,21 @@ namespace HepLib::SD {
         throw Error("vsRank error!");
     }
 
-    ex SecDec::VEResult() {
-        return HepLib::SD::VEResult(ResultError);
+    ex SecDec::VEResult(const ex & chop_err) {
+        if(chop_err.is_zero()) {
+            return HepLib::SD::VEResult(ResultError);
+        } else {
+            ex res = MapFunction([chop_err](const ex & e, MapFunction &self)->ex{
+                if(!e.has(VE(w1,w2))) return e;
+                else if(e.match(VE(w1, w2))) {
+                    ex vv = e.op(0);
+                    ex ee = e.op(1);
+                    if(abs(vv)<chop_err && abs(ee)<chop_err) return 0;
+                    else return e;
+                } else return e.map(self);
+            })(ResultError);
+            return HepLib::SD::VEResult(res);
+        }
     }
 
     void SecDec::VEPrint(bool endlQ) {
