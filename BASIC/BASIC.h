@@ -965,6 +965,9 @@ namespace HepLib {
     // other helpers
     std::string get_hostname();
     std::string get_env(const std::string & name);
+    
+    // chop
+    ex chop(const ex & e, const ex & err);
 
 }
 

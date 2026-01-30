@@ -351,7 +351,7 @@ namespace HepLib {
     slong error_pass_dp = 100;
     
     // FROM AMF
-    int DEX::Threads = 8;
+    int DEX::Threads = 0;
     
     // gamma matrix
     ex DGamma::gi = GAS(1);

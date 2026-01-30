@@ -101,8 +101,9 @@ namespace HepLib {
         int nbs = bs.size();
         
         abikn_fmpq_mat_t U;
-        if(nbs<50) all_series(U,xn,qslas);
-        else ab_series(U,xn,qslas);
+        //if(nbs<50) all_series(U,xn,qslas);
+        //else ab_series(U,xn,qslas);
+        ab_series(U,xn,qslas,1); // non-parallel
 
         for(int i=0; i<qslas.size(); i++) {
             fmpq_clear(qslas[i]);
@@ -154,7 +155,8 @@ namespace HepLib {
         
         abikn_gr_mat_t U;
         // TODO: add all_series version
-        ab_series(U, xn, ctx, qslas);
+        //ab_series(U, xn, ctx, qslas);
+        ab_series(U, xn, ctx, qslas,1); // non-parallel
         for(int i=0; i<qslas.size(); i++) {
             fmpq_clear(qslas[i]);
             flint_free(qslas[i]);
@@ -394,8 +396,9 @@ namespace HepLib {
         }
                 
         aikn_gr_mat_t I;
-        if(nbs<50) all_series(I, xn, In0, nc, ctx, qslas);
-        else a_series(I, xn, In0, nc, ctx, qslas);
+        //if(nbs<50) all_series(I, xn, In0, nc, ctx, qslas);
+        //else a_series(I, xn, In0, nc, ctx, qslas);
+        a_series(I, xn, In0, nc, ctx, qslas, 1); // non-parallel
         
         for(int a=0; a<nbs; a++) for(auto & kv : In0[a]) for(auto & item : kv.second) {
             gr_mat_clear(item[0], ctx);
@@ -499,8 +502,9 @@ namespace HepLib {
         int nc = gr_mat_ncols(imat, ctx);
         
         vector<vector<gr_mat_struct*>> I; // I[a][n]
-        if(nbs<50) an_taylor(I, xn, imat, z0, ctx, es);
-        else a_taylor(I, xn, imat, z0, ctx, es);
+        //if(nbs<50) an_taylor(I, xn, imat, z0, ctx, es);
+        //else a_taylor(I, xn, imat, z0, ctx, es);
+        a_taylor(I, xn, imat, z0, ctx, es, 1); // non - parallel
         
         vector<gr_ptr> zn(xn+1);
         int status = GR_SUCCESS;

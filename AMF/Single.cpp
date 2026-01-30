@@ -127,7 +127,6 @@ namespace HepLib {
         fire.External = External;
         fire.NVariables[d] = d0;
         fire.Integral = _Integral_;
-        fire.Propagator = iPropagator;
         
         auto rr = Replacement;
         for(auto r : Replacement) rr.append(w*r.op(0) == w*r.op(1));
@@ -144,6 +143,9 @@ namespace HepLib {
             fire.Replacement.append(ri.op(0)==ri1);
         }
         Replacement = fire.Replacement;
+        
+        iPropagator = ex_to<lst>(subs(iPropagator,Replacement));
+        fire.Propagator = iPropagator;
     
         if(!In_GiNaC_Parallel && Verbose>1) cout << pre << "\\--Generating DE @ " << now() << endl;
         

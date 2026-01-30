@@ -2373,6 +2373,19 @@ namespace HepLib {
         if(val==NULL) return string("");
         return string(val);
     }
+    
+    ex chop(const ex & expr, const ex & err) {
+        return MapFunction([err](const ex & e, MapFunction &self)->ex{
+            if(is_a<numeric>(e)) {
+                numeric ne = ex_to<numeric>(e);
+                auto ner = real(ne);
+                auto nei = imag(ne);
+                if(abs(ner)<err) ner = 0;
+                if(abs(nei)<err) nei = 0;
+                return ner+I*nei;
+            } else return e.map(self);
+        })(expr);
+    }
         
 }
 

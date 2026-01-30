@@ -917,7 +917,7 @@ namespace HepLib {
 
         if(!In_GiNaC_Parallel && Verbose>5) cout << pre << "\\--Series U(x^" << xn << ") " << worker_total << "|0" << flush;
         int total_threads = Threads;
-        if(total_threads<=0) total_threads = CpuCores();
+        if(total_threads<=0) total_threads = CpuCores()/2;
         thread worker[total_threads];
         for(int i=0; i<total_threads; ++i) worker[i] = thread(worker_main);
         for(int i=0; i<total_threads; ++i) worker[i].join();
@@ -930,7 +930,7 @@ namespace HepLib {
     }
     
     // U[a][b][la][k][n], Parallel fmpq version
-    void DEX::ab_series(abikn_fmpq_mat_t & U, int xn, const vector<fmpq*> & qslas) {
+    void DEX::ab_series(abikn_fmpq_mat_t & U, int xn, const vector<fmpq*> & qslas, int threads) {
         if(!fuchsified) fuchsify();
         auto nbs = bs.size();
         
@@ -1084,10 +1084,12 @@ namespace HepLib {
         
         auto worker_total = worker_left;
         list<u_item_type> worker_item_list;
+        int total_threads = Threads;
+        if(total_threads<=0) total_threads = CpuCores()/2;
         auto worker_main = [&]() {
             while(true) {
                 list<u_item_type> wi_list;
-                {
+                if(total_threads>1) {
                     unique_lock<mutex> guard(worker_mutex);
                     worker_cond.wait(guard, [&]() {
                         if(!worker_left) return true;
@@ -1244,8 +1246,28 @@ namespace HepLib {
                 }
                 
                 bool any_notify = false;
-                {
-                    lock_guard<mutex> guard(worker_mutex);
+                if(total_threads>1) {
+                    {
+                        lock_guard<mutex> guard(worker_mutex);
+                        for(auto const & worker_item : wi_list) {
+                            int a = worker_item.a;
+                            int b = worker_item.b;
+                            int ila = worker_item.ila;
+                            int k = worker_item.k;
+                            int n = worker_item.n;
+                            bool to_notify = worker_item.to_notify;
+                            if(!any_notify && to_notify) any_notify = true;
+                            Used[a][b][ila][k][n] = false;
+                            if(to_notify) Done[a][b][ila][k][n] = true;
+                        }
+                        worker_left -= worker_nn;
+                        if(!In_GiNaC_Parallel && Verbose>5) {
+                            cout << "\r                                \r" << flush;
+                            cout << pre << "\\--Series U(x^" << xn << ") " << worker_total << "|" << (worker_total-worker_left) << flush;
+                        }
+                    }
+                    if(any_notify) worker_cond.notify_all();
+                } else {
                     for(auto const & worker_item : wi_list) {
                         int a = worker_item.a;
                         int b = worker_item.b;
@@ -1263,16 +1285,17 @@ namespace HepLib {
                         cout << pre << "\\--Series U(x^" << xn << ") " << worker_total << "|" << (worker_total-worker_left) << flush;
                     }
                 }
-                if(any_notify) worker_cond.notify_all();
             }
         };
 
         if(!In_GiNaC_Parallel && Verbose>5) cout << pre << "\\--Series U(x^" << xn << ") " << worker_total << "|0" << flush;
-        int total_threads = Threads;
-        if(total_threads<=0) total_threads = CpuCores();
-        thread worker[total_threads];
-        for(int i=0; i<total_threads; ++i) worker[i] = thread(worker_main);
-        for(int i=0; i<total_threads; ++i) worker[i].join();
+        if(total_threads>1) {
+            thread worker[total_threads];
+            for(int i=0; i<total_threads; ++i) worker[i] = thread(worker_main);
+            for(int i=0; i<total_threads; ++i) worker[i].join();
+        } else { // non-parallel
+            worker_main();
+        }
         for(int a=0; a<nbs; a++) {
             fmpz_poly_clear(D[a]);
             flint_free(D[a]);
@@ -1286,7 +1309,7 @@ namespace HepLib {
     //=*********************************************************************=
     
     // U[a][b][la][k][n] - Parallel acf version - only on a & b, note acf version, aka gr version
-    void DEX::ab_series(abikn_gr_mat_t & U, int xn, gr_ctx_t ctx, const vector<fmpq*> & qslas) {
+    void DEX::ab_series(abikn_gr_mat_t & U, int xn, gr_ctx_t ctx, const vector<fmpq*> & qslas, int threads) {
         if(!fuchsified) fuchsify();
         if(!In_GiNaC_Parallel && Verbose>5) cout << pre << "\\--initializing nSeries(U)" << flush;
         
@@ -1377,14 +1400,14 @@ namespace HepLib {
         condition_variable worker_cond;
         
         int total_threads = Threads;
-        if(total_threads<=0) total_threads = CpuCores();
+        if(total_threads<=0) total_threads = CpuCores()/2;
         auto worker_total = worker_left;
         auto worker_main = [&]() {
             while(true) {
                 int a, b;
                 list<int> cset;
                 bool to_notify = false;
-                {
+                if(total_threads>1) {
                     unique_lock<mutex> guard(worker_mutex);
                     worker_cond.wait(guard, [&]() {
                         if(!worker_left) return true;
@@ -1411,6 +1434,30 @@ namespace HepLib {
                         flint_cleanup();
                         return;
                     }
+                } else {
+                    for(a=0; a<nbs; a++) for(b=a; b>=0; b--) { // cycle rows & cols
+                        if(Used[a][b] || Done[a][b]) continue;
+                        list<int> & sc = Sc[a][b];
+                        for(auto itr = sc.begin(); itr != sc.end(); ) {
+                            int c = *itr;
+                            if(Done[c][b]) {
+                                itr = sc.erase(itr);
+                                cset.push_back(c);
+                            } else ++itr;
+                        }
+                        
+                        if(!cset.empty() || a==b) { // note a==b
+                            Used[a][b] = true;
+                            if(sc.empty()) to_notify = true;
+                            break;
+                        }
+                    }
+
+                    if(!worker_left) {
+                        flint_cleanup();
+                        return;
+                    }
+
                 }
                 
                 int status = GR_SUCCESS;
@@ -1526,8 +1573,19 @@ namespace HepLib {
                     gr_mat_clear(invA_acb, ctx);
                 }
                 gr_mat_clear(mat, ctx);
-                {
-                    lock_guard<mutex> guard(worker_mutex);
+                if(total_threads>1) {
+                    {
+                        lock_guard<mutex> guard(worker_mutex);
+                        worker_left -= worker_nn;
+                        Used[a][b] = false;
+                        if(to_notify) Done[a][b] = true;
+                        if(!In_GiNaC_Parallel && Verbose>5) {
+                            cout << "\r                                \r" << flush;
+                            cout << pre << "\\--nSeries U(x^" << xn << ") " << worker_total << "|" << (worker_total-worker_left) << flush;
+                        }
+                    }
+                    if(to_notify) worker_cond.notify_all();
+                } else {
                     worker_left -= worker_nn;
                     Used[a][b] = false;
                     if(to_notify) Done[a][b] = true;
@@ -1536,15 +1594,17 @@ namespace HepLib {
                         cout << pre << "\\--nSeries U(x^" << xn << ") " << worker_total << "|" << (worker_total-worker_left) << flush;
                     }
                 }
-                if(to_notify) worker_cond.notify_all();
-
             }
         };
 
         if(!In_GiNaC_Parallel && Verbose>5) cout << pre << "\\--nSeries U(x^" << xn << ") " << worker_total << "|0" << flush;
-        thread worker[total_threads];
-        for(int i=0; i<total_threads; ++i) worker[i] = thread(worker_main);
-        for(int i=0; i<total_threads; ++i) worker[i].join();
+        if(total_threads>1) {
+            thread worker[total_threads];
+            for(int i=0; i<total_threads; ++i) worker[i] = thread(worker_main);
+            for(int i=0; i<total_threads; ++i) worker[i].join();
+        } else { // non-parallel
+            worker_main();
+        }
         for(int a=0; a<nbs; a++) {
             fmpz_poly_clear(D[a]);
             flint_free(D[a]);
@@ -1905,7 +1965,7 @@ namespace HepLib {
         condition_variable worker_cond;
         
         int total_threads = Threads;
-        if(total_threads<=0) CpuCores();
+        if(total_threads<=0) total_threads = CpuCores()/2;
         auto worker_total = worker_left;
         list<i_item_type> worker_item_list;
         auto worker_main = [&]() {
@@ -2101,7 +2161,7 @@ namespace HepLib {
     }
     
     // I[a][la][k][n] - Parallel gr/acf version - only on a
-    void DEX::a_series(aikn_gr_mat_t & I, int xn, aikn_gr_mat_t & In0, int nc, gr_ctx_t ctx, const vector<fmpq*> & qslas) {
+    void DEX::a_series(aikn_gr_mat_t & I, int xn, aikn_gr_mat_t & In0, int nc, gr_ctx_t ctx, const vector<fmpq*> & qslas, int threads) {
         if(!fuchsified) fuchsify();
         auto nbs = bs.size();
         I.resize(nbs);
@@ -2189,13 +2249,15 @@ namespace HepLib {
         mutex worker_mutex;
         condition_variable worker_cond;
         
+        int total_threads = Threads;
+        if(total_threads<=0) total_threads = CpuCores()/2;
         auto worker_total = worker_left;
         auto worker_main = [&]() {
             while(true) {
                 int a;
                 list<int> bset;
                 bool to_notify = false;
-                {
+                if(total_threads>1) {
                     unique_lock<mutex> guard(worker_mutex);
                     worker_cond.wait(guard, [&]() {
                         if(!worker_left) return true;
@@ -2218,6 +2280,28 @@ namespace HepLib {
                         }
                         return false;
                     });
+                    if(!worker_left) {
+                        flint_cleanup();
+                        return;
+                    }
+                } else {
+                    for(a=0; a<nbs; a++) {
+                        if(Used[a] || Done[a]) continue;
+                        list<int> & sb = Sb[a];
+                        for(auto itr = sb.begin(); itr != sb.end(); ) {
+                            int b = *itr;
+                            if(Done[b]) {
+                                itr = sb.erase(itr);
+                                bset.push_back(b);
+                            } else ++itr;
+                        }
+                        
+                        if(!bset.empty() || a==0) { // note a==b
+                            Used[a] = true;
+                            if(sb.empty()) to_notify = true;
+                            break;
+                        }
+                    }
                     if(!worker_left) {
                         flint_cleanup();
                         return;
@@ -2335,8 +2419,19 @@ namespace HepLib {
                     gr_mat_clear(invA_acb ,ctx);
                 }
                 gr_mat_clear(mat ,ctx);
-                {
-                    lock_guard<mutex> guard(worker_mutex);
+                if(total_threads>1) {
+                    {
+                        lock_guard<mutex> guard(worker_mutex);
+                        worker_left -= worker_nn;
+                        Used[a] = false;
+                        if(to_notify) Done[a] = true;
+                        if(!In_GiNaC_Parallel && Verbose>5) {
+                            cout << "\r                                \r" << flush;
+                            cout << pre << "\\--nSeries I(x^" << xn << ") " << worker_total << "|" << (worker_total-worker_left) << flush;
+                        }
+                    }
+                    if(to_notify) worker_cond.notify_all();
+                } else {
                     worker_left -= worker_nn;
                     Used[a] = false;
                     if(to_notify) Done[a] = true;
@@ -2345,16 +2440,17 @@ namespace HepLib {
                         cout << pre << "\\--nSeries I(x^" << xn << ") " << worker_total << "|" << (worker_total-worker_left) << flush;
                     }
                 }
-                if(to_notify) worker_cond.notify_all();
             }
         };
 
         if(!In_GiNaC_Parallel && Verbose>5) cout << pre << "\\--nSeries I(x^" << xn << ") " << worker_total << "|0" << flush;
-        int total_threads = Threads;
-        if(total_threads<=0) total_threads = CpuCores();
-        thread worker[total_threads];
-        for(int i=0; i<total_threads; ++i) worker[i] = thread(worker_main);
-        for(int i=0; i<total_threads; ++i) worker[i].join();
+        if(total_threads>1) {
+            thread worker[total_threads];
+            for(int i=0; i<total_threads; ++i) worker[i] = thread(worker_main);
+            for(int i=0; i<total_threads; ++i) worker[i].join();
+        } else { // non-parallel
+            worker_main();
+        }
         for(int a=0; a<nbs; a++) {
             fmpz_poly_clear(D[a]);
             flint_free(D[a]);
@@ -2593,7 +2689,6 @@ namespace HepLib {
         if(!In_GiNaC_Parallel && Verbose>5) cout << " @ " << now(false) << endl;
     }
     
-    
     struct t_item_type {
         int a, n;
         bool to_notify = false;
@@ -2796,7 +2891,7 @@ namespace HepLib {
         condition_variable worker_cond;
         
         int total_threads = Threads;
-        if(total_threads<=0) total_threads = CpuCores();
+        if(total_threads<=0) total_threads = CpuCores()/2;
         auto worker_total = worker_left;
         list<t_item_type> worker_item_list;
         auto worker_main = [&]() {
@@ -2952,7 +3047,7 @@ namespace HepLib {
     // Taylor expansion - acf - Parallel - only on a, note acf version
     //=*********************************************************************=
     
-    void DEX::a_taylor(vector<vector<gr_mat_struct*>> & I, int xn, gr_mat_t imat, gr_ptr z0, gr_ctx_t ctx, const string & es) {
+    void DEX::a_taylor(vector<vector<gr_mat_struct*>> & I, int xn, gr_mat_t imat, gr_ptr z0, gr_ctx_t ctx, const string & es, int threads) {
 
         if(taylor_inited) throw Error("taylor_inited = true");
         auto nbs = bs.size();
@@ -3111,13 +3206,15 @@ namespace HepLib {
         mutex worker_mutex;
         condition_variable worker_cond;
         
+        int total_threads = threads;
+        if(total_threads<=0) total_threads = CpuCores()/2;
         auto worker_total = worker_left;
         auto worker_main = [&]() {
             while(true) {
                 int a;
                 list<int> bset;
                 bool to_notify = false;
-                {
+                if(total_threads>1) {
                     unique_lock<mutex> guard(worker_mutex);
                     worker_cond.wait(guard, [&]() {
                         if(!worker_left) return true;
@@ -3141,6 +3238,29 @@ namespace HepLib {
                         }
                         return false;
                     });
+                    if(!worker_left) {
+                        flint_cleanup();
+                        return;
+                    }
+                } else { // non-parallel
+                    for(a=0; a<nbs; a++) {
+                        if(Used[a] || Done[a]) continue;
+                            
+                        list<int> & sb = Sb[a];
+                        for(auto itr = sb.begin(); itr != sb.end(); ) {
+                            int b = *itr;
+                            if(Done[b]) {
+                                itr = sb.erase(itr);
+                                bset.push_back(b);
+                            } else ++itr;
+                        }
+                        
+                        if(!bset.empty() || a==0) { // note a==0
+                            Used[a] = true;
+                            if(sb.empty()) to_notify = true;
+                            break;
+                        }
+                    }
                     if(!worker_left) {
                         flint_cleanup();
                         return;
@@ -3203,8 +3323,19 @@ namespace HepLib {
                     gr_mat_clear(Amaa, ctx);
                 }
                 gr_mat_clear(mat, ctx);
-                {
-                    lock_guard<mutex> guard(worker_mutex);
+                if (total_threads>1) {
+                    {
+                        lock_guard<mutex> guard(worker_mutex);
+                        worker_left -= worker_nn;
+                        Used[a] = false;
+                        if(to_notify) Done[a] = true;
+                        if(!In_GiNaC_Parallel && Verbose>5) {
+                            cout << "\r                                \r" << flush;
+                            cout << pre << "\\--nTaylor" << es << " I(x^" << xn << ") " << worker_total << "|" << (worker_total-worker_left) << flush;
+                        }
+                    }
+                    if(to_notify) worker_cond.notify_all();
+                } else { // non-parallel
                     worker_left -= worker_nn;
                     Used[a] = false;
                     if(to_notify) Done[a] = true;
@@ -3213,17 +3344,17 @@ namespace HepLib {
                         cout << pre << "\\--nTaylor" << es << " I(x^" << xn << ") " << worker_total << "|" << (worker_total-worker_left) << flush;
                     }
                 }
-                if(to_notify) worker_cond.notify_all();
-                                
             }
         };
 
         if(!In_GiNaC_Parallel && Verbose>5) cout << pre << "\\--nTaylor" << es << " I(x^" << xn << ") " << worker_total << "|0" << flush;
-        int total_threads = Threads;
-        if(total_threads<=0) total_threads = CpuCores();
-        thread worker[total_threads];
-        for(int i=0; i<total_threads; ++i) worker[i] = thread(worker_main);
-        for(int i=0; i<total_threads; ++i) worker[i].join();
+        if(total_threads>1) {
+            thread worker[total_threads];
+            for(int i=0; i<total_threads; ++i) worker[i] = thread(worker_main);
+            for(int i=0; i<total_threads; ++i) worker[i].join();
+        } else { // non-parallel
+            worker_main();
+        }
         for(int a=0; a<nbs; a++) {
             gr_poly_clear(D[a], ctx);
             flint_free(D[a]);

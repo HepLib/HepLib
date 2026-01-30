@@ -171,7 +171,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -fopenmp")
 #-----------------------------------------------
 ADD_CUSTOM_TARGET(
     pch
-    COMMAND ${CMAKE_CXX_COMPILER} -w ${INC_FLAGS_2} -x c++-header ${CMAKE_INSTALL_PREFIX}/include/HepLib.h
-    COMMAND ${CMAKE_CXX_COMPILER} -w ${INC_FLAGS_2} -x c++-header ${CMAKE_INSTALL_PREFIX}/include/NFunctions.h
+    COMMAND ${CMAKE_CXX_COMPILER} -c -w ${INC_FLAGS_2} -x c++-header ${CMAKE_INSTALL_PREFIX}/include/HepLib.h
+    COMMAND ${CMAKE_CXX_COMPILER} -c -w ${INC_FLAGS_2} -x c++-header ${CMAKE_INSTALL_PREFIX}/include/NFunctions.h
     COMMENT "Compiling headers ..."
 )

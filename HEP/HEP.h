@@ -646,7 +646,7 @@ namespace HepLib {
     ex DoColor(const ex & e, const ex & pref=1, int method=0);
     ex A0(const ex m2, int n=1, const ex d=4-2*ep);
     
-    class Exp2AMF {
+    class Exp2AMFLOW {
     public:
         lst Internal;
         lst External;
@@ -661,6 +661,17 @@ namespace HepLib {
     private:
         exmap sp2x;
         bool is_loop(const ex & e);
+    };
+    
+    class Exp2AMF {
+    public:
+        lst Internal;
+        lst External;
+        lst Replacement = lst{ };
+        int Precision = 35;
+        int Order = 0;
+        void Export(const ex & expr, const string & dir);
+        inline void Export(const string & dir, const ex & expr) { Export(expr, dir); }
     };
 
 }

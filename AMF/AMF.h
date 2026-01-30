@@ -166,7 +166,7 @@ namespace HepLib {
         void taylor(int xn, gr_mat_t imat, gr_ptr z0, gr_ptr dz, gr_ctx_t ctx, const string & es=""); // imat as in and out
         
         /* Note: for Taylor expansion, one should note the initial I0 in which
-                 the T matrix has to be taken into considerrations,
+                 the T matrix has to be taken into account,
                  since there may be a permutation even without calling fuchsify */
         
     private:
@@ -199,24 +199,24 @@ namespace HepLib {
         // U: Rational versions
         void series(abikn_fmpq_mat_t & U, int xn, const vector<fmpq*> & qslas);
         void all_series(abikn_fmpq_mat_t & U, int xn, const vector<fmpq*> & qslas);
-        void ab_series(abikn_fmpq_mat_t & U, int xn, const vector<fmpq*> & qslas);
+        void ab_series(abikn_fmpq_mat_t & U, int xn, const vector<fmpq*> & qslas, int threads=DEX::Threads);
             
         // U: GR version
-        void ab_series(abikn_gr_mat_t & U, int xn, gr_ctx_t ctx, const vector<fmpq*> & qslas);
+        void ab_series(abikn_gr_mat_t & U, int xn, gr_ctx_t ctx, const vector<fmpq*> & qslas, int threads=DEX::Threads);
         
         // I: Rational version
         void series(aikn_fmpq_mat_t & I, int xn, aikn_fmpq_mat_t & In0, int nc, const vector<fmpq*> & qslas);
         
         // I: GR versions
         void all_series(aikn_gr_mat_t & I, int xn, aikn_gr_mat_t & In0, int nc, gr_ctx_t ctx, const vector<fmpq*> & qslas);
-        void a_series(aikn_gr_mat_t & I, int xn, aikn_gr_mat_t & In0, int nc, gr_ctx_t ctx, const vector<fmpq*> & qslas);
+        void a_series(aikn_gr_mat_t & I, int xn, aikn_gr_mat_t & In0, int nc, gr_ctx_t ctx, const vector<fmpq*> & qslas, int threads=DEX::Threads);
         
         // T: Rational version
         void taylor(vector<vector<fmpq_mat_struct*>> & I, int xn, const matrix I0, const ex & x0);
         
         // T: GR versions
         void an_taylor(vector<vector<gr_mat_struct*>> & I, int xn, gr_mat_t imat, gr_ptr x0, gr_ctx_t ctx, const string & es="");
-        void a_taylor(vector<vector<gr_mat_struct*>> & I, int xn, gr_mat_t imat, gr_ptr x0, gr_ctx_t ctx, const string & es="");
+        void a_taylor(vector<vector<gr_mat_struct*>> & I, int xn, gr_mat_t imat, gr_ptr x0, gr_ctx_t ctx, const string & es="", int threads=DEX::Threads);
     
     };
     

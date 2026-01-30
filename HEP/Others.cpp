@@ -76,12 +76,12 @@ namespace HepLib {
         }
     }
     
-    bool Exp2AMF::is_loop(const ex & e) {
+    bool Exp2AMFLOW::is_loop(const ex & e) {
         for(auto ei : Internal) if(ei.is_equal(e)) return true;
         return false;
     }
     
-    void Exp2AMF::Export(const ex & expr, const string & dir) {
+    void Exp2AMFLOW::Export(const ex & expr, const string & dir) {
         static string wlo =
 R"EOF(
 If[Length[$ScriptCommandLine]<2, Print["Usage: wolframescript -f "<>ToString[$ScriptCommandLine[[1]]]<>" <n>"];Quit[]];
@@ -89,7 +89,7 @@ current = DirectoryName@If[$FrontEnd===Null,$InputFileName,NotebookFileName[]];
 
 <<AMFlow`AMFlow`
 
-SetReductionOptions["IBPReducer"->"Blade"];
+SetReductionOptions["IBPReducer"->"Kira"];
 ID = ToExpression[$ScriptCommandLine[[2]]];
 PropsInts=Get[FileNameJoin[{current,ToString[ID]<>".m"}]];
 
@@ -283,7 +283,18 @@ Quit[];
         })(res);
         
         res = collect_ex(res, F(w1,w2));
-
+        
+        if(true) { // alos export CPP by calling Exp2AMF
+            Exp2AMF amf;
+            amf.Internal = Internal;
+            amf.External = External;
+            amf.Replacement = Replacement;
+            amf.Precision = Precision;
+            amf.Order = Order;
+            for(auto item : Numeric) amf.Replacement.append(item);
+            amf.Export(res, dir);
+        }
+        
         exset fs;
         find(res, F(w1,w2), fs);
         map<ex,Family,ex_is_less> p2f;
@@ -292,7 +303,7 @@ Quit[];
         for(auto f : fs) {
             auto itr = p2f.find(f.op(0));
             if(itr == p2f.end()) {
-                itr = p2f.insert({f.op(0), Family(pn)}).first;
+                itr = p2f.insert(make_pair(f.op(0), Family(pn))).first;
                 pn++;
             }
             itr->second.intg.append(f.op(1));
@@ -353,10 +364,139 @@ res
                 }
             }
             
-            GiNaC_Parallel_Verb["Exp2AMF"] = 0;
+            GiNaC_Parallel_Verb["Exp2AMFLOW"] = 0;
             auto order_vec = GiNaC_Parallel(f.intg.nops(), [&](int idx)->ex{
                 auto ns = f.intg.op(idx);
                 ex cc = res.coeff(F(f.pn, ns)).subs(Numeric);
+                cc = cc.subs(d==4-2*ep);
+                auto ldeg = ep_ldegree(cc);
+                return ldeg;
+            }, "Exp2AMFLOW");
+            
+            int order = 0;
+            for(auto ldeg : order_vec) {
+                if(order>ldeg) order = ex2int(ldeg);
+            }
+            
+            ex2file(lst{ prop, f.intg, order }, dir+"/"+to_string(f.pn)+".m");
+        }
+        
+        
+                
+    }
+    
+    void Exp2AMF::Export(const ex & expr, const string & dir) {
+        static string cpp =
+R"EOF(
+#include "HepLib.h"
+
+using namespace HepLib;
+
+int main(int argc, char ** argv) {
+
+    Verbose = 100;
+    lst Replacement = str2lst("<<Replacement>>");
+    
+    string n = "res";
+    if(argc>1) n = string(argv[1]);
+    map<string,ex> data;
+    garRead("data.gar", data);
+    int tot = ex2int(data["total"]);
+    
+    if(n=="res") {
+        ex res = data["res"];
+        lst rules;
+        for(int i=0; i<tot; i++) {
+            ex ri = file2ex(to_string(i)+".out");
+            for(auto item : ri) rules.append(item);
+        }
+        res = res.subs(rules).subs(Replacement).subs(d==4-2*ep);
+        res = series_ex(res,ep,ex2int(data["Order"]));
+        res = collect_ex(res, lst{ ep });
+        res = chop(res, str2ex("1E-15"));
+        cout << endl << res << endl << endl;
+        return 0;
+    }
+    int pn = stoi(n);
+    if(pn+1>tot || pn<0) return 0;
+    
+    Fit amf;
+    //amf.Mode = Fit::Modes::All;
+    
+    amf.Replacement = Replacement; 
+    amf.Internal = ex_to<lst>(data["Internal"]);
+    amf.External = ex_to<lst>(data["External"]);
+    
+    amf.Propagator = ex_to<lst>(data[n].op(0));
+    amf.Integral = ex_to<lst>(data[n].op(1));
+    
+    int tot_order = 2*amf.Internal.nops() + ex2int(data["Order"]) - ex2int(data[n].op(2));
+    amf.Parallel(ex2int(data["Precision"]), tot_order);
+    
+    lst rules;
+    for(int i=0; i<amf.Integral.nops(); i++) {
+        rules.append(F(pn, amf.Integral.op(i)) == amf.NIntegral.op(i));
+    }
+    
+    ex2file(rules, n+".out");
+        
+    return 0;
+
+}
+)EOF";
+        
+        string w_cpp = cpp;
+        system(("mkdir -p "+dir).c_str());
+        string_replace_all(w_cpp, "<<Replacement>>", ex2str(Replacement));
+        str2file(w_cpp, dir+"/AMF.cpp");
+
+        map<string, ex> data_export;
+
+        data_export["Internal"] = Internal;
+        data_export["External"] = External;
+        data_export["Replacement"] = Replacement;
+        data_export["Order"] = Order;
+        data_export["Precision"] = Precision;
+        
+        auto res = expr;
+        res = collect_ex(res, F(w1,w2));
+
+        exset fs;
+        find(res, F(w1,w2), fs);
+        map<ex,Family,ex_is_less> p2f;
+        exmap f2f;
+        int pn = 0;
+        for(auto f : fs) {
+            auto itr = p2f.find(f.op(0));
+            if(itr == p2f.end()) {
+                itr = p2f.insert(make_pair(f.op(0), Family(pn))).first;
+                pn++;
+            }
+            itr->second.intg.append(f.op(1));
+            f2f[f] = F(itr->second.pn, f.op(1));
+        }
+        
+        res = MapFunction([&](const ex & e, MapFunction &self)->ex{
+            if(e.match(F(w1, w2))) {
+                auto itr = f2f.find(e);
+                if(itr==f2f.end()) {
+                    cout << "F Not Found" << endl;
+                    abort();
+                }
+                return itr->second;
+            } else return e.map(self);
+        })(res);
+        data_export["res"] = res;
+        
+        int tot = p2f.size();
+        for(auto kv : p2f) {
+            lst prop = ex_to<lst>(kv.first);
+            auto & f = kv.second;
+            
+            GiNaC_Parallel_Verb["Exp2AMF"] = 0;
+            auto order_vec = GiNaC_Parallel(f.intg.nops(), [&](int idx)->ex{
+                auto ns = f.intg.op(idx);
+                ex cc = res.coeff(F(f.pn, ns)).subs(Replacement);
                 cc = cc.subs(d==4-2*ep);
                 auto ldeg = ep_ldegree(cc);
                 return ldeg;
@@ -367,8 +507,13 @@ res
                 if(order>ldeg) order = ex2int(ldeg);
             }
             
-            ex2file(lst{ prop, f.intg, order }, dir+"/"+to_string(f.pn)+".m");
+            data_export[to_string(f.pn)] = lst{ prop, f.intg, order };
         }
+        data_export["total"] = tot;
+        
+        garWrite(dir+"/data.gar", data_export);
+        
+        str2file("heplib++ -o AMF AMF.cpp\nseq 0 "+to_string(tot-1)+" | parallel -j 4 ./AMF {}\n./AMF res\n", dir+"/run.sh");
                 
     }
 
