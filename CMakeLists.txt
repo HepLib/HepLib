@@ -56,7 +56,7 @@ ENDIF()
 #-----------------------------------------------
 # External Libraries
 #-----------------------------------------------
-LINK_LIBRARIES(ginac cln mpfr qhullstatic_r quadmath gomp dl flint gmp jemalloc)
+LINK_LIBRARIES(ginac cln mpfr qhullstatic_r quadmath gomp dl flint gmp mimalloc)
 #LINK_LIBRARIES(ginac cln mpfr qhullstatic_r quadmath gomp dl flint gmp)
 
 #-----------------------------------------------

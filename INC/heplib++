@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 hl_dir="$(dirname "$(readlink -f "$0")")" ## install_dir/bin
 hl_dir="$(dirname "$hl_dir")" ## install_dir
-g++ -w -include HepLib.h -I"$hl_dir/include" -Wl,-rpath,"$hl_dir/lib" -L"$hl_dir/lib" @INC_FLAGS@ @LIB_FLAGS@ -fopenmp -lHepLib -lginac -lcln -lqhullstatic_r -ljemalloc -lmpfr -lgmp -lflint $@ -lHepLib -lginac -lcln -lqhullstatic_r -ljemalloc -lmpfr -lgmp -lflint
-# below without -ljemalloc
+g++ -w -include HepLib.h -I"$hl_dir/include" -Wl,-rpath,"$hl_dir/lib" -L"$hl_dir/lib" @INC_FLAGS@ @LIB_FLAGS@ -fopenmp -lHepLib -lginac -lcln -lqhullstatic_r -lmimalloc -lmpfr -lgmp -lflint $@ -lHepLib -lginac -lcln -lqhullstatic_r -lmimalloc -lmpfr -lgmp -lflint
+# below without -lmimalloc
 # g++ -include HepLib.h -w -I"$hl_dir/include" -Wl,-rpath,"$hl_dir/lib" -L"$hl_dir/lib" @INC_FLAGS@ @LIB_FLAGS@ -fopenmp -lHepLib -lginac -lcln -lqhullstatic_r -lmpfr -lgmp -lflint $@ -lHepLib -lginac -lcln -lqhullstatic_r -lmpfr -lgmp -lflint
