@@ -252,7 +252,7 @@ namespace HepLib {
     ex & letSP(const ex &p1, const ex &p2) {
         if(!(is_a<Vector>(p1) || is_a<Index>(p1)) || !(is_a<Vector>(p2) || is_a<Index>(p2)))
             throw Error("Invalide arguments for letSP (2).");
-        return SP_map[SP(p1,p2)];
+        return SP_map[SP(p1,p2,false)];
     }
     
     /**
@@ -263,7 +263,7 @@ namespace HepLib {
     ex & letSP(const ex &p) {
         if(!is_a<Vector>(p))
             throw Error("Invalide arguments for letSP (1).");
-        return SP_map[SP(p)];
+        return SP_map[SP(p,false)];
     }
     
     /**
@@ -274,7 +274,7 @@ namespace HepLib {
     void clearSP(const ex &p1, const ex &p2) {
         if(!(is_a<Vector>(p1) || is_a<Index>(p1)) || !(is_a<Vector>(p2) || is_a<Index>(p2)))
             throw Error("Invalide arguments for resetSP (2).");
-        SP_map.erase(SP(p1,p2));
+        SP_map.erase(SP(p1,p2,false));
     }
     
     /**
@@ -284,7 +284,7 @@ namespace HepLib {
     void clearSP(const ex &p) {
         if(!is_a<Vector>(p))
             throw Error("Invalide arguments for resetSP (1).");
-        SP_map.erase(SP(p));
+        SP_map.erase(SP(p,false));
     }
     
     /**
@@ -305,7 +305,7 @@ namespace HepLib {
         exmap spmap;
         for(auto vp1 : vecs) {
             for(auto vp2 : vecs) {
-                spmap[SP(vp1,vp2)]=sp(vp1,vp2);
+                spmap[SP(vp1,vp2,false)]=sp(vp1,vp2);
             }
         }
         return ret.subs(spmap);

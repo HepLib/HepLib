@@ -24,6 +24,10 @@ extern "C" {
 /**
  * @brief namespace for Numerical integration with Sector Decomposition method
  */
+ 
+extern mpfr::mpreal mpPi, mpEuler;
+extern std::complex<mpfr::mpreal> mpiEpsilon;
+
 namespace HepLib::SD {
     
     using namespace HepLib;
@@ -546,6 +550,14 @@ namespace HepLib::SD {
     vector<matrix> Triangularize(const lst & fs_in, const ex & xs_in, const lst & nsubs={});
     void Triangularize(exvector & FunExp, const lst & fs_in, const ex & xs_in, const lst & nsubs={});
     
+    inline void set_mpfr_prec(int prec) {
+        mpfr_free_cache();
+        auto pbit = mpfr::digits2bits(prec);
+        if(mpfr::mpreal::get_default_prec()!=pbit) mpfr::mpreal::set_default_prec(pbit);
+        mpPi = mpfr::const_pi();
+        mpEuler = mpfr::const_euler();
+        mpiEpsilon = complex<mpREAL>(0,mpfr::machine_epsilon()*100);
+    }
 }
 
 

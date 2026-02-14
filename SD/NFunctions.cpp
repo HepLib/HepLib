@@ -15,9 +15,9 @@ const qREAL qPi = 3.1415926535897932384626433832795028841971693993751Q;
 const qREAL qEuler = 0.57721566490153286060651209008240243104215933593992Q;
 const qCOMPLEX qiEpsilon = 100.Qi*FLT128_EPSILON;
 
-mpREAL mpPi;
-mpREAL mpEuler;
-mpCOMPLEX mpiEpsilon;
+mpREAL mpPi = mpfr::const_pi();
+mpREAL mpEuler = mpfr::const_euler();
+mpCOMPLEX mpiEpsilon = complex<mpREAL>(0,mpfr::machine_epsilon()*100);
 
 void X2Z(int nfxs, dREAL(*f)(const dREAL*,const dREAL*), dREAL(*Df)(const int,const dREAL*,const dREAL*),
     const dREAL* x, dCOMPLEX* z, dCOMPLEX* r, dREAL* dff, const dREAL* pl, const dREAL* las) {

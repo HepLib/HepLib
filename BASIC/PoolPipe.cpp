@@ -30,6 +30,36 @@ namespace HepLib {
         }
         cv.notify_one();
     }
+    
+    iPool::iPool(int tot) {
+        for (int i=0; i<tot; i++) ava.push_back(i);
+        inited = true;
+    }
+    
+    iPool::iPool() { }
+    
+    void iPool::init(int tot) {
+        for (int i=0; i<tot; i++) ava.push_back(i);
+        inited = true;
+    }
+
+    int iPool::acquire() {
+        if(!inited) throw std::runtime_error("iPool: not initialized.");
+        std::unique_lock<std::mutex> lock(mtx);
+        while (ava.empty()) cv.wait(lock);
+        int obj = ava.back();
+        ava.pop_back();
+        return obj;
+    }
+
+    void iPool::release(int obj) {
+        if(!inited) throw std::runtime_error("iPool: not initialized.");
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            ava.push_back(obj);
+        }
+        cv.notify_one();
+    }
 
     Pipe::Pipe(const std::function<std::string(const std::string &)> & fi) : f(fi) {
         if (pipe(p2c)==-1 || pipe(c2p)==-1) {

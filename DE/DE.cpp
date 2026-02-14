@@ -15,6 +15,7 @@ namespace HepLib {
     matrix normal(const matrix & mat) { return ED::exnormal(mat); }
     matrix exnormal(const matrix & mat) { 
         auto m = mat;
+        if(GiNaC_Parallel_Level>0) GiNaC_Parallel_Process = 0;
         GiNaC_Parallel_Verb["NM"] = 0;
         auto res = GiNaC_Parallel(m.nops(), [&m](int idx) {
             return exnormal(m.op(idx));
@@ -27,6 +28,7 @@ namespace HepLib {
         if(mat.is_zero_matrix()) return -100000;
         int pr = -100000;
         if(para) {
+            if(GiNaC_Parallel_Level>0) GiNaC_Parallel_Process = 0;
             GiNaC_Parallel_Verb["PR"] = 0;
             auto res = GiNaC_Parallel(mat.nops(), [&mat,&x](int idx) {
                 auto nd = exnormal(mat.op(idx)).numer_denom();

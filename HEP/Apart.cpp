@@ -864,11 +864,11 @@ namespace HepLib {
         lst sps;
         for(auto li : loops) {
             for(auto li2: loops) {
-                auto item = SP(li, li2).subs(SP_map,nopat);
+                auto item = SP(li, li2);
                 if(is_a<Pair>(item)) sps.append(item);
             }
             for(auto ei: extps) {
-                auto item = SP(li, ei).subs(SP_map,nopat);
+                auto item = SP(li, ei);
                 if(is_a<Pair>(item)) sps.append(item);
             }
         }

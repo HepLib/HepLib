@@ -26,6 +26,21 @@ namespace HepLib {
         std::condition_variable cv;
     };
     
+    class iPool {
+    public:
+        explicit iPool(int tot);
+        explicit iPool();
+        int acquire();
+        void release(int obj);
+        void init(int tot);
+    private:
+        std::vector<int> ava;
+        std::mutex mtx;
+        std::condition_variable cv;
+        bool inited = false;
+    };
+
+    
     class Pipe {
     public:
         explicit Pipe(const std::function<std::string(const std::string &)> & fi);

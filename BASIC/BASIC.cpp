@@ -247,7 +247,6 @@ namespace HepLib {
     const char* WarnColor = MAGENTA;
     const char* Color_HighLight = WHITE;
     
-    static int GiNaC_Parallel_Level = 0; // for the internal usage only
     /**
      * @brief GiNaC Parallel Evaluation using fork
      * @param ntotal the number of total items, 0 for non-parallel version

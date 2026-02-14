@@ -14,8 +14,8 @@ namespace HepLib {
     namespace {
 
         alignas(2) static ex SP_reader(const exvector& ev) {
-            if(ev.size()<2) return SP(ev[0]).subs(SP_map);
-            else return SP(ev[0], ev[1]).subs(SP_map);
+            if(ev.size()<2) return SP(ev[0]);
+            else return SP(ev[0], ev[1]);
         }
         
         alignas(2) static ex LC_reader(const exvector& ev) {
@@ -238,7 +238,7 @@ Local Pi = pi_;
                 st[v.name.get_name()] = v;
                 for(auto vvx : vec_lst) {
                     auto vv = ex_to<Vector>(vvx);
-                    st[v.name.get_name()+"__"+vv.name.get_name()] = SP(v,vv).subs(SP_map);
+                    st[v.name.get_name()+"__"+vv.name.get_name()] = SP(v,vv);
                 }
             }
             ff << ";" << endl;

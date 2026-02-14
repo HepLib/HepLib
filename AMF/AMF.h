@@ -16,6 +16,7 @@ namespace HepLib {
         ex matrix_den_lcm(const matrix & m) {
             auto verb = Verbose;
             Verbose = 0;
+            if(GiNaC_Parallel_Level>0) GiNaC_Parallel_Process = 0;
             auto den_vec = GiNaC_Parallel(m.nops(), [&m](int idx) {
                 auto den = exnormal(m.op(idx)).denom();
                 return den;

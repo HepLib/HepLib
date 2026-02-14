@@ -115,6 +115,12 @@ namespace HepLib {
         lst lmom = ex_to<lst>(aio.Internal);
         lst emom = ex_to<lst>(aio.External);
         
+        if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/ApartIBP.gar")) {
+            if(Verbose > 1) cout << PRE << "\\--Reading ApartIBP" << flush;
+            garRead(air_vec, aio.SaveDir+"/ApartIBP.gar");
+            return;
+        }
+        
         string wdir;
         if(aio.SaveDir != "") {
             if(IBPmethod==1) wdir = aio.SaveDir + "/FIRE";
@@ -440,7 +446,7 @@ namespace HepLib {
         }
 
         exmap ibpRules; // IBP rules for problem pn
-        if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/Rules.gar")) {
+        if(aio.SaveDir != "" && file_exists(aio.SaveDir+"/MIs.gar")) {
             goto Rules_Done;
         }
         if(true) { 
@@ -535,7 +541,8 @@ namespace HepLib {
             }
             
             // Find Rules in MIs
-            exmap miRules = FindRules(ibp_vec_re, true, aio.UF).first;
+            auto fr = FindRules(ibp_vec_re, true, aio.UF);
+            exmap miRules = fr.first;
             if(true) { // scope for ret
                 if(aio.SaveDir != "") rc = system(("mkdir -p "+aio.SaveDir+"/Rules").c_str());
                 auto rules_vec = GiNaC_Parallel(ibp_vec_re.size(), [&ibp_vec_re,&miRules,&aio](int idx)->ex {
@@ -556,7 +563,7 @@ namespace HepLib {
                     } else return res;
                 }, "FR2MI");
                 if(aio.SaveDir != "") {
-                    garWrite(aio.SaveDir+"/Rules.gar", 1);
+                    garWrite(aio.SaveDir+"/MIs.gar", _F2ex(fr.second));
                 } else {
                     for(auto rs : rules_vec) {
                         for(auto ri : rs) if(ri.op(0)!=ri.op(1)) ibpRules[ri.op(0)] = ri.op(1);
@@ -600,6 +607,8 @@ namespace HepLib {
         }, "F2MI");
                                     
         for(auto fp : ibp_vec) delete fp;
+        
+        if(aio.SaveDir != "") garWrite(air_vec, aio.SaveDir+"/ApartIBP.gar");
     }
     
     /**
@@ -623,13 +632,13 @@ namespace HepLib {
         aio.Cut = cut_props;
         if(cut_props.nops()>0) {
             for(auto p1 : loops) {
-                for(auto p2 : loops) aio.CSP.append(SP(p1,p2));
-                for(auto p2 : exts) aio.CSP.append(SP(p1,p2));
+                for(auto p2 : loops) aio.CSP.append(SP(p1,p2,false));
+                for(auto p2 : exts) aio.CSP.append(SP(p1,p2,false));
             }
             aio.CSP.sort();
             aio.CSP.unique();
         }
-        for(auto li : loops) aio.smap[SP(li)] = 1;
+        for(auto li : loops) aio.smap[SP(li,false)] = 1;
         aio.UF = uf;
         ApartIBP(air_vec, aio);
     }

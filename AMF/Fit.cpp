@@ -166,6 +166,7 @@ namespace HepLib {
             cout << "  \\--Configure: x^" << xn << ", working prec: " << dp << ", r=1/" << rr << ", ep numbers: " << eps.nops() << ", |ep| ~ " << eps.op(0) << endl;
         }
     
+        if(GiNaC_Parallel_Level>0) GiNaC_Parallel_Process = 0;
         auto res_vec = GiNaC_Parallel(eps.nops(), [&](int idx)->ex {
             auto nep = eps.op(idx);
             ex nd = 4-2*nep;

@@ -364,8 +364,8 @@ namespace HepLib {
         ex lr[2];
     };
     
-    ex SP(const ex &a, bool use_map=false);
-    ex SP(const ex &a, const ex &b, bool use_map=false);
+    ex SP(const ex &a, bool use_map=true);
+    ex SP(const ex &a, const ex &b, bool use_map=true);
     ex sp(const ex & a, const ex & b);
     ex sp(const ex & a);
     ex& letSP(const ex &p1, const ex &p2);
@@ -618,7 +618,7 @@ namespace HepLib {
         std::function<ex(const ex &, const ex &)> cv = nullptr;
         string SaveDir = ""; // save temporary result, and restart from it
         std::function<lst(const IBP &, const ex &)> UF = LoopUF;
-        void init_smap() { for(auto li : Internal) smap[SP(li)] = 1; }
+        void init_smap() { for(auto li : Internal) smap[SP(li,false)] = 1; }
     };
     void ApartIBP(exvector &io_vec, AIOption aip);
     

@@ -143,6 +143,7 @@ namespace HepLib {
     string PRE = "  ";
     bool Debug = false;
     bool In_GiNaC_Parallel = false;
+    int GiNaC_Parallel_Level = 0;
     int GiNaC_Parallel_Process = -1;
     map<string, int> GiNaC_Parallel_NP;
     map<string, int> GiNaC_Parallel_Verb;

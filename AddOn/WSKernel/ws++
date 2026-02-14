@@ -1,0 +1,10 @@
+OS=$(uname)
+if test $OS = "Darwin"
+then
+    WSTP_PATH=/Applications/Mathematica.app/Contents/SystemFiles/Links/WSTP/DeveloperKit/MacOSX-ARM64/CompilerAdditions
+    heplib++ "$@" WSKernel.cpp -I$WSTP_PATH -L$WSTP_PATH -lWSTPi4 -Wl,-rpath,$WSTP_PATH -lc++ -framework Foundation
+elif test $OS = "Linux"
+then
+    WSTP_PATH=/usr/local/Wolfram/Mathematica/13.3/SystemFiles/Links/WSTP/DeveloperKit/Linux-x86-64/CompilerAdditions
+    heplib++ "$@" WSKernel.cpp -I$WSTP_PATH -L$WSTP_PATH -lWSTP64i4 -Wl,-rpath,$WSTP_PATH
+fi
