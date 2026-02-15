@@ -30,7 +30,7 @@ namespace HepLib {
         
         WSKernel(const string & open_str="");
         ~WSKernel();
-        string Evaluate(const string & expr);
+        string Evaluate(const string & expr, const string & OutputForm="InputForm");
     private:
         WSENV ep;
         WSLINK lp;

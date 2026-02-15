@@ -20,16 +20,15 @@ namespace HepLib {
         string ostr = open_str;
         if(ostr.length()<1) {
             #ifdef __APPLE__
-            ostr = "-linkmode launch -linkname '/Applications/Mathematica.app/Contents/MacOS/WolframKernel -wstp'";
+            ostr = "-linklaunch -linkname '/Applications/Mathematica.app/Contents/MacOS/WolframKernel -wstp'";
             #else
-            ostr = "-linkmode launch -linkname 'math -wstp'";
+            ostr = "-linklaunch -linkname 'math -wstp'";
             #endif
         }
         
         lp = WSOpenString(ep, ostr.c_str(), &error);
-        //lp = WSOpenString(ep, "-linkcreate -linkprotocol IntraProcess", &error);
-        //lp = WSOpenArgcArgv(ep, argc, argv, &error);
         if(lp == (WSLINK)0 || error != WSEOK) throw Error(lp);
+        Evaluate("Off[LinkConnect::linkc];");
     }
 
     WSKernel::~WSKernel() {
@@ -37,10 +36,10 @@ namespace HepLib {
         WSDeinitialize(ep);
     }
 
-    string WSKernel::Evaluate(const string & expr) {
+    string WSKernel::Evaluate(const string & expr, const string & OutputForm) {
         WSPutFunction(lp, "EvaluatePacket", 1);
         WSPutFunction(lp, "ToString", 1);
-        WSPutFunction(lp, "InputForm", 1);
+        WSPutFunction(lp, OutputForm.c_str(), 1);
         WSPutFunction(lp, "ToExpression", 1);
         WSPutString(lp, expr.c_str());
         WSEndPacket(lp);
