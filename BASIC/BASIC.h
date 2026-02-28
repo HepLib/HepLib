@@ -101,8 +101,11 @@ namespace HepLib {
     extern const int o_fermatN;
     extern const int o_form;
     extern const int o_flint;
+    extern const int o_flint_ccf;
     extern const int o_flintf;
+    extern const int o_flintf_ccf;
     extern const int o_flintfD;
+    extern const int o_flintfD_ccf;
     extern const int o_normal_fermat;
     extern const int o_normal_form;
     extern const int o_fermat_form;

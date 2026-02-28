@@ -51,7 +51,7 @@ namespace HepLib {
             else if(mode==1 && is_a<Pair>(e) && has_any(e,loop_ps) && has_any(e,ext_ps)) {
                 Index idx(prefix+to_string(++lproj));
                 auto p = ex_to<Pair>(e);
-                return SP(p.op(0), idx) * SP(p.op(1), idx);
+                return SP(p.op(0), idx, false) * SP(p.op(1), idx, false);
             } else if(is_a<Eps>(e)) {
                 auto pis0 = ex_to<Eps>(e).pis;
                 ex pis[4];
@@ -60,7 +60,7 @@ namespace HepLib {
                     pis[i] = pis0[i];
                     if(is_equal_any(pis[i],loop_ps)) {
                         Index idx(prefix+to_string(++lproj));
-                        cc *= SP(pis[i], idx);
+                        cc *= SP(pis[i], idx, false);
                         pis[i] = idx;
                     } else if(has_any(pis[i],loop_ps)) throw Error("UnContract: Eps still has loops.");
                 }
@@ -69,7 +69,7 @@ namespace HepLib {
                 Index idx(prefix+to_string(++lproj));
                 auto g = ex_to<DGamma>(e);
                 if(!is_equal_any(g.pi,loop_ps)) return e;
-                else return DGamma(idx, g.rl) * SP(g.pi, idx);
+                else return DGamma(idx, g.rl) * SP(g.pi, idx, false);
             } else if (e.match(TR(w))) {
                 auto ret = self(e.op(0));
                 auto cvs = collect_lst(ret, loop_ps);
@@ -185,8 +185,8 @@ namespace HepLib {
                     auto ep_comb = combs(ext_ps, er);
                     for(auto item : ep_comb) {
                         ex bi=1;
-                        for(int j=0; j<er; j++) bi *= SP(item.op(j), is.op(j));
-                        for(int j=er; j<visn; j=j+2) bi *= SP(is.op(j), is.op(j+1));
+                        for(int j=0; j<er; j++) bi *= SP(item.op(j), is.op(j),false); // false needed, is may be in SP_map, and actually should be a dummy index
+                        for(int j=er; j<visn; j=j+2) bi *= SP(is.op(j), is.op(j+1),false); // false needed, reason above
                         bi = bi.symmetrize(is);
                         bis.append(bi);
                 }}
@@ -322,7 +322,7 @@ namespace HepLib {
             expr += cc * res;
         }
     
-        return expr;        
+        return expr.subs(SP_map);
     }
 
 }

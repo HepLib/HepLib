@@ -1228,7 +1228,7 @@ namespace HepLib {
         for(auto ep : co_epv.second) {
             ex vv = ep.first;
             ex cc = ep.second;
-            if(opt==o_normal || opt==o_fermat || opt==o_fermatfD || opt==o_fermatN || opt==o_flint || opt==o_flintf || opt==o_flintfD) cc = exnormal(cc,opt);
+            if(opt==o_normal || opt==o_fermat || opt==o_fermatfD || opt==o_fermatN || opt==o_flint || opt==o_flint_ccf || opt==o_flintf || opt==o_flintf_ccf || opt==o_flintfD || opt==o_flintfD_ccf) cc = exnormal(cc,opt);
             else if(opt==o_form) cc = exfactor(cc,opt);
             else if(opt==o_normal_fermat) cc = exnormal(normal(cc),o_fermat);
             else if(opt==o_normal_form) cc = form_factor(normal(cc),o_fermat);
@@ -1864,7 +1864,10 @@ namespace HepLib {
         ex expr = expr_in.subs(subs1);
         
         if(opt==o_form) expr = factor_form(expr);
-        else if(opt==o_flint || opt==o_flintf) expr = factor_flint(expr);
+        else if(opt==o_flint || opt==o_flintf || opt==o_flint_ccf || opt==o_flintf_ccf) {
+            expr = factor_flint(expr);
+            if(opt==o_flint_ccf || opt==o_flintf_ccf) expr = collect_common_factors(expr);
+        }
         
         return expr.subs(subs2); // replace back
     }
@@ -1918,7 +1921,7 @@ namespace HepLib {
         if(opt<0) return normal_fermat_pern(expr,-opt);
         else if(opt==o_normal) return normal(expr);
         else if(opt==o_fermat) return normal_fermat(expr);
-        else if(opt==o_flint || opt==o_flintf || opt==o_flintfD) return normal_flint(expr, opt);
+        else if(opt==o_flint || opt==o_flint_ccf || opt==o_flintf || opt==o_flintf_ccf || opt==o_flintfD || opt==o_flintfD_ccf) return normal_flint(expr, opt);
         else if(opt==o_fermatfD) return normal_fermat(expr,true);
         else if(opt==o_fermatN) return numer_fermat(expr);
         return expr;

@@ -977,7 +977,7 @@ namespace HepLib {
             symtab st;
             st[sx] = x;
             
-            if(opt==o_flint) {
+            if(opt==o_flint || opt==o_flint_ccf) {
                 fmpz_poly_q_t f;
                 fmpz_poly_q_init(f);
                 _to_(f, expr);
@@ -988,16 +988,18 @@ namespace HepLib {
                 string dstr(cstr);
                 flint_free(cstr);
                 fmpz_poly_q_clear(f);
-                res = str2ex(nstr,st)/str2ex(dstr,st);
-            } else if(opt==o_flintf) {
+                if(opt==o_flint_ccf) res = collect_common_factors(str2ex(nstr,st))/collect_common_factors(str2ex(dstr,st));
+                else res = str2ex(nstr,st)/str2ex(dstr,st);
+            } else if(opt==o_flintf || opt==o_flintf_ccf) {
                 fmpz_poly_q_t f;
                 fmpz_poly_q_init(f);
                 _to_(f, expr);
                 auto num = _factor_(x, fmpz_poly_q_numref(f));
                 auto den = _factor_(x, fmpz_poly_q_denref(f));
                 fmpz_poly_q_clear(f);
-                res = num/den;
-            } else if(opt==o_flintfD) {
+                if(opt==o_flintf_ccf) res = collect_common_factors(num)/collect_common_factors(den);
+                else res = num/den;
+            } else if(opt==o_flintfD || opt==o_flintfD_ccf) {
                 fmpz_poly_q_t f;
                 fmpz_poly_q_init(f);
                 _to_(f, expr);
@@ -1007,7 +1009,8 @@ namespace HepLib {
                 auto num = str2ex(nstr,st);
                 auto den = _factor_(x, fmpz_poly_q_denref(f));
                 fmpz_poly_q_clear(f);
-                res = num/den;
+                if(opt==o_flintfD_ccf) res = collect_common_factors(num)/collect_common_factors(den);
+                else res = num/den;
             } else throw Error("normal_flint: unsupported option.");
         } else {
             ex e = expr;
@@ -1019,7 +1022,7 @@ namespace HepLib {
                 cvars[i] = vars[i].c_str();
                 st[cvars[i]] = xs.op(i);
             }
-            if(opt==o_flint) {
+            if(opt==o_flint || opt==o_flint_ccf) {
                 fmpz_mpoly_q_t f;
                 fmpz_mpoly_ctx_t ctx;
                 fmpz_mpoly_ctx_init(ctx, xs.nops(), ORD_LEX);
@@ -1033,8 +1036,9 @@ namespace HepLib {
                 flint_free(cstr);
                 fmpz_mpoly_q_clear(f, ctx);
                 fmpz_mpoly_ctx_clear(ctx);
-                res = str2ex(nstr,st)/str2ex(dstr,st);
-            } else if(opt==o_flintf) {
+                if(opt==o_flint_ccf) res = collect_common_factors(str2ex(nstr,st))/collect_common_factors(str2ex(dstr,st));
+                else res = str2ex(nstr,st)/str2ex(dstr,st);
+            } else if(opt==o_flintf || opt==o_flintf_ccf) {
                 fmpz_mpoly_q_t f;
                 fmpz_mpoly_ctx_t ctx;
                 fmpz_mpoly_ctx_init(ctx, xs.nops(), ORD_LEX);
@@ -1044,8 +1048,9 @@ namespace HepLib {
                 auto den = _factor_(xs, fmpz_mpoly_q_denref(f), ctx);
                 fmpz_mpoly_q_clear(f, ctx);
                 fmpz_mpoly_ctx_clear(ctx);
-                res = num/den;
-            } else if(opt==o_flintfD) {
+                if(opt==o_flintf_ccf) res = collect_common_factors(num)/collect_common_factors(den);
+                else res = num/den;
+            } else if(opt==o_flintfD || opt==o_flintfD_ccf) {
                 fmpz_mpoly_q_t f;
                 fmpz_mpoly_ctx_t ctx;
                 fmpz_mpoly_ctx_init(ctx, xs.nops(), ORD_LEX);
@@ -1058,7 +1063,8 @@ namespace HepLib {
                 auto den = _factor_(xs, fmpz_mpoly_q_denref(f), ctx);
                 fmpz_mpoly_q_clear(f, ctx);
                 fmpz_mpoly_ctx_clear(ctx);
-                res = num/den;
+                if(opt==o_flintfD_ccf) res = collect_common_factors(num)/collect_common_factors(den);
+                else res = num/den;
             } else throw Error("normal_flint: unsupported option.");
         }
         res = res.subs(map_rat,nopat);
@@ -1161,7 +1167,7 @@ namespace HepLib {
                 cn = cn2;
             }
             
-            if(opt==o_flint) {
+            if(opt==o_flint || opt==o_flint_ccf) {
                 auto cstr = fmpz_poly_get_str_pretty(fmpz_poly_q_numref(fv[0]), sx.c_str());
                 string nstr(cstr);
                 flint_free(cstr);
@@ -1169,20 +1175,23 @@ namespace HepLib {
                 string dstr(cstr);
                 flint_free(cstr);
                 fmpz_poly_q_clear(fv[0]);
-                res = str2ex(nstr,st)/str2ex(dstr,st);
-            } else if(opt==o_flintf) {
+                if(opt==o_flint_ccf) res = collect_common_factors(str2ex(nstr,st))/collect_common_factors(str2ex(dstr,st));
+                else res = str2ex(nstr,st)/str2ex(dstr,st);
+            } else if(opt==o_flintf || opt==o_flintf_ccf) {
                 auto num = _factor_(x, fmpz_poly_q_numref(fv[0]));
                 auto den = _factor_(x, fmpz_poly_q_denref(fv[0]));
                 fmpz_poly_q_clear(fv[0]);
-                res = num/den;
-            } else if(opt==o_flintfD) {
+                if(opt==o_flintf_ccf) res = collect_common_factors(num)/collect_common_factors(den);
+                else res = num/den;
+            } else if(opt==o_flintfD || opt==o_flintfD_ccf) {
                 auto cstr = fmpz_poly_get_str_pretty(fmpz_poly_q_numref(fv[0]), sx.c_str());
                 string nstr(cstr);
                 flint_free(cstr);
                 auto num = str2ex(nstr,st);
                 auto den = _factor_(x, fmpz_poly_q_denref(fv[0]));
                 fmpz_poly_q_clear(fv[0]);
-                res = num/den;
+                if(opt==o_flintfD_ccf) res = collect_common_factors(num)/collect_common_factors(den);
+                else res = num/den;
             } else throw Error("flint_add: unsupported option.");
             
         } else {
@@ -1255,7 +1264,7 @@ namespace HepLib {
                 cn = cn2;
             }
             
-            if(opt==o_flint) {
+            if(opt==o_flint || opt==o_flint_ccf) {
                 auto cstr = fmpz_mpoly_get_str_pretty(fmpz_mpoly_q_numref(fv[0]), cvars, ctx);
                 string nstr(cstr);
                 flint_free(cstr);
@@ -1264,14 +1273,16 @@ namespace HepLib {
                 flint_free(cstr);
                 fmpz_mpoly_q_clear(fv[0], ctx);
                 fmpz_mpoly_ctx_clear(ctx);
-                res = str2ex(nstr,st)/str2ex(dstr,st);
-            } else if(opt==o_flintf) {
+                if(opt==o_flint_ccf) res = collect_common_factors(str2ex(nstr,st))/collect_common_factors(str2ex(dstr,st));
+                else res = str2ex(nstr,st)/str2ex(dstr,st);
+            } else if(opt==o_flintf || opt==o_flintf_ccf) {
                 auto num = _factor_(xs, fmpz_mpoly_q_numref(fv[0]), ctx);
                 auto den = _factor_(xs, fmpz_mpoly_q_denref(fv[0]), ctx);
                 fmpz_mpoly_q_clear(fv[0], ctx);
                 fmpz_mpoly_ctx_clear(ctx);
-                res = num/den;
-            } else if(opt==o_flintfD) {
+                if(opt==o_flintf_ccf) res = collect_common_factors(num)/collect_common_factors(den);
+                else res = num/den;
+            } else if(opt==o_flintfD || opt==o_flintfD_ccf) {
                 auto cstr = fmpz_mpoly_get_str_pretty(fmpz_mpoly_q_numref(fv[0]), cvars, ctx);
                 string nstr(cstr);
                 flint_free(cstr);
@@ -1279,7 +1290,8 @@ namespace HepLib {
                 auto den = _factor_(xs, fmpz_mpoly_q_denref(fv[0]), ctx);
                 fmpz_mpoly_q_clear(fv[0], ctx);
                 fmpz_mpoly_ctx_clear(ctx);
-                res = num/den;
+                if(opt==o_flintfD_ccf) res = collect_common_factors(num)/collect_common_factors(den);
+                else res = num/den;
             } else throw Error("flint_add: unsupported option.");
             
         }
