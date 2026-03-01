@@ -589,10 +589,8 @@ namespace HepLib {
                 }
             } else rules = ibpRules;
             res = res.subs(rules,nopat);
-            res = exnormal(res, o_flintfD); // need to check
             if(aio.pat.nops()>0) {
-                auto numer_denom = res.numer_denom();
-                auto cvs = collect_lst(numer_denom.op(0), aio.pat);
+                auto cvs = collect_lst(res, aio.pat);
                 res = 0;
                 for(auto cv : cvs) {
                     auto c = cv.op(0);
@@ -601,12 +599,9 @@ namespace HepLib {
                         auto _cv = aio.cv(c,v);
                         c = _cv.op(0);
                         v = _cv.op(1);
-                    } else {
-                        c = collect_common_factors(c);
                     }
                     res += c * v;
                 }
-                res = res / numer_denom.op(1);
             }
             return _F2ex(res);
         }, "F2MI");
