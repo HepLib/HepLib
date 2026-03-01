@@ -1,0 +1,23 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="Node000000" title=" " alt="" coords="5,228,61,253"/>
+<area shape="rect" id="Node000001" href="$classHepLib_1_1AsGamma.html" title="class for AntiSymmetric Gamma object" alt="" coords="109,5,252,31"/>
+<area shape="poly" id="edge1_Node000000_Node000001" title=" " alt="" coords="35,214,42,176,55,129,76,82,107,40,124,29,127,33,111,44,81,84,60,131,47,177,40,215"/>
+<area shape="rect" id="Node000002" href="$classHepLib_1_1DGamma.html" title="class for Dirac Gamma object" alt="" coords="112,55,249,80"/>
+<area shape="poly" id="edge2_Node000000_Node000002" title=" " alt="" coords="39,214,62,152,82,118,108,89,126,78,129,82,111,93,86,122,67,154,44,216"/>
+<area shape="rect" id="Node000003" href="$classHepLib_1_1Eps.html" title="class for Levi&#45;Civita object https://onlinelibrary.wiley.com/doi/pdf/10.1002/9783527630097...." alt="" coords="131,104,230,129"/>
+<area shape="poly" id="edge3_Node000000_Node000003" title=" " alt="" coords="45,215,71,176,88,156,108,138,130,127,132,131,111,143,92,160,75,179,50,218"/>
+<area shape="rect" id="Node000004" href="$classHepLib_1_1Index.html" title="class for index object" alt="" coords="125,153,236,179"/>
+<area shape="poly" id="edge4_Node000000_Node000004" title=" " alt="" coords="61,217,108,188,135,176,137,181,111,192,64,222"/>
+<area shape="rect" id="Node000005" href="$classHepLib_1_1Pair.html" title="class for Pair object" alt="" coords="131,203,230,228"/>
+<area shape="poly" id="edge5_Node000000_Node000005" title=" " alt="" coords="74,231,130,221,131,226,75,236"/>
+<area shape="rect" id="Node000006" href="$classHepLib_1_1SUNF.html" title="class for SUNF object" alt="" coords="125,252,236,277"/>
+<area shape="poly" id="edge6_Node000000_Node000006" title=" " alt="" coords="75,245,125,253,125,258,75,250"/>
+<area shape="rect" id="Node000007" href="$classHepLib_1_1SUNF4.html" title="class for SUNF4 object" alt="" coords="121,301,240,327"/>
+<area shape="poly" id="edge7_Node000000_Node000007" title=" " alt="" coords="65,259,111,286,140,299,138,304,108,291,62,264"/>
+<area shape="rect" id="Node000008" href="$classHepLib_1_1SUNT.html" title="class for SUNT object" alt="" coords="125,351,236,376"/>
+<area shape="poly" id="edge8_Node000000_Node000008" title=" " alt="" coords="50,264,76,301,111,336,134,348,131,353,108,340,72,304,46,267"/>
+<area shape="rect" id="Node000009" href="$classHepLib_1_1Vector.html" title="class for vector object" alt="" coords="123,400,239,425"/>
+<area shape="poly" id="edge9_Node000000_Node000009" title=" " alt="" coords="44,266,68,326,87,358,111,385,131,398,128,402,108,389,82,361,63,328,39,268"/>
+<area shape="rect" id="Node000010" href="$classHepLib_1_1XIntegral.html" title="XIntegral Class, preface to SecDec." alt="" coords="113,449,248,475"/>
+<area shape="poly" id="edge10_Node000000_Node000010" title=" " alt="" coords="40,267,47,304,60,349,81,395,111,435,129,447,126,451,107,439,77,398,55,351,42,305,35,268"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="Node000000" href="$classHepLib_1_1SD_1_1IntegratorBase.html" title="base for numerical integrator" alt="" coords="5,80,203,105"/>
+<area shape="rect" id="Node000001" href="$classHepLib_1_1SD_1_1HCubature.html" title="numerical integrator using HCubature" alt="" coords="261,5,431,31"/>
+<area shape="poly" id="edge18_Node000000_Node000001" title=" " alt="" coords="151,73,250,39,291,28,292,33,251,45,153,78"/>
+<area shape="rect" id="Node000002" href="$classHepLib_1_1SD_1_1HCubatureMP.html" title="numerical integrator using HCubatureMP" alt="" coords="251,55,441,80"/>
+<area shape="poly" id="edge19_Node000000_Node000002" title=" " alt="" coords="216,78,250,75,251,80,216,84"/>
+<area shape="rect" id="Node000003" href="$classHepLib_1_1SD_1_1QuadMP.html" title="numerical integrator using TanhSinhMP" alt="" coords="269,104,423,129"/>
+<area shape="poly" id="edge20_Node000000_Node000003" title=" " alt="" coords="216,101,269,106,268,112,216,106"/>
+<area shape="rect" id="Node000004" href="$classHepLib_1_1SD_1_1TanhSinhMP.html" title="numerical integrator using TanhSinhMP" alt="" coords="257,153,435,179"/>
+<area shape="poly" id="edge21_Node000000_Node000004" title=" " alt="" coords="156,107,251,138,296,151,295,156,250,143,154,112"/>
+</map>
