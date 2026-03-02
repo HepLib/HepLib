@@ -123,20 +123,37 @@ void QuadMP::DefaultPrintHooker(mpREAL* result, mpREAL* epsabs, size_t * nrun, v
         }
     }
     if(Verbose>10) {
-        auto r0 = result[0];
-        auto r1 = result[1];
-        auto e0 = epsabs[0].toString(3);
-        auto e1 = epsabs[1].toString(3);
-        cout << "     L: " << (*nrun) << ", ";
-        if(self->ReIm==3 || self->ReIm==1) cout << "[" << r0 << ", " << e0 << "]";
-        if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";
-        cout << endl;
+        if(self->YDim==2) {
+            auto r0 = result[0];
+            auto r1 = result[1];
+            auto e0 = epsabs[0].toString(3);
+            auto e1 = epsabs[1].toString(3);
+            cout << "     L: " << (*nrun) << ", ";
+            if(self->ReIm==3 || self->ReIm==1) cout << "[" << r0 << ", " << e0 << "]";
+            if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";
+            cout << endl;
+        } else {
+            for(int j=0; j<self->YDim; j++) {
+                auto r = result[j];
+                auto e = epsabs[j].toString(3);
+                if(j==0) cout << "     L: " << (*nrun) << ", ";
+                else cout << "   >>L: " << (*nrun) << ", ";
+                cout << "[" << r << ", " << e << "]";
+                cout << endl;
+            }
+        }
     }
     self->NEval = *nrun;
 
-    bool rExit = (epsabs[0] < self->EpsAbs+1E-50Q) || (epsabs[0] < fabs(result[0])*self->EpsRel+1E-50Q);
-    bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabs(result[1])*self->EpsRel+1E-50Q);
-    if(rExit && iExit) {
+    bool bExit = true;
+    for(int j=0; j<self->YDim; j++) {
+        if((epsabs[j] > self->EpsAbs+1E-50Q) && (epsabs[j] > fabs(result[j])*self->EpsRel+1E-50Q)) {
+            bExit = false;
+            break;
+        }
+    }
+    
+    if(bExit) {
         *nrun = self->nGK + 1979;
         return;
     }
@@ -163,7 +180,7 @@ ex QuadMP::Integrate(size_t n) {
     mpiEpsilon = complex<mpREAL>(0,mpfr::machine_epsilon()*100);
     
     unsigned int xdim = XDim;
-    unsigned int ydim = 2;
+    unsigned int ydim = YDim;
     mpREAL result[ydim], estabs[ydim];
 
     NEval = 0;
@@ -173,8 +190,12 @@ ex QuadMP::Integrate(size_t n) {
     auto nok = QuadPackN(ydim, result, estabs, xdim, Wrapper, EpsAbs, n==0 ? PrintHooker : NULL, this);
     
     if(nok) {
-        mpREAL abs_res = sqrt(result[0]*result[0]+result[1]*result[1]);
-        mpREAL abs_est = sqrt(estabs[0]*estabs[0]+estabs[1]*estabs[1]);
+        mpREAL abs_res = 0;
+        for(int j=0; j<ydim; j++) abs_res += result[j]*result[j];
+        abs_res = sqrt(abs_res);
+        mpREAL abs_est = 0;
+        for(int j=0; j<ydim; j++) abs_est += estabs[j]*estabs[j];
+        abs_est = sqrt(abs_est);
         mpREAL mpfr_eps = 10*mpfr::machine_epsilon();
         if( (abs_res < mpfr_eps) && (abs_est < mpfr_eps) ) {
             cout << ErrColor << "QuadMP Failed with 0 result returned!" << RESET << endl;
@@ -183,13 +204,25 @@ ex QuadMP::Integrate(size_t n) {
     }
     
     ex FResult = 0;
-    if(isnan(result[0]) || isnan(result[1])) FResult += NaN;
+    bool any_NAN = false;
+    for(int j=0; j<ydim; j++) {
+        if(isnan(result[j])) {
+            any_NAN = true;
+            break;
+        }
+    }
+    if(any_NAN) FResult = NaN;
     else {
         try{
-            FResult += VE(mp2ex(result[0]), mp2ex(estabs[0]));
-            FResult += VE(mp2ex(result[1]), mp2ex(estabs[1])) * I;
+            if(ydim==2) {
+                FResult = VE(mp2ex(result[0]), mp2ex(estabs[0])) + VE(mp2ex(result[1]), mp2ex(estabs[1])) * I;
+            } else {
+                lst res;
+                for(int j=0; j<ydim; j++) res.append(VE(mp2ex(result[j]), mp2ex(estabs[j])));
+                FResult = res;
+            }
         } catch(...) {
-            FResult += NaN;
+            FResult = NaN;
         }
     }
 

@@ -67,8 +67,10 @@ namespace HepLib::SD {
                     else y[i*ydim+j] = 0;
                 }
             }
-            if(self->ReIm == 1) y[i*ydim+1] = 0;
-            else if(self->ReIm == 2) y[i*ydim+0] = 0;
+            if(self->YDim==2) {
+                if(self->ReIm == 1) y[i*ydim+1] = 0;
+                else if(self->ReIm == 2) y[i*ydim+0] = 0;
+            }
             mpfr_free_cache();
         }
 
@@ -89,18 +91,40 @@ namespace HepLib::SD {
             }
         }
         if(Verbose>10 && (*nrun-self->NEval) >= self->RunPTS) {
-            auto r0 = result[0];
-            auto r1 = result[1];
-            auto e0 = epsabs[0].toString(3);
-            auto e1 = epsabs[1].toString(3);
-            cout << "     N: " << (*nrun) << ", ";
-            if(self->ReIm==3 || self->ReIm==1) cout << "[" << r0 << ", " << e0 << "]";
-            if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";
-            cout << endl;
+            if(self->YDim==2) {
+                auto r0 = result[0];
+                auto r1 = result[1];
+                auto e0 = epsabs[0].toString(3);
+                auto e1 = epsabs[1].toString(3);
+                cout << "     N: " << (*nrun) << ", ";
+                if(self->ReIm==3 || self->ReIm==1) cout << "[" << r0 << ", " << e0 << "]";
+                if(self->ReIm==3 || self->ReIm==2) cout << "+I*[" << r1 << ", " << e1 << "]";
+                cout << endl;
+            } else {
+                for(int j=0; j<self->YDim; j++) {
+                    auto r = result[j];
+                    auto e = epsabs[j].toString(3);
+                    if(j==0) cout << "     N: " << (*nrun) << ", ";
+                    else {
+                        cout << "          ";
+                        int ct = to_string(*nrun).length();
+                        for(int k=0; k<ct; k++) cout << " ";
+                    }
+                    cout << "[" << r << ", " << e << "]";
+                    cout << endl;
+                }
+            }
         }
         if((*nrun-self->NEval) >= self->RunPTS) self->NEval = *nrun;
         
-        if((isnan(result[0]) || isnan(result[1]) || isnan(epsabs[0]) || isnan(epsabs[1])) || (isinf(result[0]) || isinf(result[1]) || isinf(epsabs[0]) || isinf(epsabs[1]))) {
+        bool any_NAN_Inf = false;
+        for(int j=0; j<self->YDim; j++) {
+            if(isnan(result[j]) || isnan(epsabs[j]) || isinf(result[j]) || isinf(epsabs[j])) {
+                any_NAN_Inf = true;
+                break;
+            }
+        }
+        if(any_NAN_Inf) {
             self->NEval = *nrun;
             *nrun = self->MaxPTS + 1979;
             if(self->LastState>0) self->LastState = -1;
@@ -108,7 +132,14 @@ namespace HepLib::SD {
             return;
         }
         
-        if(epsabs[0] > 1E30*self->EpsAbs || epsabs[1] > 1E30*self->EpsAbs) {
+        bool any_Big = false;
+        for(int j=0; j<self->YDim; j++) {
+            if(epsabs[j] > 1E30*self->EpsAbs) {
+                any_Big = true;
+                break;
+            }
+        }
+        if(any_Big) {
             self->NEval = *nrun;
             *nrun = self->MaxPTS + 1979;
             if(self->LastState>0) self->LastState = -1;
@@ -116,19 +147,31 @@ namespace HepLib::SD {
             return;
         }
         
-        if((self->LastState == 0) || (epsabs[0]<=2*self->LastAbsErr[0] && epsabs[1]<=2*self->LastAbsErr[1])) {
-            self->LastResult[0] = result[0];
-            self->LastResult[1] = result[1];
-            self->LastAbsErr[0] = epsabs[0];
-            self->LastAbsErr[1] = epsabs[1];
+        bool all_Done = true;
+        for(int j=0; j<self->YDim; j++) {
+            if(epsabs[j] > 2*self->LastAbsErr[j] ) {
+                all_Done = false;
+                break;
+            }
+        }
+        if((self->LastState == 0) || all_Done) {
+            for(int j=0; j<self->YDim; j++) {
+                self->LastResult[j] = result[j];
+                self->LastAbsErr[j] = epsabs[j];
+            }
             self->LastState = 1;
             self->lastNRUN = *nrun;
             self->lastnNAN = self->nNAN;
         }
-
-        bool rExit = (epsabs[0] < self->EpsAbs+1E-50Q) || (epsabs[0] < fabs(result[0])*self->EpsRel+1E-50Q);
-        bool iExit = (epsabs[1] < self->EpsAbs+1E-50Q) || (epsabs[1] < fabs(result[1])*self->EpsRel+1E-50Q);
-        if(rExit && iExit && (*nrun)>self->MinPTS) {
+        
+        bool bExit = true;
+        for(int j=0; j<self->YDim; j++) {
+            if((epsabs[j] > self->EpsAbs+1E-50Q) && (epsabs[j] > fabs(result[j])*self->EpsRel+1E-50Q)) {
+                bExit = false;
+                break;
+            }
+        }
+        if(bExit && (*nrun)>self->MinPTS) {
             self->NEval = *nrun;
             *nrun = self->MaxPTS + 1979;
             return;
@@ -148,6 +191,8 @@ namespace HepLib::SD {
     }
 
     ex HCubatureMP::Integrate(size_t tn) {
+        if(LastResult.size()!=YDim) LastResult.resize(YDim);
+        if(LastAbsErr.size()!=YDim) LastAbsErr.resize(YDim);
         if(mpfr_buildopt_tls_p()<=0) throw Error("Integrate: mpfr_buildopt_tls_p()<=0.");
         mpfr_free_cache();
         auto pbit = mpfr::digits2bits(MPDigits);
@@ -157,7 +202,7 @@ namespace HepLib::SD {
         mpiEpsilon = complex<mpREAL>(0,mpfr::machine_epsilon()*100);
         
         unsigned int xdim = XDim;
-        unsigned int ydim = 2;
+        unsigned int ydim = YDim;
         mpREAL result[ydim], estabs[ydim];
 
         mpREAL xmin[xdim], xmax[xdim];
@@ -187,8 +232,12 @@ namespace HepLib::SD {
         int nok = Lib3_HCubatureMP::hcubature_v(ydim, Wrapper, this, xdim, xmin, xmax, _MinPTS_, _RunPTS_, MaxPTS, EpsAbs, EpsRel, result, estabs, tn==0 ? PrintHooker : NULL);
 
         if(nok) {
-            mpREAL abs_res = sqrt(result[0]*result[0]+result[1]*result[1]);
-            mpREAL abs_est = sqrt(estabs[0]*estabs[0]+estabs[1]*estabs[1]);
+            mpREAL abs_res = 0;
+            for(int j=0; j<ydim; j++) abs_res += result[j]*result[j];
+            abs_res = sqrt(abs_res);
+            mpREAL abs_est = 0;
+            for(int j=0; j<ydim; j++) abs_est += estabs[j]*estabs[j];
+            abs_est = sqrt(abs_est);
             mpREAL mpfr_eps = 10*mpfr::machine_epsilon();
             if( (abs_res < mpfr_eps) && (abs_est < mpfr_eps) ) {
                 cout << ErrColor << "HCubatureMP Failed with 0 result returned!" << RESET << endl;
@@ -197,22 +246,34 @@ namespace HepLib::SD {
         }
 
         if(LastState==-1 && use_last) {
-            result[0] = LastResult[0];
-            result[1] = LastResult[1];
-            estabs[0] = LastAbsErr[0];
-            estabs[1] = LastAbsErr[1];
+            for(int j=0; j<ydim; j++) {
+                result[j] = LastResult[j];
+                estabs[j] = LastAbsErr[j];
+            }
             NEval = lastNRUN;
             nNAN = lastnNAN;
         }
         
         ex FResult = 0;
-        if(isnan(result[0]) || isnan(result[1])) FResult += NaN;
+        bool any_NAN = false;
+        for(int j=0; j<ydim; j++) {
+            if(isnan(result[j])) {
+                any_NAN = true;
+                break;
+            }
+        }
+        if(any_NAN) FResult = NaN;
         else {
             try{
-                FResult += VE(mp2ex(result[0]), mp2ex(estabs[0]));
-                FResult += VE(mp2ex(result[1]), mp2ex(estabs[1])) * I;
+                if(ydim==2) {
+                    FResult = VE(mp2ex(result[0]), mp2ex(estabs[0])) + VE(mp2ex(result[1]), mp2ex(estabs[1])) * I;
+                } else {
+                    lst res;
+                    for(int j=0; j<ydim; j++) res.append(VE(mp2ex(result[j]), mp2ex(estabs[j])));
+                    FResult = res;
+                }
             } catch(...) {
-                FResult += NaN;
+                FResult = NaN;
             }
         }
         

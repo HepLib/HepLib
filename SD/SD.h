@@ -154,6 +154,7 @@ namespace HepLib::SD {
         const mpREAL* mpLambda;
         const mpREAL* mpParameter;
         int XDim;
+        int YDim = 2;
         
         qREAL EpsAbs = 1E-5;
         qREAL EpsRel = 0;
@@ -195,8 +196,8 @@ namespace HepLib::SD {
         int NANMax = 250;
         int nNAN = 0;
         size_t lastNRUN = 0;
-        qREAL LastResult[2];
-        qREAL LastAbsErr[2];
+        vector<qREAL> LastResult;
+        vector<qREAL> LastAbsErr;
         int lastnNAN = 0;
         int LastState = 0;
         
@@ -224,8 +225,8 @@ namespace HepLib::SD {
         int nNAN = 0;
         bool use_last = false;
         size_t lastNRUN = 0;
-        mpREAL LastResult[2];
-        mpREAL LastAbsErr[2];
+        vector<mpREAL> LastResult;
+        vector<mpREAL> LastAbsErr;
         int lastnNAN = 0;
         int LastState = 0;        
     };
