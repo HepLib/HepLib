@@ -248,7 +248,7 @@ namespace HepLib::SD {
     };
     
     /**
-     * @brief numerical integrator using TanhSinhMP
+     * @brief numerical integrator using QuadMP
      */
     class QuadMP : public IntegratorBase {
     public:
@@ -259,6 +259,24 @@ namespace HepLib::SD {
         PrintHookerType PrintHooker = DefaultPrintHooker;
         QuadMP() { }
         QuadMP(size_t m) : mGK(m) { }
+        size_t nGK = 100;
+        size_t mGK = 10;
+    private:
+        ex mp2ex(const mpREAL & num);
+    };
+    
+    /**
+     * @brief almost the same as QuadMP, using vector to avoid stack overflow for large dimension in Y
+     */
+    class QuadMP_vec : public IntegratorBase {
+    public:
+        static int Wrapper(unsigned yn, mpREAL *y, mpREAL *e, unsigned xdim, const mpREAL *x, void *fdata);
+        typedef void (*PrintHookerType) (mpREAL*, mpREAL*, size_t *, void *);
+        virtual ex Integrate(size_t n=0) override;
+        static void DefaultPrintHooker(mpREAL *, mpREAL *, size_t *, void *);
+        PrintHookerType PrintHooker = DefaultPrintHooker;
+        QuadMP_vec() { }
+        QuadMP_vec(size_t m) : mGK(m) { }
         size_t nGK = 100;
         size_t mGK = 10;
     private:

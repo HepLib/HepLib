@@ -102,6 +102,17 @@ namespace HepLib {
                     }
                     gline = glmax;
                     return res;
+                } else if(is_a<power>(e)) {
+                    auto ee = e.op(0);
+                    auto nn = e.op(1);
+                    if(!ee.has(TR(w))) return e;
+                    if(!nn.info(info_flags::posint)) return e; // no need to handle negative powers
+                    ex res = 1;
+                    int pn = ex_to<numeric>(nn).to_int();
+                    for(int i=0; i<pn; i++) {
+                        res *= (*this)(ee);
+                    }
+                    return res;
                 } else return e.map(*this);
             }
             unsigned glmax = 0;

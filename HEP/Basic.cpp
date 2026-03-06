@@ -760,37 +760,36 @@ namespace HepLib {
             auto found = cache.find(ei);
             if(found!=cache.end()) return found->second;
         }
-        lst idx_lst;
-        MapFunction get_idx([&idx_lst](const ex & e, MapFunction & self)->ex{
-            if(!Index::has(e) || !Pair::has(e) || e.match(GMat(w1,w2,w3))) return 1; // skip GMat object
-            else if(is_a<Pair>(e)) {
-                if(is_a<Index>(e.op(0)) || is_a<Index>(e.op(1))) idx_lst.append(e);
-                return 1;
-            } else return e.map(self);
-        });
-        get_idx(ei);
-        idx_lst.sort();
-        idx_lst.unique();
-        if(idx_lst.nops()==0) return ei;
-        auto cvs = collect_lst(ei, idx_lst);
+        auto cvs = collect_lst(ei, [](const ex & e)->bool { return Index::has(e) && Pair::has(e); });
         ex res = 0;
         for(auto cv : cvs) {
-            auto c = cv.op(0);
-            auto v = form(cv.op(1)); // contract on itself
-            if(!Index::has(v)) res += c * v;
+            ex cc = cv.op(0);
+            auto es = cv.op(1);
+            es = exfactor(form(es)); // contract on itself
+            if(!is_a<mul>(es)) es = lst{ es };
+            ex vv = 1;
+            for(auto e : es) {
+                if(is_a<Pair>(e)) {
+                    if(is_a<Index>(e.op(0)) || is_a<Index>(e.op(1))) vv *= e;
+                    else cc *= e;
+                } else cc *= e;
+            }
+            vv = form(vv); // contract on itself
+            if(!Index::has(vv)) res += cc * vv;
             else {
-                if(!is_a<mul>(v)) v = lst{ v };
+                if(!is_a<mul>(vv)) vv = lst{ vv };
                 exmap repl;
                 ex r = 1; // uncontracted remained index
-                for(auto vi : v) {
+                for(auto vi : vv) {
                     if(!is_a<Pair>(vi)) r *= vi; // contract may result in a non-Pair object
-                    else if(is_a<Index>(vi.op(1)) && c.has(vi.op(1))) repl[vi.op(1)] = vi.op(0);
-                    else if(is_a<Index>(vi.op(0)) && c.has(vi.op(0))) repl[vi.op(0)] = vi.op(1);
+                    else if(is_a<Index>(vi.op(1)) && cc.has(vi.op(1))) repl[vi.op(1)] = vi.op(0);
+                    else if(is_a<Index>(vi.op(0)) && cc.has(vi.op(0))) repl[vi.op(0)] = vi.op(1);
                     else r *= vi;
                 }
-                res += r * c.subs(repl);
+                res += r * cc.subs(repl);
             }
         }
+                    
         res = res.subs(SP_map);
         if(GMat_using_cache) cache[ei] = res;
         return res;
@@ -880,7 +879,7 @@ namespace HepLib {
                                 }
                             }
                         } else v = item;
-                        
+
                         while(true) { // recursive replace ɣ.P * ɣ.P -> P^2 and ɣ.mu * ɣ.mu -> d @ v
                             bool to_exit = true;
                             if(is_a<ncmul>(v)) {
@@ -910,8 +909,10 @@ namespace HepLib {
                             }
                             if(to_exit) break;
                         }
-                        if(v.is_equal(1)) v = GAS(1); // identity matrix
-                        res += c * GMat(v, e.op(1), e.op(2));
+                        if(!c.is_zero()) {
+                            if(v.is_equal(1)) v = GAS(1); // identity matrix
+                            res += c * GMat(v, e.op(1), e.op(2));
+                        }
                     }
                     return res;
                 } else return e;

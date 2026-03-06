@@ -66,10 +66,12 @@ namespace HepLib {
                 }
                 return LC(pis[0], pis[1], pis[2], pis[3]) * cc;
             } else if(is_a<DGamma>(e)) {
-                Index idx(prefix+to_string(++lproj));
                 auto g = ex_to<DGamma>(e);
                 if(!is_equal_any(g.pi,loop_ps)) return e;
-                else return DGamma(idx, g.rl) * SP(g.pi, idx, false);
+                else {
+                    Index idx(prefix+to_string(++lproj));
+                    return DGamma(idx, g.rl) * SP(g.pi, idx, false);
+                }
             } else if (e.match(TR(w))) {
                 auto ret = self(e.op(0));
                 auto cvs = collect_lst(ret, loop_ps);
