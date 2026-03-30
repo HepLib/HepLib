@@ -668,6 +668,7 @@ namespace HepLib {
         lst Internal;
         lst External;
         lst Replacement = lst{ };
+        lst xReplacement = lst{ };
         int Precision = 35;
         int Order = 0;
         void Export(const ex & expr, const string & dir);

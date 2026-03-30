@@ -782,8 +782,13 @@ namespace HepLib {
                 ex r = 1; // uncontracted remained index
                 for(auto vi : vv) {
                     if(!is_a<Pair>(vi)) r *= vi; // contract may result in a non-Pair object
-                    else if(is_a<Index>(vi.op(1)) && cc.has(vi.op(1))) repl[vi.op(1)] = vi.op(0);
-                    else if(is_a<Index>(vi.op(0)) && cc.has(vi.op(0))) repl[vi.op(0)] = vi.op(1);
+                    else if(is_a<Index>(vi.op(1)) && cc.has(vi.op(1))) {
+                        if(repl.find(vi.op(1))!=repl.end()) throw Error("Error: repl");
+                        repl[vi.op(1)] = vi.op(0);
+                    } else if(is_a<Index>(vi.op(0)) && cc.has(vi.op(0))) {
+                        if(repl.find(vi.op(0))!=repl.end()) throw Error("Error: repl");
+                        repl[vi.op(0)] = vi.op(1);
+                    }
                     else r *= vi;
                 }
                 res += r * cc.subs(repl);

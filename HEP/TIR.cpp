@@ -40,8 +40,9 @@ namespace HepLib {
         
     }
     
-    ex UnContract(const ex expr, const lst &loop_ps, const lst &ext_ps) {
+    ex UnContract(const ex expr_in, const lst &loop_ps, const lst &ext_ps) {
         // handle Eps/DGamma/Pair and related power
+        ex expr = GMatExpand(expr_in);
         int lproj = 0;
         return MapFunction([&lproj,loop_ps,ext_ps](const ex &e, MapFunction &self)->ex {
             string prefix = "HIdx";
@@ -120,10 +121,16 @@ namespace HepLib {
      */
     ex TIR(const ex &expr_in, const lst &loop_ps, const lst &ext_ps) {
         for(auto pi : loop_ps) {
-            if(!is_a<Vector>(pi)) throw Error("TIR invalid 2nd argument");
+            if(!is_a<Vector>(pi)) {
+                cout << "loop_ps: " << loop_ps << endl;
+                throw Error("TIR invalid 2nd argument");
+            }
         }
         for(auto pi : ext_ps) {
-            if(!is_a<Vector>(pi)) throw Error("TIR invalid 3rd argument");
+            if(!is_a<Vector>(pi)) {
+                cout << "ext_ps: " << ext_ps << endl;
+                throw Error("TIR invalid 3rd argument");
+            }
         }
         
         Fermat &fermat = Fermat::get();

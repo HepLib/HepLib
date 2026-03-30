@@ -397,23 +397,57 @@ int main(int argc, char ** argv) {
     Verbose = 100;
     lst Replacement = str2lst("<<Replacement>>");
     
-    string n = "res";
-    if(argc>1) n = string(argv[1]);
+    string arg_n = "r";
+    string arg_o = ".";
+    string arg_x = "<<xReplacement>>";
+    // handle options
+    for (int opt; (opt = getopt(argc, argv, "a:n:o:x:")) != -1;) {
+        switch (opt) {
+            case 'n': arg_n = optarg; break;
+            case 'o': arg_o = optarg; break;
+            case 'x': arg_x = optarg; break;
+            default:
+                cout << "----------------------------------------" << endl;
+                cout << "Supported options: -n N -o O -x X" << endl;
+                cout << "----------------------------------------" << endl;
+                cout << "N: the index, r or res to get total result." << endl;
+                cout << "O: output directory, default is current directory." << endl;
+                cout << "X: the xReplacement." << endl;
+                cout << "----------------------------------------" << endl;
+                exit(1);
+        }
+    }
+    argc -= optind;
+    argv += optind;
+    cout << "----------------------------------------" << endl;
+    cout << "Current options:" << endl;
+    cout << "----------------------------------------" << endl;
+    cout << "arg_n: " << arg_n << endl;
+    cout << "arg_o: " << arg_o << endl;
+    cout << "arg_x: " << arg_x << endl;
+    cout << "----------------------------------------" << endl;
+    
+    lst xReplacement = str2lst(arg_x);
+    for(auto item : xReplacement) Replacement.append(item);
     map<string,ex> data;
     garRead("data.gar", data);
     int tot = ex2int(data["total"]);
     
-    if(n=="res") {
+    if(!dir_exists(arg_o) && arg_o!="./" && arg_o!=".") system(("mkdir -p "+arg_o).c_str());
+    
+    string n = arg_n;
+    if(n=="res" || n=="r") {
         ex res = data["res"];
         lst rules;
         for(int i=0; i<tot; i++) {
-            ex ri = file2ex(to_string(i)+".out");
+            ex ri = file2ex(arg_o+"/"+to_string(i)+".out");
             for(auto item : ri) rules.append(item);
         }
         res = res.subs(rules).subs(Replacement).subs(d==4-2*ep);
         res = series_ex(res,ep,ex2int(data["Order"]));
         res = collect_ex(res, lst{ ep });
         res = chop(res, str2ex("1E-15"));
+        ex2file(res, arg_o+"/res.out");
         cout << endl << res << endl << endl;
         return 0;
     }
@@ -438,7 +472,7 @@ int main(int argc, char ** argv) {
         rules.append(F(pn, amf.Integral.op(i)) == amf.NIntegral.op(i));
     }
     
-    ex2file(rules, n+".out");
+    ex2file(rules, arg_o+"/"+n+".out");
         
     return 0;
 
@@ -448,6 +482,7 @@ int main(int argc, char ** argv) {
         string w_cpp = cpp;
         system(("mkdir -p "+dir).c_str());
         string_replace_all(w_cpp, "<<Replacement>>", ex2str(Replacement));
+        string_replace_all(w_cpp, "<<xReplacement>>", ex2str(xReplacement));
         str2file(w_cpp, dir+"/AMF.cpp");
 
         map<string, ex> data_export;
@@ -513,7 +548,7 @@ int main(int argc, char ** argv) {
         
         garWrite(dir+"/data.gar", data_export);
         
-        str2file("heplib++ -o AMF AMF.cpp\nseq 0 "+to_string(tot-1)+" | parallel -j 4 ./AMF {}\n./AMF res\n", dir+"/run.sh");
+        str2file("heplib++ -o AMF AMF.cpp\nseq 0 "+to_string(tot-1)+" | parallel -j 4 ./AMF -n {}\n./AMF\n", dir+"/run.sh");
                 
     }
 

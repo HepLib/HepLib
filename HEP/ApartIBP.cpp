@@ -170,9 +170,7 @@ namespace HepLib {
             for(int i=0; i<av_size; i++) {
                 lst av_item;
                 lst cvs  = ex_to<lst>(air_vec[i]);
-                air_vec[i] = av_item;
-                for(auto & cv : cvs) av_item.append(lst{cv.op(0), v2api[cv.op(1)]});
-                cvs.remove_all();
+                for(auto & cv : cvs) av_item.append(lst{cv.op(0).subs(iEpsilon==0,nopat), v2api[cv.op(1)]}); // set iEpsilon to 0 in coefficients
                 air_vec[i] = av_item;
             }
             v2api.clear();
