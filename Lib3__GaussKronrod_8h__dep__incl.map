@@ -1,0 +1,11 @@
+<map id="/home/runner/work/HepLib/HepLib/SD/Lib3_GaussKronrod.h" name="/home/runner/work/HepLib/HepLib/SD/Lib3_GaussKronrod.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="97,5,332,45"/>
+<area shape="rect" id="Node000002" href="$Lib3__GK_8h.html" title=" " alt="" coords="7,93,201,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="181,56,130,95,127,91,178,52"/>
+<area shape="rect" id="Node000004" href="$Lib3__GK__vec_8h.html" title=" " alt="" coords="228,93,423,133"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="252,52,302,91,299,95,249,56"/>
+<area shape="rect" id="Node000003" href="$QuadMP_8cpp.html" title="Numerical Integrator using QuadMP." alt="" coords="5,181,200,221"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="106,147,106,181,100,181,101,147"/>
+<area shape="rect" id="Node000005" href="$QuadMP__vec_8cpp.html" title="Numerical Integrator using QuadMP_vec." alt="" coords="224,181,432,221"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="329,147,330,181,325,181,324,147"/>
+</map>

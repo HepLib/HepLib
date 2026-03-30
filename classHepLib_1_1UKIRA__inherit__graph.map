@@ -1,0 +1,5 @@
+<map id="HepLib::UKIRA" name="HepLib::UKIRA">
+<area shape="rect" id="Node000001" title="IBP reduction using KIRA program with user&#45;defined equations." alt="" coords="5,79,121,104"/>
+<area shape="rect" id="Node000002" href="$classHepLib_1_1IBP.html" title="IBP base class for IBP reduction." alt="" coords="15,5,111,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="66,44,66,79,61,79,61,44"/>
+</map>
